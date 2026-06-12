@@ -45,6 +45,7 @@
 | [Hard Numeric Runtime Closure (2026-06-11)](#hard-numeric-runtime-closure-2026-06-11) | 5문항 hard numeric replay | ROE average-equity, margin-drag aggregate binding, late ratio refresh 이후 hard set 5 / 5 numeric PASS |
 | [Hard Structural-vs-Plain Replay (2026-06-11)](#hard-structural-vs-plain-replay-2026-06-11) | 같은 hard set의 structural vs plain 비교 | structural 5 / 5, plain 4 / 5; `SKH_T1_060` row binding이 separating failure |
 | [Curated Single-Doc Core Full Eval (2026-06-12)](#curated-single-doc-core-full-eval-2026-06-12) | 삼성/네이버/현대차 15문항 broader eval-only | all companies error `0.0%`, faithfulness/completeness `1.000`; exclusive narrative loop fixed |
+| [CEL_T1_038 Unit and Final Answer Consistency (2026-06-12)](#cel_t1_038-unit-and-final-answer-consistency-2026-06-12) | margin-drag focused regression | claim-visible `원` unit is preserved through lookup capture, late ratio projection, and query-focused final answer selection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -133,6 +134,84 @@ Question-level low signals:
 - The remaining work is quality-oriented evidence projection for refusal and
   out-of-scope questions. It should be addressed through generic evidence
   preservation / evaluator alignment, not benchmark-specific runtime rules.
+
+## CEL_T1_038 Unit and Final Answer Consistency (2026-06-12)
+
+참조:
+
+- profile:
+  `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
+- focused local result bundle:
+  `benchmarks/results/cel_t1_038_unit_repair_check_2026-06-12/`
+
+### Context
+
+`CEL_T1_038` is the hard margin-drag case: compute how much amortization
+expense lowers operating margin. The correct target answer is approximately
+`8.36%p` from `182,049,824천원 / 2,176,431,531,380원`.
+
+The regression was not a missing-retrieval problem alone. The pipeline could
+recover the right source value, but the final answer contract let stale unit
+state survive:
+
+- numeric extractor evidence represented revenue as
+  `claim=2,176,431,531,380 (원)` and
+  `quote_span=2,176,431,531,380`
+- lookup slot capture kept an existing table metadata unit `천원` because the
+  value-local `원` unit lived only in the claim surface
+- downstream ratio traces could recover `8.36%p`, but aggregate synthesis still
+  preserved a stale `0.01%p` top-level answer in some runs
+- when corrected, the final answer could still include a support subtask
+  (`영업이익률 29.93%`) that was not the user's target metric
+
+### Code / Contract Change
+
+- Lookup slot refinement now considers claim-visible value-local units when the
+  quote span contains only the raw number.
+- Operand normalization repairs source-visible units from rendered/source
+  surfaces and rejects implausible same-unit KRW ratio scales.
+- Late aggregate alignment re-runs lookup unit alignment and dependency
+  projection after source-task / evidence preservation steps.
+- Final answer consistency now prefers the completed numeric subtask whose
+  metric and operand focus best matches the user query, instead of concatenating
+  every support numeric subtask.
+- `operating_margin_drag` ontology policy now requires an exact
+  amortization-expense surface contract for the numerator, keeping goodwill /
+  accumulated amortization rows out of direct matches.
+- No company name, benchmark id, or report-specific runtime branch was added.
+
+### Result
+
+Focused final run:
+
+| Question | Numeric judgement | Final answer |
+| --- | --- | --- |
+| `CEL_T1_038` | `PASS` | `2023년 영업이익률 감소 영향은 8.36%p입니다. 계산: 무형자산상각비 182,049,824천원 / 매출액 2,176,431,531.38천원.` |
+
+Quality signals:
+
+- faithfulness `1.000`
+- completeness `1.000`
+- numeric grounding `1.000`
+- unit consistency `1.000`
+- error rate `0.0%`
+
+### Validation
+
+- focused operation/subtask regression tests: OK
+- `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with `216`
+  reviewed literals
+- `git diff --check`: passed
+- heartbeat-monitored focused benchmark: `PASS`
+
+### Interpretation
+
+This fix is a runtime-contract closure rather than a benchmark answer patch.
+The key lesson is that final answer correctness depends on preserving
+source-visible unit evidence across three boundaries: lookup capture,
+dependency ratio projection, and final aggregate answer selection. The
+deterministic calculator can only protect arithmetic once the operand slots
+carry the correct source unit.
 
 ## Hard Numeric Runtime Closure (2026-06-11)
 

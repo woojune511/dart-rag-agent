@@ -551,6 +551,75 @@ class OperationContractTests(unittest.TestCase):
         values_by_role = {row["matched_operand_role"]: row["raw_value"] for row in filtered}
         self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
 
+    def test_operating_margin_drag_numerator_requires_exact_surface_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
+        required_operands = [
+            row
+            for row in ontology.build_operand_spec("operating_margin_drag")
+            if str(row.get("role") or "") == "numerator"
+        ]
+        self.assertEqual(len(required_operands), 1)
+        self.assertTrue(
+            (required_operands[0].get("binding_policy") or {}).get("require_surface_contract_for_direct_match")
+        )
+
+        evidence_items = [
+            {
+                "evidence_id": "ev_asset",
+                "claim": "무형자산 3,952,108,690",
+                "quote_span": "무형자산 3,952,108,690",
+                "metadata": {
+                    "table_source_id": "table:intangible_assets",
+                    "table_value_labels_text": "무형자산 3,952,108,690",
+                },
+            },
+            {
+                "evidence_id": "ev_expense",
+                "claim": "무형자산상각비 182,049,824",
+                "quote_span": "무형자산상각비 182,049,824",
+                "metadata": {
+                    "table_source_id": "table:expense_by_nature",
+                    "table_value_labels_text": "무형자산상각비 182,049,824",
+                },
+            },
+        ]
+        candidate_rows = [
+            {
+                "evidence_id": "ev_asset",
+                "label": "무형자산상각비",
+                "matched_operand_label": "무형자산상각비",
+                "matched_operand_role": "numerator",
+                "matched_operand_concept": "amortization_expense",
+                "raw_value": "3,952,108,690",
+                "raw_unit": "천원",
+                "normalized_value": 3952108690000.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "evidence_id": "ev_expense",
+                "label": "무형자산상각비",
+                "matched_operand_label": "무형자산상각비",
+                "matched_operand_role": "numerator",
+                "matched_operand_concept": "amortization_expense",
+                "raw_value": "182,049,824",
+                "raw_unit": "천원",
+                "normalized_value": 182049824000.0,
+                "normalized_unit": "KRW",
+            },
+        ]
+
+        filtered = agent._filter_operand_rows_by_required_surface_contract(
+            candidate_rows,
+            evidence_items,
+            required_operands,
+            require_direct_support=True,
+        )
+
+        self.assertEqual(len(filtered), 1)
+        self.assertEqual(filtered[0]["evidence_id"], "ev_expense")
+        self.assertEqual(filtered[0]["raw_value"], "182,049,824")
+
     def test_ratio_coherent_context_rows_can_be_recovered_from_retrieved_docs(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
@@ -3287,6 +3356,22 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(unit, "억원")
 
+    def test_operand_unit_coercion_overrides_current_krw_unit_with_value_local_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence_item = {
+            "claim": "segment revenue 2,176,431,531,380 (원)",
+            "quote_span": "2,176,431,531,380",
+            "metadata": {"unit_hint": "천원"},
+        }
+
+        unit = agent._coerce_operand_unit_from_evidence(
+            raw_value="2,176,431,531,380",
+            raw_unit="천원",
+            evidence_item=evidence_item,
+        )
+
+        self.assertEqual(unit, "원")
+
     def test_structured_direct_operand_row_uses_value_local_unit_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         row = {
@@ -3311,6 +3396,30 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(coerced["raw_unit"], "억원")
         self.assertEqual(coerced["normalized_value"], 676900000000.0)
+        self.assertEqual(coerced["normalized_unit"], "KRW")
+
+    def test_structured_direct_operand_row_repairs_current_unit_from_source_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "operand_id": "op_001",
+            "evidence_id": "ev_direct",
+            "label": "segment revenue",
+            "raw_value": "2,176,431,531,380",
+            "raw_unit": "천원",
+            "normalized_value": 2176431531380000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "evidence_id": "ev_direct",
+            "claim": "segment revenue 2,176,431,531,380 (원)",
+            "quote_span": "2,176,431,531,380",
+            "metadata": {"unit_hint": "천원"},
+        }
+
+        coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
+
+        self.assertEqual(coerced["raw_unit"], "원")
+        self.assertEqual(coerced["normalized_value"], 2176431531380.0)
         self.assertEqual(coerced["normalized_unit"], "KRW")
 
     def test_execution_repairs_generated_krw_unit_from_table_metadata(self) -> None:
@@ -3423,6 +3532,29 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(refined["normalized_value"], 676900000000.0)
         self.assertEqual(refined["rendered_value"], "6,769억원")
 
+    def test_lookup_slot_refinement_uses_claim_unit_when_quote_span_has_value_only(self) -> None:
+        slot = {
+            "status": "ok",
+            "role": "primary_value",
+            "label": "매출액",
+            "raw_value": "2,176,431,531,380",
+            "raw_unit": "천원",
+            "normalized_value": 2176431531380000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "2,176,431,531,380천원",
+        }
+        evidence = {
+            "claim": "2,176,431,531,380 (원)",
+            "quote_span": "2,176,431,531,380",
+            "metadata": {"unit_hint": "천원"},
+        }
+
+        refined = _refine_lookup_slot_unit_from_evidence(slot, evidence)
+
+        self.assertEqual(refined["raw_unit"], "원")
+        self.assertEqual(refined["normalized_value"], 2176431531380.0)
+        self.assertEqual(refined["rendered_value"], "2,176,431,531,380원")
+
     def test_lookup_slot_refinement_does_not_treat_adjacent_number_as_unit(self) -> None:
         slot = {
             "status": "ok",
@@ -3444,6 +3576,51 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(refined["raw_unit"], "백만원")
         self.assertEqual(refined["normalized_value"], 2163234000000.0)
+
+    def test_preferred_complete_numeric_answer_prioritizes_query_matching_metric(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        target_row = {
+            "task_id": "task_1",
+            "metric_label": "영업이익률 감소 영향",
+            "operation_family": "ratio",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "8.36%p",
+                "formatted_result": "영업이익률 감소 영향은 8.36%p입니다.",
+                "answer_slots": {
+                    "components_by_group": {
+                        "numerator": [{"raw_value": "182,049,824", "raw_unit": "천원"}],
+                        "denominator": [{"raw_value": "2,176,431,531,380", "raw_unit": "원"}],
+                    }
+                },
+            },
+        }
+        support_row = {
+            "task_id": "task_2",
+            "metric_label": "영업이익률",
+            "operation_family": "ratio",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "29.93%",
+                "formatted_result": "영업이익률은 29.93%입니다.",
+                "answer_slots": {
+                    "components_by_group": {
+                        "numerator": [{"raw_value": "651,481,422,157", "raw_unit": "원"}],
+                        "denominator": [{"raw_value": "2,176,431,531,380", "raw_unit": "원"}],
+                    }
+                },
+            },
+        }
+
+        answer = agent._preferred_complete_numeric_answer(
+            [target_row, support_row],
+            query="영업이익률 감소 영향을 계산해 줘",
+        )
+
+        self.assertIn("8.36%p", answer)
+        self.assertNotIn("29.93%", answer)
 
     def test_lookup_direct_support_accepts_raw_value_with_embedded_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -5634,6 +5811,174 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(calc["status"], "ok")
         self.assertAlmostEqual(calc["result_value"], 8.3646014776, places=6)
         self.assertEqual(calc["rendered_value"], "8.36%p")
+
+    def test_ratio_recomputes_operand_scale_from_source_visible_rendered_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
+        required_operands = ontology.build_operand_spec("operating_margin_drag")
+        state = {
+            "query": "무형자산상각비가 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+            "active_subtask": {
+                "task_id": "task_margin_drag",
+                "metric_family": "operating_margin_drag",
+                "metric_label": "영업이익률 감소 영향",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_amortization",
+                    "evidence_id": "row_amortization",
+                    "label": "무형자산상각비",
+                    "matched_operand_label": "무형자산상각비",
+                    "matched_operand_concept": "amortization_expense",
+                    "matched_operand_role": "numerator",
+                    "raw_value": "182,049,824",
+                    "raw_unit": "원",
+                    "normalized_value": 182049824.0,
+                    "normalized_unit": "KRW",
+                    "rendered_value": "182,049,824천원",
+                    "period": "2023",
+                },
+                {
+                    "operand_id": "op_revenue",
+                    "evidence_id": "row_revenue",
+                    "label": "매출액",
+                    "matched_operand_label": "매출액",
+                    "matched_operand_concept": "revenue",
+                    "matched_operand_role": "denominator",
+                    "raw_value": "2,176,431,531,380",
+                    "raw_unit": "원",
+                    "normalized_value": 2176431531380.0,
+                    "normalized_unit": "KRW",
+                    "rendered_value": "2,176,431,531,380원",
+                    "period": "2023",
+                },
+            ],
+            "artifacts": [],
+            "tasks": [],
+        }
+
+        plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
+        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+        trace = _resolve_runtime_calculation_trace(execution_result)
+        calc = trace["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertAlmostEqual(calc["result_value"], 8.364601478, places=6)
+        self.assertEqual(calc["rendered_value"], "8.36%p")
+        repaired_operand = next(row for row in trace["calculation_operands"] if row["operand_id"] == "op_amortization")
+        self.assertEqual(repaired_operand["raw_unit"], "천원")
+        self.assertEqual(repaired_operand["normalized_value"], 182049824000.0)
+        self.assertTrue(repaired_operand["unit_repaired_from_rendered_value"])
+
+    def test_ratio_recomputes_operand_scale_from_embedded_raw_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
+        required_operands = ontology.build_operand_spec("operating_margin_drag")
+        state = {
+            "query": "무형자산상각비가 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+            "active_subtask": {
+                "task_id": "task_margin_drag",
+                "metric_family": "operating_margin_drag",
+                "metric_label": "영업이익률 감소 영향",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_amortization",
+                    "evidence_id": "task_output:amortization",
+                    "label": "무형자산상각비",
+                    "matched_operand_label": "무형자산상각비",
+                    "matched_operand_concept": "amortization_expense",
+                    "matched_operand_role": "numerator",
+                    "raw_value": "182,049,824천원",
+                    "raw_unit": "천원",
+                    "normalized_value": 182049824.0,
+                    "normalized_unit": "KRW",
+                    "rendered_value": "182,049,824천원",
+                    "period": "2023",
+                },
+                {
+                    "operand_id": "op_revenue",
+                    "evidence_id": "row_revenue",
+                    "label": "매출액",
+                    "matched_operand_label": "매출액",
+                    "matched_operand_concept": "revenue",
+                    "matched_operand_role": "denominator",
+                    "raw_value": "2,176,431,531,380",
+                    "raw_unit": "원",
+                    "normalized_value": 2176431531380.0,
+                    "normalized_unit": "KRW",
+                    "rendered_value": "2,176,431,531,380원",
+                    "period": "2023",
+                },
+            ],
+            "artifacts": [],
+            "tasks": [],
+        }
+
+        plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
+        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+        trace = _resolve_runtime_calculation_trace(execution_result)
+        calc = trace["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertAlmostEqual(calc["result_value"], 8.364601478, places=6)
+        self.assertEqual(calc["rendered_value"], "8.36%p")
+        repaired_operand = next(row for row in trace["calculation_operands"] if row["operand_id"] == "op_amortization")
+        self.assertEqual(repaired_operand["raw_unit"], "천원")
+        self.assertEqual(repaired_operand["normalized_value"], 182049824000.0)
+
+    def test_ratio_rejects_implausible_same_unit_krw_percent_result(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
+        required_operands = ontology.build_operand_spec("operating_margin_drag")
+        state = {
+            "query": "무형자산상각비가 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+            "active_subtask": {
+                "task_id": "task_margin_drag",
+                "metric_family": "operating_margin_drag",
+                "metric_label": "영업이익률 감소 영향",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "calculation_operands": [
+                {
+                    "operand_id": "op_amortization",
+                    "evidence_id": "row_amortization",
+                    "label": "무형자산상각비",
+                    "matched_operand_label": "무형자산상각비",
+                    "matched_operand_concept": "amortization_expense",
+                    "matched_operand_role": "numerator",
+                    "raw_value": "3,952,108,690,000,000,000",
+                    "raw_unit": "원",
+                    "normalized_value": 3.95210869e18,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+                {
+                    "operand_id": "op_revenue",
+                    "evidence_id": "row_revenue",
+                    "label": "매출액",
+                    "matched_operand_label": "매출액",
+                    "matched_operand_concept": "revenue",
+                    "matched_operand_role": "denominator",
+                    "raw_value": "2,176,431,531,380",
+                    "raw_unit": "원",
+                    "normalized_value": 2176431531380.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                },
+            ],
+            "artifacts": [],
+            "tasks": [],
+        }
+
+        plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
+        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+        calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
+        self.assertEqual(calc["status"], "scale_mismatch")
+        self.assertEqual(calc["rendered_value"], "")
 
     def test_dependency_aggregate_policy_blocks_detail_context_replacement(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

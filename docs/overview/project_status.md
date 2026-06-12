@@ -50,6 +50,49 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest CEL Margin-Drag Unit/Answer Consistency Closure
+
+- Run date: 2026-06-12
+- Focused case: `CEL_T1_038`
+- Profile: `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
+- Local result bundle:
+  `benchmarks/results/cel_t1_038_unit_repair_check_2026-06-12/`
+- Final user-facing answer:
+  `2023년 영업이익률 감소 영향은 8.36%p입니다. 계산: 무형자산상각비 182,049,824천원 / 매출액 2,176,431,531.38천원.`
+- Result: numeric final judgement `PASS`; faithfulness, completeness,
+  numeric grounding, and unit consistency all `1.000`.
+
+Root cause:
+
+- Numeric extractor evidence may preserve a value-local unit only in `claim`
+  while `quote_span` contains the number alone, for example
+  `2,176,431,531,380 (원)`.
+- Lookup capture previously kept the table metadata unit when a current unit was
+  already present, so revenue could be carried forward as
+  `2,176,431,531,380천원`.
+- Late aggregate synthesis could then leave a stale top-level answer even after
+  downstream ratio traces recovered the corrected `8.36%p` result.
+
+Runtime contract change:
+
+- Lookup slot refinement now considers source-visible claim units when the
+  quote span contains only the value.
+- Late lookup/source-task alignment can repair final ratio traces from
+  corrected source task slots and refresh the aggregate answer.
+- Final numeric selection is query-focused: when multiple completed numeric
+  subtasks exist, the answer composer prioritizes the subtask whose metric and
+  operand focus best matches the user query, instead of always concatenating
+  support subtasks.
+- No company name, benchmark id, or report-specific runtime branch was added.
+
+Validation:
+
+- focused operation/subtask regression tests: OK
+- `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with `216`
+  reviewed literals
+- `git diff --check`: passed
+- focused CEL benchmark with heartbeat: `PASS`
+
 ### Latest Broader Curated Full Eval
 
 - Run date: 2026-06-12

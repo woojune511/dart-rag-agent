@@ -150,9 +150,20 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
             ]
         )
     )
-    text = direct_text if current_unit and current_normalized_unit not in {"", "UNKNOWN"} else _normalise_spaces(
-        f"{direct_text} {claim_text} {metadata_text}"
-    )
+    text_parts = [direct_text]
+    if (
+        not current_unit
+        or current_normalized_unit in {"", "UNKNOWN"}
+        or (
+            claim_text
+            and raw_value in claim_text
+            and (not current_unit or current_unit not in claim_text)
+        )
+    ):
+        text_parts.append(claim_text)
+    if not current_unit or current_normalized_unit in {"", "UNKNOWN"}:
+        text_parts.append(metadata_text)
+    text = _normalise_spaces(" ".join(part for part in text_parts if part))
 
     def _update_with_unit(unit_text: str) -> Optional[Dict[str, Any]]:
         evidence_unit = _normalise_spaces(str(unit_text or "")).strip("()[]{}")
@@ -181,8 +192,11 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
                 updated = _update_with_unit(str(match.group("unit") or ""))
                 if updated:
                     return updated
-        match = re.search(rf"{re.escape(raw_value)}\s*([^\s|,)]+)", text)
-        if match:
+        for match in re.finditer(rf"{re.escape(raw_value)}\s*\(\s*([^)]+?)\s*\)", text):
+            updated = _update_with_unit(match.group(1))
+            if updated:
+                return updated
+        for match in re.finditer(rf"{re.escape(raw_value)}\s*([^\s|,)]+)", text):
             updated = _update_with_unit(match.group(1))
             if updated:
                 return updated

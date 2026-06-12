@@ -2596,6 +2596,147 @@ class SubtaskLoopTests(unittest.TestCase):
         ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
 
+    def test_aggregate_final_answer_refreshes_after_own_evidence_unit_alignment(self) -> None:
+        state = {
+            "query": "Calculate the margin drag from a numerator over revenue.",
+            "calc_subtasks": [
+                {"task_id": "task_num", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_den", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_num",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "answer": "target numerator 180 thousand",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "180천원",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "numerator",
+                                "label": "target numerator",
+                                "concept": "target_numerator",
+                                "raw_value": "180",
+                                "raw_unit": "천원",
+                                "normalized_value": 180_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "180천원",
+                                "source_row_id": "ev_num",
+                                "source_row_ids": ["ev_num"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_den",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "answer": "target denominator 2,000,000 thousand",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "2,000,000천원",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "denominator",
+                                "label": "target denominator",
+                                "concept": "target_denominator",
+                                "raw_value": "2,000,000",
+                                "raw_unit": "천원",
+                                "normalized_value": 2_000_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "2,000,000천원",
+                                "source_row_id": "ev_den",
+                                "source_row_ids": ["ev_den"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "margin drag",
+                    "operation_family": "ratio",
+                    "answer": "margin drag is 0.01%p.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 0.009,
+                        "result_unit": "%p",
+                        "rendered_value": "0.01%p",
+                        "formatted_result": "margin drag is 0.01%p.",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "margin drag",
+                            "components_by_group": {
+                                "numerator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator",
+                                        "label": "target numerator",
+                                        "concept": "target_numerator",
+                                        "raw_value": "180",
+                                        "raw_unit": "천원",
+                                        "normalized_value": 180_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "180천원",
+                                        "source_row_id": "task_output:task_num",
+                                        "source_row_ids": ["task_output:task_num", "ev_num"],
+                                    }
+                                ],
+                                "denominator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "denominator",
+                                        "label": "target denominator",
+                                        "concept": "target_denominator",
+                                        "raw_value": "2,000,000",
+                                        "raw_unit": "천원",
+                                        "normalized_value": 2_000_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "2,000,000천원",
+                                        "source_row_id": "task_output:task_den",
+                                        "source_row_ids": ["task_output:task_den", "ev_den"],
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_den",
+                    "claim": "target denominator 2,000,000 (원)",
+                    "quote_span": "2,000,000",
+                    "metadata": {"unit_hint": "천원"},
+                }
+            ],
+            "artifacts": [],
+            "tasks": [],
+        }
+        self.agent.llm = None
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("9.00%p", updated["answer"])
+        self.assertNotIn("0.01%p", updated["answer"])
+        self.assertIn("9.00%p", trace["calculation_result"]["formatted_result"])
+        denominator_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_den")
+        denominator_slot = denominator_row["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertEqual(denominator_slot["raw_unit"], "원")
+        ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
+        self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+
     def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
         original_execute = self.agent._execute_calculation
         calls = []
@@ -11403,6 +11544,175 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertTrue(rows[0]["unit_realigned_from_structured_provenance"])
         self.assertIn("node_1", rows[0]["source_row_ids"])
 
+    def test_dependency_row_preserves_source_visible_converted_unit_over_graph_hint(self) -> None:
+        self.agent.vector_store = type(
+            "Store",
+            (),
+            {
+                "_structure_graph": {
+                    "nodes": {
+                        "node_1": {
+                            "text": "target value 100",
+                            "metadata": {
+                                "company": "ExampleCo",
+                                "year": 2023,
+                                "report_type": "annual report",
+                                "rcept_no": "r1",
+                                "section_path": "Financial statements",
+                                "table_value_labels_text": "target value 100",
+                                "unit_hint": "백만원",
+                                "statement_type": "income_statement",
+                                "consolidation_scope": "consolidated",
+                                "table_source_id": "table_income",
+                            },
+                        }
+                    }
+                }
+            },
+        )()
+        state = {
+            "report_scope": {"year": 2023, "rcept_no": "r1"},
+            "query": "target value ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "operation_family": "ratio",
+                "inputs": [
+                    {
+                        "role": "denominator_1",
+                        "concept": "target_metric",
+                        "label": "target value",
+                        "preferred_task_id": "task_lookup",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    }
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_label": "target value",
+                    "operation_family": "lookup",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "100",
+                                "raw_unit": "원",
+                                "normalized_value": 100.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "100원",
+                                "source_row_id": "ev_lookup",
+                                "source_row_ids": ["ev_lookup"],
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_lookup",
+                    "claim": "target value 100원",
+                    "quote_span": "100원",
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "100")
+        self.assertEqual(rows[0]["raw_unit"], "원")
+        self.assertEqual(rows[0]["normalized_value"], 100.0)
+        self.assertFalse(rows[0].get("unit_realigned_from_structured_provenance", False))
+
+    def test_dependency_row_preserves_high_magnitude_converted_unit_without_rendered_display(self) -> None:
+        self.agent.vector_store = type(
+            "Store",
+            (),
+            {
+                "_structure_graph": {
+                    "nodes": {
+                        "node_1": {
+                            "text": "target value 651481422157",
+                            "metadata": {
+                                "company": "ExampleCo",
+                                "year": 2023,
+                                "report_type": "annual report",
+                                "rcept_no": "r1",
+                                "section_path": "Financial statements",
+                                "table_value_labels_text": "target value 651481422157",
+                                "unit_hint": "천원",
+                                "statement_type": "income_statement",
+                                "consolidation_scope": "consolidated",
+                                "table_source_id": "table_income",
+                            },
+                        }
+                    }
+                }
+            },
+        )()
+        state = {
+            "report_scope": {"year": 2023, "rcept_no": "r1"},
+            "query": "target value ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "operation_family": "ratio",
+                "inputs": [
+                    {
+                        "role": "numerator",
+                        "concept": "target_metric",
+                        "label": "target value",
+                        "preferred_task_id": "task_lookup",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    }
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_label": "target value",
+                    "operation_family": "lookup",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "651,481,422,157",
+                                "raw_unit": "원",
+                                "normalized_value": 651481422157.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "",
+                                "source_row_id": "ev_lookup",
+                                "source_row_ids": ["ev_lookup"],
+                            }
+                        },
+                    },
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_lookup",
+                    "claim": "target value 651,481,422,157",
+                    "quote_span": "651,481,422,157",
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_unit"], "원")
+        self.assertEqual(rows[0]["normalized_value"], 651481422157.0)
+        self.assertFalse(rows[0].get("unit_realigned_from_structured_provenance", False))
+
     def test_lookup_recovery_prefers_table_unit_hint_when_source_surface_has_no_unit(self) -> None:
         state = {
             "calc_subtasks": [
@@ -11460,6 +11770,65 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(slot["raw_unit"], "백만원")
         self.assertEqual(slot["normalized_value"], 2546649000000.0)
         self.assertEqual(slot["rendered_value"], "2,546,649백만원")
+
+    def test_lookup_recovery_preserves_claim_visible_unit_over_table_unit_hint(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "segment revenue",
+                            "concept": "revenue",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_direct",
+                    "claim": "segment revenue 2,546,649 (원)",
+                    "quote_span": "2,546,649",
+                    "metadata": {"unit_hint": "천원"},
+                }
+            ],
+        }
+        preferred_slot = {
+            "status": "ok",
+            "label": "segment revenue",
+            "concept": "revenue",
+            "period": "2023",
+            "raw_value": "2,546,649",
+            "raw_unit": "원",
+            "normalized_value": 2546649.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "2,546,649원",
+            "source_row_id": "ev_direct",
+            "source_row_ids": ["ev_direct"],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": {**preferred_slot, "source_row_id": "ev_weak"}},
+            },
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertEqual(slot["raw_unit"], "원")
+        self.assertEqual(slot["normalized_value"], 2546649.0)
+        self.assertEqual(slot["rendered_value"], "2,546,649원")
 
     def test_lookup_recovery_aligns_current_slot_unit_without_preferred_replacement(self) -> None:
         state = {

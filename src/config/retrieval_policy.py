@@ -609,6 +609,7 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
         "separate": "개별기준 ",
     },
     "ratio_answer_template": "{period_prefix}{metric_label}은 {rendered_value}입니다.",
+    "ratio_krw_suspicious_percent_threshold": 10000.0,
     "ratio_component_answer_template": (
         "{period_prefix}{metric_label}은 {rendered_value}입니다. "
         "계산: {numerator_label} {numerator_value} / {denominator_label} {denominator_value}."

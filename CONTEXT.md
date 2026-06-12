@@ -11,6 +11,35 @@
 
 ## 최신 상태
 
+- 2026-06-12 `CEL_T1_038` margin-drag regression을 다시 닫았다.
+  - root cause는 세 층이었다.
+    1. numeric extractor evidence가 `claim=2,176,431,531,380 (원)`,
+       `quote_span=2,176,431,531,380` 형태일 때 lookup slot capture가
+       이미 있던 table unit `천원`을 유지했다.
+    2. late aggregate / projection 단계에서 corrected lookup slot과
+       dependency ratio trace가 다시 동기화되지 않아 stale `0.01%p`
+       answer가 top-level로 남았다.
+    3. final aggregate answer가 target metric뿐 아니라 보조 `영업이익률`
+       subtask까지 함께 출력해 evaluator와 user-facing answer가 흔들렸다.
+  - 변경은 일반 계약으로 처리했다.
+    - claim-visible value-local unit을 lookup capture에서 보존한다.
+    - late evidence / source-task alignment 이후 ratio answer를 다시
+      projection하고 final answer를 corrected subtask trace와 일치시킨다.
+    - query와 operand focus가 가장 잘 맞는 numeric subtask를 final answer로
+      우선한다.
+  - focused benchmark:
+    `benchmarks/results/cel_t1_038_unit_repair_check_2026-06-12/`
+    - answer:
+      `2023년 영업이익률 감소 영향은 8.36%p입니다. 계산: 무형자산상각비 182,049,824천원 / 매출액 2,176,431,531.38천원.`
+    - numeric_final_judgement `PASS`
+    - faithfulness/completeness/numeric_grounding/unit_consistency
+      `1.000 / 1.000 / 1.000 / 1.000`
+  - 검증:
+    - `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with
+      `216` reviewed literals
+    - focused operation/subtask regression tests: OK
+    - `git diff --check`: passed
+
 - 2026-06-12 현재 `main`은 `origin/main`과 동기화되어 있다.
   - 최신 커밋:
     - `d5bfbc1 Tighten narrative evidence projection`

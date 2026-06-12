@@ -254,6 +254,20 @@
               "final",
               "subtotal",
               "direct"
+            ],
+            "require_surface_contract_for_direct_match": true,
+            "require_surface_contract_for_direct_lookup": true
+          },
+          "surface_contract": {
+            "positive": [
+              "무형자산상각비",
+              "무형자산 상각비",
+              "amortization expense"
+            ],
+            "negative": [
+              "영업권",
+              "상각누계액",
+              "손상누계액"
             ]
           },
           "preferred_sections": [
