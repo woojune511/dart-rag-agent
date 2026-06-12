@@ -9078,14 +9078,36 @@ def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> 
 def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, intent: str) -> List[str]:
     """Resolve section hints for the active task or top-level query."""
     _statement_types, query_sections = _infer_statement_and_section_hints(query)
-    narrative_policies = active_narrative_policies(" ".join(part for part in (query, topic) if part))
-    sections = list(query_sections)
-    sections.extend(
+    active_sections = [
         str(item).strip()
         for item in (dict(state.get("active_subtask") or {}).get("preferred_sections") or [])
         if str(item).strip()
-    )
-    sections.extend(_preferred_calc_sections(query, topic, intent))
+    ]
+    narrative_policies = active_narrative_policies(" ".join(part for part in (query, topic) if part))
+    if active_sections:
+        query_surface = _normalise_spaces(str(query or "")).lower()
+        query_section_hints = [
+            section
+            for section in query_sections
+            if (
+                _normalise_spaces(str(section or "")).lower() in query_surface
+                or (
+                    len(_normalise_spaces(str(section or "")).lower()) >= 4
+                    and any(
+                        token
+                        and len(token) >= 4
+                        and token in _normalise_spaces(str(section or "")).lower()
+                        for token in re.split(r"\s+|>|/", query_surface)
+                    )
+                )
+            )
+        ]
+    else:
+        query_section_hints = list(query_sections)
+    sections = list(query_section_hints)
+    sections.extend(active_sections)
+    if not active_sections:
+        sections.extend(_preferred_calc_sections(query, topic, intent))
     if narrative_policies:
         sections.extend(narrative_policy_preferred_sections(narrative_policies))
     return list(dict.fromkeys(sections))

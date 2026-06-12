@@ -83,6 +83,8 @@ def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Di
     trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
     if not candidate:
+        candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
+    if not candidate:
         return {
             "status": "not_available",
             "eligible": False,
@@ -122,6 +124,8 @@ def _report_cache_index_diagnostics_for_retrieval(
 
     trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
+    if not candidate:
+        candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
     key = candidate.get("key") if isinstance(candidate.get("key"), dict) else {}
     if not key:
         diagnostics = ReportCacheIndex(path_text).load_diagnostics()

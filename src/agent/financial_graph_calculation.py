@@ -2222,7 +2222,18 @@ class FinancialAgentCalculationMixin:
                     or any(source_id.startswith("task_output:") for source_id in operand_source_ids)
                 )
             )
-            return bool(dependency_backed_operand or _source_slot_structurally_stronger(source_slot) or not operand_source_ids)
+            source_slot_ids = _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
+            role = _normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or ""))
+            strong_source_slot_match = bool(
+                source_slot_ids
+                and _lookup_slot_match_score(source_slot, operand, role) >= 8
+            )
+            return bool(
+                dependency_backed_operand
+                or _source_slot_structurally_stronger(source_slot)
+                or not operand_source_ids
+                or strong_source_slot_match
+            )
 
         def _recalculate_row_from_source_slots(row: Dict[str, Any]) -> Dict[str, Any]:
             operation_family = self._aggregate_result_operation_family(row)
@@ -2310,7 +2321,7 @@ class FinancialAgentCalculationMixin:
                             source_task_id=source_task_id,
                         )
                     else:
-                        derived_operand = _operand_from_answer_slot(operand_seed, slot)
+                        continue
                     key = "|".join(
                         (
                             str(derived_operand.get("matched_operand_role") or ""),
