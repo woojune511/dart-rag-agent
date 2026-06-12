@@ -138,6 +138,70 @@ class SemanticNumericPlanTests(unittest.TestCase):
         self.assertTrue(any("보호무역주의 핵심원자재법 적극적인 대응" in query for query in queries))
         self.assertIn("IV. 이사의 경영진단 및 분석의견", narrative_task["preferred_sections"])
 
+    def test_forward_looking_forecast_query_uses_exclusive_narrative_task(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        state = {
+            "query": "2026년 1분기 예상 영업이익과 전기차 판매량을 예측해 줘.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "topic": "예상 영업이익과 전기차 판매량 예측",
+            "report_scope": {
+                "company": "현대자동차",
+                "year": 2023,
+            },
+            "planner_mode": "initial",
+            "planner_feedback": "",
+            "plan_loop_count": 0,
+            "target_metric_family": "",
+            "target_metric_family_hint": "",
+            "companies": ["현대자동차"],
+            "years": [2026],
+            "section_filter": None,
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = agent._plan_semantic_numeric_tasks(state)
+
+        self.assertEqual(result["semantic_plan"]["status"], "narrative_policy_exclusive")
+        self.assertEqual(len(result["calc_subtasks"]), 1)
+        narrative_task = result["calc_subtasks"][0]
+        self.assertEqual(narrative_task["operation_family"], "narrative_summary")
+        self.assertEqual(narrative_task["format_preference_override"], "paragraph")
+        self.assertIn("예측정보에 대한 주의사항", narrative_task["preferred_sections"])
+        self.assertTrue(any("예측정보 주의사항" in query for query in narrative_task["retrieval_queries"]))
+
+    def test_forward_looking_forecast_query_uses_exclusive_narrative_task_from_qa_intent(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._build_llm_concept_numeric_plan = lambda **_kwargs: None
+        state = {
+            "query": "2026년 1분기 예상 영업이익과 전기차 판매량을 예측해 줘.",
+            "query_type": "qa",
+            "intent": "qa",
+            "topic": "예상 영업이익과 전기차 판매량 예측",
+            "report_scope": {
+                "company": "현대자동차",
+                "year": 2023,
+            },
+            "planner_mode": "initial",
+            "planner_feedback": "",
+            "plan_loop_count": 0,
+            "target_metric_family": "",
+            "target_metric_family_hint": "",
+            "companies": ["현대자동차"],
+            "years": [2023, 2026],
+            "section_filter": None,
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        result = agent._plan_semantic_numeric_tasks(state)
+
+        self.assertEqual(result["semantic_plan"]["status"], "narrative_policy_exclusive")
+        self.assertEqual(result["active_subtask"]["operation_family"], "narrative_summary")
+        self.assertEqual(result["active_subtask"]["format_preference_override"], "paragraph")
+
     def test_qa_routed_ontology_numeric_lookup_promotes_to_numeric_plan(self) -> None:
         import src.config.ontology as ontology_module
         from src.config.ontology import FinancialOntologyManager

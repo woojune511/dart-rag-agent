@@ -498,7 +498,15 @@ def _build_hybrid_narrative_subtask(
         for group in narrative_policy_slot_groups(active_policies)
         if any(str(term).strip() and str(term).strip() in query for term in (group.get("query_terms") or []))
     ]
-    format_preference_override = (
+    policy_format_preference = next(
+        (
+            str(policy.get("format_preference_override") or "").strip().lower()
+            for policy in active_policies
+            if str(policy.get("format_preference_override") or "").strip().lower() in {"paragraph", "table"}
+        ),
+        "",
+    )
+    format_preference_override = policy_format_preference or (
         "table"
         if active_slot_groups or default_format_preference(intent) == "table"
         else "paragraph"
@@ -611,6 +619,13 @@ def _push_narrative_tasks_after_numeric(tasks: List[Dict[str, Any]]) -> List[Dic
     numeric_tasks = [task for task in ordered if not _is_narrative_summary_task(task)]
     narrative_tasks = [task for task in ordered if _is_narrative_summary_task(task)]
     return numeric_tasks + narrative_tasks
+
+
+def _exclusive_narrative_task_policy_active(query: str) -> bool:
+    return any(
+        bool(policy.get("exclusive_narrative_task"))
+        for policy in active_narrative_policies(query)
+    )
 
 
 def _non_numeric_operation_intent_override(query: str, topic: str, intent: str) -> tuple[str, str]:
@@ -1345,6 +1360,96 @@ class FinancialAgentPlanningMixin:
             seen_signatures.add(signature)
         return merged_tasks, accepted_patch_tasks
 
+    def _plan_exclusive_narrative_task(
+        self,
+        state: FinancialAgentState,
+        *,
+        query: str,
+        topic: str,
+        intent: str,
+        report_scope: Dict[str, Any],
+        plan_loop_count: int,
+    ) -> Dict[str, Any]:
+        if not _exclusive_narrative_task_policy_active(query):
+            return {}
+        narrative_task = _build_hybrid_narrative_subtask(
+            query=query,
+            intent=intent,
+            report_scope=report_scope,
+            next_task_id="task_1",
+        )
+        plan = {
+            "status": "narrative_policy_exclusive",
+            "fallback_to_general_search": False,
+            "planned_metric_families": ["narrative_summary"],
+            "tasks": [narrative_task],
+            "planner_notes": ["exclusive_narrative_task_policy"],
+        }
+        companies, years = self._align_scope_hints(
+            companies=list(state.get("companies") or []),
+            years=list(state.get("years") or []),
+            report_scope=report_scope,
+        )
+        retrieval_queries = [query]
+        retrieval_queries.extend(
+            str(item).strip()
+            for item in (narrative_task.get("retrieval_queries") or [])
+            if str(item).strip()
+        )
+        retrieval_queries = list(dict.fromkeys(item for item in retrieval_queries if item))
+        task_records = list(state.get("tasks") or [])
+        artifacts = list(state.get("artifacts") or [])
+        semantic_artifact_id = f"semantic_plan:{len(artifacts) + 1:03d}"
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=semantic_artifact_id,
+            task_id=str(narrative_task.get("task_id") or "semantic_plan"),
+            kind=ArtifactKind.SEMANTIC_PLAN,
+            status=str(plan.get("status") or "ok"),
+            summary="planned exclusive narrative task",
+            payload={"semantic_plan": plan, "retrieval_queries": retrieval_queries},
+        )
+        task_records = _upsert_task(
+            task_records,
+            task_id=str(narrative_task.get("task_id") or ""),
+            kind=TaskKind.CALCULATION,
+            label=str(narrative_task.get("metric_label") or narrative_task.get("metric_family") or "calculation"),
+            status=TaskStatus.PENDING,
+            query=str(narrative_task.get("query") or ""),
+            metric_family=str(narrative_task.get("metric_family") or ""),
+            constraints=dict(narrative_task.get("constraints") or {}),
+            artifact_id=semantic_artifact_id,
+        )
+        logger.info(
+            "[semantic_plan] exclusive narrative policy tasks=%s retrieval_queries=%s",
+            1,
+            len(retrieval_queries),
+        )
+        return {
+            "semantic_plan": plan,
+            "planner_mode": "initial",
+            "planner_feedback": "",
+            "plan_loop_count": plan_loop_count,
+            "companies": companies,
+            "years": years,
+            "topic": _normalise_spaces(str(topic or query)),
+            "section_filter": state.get("section_filter"),
+            "calc_subtasks": [narrative_task],
+            "planned_metric_families": ["narrative_summary"],
+            "retrieval_queries": retrieval_queries,
+            "active_subtask_index": 0,
+            "active_subtask": narrative_task,
+            "subtask_results": [],
+            "subtask_debug_trace": {
+                "status": plan.get("status"),
+                "task_count": 1,
+                "planner_notes": list(plan.get("planner_notes") or []),
+            },
+            "subtask_loop_complete": False,
+            "tasks": task_records,
+            "artifacts": artifacts,
+        }
+
     def _plan_semantic_numeric_tasks(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Build calculation subtasks or explicitly fall back to general search.
 
@@ -1374,6 +1479,17 @@ class FinancialAgentPlanningMixin:
                     original_intent,
                     intent,
                 )
+
+        exclusive_narrative_plan = self._plan_exclusive_narrative_task(
+            state,
+            query=query,
+            topic=topic,
+            intent=intent,
+            report_scope=report_scope,
+            plan_loop_count=plan_loop_count,
+        )
+        if exclusive_narrative_plan:
+            return exclusive_narrative_plan
 
         if intent not in {"comparison", "trend", "numeric_fact"}:
             return {

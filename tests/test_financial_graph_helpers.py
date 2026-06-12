@@ -1,6 +1,7 @@
 import unittest
 
 from src.agent.financial_graph_helpers import (
+    _active_preferred_sections,
     _display_operand_label,
     _preferred_calc_sections,
     _retrieval_hint_from_topic,
@@ -35,6 +36,15 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
 
         self.assertIn("\uc124\ube44\ud22c\uc790", hint)
+
+    def test_forward_looking_questions_use_caution_section_policy(self) -> None:
+        query = "2026년 1분기 예상 영업이익과 판매량을 예측해 줘."
+
+        hint = _retrieval_hint_from_topic(query, "", "qa")
+        sections = _active_preferred_sections({}, query, "", "qa")
+
+        self.assertIn("예측정보", hint)
+        self.assertIn("예측정보에 대한 주의사항", sections)
 
 
 if __name__ == "__main__":

@@ -4448,12 +4448,15 @@ class FinancialAgentEvidenceMixin:
         query: str,
         anchor_lookup: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
-        if not docs or not _query_requests_narrative_context(query):
+        if not docs:
             return evidence_items
 
         active_policies = self._active_narrative_policies_for_query(query)
         query_focus_terms = self._query_focus_markers(query)
         if not active_policies:
+            return evidence_items
+        exclusive_narrative_policy = any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies)
+        if not exclusive_narrative_policy and not _query_requests_narrative_context(query):
             return evidence_items
 
         supplemented = [dict(item) for item in evidence_items]
@@ -4522,6 +4525,7 @@ class FinancialAgentEvidenceMixin:
                         if part
                     )
                 )
+                surface = _strip_rerank_metadata(surface) or surface
                 if not surface:
                     continue
                 lowered_surface = surface.lower()
@@ -4608,7 +4612,57 @@ class FinancialAgentEvidenceMixin:
         query: str,
     ) -> str:
         draft = _normalise_spaces(answer)
-        if not draft or not selected_evidence or not _query_requests_narrative_context(query):
+        if not draft or not selected_evidence:
+            return draft
+        active_policies = self._active_narrative_policies_for_query(query)
+        exclusive_policies = [policy for policy in active_policies if bool(policy.get("exclusive_narrative_task"))]
+        narrative_context_query = _query_requests_narrative_context(query)
+        if exclusive_policies:
+            draft_lower = draft.lower()
+            for policy in exclusive_policies:
+                policy_terms = list(
+                    dict.fromkeys(
+                        [
+                            *narrative_policy_terms([policy], "focus_terms"),
+                            *narrative_policy_terms([policy], "realized_terms"),
+                            *narrative_policy_terms([policy], "causal_terms"),
+                        ]
+                    )
+                )
+                if any(term and term.lower() in draft_lower for term in policy_terms):
+                    continue
+                best_snippet = ""
+                best_score = 0
+                for item in selected_evidence:
+                    claim = _strip_rerank_metadata(
+                        _normalise_spaces(
+                            " ".join(
+                                part
+                                for part in (
+                                    str(item.get("claim") or ""),
+                                    str(item.get("quote_span") or ""),
+                                )
+                                if part
+                            )
+                        )
+                    )
+                    if not claim:
+                        continue
+                    claim_lower = claim.lower()
+                    hits = sum(1 for term in policy_terms if term and term.lower() in claim_lower)
+                    if hits <= best_score:
+                        continue
+                    best_score = hits
+                    best_snippet = self._extract_driver_snippet(claim, policy_terms) or claim[:220]
+                if not best_snippet:
+                    continue
+                support_sentence = best_snippet.rstrip(" .")
+                template = str(policy.get("support_answer_template") or "{support_sentence}")
+                addition = _normalise_spaces(template.format(support_sentence=support_sentence))
+                if addition and addition not in draft:
+                    draft = _normalise_spaces(f"{draft} {addition}")
+                    draft_lower = draft.lower()
+        if not narrative_context_query:
             return draft
 
         evidence_blob = _normalise_spaces(
@@ -5907,6 +5961,12 @@ class FinancialAgentEvidenceMixin:
             selected_evidence = self._filter_evidence_by_ids(evidence_items, selected_claim_ids)
             if not selected_evidence:
                 selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
+                if not selected_claim_ids:
+                    selected_claim_ids = [
+                        str(item.get("evidence_id") or "")
+                        for item in selected_evidence
+                        if str(item.get("evidence_id") or "").strip()
+                    ]
             compressed_answer = self._augment_narrative_answer_with_supported_drivers(
                 compressed.draft_answer,
                 selected_evidence,
@@ -6289,6 +6349,13 @@ class FinancialAgentEvidenceMixin:
                     ],
                     "answer": str(quantitative_impact_answer.get("answer") or ""),
                 }
+            augmented_answer = self._augment_narrative_answer_with_supported_drivers(
+                str(normalized_result.get("answer") or ""),
+                selected_evidence,
+                query=str(state.get("query") or ""),
+            )
+            if augmented_answer:
+                normalized_result["answer"] = augmented_answer
             return normalized_result
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
@@ -6365,6 +6432,13 @@ class FinancialAgentEvidenceMixin:
                     ],
                     "answer": str(quantitative_impact_answer.get("answer") or ""),
                 }
+            augmented_answer = self._augment_narrative_answer_with_supported_drivers(
+                str(normalized_result.get("answer") or ""),
+                selected_evidence,
+                query=str(state.get("query") or ""),
+            )
+            if augmented_answer:
+                normalized_result["answer"] = augmented_answer
             return normalized_result
 
     def _supplement_numeric_impairment_lookup(self, state: FinancialAgentState, docs) -> Optional[Dict[str, Any]]:

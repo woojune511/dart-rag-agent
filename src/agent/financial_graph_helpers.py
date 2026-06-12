@@ -9078,6 +9078,7 @@ def _supplement_section_terms_for_query(query: str, topic: str, intent: str) -> 
 def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, intent: str) -> List[str]:
     """Resolve section hints for the active task or top-level query."""
     _statement_types, query_sections = _infer_statement_and_section_hints(query)
+    narrative_policies = active_narrative_policies(" ".join(part for part in (query, topic) if part))
     sections = list(query_sections)
     sections.extend(
         str(item).strip()
@@ -9085,6 +9086,8 @@ def _active_preferred_sections(state: Dict[str, Any], query: str, topic: str, in
         if str(item).strip()
     )
     sections.extend(_preferred_calc_sections(query, topic, intent))
+    if narrative_policies:
+        sections.extend(narrative_policy_preferred_sections(narrative_policies))
     return list(dict.fromkeys(sections))
 
 
@@ -9100,7 +9103,10 @@ def _active_preferred_statement_types(state: Dict[str, Any], query: str, topic: 
 
 def _retrieval_hint_from_topic(query: str, topic: str, intent: str) -> str:
     hints: List[str] = []
-    if intent not in {"comparison", "trend"}:
-        return " ".join(dict.fromkeys(hints))
-    hints.extend(get_financial_ontology().query_hints(query, topic, intent))
+    narrative_policies = active_narrative_policies(" ".join(part for part in (query, topic) if part))
+    if narrative_policies:
+        hints.extend(narrative_policy_terms(narrative_policies, "retrieval_query_suffixes"))
+        hints.extend(narrative_policy_terms(narrative_policies, "focus_terms"))
+    if intent in {"comparison", "trend"}:
+        hints.extend(get_financial_ontology().query_hints(query, topic, intent))
     return " ".join(dict.fromkeys(hints))

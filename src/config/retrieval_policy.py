@@ -1538,6 +1538,37 @@ DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
 
 NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
     {
+        "name": "forward_looking_caution",
+        "trigger_terms": (
+            "예측",
+            "예상",
+            "전망",
+            "미래",
+            "forecast",
+            "forward-looking",
+            "projection",
+        ),
+        "exclusive_narrative_task": True,
+        "format_preference_override": "paragraph",
+        "retrieval_query_suffixes": (
+            "예측정보 주의사항 미래 전망 가정 실제 결과 차이 수정 의무",
+            "예측정보에 대한 주의사항 미래 사업환경 다양한 가정 불확실성",
+        ),
+        "preferred_sections": (
+            "IV. 이사의 경영진단 및 분석의견 > 예측정보에 대한 주의사항",
+            "예측정보에 대한 주의사항",
+            "IV. 이사의 경영진단 및 분석의견",
+        ),
+        "paragraph_priority_sections": (
+            "예측정보에 대한 주의사항",
+            "IV. 이사의 경영진단 및 분석의견",
+        ),
+        "focus_terms": ("예측정보", "미래", "전망", "예상", "가정", "불확실성"),
+        "causal_terms": ("가정", "불확실성", "차이", "수정", "의무"),
+        "realized_terms": ("예측정보", "미래", "가정", "불확실성"),
+        "support_answer_template": "사업보고서는 {support_sentence}",
+    },
+    {
         "name": "impact_context",
         "trigger_terms": ("영향", "기여", "원인", "요약", "인수"),
         "preferred_sections": (

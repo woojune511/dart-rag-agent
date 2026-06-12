@@ -7010,6 +7010,62 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("총관리자산(AUM)", claims)
         self.assertIn("1,216,729", claims)
 
+    def test_exclusive_narrative_policy_supplements_refusal_support_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        docs = [
+            (
+                Document(
+                    page_content=(
+                        "1. 예측정보에 대한 주의사항 이 사업보고서에는 미래 활동, 사건 또는 현상에 "
+                        "대한 예측정보가 포함되어 있으며 다양한 가정과 불확실성으로 실제 결과와 "
+                        "차이가 발생할 수 있습니다."
+                    ),
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "IV. 이사의 경영진단 및 분석의견 > 예측정보에 대한 주의사항",
+                        "block_type": "paragraph",
+                    },
+                ),
+                0.7,
+            )
+        ]
+
+        supplemented = agent._supplement_policy_realized_evidence(
+            [],
+            docs,
+            query="2026년 1분기 예상 영업이익과 전기차 판매량을 예측해 줘.",
+            anchor_lookup={},
+        )
+        claims = " ".join(str(item.get("claim") or "") for item in supplemented)
+
+        self.assertTrue(supplemented)
+        self.assertIn("예측정보", claims)
+        self.assertIn("불확실성", claims)
+
+    def test_exclusive_narrative_policy_augments_refusal_with_support_sentence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        answer = agent._augment_narrative_answer_with_supported_drivers(
+            "관련 공시 문서에서 직접적인 근거를 찾지 못했습니다.",
+            [
+                {
+                    "evidence_id": "ev_001",
+                    "claim": (
+                        "예측정보에 대한 주의사항 이 사업보고서에는 미래 활동, 사건 또는 현상에 "
+                        "대한 예측정보가 포함되어 있으며 다양한 가정과 불확실성으로 실제 결과와 "
+                        "차이가 발생할 수 있습니다."
+                    ),
+                    "quote_span": "",
+                }
+            ],
+            query="2026년 1분기 예상 영업이익과 전기차 판매량을 예측해 줘.",
+        )
+
+        self.assertIn("직접적인 근거를 찾지 못했습니다", answer)
+        self.assertIn("예측정보", answer)
+        self.assertIn("불확실성", answer)
+
     def test_narrative_selection_preserves_policy_realized_metric_candidate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent._narrative_driver_groups = lambda _query: []
