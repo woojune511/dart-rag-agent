@@ -7151,6 +7151,116 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("예측정보", claims)
         self.assertIn("불확실성", claims)
 
+    def test_missing_exclusive_narrative_preserves_query_focus_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        existing_evidence = [
+            {
+                "evidence_id": "ev_001",
+                "source_anchor": "[ExampleCo | 2023 | IV. 이사의 경영진단 및 분석의견]",
+                "claim": "본 자료는 미래에 대한 예측정보를 포함하고 있습니다.",
+                "quote_span": "본 자료는 미래에 대한 예측정보를 포함하고 있습니다.",
+                "support_level": "direct",
+                "question_relevance": "high",
+            }
+        ]
+        docs = [
+            (
+                Document(
+                    page_content="미래 활동에 대한 예측정보는 다양한 불확실성으로 실제 결과와 다를 수 있습니다.",
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "IV. 이사의 경영진단 및 분석의견",
+                        "block_type": "paragraph",
+                    },
+                ),
+                0.95,
+            ),
+            (
+                Document(
+                    page_content=(
+                        "전기차 사업은 배터리 효율 개선과 충전 인프라 확대를 중심으로 진행되고 "
+                        "있으며, 전기차 판매량 관련 시장 수요를 지속적으로 점검하고 있습니다."
+                    ),
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "II. 사업의 내용 > 사업의 개요",
+                        "block_type": "paragraph",
+                    },
+                ),
+                0.80,
+            ),
+        ]
+
+        supplemented = agent._supplement_missing_focus_context_evidence(
+            existing_evidence,
+            docs,
+            query="2026년 예상 전기차 판매량을 알려줘.",
+            anchor_lookup={},
+            coverage="missing",
+        )
+        claims = " ".join(str(item.get("claim") or "") for item in supplemented)
+
+        self.assertGreater(len(supplemented), len(existing_evidence))
+        self.assertIn("전기차 사업", claims)
+        self.assertIn("전기차 판매량", claims)
+        self.assertEqual(supplemented[-1]["support_level"], "context")
+
+    def test_missing_focus_context_supplement_only_runs_for_missing_coverage(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        docs = [
+            (
+                Document(
+                    page_content="전기차 사업은 전기차 판매량 관련 시장 수요를 지속적으로 점검하고 있습니다.",
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "II. 사업의 내용 > 사업의 개요",
+                        "block_type": "paragraph",
+                    },
+                ),
+                0.80,
+            )
+        ]
+
+        supplemented = agent._supplement_missing_focus_context_evidence(
+            [],
+            docs,
+            query="2026년 예상 전기차 판매량을 알려줘.",
+            anchor_lookup={},
+            coverage="sufficient",
+        )
+
+        self.assertEqual(supplemented, [])
+
+    def test_missing_focus_context_requires_specific_marker_pair(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        docs = [
+            (
+                Document(
+                    page_content="기존 생산라인은 수율 향상이 예상되어 원가 효율화에 기여할 수 있습니다.",
+                    metadata={
+                        "company": "ExampleCo",
+                        "year": 2023,
+                        "section_path": "II. 사업의 내용 > 사업의 개요",
+                        "block_type": "paragraph",
+                    },
+                ),
+                0.80,
+            )
+        ]
+
+        supplemented = agent._supplement_missing_focus_context_evidence(
+            [],
+            docs,
+            query="2026년 파운드리 3나노 공정의 예상 수율을 알려줘.",
+            anchor_lookup={},
+            coverage="missing",
+        )
+
+        self.assertEqual(supplemented, [])
+
     def test_exclusive_narrative_policy_augments_refusal_with_support_sentence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 

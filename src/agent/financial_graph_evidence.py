@@ -4671,6 +4671,180 @@ class FinancialAgentEvidenceMixin:
             supplemented.append(best_candidate)
         return supplemented
 
+    def _supplement_missing_focus_context_evidence(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        docs,
+        *,
+        query: str,
+        anchor_lookup: Dict[str, Any],
+        coverage: str,
+    ) -> List[Dict[str, Any]]:
+        if not docs or str(coverage or "").strip().lower() != "missing":
+            return evidence_items
+
+        active_policies = self._active_narrative_policies_for_query(query)
+        if not any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies):
+            return evidence_items
+
+        query_focus_terms = self._query_focus_markers(query)
+        if not query_focus_terms:
+            return evidence_items
+
+        marker_policy = dict(QUERY_FOCUS_MARKER_POLICY)
+        trailing_particle_pattern = str(marker_policy.get("trailing_particle_pattern") or r"$^")
+
+        def _normalise_focus_term(term: str) -> str:
+            cleaned = _normalise_spaces(str(term or "")).strip()
+            cleaned = re.sub(trailing_particle_pattern, "", cleaned)
+            return cleaned.strip()
+
+        focus_terms = list(
+            dict.fromkeys(
+                term
+                for term in (_normalise_focus_term(term) for term in query_focus_terms)
+                if term
+            )
+        )
+        strong_focus_terms = {
+            term.lower()
+            for term in focus_terms
+            if len(term) >= 3 or re.search(r"[A-Za-z0-9]", term)
+        }
+        if len(strong_focus_terms) < 2:
+            return evidence_items
+
+        supplemented = [dict(item) for item in evidence_items]
+        existing_surface = _normalise_spaces(
+            " ".join(
+                part
+                for item in supplemented
+                for part in (
+                    str(item.get("source_anchor") or ""),
+                    str(item.get("claim") or ""),
+                    str(item.get("quote_span") or ""),
+                    str(item.get("raw_row_text") or ""),
+                )
+                if part
+            )
+        ).lower()
+        seen_keys = {
+            _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(item.get("source_anchor") or ""),
+                        str(item.get("quote_span") or item.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            for item in supplemented
+        }
+
+        scored_candidates: List[tuple[float, int, Dict[str, Any]]] = []
+        for rank, item in enumerate(docs):
+            doc = item[0] if isinstance(item, (tuple, list)) else item
+            metadata = getattr(doc, "metadata", {}) or {}
+            block_type = str(metadata.get("block_type") or "").strip().lower()
+            if block_type not in {"paragraph", "table"}:
+                continue
+
+            surface = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(getattr(doc, "page_content", "") or ""),
+                        str(metadata.get("table_context") or ""),
+                        str(metadata.get("table_row_labels_text") or ""),
+                        str(metadata.get("table_value_labels_text") or ""),
+                        str(metadata.get("table_summary_text") or ""),
+                    )
+                    if part
+                )
+            )
+            surface = _strip_rerank_metadata(surface) or surface
+            if not surface:
+                continue
+
+            lowered_surface = surface.lower()
+            focus_hits = [
+                term
+                for term in focus_terms
+                if term and term.lower() in lowered_surface
+            ]
+            if len(focus_hits) < 2:
+                continue
+            strong_focus_hits = {term.lower() for term in focus_hits if term.lower() in strong_focus_terms}
+            if len(strong_focus_hits) < 2:
+                continue
+            if not any(term.lower() not in existing_surface for term in focus_hits):
+                continue
+
+            driver_terms = [term for term in focus_hits if term.lower() in strong_focus_terms]
+            snippet = self._extract_driver_snippet(surface, driver_terms) or surface[:220]
+            snippet_lower = snippet.lower()
+            snippet_strong_hits = {
+                term.lower()
+                for term in driver_terms
+                if term and term.lower() in snippet_lower
+            }
+            if len(snippet_strong_hits) < 2:
+                continue
+            anchor = self._build_source_anchor(metadata)
+            dedupe_key = _normalise_spaces(f"{anchor} {snippet}")
+            if dedupe_key and dedupe_key in seen_keys:
+                continue
+
+            score = float(len(set(term.lower() for term in focus_hits)) * 4)
+            if block_type == "table":
+                score += 1.0
+            try:
+                score += min(float(item[1] or 0.0), 1.0) if isinstance(item, (tuple, list)) and len(item) > 1 else 0.0
+            except (TypeError, ValueError):
+                pass
+
+            scored_candidates.append(
+                (
+                    score,
+                    rank,
+                    {
+                        "source_anchor": anchor,
+                        "claim": snippet,
+                        "quote_span": snippet,
+                        "support_level": "context",
+                        "question_relevance": "high",
+                        "allowed_terms": sorted(_tokenize_terms(snippet))[:8],
+                        "metadata": self._resolve_anchor_metadata(
+                            anchor_lookup,
+                            anchor,
+                            quote_surface=snippet,
+                            claim_surface=snippet,
+                        ),
+                    },
+                )
+            )
+
+        scored_candidates.sort(key=lambda row: (-row[0], row[1]))
+        for _score, _rank, candidate in scored_candidates[:2]:
+            dedupe_key = _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(candidate.get("source_anchor") or ""),
+                        str(candidate.get("quote_span") or candidate.get("claim") or ""),
+                    )
+                    if part
+                )
+            )
+            if dedupe_key and dedupe_key in seen_keys:
+                continue
+            if dedupe_key:
+                seen_keys.add(dedupe_key)
+            candidate["evidence_id"] = f"ev_{len(supplemented) + 1:03d}"
+            supplemented.append(candidate)
+        return supplemented
+
     def _augment_narrative_answer_with_supported_drivers(
         self,
         answer: str,
@@ -5932,6 +6106,13 @@ class FinancialAgentEvidenceMixin:
                     docs,
                     query=str(state.get("query") or ""),
                     anchor_lookup=anchor_lookup,
+                )
+                evidence_items = self._supplement_missing_focus_context_evidence(
+                    evidence_items,
+                    docs,
+                    query=str(state.get("query") or ""),
+                    anchor_lookup=anchor_lookup,
+                    coverage=result.coverage,
                 )
             if direct_numeric_grounding:
                 evidence_items = self._restrict_direct_numeric_evidence_items(

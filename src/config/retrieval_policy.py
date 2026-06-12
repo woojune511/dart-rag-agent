@@ -1489,7 +1489,7 @@ QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "strip_chars": "()[]{}'\"“”‘’,.·:;",
     "leading_connector_pattern": r"^(또는|및|등)\s+",
     "trailing_connector_pattern": r"\s+(또는|및|등)$",
-    "trailing_particle_pattern": r"(에서|으로|로|에게|에는|에|은|는|이|가|을|를|과|와|도)$",
+    "trailing_particle_pattern": r"(에서|으로|로|에게|에는|에|은|는|이|가|을|를|과|와|의|도)$",
     "year_pattern": r"20\d{2}년?",
     "single_letter_pattern": r"[A-Za-z]",
     "parenthetical_pair_pattern": r"([가-힣A-Za-z0-9\s·./-]{2,40})\(([A-Za-z0-9\s·./-]{2,40})\)",
