@@ -153,6 +153,114 @@ class _FailingLLM:
 
 
 class OperationContractTests(unittest.TestCase):
+    def test_narrative_compression_prefers_sufficient_preferred_section_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "Summarize the business performance from the annual report.",
+            "topic": "business performance",
+            "query_type": "qa",
+            "intent": "qa",
+            "format_preference": "paragraph",
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+                "preferred_sections": ["Preferred Section"],
+            },
+        }
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "claim": "A weaker table-side claim.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {"section_path": "Other Section", "block_type": "table"},
+            },
+            {
+                "evidence_id": "ev_002",
+                "claim": "A preferred narrative claim.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {"section_path": "Preferred Section", "block_type": "paragraph"},
+            },
+            {
+                "evidence_id": "ev_003",
+                "claim": "Another preferred narrative claim.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {"section_path": "Preferred Section", "block_type": "paragraph"},
+            },
+        ]
+
+        selected = agent._select_evidence_for_compression(evidence_items, "qa", state)
+
+        self.assertEqual([item["evidence_id"] for item in selected], ["ev_002", "ev_003"])
+
+    def test_narrative_compression_keeps_nonpreferred_when_preferred_evidence_is_sparse(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "Summarize the business performance from the annual report.",
+            "topic": "business performance",
+            "query_type": "qa",
+            "intent": "qa",
+            "format_preference": "paragraph",
+            "active_subtask": {
+                "operation_family": "narrative_summary",
+                "preferred_sections": ["Preferred Section"],
+            },
+        }
+        evidence_items = [
+            {
+                "evidence_id": "ev_001",
+                "claim": "A relevant non-preferred claim.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {"section_path": "Other Section", "block_type": "paragraph"},
+            },
+            {
+                "evidence_id": "ev_002",
+                "claim": "Only one preferred claim.",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {"section_path": "Preferred Section", "block_type": "paragraph"},
+            },
+        ]
+
+        selected = agent._select_evidence_for_compression(evidence_items, "qa", state)
+
+        self.assertEqual([item["evidence_id"] for item in selected], ["ev_001", "ev_002"])
+
+    def test_runtime_evidence_projection_uses_final_kept_claims_for_narrative_answers(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        final = {
+            "answer": "The final answer uses two supported claims.",
+            "evidence_items": [
+                {"evidence_id": "ev_001", "claim": "Unused extracted claim."},
+                {"evidence_id": "ev_002", "claim": "Used claim A."},
+                {"evidence_id": "ev_003", "claim": "Used claim B."},
+            ],
+            "kept_claim_ids": ["ev_002", "ev_003"],
+            "selected_claim_ids": ["ev_001", "ev_002", "ev_003"],
+        }
+
+        projected = agent._runtime_evidence_from_retrieved_docs(final)
+
+        self.assertEqual([item["evidence_id"] for item in projected], ["ev_002", "ev_003"])
+
+    def test_runtime_evidence_projection_keeps_existing_when_no_final_claim_filter_exists(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        final = {
+            "answer": "The final answer uses extracted evidence.",
+            "evidence_items": [
+                {"evidence_id": "ev_001", "claim": "Claim A."},
+                {"evidence_id": "ev_002", "claim": "Claim B."},
+            ],
+            "kept_claim_ids": [],
+            "selected_claim_ids": [],
+        }
+
+        projected = agent._runtime_evidence_from_retrieved_docs(final)
+
+        self.assertEqual([item["evidence_id"] for item in projected], ["ev_001", "ev_002"])
+
     def test_lookup_operand_rejects_unlabeled_aggregate_claim(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         row = {

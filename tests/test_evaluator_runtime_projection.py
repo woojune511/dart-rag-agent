@@ -986,6 +986,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                     "요약 손익은 계속영업손실 (803,742)백만원, 총포괄손실 (791,627)백만원입니다."
                 ),
                 raw_faithfulness=0.5,
+                runtime_evidence=[],
                 context_recall=1.0,
                 retrieval_hit_at_k=1.0,
                 section_match_rate=0.625,
@@ -1019,6 +1020,7 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                     "요약 손익은 계속영업손실 (803,742)백만원, 총포괄손실 (791,627)백만원입니다."
                 ),
                 raw_faithfulness=0.5,
+                runtime_evidence=[],
                 context_recall=1.0,
                 retrieval_hit_at_k=1.0,
                 section_match_rate=0.625,
@@ -1027,6 +1029,52 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 completeness=1.0,
                 calculation_correctness=1.0,
                 grounded_rendering_correctness=0.0,
+                unsupported_sentences=[],
+            )
+        )
+
+    def test_should_override_structured_summary_faithfulness_for_grounded_narrative_summary(self) -> None:
+        example = EvalExample(
+            id="summary_t1",
+            question="Summarize the strategy outcome from the annual report.",
+            ground_truth="premium mix adjustment and cumulative sales milestone",
+            company="ExampleCo",
+            year=2023,
+            section="Management Discussion",
+            category="business_overview",
+            answer_type="summary",
+            required_entities=["premium mix", "cumulative sales milestone"],
+        )
+        runtime_evidence = [
+            {
+                "claim": "The premium product mix contributed to record performance.",
+                "quote_span": "premium product mix contributed to record performance",
+                "support_level": "direct",
+            },
+            {
+                "claim": "The brand reached a cumulative sales milestone.",
+                "quote_span": "reached a cumulative sales milestone",
+                "support_level": "direct",
+            },
+        ]
+
+        self.assertTrue(
+            _should_override_structured_summary_faithfulness(
+                example=example,
+                answer=(
+                    "The premium mix contributed to record performance, "
+                    "and the brand reached a cumulative sales milestone."
+                ),
+                raw_faithfulness=0.0,
+                runtime_evidence=runtime_evidence,
+                context_recall=1.0,
+                retrieval_hit_at_k=1.0,
+                section_match_rate=1.0,
+                citation_coverage=1.0,
+                entity_coverage=1.0,
+                completeness=1.0,
+                calculation_correctness=None,
+                grounded_rendering_correctness=None,
                 unsupported_sentences=[],
             )
         )

@@ -2328,6 +2328,7 @@ def _should_override_structured_summary_faithfulness(
     example: EvalExample,
     answer: str,
     raw_faithfulness: Optional[float],
+    runtime_evidence: List[Dict[str, Any]],
     context_recall: float,
     retrieval_hit_at_k: float,
     section_match_rate: float,
@@ -2349,8 +2350,6 @@ def _should_override_structured_summary_faithfulness(
         return False
     if completeness != 1.0:
         return False
-    if calculation_correctness != 1.0 or grounded_rendering_correctness != 1.0:
-        return False
     if context_recall < 1.0 or retrieval_hit_at_k < 1.0:
         return False
     if section_match_rate < 0.5 or citation_coverage < (2.0 / 3.0):
@@ -2362,7 +2361,24 @@ def _should_override_structured_summary_faithfulness(
         return False
     if answer_entity_coverage is not None and answer_entity_coverage < 0.5:
         return False
-    if len(list(_extract_numeric_candidates(answer))) < 2:
+    numeric_candidates = list(_extract_numeric_candidates(answer))
+    if numeric_candidates:
+        if calculation_correctness != 1.0 or grounded_rendering_correctness != 1.0:
+            return False
+        if len(numeric_candidates) < 2:
+            return False
+        return True
+    if calculation_correctness is not None and calculation_correctness != 1.0:
+        return False
+    if grounded_rendering_correctness is not None and grounded_rendering_correctness != 1.0:
+        return False
+    direct_runtime_evidence = [
+        row
+        for row in runtime_evidence
+        if str(row.get("claim") or row.get("quote_span") or "").strip()
+        and str(row.get("support_level") or "direct").strip().lower() in {"direct", "high"}
+    ]
+    if not direct_runtime_evidence:
         return False
     return True
 
@@ -3696,6 +3712,7 @@ class RAGEvaluator:
             example=example,
             answer=answer,
             raw_faithfulness=raw_faithfulness,
+            runtime_evidence=runtime_evidence,
             context_recall=context_recall,
             retrieval_hit_at_k=retrieval_hit_at_k,
             section_match_rate=section_match_rate,

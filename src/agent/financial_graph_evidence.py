@@ -4213,12 +4213,19 @@ class FinancialAgentEvidenceMixin:
     }
 
     def _select_evidence_for_compression(
-        self, evidence_items: List[Dict[str, Any]], query_type: str = "qa"
+        self,
+        evidence_items: List[Dict[str, Any]],
+        query_type: str = "qa",
+        state: Optional[FinancialAgentState] = None,
     ) -> List[Dict[str, Any]]:
         if not evidence_items:
             return []
         limit = self._EVIDENCE_CAP_BY_QUERY_TYPE.get(query_type, 6)
         ranked = self._sort_evidence_items(evidence_items)
+        if state:
+            preferred_ranked = self._preferred_section_evidence_subset(ranked, state)
+            if preferred_ranked:
+                ranked = preferred_ranked
         high_priority = [item for item in ranked if item.get("question_relevance") == "high"]
         medium_priority = [item for item in ranked if item.get("question_relevance") == "medium"]
         low_priority = [item for item in ranked if item.get("question_relevance") == "low"]
@@ -4230,6 +4237,66 @@ class FinancialAgentEvidenceMixin:
                 if len(selected) >= limit:
                     return selected
         return selected[:limit]
+
+    def _preferred_section_evidence_subset(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        state: FinancialAgentState,
+    ) -> List[Dict[str, Any]]:
+        """Prefer section-aligned narrative evidence when it is already sufficient."""
+        if not evidence_items:
+            return []
+        active_subtask = dict(state.get("active_subtask") or {})
+        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        query_type = str(state.get("query_type") or "").strip().lower()
+        format_preference = str(
+            active_subtask.get("format_preference_override")
+            or state.get("format_preference")
+            or ""
+        ).strip().lower()
+        narrative_like = operation_family == "narrative_summary" or query_type in {
+            "qa",
+            "business_overview",
+            "risk",
+        }
+        if not narrative_like or format_preference == "table":
+            return []
+        query = str(state.get("query") or "")
+        preferred_sections = _active_preferred_sections(
+            state,
+            query,
+            str(state.get("topic") or query),
+            str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type") or "qa"),
+        )
+        preferred_markers = [str(item).strip().lower() for item in preferred_sections if str(item).strip()]
+        if not preferred_markers:
+            return []
+
+        def _section_surface(item: Dict[str, Any]) -> str:
+            metadata = dict(item.get("metadata") or {})
+            return _normalise_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        str(metadata.get("section_path") or ""),
+                        str(metadata.get("section") or ""),
+                        str(item.get("source_anchor") or ""),
+                    )
+                    if part
+                )
+            ).lower()
+
+        for marker in preferred_markers:
+            marker_items = [item for item in evidence_items if marker in _section_surface(item)]
+            direct_high_preferred = [
+                item
+                for item in marker_items
+                if str(item.get("question_relevance") or "").strip().lower() == "high"
+                and str(item.get("support_level") or "").strip().lower() == "direct"
+            ]
+            if len(direct_high_preferred) >= 2:
+                return marker_items
+        return []
 
     def _narrative_driver_groups(self, query: str) -> List[Dict[str, Any]]:
         groups: List[Dict[str, Any]] = narrative_policy_driver_groups(
@@ -5932,7 +5999,7 @@ class FinancialAgentEvidenceMixin:
         if entity_table_answer:
             logger.info("[compress] deterministic entity table summary generated")
             return entity_table_answer
-        selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
+        selected_evidence = self._select_evidence_for_compression(evidence_items, query_type, state)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
         guidance = self._compression_guidance(query_type, query, coverage)
 
@@ -5960,7 +6027,7 @@ class FinancialAgentEvidenceMixin:
             )
             selected_evidence = self._filter_evidence_by_ids(evidence_items, selected_claim_ids)
             if not selected_evidence:
-                selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
+                selected_evidence = self._select_evidence_for_compression(evidence_items, query_type, state)
                 if not selected_claim_ids:
                     selected_claim_ids = [
                         str(item.get("evidence_id") or "")
@@ -6256,7 +6323,7 @@ class FinancialAgentEvidenceMixin:
         selected_claim_ids = state.get("selected_claim_ids", [])
         selected_evidence = self._filter_evidence_by_ids(evidence_items, selected_claim_ids)
         if not selected_evidence:
-            selected_evidence = self._select_evidence_for_compression(evidence_items, query_type)
+            selected_evidence = self._select_evidence_for_compression(evidence_items, query_type, state)
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
 
         validation_llm = self._llm_for_phase("validation")

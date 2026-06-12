@@ -146,6 +146,20 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             if filtered:
                 return self._enrich_runtime_evidence_metadata(final, filtered)
         if existing:
+            selected_ids = [
+                str(value).strip()
+                for value in (final.get("kept_claim_ids") or final.get("selected_claim_ids") or [])
+                if str(value).strip()
+            ]
+            if selected_ids:
+                wanted = set(selected_ids)
+                selected_existing = [
+                    item
+                    for item in existing
+                    if str(item.get("evidence_id") or "").strip() in wanted
+                ]
+                if selected_existing:
+                    return self._enrich_runtime_evidence_metadata(final, selected_existing)
             return self._enrich_runtime_evidence_metadata(final, existing)
         if not final_answer or not answer_candidates:
             return []
