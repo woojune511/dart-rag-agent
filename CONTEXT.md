@@ -11,39 +11,51 @@
 
 ## 최신 상태
 
-- 2026-06-11 현재 reviewer-facing 상태는 제출 가능한 clean checkpoint다.
-  - `main`은 `origin/main`과 동기화되어 있고 worktree는 clean이다.
+- 2026-06-12 현재 `main`은 `origin/main`과 동기화되어 있다.
+  - 최신 커밋:
+    - `d5bfbc1 Tighten narrative evidence projection`
+    - `ebaeb66 Stop exclusive narrative replanning loops`
+  - broader benchmark raw bundle
+    `benchmarks/results/curated_single_doc_core_2026-06-11/`은 결과를 문서화한
+    뒤 artifact hygiene 차원에서 삭제했다.
+  - `benchmarks/results/**`는 source commit 대상이 아니다.
   - 최종 sanity check:
-    - `PYTHONPATH=. .venv/bin/python -m src.ops.portfolio_review_gates`:
-      `Status: ready`
-    - `PYTHONPATH=. .venv/bin/python -m src.ops.portfolio_demo`: readiness
-      `ready`, task/artifact integrity `ok`, critic acceptance `accepted`
-    - `PYTHONPATH=. .venv/bin/python -m src.ops.audit_runtime_domain_terms`:
-      passed with `217` reviewed literals
-  - 최신 포트폴리오 narrative는 README, one-pager, experiment report,
-    interview narrative, resume snippets, technical highlights에 반영되어
-    있다.
-  - hard structural-vs-plain replay는 structural `5 / 5`, plain `4 / 5`로
-    요약한다. `SKH_T1_060`에서 plain은 prior-period borrowing rows를
-    current-period asset denominator와 섞어 `34.32%`를 냈고, structural은
-    current-period borrowing rows를 보존해 `42.02%`를 냈다.
-  - 최신 hard structural eval-only raw bundle
-    `benchmarks/results/hard_current_evalonly_2026-06-10/`은 결과를 문서화한
-    뒤 artifact hygiene 차원에서 삭제했다. 이 경로는 source-controlled
-    reproduction input으로 간주하지 않는다.
+    - focused exclusive-narrative / forward-looking routing tests: `6` tests OK
+    - `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with
+      `216` reviewed literals
+    - `git diff --check`: passed
 
-- full benchmark preflight 결과:
-  - 전체 curated dataset은 `benchmarks/datasets/single_doc_eval_full.curated.json`
-    기준 `77`문항이다.
-  - source-controlled broader profile 중 바로 사용할 후보는
-    `benchmarks/profiles/curated_single_doc_core.json`이며, 삼성전자/네이버/
-    현대자동차 2023의 `37`문항 filtered full eval이다.
-  - 삼성전자 2023 보고서와 일부 structural stores는 로컬에 있지만, 네이버
-    2023 및 현대자동차 2023 report HTML은 현재 로컬에 없다. 해당 profile은
-    `auto_fetch_missing_report=true`라 실행 시 fresh fetch/ingest가 필요하다.
-  - 비용을 감수하고 broader 검증을 하려면 `curated_single_doc_core` monitored
-    full run부터 시작하는 것이 가장 안전하다. 전체 77문항 official run은
-    누락 회사 report/profile 범위를 별도로 정의한 뒤 장기 실험으로 분리한다.
+- Broader curated single-document full eval, 2026-06-12:
+  - profile: `benchmarks/profiles/curated_single_doc_core.json`
+  - mode: store-fixed `--eval-only` with heartbeat monitoring
+  - scope: 삼성전자/네이버/현대자동차 2023, `15` full-eval questions
+  - run status: completed, error rate `0.0%`
+  - company-level results:
+    - 삼성전자: avg `0.837`, faithfulness `1.000`, completeness `1.000`,
+      numeric pass `1.000`
+    - 네이버: avg `0.795`, faithfulness `1.000`, completeness `1.000`,
+      numeric pass `1.000`
+    - 현대자동차: avg `0.928`, faithfulness `1.000`, completeness `1.000`
+  - Loop closure:
+    - `SAM_T4_070` previously repeated
+      `semantic_plan -> retrieve -> evidence -> compress` under
+      `narrative_policy_exclusive`. The runtime now routes exclusive narrative
+      aggregate outputs directly to citation instead of semantic replanning.
+    - Focused `SAM_T4_070` eval-only completed in `52.3s`; full Samsung run
+      completed all `5` questions with numeric pass `1.000` and error `0.0%`.
+  - Remaining quality signals:
+    - `SAM_T4_070`: answer/refusal is faithful, but retrieval hit and section
+      score remain `0.000` because the answer only preserves the caution/refusal
+      evidence, not the adjacent `3나노 GAA` support context.
+    - `NAV_T4_008`, `NAV_T4_033`: safe refusal/missing-answer behavior, but
+      retrieval hit/section score remain low.
+    - These are evidence-projection / evaluator-alignment follow-ups, not
+      runtime correctness blockers.
+
+- 이전 hard structural-vs-plain replay는 structural `5 / 5`, plain `4 / 5`로
+  요약한다. `SKH_T1_060`에서 plain은 prior-period borrowing rows를
+  current-period asset denominator와 섞어 `34.32%`를 냈고, structural은
+  current-period borrowing rows를 보존해 `42.02%`를 냈다.
 
 - 2026-06-10 expanded structural-vs-plain ablation refresh를 문서화했다.
   - Commit `8070da8` (`Fix aggregate numeric projection coverage`)는 이미

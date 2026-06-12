@@ -44,6 +44,7 @@
 | [Expanded Structural Ablation Refresh (2026-06-10)](#expanded-structural-ablation-refresh-2026-06-10) | 9문항 structural-vs-plain ablation | structural은 numeric `1.000`, plain은 `0.833`; `KBF_T1_017`, `SKH_T3_080`가 separating numeric failures |
 | [Hard Numeric Runtime Closure (2026-06-11)](#hard-numeric-runtime-closure-2026-06-11) | 5문항 hard numeric replay | ROE average-equity, margin-drag aggregate binding, late ratio refresh 이후 hard set 5 / 5 numeric PASS |
 | [Hard Structural-vs-Plain Replay (2026-06-11)](#hard-structural-vs-plain-replay-2026-06-11) | 같은 hard set의 structural vs plain 비교 | structural 5 / 5, plain 4 / 5; `SKH_T1_060` row binding이 separating failure |
+| [Curated Single-Doc Core Full Eval (2026-06-12)](#curated-single-doc-core-full-eval-2026-06-12) | 삼성/네이버/현대차 15문항 broader eval-only | all companies error `0.0%`, faithfulness/completeness `1.000`; exclusive narrative loop fixed |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -56,6 +57,82 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Curated Single-Doc Core Full Eval (2026-06-12)
+
+참조:
+
+- profile: `benchmarks/profiles/curated_single_doc_core.json`
+- local result bundle was summarized from
+  `benchmarks/results/curated_single_doc_core_2026-06-11/` and then deleted
+  under benchmark artifact hygiene
+- source commits:
+  - `d5bfbc1 Tighten narrative evidence projection`
+  - `ebaeb66 Stop exclusive narrative replanning loops`
+
+### Setup
+
+- Store-fixed `--eval-only` refresh using existing local stores.
+- Heartbeat-monitored command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_single_doc_core.json --eval-only --progress-heartbeat-sec 30`.
+- Scope:
+  - 삼성전자 2023: `5` questions
+  - 네이버 2023: `5` questions
+  - 현대자동차 2023: `5` questions
+- This is a broader sanity run for the current single-document core profile,
+  not the full `77`-question curated dataset.
+
+### Code / Contract Change
+
+- `MIX_T2_047` exposed over-broad final runtime evidence projection for
+  narrative summaries. The runtime now projects final evidence from
+  `kept_claim_ids` / `selected_claim_ids` for nonnumeric final answers, and
+  preferred-section compression can use a sufficiently supported high-priority
+  section instead of carrying weaker cross-section context.
+- `SAM_T4_070` exposed a loop in forward-looking / refusal-style questions:
+  the task was planned as `narrative_policy_exclusive`, evidence extraction
+  marked the direct requested value as missing, compression produced a refusal,
+  but aggregate synthesis still emitted planner feedback. The graph then
+  re-entered semantic planning even though an exclusive narrative policy has no
+  useful numeric subtask expansion.
+- The fix is a generic routing rule: when
+  `semantic_plan.status == narrative_policy_exclusive`, aggregate output is
+  terminal and routes to `cite`.
+- No company, benchmark id, or report-specific runtime branch was added.
+
+### Result
+
+| Company | Questions | Avg score | Faithfulness | Completeness | Recall | Hit@k | Section | Citation | Numeric pass | Error |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 삼성전자 2023 | 5 | `0.837` | `1.000` | `1.000` | `0.800` | `0.800` | `0.750` | `0.933` | `1.000` | `0.0%` |
+| 네이버 2023 | 5 | `0.795` | `1.000` | `1.000` | `1.000` | `0.600` | `0.600` | `0.867` | `1.000` | `0.0%` |
+| 현대자동차 2023 | 5 | `0.928` | `1.000` | `1.000` | `1.000` | `1.000` | `0.900` | `1.000` | `-` | `0.0%` |
+
+Question-level low signals:
+
+| Question | Observation | Interpretation |
+| --- | --- | --- |
+| `SAM_T4_070` | faithful refusal, but retrieval hit / section match `0.000` | The answer correctly refuses the missing 2026 yield, but final runtime evidence only preserves the forward-looking caution sentence rather than the nearby 3nm/GAA support context. |
+| `NAV_T4_008` | safe missing answer, retrieval hit / section match `0.000`, answer relevancy `0.380` | Out-of-domain missing numeric query closes safely, but retrieval/evaluator alignment is weak. |
+| `NAV_T4_033` | safe missing answer, retrieval hit / section match `0.000` | Missing operational-logistics query closes safely, but expected missing-evidence support is not projected strongly. |
+
+### Validation
+
+- Focused routing / forward-looking tests: `6` tests OK.
+- Runtime domain-language audit: passed with `216` reviewed literals.
+- Focused `SAM_T4_070` eval-only completed in `52.3s`.
+- Full 15-question eval-only completed with all company error rates at `0.0%`.
+
+### Interpretation
+
+- The main runtime risk found during broader eval was not arithmetic accuracy;
+  it was terminal control flow for policy-driven narrative refusals.
+- The fix strengthens the agent contract: an exclusive narrative policy is a
+  terminal semantic decision, not a signal to invent additional numeric
+  planning work after a refusal answer has already been grounded.
+- The remaining work is quality-oriented evidence projection for refusal and
+  out-of-scope questions. It should be addressed through generic evidence
+  preservation / evaluator alignment, not benchmark-specific runtime rules.
 
 ## Hard Numeric Runtime Closure (2026-06-11)
 

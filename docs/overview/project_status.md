@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 ## Positioning
 
@@ -49,6 +49,55 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest Broader Curated Full Eval
+
+- Run date: 2026-06-12
+- Profile: `benchmarks/profiles/curated_single_doc_core.json`
+- Mode: store-fixed `--eval-only` refresh with
+  `--progress-heartbeat-sec 30`
+- Local result bundle was summarized from
+  `benchmarks/results/curated_single_doc_core_2026-06-11/` and then deleted
+  under benchmark artifact hygiene.
+- Scope: 삼성전자 2023, 네이버 2023, 현대자동차 2023; `15` full-eval
+  questions total.
+- Source commits:
+  - `d5bfbc1` tightened narrative evidence projection for final runtime
+    evidence.
+  - `ebaeb66` stopped exclusive narrative policy tasks from re-entering
+    semantic planning after aggregate synthesis.
+
+Company-level full-eval metrics:
+
+| Company | Questions | Avg score | Faithfulness | Completeness | Recall | Hit@k | Section | Citation | Numeric pass | Error |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 삼성전자 2023 | 5 | `0.837` | `1.000` | `1.000` | `0.800` | `0.800` | `0.750` | `0.933` | `1.000` | `0.0%` |
+| 네이버 2023 | 5 | `0.795` | `1.000` | `1.000` | `1.000` | `0.600` | `0.600` | `0.867` | `1.000` | `0.0%` |
+| 현대자동차 2023 | 5 | `0.928` | `1.000` | `1.000` | `1.000` | `1.000` | `0.900` | `1.000` | `-` | `0.0%` |
+
+Observed runtime closure:
+
+- `SAM_T4_070` exposed a repeated loop:
+  `narrative_policy_exclusive -> retrieve -> evidence(missing) -> compress ->
+  aggregate -> semantic_plan`.
+- The fix is a generic routing contract: when the semantic plan status is
+  `narrative_policy_exclusive`, aggregate output is terminal and routes to
+  `cite` even if aggregate synthesis or integrity feedback leaves planner
+  feedback text behind.
+- Focused `SAM_T4_070` eval-only completed in `52.3s` after the fix.
+- The full Samsung eval completed all `5` questions with error `0.0%`; the
+  broader 15-question run also completed with error `0.0%`.
+
+Residual quality signals:
+
+- `SAM_T4_070`: faithful and refusal-accurate, but retrieval hit / section
+  match are `0.000`. The answer says the 2026 3nm foundry yield is not in the
+  filing, while the retrieved window also contains related 3nm/GAA context that
+  is not preserved as final runtime evidence.
+- `NAV_T4_008` and `NAV_T4_033`: safe missing-answer/refusal behavior, but low
+  retrieval hit and section match.
+- These are next evidence-projection / refusal-support diagnostics. They are
+  not benchmark-specific runtime branch candidates.
 
 ### Latest Hard Numeric Runtime Closure
 
@@ -127,24 +176,17 @@ role-separated multi-agent system using a task ledger and artifact store.
   - the `SKH_T1_060` trace has been folded into README, one-pager, experiment
     report, interview narrative, resume snippets, and technical highlights.
 
-### Broader Full Benchmark Preflight
+### Broader Full Benchmark Notes
 
-- Candidate profile:
-  `benchmarks/profiles/curated_single_doc_core.json`
-- Scope:
-  - 삼성전자 2023, 네이버 2023, 현대자동차 2023
-  - `37` filtered questions from
-    `benchmarks/datasets/single_doc_eval_full.curated.json`
-- Input/store state:
-  - 삼성전자 2023 report exists locally.
-  - 네이버 2023 and 현대자동차 2023 report HTML files are not currently local.
-  - The profile has `auto_fetch_missing_report=true`, so running it will require
-    fresh fetch/ingest for missing reports.
-- Recommended execution if broader validation is needed:
-  - run `curated_single_doc_core` as a monitored full run with
-    `--progress-heartbeat-sec 60` and a heartbeat log.
-  - do not stage `benchmarks/results/**`; summarize the result in docs after
-    the run.
+- `curated_single_doc_core` is no longer only a preflight candidate; the
+  store-fixed full-eval refresh above completed on 2026-06-12.
+- The full curated dataset remains larger:
+  `benchmarks/datasets/single_doc_eval_full.curated.json` has `77` questions.
+- The current source-controlled broader profile covers the three core 2023
+  reports. Treat the full 77-question official run as a separate long-running
+  experiment that first needs explicit report/profile coverage decisions.
+- Continue to run broader refreshes with heartbeat monitoring and do not stage
+  `benchmarks/results/**`.
 
 ### Latest Portfolio Ablation Refresh
 
