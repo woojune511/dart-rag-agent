@@ -156,6 +156,7 @@ def _refine_lookup_slot_unit_from_evidence(slot: Dict[str, Any], evidence: Dict[
         or current_normalized_unit in {"", "UNKNOWN"}
         or (
             claim_text
+            and raw_value in direct_text
             and raw_value in claim_text
             and (not current_unit or current_unit not in claim_text)
         )

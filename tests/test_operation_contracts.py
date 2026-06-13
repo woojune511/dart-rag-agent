@@ -7636,7 +7636,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(evidence_items[-1]["metadata"]["missing_decision_context"], True)
         self.assertIn("Target capacity", evidence_items[-1]["quote_span"])
 
-    def test_missing_decision_context_does_not_add_when_selected_evidence_exists(self) -> None:
+    def test_missing_decision_context_does_not_add_when_selected_evidence_covers_focus(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         docs = [
             (
@@ -7649,7 +7649,13 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         evidence_items, selected_ids = agent._append_missing_decision_context_evidence(
-            [{"evidence_id": "ev_001", "claim": "existing", "quote_span": "existing"}],
+            [
+                {
+                    "evidence_id": "ev_001",
+                    "claim": "Target capacity is discussed qualitatively.",
+                    "quote_span": "Target capacity is discussed qualitatively.",
+                }
+            ],
             final_answer="질문에 필요한 값을 충분히 확보하지 못했습니다.",
             selected_claim_ids=["ev_001"],
             query="Find the 2026 target capacity numeric forecast.",
@@ -7658,6 +7664,44 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(selected_ids, [])
         self.assertEqual([item["evidence_id"] for item in evidence_items], ["ev_001"])
+
+    def test_missing_decision_context_adds_focus_context_when_selected_evidence_is_generic(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        docs = [
+            (
+                Document(
+                    page_content="Forward-looking statements include uncertainty and may differ from actual results.",
+                    metadata={"company": "ExampleCo", "year": 2023, "section_path": "Forward-looking caution"},
+                ),
+                0.95,
+            ),
+            (
+                Document(
+                    page_content="Target capacity is discussed qualitatively, but no 2026 numeric forecast is stated.",
+                    metadata={"company": "ExampleCo", "year": 2023, "section_path": "Business Overview"},
+                ),
+                0.82,
+            ),
+        ]
+
+        evidence_items, selected_ids = agent._append_missing_decision_context_evidence(
+            [
+                {
+                    "evidence_id": "ev_001",
+                    "claim": "Forward-looking statements include uncertainty.",
+                    "quote_span": "Forward-looking statements include uncertainty.",
+                }
+            ],
+            final_answer="질문에 필요한 값을 충분히 확보하지 못했습니다.",
+            selected_claim_ids=["ev_001"],
+            query="Find the 2026 target capacity numeric forecast.",
+            docs=docs,
+        )
+
+        self.assertEqual(selected_ids, ["missing_decision_context::001"])
+        self.assertEqual([item["evidence_id"] for item in evidence_items], ["ev_001", "missing_decision_context::001"])
+        self.assertIn("Target capacity", evidence_items[-1]["quote_span"])
+        self.assertEqual(evidence_items[-1]["metadata"]["query_focus_hits"], ["capacity", "forecast", "numeric", "target"])
 
     def test_exclusive_narrative_policy_augments_refusal_with_support_sentence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

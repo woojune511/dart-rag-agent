@@ -332,6 +332,8 @@ class MasE2ESmokeContractTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             self.assertEqual(write_result.returncode, 0, write_result.stderr)
             self.assertTrue(baseline.exists())
@@ -351,6 +353,8 @@ class MasE2ESmokeContractTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
             self.assertEqual(compare_result.returncode, 0, compare_result.stderr)
             self.assertIn('"status": "ok"', compare_result.stdout)
@@ -375,6 +379,8 @@ class MasE2ESmokeContractTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
 
             self.assertEqual(compare_result.returncode, 0, compare_result.stderr)

@@ -49,6 +49,31 @@ from src.schema import ArtifactKind, TaskKind, TaskStatus
 logger = logging.getLogger(__name__)
 
 
+def _inline_unit_match_has_right_boundary(
+    text: str,
+    match: re.Match[str],
+    *,
+    group_name: str = "unit",
+) -> bool:
+    try:
+        unit_end = match.end(group_name)
+    except IndexError:
+        return True
+    if unit_end >= len(text):
+        return True
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    suffix = str(text[unit_end:])
+    allowed_prefixes = tuple(
+        str(item)
+        for item in (render_policy.get("inline_unit_right_boundary_allowed_prefixes") or ())
+        if str(item)
+    )
+    if any(suffix.startswith(prefix) for prefix in allowed_prefixes):
+        return True
+    block_pattern = str(render_policy.get("inline_unit_right_boundary_block_pattern") or "")
+    return not bool(block_pattern and re.match(block_pattern, text[unit_end]))
+
+
 def _calculation_debug_state_update(
     state: FinancialAgentState,
     update: Optional[Dict[str, Any]] = None,
@@ -2823,6 +2848,7 @@ class FinancialAgentCalculationMixin:
         self,
         ordered_results: List[Dict[str, Any]],
         query: str = "",
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
     ) -> str:
         query_terms = {
             token.lower()
@@ -2885,7 +2911,11 @@ class FinancialAgentCalculationMixin:
             if operation_family == "growth_rate":
                 if self._growth_row_has_conflicting_periods(row):
                     continue
-                answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
+                answer = self._compose_complete_growth_numeric_answer(
+                    row,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
                 if answer:
                     focus_text = _row_focus_text(row, calculation_result)
                     score, label_len = _label_overlap_score(focus_text)
@@ -3844,6 +3874,7 @@ class FinancialAgentCalculationMixin:
             return {
                 "answer": row_answer,
                 "selected_claim_ids": selected_claim_ids,
+                "operation_family": self._aggregate_result_operation_family(row),
             }
         return {}
 
@@ -3996,7 +4027,8 @@ class FinancialAgentCalculationMixin:
                 ordered_results=ordered_results,
                 evidence_items=evidence_items,
             ):
-                return conflicting_narrative
+                if str(conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks":
+                    return conflicting_narrative
             conflicting_parts = [
                 sanitized_sentence
                 for sentence in (_split_narrative_sentences(conflicting_answer) or [conflicting_answer])
@@ -4053,6 +4085,34 @@ class FinancialAgentCalculationMixin:
             )
         ):
             return {"answer": candidate_answer, "selected_claim_ids": []}
+
+        current_context_parts: List[str] = []
+        narrative_markers = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+        )
+        for sentence in _split_narrative_sentences(candidate_answer) or [candidate_answer]:
+            cleaned_sentence = _normalise_spaces(sentence)
+            if not cleaned_sentence or cleaned_sentence in numeric_text:
+                continue
+            if self._answer_evidence_numeric_candidates(cleaned_sentence):
+                continue
+            if not (
+                _has_explanatory_signal(cleaned_sentence)
+                or self._query_requests_explanatory_context(query_text)
+            ):
+                continue
+            if _narrative_sentence_looks_table_noisy(cleaned_sentence):
+                continue
+            if _narrative_sentence_looks_abbreviated_fragment(cleaned_sentence, narrative_markers):
+                continue
+            current_context_parts.append(cleaned_sentence)
+        current_context_answer = _normalise_spaces(" ".join([numeric_text, *current_context_parts]))
+        if current_context_parts:
+            return {
+                "answer": current_context_answer,
+                "selected_claim_ids": [],
+            }
 
         row_narrative_parts: List[str] = []
         row_selected_claim_ids: List[str] = []
@@ -4318,7 +4378,7 @@ class FinancialAgentCalculationMixin:
             ordered_results=ordered_results,
             evidence_items=[],
         )
-        if conflicting_narrative:
+        if conflicting_narrative and str(conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks":
             return str(conflicting_narrative.get("answer") or default_answer)
 
         has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
@@ -4944,7 +5004,6 @@ class FinancialAgentCalculationMixin:
             not docs
             or not answer_text
             or not any(marker and marker in answer_text for marker in missing_markers)
-            or selected_claim_ids
         ):
             return [dict(item or {}) for item in (evidence_items or [])], []
 
@@ -4975,6 +5034,27 @@ class FinancialAgentCalculationMixin:
             if _normalise_spaces(str(term or ""))
         ]
         focus_terms_lower = {term.lower() for term in focus_terms if len(term) >= 2}
+        selected_ids = {str(claim_id).strip() for claim_id in (selected_claim_ids or []) if str(claim_id).strip()}
+        if selected_ids:
+            if not focus_terms_lower:
+                return updated, []
+            selected_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for item in updated
+                    if str(item.get("evidence_id") or "").strip() in selected_ids
+                    for value in (
+                        item.get("claim"),
+                        item.get("quote_span"),
+                        item.get("raw_row_text"),
+                        " ".join(str(term or "") for term in (item.get("allowed_terms") or [])),
+                    )
+                )
+            ).lower()
+            selected_focus_hits = sorted(term for term in focus_terms_lower if term in selected_surface)
+            required_selected_hits = max(1, min(2, len(focus_terms_lower)))
+            if len(selected_focus_hits) >= required_selected_hits:
+                return updated, []
 
         scored_candidates: List[tuple[float, int, Dict[str, Any]]] = []
         for rank, item in enumerate(docs):
@@ -5001,6 +5081,8 @@ class FinancialAgentCalculationMixin:
                 continue
             surface_lower = surface.lower()
             matched_terms = sorted(term for term in focus_terms_lower if term in surface_lower)
+            if selected_ids and focus_terms_lower and not matched_terms:
+                continue
             snippet_terms = matched_terms or list(focus_terms_lower)
             snippet = self._extract_driver_snippet(surface, snippet_terms) if snippet_terms else ""
             snippet = _normalise_spaces(snippet or surface[:360])
@@ -8040,6 +8122,8 @@ class FinancialAgentCalculationMixin:
         aliases = dict(unit_policy.get("inline_unit_aliases") or {})
         unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
         for match in re.finditer(unit_pattern, surface):
+            if not _inline_unit_match_has_right_boundary(surface, match):
+                continue
             matched_value = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
             matched_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
             matched_unit = str(aliases.get(matched_unit) or matched_unit)
@@ -8181,6 +8265,8 @@ class FinancialAgentCalculationMixin:
             rf"\s*\)?"
         )
         for match in re.finditer(parenthetical_unit_pattern, surface, flags=re.IGNORECASE):
+            if not _inline_unit_match_has_right_boundary(surface, match, group_name="surface_unit"):
+                continue
             unit_text = _normalise_spaces(str(match.group("surface_unit") or ""))
             if unit_text:
                 return str(aliases.get(unit_text, unit_text))
@@ -8193,6 +8279,8 @@ class FinancialAgentCalculationMixin:
         if not compact_value:
             return ""
         for match in re.finditer(unit_pattern, surface):
+            if not _inline_unit_match_has_right_boundary(surface, match):
+                continue
             matched_value = str(match.group("value") or "")
             matched_compact = re.sub(r"[,\s()]", "", matched_value)
             if matched_compact != compact_value:
@@ -14273,7 +14361,7 @@ class FinancialAgentCalculationMixin:
                 numeric_answer=final_answer,
                 ordered_results=ordered_results,
                 evidence_items=aggregate_evidence_items,
-            ):
+            ) and str(final_conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks":
                 final_answer = conflicting_answer or final_answer
                 final_conflicting_narrative_locked = True
                 selected_claim_ids = list(
@@ -14876,11 +14964,27 @@ class FinancialAgentCalculationMixin:
         consistent_numeric_answer = self._preferred_complete_numeric_answer(
             ordered_results,
             query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        final_answer_matches_supported_aggregate = self._answer_matches_supported_aggregate_subtask(
+            final_answer,
+            ordered_results,
+        )
+        final_answer_already_covers_trace = (
+            final_answer_matches_supported_aggregate
+            or self._answer_covers_numeric_projection(final_answer, ordered_results)
+        )
+        final_answer_has_untraced_numeric = self._growth_answer_has_untraced_numeric_material(
+            final_answer,
+            ordered_results,
+            aggregate_evidence_items,
         )
         if (
             consistent_numeric_answer
             and _normalise_spaces(consistent_numeric_answer)
             and _normalise_spaces(consistent_numeric_answer) != _normalise_spaces(final_answer)
+            and not final_answer_matches_supported_aggregate
+            and (not final_answer_already_covers_trace or final_answer_has_untraced_numeric)
         ):
             refreshed_answer = self._refresh_numeric_answer_preserving_narrative_context(
                 query=str(state.get("query") or ""),

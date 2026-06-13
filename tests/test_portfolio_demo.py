@@ -92,6 +92,8 @@ class PortfolioDemoTests(unittest.TestCase):
                 check=False,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
             )
 
             self.assertEqual(demo_result.returncode, 0, demo_result.stderr)
