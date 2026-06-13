@@ -225,9 +225,14 @@ Residual quality signals:
   store-fixed full-eval refresh above completed on 2026-06-12.
 - The full curated dataset remains larger:
   `benchmarks/datasets/single_doc_eval_full.curated.json` has `77` questions.
-- The current source-controlled broader profile covers the three core 2023
-  reports. Treat the full 77-question official run as a separate long-running
-  experiment that first needs explicit report/profile coverage decisions.
+- The routine `curated_single_doc_core` profile covers the three core 2023
+  reports. The long-running full-dataset profile is now separated as
+  `benchmarks/profiles/curated_single_doc_official_77.json`, which covers all
+  77 questions across the 11 single-document curated 2023 report scopes.
+- Treat the full 77-question official run as a separate long-running
+  experiment. Prefer a store-fixed `--eval-only` refresh when reusable stores
+  exist; use a fresh monitored run only when the profile/report coverage or
+  ingest contract itself changed.
 - Continue to run broader refreshes with heartbeat monitoring and do not stage
   `benchmarks/results/**`.
 
