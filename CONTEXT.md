@@ -1566,3 +1566,22 @@
       ready`
     - `git diff --check`: no whitespace errors; PowerShell reported line-ending
       normalization warnings for touched files.
+- 77-question official profile coverage follow-up:
+  - Added `benchmarks/profiles/curated_single_doc_official_77.json` as the
+    separated long-running full single-document curated profile.
+  - `curated_single_doc_core` remains the routine three-report broader core
+    gate; the new profile covers all `77` rows in
+    `benchmarks/datasets/single_doc_eval_full.curated.json` across the `11`
+    curated 2023 single-document report scopes.
+  - Run policy is explicit now: prefer store-fixed `--eval-only` refreshes when
+    reusable stores exist; use a fresh monitored run with
+    `--progress-heartbeat-sec` / `--heartbeat-log` only when report/profile
+    coverage or ingest contracts changed.
+  - Validation:
+    - JSON/profile coverage check: `77` dataset rows, `11` dataset companies,
+      `11` profile company runs, no missing report paths
+    - `.\.venv\Scripts\python.exe -m unittest
+      tests.test_curated_dataset_consistency
+      tests.test_benchmark_runner_runtime_projection`: `15` OK
+    - `.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates`: `Status:
+      ready`

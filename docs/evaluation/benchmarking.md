@@ -383,6 +383,7 @@ numeric gate verdict만 빠르게 확인할 때:
 | 프로파일 | track | 목적 | 주요 대상 | 언제 쓰나 |
 | --- | --- | --- | --- | --- |
 | `curated_single_doc_core` | `mainline_curated` | curated single-doc core set 점검 | 2023 수동 검수 DART dataset | single-doc canonical 기준선 회귀 |
+| `curated_single_doc_official_77` | `mainline_curated` | full curated single-doc 77-question official run | 11개 2023 single-document curated report scope 전체 | focused gates가 닫힌 뒤 장시간 full-dataset 검증이 필요할 때만 |
 | `curated_runtime_contract_gate` | `mainline_curated` | 대표 numeric canary 5개 gate | `NAV_T1_030`, `NAV_T1_071`, `SKH_T1_060`, `MIX_T1_021`, `KBF_T1_017` | runtime contract / evaluator / internal-state 회귀 확인 |
 | `curated_policy_driven_runtime_gate` | `mainline_curated` | retrieval policy vocabulary / deterministic composer 회귀 | `NAV_T2_006`, `HYU_T2_010`, `HYU_T3_072`, `LGE_T1_051`, `SAM_T2_078` | `retrieval_policy.py`, narrative selection, policy composer, planner fallback trace 변경 확인 |
 | `multi_metric_numeric_smoke` | `mainline_curated` | multi-subtask numeric trace 회귀 | curated multi-metric numeric subset | runtime/evaluator projection 검증 |
@@ -635,6 +636,11 @@ official gate 통과만으로 mainline default를 확정하지는 않는다. 현
 프로파일 운영 원칙:
 
 - active regression / gate는 `mainline_curated` track을 기본으로 삼는다.
+- `curated_single_doc_core`는 routine broader core gate이고,
+  `curated_single_doc_official_77`은 별도 장시간 full-dataset official run이다.
+  77-question run은 store/profile/report coverage가 명확할 때 heartbeat와 함께
+  실행하고, 재사용 가능한 store가 있으면 fresh ingest보다 store-fixed
+  `--eval-only` refresh를 우선한다.
 - `legacy_2024_experimental` track은 2024 보고서 + legacy dataset 조합을 보존하기 위한 historical asset이다.
 - legacy profile은 curated dataset이 2024 coverage와 question-id 체계를 아직 완전히 대체하지 못한 영역에서만 사용한다.
 - 새로운 회귀나 운영 기준선은 가능하면 curated profile로 추가하고, 임시 profile은 장기 유지하지 않는다.

@@ -1,0 +1,251 @@
+{
+  "profile_track": "mainline_curated",
+  "profile_role": "single_doc_official_77_long_run",
+  "status_note": "Long-running official 77-question single-document curated run. Use after focused gates pass; prefer store-fixed eval-only refreshes when reusable stores exist.",
+  "dataset_track": "curated_dart_review",
+  "defaults": {
+    "k": 8,
+    "ingest_mode": "structural_selective_v2",
+    "max_workers": 2,
+    "eval_max_workers": 1,
+    "batch_size": 8,
+    "eval_mode": "all_filtered",
+    "eval_limit": 0,
+    "reuse_store": true,
+    "reuse_context_cache": true,
+    "force_reindex": false,
+    "auto_fetch_missing_report": true,
+    "resume_partial_store": true,
+    "resume_batch_size": 64,
+    "use_zero_cost_prefix": true,
+    "allow_retrieval_fallback": false,
+    "retrieval_query_budget": 8,
+    "focused_retrieval_query_budget": 4,
+    "retry_retrieval_query_budget": 1,
+    "pricing": {
+      "input_per_million_tokens_usd": 0.3,
+      "output_per_million_tokens_usd": 2.5
+    },
+    "selective_v2_short_text_threshold": 700,
+    "selective_v2_short_table_threshold": 1600,
+    "selective_v2_sections": [
+      "사업개요",
+      "위험관리 및 파생거래",
+      "매출 및 수주상황",
+      "연구개발",
+      "요약재무정보",
+      "이사의 경영진단 및 분석의견"
+    ],
+    "llm_routes": {
+      "default": {
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "temperature": 0
+      },
+      "evidence_extraction": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "temperature": 0
+      }
+    },
+    "mlflow_experiment_name": "dart_rag_curated_single_doc_official_77"
+  },
+  "candidate_ids": [
+    "structural_selective_v2_prefix_2500_320"
+  ],
+  "screening": {
+    "baseline_experiment_id": "structural_selective_v2_prefix_2500_320",
+    "parallel_experiments": 1,
+    "retrieval_hit_drop_threshold": 0.1,
+    "section_match_drop_threshold": 0.15,
+    "max_full_eval_candidates": 0,
+    "always_include_full_eval_ids": [
+      "structural_selective_v2_prefix_2500_320"
+    ]
+  },
+  "full_evaluation": {
+    "enabled": true,
+    "eval_mode": "all_filtered",
+    "eval_limit": 0,
+    "retrieval_query_budget": 8,
+    "focused_retrieval_query_budget": 4,
+    "retry_retrieval_query_budget": 1,
+    "llm_routes": {
+      "default": {
+        "provider": "google",
+        "model": "gemini-2.5-flash",
+        "temperature": 0
+      },
+      "evidence_extraction": {
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "temperature": 0
+      }
+    }
+  },
+  "company_runs": [
+    {
+      "id": "kbf_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/KB금융/2023_사업보고서_20240326000894.html",
+        "metadata": {
+          "company": "KB금융",
+          "stock_code": "105560",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240326000894"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "lge_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/LG에너지솔루션/2023_사업보고서_20240314001110.html",
+        "metadata": {
+          "company": "LG에너지솔루션",
+          "stock_code": "373220",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240314001110"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "posco_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/POSCO홀딩스/2023_사업보고서_20240322000986.html",
+        "metadata": {
+          "company": "POSCO홀딩스",
+          "stock_code": "005490",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240322000986"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "ski_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/SK이노베이션/2023_사업보고서_20240320000950.html",
+        "metadata": {
+          "company": "SK이노베이션",
+          "stock_code": "096770",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240320000950"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "skh_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/SK하이닉스/2023_사업보고서_20240319000684.html",
+        "metadata": {
+          "company": "SK하이닉스",
+          "stock_code": "000660",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240319000684"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "naver_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/NAVER/2023_사업보고서_20240318000844.html",
+        "metadata": {
+          "company": "네이버",
+          "stock_code": "035420",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240318000844"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "samsung_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/삼성전자/2023_사업보고서_20240312000736.html",
+        "metadata": {
+          "company": "삼성전자",
+          "stock_code": "005930",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240312000736"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "celltrion_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/셀트리온/2023_사업보고서_20240318000913.html",
+        "metadata": {
+          "company": "셀트리온",
+          "stock_code": "068270",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240318000913"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "kakao_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/카카오/2023_사업보고서_20240418000375.html",
+        "metadata": {
+          "company": "카카오",
+          "stock_code": "035720",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240418000375"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "kakaobank_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/카카오뱅크/2023_사업보고서_20240320001487.html",
+        "metadata": {
+          "company": "카카오뱅크",
+          "stock_code": "323410",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240320001487"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    },
+    {
+      "id": "hyundai_2023_official_77",
+      "defaults": {
+        "report_path": "data/reports/현대자동차/2023_사업보고서_20240313001451.html",
+        "metadata": {
+          "company": "현대자동차",
+          "stock_code": "005380",
+          "year": 2023,
+          "report_type": "사업보고서",
+          "rcept_no": "20240313001451"
+        },
+        "eval_dataset_path": "benchmarks/datasets/single_doc_eval_full.curated.json"
+      }
+    }
+  ],
+  "experiments": [
+    {
+      "id": "structural_selective_v2_prefix_2500_320",
+      "chunk_size": 2500,
+      "chunk_overlap": 320,
+      "ingest_mode": "structural_selective_v2",
+      "use_zero_cost_prefix": true
+    }
+  ]
+}
