@@ -1441,3 +1441,128 @@
   minutes with heartbeat only. Treat full-gate proof as still pending.
 - Do not commit `benchmarks/results/**`; the local result directory is an
   experiment artifact.
+
+## 2026-06-13 Pull / Current Handoff
+
+- Local `main` was fast-forwarded to `origin/main` at
+  `3e96fa1 Fix margin drag unit consistency`
+  (`v0.2.0-portfolio-ready-17-g3e96fa1`).
+- Worktree has no tracked source changes after pull. Existing untracked
+  `benchmarks/results/**` directories remain local experiment artifacts and
+  should not be staged by default.
+- Latest source-controlled status is now best read from
+  `docs/overview/project_status.md` and README rather than the older 2026-06-09
+  handoff above.
+- Quick local sanity after pull:
+  - `.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates`: `Status:
+    ready`
+  - `.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`: passed
+    with `216` reviewed literals
+- Current gate summary:
+  - Runtime contract gate: PASS
+  - Hard structural numeric gate: PASS, `5 / 5`
+  - Concept runtime gap gate: PASS, `7 / 7`
+  - Policy-driven runtime gate: PASS
+  - Reflection promotion, report-cache promotion evidence, promotion trace
+    materiality, `REFERENCE_NOTE`, and portfolio review gates: READY
+- Latest runtime closure:
+  - `CEL_T1_038` margin-drag unit / final-answer consistency is closed by
+    source-visible unit refinement, late ratio trace repair, and query-focused
+    numeric subtask selection.
+  - The fix stayed generic: no company name, benchmark id, or report-specific
+    runtime branch was added.
+- Latest broader evidence:
+  - 2026-06-12 store-fixed `curated_single_doc_core` full-eval refresh completed
+    `15` questions across Samsung, NAVER, and Hyundai with `0.0%` error.
+  - Hard structural replay remains `5 / 5` numeric PASS; plain hard replay is
+    `4 / 5`, with `SKH_T1_060` documenting the current/prior row-binding split.
+- Current next work:
+  - Diagnose refusal-support evidence projection for safe missing-answer cases
+    such as `SAM_T4_070`, `NAV_T4_008`, and `NAV_T4_033`.
+  - Treat this as a generic evidence-surface / refusal-support contract issue,
+    not as a benchmark-specific routing or keyword patch.
+  - Keep broader 77-question official runs separate until report/profile
+    coverage decisions are explicit; use heartbeat monitoring for any long
+    benchmark run.
+- Refusal-support projection follow-up in this session:
+  - `_append_missing_decision_context_evidence()` no longer treats any existing
+    `selected_claim_ids` as a blanket reason to skip missing-decision context.
+  - It now checks whether selected evidence already covers query focus terms.
+    If selected evidence is generic but retrieved docs contain focus-overlapping
+    context, the runtime appends `missing_decision_context::*` evidence.
+  - This preserves safe refusal behavior while keeping nearby search-scope /
+    focus context visible to evaluator and reviewer surfaces.
+  - The change is generic focus-coverage logic; it does not add company,
+    benchmark id, report-specific, or financial-metric keyword branches.
+- Validation after the follow-up:
+  - focused missing-decision/refusal tests: `4` OK
+  - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts`:
+    `219` OK
+  - `.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`: passed
+    with `216` reviewed literals
+  - `.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates`: `Status:
+    ready`
+  - `git diff --check`: no whitespace errors; PowerShell reported line-ending
+    normalization warnings for touched files.
+  - `.\.venv\Scripts\python.exe -m unittest tests.test_subtask_loop` fails
+    `10` growth/aggregate narrative expectation tests. A clean-HEAD baseline
+    check after stashing this session's tracked edits reproduced the same
+    `10` failures, so this is not caused by the missing-decision context
+    follow-up. Treat it as a separate upstream baseline item before using full
+    `test_subtask_loop` as a publication gate.
+- Growth / aggregate narrative baseline follow-up:
+  - The `tests.test_subtask_loop` baseline failures were closed without adding
+    company, benchmark id, report-specific, or metric-specific runtime
+    branches.
+  - Late `consistent_numeric_answer` refresh now preserves already-supported
+    aggregate answers and answers that already cover the numeric projection,
+    instead of replacing them with a single preferred numeric answer.
+  - If a narrative summary conflicts with a stronger growth trace, ordinary
+    `narrative_summary` rows now contribute clean explanatory context while
+    numeric material is refreshed from the trace. A structured
+    `aggregate_subtasks` row can still override a weaker growth trace when it
+    is the stronger aggregate result.
+  - Evidence-backed prior material recovery is now available to
+    `_preferred_complete_numeric_answer()`, so late growth refresh can preserve
+    a source-visible prior value such as `2022년 78.1만 대` rather than reusing
+    the current value.
+  - Validation:
+    - previous `10` failing `SubtaskLoopTests`: OK
+    - `.\.venv\Scripts\python.exe -m unittest tests.test_subtask_loop`: `185`
+      OK
+    - `.\.venv\Scripts\python.exe -m unittest tests.test_operation_contracts
+      tests.test_lookup_recovery_policy`: `234` OK
+    - `.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates`: `Status:
+      ready`
+    - `git diff --check`: no whitespace errors; PowerShell reported line-ending
+      normalization warnings for touched files.
+    - `.\.venv\Scripts\python.exe -m unittest discover -s tests`: ran `1101`
+      tests and reported `2` failures plus `2` errors. After stashing this
+      session's tracked edits and rerunning the four failing tests on clean
+      HEAD, the same failures/errors reproduced:
+      `test_lookup_unit_refinement_preserves_explicit_normalized_unit`,
+      `test_surface_unit_inference_does_not_override_known_unit_family`, and
+      two Windows subprocess stdout decode errors in CLI JSON-output tests.
+      Treat these as pre-existing baseline / Windows encoding items, not as
+      regressions from this session's refusal or aggregate-narrative changes.
+- Unit-refinement / Windows decode follow-up:
+  - The two clean-HEAD unit failures are now closed generically. Lookup slot
+    unit refinement only accepts a claim unit for an already-normalized slot
+    when the same raw value is anchored in direct quote/raw-row evidence, and
+    inline unit inference now applies policy-driven right-boundary checks so a
+    label token after a value is not misread as a unit.
+  - The boundary policy lives in `CALCULATION_RENDER_POLICY`, keeping the
+    runtime code as a generic policy consumer.
+  - Windows CLI JSON-output tests now decode subprocess output as UTF-8 with
+    replacement for malformed bytes, avoiding host-codepage failures while
+    preserving the CLI output contract.
+  - Validation:
+    - `.\.venv\Scripts\python.exe -m unittest discover -s tests`: `1101` OK
+    - `.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates`: `Status:
+      ready`
+    - `git diff --check`: no whitespace errors; PowerShell reported line-ending
+      normalization warnings for touched files.
