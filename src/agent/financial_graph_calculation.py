@@ -17246,20 +17246,6 @@ class FinancialAgentCalculationMixin:
                     numeric_answer=late_answer,
                 )
                 _sync_aggregate_locals()
-        runtime_numeric_answer = self._late_runtime_numeric_answer(state, final_answer)
-        if runtime_numeric_answer:
-            if has_narrative_summary and has_growth_rate_result:
-                mutable_state = self._apply_mutable_numeric_answer(
-                    mutable_state,
-                    state=state,
-                    numeric_answer=runtime_numeric_answer,
-                )
-                _sync_aggregate_locals()
-            else:
-                final_answer = runtime_numeric_answer
-                mutable_state = mutable_state._replace(
-                    synthesis_state=mutable_state.synthesis_state._replace(final_answer=final_answer)
-                )
         mutable_state = self._apply_final_narrative_repair_pipeline(
             state,
             mutable_state=mutable_state,
