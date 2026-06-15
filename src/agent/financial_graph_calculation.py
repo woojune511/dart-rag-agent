@@ -7939,6 +7939,10 @@ class FinancialAgentCalculationMixin:
         slot["dependency_resolved"] = True
         return slot
 
+    def _format_ratio_percent_result(self, result_value: float) -> str:
+        rendered_value = self._format_calculation_value(result_value, "%", "PERCENT")
+        return rendered_value if "%" in rendered_value else f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
+
     def _rebuilt_ratio_result_from_dependency_slots(
         self,
         *,
@@ -8091,9 +8095,7 @@ class FinancialAgentCalculationMixin:
         if numerator_value is None or denominator_value in {None, 0}:
             return ""
         result_value = float(numerator_value) / float(denominator_value) * 100.0
-        rendered_value = self._format_calculation_value(result_value, "%", "PERCENT")
-        if "%" not in rendered_value:
-            rendered_value = f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
+        rendered_value = self._format_ratio_percent_result(result_value)
         source_row_ids = _clean_source_row_ids([
             numerator_slot.get("source_row_id"),
             numerator_slot.get("source_row_ids"),
@@ -12543,10 +12545,7 @@ class FinancialAgentCalculationMixin:
         if denominator_value == 0 or numerator_value == denominator_value:
             return trace
         result_value = (numerator_value / denominator_value) * 100.0
-        rendered_value = self._format_calculation_value(result_value, "%", "PERCENT")
-        if "%" not in rendered_value:
-            rendered_number = f"{result_value:.2f}".rstrip("0").rstrip(".")
-            rendered_value = f"{rendered_number}%"
+        rendered_value = self._format_ratio_percent_result(result_value)
 
         def _updated_slot(slot: Dict[str, Any], match: Dict[str, Any], normalized_value: float) -> Dict[str, Any]:
             candidate = dict(match.get("candidate") or {})
