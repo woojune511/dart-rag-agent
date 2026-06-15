@@ -17205,43 +17205,8 @@ class FinancialAgentCalculationMixin:
                 evidence_items=aggregate_evidence_items,
             )
         _sync_state(final_answer=final_answer)
-        final_conflicting_narrative: Dict[str, Any] = {}
-        if not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
-            final_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
-                query=str(state.get("query") or ""),
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
-            )
-        final_conflicting_narrative_locked = False
-        if final_conflicting_narrative:
-            conflicting_answer = _normalise_spaces(str(final_conflicting_narrative.get("answer") or ""))
-            if self._growth_narrative_numeric_incompatible_with_trace(
-                narrative_answer=conflicting_answer,
-                numeric_answer=final_answer,
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
-            ) and str(final_conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks":
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        conflicting_answer or final_answer,
-                        selected_claim_ids=final_conflicting_narrative.get("selected_claim_ids") or [],
-                        sync_projection=False,
-                    ),
-                )
-                mutable_state = mutable_state._replace(
-                    synthesis_state=_AggregateSynthesisState(
-                        ordered_results,
-                        aggregate_projection,
-                        final_answer,
-                        selected_claim_ids,
-                    )
-                )
-                final_conflicting_narrative_locked = True
         if (
             has_narrative_summary
-            and not final_conflicting_narrative_locked
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
         ):
             final_answer = self._ensure_complete_growth_numeric_answer(
@@ -17295,19 +17260,6 @@ class FinancialAgentCalculationMixin:
                 mutable_state = mutable_state._replace(
                     synthesis_state=mutable_state.synthesis_state._replace(final_answer=final_answer)
                 )
-        final_complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-        if (
-            final_complete_numeric_answer
-            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
-            and not self._answer_covers_numeric_projection(final_answer, ordered_results)
-            and self._complete_numeric_answer_can_replace_final(final_complete_numeric_answer, ordered_results)
-        ):
-            mutable_state = self._apply_mutable_numeric_answer(
-                mutable_state,
-                state=state,
-                numeric_answer=final_complete_numeric_answer,
-            )
-            _sync_aggregate_locals()
         mutable_state = self._apply_final_narrative_repair_pipeline(
             state,
             mutable_state=mutable_state,
@@ -17395,26 +17347,6 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             aggregate_evidence_items,
         )
-        nested_numeric_narrative_answer = self._preferred_complete_nested_numeric_narrative_answer(
-            current_answer=final_answer,
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-        )
-        if nested_numeric_narrative_answer:
-            mutable_state, _ = self._replace_mutable_aggregate_answer(
-                mutable_state,
-                candidate_answer=nested_numeric_narrative_answer,
-            )
-            _sync_aggregate_locals()
-            final_answer_already_covers_trace = (
-                self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
-                or self._answer_covers_numeric_projection(final_answer, ordered_results)
-            )
-            final_answer_has_untraced_numeric = self._growth_answer_has_untraced_numeric_material(
-                final_answer,
-                ordered_results,
-                aggregate_evidence_items,
-            )
         if (
             consistent_numeric_answer
             and _normalise_spaces(consistent_numeric_answer)
