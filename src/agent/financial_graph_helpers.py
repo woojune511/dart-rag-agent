@@ -119,6 +119,14 @@ __all__ = [
     '_desired_statement_types',
     '_desired_consolidation_scope',
     '_metadata_period_match_strength',
+    '_scoped_surface_affinity_priority',
+    '_dependency_projection_slot_differs_from_operand',
+    '_source_task_id_for_dependency_operand',
+    '_dependency_ratio_role_group',
+    '_dependency_lookup_slot_match_score',
+    '_dependency_operand_rows_share_source_value',
+    '_dependency_source_slot_structurally_stronger',
+    '_dependency_operand_can_use_source_slot',
     '_prioritize_candidate_items',
     '_should_apply_strict_company_scope',
     '_query_mentions_metric',
@@ -2188,6 +2196,211 @@ def _metadata_period_match_strength(period_labels: List[str], query_years: List[
     return overlap / max(len(wanted), 1)
 
 
+def _scoped_surface_affinity_priority(
+    items: List[Dict[str, Any]],
+    *,
+    query: str,
+    topic: str,
+    required_operands: Optional[List[Dict[str, Any]]] = None,
+    require_segment_operand: bool = False,
+    direct_weight: float = 0.0,
+    adjustment_weight: float = 0.0,
+) -> float:
+    if require_segment_operand and not any(
+        _operand_segment_label(dict(operand or {})) for operand in list(required_operands or [])
+    ):
+        return 0.0
+    affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+    metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
+    query_surface = _normalise_spaces(f"{query} {topic}")
+    if metric_terms and not any(term in query_surface for term in metric_terms):
+        return 0.0
+    surface = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for item in items
+            for metadata in [dict(item.get("metadata") or {})]
+            for part in (
+                item.get("claim"),
+                item.get("raw_row_text"),
+                item.get("quote_span"),
+                item.get("text"),
+                item.get("source_context"),
+                metadata.get("row_label"),
+                metadata.get("semantic_label"),
+                metadata.get("table_header_context"),
+                metadata.get("table_row_labels_text"),
+                metadata.get("table_value_labels_text"),
+                metadata.get("table_summary_text"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    direct_markers = tuple(
+        str(marker)
+        for marker in (affinity_policy.get("scoped_direct_row_markers") or ())
+        if str(marker)
+    )
+    adjustment_markers = tuple(
+        str(marker)
+        for marker in (affinity_policy.get("scoped_adjustment_row_markers") or ())
+        if str(marker)
+    )
+    score = 0.0
+    if direct_markers and any(marker in surface for marker in direct_markers):
+        score += direct_weight
+    if adjustment_markers and any(marker in surface for marker in adjustment_markers):
+        score += adjustment_weight
+    return score
+
+
+def _dependency_projection_values_differ(left: Any, right: Any) -> bool:
+    try:
+        if left is not None and right is not None:
+            return abs(float(left) - float(right)) > 1e-6
+    except (TypeError, ValueError):
+        pass
+    return left != right
+
+
+def _dependency_projection_slot_differs_from_operand(
+    slot: Dict[str, Any],
+    operand: Dict[str, Any],
+) -> bool:
+    return any(
+        (
+            _normalise_spaces(str(slot.get("raw_value") or ""))
+            != _normalise_spaces(str(operand.get("raw_value") or "")),
+            _normalise_spaces(str(slot.get("raw_unit") or ""))
+            != _normalise_spaces(str(operand.get("raw_unit") or "")),
+            _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+            != _normalise_spaces(str(operand.get("normalized_unit") or "")).upper(),
+            _dependency_projection_values_differ(
+                slot.get("normalized_value"),
+                operand.get("normalized_value"),
+            ),
+        )
+    )
+
+
+def _source_task_id_for_dependency_operand(operand: Dict[str, Any]) -> str:
+    source_task_id = _normalise_spaces(str(operand.get("source_task_id") or ""))
+    if source_task_id:
+        return source_task_id
+    for source_id in _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")]):
+        if source_id.startswith("task_output:"):
+            return source_id.split(":", 1)[1]
+    return ""
+
+
+def _dependency_ratio_role_group(role: str) -> str:
+    normalized = _normalise_spaces(str(role or ""))
+    if normalized.startswith("numerator"):
+        return "numerator"
+    if normalized.startswith("denominator"):
+        return "denominator"
+    return ""
+
+
+def _dependency_lookup_slot_match_score(
+    lookup_slot: Dict[str, Any],
+    arithmetic_slot: Dict[str, Any],
+    role: str,
+) -> int:
+    score = 0
+    lookup_role = _normalise_spaces(str(lookup_slot.get("role") or ""))
+    arithmetic_role = _normalise_spaces(str(arithmetic_slot.get("role") or role or ""))
+    lookup_ratio_group = _dependency_ratio_role_group(lookup_role)
+    arithmetic_ratio_group = _dependency_ratio_role_group(arithmetic_role)
+    if lookup_ratio_group and arithmetic_ratio_group and lookup_ratio_group != arithmetic_ratio_group:
+        return 0
+    if lookup_role and arithmetic_role:
+        if lookup_role == arithmetic_role:
+            score += 2
+        if lookup_role.startswith(f"{arithmetic_role}_") or arithmetic_role.startswith(f"{lookup_role}_"):
+            score += 1
+    lookup_concept = _normalise_spaces(str(lookup_slot.get("concept") or ""))
+    arithmetic_concept = _normalise_spaces(
+        str(arithmetic_slot.get("concept") or arithmetic_slot.get("matched_operand_concept") or "")
+    )
+    if lookup_concept and arithmetic_concept and lookup_concept == arithmetic_concept:
+        score += 8
+    lookup_label = _normalise_spaces(str(lookup_slot.get("label") or ""))
+    arithmetic_label = _normalise_spaces(
+        str(arithmetic_slot.get("label") or arithmetic_slot.get("matched_operand_label") or "")
+    )
+    if lookup_label and arithmetic_label:
+        if lookup_label == arithmetic_label:
+            score += 6
+        elif _operand_text_match(lookup_label, {"label": arithmetic_label}):
+            score += 4
+        elif arithmetic_label in lookup_label or lookup_label in arithmetic_label:
+            score += 3
+    lookup_period = _normalise_spaces(str(lookup_slot.get("period") or ""))
+    arithmetic_period = _normalise_spaces(str(arithmetic_slot.get("period") or ""))
+    if score > 0 and lookup_period and arithmetic_period and lookup_period == arithmetic_period:
+        score += 1
+    return score
+
+
+def _dependency_operand_rows_share_source_value(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    left_ids = set(_clean_source_row_ids([left.get("source_row_id"), left.get("source_row_ids")]))
+    right_ids = set(_clean_source_row_ids([right.get("source_row_id"), right.get("source_row_ids")]))
+    if not left_ids or not right_ids or not (left_ids & right_ids):
+        return False
+    try:
+        left_value = left.get("normalized_value")
+        right_value = right.get("normalized_value")
+        if left_value is not None and right_value is not None:
+            return abs(float(left_value) - float(right_value)) <= 1e-6
+    except (TypeError, ValueError):
+        pass
+    return _normalise_spaces(str(left.get("raw_value") or "")) == _normalise_spaces(
+        str(right.get("raw_value") or "")
+    )
+
+
+def _dependency_source_slot_structurally_stronger(slot: Dict[str, Any]) -> bool:
+    return bool(
+        _normalise_spaces(str(slot.get("value_role") or "")).lower() == "aggregate"
+        or _normalise_spaces(str(slot.get("aggregation_stage") or "")).lower()
+        in {"final", "subtotal", "direct"}
+    )
+
+
+def _dependency_operand_can_use_source_slot(
+    operand: Dict[str, Any],
+    source_slot: Dict[str, Any],
+) -> bool:
+    operand_source_ids = _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")])
+    source_task_id = _source_task_id_for_dependency_operand(operand)
+    operand_role_group = _dependency_ratio_role_group(
+        str(operand.get("matched_operand_role") or operand.get("role") or "")
+    )
+    source_role_group = _dependency_ratio_role_group(str(source_slot.get("role") or ""))
+    if operand_role_group and source_role_group and operand_role_group != source_role_group:
+        return False
+    dependency_backed_operand = bool(
+        source_task_id
+        and (
+            _normalise_spaces(str(operand.get("source_task_id") or ""))
+            or any(source_id.startswith("task_output:") for source_id in operand_source_ids)
+        )
+    )
+    source_slot_ids = _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
+    role = _normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or ""))
+    strong_source_slot_match = bool(
+        source_slot_ids
+        and _dependency_lookup_slot_match_score(source_slot, operand, role) >= 8
+    )
+    return bool(
+        dependency_backed_operand
+        or _dependency_source_slot_structurally_stronger(source_slot)
+        or not operand_source_ids
+        or strong_source_slot_match
+    )
+
+
 def _prioritize_candidate_items(
     candidate_items: List[Dict[str, Any]],
     query: str,
@@ -2221,6 +2434,17 @@ def _prioritize_candidate_items(
                 points -= 2.0
         period_strength = _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years)
         points += period_strength * 1.5
+        affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+        metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
+        query_surface = _normalise_spaces(f"{query} {topic}")
+        if statement_type == "segment_note" and any(term in query_surface for term in metric_terms):
+            points += _scoped_surface_affinity_priority(
+                [item],
+                query=query,
+                topic=topic,
+                direct_weight=2.5,
+                adjustment_weight=-1.5,
+            )
         table_source_id = str(metadata.get("table_source_id") or "").strip()
         return points, table_counts.get(table_source_id, 0)
 
@@ -5468,7 +5692,14 @@ def _build_semantic_numeric_plan(
         for item in matches
         if str(item.get("key") or "").strip()
         and _query_mentions_metric(query, item)
-        and str(item.get("formula_family") or "").strip().lower() == operation_family
+        and (
+            str(item.get("formula_family") or "").strip().lower() == operation_family
+            or (
+                operation_family in {"lookup", "single_value"}
+                and str(item.get("formula_family") or "").strip().lower()
+                in {"sum", "difference", "ratio", "growth_rate"}
+            )
+        )
     ]
     strong_metric_keys = list(dict.fromkeys(strong_metric_keys))
     metric_keys: List[str] = []
@@ -5630,7 +5861,27 @@ def _build_semantic_numeric_plan(
             planner_notes.append(f"skip_weak_match:{metric_key}")
             continue
         constraints = _build_task_constraints(query, report_scope, ontology, metric_key)
-        operand_specs = ontology.build_operand_spec(metric_key)
+        direct_lookup_preferred = bool(metric.get("direct_lookup_preferred")) and operation_family in {"lookup", "single_value"}
+        if direct_lookup_preferred:
+            operand_specs = [
+                {
+                    "label": display_name,
+                    "concept": "",
+                    "aliases": list(ontology.aliases_for_metric(metric_key)),
+                    "keywords": list(metric.get("retrieval_keywords") or []),
+                    "role": "primary_value",
+                    "required": True,
+                    "period_hint": "",
+                    "period_focus": str(constraints.get("period_focus") or ""),
+                    "preferred_sections": list(metric.get("preferred_sections") or []),
+                    "preferred_statement_types": list(ontology.statement_type_hints_for_metric(metric_key)),
+                    "binding_policy": {},
+                    "unit_family": str(metric.get("result_unit") or ""),
+                    "surface_contract": {},
+                }
+            ]
+        else:
+            operand_specs = ontology.build_operand_spec(metric_key)
         retrieval_queries = _build_retrieval_query_bundle(query, topic, metric_key, ontology)
         task_query = _build_metric_task_query(
             original_query=query,
@@ -5645,7 +5896,7 @@ def _build_semantic_numeric_plan(
                 "metric_family": metric_key,
                 "metric_label": display_name,
                 "query": task_query,
-                "operation_family": str(metric.get("formula_family") or "").strip(),
+                "operation_family": "lookup" if direct_lookup_preferred else str(metric.get("formula_family") or "").strip(),
                 "required_operands": [
                     {
                         "label": str(spec.get("label") or ""),

@@ -46,6 +46,8 @@
 | [Hard Structural-vs-Plain Replay (2026-06-11)](#hard-structural-vs-plain-replay-2026-06-11) | 같은 hard set의 structural vs plain 비교 | structural 5 / 5, plain 4 / 5; `SKH_T1_060` row binding이 separating failure |
 | [Curated Single-Doc Core Full Eval (2026-06-12)](#curated-single-doc-core-full-eval-2026-06-12) | 삼성/네이버/현대차 15문항 broader eval-only | all companies error `0.0%`, faithfulness/completeness `1.000`; exclusive narrative loop fixed |
 | [CEL_T1_038 Unit and Final Answer Consistency (2026-06-12)](#cel_t1_038-unit-and-final-answer-consistency-2026-06-12) | margin-drag focused regression | claim-visible `원` unit is preserved through lookup capture, late ratio projection, and query-focused final answer selection |
+| [Financial Graph Calculation Refactor Focused Eval (2026-06-15)](#financial-graph-calculation-refactor-focused-eval-2026-06-15) | aggregate/projection refactor after repeated patching | SKI/POS PASS cases stayed stable; HYU self-ratio regression is blocked and remaining gap is operand binding/table structure |
+| [HYU Ratio Task-Output Rebinding (2026-06-15)](#hyu-ratio-task-output-rebinding-2026-06-15) | HYU_T1_034 late denominator task-output binding | focused eval-only recovered `83.81%` ratio and returned numeric PASS |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -58,6 +60,161 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## HYU Ratio Task-Output Rebinding (2026-06-15)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/hyu_t1_034_ratio_task_output_distinct_source_2026-06-15/`
+- artifact hygiene: benchmark result bundle is local experiment output and
+  should not be staged.
+
+### Setup
+
+- Store-fixed focused eval-only over `HYU_T1_034`.
+- Command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_single_doc_official_77.json --eval-only --question-id HYU_T1_034 --progress-heartbeat-sec 30 --heartbeat-log <path>`.
+
+### Code / Contract Change
+
+- Recovered lookup task-output slots now preserve `task_output:<task_id>`
+  provenance when the structured source row is stale or blank.
+- When a lookup task has one required operand, recovered answer-text slots
+  inherit missing concept/period metadata from that producer contract.
+- Ratio dependency source selection avoids reusing a task output already bound
+  to the opposite ratio role group, so late total-denominator lookups can
+  replace collapsed self-ratio operands.
+- The change is generic dependency/provenance handling; no company,
+  benchmark-id, or metric-specific runtime branch was added.
+
+### Result
+
+| Question | Previous latest | New focused eval-only | Interpretation |
+| --- | ---: | ---: | --- |
+| `HYU_T1_034` | FAIL, avg `0.774` | PASS, avg `0.947` | Late total operating-income lookup is bound as denominator; final ratio is `83.81%`. |
+
+Verification:
+
+- `python -m unittest tests.test_aggregate_subtask_projection tests.test_evaluator_runtime_projection tests.test_financial_agent_run_projection`: `152` tests OK.
+- `python -m src.ops.audit_runtime_domain_terms`: passed with `216` reviewed literals.
+- `git diff --check -- src\agent\financial_graph_calculation.py tests\test_aggregate_subtask_projection.py`: passed.
+- Post-fix large-diff review replaced `segment_revenue_*` structured-cell
+  affinity policy keys with generic `scoped_*` keys in runtime/config
+  consumers. The marker vocabulary remains declarative in retrieval policy.
+  Scoped surface affinity scoring and dependency-projection slot/source
+  matching helpers were centralized in `financial_graph_helpers`, reducing
+  duplicated nested implementation in `financial_graph_calculation`.
+  Lookup task-output slot recovery was moved to
+  `src/agent/financial_dependency_projection.py`; table-label evidence
+  collection, dependency operand construction, and source-task answer-slot
+  candidate extraction now live there too. Source-task operand derivation and
+  fallback dependency operation-plan construction for ratio/growth repair are
+  also delegated there, as are existing operand refresh from lookup slots and
+  operand-id dedupe. Ratio missing-role fill, including denominator candidate
+  inference from sibling lookup rows, is also centralized there. Dependency
+  calculation-plan executability checks and deterministic/fallback rebuild are
+  delegated there via callbacks. Recalculation state creation, absolute-ratio
+  magnitude post-processing, and recalculated row assembly are now delegated
+  there too. Lookup-row realignment from projected task-output operands is now
+  delegated there as a row-level helper.
+  `tests.test_operation_contracts` plus
+  `tests.test_aggregate_subtask_projection` passed `271` tests; runtime
+  domain-term audit, projection/evaluator/run projection suites `152` OK, and
+  `git diff --check` also passed.
+
+Post-fix focused regression:
+
+| Question | Regression bundle | Result |
+| --- | --- | --- |
+| `SKI_T2_069` | `benchmarks/results/regression_ski_t2_069_after_hyu_rebind_2026-06-15/` | numeric `PASS`, faithfulness/completeness `1.000` |
+| `POS_T1_075` | `benchmarks/results/regression_pos_t1_075_after_hyu_rebind_2026-06-15/` | numeric `PASS`, faithfulness/completeness `1.000` |
+| `HYU_T1_034` | `benchmarks/results/regression_hyu_t1_034_after_hyu_rebind_2026-06-15/` | numeric `PASS`, faithfulness `1.000`, numeric grounding `1.000` |
+
+## Financial Graph Calculation Refactor Focused Eval (2026-06-15)
+
+참조:
+
+- local result bundles:
+  - `benchmarks/results/refactor_check_ski_t2_069_eval_only_2026-06-15/`
+  - `benchmarks/results/refactor_check_hyu_t1_034_eval_only_2026-06-15/`
+  - `benchmarks/results/refactor_check_pos_t1_075_eval_only_2026-06-15/`
+- artifact hygiene: these result bundles are local experiment artifacts and
+  should not be staged.
+
+### Setup
+
+- Store-fixed `--eval-only` refreshes using copied focused result bundles.
+- Heartbeat-monitored command shape:
+  `benchmark_runner --eval-only --progress-heartbeat-sec 30 --heartbeat-log <path>`.
+- Focus:
+  - already-passing aggregate/numeric answer cases stayed stable after the
+    refactor
+  - known failed ratio-binding case did not regress into unsupported numeric
+    certainty
+
+### Code / Contract Change
+
+- Numeric display/evidence extraction was moved into
+  `src/agent/financial_numeric_surface.py`, so runtime and evaluator share the
+  same candidate extraction behavior instead of maintaining parallel regex
+  surfaces.
+- `financial_graph_calculation` now uses helper-level contracts for:
+  - aggregate answer candidate selection
+  - aggregate projection rebuild
+  - artifact projection payload sync
+  - late ratio answer refresh from resolved traces
+- Ratio completeness now rejects numerator/denominator rows that collapse to the
+  same source/value slot, even if their labels or operand ids differ.
+- The operation plan guard applies the same generic distinct-role check before
+  accepting selected ratio rows.
+- No company name, benchmark id, report-specific phrase, or metric-specific
+  runtime branch was added.
+
+### Result
+
+| Question | Previous | Refactor check | Interpretation |
+| --- | ---: | ---: | --- |
+| `SKI_T2_069` | PASS, avg `0.9630` | PASS, avg `0.9645` | Source-stated growth/narrative rendering remained stable. |
+| `POS_T1_075` | PASS, avg `0.9444` | PASS, avg `0.9194` | User-facing answer stayed unchanged: `2023년 연결기준 EBITDA는 1,701,152백만원입니다.` |
+| `HYU_T1_034` | FAIL, avg `0.7612` | FAIL, avg `0.7751` | Same-source/value self-ratio is blocked; answer now closes as a safer partial result. |
+
+### HYU Interpretation
+
+- The first refactor check exposed an unsupported `100%` ratio because numerator
+  and denominator were both drawn from the same source/value slot while carrying
+  different labels.
+- The generic collapse guard now rejects that path and forces replanning /
+  partial closure instead of accepting a self-ratio as complete evidence.
+- The final answer remains a `FAIL`, but the failure mode is safer:
+  recoverable operating-income values are shown, and the answer states that the
+  requested ratio cannot be fully confirmed.
+- The remaining gap should be handled in operand binding policy or
+  table-structure interpretation. It should not be patched in aggregate answer
+  composition.
+
+### Validation
+
+- `.venv\Scripts\python.exe -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_numeric_surface.py src/ops/evaluator.py tests/test_aggregate_subtask_projection.py`
+- `.venv\Scripts\python.exe -m unittest tests.test_aggregate_subtask_projection tests.test_evaluator_runtime_projection tests.test_financial_agent_run_projection`:
+  `145` tests OK
+- `.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`: passed
+  with `216` reviewed literals
+- `git diff --check`: passed
+
+### Follow-up Projection Helper Smoke
+
+After lookup-row realignment and dependency recalculation assembly were moved
+into `src/agent/financial_dependency_projection.py`, the focused store-fixed
+eval-only smoke was refreshed:
+
+| Question | Bundle | Result |
+| --- | --- | --- |
+| `HYU_T1_034` | `benchmarks/results/refactor_projection_hyu_t1_034_eval_only_2026-06-15/` | numeric `PASS`, faithfulness `1.000`, avg `0.947`; final ratio `83.81%` |
+| `POS_T1_075` | `benchmarks/results/refactor_projection_pos_t1_075_eval_only_2026-06-15/` | numeric `PASS`, faithfulness/completeness `1.000`, avg `0.919` |
+| `SKI_T2_069` | `benchmarks/results/refactor_projection_ski_t2_069_eval_only_2026-06-15/` | numeric `PASS`, faithfulness/completeness `1.000`, avg `0.965` |
+
+These bundles are local benchmark artifacts and should not be staged.
 
 ## Curated Single-Doc Core Full Eval (2026-06-12)
 

@@ -696,6 +696,34 @@ class SemanticNumericPlanTests(unittest.TestCase):
             [("2024년 SDC 매출액", "addend_1", "SDC"), ("2024년 Harman 매출액", "addend_2", "Harman")],
         )
 
+    def test_named_composite_metric_prefers_direct_lookup_for_single_value_query(self) -> None:
+        plan = _build_semantic_numeric_plan(
+            query="2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
+            topic="POSCO홀딩스의 2023년 EBITDA",
+            intent="numeric_fact",
+            report_scope={
+                "company": "POSCO홀딩스",
+                "year": 2023,
+                "report_type": "사업보고서",
+                "consolidation": "연결",
+            },
+            target_metric_family="",
+        )
+
+        self.assertEqual(plan["status"], "ok")
+        task = plan["tasks"][0]
+        self.assertEqual(task["metric_family"], "ebitda")
+        self.assertEqual(task["metric_label"], "EBITDA")
+        self.assertEqual(task["operation_family"], "lookup")
+        self.assertEqual(
+            [(row["role"], row["concept"]) for row in task["required_operands"]],
+            [
+                ("primary_value", ""),
+            ],
+        )
+        self.assertIn("mda", task["preferred_statement_types"])
+        self.assertIn("주요 경영지표", task["preferred_sections"])
+
     def test_extract_entities_keeps_metric_family_hint_empty_by_default(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = agent._extract_entities(

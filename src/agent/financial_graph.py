@@ -169,12 +169,18 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         retrieved_items = list(final.get("seed_retrieved_docs") or []) + list(final.get("retrieved_docs") or [])
         for item in retrieved_items:
             doc = item[0] if isinstance(item, (tuple, list)) and item else item
-            page_content = _normalise_spaces(
-                str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
-            )
+            if isinstance(doc, dict):
+                page_content = _normalise_spaces(
+                    str(doc.get("page_content") or doc.get("content") or doc.get("text") or "")
+                )
+                metadata = dict(doc.get("metadata") or {})
+            else:
+                page_content = _normalise_spaces(
+                    str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
+                )
+                metadata = dict(getattr(doc, "metadata", {}) or {})
             if not page_content:
                 continue
-            metadata = dict(getattr(doc, "metadata", {}) or {})
             source_anchor = _normalise_spaces(
                 str(
                     metadata.get("source_anchor")
@@ -510,7 +516,6 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "artifacts": [],
         }
         final = self.graph.invoke(initial)
-        runtime_evidence = self._runtime_evidence_from_retrieved_docs(final)
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
         llm_usage_by_phase = (
             usage_callback.snapshot_current_thread_by_phase() if usage_callback is not None else {}
@@ -518,6 +523,45 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
         embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
         runtime_calculation_trace = self._project_runtime_calculation_trace(final)
+        runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
+            final,
+            runtime_calculation_trace,
+        )
+        public_answer = _normalise_spaces(str(final.get("answer") or ""))
+        runtime_numeric_answer = self._late_runtime_numeric_answer(
+            {
+                **dict(final),
+                "resolved_calculation_trace": runtime_calculation_trace,
+            },
+            public_answer,
+        )
+        if runtime_numeric_answer:
+            public_answer = runtime_numeric_answer
+        final_for_evidence = {**dict(final), "answer": public_answer, "compressed_answer": public_answer}
+        runtime_evidence = self._runtime_evidence_from_retrieved_docs(final_for_evidence)
+        runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
+            {
+                **final_for_evidence,
+                "evidence_items": [
+                    *list(final_for_evidence.get("evidence_items") or []),
+                    *list(runtime_evidence or []),
+                ],
+                "runtime_evidence": runtime_evidence,
+                "resolved_calculation_trace": runtime_calculation_trace,
+            },
+            runtime_calculation_trace,
+        )
+        runtime_numeric_answer = self._late_runtime_numeric_answer(
+            {
+                **dict(final_for_evidence),
+                "runtime_evidence": runtime_evidence,
+                "resolved_calculation_trace": runtime_calculation_trace,
+            },
+            public_answer,
+        )
+        if runtime_numeric_answer:
+            public_answer = runtime_numeric_answer
+            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
         structured_result = _resolve_runtime_structured_result(
             {
                 "structured_result": final.get("structured_result", {}),
@@ -544,7 +588,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "routing_scores": final.get("routing_scores", {}),
             "companies": final["companies"],
             "years": final["years"],
-            "answer": final["answer"],
+            "answer": public_answer,
             "citations": citations,
             "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
             "retrieved_docs": final["retrieved_docs"],

@@ -1,6 +1,8 @@
 import unittest
+from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_calculation import _evidence_item_conflicts_requested_scope
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
 
@@ -388,6 +390,709 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "3.5314배")
         self.assertIn("recon::source", numerator["source_row_ids"])
 
+    def test_dependency_projection_does_not_cross_ratio_role_groups(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_numerator",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "raw_value": "(581,816)",
+                            "raw_unit": "million",
+                            "normalized_value": -581_816_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_segment",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share of total operating income",
+                "operation_family": "ratio",
+                "status": "ok",
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "source_row_id": "task_output:task_numerator",
+                        "source_row_ids": ["task_output:task_numerator", "row_segment"],
+                        "source_task_id": "task_numerator",
+                        "label": "segment operating income",
+                        "raw_value": "(581,816)",
+                        "raw_unit": "million",
+                        "normalized_value": -581_816_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_concept": "operating_income",
+                        "matched_operand_role": "numerator_1",
+                    },
+                    {
+                        "operand_id": "den",
+                        "source_row_id": "row_total",
+                        "source_row_ids": ["row_total"],
+                        "label": "total operating income",
+                        "raw_value": "1,903,886",
+                        "raw_unit": "million",
+                        "normalized_value": 1_903_886_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_concept": "operating_income",
+                        "matched_operand_role": "denominator_1",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "((A) / (B)) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 30.56,
+                    "result_unit": "%",
+                    "rendered_value": "30.56%",
+                    "formatted_result": "segment share is 30.56%.",
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate segment share",
+                "calc_subtasks": [
+                    {"task_id": "task_numerator", "operation_family": "lookup"},
+                    {"task_id": "task_ratio", "operation_family": "ratio"},
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = aligned[-1]
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertEqual(denominator["raw_value"], "1,903,886")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "30.56%")
+
+    def test_stale_difference_result_repairs_from_current_operands(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operands = [
+            {
+                "operand_id": "op_a",
+                "label": "current value",
+                "raw_value": "1000",
+                "raw_unit": "",
+                "normalized_value": 1000.0,
+                "normalized_unit": "COUNT",
+                "matched_operand_role": "minuend",
+            },
+            {
+                "operand_id": "op_b",
+                "label": "adjustment",
+                "raw_value": "250",
+                "raw_unit": "",
+                "normalized_value": 250.0,
+                "normalized_unit": "COUNT",
+                "matched_operand_role": "subtrahend",
+            },
+        ]
+        plan = {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "subtract",
+            "ordered_operand_ids": ["op_a", "op_b"],
+            "variable_bindings": [
+                {"variable": "A", "operand_id": "op_a"},
+                {"variable": "B", "operand_id": "op_b"},
+            ],
+            "formula": "A - B",
+            "result_unit": "",
+        }
+
+        repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
+            {
+                "query": "calculate adjusted value",
+                "active_subtask": {
+                    "task_id": "task_difference",
+                    "metric_family": "concept_difference",
+                    "metric_label": "adjusted value",
+                    "operation_family": "difference",
+                },
+            },
+            operands=operands,
+            plan=plan,
+            calculation_result={
+                "status": "ok",
+                "result_value": 990.0,
+                "result_unit": "",
+                "rendered_value": "990",
+            },
+        )
+
+        self.assertEqual(repaired_operands, operands)
+        self.assertEqual(repaired_plan, plan)
+        self.assertEqual(repaired_result["result_value"], 750.0)
+        self.assertTrue(repaired_result["stale_result_repaired_from_operands"])
+
+    def test_dependency_output_preserves_consistent_krw_unit_over_table_hint(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        numerator = 1_992_636_000_000.0
+        denominator = 9_670_643_576_585.0
+        state = {
+            "query": "calculate expense to revenue ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "expense ratio",
+                "operation_family": "ratio",
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_denominator",
+                    "raw_row_text": "revenue 9,670,643,576,585",
+                    "metadata": {
+                        "block_type": "table",
+                        "unit_hint": "천원",
+                        "table_value_labels_text": "revenue 9,670,643,576,585",
+                    },
+                }
+            ],
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_numerator",
+                        "label": "expense",
+                        "raw_value": "1,992,636",
+                        "raw_unit": "백만원",
+                        "normalized_value": numerator,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "numerator",
+                    },
+                    {
+                        "operand_id": "op_denominator",
+                        "label": "revenue",
+                        "raw_value": "9,670,643,576,585",
+                        "raw_unit": "원",
+                        "normalized_value": denominator,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "denominator",
+                        "source_row_id": "task_output:task_revenue",
+                        "source_row_ids": ["task_output:task_revenue", "ev_denominator"],
+                        "dependency_resolved": True,
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["op_numerator", "op_denominator"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_numerator"},
+                        {"variable": "B", "operand_id": "op_denominator"},
+                    ],
+                    "formula": "((A) / (B)) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {},
+            },
+        }
+
+        result_state = agent._execute_calculation(state)
+        trace = result_state["resolved_calculation_trace"]
+        result = trace["calculation_result"]
+        denominator_row = next(
+            row for row in trace["calculation_operands"] if row["operand_id"] == "op_denominator"
+        )
+
+        self.assertAlmostEqual(result["result_value"], (numerator / denominator) * 100, places=6)
+        self.assertEqual(denominator_row["raw_unit"], "원")
+        self.assertEqual(denominator_row["normalized_value"], denominator)
+
+    def test_formula_task_can_recover_direct_target_metric_row(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_target",
+            "source_anchor": "[company | year | management discussion]",
+            "claim": "target metric 1,701,152",
+            "quote_span": "target metric 1,701,152",
+            "metadata": {
+                "block_type": "table",
+                "row_label": "target metric",
+                "semantic_label": "target metric",
+                "unit_hint": "백만원",
+                "year": 2023,
+                "structured_cells": [
+                    {
+                        "value_text": "1,701,152",
+                        "unit_hint": "백만원",
+                        "column_headers": ["2023"],
+                    }
+                ],
+            },
+        }
+
+        row, operand = agent._direct_target_metric_operand_from_evidence(
+            {
+                "active_subtask": {
+                    "task_id": "task_metric",
+                    "metric_family": "concept_sum",
+                    "metric_label": "target metric",
+                    "operation_family": "sum",
+                }
+            },
+            [evidence],
+        )
+
+        self.assertEqual(operand["label"], "target metric")
+        self.assertEqual(row["raw_value"], "1,701,152")
+        self.assertEqual(row["raw_unit"], "백만원")
+        self.assertEqual(row["normalized_value"], 1_701_152_000_000.0)
+        self.assertTrue(row["direct_target_metric_lookup"])
+
+    def test_formula_task_can_recover_direct_target_metric_from_retrieved_doc_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        doc = SimpleNamespace(
+            page_content="target metric 1,701,152",
+            metadata={
+                "section_path": "management discussion",
+                "block_type": "table",
+                "row_label": "target metric",
+                "semantic_label": "target metric",
+                "unit_hint": "백만원",
+                "year": 2023,
+                "structured_cells": [
+                    {
+                        "value_text": "1,701,152",
+                        "unit_hint": "백만원",
+                        "column_headers": ["2023"],
+                    }
+                ],
+            },
+        )
+        evidence_pool = agent._ratio_operand_context_evidence_from_docs([(doc, 1.0)], max_docs=1)
+
+        row, operand = agent._direct_target_metric_operand_from_evidence(
+            {
+                "active_subtask": {
+                    "task_id": "task_metric",
+                    "metric_family": "concept_sum",
+                    "metric_label": "target metric",
+                    "operation_family": "sum",
+                }
+            },
+            evidence_pool,
+        )
+
+        self.assertEqual(operand["label"], "target metric")
+        self.assertEqual(row["raw_value"], "1,701,152")
+        self.assertEqual(row["raw_unit"], "백만원")
+        self.assertEqual(row["normalized_value"], 1_701_152_000_000.0)
+        self.assertTrue(row["direct_target_metric_lookup"])
+
+    def test_formula_task_can_recover_direct_target_metric_from_table_value_labels(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        doc = SimpleNamespace(
+            page_content="target metric | 1,701,152 | 1,303,065 | 398,087",
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "section_path": "management discussion",
+                "block_type": "table",
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_row_labels_text": "증감\ntarget metric\noperating income",
+                "table_value_labels_text": (
+                    "target metric 1,701,152\n"
+                    "target metric 1,303,065\n"
+                    "target metric 398,087\n"
+                    "operating income 1,163,112"
+                ),
+            },
+        )
+        evidence_pool = agent._ratio_operand_context_evidence_from_docs([(doc, 1.0)], max_docs=1)
+
+        row, operand = agent._direct_target_metric_operand_from_evidence(
+            {
+                "active_subtask": {
+                    "task_id": "task_metric",
+                    "metric_family": "concept_sum",
+                    "metric_label": "target metric",
+                    "operation_family": "sum",
+                }
+            },
+            evidence_pool,
+        )
+
+        self.assertEqual(operand["label"], "target metric")
+        self.assertEqual(row["raw_value"], "1,701,152")
+        self.assertEqual(row["raw_unit"], "백만원")
+        self.assertEqual(row["normalized_value"], 1_701_152_000_000.0)
+        self.assertTrue(row["direct_target_metric_lookup"])
+
+    def test_direct_target_metric_prefers_context_matching_consolidation_scope(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        generic_doc = SimpleNamespace(
+            page_content="target metric | 43,248 | 52,927 | -9,679",
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "section_path": "management discussion",
+                "block_type": "table",
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "local_heading": "major performance indicators",
+                "table_row_labels_text": "증감\ntarget metric",
+                "table_value_labels_text": "target metric 43,248\ntarget metric 52,927\ntarget metric -9,679",
+            },
+        )
+        consolidated_doc = SimpleNamespace(
+            page_content="target metric | 1,701,152 | 1,303,065 | 398,087",
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "section_path": "management discussion",
+                "block_type": "table",
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "local_heading": "연결 영업실적",
+                "table_context": "연결회사의 주요 경영지표",
+                "table_row_labels_text": "증감\ntarget metric",
+                "table_value_labels_text": (
+                    "target metric 1,701,152\n"
+                    "target metric 1,303,065\n"
+                    "target metric 398,087"
+                ),
+            },
+        )
+        evidence_pool = agent._ratio_operand_context_evidence_from_docs(
+            [(generic_doc, 1.0), (consolidated_doc, 0.9)],
+            max_docs=2,
+        )
+
+        row, _operand = agent._direct_target_metric_operand_from_evidence(
+            {
+                "query": "2023년 연결기준 target metric을 답해 줘.",
+                "report_scope": {},
+                "active_subtask": {
+                    "task_id": "task_metric",
+                    "metric_family": "concept_sum",
+                    "metric_label": "target metric",
+                    "operation_family": "sum",
+                },
+            },
+            evidence_pool,
+        )
+
+        self.assertEqual(row["raw_value"], "1,701,152")
+        self.assertEqual(row["normalized_value"], 1_701_152_000_000.0)
+
+    def test_scope_filter_uses_table_context_for_unknown_metadata_scope(self) -> None:
+        matching_context = {
+            "metadata": {
+                "consolidation_scope": "unknown",
+                "section_path": "management discussion",
+                "local_heading": "operating performance",
+                "table_context": "연결 기준 주요 지표",
+            }
+        }
+        opposing_context = {
+            "metadata": {
+                "consolidation_scope": "unknown",
+                "section_path": "management discussion",
+                "local_heading": "별도 기준 주요 지표",
+            }
+        }
+
+        self.assertFalse(_evidence_item_conflicts_requested_scope(matching_context, "consolidated"))
+        self.assertTrue(_evidence_item_conflicts_requested_scope(opposing_context, "consolidated"))
+
+    def test_lookup_preference_uses_requested_scope_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        current_rows = [
+            {
+                "operand_id": "primary_value",
+                "evidence_id": "ev_generic",
+                "source_row_id": "ev_generic",
+                "source_row_ids": ["ev_generic"],
+                "label": "target metric",
+                "raw_value": "43,248",
+                "raw_unit": "백만원",
+                "normalized_value": 43_248_000_000.0,
+                "normalized_unit": "KRW",
+                "matched_operand_label": "target metric",
+                "matched_operand_role": "primary_value",
+            }
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "ev_generic",
+                "claim": "target metric 43,248",
+                "metadata": {
+                    "block_type": "table",
+                    "unit_hint": "백만원",
+                    "year": 2023,
+                    "local_heading": "major performance indicators",
+                    "table_value_labels_text": "target metric 43,248\ntarget metric 52,927",
+                },
+            },
+            {
+                "evidence_id": "ev_consolidated",
+                "claim": "target metric 1,701,152",
+                "metadata": {
+                    "block_type": "table",
+                    "unit_hint": "백만원",
+                    "year": 2023,
+                    "local_heading": "연결 기준 operating performance",
+                    "table_value_labels_text": "target metric 1,701,152\ntarget metric 1,303,065",
+                },
+            },
+        ]
+
+        rows = agent._prefer_direct_structured_lookup_evidence_rows(
+            current_rows,
+            evidence_items=evidence_items,
+            required_operands=[{"label": "target metric", "role": "primary_value", "required": True}],
+            operation_family="lookup",
+            state={"query": "2023년 연결기준 target metric을 답해 줘.", "report_scope": {}},
+        )
+
+        self.assertEqual(rows[0]["source_row_id"], "ev_consolidated")
+        self.assertEqual(rows[0]["raw_value"], "1,701,152")
+
+    def test_lookup_recovery_can_use_seed_retrieved_doc_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        generic_doc = SimpleNamespace(
+            page_content="target metric | 43,248 | 52,927",
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "section_path": "management discussion",
+                "block_type": "table",
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "local_heading": "major performance indicators",
+                "table_value_labels_text": "target metric 43,248\ntarget metric 52,927",
+            },
+        )
+        consolidated_doc = SimpleNamespace(
+            page_content="target metric | 1,701,152 | 1,303,065",
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "section_path": "management discussion",
+                "block_type": "table",
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "local_heading": "연결 기준 operating performance",
+                "table_value_labels_text": "target metric 1,701,152\ntarget metric 1,303,065",
+            },
+        )
+        ordered_results = [
+            {
+                "task_id": "task_metric",
+                "metric_family": "source_stated_metric",
+                "metric_label": "target metric",
+                "operation_family": "lookup",
+                "status": "ok",
+                "answer": "target metric 43,248백만원",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "label": "target metric",
+                            "role": "primary_value",
+                            "raw_value": "43,248",
+                            "raw_unit": "백만원",
+                            "normalized_value": 43_248_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_generic",
+                            "source_row_ids": ["ev_generic"],
+                        }
+                    },
+                },
+            }
+        ]
+        state = {
+            "query": "2023년 연결기준 target metric을 답해 줘.",
+            "report_scope": {},
+            "calc_subtasks": [
+                {
+                    "task_id": "task_metric",
+                    "metric_family": "source_stated_metric",
+                    "metric_label": "target metric",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {"label": "target metric", "role": "primary_value", "required": True}
+                    ],
+                }
+            ],
+            "seed_retrieved_docs": [(generic_doc, 1.0), (consolidated_doc, 0.9)],
+            "retrieved_docs": [],
+            "evidence_items": [],
+            "runtime_evidence": [],
+        }
+
+        recovered = agent._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertEqual(slot["raw_value"], "1,701,152")
+        self.assertTrue(recovered[0]["recovered_from_sibling_table_evidence"])
+
+    def test_lookup_task_can_recover_direct_target_metric_from_table_value_labels(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        doc = SimpleNamespace(
+            page_content="target metric | 1,701,152 | 1,303,065 | 398,087",
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "section_path": "management discussion",
+                "block_type": "table",
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_row_labels_text": "증감\ntarget metric",
+                "table_value_labels_text": "target metric 1,701,152\ntarget metric 1,303,065\ntarget metric 398,087",
+            },
+        )
+        evidence_pool = agent._ratio_operand_context_evidence_from_docs([(doc, 1.0)], max_docs=1)
+
+        row, operand = agent._direct_target_metric_operand_from_evidence(
+            {
+                "active_subtask": {
+                    "task_id": "task_metric",
+                    "metric_family": "source_stated_metric",
+                    "metric_label": "target metric",
+                    "operation_family": "lookup",
+                }
+            },
+            evidence_pool,
+        )
+
+        self.assertEqual(operand["label"], "target metric")
+        self.assertEqual(row["raw_value"], "1,701,152")
+        self.assertTrue(row["direct_target_metric_lookup"])
+
+    def test_ratio_ontology_plan_prefers_matching_operand_role(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "calculate business loss as a percentage of total operating income",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "loss to operating income ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "operating_loss",
+                        "label": "business operating loss",
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "operating_income",
+                        "label": "operating income",
+                    },
+                ],
+            },
+        }
+        operands = [
+            {
+                "operand_id": "num",
+                "label": "business operating loss",
+                "matched_operand_role": "numerator_1",
+                "matched_operand_concept": "operating_loss",
+                "normalized_value": -580.0,
+            },
+            {
+                "operand_id": "generic",
+                "label": "business operating loss",
+                "normalized_value": -1070.0,
+            },
+            {
+                "operand_id": "den",
+                "label": "operating income",
+                "matched_operand_label": "operating income",
+                "matched_operand_role": "denominator_1",
+                "matched_operand_concept": "operating_income",
+                "normalized_value": 1900.0,
+            },
+        ]
+
+        plan = agent._build_deterministic_ontology_plan(state, operands)
+
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan["ordered_operand_ids"], ["num", "den"])
+
+    def test_absolute_ratio_query_renders_positive_magnitude(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "query": "calculate the absolute magnitude as a percentage",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "loss to income ratio",
+                "operation_family": "ratio",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "label": "loss",
+                        "raw_value": "(580)",
+                        "raw_unit": "",
+                        "normalized_value": -580.0,
+                        "normalized_unit": "COUNT",
+                        "matched_operand_role": "numerator_1",
+                    },
+                    {
+                        "operand_id": "den",
+                        "label": "income",
+                        "raw_value": "1900",
+                        "raw_unit": "",
+                        "normalized_value": 1900.0,
+                        "normalized_unit": "COUNT",
+                        "matched_operand_role": "denominator_1",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "((A) / (B)) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {},
+            },
+        }
+
+        result_state = agent._execute_calculation(state)
+        result = result_state["resolved_calculation_trace"]["calculation_result"]
+
+        self.assertAlmostEqual(result["result_value"], 30.526315789473685)
+        self.assertEqual(result["rendered_value"], "30.53%")
+
     def test_dependency_projection_recalculates_planless_ratio_from_best_lookup_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ordered_results = [
@@ -531,6 +1236,393 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(numerator["raw_value"], "180")
         self.assertIn("task_output:task_numerator", numerator["source_row_ids"])
         self.assertNotIn("900", ratio_row["answer"])
+
+    def test_dependency_projection_recalculates_partial_ratio_from_late_lookup_slot(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_segment",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating loss",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating loss",
+                            "concept": "operating_income",
+                            "raw_value": "(581,816)",
+                            "raw_unit": "million",
+                            "normalized_value": -581_816_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "(581,816)million",
+                            "source_row_id": "row_segment",
+                            "source_row_ids": ["row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "total operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "total operating income",
+                            "concept": "operating_income",
+                            "raw_value": "1,903,886",
+                            "raw_unit": "million",
+                            "normalized_value": 1_903_886_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "1,903,886million",
+                            "source_row_id": "row_total",
+                            "source_row_ids": ["row_total"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment loss to total income ratio",
+                "operation_family": "ratio",
+                "answer": "insufficient operands",
+                "status": "insufficient_operands",
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "source_row_id": "task_output:task_segment",
+                        "source_row_ids": ["task_output:task_segment", "row_segment"],
+                        "source_task_id": "task_segment",
+                        "label": "segment operating loss",
+                        "raw_value": "(581,816)",
+                        "raw_unit": "million",
+                        "normalized_value": -581_816_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_concept": "operating_income",
+                        "matched_operand_role": "numerator_1",
+                        "dependency_resolved": True,
+                    },
+                ],
+                "calculation_result": {
+                    "status": "insufficient_operands",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "segment loss to total income ratio",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "segment operating loss",
+                                    "concept": "operating_income",
+                                    "raw_value": "(581,816)",
+                                    "raw_unit": "million",
+                                    "normalized_value": -581_816_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "task_output:task_segment",
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate segment loss to total income ratio",
+                "calc_subtasks": [
+                    {"task_id": "task_segment", "operation_family": "lookup"},
+                    {"task_id": "task_total", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "metric_label": "segment loss to total income ratio",
+                        "required_operands": [
+                            {
+                                "role": "numerator_1",
+                                "label": "segment operating loss",
+                                "concept": "operating_income",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = aligned[-1]
+        self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "-30.56%")
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertEqual(denominator["raw_value"], "1,903,886")
+        self.assertIn("task_output:task_total", denominator["source_row_ids"])
+
+    def test_dependency_projection_uses_table_label_for_missing_ratio_role_before_polluted_lookup_slot(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_table",
+            "source_anchor": "[source]",
+            "metadata": {
+                "unit_hint": "백만원",
+                "table_value_labels_text": "total operating income 1,903,886\nother metric 100",
+            },
+        }
+        ordered_results = [
+            {
+                "task_id": "task_segment",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating loss",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating loss",
+                            "concept": "operating_income",
+                            "raw_value": "(581,816)",
+                            "raw_unit": "million",
+                            "normalized_value": -581_816_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_segment",
+                            "source_row_ids": ["row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "total operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating loss",
+                            "concept": "operating_income",
+                            "raw_value": "(581,816)",
+                            "raw_unit": "million",
+                            "normalized_value": -581_816_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "task_output:task_segment",
+                            "source_row_ids": ["task_output:task_segment", "row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment loss to total income ratio",
+                "operation_family": "ratio",
+                "status": "insufficient_operands",
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "source_row_id": "task_output:task_segment",
+                        "source_row_ids": ["task_output:task_segment", "row_segment"],
+                        "source_task_id": "task_segment",
+                        "label": "segment operating loss",
+                        "raw_value": "(581,816)",
+                        "raw_unit": "million",
+                        "normalized_value": -581_816_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_concept": "operating_income",
+                        "matched_operand_role": "numerator_1",
+                    },
+                ],
+                "calculation_result": {"status": "insufficient_operands"},
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate the absolute segment loss to total income ratio",
+                "runtime_evidence": [evidence],
+                "calc_subtasks": [
+                    {"task_id": "task_segment", "operation_family": "lookup"},
+                    {"task_id": "task_total", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "metric_label": "segment loss to total income ratio",
+                        "required_operands": [
+                            {
+                                "role": "numerator_1",
+                                "label": "segment operating loss",
+                                "concept": "operating_income",
+                            },
+                            {
+                                "role": "denominator_1",
+                                "label": "total operating income",
+                                "concept": "operating_income",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = aligned[-1]
+        self.assertEqual(ratio_row["status"], "ok")
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertEqual(denominator["raw_value"], "1,903,886")
+        self.assertEqual(denominator["source_row_id"], "ev_table")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "30.56%")
+
+    def test_dependency_projection_prefers_valid_late_lookup_over_table_label_for_missing_ratio_role(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_table",
+            "source_anchor": "[source]",
+            "metadata": {
+                "unit_hint": "million",
+                "table_value_labels_text": "total operating income 100\nother metric 50",
+            },
+        }
+        ordered_results = [
+            {
+                "task_id": "task_segment",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "raw_value": "250",
+                            "raw_unit": "백만원",
+                            "normalized_value": 250_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_segment",
+                            "source_row_ids": ["row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "total operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "total operating income",
+                            "concept": "operating_income",
+                            "raw_value": "1,000",
+                            "raw_unit": "million",
+                            "normalized_value": 1_000_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_total",
+                            "source_row_ids": ["row_total"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share of total operating income",
+                "operation_family": "ratio",
+                "status": "insufficient_operands",
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "source_row_id": "task_output:task_segment",
+                        "source_row_ids": ["task_output:task_segment", "row_segment"],
+                        "source_task_id": "task_segment",
+                        "label": "segment operating income",
+                        "raw_value": "250",
+                        "raw_unit": "million",
+                        "normalized_value": 250_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_concept": "operating_income",
+                        "matched_operand_role": "numerator_1",
+                    },
+                ],
+                "calculation_result": {"status": "insufficient_operands"},
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate segment share of total operating income",
+                "runtime_evidence": [evidence],
+                "calc_subtasks": [
+                    {"task_id": "task_segment", "operation_family": "lookup"},
+                    {"task_id": "task_total", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "metric_label": "segment share of total operating income",
+                        "required_operands": [
+                            {
+                                "role": "numerator_1",
+                                "label": "segment operating income",
+                                "concept": "operating_income",
+                            },
+                            {
+                                "role": "denominator_1",
+                                "label": "total operating income",
+                                "concept": "operating_income",
+                            },
+                        ],
+                    },
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = aligned[-1]
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+        self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(denominator["source_task_id"], "task_total")
+        self.assertIn("task_output:task_total", denominator["source_row_ids"])
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "25%")
 
     def test_lookup_execution_applies_ontology_magnitude_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -755,6 +1847,1027 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIn("tangible assets 52,704백만원", answer)
         self.assertIn("intangible assets 3,834백만원", answer)
 
+    def test_ratio_components_are_not_complete_when_groups_are_same_slot(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "100%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "label": "segment operating income",
+                            "raw_value": "(581,816)",
+                            "raw_unit": "million",
+                            "normalized_value": -581_816_000_000.0,
+                            "source_row_id": "task_output:task_source",
+                            "source_row_ids": ["task_output:task_source", "row_segment"],
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "label": "segment operating income",
+                            "raw_value": "(581,816)",
+                            "raw_unit": "million",
+                            "normalized_value": -581_816_000_000.0,
+                            "source_row_id": "task_output:task_source",
+                            "source_row_ids": ["task_output:task_source", "row_segment"],
+                        }
+                    ],
+                },
+            },
+        }
+
+        self.assertFalse(agent._ratio_components_are_complete(calculation_result))
+
+    def test_ratio_components_are_not_complete_when_same_source_value_has_different_labels(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "100%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "label": "segment operating income",
+                            "raw_value": "1,064,063",
+                            "raw_unit": "million",
+                            "normalized_value": 1_064_063_000_000.0,
+                            "source_row_id": "row_same",
+                            "source_row_ids": ["row_same"],
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "label": "total operating income",
+                            "raw_value": "1,064,063",
+                            "raw_unit": "million",
+                            "normalized_value": 1_064_063_000_000.0,
+                            "source_row_id": "row_same",
+                            "source_row_ids": ["row_same"],
+                        }
+                    ],
+                },
+            },
+        }
+
+        self.assertFalse(agent._ratio_components_are_complete(calculation_result))
+
+    def test_ratio_operand_rows_collapse_when_roles_share_source_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        rows = [
+            {
+                "matched_operand_role": "numerator_1",
+                "matched_operand_label": "segment revenue",
+                "raw_value": "100",
+                "raw_unit": "million",
+                "normalized_value": 100_000_000.0,
+                "evidence_id": "row_total",
+                "source_row_id": "row_total",
+            },
+            {
+                "matched_operand_role": "denominator_1",
+                "matched_operand_label": "total revenue",
+                "raw_value": "100",
+                "raw_unit": "million",
+                "normalized_value": 100_000_000.0,
+                "evidence_id": "row_total",
+                "source_row_id": "row_total",
+            },
+        ]
+
+        self.assertTrue(agent._ratio_operand_rows_collapse_to_same_slot(rows))
+
+    def test_operation_plan_guard_rejects_ratio_roles_sharing_source_value(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operands = [
+            {
+                "operand_id": "op_num",
+                "matched_operand_role": "numerator_1",
+                "matched_operand_label": "segment operating income",
+                "raw_value": "100",
+                "raw_unit": "million",
+                "normalized_value": 100_000_000.0,
+                "evidence_id": "row_same",
+            },
+            {
+                "operand_id": "op_den",
+                "matched_operand_role": "denominator_1",
+                "matched_operand_label": "total operating income",
+                "raw_value": "100",
+                "raw_unit": "million",
+                "normalized_value": 100_000_000.0,
+                "evidence_id": "row_same",
+            },
+        ]
+        plan = {
+            "operation": "ratio",
+            "ordered_operand_ids": ["op_num", "op_den"],
+            "variable_bindings": [
+                {"variable": "A", "operand_id": "op_num"},
+                {"variable": "B", "operand_id": "op_den"},
+            ],
+        }
+        required_operands = [
+            {"label": "segment operating income", "role": "numerator_1", "required": True},
+            {"label": "total operating income", "role": "denominator_1", "required": True},
+        ]
+
+        guarded_plan = agent._operation_plan_guard(
+            plan=plan,
+            operands=operands,
+            required_operands=required_operands,
+            operation_family="ratio",
+        )
+
+        self.assertIsNotNone(guarded_plan)
+        self.assertIn("distinct_ratio_roles", guarded_plan["missing_info"])
+
+    def test_dependency_projection_replaces_collapsed_ratio_role_from_sibling_lookup(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_segment",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "250",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "raw_value": "250",
+                            "raw_unit": "million",
+                            "normalized_value": 250_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_segment",
+                            "source_row_ids": ["row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share of total operating income",
+                "operation_family": "ratio",
+                "status": "insufficient_operands",
+                "calculation_plan": {
+                    "status": "incomplete",
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "missing_info": ["distinct_ratio_roles"],
+                },
+                "calculation_result": {
+                    "status": "insufficient_operands",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "segment share of total operating income",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "segment operating income",
+                                    "concept": "operating_income",
+                                    "raw_value": "50",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 50_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_same",
+                                    "source_row_ids": ["row_same"],
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "total operating income",
+                                    "concept": "operating_income",
+                                    "raw_value": "50",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 50_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_same",
+                                    "source_row_ids": ["row_same"],
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "total operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "answer": "전체 영업이익은 1,000 백만원입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "",
+                    "formatted_result": "전체 영업이익은 1,000 백만원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "total operating income",
+                            "concept": "operating_income",
+                            "raw_value": "900",
+                            "raw_unit": "million",
+                            "normalized_value": 900_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_stale_total",
+                            "source_row_ids": ["row_stale_total"],
+                        },
+                    },
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate segment share of total operating income",
+                "calc_subtasks": [
+                    {"task_id": "task_segment", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "required_operands": [
+                            {
+                                "label": "segment operating income",
+                                "concept": "operating_income",
+                                "role": "numerator_1",
+                                "required": True,
+                            },
+                            {
+                                "label": "total operating income",
+                                "concept": "operating_income",
+                                "role": "denominator_1",
+                                "required": True,
+                            },
+                        ],
+                    },
+                    {"task_id": "task_total", "operation_family": "lookup"},
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = next(row for row in aligned if row["task_id"] == "task_ratio")
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertTrue(ratio_row["aligned_from_source_task_slots"])
+        self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(denominator["source_task_id"], "task_total")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "25%")
+
+    def test_dependency_projection_uses_required_label_when_collapsed_ratio_slot_label_is_generic(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_segment",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "raw_value": "250",
+                            "raw_unit": "million",
+                            "normalized_value": 250_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_segment",
+                            "source_row_ids": ["row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share of total operating income",
+                "operation_family": "ratio",
+                "status": "insufficient_operands",
+                "calculation_result": {
+                    "status": "insufficient_operands",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "segment operating income",
+                                    "concept": "operating_income",
+                                    "raw_value": "50",
+                                    "raw_unit": "million",
+                                    "normalized_value": 50_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_same",
+                                    "source_row_ids": ["row_same"],
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "operating income",
+                                    "concept": "operating_income",
+                                    "raw_value": "50",
+                                    "raw_unit": "million",
+                                    "normalized_value": 50_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_same",
+                                    "source_row_ids": ["row_same"],
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "total operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "answer": "Total operating income is 1,000 백만원.",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "Total operating income is 1,000 백만원.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "total operating income",
+                            "concept": "operating_income",
+                            "raw_value": "1,000",
+                            "raw_unit": "million",
+                            "normalized_value": 1_000_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_total",
+                            "source_row_ids": ["row_total"],
+                        },
+                    },
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate segment share of total operating income",
+                "calc_subtasks": [
+                    {"task_id": "task_segment", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "required_operands": [
+                            {
+                                "label": "segment operating income",
+                                "concept": "operating_income",
+                                "role": "numerator_1",
+                                "required": True,
+                            },
+                            {
+                                "label": "total operating income",
+                                "concept": "operating_income",
+                                "role": "denominator_1",
+                                "required": True,
+                            },
+                        ],
+                    },
+                    {"task_id": "task_total", "operation_family": "lookup"},
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = next(row for row in aligned if row["task_id"] == "task_ratio")
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertTrue(ratio_row["aligned_from_source_task_slots"])
+        self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(denominator["source_task_id"], "task_total")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "25%")
+
+    def test_dependency_projection_repairs_stale_lookup_slot_label_from_answer_text(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_segment",
+                "metric_family": "concept_lookup",
+                "metric_label": "segment operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "raw_value": "250",
+                            "raw_unit": "million",
+                            "normalized_value": 250_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "row_segment",
+                            "source_row_ids": ["row_segment"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share of total operating income",
+                "operation_family": "ratio",
+                "status": "insufficient_operands",
+                "calculation_result": {
+                    "status": "insufficient_operands",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "segment operating income",
+                                    "concept": "operating_income",
+                                    "raw_value": "50",
+                                    "raw_unit": "million",
+                                    "normalized_value": 50_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_same",
+                                    "source_row_ids": ["row_same"],
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "operating income",
+                                    "concept": "operating_income",
+                                    "raw_value": "50",
+                                    "raw_unit": "million",
+                                    "normalized_value": 50_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "row_same",
+                                    "source_row_ids": ["row_same"],
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "total operating income",
+                "operation_family": "lookup",
+                "status": "ok",
+                "answer": "Total operating income is 1,000 million.",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "Total operating income is 1,000 million.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "segment operating income",
+                            "concept": "",
+                            "raw_value": "900",
+                            "raw_unit": "백만원",
+                            "normalized_value": 900_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "",
+                            "source_row_ids": [],
+                        },
+                    },
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "calculate segment share of total operating income",
+                    "calc_subtasks": [
+                    {"task_id": "task_segment", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "required_operands": [
+                            {
+                                "label": "segment operating income",
+                                "concept": "operating_income",
+                                "role": "numerator_1",
+                                "required": True,
+                            },
+                            {
+                                "label": "operating income",
+                                "concept": "",
+                                "role": "denominator_1",
+                                "required": True,
+                            },
+                        ],
+                    },
+                    {
+                        "task_id": "task_total",
+                        "operation_family": "lookup",
+                        "required_operands": [
+                            {
+                                "label": "total operating income",
+                                "concept": "operating_income",
+                                "role": "primary_value",
+                                "required": True,
+                            }
+                        ],
+                    },
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = next(row for row in aligned if row["task_id"] == "task_ratio")
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertTrue(ratio_row["aligned_from_source_task_slots"])
+        self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(denominator["label"], "total operating income")
+        self.assertEqual(denominator["source_task_id"], "task_total")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "25%")
+
+    def test_dependency_projection_repairs_qualified_denominator_lookup_with_blank_slot_metadata(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_vehicle",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 차량 부문 영업이익",
+                "operation_family": "lookup",
+                "status": "ok",
+                "answer": "차량 부문의 영업이익은 12,677,300 백만원입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "차량 부문의 영업이익은 12,677,300 백만원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "차량 영업이익",
+                            "concept": "operating_income",
+                            "raw_value": "12,677,300",
+                            "raw_unit": "백만원",
+                            "normalized_value": 12_677_300_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_001",
+                            "source_row_ids": ["ev_001"],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "전체 영업이익에서 차량 부문이 차지하는 비중",
+                "operation_family": "ratio",
+                "status": "insufficient_operands",
+                "calculation_result": {
+                    "status": "insufficient_operands",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "차량 영업이익",
+                                    "concept": "operating_income",
+                                    "raw_value": "1,064,063",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 1_064_063_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "ev_001",
+                                    "source_row_ids": ["ev_001"],
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "영업이익",
+                                    "concept": "operating_income",
+                                    "raw_value": "1,064,063",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 1_064_063_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "source_row_id": "ev_001",
+                                    "source_row_ids": ["ev_001"],
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 전체 영업이익",
+                "operation_family": "lookup",
+                "status": "ok",
+                "answer": "전체 영업이익은 15,126,901 백만원입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "전체 영업이익은 15,126,901 백만원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "2023년 차량 부문 영업이익",
+                            "concept": "",
+                            "raw_value": "12,969,227",
+                            "raw_unit": "백만원",
+                            "normalized_value": 12_969_227_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "",
+                            "source_row_ids": [],
+                        },
+                    },
+                },
+            },
+        ]
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            {
+                "query": "차량 부문이 전체 영업이익에서 차지하는 비중을 계산",
+                "calc_subtasks": [
+                    {"task_id": "task_vehicle", "operation_family": "lookup"},
+                    {
+                        "task_id": "task_ratio",
+                        "operation_family": "ratio",
+                        "required_operands": [
+                            {
+                                "label": "차량 영업이익",
+                                "concept": "operating_income",
+                                "role": "numerator_1",
+                                "required": True,
+                            },
+                            {
+                                "label": "영업이익",
+                                "concept": "operating_income",
+                                "role": "denominator_1",
+                                "required": True,
+                            },
+                        ],
+                    },
+                    {
+                        "task_id": "task_total",
+                        "operation_family": "lookup",
+                        "required_operands": [
+                            {
+                                "label": "영업이익",
+                                "concept": "operating_income",
+                                "role": "primary_value",
+                                "required": True,
+                            }
+                        ],
+                    },
+                ],
+            },
+            {"calculation_operands": []},
+        )
+
+        ratio_row = next(row for row in aligned if row["task_id"] == "task_ratio")
+        denominator = next(
+            operand
+            for operand in ratio_row["calculation_operands"]
+            if operand["matched_operand_role"] == "denominator_1"
+        )
+        self.assertEqual(denominator["raw_value"], "15,126,901")
+        self.assertEqual(denominator["source_task_id"], "task_total")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "83.81%")
+
+    def test_coherent_ratio_context_skips_collapsed_candidate_group(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {"label": "segment revenue", "role": "numerator_1", "required": True},
+            {"label": "total revenue", "role": "denominator_1", "required": True},
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "wrong_context",
+                "source_anchor": "wrong",
+                "metadata": {"table_source_id": "wrong"},
+            },
+            {
+                "evidence_id": "right_context",
+                "source_anchor": "right",
+                "metadata": {"table_source_id": "right"},
+            },
+        ]
+
+        def build_rows(group_items, **_kwargs):
+            group_id = group_items[0]["evidence_id"]
+            if group_id == "wrong_context":
+                return [
+                    {
+                        "operand_id": "numerator_1",
+                        "matched_operand_role": "numerator_1",
+                        "matched_operand_label": "segment revenue",
+                        "raw_value": "100",
+                        "raw_unit": "million",
+                        "normalized_value": 100_000_000.0,
+                        "evidence_id": "row_total",
+                        "source_row_id": "row_total",
+                    },
+                    {
+                        "operand_id": "denominator_1",
+                        "matched_operand_role": "denominator_1",
+                        "matched_operand_label": "total revenue",
+                        "raw_value": "100",
+                        "raw_unit": "million",
+                        "normalized_value": 100_000_000.0,
+                        "evidence_id": "row_total",
+                        "source_row_id": "row_total",
+                    },
+                ]
+            return [
+                {
+                    "operand_id": "numerator_1",
+                    "matched_operand_role": "numerator_1",
+                    "matched_operand_label": "segment revenue",
+                    "raw_value": "25",
+                    "raw_unit": "million",
+                    "normalized_value": 25_000_000.0,
+                    "evidence_id": "row_segment",
+                    "source_row_id": "row_segment",
+                },
+                {
+                    "operand_id": "denominator_1",
+                    "matched_operand_role": "denominator_1",
+                    "matched_operand_label": "total revenue",
+                    "raw_value": "100",
+                    "raw_unit": "million",
+                    "normalized_value": 100_000_000.0,
+                    "evidence_id": "row_total",
+                    "source_row_id": "row_total",
+                },
+            ]
+
+        agent._build_required_operands_from_candidates = build_rows
+        agent._filter_operand_rows_by_required_surface_contract = lambda rows, *_args, **_kwargs: rows
+
+        rows = agent._build_complete_ratio_operands_from_coherent_context(
+            evidence_items,
+            required_operands=required_operands,
+            query="segment revenue ratio",
+            topic="segment revenue ratio",
+            report_scope={},
+        )
+
+        self.assertEqual([row["raw_value"] for row in rows], ["25", "100"])
+
+    def test_period_comparison_table_label_context_builds_current_and_prior_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_mda",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "Operating profit decreased because the product-price spread narrowed.",
+            "quote_span": "Operating profit decreased because the product-price spread narrowed.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:1",
+                "table_row_labels_text": "Revenue\nOperating profit",
+                "table_value_labels_text": (
+                    "Revenue 1,000\n"
+                    "Revenue 900\n"
+                    "Revenue 800\n"
+                    "Revenue 11.1%\n"
+                    "Operating profit 409,219\n"
+                    "Operating profit 2,600,786\n"
+                    "Operating profit 712,064\n"
+                    "Operating profit -84.3%"
+                ),
+            },
+        }
+        required_operands = [
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+        ]
+
+        rows = agent._build_period_comparison_operands_from_table_label_context(
+            [evidence],
+            required_operands=required_operands,
+            query="calculate year-over-year operating profit growth and summarize the MD&A impact",
+            operation_family="growth_rate",
+        )
+
+        self.assertEqual([row["matched_operand_role"] for row in rows], ["current_period", "prior_period"])
+        self.assertEqual([row["raw_value"] for row in rows], ["409,219", "2,600,786"])
+        self.assertEqual(rows[0]["stated_change_raw_value"], "-84.3")
+        self.assertEqual(rows[0]["table_source_id"], "mda::table:1")
+
+    def test_period_comparison_table_label_context_prefers_source_stated_mda_change(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        broad_evidence = {
+            "evidence_id": "ev_broad",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "The market spread was volatile during the year.",
+            "quote_span": "The market spread was volatile during the year.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:broad",
+                "table_row_labels_text": "Operating profit",
+                "table_value_labels_text": "Operating profit 810,900\nOperating profit 3,390,092",
+            },
+        }
+        direct_evidence = {
+            "evidence_id": "ev_direct",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "Operating profit decreased because the product-price spread narrowed.",
+            "quote_span": "Operating profit decreased because the product-price spread narrowed.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:direct",
+                "table_row_labels_text": "Operating profit",
+                "table_value_labels_text": (
+                    "Operating profit 409,219\n"
+                    "Operating profit 2,600,786\n"
+                    "Operating profit 712,064\n"
+                    "Operating profit -84.3%"
+                ),
+            },
+        }
+        required_operands = [
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+        ]
+
+        rows = agent._build_period_comparison_operands_from_table_label_context(
+            [broad_evidence, direct_evidence],
+            required_operands=required_operands,
+            query="calculate year-over-year operating profit growth and summarize the MD&A impact",
+            operation_family="growth_rate",
+        )
+
+        self.assertEqual([row["raw_value"] for row in rows], ["409,219", "2,600,786"])
+        self.assertTrue(all(row["table_source_id"] == "mda::table:direct" for row in rows))
+
+    def test_period_comparison_realigns_growth_result_from_late_table_label_evidence(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_mda",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "Operating profit decreased because the product-price spread narrowed.",
+            "quote_span": "Operating profit decreased because the product-price spread narrowed.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:1",
+                "table_row_labels_text": "Operating profit",
+                "table_value_labels_text": (
+                    "Operating profit 409,219\n"
+                    "Operating profit 2,600,786\n"
+                    "Operating profit 712,064\n"
+                    "Operating profit -84.3%"
+                ),
+            },
+        }
+        required_operands = [
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+        ]
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "refining operating profit growth",
+                "operation_family": "growth_rate",
+                "answer": "-76.08%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": -76.08,
+                    "rendered_value": "-76.08%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "metric_label": "refining operating profit growth",
+                    },
+                },
+            }
+        ]
+        state = {
+            "query": "calculate year-over-year operating profit growth and summarize the MD&A impact",
+            "report_scope": {"year": 2023},
+            "calc_subtasks": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "refining operating profit growth",
+                    "operation_family": "growth_rate",
+                    "required_operands": required_operands,
+                }
+            ],
+        }
+
+        rows = agent._realign_period_comparison_results_from_table_label_context(
+            ordered_results,
+            state,
+            [evidence],
+        )
+
+        result = rows[0]["calculation_result"]
+        self.assertEqual(result["rendered_value"], "-84.3%")
+        self.assertTrue(result["derived_metrics"]["source_stated_result_used"])
+        self.assertEqual(result["answer_slots"]["current_value"]["raw_value"], "409,219")
+        self.assertEqual(result["answer_slots"]["prior_value"]["raw_value"], "2,600,786")
+
     def test_preferred_complete_numeric_answer_joins_multiple_ratio_rows(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 
@@ -796,6 +2909,86 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIn("current ratio", answer)
         self.assertIn("258.77%", answer)
 
+    def test_complete_numeric_answer_does_not_replace_unresolved_ratio_final_answer(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share",
+                "operation_family": "ratio",
+                "status": "in_progress",
+                "calculation_result": {
+                    "status": "incomplete",
+                    "answer_slots": {"operation_family": "ratio"},
+                },
+            },
+            {
+                "task_id": "task_sum",
+                "metric_family": "concept_sum",
+                "metric_label": "combined amount",
+                "operation_family": "sum",
+                "status": "ok",
+                "answer": "Combined amount is 1,250 million.",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "1,250 million",
+                    "formatted_result": "Combined amount is 1,250 million.",
+                    "answer_slots": {
+                        "operation_family": "sum",
+                        "primary_value": {
+                            "status": "ok",
+                            "rendered_value": "1,250 million",
+                            "raw_value": "1,250",
+                            "raw_unit": "million",
+                            "normalized_value": 1_250_000_000.0,
+                            "normalized_unit": "KRW",
+                        },
+                    },
+                },
+            },
+        ]
+
+        numeric_answer = agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertIn("1,250", numeric_answer)
+        self.assertFalse(
+            agent._complete_numeric_answer_can_replace_final(
+                numeric_answer,
+                ordered_results,
+            )
+        )
+
+        resolved_results = [
+            {
+                **ordered_results[0],
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "25.00%",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {
+                            "status": "ok",
+                            "rendered_value": "25.00%",
+                            "raw_value": "25.00",
+                            "raw_unit": "%",
+                            "normalized_value": 25.0,
+                            "normalized_unit": "PERCENT",
+                        },
+                    },
+                },
+            },
+            ordered_results[1],
+        ]
+
+        self.assertTrue(
+            agent._complete_numeric_answer_can_replace_final(
+                agent._preferred_complete_numeric_answer(resolved_results),
+                resolved_results,
+            )
+        )
+
     def test_numeric_answer_coverage_requires_all_trace_values(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 
@@ -811,6 +3004,223 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "Debt ratio is 25.36%. Current ratio is 258.77%.",
             )
         )
+
+    def test_existing_complete_aggregate_artifact_beats_late_partial_answer(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share",
+                "operation_family": "ratio",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "25.00%",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {"status": "ok", "rendered_value": "25.00%"},
+                    },
+                },
+            }
+        ]
+        current_answer = (
+            "Segment amount is 250 million and total amount is 1,000 million. "
+            "However, the required value was not sufficiently confirmed."
+        )
+        artifacts = [
+            {
+                "artifact_id": "aggregate:001",
+                "task_id": "aggregate",
+                "kind": "aggregated_answer",
+                "status": "ok",
+                "summary": "Segment amount is 250 million, total amount is 1,000 million, and the share is 25.00%.",
+                "payload": {
+                    "final_answer": (
+                        "Segment amount is 250 million, total amount is 1,000 million, "
+                        "and the share is 25.00%."
+                    )
+                },
+                "evidence_refs": ["ev_001"],
+            }
+        ]
+
+        candidate = agent._preferred_existing_aggregate_artifact_candidate(
+            artifacts,
+            ordered_results,
+            current_answer,
+        )
+
+        self.assertEqual(
+            candidate["answer"],
+            "Segment amount is 250 million, total amount is 1,000 million, and the share is 25.00%.",
+        )
+        self.assertEqual(candidate["selected_claim_ids"], ["ev_001"])
+
+    def test_prefers_complete_nested_numeric_narrative_over_short_context_only_answer(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        current_answer = "The decrease was due to lower spreads and margin pressure."
+        complete_nested_answer = (
+            "Segment operating profit was 409.2 billion won, down 84.3% from 2.6 trillion won. "
+            "The decrease was due to lower spreads and margin pressure."
+        )
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "segment operating profit growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "growth_rate",
+                    "rendered_value": "-84.3%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {"status": "ok", "rendered_value": "-84.3%"},
+                    },
+                },
+            },
+            {
+                "task_id": "task_narrative",
+                "metric_family": "narrative_summary",
+                "operation_family": "aggregate_subtasks",
+                "status": "ok",
+                "answer": complete_nested_answer,
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "aggregate_subtasks",
+                    "formatted_result": complete_nested_answer,
+                    "rendered_value": complete_nested_answer,
+                    "source_row_ids": ["ev_001"],
+                },
+            },
+        ]
+
+        answer = agent._preferred_complete_nested_numeric_narrative_answer(
+            current_answer=current_answer,
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+
+        self.assertEqual(answer, complete_nested_answer)
+        noisy_answer = "Margin pressure persisted despite revenue of 10 trillion won and profit of 101.6 billion won."
+        answer = agent._preferred_complete_nested_numeric_narrative_answer(
+            current_answer=noisy_answer,
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+        self.assertEqual(answer, complete_nested_answer)
+        mixed_formula_answer = (
+            "Segment operating profit was 409.2 billion won, down 87.93% due to lower spreads."
+        )
+        answer = agent._preferred_complete_nested_numeric_narrative_answer(
+            current_answer=mixed_formula_answer,
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+        self.assertEqual(answer, complete_nested_answer)
+
+        source_stated_nested_answer = "Operating profit decreased 84.3% to 4,092억원 due to lower spreads."
+        source_stated_results = [
+            ordered_results[0],
+            {
+                "task_id": "task_narrative",
+                "metric_family": "narrative_summary",
+                "operation_family": "aggregate_subtasks",
+                "status": "ok",
+                "answer": source_stated_nested_answer,
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "aggregate_subtasks",
+                    "formatted_result": source_stated_nested_answer,
+                    "rendered_value": source_stated_nested_answer,
+                },
+            },
+        ]
+        mixed_prior_answer = "Operating profit was 4,092억원, down 87.93% from 3조 3,901억원."
+        answer = agent._preferred_complete_nested_numeric_narrative_answer(
+            current_answer=mixed_prior_answer,
+            ordered_results=source_stated_results,
+            evidence_items=[],
+        )
+        self.assertEqual(answer, source_stated_nested_answer)
+
+    def test_table_metadata_source_stated_change_is_allowed_narrative_numeric_material(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "growth_rate",
+                    "rendered_value": "-76.08%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {"status": "ok", "rendered_value": "-76.08%"},
+                    },
+                },
+            }
+        ]
+        evidence_items = [
+            {
+                "claim": "Operating profit decreased because product spreads narrowed.",
+                "quote_span": "Operating profit recorded 4,092억원 due to lower spreads.",
+                "metadata": {
+                    "table_value_labels_text": "Operating profit 409,219\nOperating profit -84.3%",
+                },
+            }
+        ]
+        answer = "Operating profit decreased 84.3% to 4,092억원 due to lower spreads."
+
+        self.assertFalse(
+            agent._growth_answer_has_untraced_numeric_material(
+                answer,
+                ordered_results,
+                evidence_items,
+            )
+        )
+        self.assertFalse(
+            agent._narrative_summary_conflicts_with_growth_trace(
+                answer,
+                ordered_results,
+                evidence_items,
+            )
+        )
+
+        repaired = agent._preserve_evidence_numeric_display(
+            "Operating profit was 4,092억원, compared with 2조 6,008억원, down 84.3%.",
+            [
+                {
+                    "quote_span": "Operating profit recorded 4,092억원 due to lower spreads.",
+                    "metadata": {
+                        "unit_hint": "백만원",
+                        "table_value_labels_text": "Operating profit 2,600,786\nOperating profit -84.3%",
+                    },
+                }
+            ],
+        )
+        self.assertIn("2,600,786백만원", repaired)
+        self.assertNotIn("2조 6,008억원", repaired)
+
+        precise_table_display = agent._preserve_evidence_numeric_display(
+            "Operating profit was 4,092억원, down 84.3%.",
+            [
+                {
+                    "quote_span": "Operating profit recorded 4,092억원 due to lower spreads.",
+                    "metadata": {
+                        "unit_hint": "백만원",
+                        "table_value_labels_text": "Operating profit 409,219\nOperating profit -84.3%",
+                    },
+                }
+            ],
+        )
+        self.assertIn("409,219백만원", precise_table_display)
+        self.assertNotIn("4,092억원", precise_table_display)
 
 
 if __name__ == "__main__":
