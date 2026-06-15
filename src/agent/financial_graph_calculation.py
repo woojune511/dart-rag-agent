@@ -3841,6 +3841,27 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
+        answer_lower = _normalise_spaces(str(answer or "")).lower()
+        driver_groups = self._narrative_driver_groups(query)
+
+        def _driver_group_already_covered(sentence: str) -> bool:
+            sentence_lower = _normalise_spaces(str(sentence or "")).lower()
+            if not sentence_lower or not answer_lower:
+                return False
+            for group in driver_groups:
+                if group.get("query_focus"):
+                    continue
+                variants = [
+                    _normalise_spaces(str(variant or "")).lower()
+                    for variant in (group.get("variants") or [])
+                    if _normalise_spaces(str(variant or ""))
+                ]
+                if not variants or not any(variant in sentence_lower for variant in variants):
+                    continue
+                if any(variant in answer_lower for variant in variants):
+                    return True
+            return False
+
         for _score, sentence, claim_ids in self._growth_narrative_sentence_candidates(
             query=query,
             ordered_results=ordered_results,
@@ -3852,6 +3873,7 @@ class FinancialAgentCalculationMixin:
                 not candidate_claim_ids
                 or not candidate_sentence
                 or self._answer_covers_narrative_context(answer, candidate_sentence)
+                or _driver_group_already_covered(candidate_sentence)
             ):
                 continue
             cleaned = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
@@ -4068,6 +4090,7 @@ class FinancialAgentCalculationMixin:
                 "selected_claim_ids": [],
             }
 
+        max_driver_sentences = int(CALCULATION_NARRATIVE_POLICY.get("max_growth_driver_sentences") or 4)
         row_narrative_parts: List[str] = []
         row_selected_claim_ids: List[str] = []
         for row in ordered_results:
@@ -6370,15 +6393,20 @@ class FinancialAgentCalculationMixin:
             while evidence_id in existing_ids:
                 evidence_id = f"retrieved_driver::{len(updated) + len(existing_ids) + 1:03d}"
             existing_ids.add(evidence_id)
+            quote_span = sentence
+            metadata = dict(row.get("metadata") or {})
+            if phrase and self._answer_evidence_numeric_candidates(sentence):
+                quote_span = phrase
+                metadata["raw_driver_quote_span"] = sentence
             updated.append(
                 {
                     "evidence_id": evidence_id,
                     "source_anchor": str(row.get("source_anchor") or ""),
                     "claim": phrase or sentence,
-                    "quote_span": sentence,
+                    "quote_span": quote_span,
                     "support_level": "direct",
                     "question_relevance": "high",
-                    "metadata": dict(row.get("metadata") or {}),
+                    "metadata": metadata,
                 }
             )
 
@@ -17489,6 +17517,32 @@ class FinancialAgentCalculationMixin:
                     self._aggregate_answer_candidate(
                         _normalise_spaces(" ".join([final_answer, supported_sentence])),
                         selected_claim_ids=supported_candidate.get("selected_claim_ids") or [],
+                    ),
+                )
+                _sync_state(
+                    aggregate_projection=aggregate_projection,
+                    final_answer=final_answer,
+                    selected_claim_ids=selected_claim_ids,
+                )
+        if (
+            final_answer
+            and has_narrative_summary
+            and has_growth_rate_result
+            and self._has_strong_growth_trace_for_answer_refresh(ordered_results)
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+        ):
+            numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
+                final_answer,
+                ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+            if numeric_preserved_answer and numeric_preserved_answer != _normalise_spaces(final_answer):
+                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
+                    aggregate_projection,
+                    selected_claim_ids,
+                    self._aggregate_answer_candidate(
+                        numeric_preserved_answer,
+                        selected_claim_ids=[],
                     ),
                 )
                 _sync_state(
