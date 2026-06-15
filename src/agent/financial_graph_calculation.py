@@ -4536,6 +4536,28 @@ class FinancialAgentCalculationMixin:
             )
         return aggregate_state
 
+    def _promote_and_align_aggregate_results(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        state: FinancialAgentState,
+        final_answer: str,
+        *,
+        align_without_promotion: bool,
+    ) -> tuple[List[Dict[str, Any]], bool, bool, bool]:
+        promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
+        if not align_without_promotion and promoted_results is ordered_results:
+            return promoted_results, False, False, False
+        projection = self._rebuild_aggregate_projection(promoted_results, final_answer)
+        aligned_results = self._align_lookup_results_with_dependency_projection(
+            promoted_results,
+            state,
+            projection,
+        )
+        identity_changed = promoted_results is not ordered_results or aligned_results is not promoted_results
+        alignment_value_changed = aligned_results != promoted_results
+        value_changed = promoted_results != ordered_results or aligned_results != promoted_results
+        return aligned_results, identity_changed, value_changed, alignment_value_changed
+
     def _sync_aggregate_artifact_projection_payload(
         self,
         artifacts: List[Dict[str, Any]],
@@ -16395,18 +16417,22 @@ class FinancialAgentCalculationMixin:
                 ordered_results,
                 evidence_items=aggregate_evidence_items,
             )
-        late_promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
-        if late_promoted_results is not ordered_results:
-            ordered_results = late_promoted_results
-            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-            late_aligned_results = self._align_lookup_results_with_dependency_projection(
+        late_aligned_results, late_identity_changed, _late_value_changed, _late_alignment_changed = (
+            self._promote_and_align_aggregate_results(
                 ordered_results,
                 state,
-                aggregate_projection,
+                final_answer,
+                align_without_promotion=False,
             )
-            if late_aligned_results is not ordered_results:
-                ordered_results = late_aligned_results
-                aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+        )
+        if late_identity_changed:
+            aggregate_state = self._replace_aggregate_results(
+                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                state,
+                late_aligned_results,
+                aggregate_evidence_items,
+            )
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
             late_supported_answer = self._supported_aggregate_subtask_answer(ordered_results)
             late_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
             late_answer = late_supported_answer or (
@@ -16682,14 +16708,15 @@ class FinancialAgentCalculationMixin:
             final_answer = polished_answer
             aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         if has_narrative_summary and has_growth_rate_result:
-            final_promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
-            final_projection = self._rebuild_aggregate_projection(final_promoted_results, final_answer)
-            final_aligned_results = self._align_lookup_results_with_dependency_projection(
-                final_promoted_results,
-                state,
-                final_projection,
+            final_aligned_results, _final_identity_changed, final_value_changed, _final_alignment_changed = (
+                self._promote_and_align_aggregate_results(
+                    ordered_results,
+                    state,
+                    final_answer,
+                    align_without_promotion=True,
+                )
             )
-            if final_promoted_results != ordered_results or final_aligned_results != final_promoted_results:
+            if final_value_changed:
                 aggregate_state = self._replace_aggregate_results(
                     _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
                     state,
@@ -16756,21 +16783,20 @@ class FinancialAgentCalculationMixin:
                     aggregate_projection,
                     final_answer,
                 )
-        final_consistent_results = self._promote_stronger_nested_aggregate_results(ordered_results)
-        final_consistent_projection = self._rebuild_aggregate_projection(
-            final_consistent_results,
-            final_answer,
+        (
+            final_consistent_aligned_results,
+            _consistent_identity_changed,
+            final_consistent_changed,
+            final_consistent_aligned,
+        ) = (
+            self._promote_and_align_aggregate_results(
+                ordered_results,
+                state,
+                final_answer,
+                align_without_promotion=True,
+            )
         )
-        final_consistent_aligned_results = self._align_lookup_results_with_dependency_projection(
-            final_consistent_results,
-            state,
-            final_consistent_projection,
-        )
-        final_consistent_aligned = final_consistent_aligned_results != final_consistent_results
-        if (
-            final_consistent_results != ordered_results
-            or final_consistent_aligned
-        ):
+        if final_consistent_changed:
             aggregate_state = self._replace_aggregate_results(
                 _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
                 state,
