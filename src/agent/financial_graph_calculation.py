@@ -10038,6 +10038,25 @@ class FinancialAgentCalculationMixin:
     ) -> List[Dict[str, Any]]:
         if not ordered_results or not evidence_items:
             return ordered_results
+        def _result_has_complete_period_slots(row: Dict[str, Any]) -> bool:
+            calculation_result = dict(row.get("calculation_result") or {})
+            status = _normalise_spaces(str(calculation_result.get("status") or row.get("status") or "")).lower()
+            if status and status != "ok":
+                return False
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            current_slot = dict(answer_slots.get("current_value") or {})
+            prior_slot = dict(answer_slots.get("prior_value") or {})
+            for slot in (current_slot, prior_slot):
+                if not self._answer_slot_has_material(slot):
+                    return False
+                normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+                raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+                if normalized_unit in {"", "UNKNOWN"} and not raw_unit:
+                    return False
+                if not _clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]):
+                    return False
+            return True
+
         task_by_id = {
             str(task.get("task_id") or ""): dict(task)
             for task in (state.get("calc_subtasks") or [])
@@ -10049,6 +10068,9 @@ class FinancialAgentCalculationMixin:
             result_row = dict(row or {})
             operation_family = self._aggregate_result_operation_family(result_row)
             if operation_family not in {"difference", "growth_rate"}:
+                updated_results.append(result_row)
+                continue
+            if _result_has_complete_period_slots(result_row):
                 updated_results.append(result_row)
                 continue
             task = task_by_id.get(str(result_row.get("task_id") or "")) or {}
@@ -12364,8 +12386,32 @@ class FinancialAgentCalculationMixin:
             and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
         if operation_family in {"difference", "growth_rate"} and required_operands:
+            period_context_evidence = list(evidence_items)
+            if retrieved_docs or seed_retrieved_docs:
+                period_context_docs = list(retrieved_docs or [])
+                seen_period_doc_ids = {
+                    str(
+                        (getattr(doc, "metadata", {}) or {}).get("chunk_uid")
+                        or (getattr(doc, "metadata", {}) or {}).get("chunk_id")
+                        or ""
+                    )
+                    for doc, _score in period_context_docs
+                }
+                for doc, score in list(seed_retrieved_docs or [])[:48]:
+                    metadata = dict(getattr(doc, "metadata", {}) or {})
+                    doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
+                    if doc_id and doc_id in seen_period_doc_ids:
+                        continue
+                    if doc_id:
+                        seen_period_doc_ids.add(doc_id)
+                    period_context_docs.append((doc, score))
+                period_context_evidence.extend(
+                    item
+                    for item in self._ratio_operand_context_evidence_from_docs(period_context_docs, max_docs=64)
+                    if not evidence_conflicts_requested_scope(item)
+                )
             period_context_rows = self._build_period_comparison_operands_from_table_label_context(
-                evidence_items,
+                period_context_evidence,
                 required_operands=required_operands,
                 query=query,
                 operation_family=operation_family,
@@ -12385,6 +12431,22 @@ class FinancialAgentCalculationMixin:
                     and _rows_have_single_table_context(direct_structured_rows)
                     and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
                 )
+                used_period_evidence_ids = {
+                    str(row.get("evidence_id") or "")
+                    for row in period_context_rows
+                    if str(row.get("evidence_id") or "").strip()
+                }
+                existing_evidence_ids = {
+                    str(item.get("evidence_id") or "")
+                    for item in evidence_items
+                    if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+                }
+                evidence_items = evidence_items + [
+                    item
+                    for item in period_context_evidence
+                    if str(item.get("evidence_id") or "") in used_period_evidence_ids
+                    and str(item.get("evidence_id") or "") not in existing_evidence_ids
+                ]
                 logger.info("[calc_operands] coherent period-comparison table-label rows=%s", len(period_context_rows))
         if operation_family == "ratio" and required_operands and (
             (direct_rows_cover_required_operands and not direct_rows_have_coherent_context)
@@ -12444,7 +12506,13 @@ class FinancialAgentCalculationMixin:
         prefer_direct_rows_over_dependency = bool(
             operation_family in {"ratio", "difference", "growth_rate"}
             and direct_rows_cover_required_operands
-            and reconciliation_evidence
+            and (
+                reconciliation_evidence
+                or (
+                    operation_family in {"difference", "growth_rate"}
+                    and direct_rows_have_coherent_context
+                )
+            )
             and not (
                 operation_family == "ratio"
                 and dependency_rows_cover_required_operands
@@ -16114,6 +16182,7 @@ class FinancialAgentCalculationMixin:
                 ]
             )
         )
+        aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         period_context_realigned_results = self._realign_period_comparison_results_from_table_label_context(
             ordered_results,
             state,
