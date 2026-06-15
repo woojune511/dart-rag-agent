@@ -48,6 +48,7 @@
 | [CEL_T1_038 Unit and Final Answer Consistency (2026-06-12)](#cel_t1_038-unit-and-final-answer-consistency-2026-06-12) | margin-drag focused regression | claim-visible `원` unit is preserved through lookup capture, late ratio projection, and query-focused final answer selection |
 | [Financial Graph Calculation Refactor Focused Eval (2026-06-15)](#financial-graph-calculation-refactor-focused-eval-2026-06-15) | aggregate/projection refactor after repeated patching | SKI/POS PASS cases stayed stable; HYU self-ratio regression is blocked and remaining gap is operand binding/table structure |
 | [HYU Ratio Task-Output Rebinding (2026-06-15)](#hyu-ratio-task-output-rebinding-2026-06-15) | HYU_T1_034 late denominator task-output binding | focused eval-only recovered `83.81%` ratio and returned numeric PASS |
+| [HYU Source-Slot Ratio Rebuild (2026-06-16)](#hyu-source-slot-ratio-rebuild-2026-06-16) | HYU_T1_034 incoherent ratio candidate suppression and source-slot fallback | lookup/single-value source slots rebuild `83.81%` answer; focused eval-only numeric PASS |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -61,6 +62,66 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## HYU Source-Slot Ratio Rebuild (2026-06-16)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/focused_hyu_t1_034_after_skip_incoherent_numeric_candidate_2026-06-16/`
+- artifact hygiene: benchmark result bundle and heartbeat logs are local
+  experiment output and should not be staged.
+
+### Setup
+
+- Store-fixed focused eval-only over `HYU_T1_034`.
+- Command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_single_doc_official_77.json --output-dir <existing-focused-dir> --company-run-id hyundai_2023_official_77 --eval-only --question-id HYU_T1_034 --progress-heartbeat-sec 30 --heartbeat-log <path>`.
+
+### Context
+
+- Earlier guards blocked incoherent ratio candidates that mixed dependency
+  slots with conflicting direct evidence, but the aggregate answer could still
+  close as partial because the known lookup source slots were not reused to
+  rebuild the ratio.
+- A first source-slot fallback attempt exposed a denominator-selection issue:
+  explicit stale denominator seeds could prefer a sibling lookup over the true
+  base lookup.
+
+### Code / Contract Change
+
+- Preferred complete numeric answer can rebuild a ratio from source-task
+  slots when the ratio row is insufficient or dependency-incoherent, but only
+  when numerator and denominator slots are material and distinct.
+- Source-slot candidates are restricted to lookup / single-value producer rows;
+  ratio rows cannot become their own denominator source.
+- Producer `metric_label` is preserved on source slots and used as generic
+  matching metadata when a lookup primary label is stale or too broad.
+- Lookup realignment from projected operands now keeps self-task projection
+  behavior but blocks non-self-task overwrites when direct provenance is
+  disjoint or source anchors conflict.
+- The change is generic source-slot / provenance handling. No company,
+  benchmark-id, report-specific phrase, or metric-specific runtime branch was
+  added.
+
+### Result
+
+| Question | Previous focused state | New focused eval-only | Interpretation |
+| --- | ---: | ---: | --- |
+| `HYU_T1_034` | FAIL, avg `0.774`, safe partial after bad ratio suppression | PASS, avg `0.948` | Source slots rebuild `차량 영업이익 / 전체 영업이익 = 83.81%`. |
+
+Final answer:
+
+`2023년 전체 영업이익에서 차량 부문이 차지하는 비중은 83.81%입니다. 계산: 차량 영업이익 12조 6,773억원 / 전체 영업이익 15조 1,269억원.`
+
+### Validation
+
+- targeted ratio source-slot tests: `3` tests OK
+- `python -m unittest tests.test_subtask_loop`: `205` tests OK
+- related projection/subtask suite: `255` tests OK
+- `python -m unittest discover -s tests`: `1171` tests OK
+- `python -m src.ops.audit_runtime_domain_terms`: passed with `216`
+  reviewed literals
 
 ## Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)
 

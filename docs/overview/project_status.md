@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Positioning
 
@@ -49,6 +49,33 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest HYU Source-Slot Ratio Rebuild Close
+
+- Run date: 2026-06-16
+- Scope: `HYU_T1_034` store-fixed focused eval-only after incoherent ratio
+  candidate suppression and source-slot ratio rebuild.
+- Local result bundle:
+  - `benchmarks/results/focused_hyu_t1_034_after_skip_incoherent_numeric_candidate_2026-06-16/`
+- Result: numeric `PASS`, faithfulness `1.000`, retrieval hit `1.000`, avg
+  score `0.948`.
+- Final answer: `2023년 전체 영업이익에서 차량 부문이 차지하는 비중은
+  83.81%입니다. 계산: 차량 영업이익 12조 6,773억원 / 전체 영업이익
+  15조 1,269억원.`
+- Runtime change stays generic:
+  - source-slot rebuild uses lookup/single-value producer slots only
+  - producer `metric_label` is preserved as source-slot metadata when primary
+    labels are too generic or stale
+  - insufficient/incoherent ratio rows can be deterministically rebuilt only
+    from material, distinct source slots
+  - lookup realignment refuses to overwrite a current primary slot with a
+    non-self-task projection when direct provenance is disjoint or source
+    anchors conflict
+- Verification: targeted ratio tests `3` OK, `tests.test_subtask_loop` `205`
+  OK, related projection/subtask suite `255` OK, full unittest `1171` OK, and
+  runtime domain-term audit passed with `216` reviewed literals.
+- Artifact hygiene: the result bundle and heartbeat logs are local experiment
+  artifacts and are not commit candidates.
 
 ### Latest Growth Narrative Payload Close
 

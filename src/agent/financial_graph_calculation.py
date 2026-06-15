@@ -2659,6 +2659,7 @@ class FinancialAgentCalculationMixin:
             parts.extend([str(primary_slot.get("label") or ""), str(primary_slot.get("concept") or "")])
             return _normalise_spaces(" ".join(part for part in parts if part))
 
+        source_slot_by_task_id = self._aggregate_dependency_source_slot_by_task_id(ordered_results)
         answer_parts: List[tuple[int, int, str]] = []
         for row in ordered_results:
             operation_family = self._aggregate_result_operation_family(row)
@@ -2667,7 +2668,24 @@ class FinancialAgentCalculationMixin:
             status = _normalise_spaces(
                 str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
             ).lower()
+            if operation_family == "ratio" and status != "ok":
+                answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
+                if answer:
+                    calculation_result = dict(row.get("calculation_result") or {})
+                    focus_text = _row_focus_text(row, calculation_result)
+                    score, label_len = _label_overlap_score(focus_text)
+                    answer_parts.append((score, label_len, answer))
+                continue
             if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            if self._aggregate_result_dependency_coherence_ranks(row, source_slot_by_task_id)[0] == 0:
+                if operation_family == "ratio":
+                    answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
+                    if answer:
+                        calculation_result = dict(row.get("calculation_result") or {})
+                        focus_text = _row_focus_text(row, calculation_result)
+                        score, label_len = _label_overlap_score(focus_text)
+                        answer_parts.append((score, label_len, answer))
                 continue
             calculation_result = dict(row.get("calculation_result") or {})
             if operation_family == "growth_rate":
@@ -4482,6 +4500,21 @@ class FinancialAgentCalculationMixin:
         if operation != "ratio" or not self._ratio_components_are_complete(result):
             return ""
         trace_operands = list(operands if operands is not None else aggregate_projection.get("calculation_operands") or [])
+        ordered_results = [
+            dict(row)
+            for row in list(result.get("subtask_results") or state.get("subtask_results") or [])
+            if isinstance(row, dict)
+        ]
+        if (
+            self._aggregate_dependency_slot_coherence_rank_for_operands(
+                operation_family="ratio",
+                operands=trace_operands,
+                calculation_result=result,
+                ordered_results=ordered_results,
+            )
+            == 0
+        ):
+            return ""
         answer = self._compact_ratio_answer(
             {
                 **dict(state),
@@ -5396,6 +5429,16 @@ class FinancialAgentCalculationMixin:
         state: FinancialAgentState,
         aggregate_projection: Dict[str, Any],
     ) -> tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
+        aggregate_projection = {
+            **dict(aggregate_projection),
+            "calculation_operands": [
+                dict(row)
+                for row in list(aggregate_projection.get("calculation_operands") or [])
+                if isinstance(row, dict)
+            ],
+            "calculation_plan": dict(aggregate_projection.get("calculation_plan") or {}),
+            "calculation_result": dict(aggregate_projection.get("calculation_result") or {}),
+        }
         calculation_result = dict(aggregate_projection.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         repair_state = {
@@ -5434,6 +5477,22 @@ class FinancialAgentCalculationMixin:
         )
         if not repaired_result.get("stale_result_repaired_from_operands"):
             return aggregate_state._replace(aggregate_projection=aggregate_projection)
+        if (
+            self._aggregate_dependency_slot_coherence_rank_for_operands(
+                operation_family=_normalise_spaces(
+                    str(
+                        (dict(repaired_result.get("answer_slots") or {})).get("operation_family")
+                        or repaired_plan.get("operation")
+                        or ""
+                    )
+                ),
+                operands=repaired_operands,
+                calculation_result=repaired_result,
+                ordered_results=aggregate_state.ordered_results,
+            )
+            == 0
+        ):
+            return aggregate_state
         repaired_answer = _normalise_spaces(
             str(repaired_result.get("formatted_result") or repaired_result.get("rendered_value") or "")
         )
@@ -5523,6 +5582,16 @@ class FinancialAgentCalculationMixin:
                 pass
 
         runtime_operands = list(runtime_trace.get("calculation_operands") or [])
+        if (
+            self._aggregate_dependency_slot_coherence_rank_for_operands(
+                operation_family="ratio",
+                operands=runtime_operands,
+                calculation_result=runtime_result,
+                ordered_results=ordered_results,
+            )
+            == 0
+        ):
+            return aggregate_projection, final_answer
         runtime_answer = self._compact_ratio_answer_from_projection(
             state,
             aggregate_projection,
@@ -7673,7 +7742,507 @@ class FinancialAgentCalculationMixin:
             return 2 if current_sign == prior_sign else 0
         return 1
 
-    def _aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int]:
+    def _aggregate_row_primary_answer_slot(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        return dict(answer_slots.get("primary_value") or {})
+
+    def _aggregate_source_slot_by_task_id(self, ordered_results: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        source_slot_by_task_id: Dict[str, Dict[str, Any]] = {}
+        for row in ordered_results:
+            if not isinstance(row, dict):
+                continue
+            task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            if not task_id:
+                continue
+            slot = self._aggregate_row_primary_answer_slot(dict(row))
+            if not slot:
+                continue
+            scope = self._known_consolidation_scope_value(
+                slot.get("consolidation_scope"),
+                row.get("consolidation_scope"),
+            )
+            if scope and not slot.get("consolidation_scope"):
+                slot["consolidation_scope"] = scope
+            metric_label = _normalise_spaces(str(row.get("metric_label") or ""))
+            if metric_label and not slot.get("metric_label"):
+                slot["metric_label"] = metric_label
+            source_slot_by_task_id[task_id] = slot
+        return source_slot_by_task_id
+
+    def _aggregate_dependency_source_slot_by_task_id(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> Dict[str, Dict[str, Any]]:
+        lookup_task_ids = {
+            _normalise_spaces(str(row.get("task_id") or ""))
+            for row in ordered_results
+            if isinstance(row, dict)
+            and (
+                _normalise_spaces(
+                    str(row.get("operation_family") or self._aggregate_result_operation_family(row) or "")
+                ).lower()
+                in {"lookup", "single_value"}
+                or _normalise_spaces(str(row.get("metric_family") or "")).lower()
+                in {"concept_lookup", "generic_numeric"}
+            )
+        }
+        source_slots = {
+            task_id: slot
+            for task_id, slot in self._aggregate_source_slot_by_task_id(ordered_results).items()
+            if task_id in lookup_task_ids
+        }
+        dependency_slots = build_dependency_lookup_slots_by_task(
+            ordered_results,
+            {},
+            operation_family_for_result=self._aggregate_result_operation_family,
+            slot_has_material=self._answer_slot_has_material,
+        )
+        source_slots.update(dependency_slots)
+        metric_label_by_task_id = {
+            _normalise_spaces(str(row.get("task_id") or "")): _normalise_spaces(str(row.get("metric_label") or ""))
+            for row in ordered_results
+            if isinstance(row, dict)
+        }
+        for task_id, slot in list(source_slots.items()):
+            metric_label = metric_label_by_task_id.get(task_id, "")
+            if metric_label and not slot.get("metric_label"):
+                slot = dict(slot)
+                slot["metric_label"] = metric_label
+                source_slots[task_id] = slot
+        return source_slots
+
+    def _ratio_rebuild_component_seeds(
+        self,
+        row: Dict[str, Any],
+        calculation_result: Dict[str, Any],
+        answer_slots: Dict[str, Any],
+    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+        numerator: List[Dict[str, Any]] = []
+        denominator: List[Dict[str, Any]] = []
+        ungrouped: List[Dict[str, Any]] = []
+
+        def _add_seed(seed: Dict[str, Any], fallback_role: str = "") -> None:
+            seed = dict(seed)
+            role = _normalise_spaces(
+                str(seed.get("matched_operand_role") or seed.get("role") or fallback_role or "")
+            )
+            if role and not seed.get("matched_operand_role"):
+                seed["matched_operand_role"] = role
+            group = _dependency_ratio_role_group(role)
+            if group == "numerator":
+                numerator.append(seed)
+            elif group == "denominator":
+                denominator.append(seed)
+            elif self._answer_slot_has_material(seed):
+                ungrouped.append(seed)
+
+        for group, entries in dict(answer_slots.get("components_by_group") or {}).items():
+            for entry in list(entries or []):
+                if isinstance(entry, dict):
+                    _add_seed(entry, str(group or ""))
+        for role, entries in dict(answer_slots.get("components_by_role") or {}).items():
+            for entry in list(entries or []):
+                if isinstance(entry, dict):
+                    _add_seed(entry, str(role or ""))
+        for operand in list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or []):
+            if isinstance(operand, dict):
+                _add_seed(operand)
+        return numerator, denominator, ungrouped
+
+    def _dependency_source_text_match_score(self, left: str, right: str) -> int:
+        left = _normalise_spaces(left)
+        right = _normalise_spaces(right)
+        if not left or not right:
+            return 0
+        score = 0
+        if left == right:
+            score += 6
+        elif left in right or right in left:
+            score += 3
+        left_terms = {
+            token.lower()
+            for token in self._narrative_context_terms(left)
+            if len(token) >= 2
+        }
+        right_terms = {
+            token.lower()
+            for token in self._narrative_context_terms(right)
+            if len(token) >= 2
+        }
+        return score + len(left_terms & right_terms)
+
+    def _dependency_source_slot_match_score(
+        self,
+        slot: Dict[str, Any],
+        seed: Dict[str, Any],
+        role: str,
+    ) -> int:
+        score = _dependency_lookup_slot_match_score(slot, seed, role)
+        slot_text = " ".join(
+            str(slot.get(key) or "")
+            for key in ("label", "metric_label", "concept", "period")
+        )
+        seed_text = " ".join(
+            str(seed.get(key) or seed.get(f"matched_operand_{key}") or "")
+            for key in ("label", "concept", "period")
+        )
+        return score + self._dependency_source_text_match_score(slot_text, seed_text)
+
+    def _best_dependency_source_for_seed(
+        self,
+        seed: Dict[str, Any],
+        role: str,
+        *,
+        source_slots: Dict[str, Dict[str, Any]],
+        excluded_task_ids: Optional[set[str]] = None,
+    ) -> tuple[str, Dict[str, Any], Dict[str, Any], int]:
+        seed = {
+            **dict(seed),
+            "role": role,
+            "matched_operand_role": role,
+            "matched_operand_label": _normalise_spaces(
+                str(seed.get("matched_operand_label") or seed.get("label") or "")
+            ),
+            "matched_operand_concept": _normalise_spaces(
+                str(seed.get("matched_operand_concept") or seed.get("concept") or "")
+            ),
+        }
+        excluded = set(excluded_task_ids or set())
+        inferred_task_ids = set(self._aggregate_source_task_ids_for_operand(seed, source_slots))
+        ranked: List[tuple[int, str, Dict[str, Any]]] = []
+        for task_id, slot in source_slots.items():
+            if task_id in excluded:
+                continue
+            score = self._dependency_source_slot_match_score(slot, seed, role)
+            if task_id in inferred_task_ids:
+                score = max(score, 12)
+            if score <= 0:
+                continue
+            ranked.append((score, task_id, slot))
+        if not ranked:
+            return "", {}, {}, 0
+        ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        score, task_id, slot = ranked[0]
+        return task_id, dict(slot), seed, score
+
+    def _component_slot_from_dependency_source(
+        self,
+        seed: Dict[str, Any],
+        source_slot: Dict[str, Any],
+        source_task_id: str,
+        role: str,
+    ) -> Dict[str, Any]:
+        source_operand = dependency_operand_from_source_slot(
+            {
+                **dict(seed),
+                "role": role,
+                "matched_operand_role": role,
+                "label": seed.get("label") or source_slot.get("label"),
+                "matched_operand_label": seed.get("matched_operand_label") or source_slot.get("label"),
+                "matched_operand_concept": seed.get("matched_operand_concept") or source_slot.get("concept"),
+            },
+            source_slot,
+            source_task_id=source_task_id,
+        )
+        slot = self._build_operand_value_slot(source_operand, default_role=role)
+        slot["role"] = role
+        slot["source_task_id"] = source_task_id
+        slot["dependency_resolved"] = True
+        return slot
+
+    def _rebuilt_ratio_result_from_dependency_slots(
+        self,
+        *,
+        calculation_result: Dict[str, Any],
+        answer_slots: Dict[str, Any],
+        metric_label: str,
+        numerator_slot: Dict[str, Any],
+        denominator_slot: Dict[str, Any],
+        result_value: float,
+        rendered_value: str,
+        source_row_ids: List[str],
+    ) -> Dict[str, Any]:
+        return {
+            **calculation_result,
+            "status": "ok",
+            "operation_family": "ratio",
+            "result_value": result_value,
+            "result_unit": "%",
+            "rendered_value": rendered_value,
+            "formatted_result": "",
+            "source_row_ids": source_row_ids,
+            "source_evidence_ids": source_row_ids,
+            "answer_slots": {
+                **answer_slots,
+                "metric_label": metric_label,
+                "operation_family": "ratio",
+                "source_row_ids": source_row_ids,
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": metric_label,
+                    "concept": "",
+                    "period": "",
+                    "raw_value": rendered_value,
+                    "raw_unit": "%",
+                    "normalized_value": result_value,
+                    "normalized_unit": "PERCENT",
+                    "rendered_value": rendered_value,
+                    "source_row_id": source_row_ids[0] if source_row_ids else "",
+                    "source_row_ids": source_row_ids,
+                    "source_anchor": "",
+                },
+                "components_by_group": {
+                    "numerator": [numerator_slot],
+                    "denominator": [denominator_slot],
+                },
+                "components_by_role": {
+                    "numerator_1": [numerator_slot],
+                    "denominator_1": [denominator_slot],
+                },
+            },
+        }
+
+    def _ratio_answer_from_dependency_source_slots(
+        self,
+        row: Dict[str, Any],
+        source_slot_by_task_id: Dict[str, Dict[str, Any]],
+    ) -> str:
+        source_slots = {
+            task_id: dict(slot)
+            for task_id, slot in dict(source_slot_by_task_id or {}).items()
+            if task_id and self._answer_slot_has_material(dict(slot or {}))
+        }
+        if len(source_slots) < 2:
+            return ""
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        metric_label = _normalise_spaces(
+            str(
+                answer_slots.get("metric_label")
+                or calculation_result.get("metric_label")
+                or row.get("metric_label")
+                or ""
+            )
+        )
+
+        numerator_seeds, denominator_seeds, ungrouped_seeds = self._ratio_rebuild_component_seeds(
+            row,
+            calculation_result,
+            answer_slots,
+        )
+        if not numerator_seeds:
+            numerator_seeds = list(ungrouped_seeds)
+        if not denominator_seeds and metric_label:
+            denominator_seeds = [{"role": "denominator_1", "label": metric_label}]
+        numerator_seed = numerator_seeds[0] if numerator_seeds else {}
+        denominator_seed = denominator_seeds[0] if denominator_seeds else {}
+        if not numerator_seed or not denominator_seed:
+            return ""
+        numerator_task_id, numerator_source, numerator_seed, _numerator_score = self._best_dependency_source_for_seed(
+            numerator_seed,
+            "numerator_1",
+            source_slots=source_slots,
+        )
+        if not numerator_task_id or not numerator_source:
+            return ""
+        denominator_task_id, denominator_source, denominator_seed, _denominator_score = (
+            self._best_dependency_source_for_seed(
+                denominator_seed,
+                "denominator_1",
+                source_slots=source_slots,
+                excluded_task_ids={numerator_task_id},
+            )
+        )
+        if not denominator_task_id or not denominator_source:
+            return ""
+        if metric_label:
+            metric_seed = {"role": "denominator_1", "label": metric_label}
+            (
+                metric_denominator_task_id,
+                metric_denominator_source,
+                metric_denominator_seed,
+                metric_denominator_score,
+            ) = self._best_dependency_source_for_seed(
+                metric_seed,
+                "denominator_1",
+                source_slots=source_slots,
+                excluded_task_ids={numerator_task_id},
+            )
+            current_metric_score = self._dependency_source_slot_match_score(
+                denominator_source,
+                metric_seed,
+                "denominator_1",
+            )
+            if (
+                metric_denominator_task_id
+                and metric_denominator_task_id != denominator_task_id
+                and metric_denominator_score >= 3
+                and current_metric_score == 0
+            ):
+                denominator_task_id = metric_denominator_task_id
+                denominator_source = metric_denominator_source
+                denominator_seed = metric_denominator_seed
+        numerator_slot = self._component_slot_from_dependency_source(
+            numerator_seed,
+            numerator_source,
+            numerator_task_id,
+            "numerator_1",
+        )
+        denominator_slot = self._component_slot_from_dependency_source(
+            denominator_seed,
+            denominator_source,
+            denominator_task_id,
+            "denominator_1",
+        )
+        if self._ratio_operand_rows_collapse_to_same_slot([numerator_slot, denominator_slot]):
+            return ""
+        numerator_value = self._coerce_slot_numeric(numerator_slot.get("normalized_value"))
+        denominator_value = self._coerce_slot_numeric(denominator_slot.get("normalized_value"))
+        if numerator_value is None or denominator_value in {None, 0}:
+            return ""
+        result_value = float(numerator_value) / float(denominator_value) * 100.0
+        rendered_value = self._format_calculation_value(result_value, "%", "PERCENT")
+        if "%" not in rendered_value:
+            rendered_value = f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
+        source_row_ids = _clean_source_row_ids([
+            numerator_slot.get("source_row_id"),
+            numerator_slot.get("source_row_ids"),
+            denominator_slot.get("source_row_id"),
+            denominator_slot.get("source_row_ids"),
+        ])
+        rebuilt_result = self._rebuilt_ratio_result_from_dependency_slots(
+            calculation_result=calculation_result,
+            answer_slots=answer_slots,
+            metric_label=metric_label,
+            numerator_slot=numerator_slot,
+            denominator_slot=denominator_slot,
+            result_value=result_value,
+            rendered_value=rendered_value,
+            source_row_ids=source_row_ids,
+        )
+        return self._compact_ratio_answer(
+            {
+                "active_subtask": {"metric_label": metric_label},
+                "resolved_calculation_trace": {
+                    "calculation_operands": [numerator_slot, denominator_slot],
+                    "calculation_plan": {
+                        "status": "ok",
+                        "operation": "ratio",
+                        "result_unit": "%",
+                    },
+                    "calculation_result": rebuilt_result,
+                },
+            },
+            rebuilt_result,
+        )
+
+    def _aggregate_result_candidate_operands(self, row: Dict[str, Any]) -> List[Dict[str, Any]]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        candidate_operands = [dict(item) for item in list(row.get("calculation_operands") or []) if isinstance(item, dict)]
+        candidate_operands.extend(
+            dict(item) for item in list(calculation_result.get("calculation_operands") or []) if isinstance(item, dict)
+        )
+        for container_key in ("components_by_group", "components_by_role"):
+            for entries in dict(answer_slots.get(container_key) or {}).values():
+                candidate_operands.extend(dict(item) for item in list(entries or []) if isinstance(item, dict))
+        return candidate_operands
+
+    def _aggregate_source_task_ids_for_operand(
+        self,
+        operand: Dict[str, Any],
+        source_slots: Dict[str, Dict[str, Any]],
+    ) -> List[str]:
+        source_task_ids = [
+            _normalise_spaces(str(operand.get("source_task_id") or "")),
+            *[
+                source_id.removeprefix("task_output:")
+                for source_id in _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")])
+                if source_id.startswith("task_output:")
+            ],
+        ]
+        source_task_ids = [task_id for task_id in source_task_ids if task_id]
+        if source_task_ids or not source_slots:
+            return list(dict.fromkeys(source_task_ids))
+        role = _normalise_spaces(str(operand.get("role") or operand.get("matched_operand_role") or ""))
+        inferred_task_ids = []
+        for task_id, source_slot in source_slots.items():
+            slot = dict(source_slot or {})
+            if not self._answer_slot_has_material(slot):
+                continue
+            if _dependency_lookup_slot_match_score(slot, operand, role) >= 12:
+                inferred_task_ids.append(task_id)
+        return inferred_task_ids
+
+    def _aggregate_result_dependency_coherence_ranks(
+        self,
+        row: Dict[str, Any],
+        source_slot_by_task_id: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> tuple[int, int]:
+        operation_family = self._aggregate_result_operation_family(row)
+        if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
+            return 1, 1
+        source_slots = dict(source_slot_by_task_id or {})
+        saw_source_slot = False
+        saw_source_scope = False
+        for operand in self._aggregate_result_candidate_operands(row):
+            source_task_ids = self._aggregate_source_task_ids_for_operand(operand, source_slots)
+            source_task_id = source_task_ids[0] if source_task_ids else ""
+            if source_task_id and source_slots:
+                source_slot = dict(source_slots.get(source_task_id) or {})
+                if self._answer_slot_has_material(source_slot):
+                    saw_source_slot = True
+                    source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
+                    operand_anchor = _normalise_spaces(str(operand.get("source_anchor") or ""))
+                    if (
+                        (source_anchor and operand_anchor and source_anchor != operand_anchor)
+                        or _dependency_projection_slot_differs_from_operand(source_slot, operand)
+                    ):
+                        return 0, 2 if saw_source_scope else 1
+            if operation_family == "ratio" and source_slots and source_task_ids:
+                source_scope = next(
+                    (
+                        self._known_consolidation_scope_value(source_slots.get(task_id, {}).get("consolidation_scope"))
+                        for task_id in source_task_ids
+                        if source_slots.get(task_id)
+                    ),
+                    "",
+                )
+                if source_scope:
+                    saw_source_scope = True
+                    operand_scope = self._known_consolidation_scope_value(operand.get("consolidation_scope"))
+                    if operand_scope and operand_scope != source_scope:
+                        return 2 if saw_source_slot else 1, 0
+        return 2 if saw_source_slot else 1, 2 if saw_source_scope else 1
+
+    def _aggregate_dependency_slot_coherence_rank_for_operands(
+        self,
+        *,
+        operation_family: str,
+        operands: List[Any],
+        ordered_results: List[Dict[str, Any]],
+        calculation_result: Optional[Dict[str, Any]] = None,
+    ) -> int:
+        return self._aggregate_result_dependency_coherence_ranks(
+            {
+                "operation_family": operation_family,
+                "calculation_operands": [
+                    dict(item)
+                    for item in list(operands or [])
+                    if isinstance(item, dict)
+                ],
+                "calculation_result": dict(calculation_result or {}),
+            },
+            self._aggregate_source_slot_by_task_id(ordered_results),
+        )[0]
+
+    def _aggregate_result_rank(
+        self,
+        row: Dict[str, Any],
+        source_slot_by_task_id: Optional[Dict[str, Dict[str, Any]]] = None,
+    ) -> tuple[int, int, int, int, int, int, int]:
         calculation_result = dict(row.get("calculation_result") or {})
         status = _normalise_spaces(
             str(
@@ -7693,8 +8262,12 @@ class FinancialAgentCalculationMixin:
         material_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
         answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
         growth_sign_rank = self._growth_operand_sign_consistency_rank(row)
+        dependency_slot_rank, scope_coherence_rank = self._aggregate_result_dependency_coherence_ranks(
+            row,
+            source_slot_by_task_id,
+        )
         operand_rank = len(list(calculation_result.get("source_row_ids") or []))
-        return status_rank, material_rank, answer_rank, growth_sign_rank, operand_rank
+        return status_rank, material_rank, answer_rank, growth_sign_rank, dependency_slot_rank, scope_coherence_rank, operand_rank
 
     def _nested_aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int]:
         calculation_result = dict(row.get("calculation_result") or {})
@@ -7792,6 +8365,7 @@ class FinancialAgentCalculationMixin:
             for row in ordered_results
             if _normalise_spaces(str(row.get("task_id") or ""))
         }
+        source_slot_by_task_id = self._aggregate_source_slot_by_task_id(list(by_task_id.values()))
         replacements: Dict[str, Dict[str, Any]] = {}
         for row in ordered_results:
             if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
@@ -7822,6 +8396,14 @@ class FinancialAgentCalculationMixin:
                 ):
                     continue
                 if self._nested_aggregate_result_rank(nested_row) <= self._nested_aggregate_result_rank(current_row):
+                    continue
+                if self._aggregate_result_dependency_coherence_ranks(
+                    nested_row,
+                    source_slot_by_task_id,
+                )[0] < self._aggregate_result_dependency_coherence_ranks(
+                    current_row,
+                    source_slot_by_task_id,
+                )[0]:
                     continue
                 promoted = {
                     **dict(current_row),
@@ -7947,19 +8529,20 @@ class FinancialAgentCalculationMixin:
         self,
         ordered_results: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        winners: Dict[str, tuple[int, tuple[int, int, int, int, int], Dict[str, Any]]] = {}
+        source_slot_by_task_id = self._aggregate_source_slot_by_task_id(ordered_results)
+        winners: Dict[str, tuple[int, tuple[int, int, int, int, int, int, int], Dict[str, Any]]] = {}
         passthrough: List[tuple[int, Dict[str, Any]]] = []
         for index, row in enumerate(ordered_results):
             signature = self._aggregate_result_signature(row)
             if not signature:
                 passthrough.append((index, row))
                 continue
-            rank = self._aggregate_result_rank(row)
+            rank = self._aggregate_result_rank(row, source_slot_by_task_id)
             incumbent = winners.get(signature)
             if incumbent is None or rank > incumbent[1] or (rank == incumbent[1] and index > incumbent[0]):
                 winners[signature] = (index, rank, row)
         deduped = sorted(
-            [item for item in winners.values()] + [(index, (0, 0, 0, 0, 0), row) for index, row in passthrough],
+            [item for item in winners.values()] + [(index, (0, 0, 0, 0, 0, 0, 0), row) for index, row in passthrough],
             key=lambda item: item[0],
         )
         return [dict(item[2]) for item in deduped]
@@ -10584,6 +11167,19 @@ class FinancialAgentCalculationMixin:
             return left_raw != right_raw
         return left_value != right_value
 
+    def _operand_row_values_materially_conflict(self, left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+        left_value = left.get("normalized_value")
+        right_value = right.get("normalized_value")
+        try:
+            if left_value is not None and right_value is not None:
+                left_float = float(left_value)
+                right_float = float(right_value)
+                tolerance = max(max(abs(left_float), abs(right_float), 1.0) * 5e-4, 1e-6)
+                return abs(left_float - right_float) > tolerance
+        except (TypeError, ValueError):
+            pass
+        return self._operand_row_value_differs(left, right)
+
     def _canonical_structured_reconciliation_id(self, value: Any) -> str:
         source_id = _normalise_spaces(str(value or ""))
         if not source_id.startswith("recon::"):
@@ -10626,10 +11222,17 @@ class FinancialAgentCalculationMixin:
             return False
         if not self._operand_row_value_differs(row, replacement):
             return False
-        row_source_ids = self._operand_row_source_id_set(row)
-        if not any(source_id.startswith("task_output:") for source_id in row_source_ids):
+        if not self._operand_row_values_materially_conflict(row, replacement):
             return False
-        if not any(not source_id.startswith("task_output:") for source_id in row_source_ids):
+        row_source_ids = self._operand_row_source_id_set(row)
+        task_output_backed = any(source_id.startswith("task_output:") for source_id in row_source_ids)
+        row_anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
+        replacement_anchor = _normalise_spaces(str(replacement.get("source_anchor") or ""))
+        anchor_conflicts = bool(row_anchor and replacement_anchor and row_anchor != replacement_anchor)
+        row_scope = self._known_consolidation_scope_value(row.get("consolidation_scope"))
+        replacement_scope = self._known_consolidation_scope_value(replacement.get("consolidation_scope"))
+        scope_conflicts = bool(row_scope and replacement_scope and row_scope != replacement_scope)
+        if not (task_output_backed or anchor_conflicts or scope_conflicts):
             return False
         replacement_source_ids = self._operand_row_source_id_set(replacement)
         binding_policy = dict(row.get("binding_policy") or {})
@@ -10642,7 +11245,7 @@ class FinancialAgentCalculationMixin:
             replacement_stage = _normalise_spaces(str(replacement.get("aggregation_stage") or ""))
             if replacement_stage not in preferred_stages:
                 return True
-        if row_source_ids.intersection(replacement_source_ids):
+        if row_source_ids.intersection(replacement_source_ids) and not (anchor_conflicts or scope_conflicts):
             return False
         return True
 
@@ -11603,6 +12206,18 @@ class FinancialAgentCalculationMixin:
             return ""
         answer_text = _normalise_spaces(str(final_answer or ""))
         if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
+            if (
+                self._aggregate_dependency_slot_coherence_rank_for_operands(
+                    operation_family="ratio",
+                    operands=list(trace.get("calculation_operands") or []),
+                    calculation_result=calculation_result,
+                    ordered_results=[
+                        dict(row) for row in list(state.get("subtask_results") or []) if isinstance(row, dict)
+                    ],
+                )
+                == 0
+            ):
+                return ""
             compact_answer = self._compact_ratio_answer(
                 {
                     **dict(state),
