@@ -4498,6 +4498,44 @@ class FinancialAgentCalculationMixin:
             selected_claim_ids,
         )
 
+    def _replace_aggregate_results(
+        self,
+        aggregate_state: _AggregateSynthesisState,
+        state: FinancialAgentState,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+        *,
+        refresh_numeric_answer: bool = False,
+        sync_projection: bool = False,
+        rebuild_after_numeric_refresh: bool = True,
+        kept_evidence_ids: Optional[set[str]] = None,
+    ) -> _AggregateSynthesisState:
+        aggregate_state = aggregate_state._replace(
+            ordered_results=ordered_results,
+            aggregate_projection=self._rebuild_aggregate_projection(
+                ordered_results, aggregate_state.final_answer, kept_evidence_ids=kept_evidence_ids
+            ),
+        )
+        if not refresh_numeric_answer:
+            return aggregate_state
+        numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+        if not (numeric_answer and self._complete_numeric_answer_can_replace_final(numeric_answer, ordered_results)):
+            return aggregate_state
+        aggregate_state = self._apply_numeric_answer_to_aggregate_state(
+            aggregate_state=aggregate_state,
+            state=state,
+            numeric_answer=numeric_answer,
+            evidence_items=evidence_items,
+            sync_projection=sync_projection,
+        )
+        if rebuild_after_numeric_refresh:
+            aggregate_state = aggregate_state._replace(
+                aggregate_projection=self._rebuild_aggregate_projection(
+                    aggregate_state.ordered_results, aggregate_state.final_answer, kept_evidence_ids=kept_evidence_ids
+                )
+            )
+        return aggregate_state
+
     def _sync_aggregate_artifact_projection_payload(
         self,
         artifacts: List[Dict[str, Any]],
@@ -16276,20 +16314,18 @@ class FinancialAgentCalculationMixin:
             aggregate_projection,
         )
         if aligned_ordered_results is not ordered_results:
-            ordered_results = aligned_ordered_results
-            refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if refreshed_numeric_answer and (
+            refresh_aligned_numeric = (
                 not narrative_answer_locked
-                or self._aggregate_results_include_source_task_slot_realignment(ordered_results)
-            ) and self._complete_numeric_answer_can_replace_final(refreshed_numeric_answer, ordered_results):
-                aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                    state=state,
-                    numeric_answer=refreshed_numeric_answer,
-                    evidence_items=aggregate_evidence_items,
-                )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+                or self._aggregate_results_include_source_task_slot_realignment(aligned_ordered_results)
+            )
+            aggregate_state = self._replace_aggregate_results(
+                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                state,
+                aligned_ordered_results,
+                aggregate_evidence_items,
+                refresh_numeric_answer=refresh_aligned_numeric,
+            )
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         if calculation_projection_override:
             for key in ("calculation_operands", "calculation_plan", "calculation_result"):
                 if calculation_projection_override.get(key):
@@ -16654,21 +16690,16 @@ class FinancialAgentCalculationMixin:
                 final_projection,
             )
             if final_promoted_results != ordered_results or final_aligned_results != final_promoted_results:
-                ordered_results = final_aligned_results
-                aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-                final_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-                if final_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                    final_numeric_answer,
-                    ordered_results,
-                ):
-                    aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                        aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                        state=state,
-                        numeric_answer=final_numeric_answer,
-                        evidence_items=aggregate_evidence_items,
-                        sync_projection=True,
-                    )
-                    ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+                aggregate_state = self._replace_aggregate_results(
+                    _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                    state,
+                    final_aligned_results,
+                    aggregate_evidence_items,
+                    refresh_numeric_answer=True,
+                    sync_projection=True,
+                    rebuild_after_numeric_refresh=False,
+                )
+                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
             final_explanatory_parts: List[str] = []
             seen_explanatory_parts: set[str] = set()
             for row in ordered_results:
@@ -16740,25 +16771,14 @@ class FinancialAgentCalculationMixin:
             final_consistent_results != ordered_results
             or final_consistent_aligned
         ):
-            ordered_results = final_consistent_aligned_results
-            aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results,
-                final_answer,
+            aggregate_state = self._replace_aggregate_results(
+                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                state,
+                final_consistent_aligned_results,
+                aggregate_evidence_items,
+                refresh_numeric_answer=final_consistent_aligned,
             )
-            if final_consistent_aligned:
-                final_consistent_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-                if final_consistent_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                    final_consistent_numeric_answer,
-                    ordered_results,
-                ):
-                    aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                        aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                        state=state,
-                        numeric_answer=final_consistent_numeric_answer,
-                        evidence_items=aggregate_evidence_items,
-                    )
-                    ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-                    aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         ordered_results, aggregate_projection = self._sync_projection_subtask_results_with_nested_promotions(
             ordered_results,
             state,
@@ -16770,8 +16790,13 @@ class FinancialAgentCalculationMixin:
             aggregate_evidence_items,
         )
         if post_sync_unit_aligned_results != ordered_results:
-            ordered_results = post_sync_unit_aligned_results
-            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            aggregate_state = self._replace_aggregate_results(
+                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                state,
+                post_sync_unit_aligned_results,
+                aggregate_evidence_items,
+            )
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         post_sync_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         post_sync_aligned_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
@@ -16779,20 +16804,14 @@ class FinancialAgentCalculationMixin:
             post_sync_projection,
         )
         if post_sync_aligned_results != ordered_results:
-            ordered_results = post_sync_aligned_results
-            post_sync_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if post_sync_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                post_sync_numeric_answer,
-                ordered_results,
-            ):
-                aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                    state=state,
-                    numeric_answer=post_sync_numeric_answer,
-                    evidence_items=aggregate_evidence_items,
-                )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            aggregate_state = self._replace_aggregate_results(
+                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                state,
+                post_sync_aligned_results,
+                aggregate_evidence_items,
+                refresh_numeric_answer=True,
+            )
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         aggregate_evidence_items, missing_context_claim_ids = self._append_missing_decision_context_evidence(
             aggregate_evidence_items,
             final_answer=final_answer,
@@ -16807,28 +16826,23 @@ class FinancialAgentCalculationMixin:
             aggregate_evidence_items,
         )
         if late_unit_aligned_results != ordered_results:
-            ordered_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
-            late_unit_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            late_unit_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
+            late_unit_projection = self._rebuild_aggregate_projection(late_unit_results, final_answer)
             late_unit_aligned_results = self._align_lookup_results_with_dependency_projection(
-                ordered_results,
+                late_unit_results,
                 {"query": str(state.get("query") or ""), "calc_subtasks": []},
                 late_unit_projection,
             )
-            if late_unit_aligned_results != ordered_results:
-                ordered_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
-            late_unit_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if late_unit_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                late_unit_numeric_answer,
-                ordered_results,
-            ):
-                aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                    state=state,
-                    numeric_answer=late_unit_numeric_answer,
-                    evidence_items=aggregate_evidence_items,
-                )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            if late_unit_aligned_results != late_unit_results:
+                late_unit_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
+            aggregate_state = self._replace_aggregate_results(
+                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                state,
+                late_unit_results,
+                aggregate_evidence_items,
+                refresh_numeric_answer=True,
+            )
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         consistent_numeric_answer = self._preferred_complete_numeric_answer(
             ordered_results,
             query=str(state.get("query") or ""),
