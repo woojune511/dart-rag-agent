@@ -5728,6 +5728,16 @@ def _build_semantic_numeric_plan(
     ):
         concept_specs = entity_scoped_specs
         planner_notes.append("entity_scoped_concept_fallback")
+    if concept_specs and operation_family in {"lookup", "single_value"}:
+        retained_metric_keys: List[str] = []
+        for metric_key in strong_metric_keys:
+            metric = ontology.metric_family(metric_key) or {}
+            formula_family = str(metric.get("formula_family") or "").strip().lower()
+            if formula_family == operation_family or bool(metric.get("direct_lookup_preferred")):
+                retained_metric_keys.append(metric_key)
+                continue
+            planner_notes.append(f"drop_composite_metric_for_concept_lookup:{metric_key}")
+        strong_metric_keys = retained_metric_keys
     if strong_metric_keys and concept_specs:
         planner_notes.append("metric_match_preferred_over_concept")
     if not target_metric_family and concept_specs and strong_metric_keys and _extract_generic_ratio_operand_specs(query):

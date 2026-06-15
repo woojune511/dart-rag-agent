@@ -3213,6 +3213,36 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("84.3%", promoted[0]["answer"])
         self.assertNotIn("76.08%", promoted[0]["answer"])
 
+    def test_period_comparison_rows_detect_same_source_value_collapse(self) -> None:
+        current_row = {
+            "matched_operand_role": "current_period",
+            "source_row_id": "row_income",
+            "source_row_ids": ["row_income"],
+            "raw_value": "1,000",
+            "normalized_value": 1000.0,
+            "period": "2023",
+        }
+        stale_prior_row = {
+            "matched_operand_role": "prior_period",
+            "source_row_id": "row_income",
+            "source_row_ids": ["row_income"],
+            "raw_value": "1,000",
+            "normalized_value": 1000.0,
+            "period": "2022",
+        }
+        real_prior_row = {
+            **stale_prior_row,
+            "raw_value": "700",
+            "normalized_value": 700.0,
+        }
+
+        self.assertTrue(
+            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, stale_prior_row])
+        )
+        self.assertFalse(
+            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, real_prior_row])
+        )
+
     def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
         current_growth = {
             "task_id": "task_growth",
@@ -5071,6 +5101,154 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(operands_by_role["current_period"]["raw_value"], "200")
         self.assertEqual(operands_by_role["prior_period"]["raw_value"], "100")
         self.assertNotEqual(operands_by_role["prior_period"]["raw_value"], "3")
+
+    def test_period_comparison_dependency_outputs_block_conflicting_direct_context(self) -> None:
+        state = {
+            "query": "2023년 target metric의 전년 대비 증가액을 계산해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target metric difference",
+            "active_subtask": {
+                "task_id": "task_difference",
+                "metric_family": "concept_difference",
+                "metric_label": "target metric difference",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": "target metric", "concept": "target_metric", "role": "current_period", "period": "2023"},
+                    {"label": "target metric", "concept": "target_metric", "role": "prior_period", "period": "2022"},
+                ],
+                "depends_on": ["task_current", "task_prior"],
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "target_metric",
+                        "period": "2023",
+                        "label": "target metric",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "target_metric",
+                        "period": "2022",
+                        "label": "target metric",
+                        "preferred_task_id": "task_prior",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2023",
+                                "raw_value": "200",
+                                "raw_unit": "",
+                                "normalized_value": 200.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "200",
+                                "source_row_id": "ev_current",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_prior",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2022",
+                                "raw_value": "100",
+                                "raw_unit": "",
+                                "normalized_value": 100.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "100",
+                                "source_row_id": "ev_prior",
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_current",
+                "evidence_id": "direct_current",
+                "source_row_id": "direct_current",
+                "table_source_id": "direct_table",
+                "label": "target metric",
+                "raw_value": "200",
+                "raw_unit": "",
+                "normalized_value": 200.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2023",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "current_period",
+            },
+            {
+                "operand_id": "op_prior",
+                "evidence_id": "direct_prior",
+                "source_row_id": "direct_prior",
+                "table_source_id": "direct_table",
+                "label": "target metric",
+                "raw_value": "30",
+                "raw_unit": "",
+                "normalized_value": 30.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2022",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "prior_period",
+            },
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+        operands_by_role = {
+            row["matched_operand_role"]: row
+            for row in trace["calculation_operands"]
+        }
+
+        self.assertEqual(operands_by_role["current_period"]["raw_value"], "200")
+        self.assertEqual(operands_by_role["prior_period"]["raw_value"], "100")
+        self.assertNotEqual(operands_by_role["prior_period"]["raw_value"], "30")
+        self.assertIn("task_output:task_prior", operands_by_role["prior_period"]["source_row_ids"])
 
     def test_compact_ratio_answer_includes_component_slots(self) -> None:
         calculation_result = {

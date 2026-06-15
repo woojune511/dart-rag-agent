@@ -86,6 +86,65 @@ class _AggregateSynthesisState(NamedTuple):
     selected_claim_ids: List[str]
 
 
+class _PreparedAggregateState(NamedTuple):
+    ordered_results: List[Dict[str, Any]]
+    fallback_answer: str
+    supported_aggregate_answer: str
+    complete_numeric_answer: str
+    has_narrative_summary: bool
+    has_growth_rate_result: bool
+    numeric_answer_locked: bool
+
+
+class _AggregateEvidenceState(NamedTuple):
+    ordered_results: List[Dict[str, Any]]
+    aggregate_evidence_items: List[Dict[str, Any]]
+    fallback_answer: str
+    final_answer: str
+    complete_numeric_answer: str
+    deterministic_feedback: str
+
+
+class _AggregateFeedbackState(NamedTuple):
+    final_answer: str
+    planner_feedback: str
+    deterministic_feedback: str
+    ledger_artifacts: List[Dict[str, Any]]
+    task_artifact_trace: Dict[str, Any]
+    should_replan: bool
+    replan_blocked_reason: str
+
+
+class _AggregateCompositionState(NamedTuple):
+    final_answer: str
+    selected_claim_ids: List[str]
+    calculation_projection_override: Optional[Dict[str, Any]]
+    narrative_answer_locked: bool
+    planner_feedback: str
+    deterministic_feedback: str
+
+
+class _AggregateMutableState(NamedTuple):
+    synthesis_state: _AggregateSynthesisState
+    evidence_items: List[Dict[str, Any]]
+
+    @property
+    def ordered_results(self) -> List[Dict[str, Any]]:
+        return self.synthesis_state.ordered_results
+
+    @property
+    def aggregate_projection(self) -> Dict[str, Any]:
+        return self.synthesis_state.aggregate_projection
+
+    @property
+    def final_answer(self) -> str:
+        return self.synthesis_state.final_answer
+
+    @property
+    def selected_claim_ids(self) -> List[str]:
+        return self.synthesis_state.selected_claim_ids
+
+
 def _inline_unit_match_has_right_boundary(
     text: str,
     match: re.Match[str],
@@ -4426,6 +4485,254 @@ class FinancialAgentCalculationMixin:
         )
         return aggregate_projection, final_answer, merged_claim_ids
 
+    def _apply_aggregate_composition_answer(
+        self,
+        composition_state: _AggregateCompositionState,
+        *,
+        answer: str = "",
+        selected_claim_ids: Optional[Sequence[Any]] = None,
+        calculation_projection_override: Optional[Dict[str, Any]] = None,
+        reset_projection_override: bool = False,
+        narrative_answer_locked: Optional[bool] = None,
+        clear_feedback: bool = True,
+    ) -> _AggregateCompositionState:
+        final_answer = _normalise_spaces(answer) or composition_state.final_answer
+        merged_claim_ids = list(
+            dict.fromkeys(
+                [
+                    *[
+                        str(claim_id).strip()
+                        for claim_id in (composition_state.selected_claim_ids or [])
+                        if str(claim_id).strip()
+                    ],
+                    *[
+                        str(claim_id).strip()
+                        for claim_id in (selected_claim_ids or [])
+                        if str(claim_id).strip()
+                    ],
+                ]
+            )
+        )
+        projection_override = composition_state.calculation_projection_override
+        if reset_projection_override:
+            projection_override = None
+        elif isinstance(calculation_projection_override, dict):
+            projection_override = calculation_projection_override
+        locked = (
+            composition_state.narrative_answer_locked
+            if narrative_answer_locked is None
+            else bool(narrative_answer_locked)
+        )
+        return _AggregateCompositionState(
+            final_answer=final_answer,
+            selected_claim_ids=merged_claim_ids,
+            calculation_projection_override=projection_override,
+            narrative_answer_locked=locked,
+            planner_feedback="" if clear_feedback else composition_state.planner_feedback,
+            deterministic_feedback="" if clear_feedback else composition_state.deterministic_feedback,
+        )
+
+    def _apply_initial_aggregate_answer_composition(
+        self,
+        state: FinancialAgentState,
+        *,
+        ordered_results: List[Dict[str, Any]],
+        preliminary_projection: Dict[str, Any],
+        aggregate_evidence_items: List[Dict[str, Any]],
+        narrative_docs: List[Any],
+        narrative_context: str,
+        final_answer: str,
+        supported_aggregate_answer: str,
+        complete_numeric_answer: str,
+        has_narrative_summary: bool,
+        has_growth_rate_result: bool,
+        numeric_answer_locked: bool,
+        planner_feedback: str,
+        deterministic_feedback: str,
+    ) -> tuple[_AggregateCompositionState, str]:
+        if (
+            deterministic_feedback
+            and self._unresolved_structured_numeric_gap(ordered_results)
+            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
+        ):
+            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            final_answer = safe_partial_answer or ""
+        final_answer = self._coerce_sign_aware_subtraction_answer(
+            final_answer,
+            calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
+            subtask_results=ordered_results,
+        )
+        slot_based_difference_answer = self._compose_slot_based_difference_answer(
+            query=str(state.get("query") or ""),
+            report_scope=dict(state.get("report_scope") or {}),
+            calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
+        )
+        if slot_based_difference_answer:
+            final_answer = slot_based_difference_answer
+            complete_numeric_answer = slot_based_difference_answer
+            planner_feedback = ""
+            deterministic_feedback = ""
+        if has_narrative_summary and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
+            final_answer = self._ensure_complete_growth_numeric_answer(
+                final_answer,
+                ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+        if not deterministic_feedback:
+            final_answer = self._include_narrative_context_if_needed(
+                final_answer,
+                query=str(state.get("query") or ""),
+                narrative_context=narrative_context,
+            )
+
+        composition_state = _AggregateCompositionState(
+            final_answer=final_answer,
+            selected_claim_ids=[],
+            calculation_projection_override=None,
+            narrative_answer_locked=bool(
+                supported_aggregate_answer
+                and self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            ),
+            planner_feedback=planner_feedback,
+            deterministic_feedback=deterministic_feedback,
+        )
+        growth_narrative_answer = self._compose_growth_narrative_answer(
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            existing_answer=composition_state.final_answer,
+            evidence_items=aggregate_evidence_items,
+        )
+        entity_table_answer = self._compose_entity_table_summary_answer(
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
+            evidence_items=aggregate_evidence_items,
+        )
+        if growth_narrative_answer and not composition_state.narrative_answer_locked:
+            growth_compressed_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or ""))
+            composition_state = self._apply_aggregate_composition_answer(
+                composition_state,
+                answer=growth_compressed_answer,
+                selected_claim_ids=growth_narrative_answer.get("selected_claim_ids") or [],
+                narrative_answer_locked=bool(growth_compressed_answer)
+                or self._answer_satisfies_growth_narrative_intent(
+                    query=str(state.get("query") or ""),
+                    answer=growth_compressed_answer or composition_state.final_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=aggregate_evidence_items,
+                ),
+            )
+        if entity_table_answer and not composition_state.narrative_answer_locked:
+            projection = entity_table_answer.get("calculation_projection")
+            composition_state = self._apply_aggregate_composition_answer(
+                composition_state,
+                answer=str(entity_table_answer.get("compressed_answer") or ""),
+                selected_claim_ids=entity_table_answer.get("selected_claim_ids") or [],
+                calculation_projection_override=projection if isinstance(projection, dict) else None,
+            )
+        business_focus_answer = self._compose_business_technology_focus_answer(
+            query=str(state.get("query") or ""),
+            existing_answer=composition_state.final_answer,
+            docs=narrative_docs,
+            evidence_items=aggregate_evidence_items,
+        )
+        if business_focus_answer and not composition_state.narrative_answer_locked:
+            composition_state = self._apply_aggregate_composition_answer(
+                composition_state,
+                answer=str(business_focus_answer.get("compressed_answer") or ""),
+                selected_claim_ids=business_focus_answer.get("selected_claim_ids") or [],
+            )
+        dividend_policy_answer = self._compose_dividend_policy_hybrid_answer(
+            query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        dividend_answer = _normalise_spaces(str((dividend_policy_answer or {}).get("answer") or ""))
+        if dividend_answer:
+            composition_state = self._apply_aggregate_composition_answer(
+                composition_state,
+                answer=dividend_answer,
+                selected_claim_ids=(dividend_policy_answer or {}).get("supporting_claim_ids") or [],
+                reset_projection_override=True,
+            )
+        quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
+            query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        if quantitative_impact_answer and not composition_state.narrative_answer_locked:
+            composition_state = self._apply_aggregate_composition_answer(
+                composition_state,
+                answer=str(quantitative_impact_answer.get("answer") or ""),
+                selected_claim_ids=quantitative_impact_answer.get("supporting_claim_ids") or [],
+                narrative_answer_locked=True,
+            )
+        if not composition_state.deterministic_feedback:
+            augmented_answer = self._augment_narrative_answer_with_supported_drivers(
+                composition_state.final_answer,
+                aggregate_evidence_items,
+                query=str(state.get("query") or ""),
+            )
+            if augmented_answer and augmented_answer != composition_state.final_answer:
+                composition_state = composition_state._replace(
+                    final_answer=augmented_answer,
+                    selected_claim_ids=self._expand_selected_claim_ids_for_narrative_drivers(
+                        composition_state.selected_claim_ids,
+                        aggregate_evidence_items,
+                        query=str(state.get("query") or ""),
+                    ),
+                )
+        if not self._answer_satisfies_growth_narrative_intent(
+            query=str(state.get("query") or ""),
+            answer=composition_state.final_answer,
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        ):
+            repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
+                query=str(state.get("query") or ""),
+                ordered_results=ordered_results,
+                existing_answer=composition_state.final_answer,
+                evidence_items=aggregate_evidence_items,
+            )
+            repaired_answer = _normalise_spaces(
+                str((repaired_growth_narrative_answer or {}).get("compressed_answer") or "")
+            )
+            if repaired_answer and self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=repaired_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            ):
+                composition_state = composition_state._replace(
+                    final_answer=repaired_answer,
+                    selected_claim_ids=[
+                        str(claim_id).strip()
+                        for claim_id in ((repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [])
+                        if str(claim_id).strip()
+                    ],
+                )
+        if numeric_answer_locked:
+            if has_narrative_summary and has_growth_rate_result:
+                numeric_lock_candidate = self._refresh_numeric_aggregate_answer_candidate(
+                    query=str(state.get("query") or ""),
+                    current_answer=composition_state.final_answer,
+                    numeric_answer=complete_numeric_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=aggregate_evidence_items,
+                    sync_projection=False,
+                )
+                final_answer = _normalise_spaces(str(numeric_lock_candidate.get("answer") or complete_numeric_answer))
+                selected_claim_ids = list(numeric_lock_candidate.get("selected_claim_ids") or [])
+            else:
+                final_answer = complete_numeric_answer
+                selected_claim_ids = []
+            composition_state = _AggregateCompositionState(
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
+                calculation_projection_override=None,
+                narrative_answer_locked=composition_state.narrative_answer_locked,
+                planner_feedback="",
+                deterministic_feedback="",
+            )
+        return composition_state, complete_numeric_answer
+
     def _apply_period_context_realignment_to_aggregate(
         self,
         *,
@@ -4498,6 +4805,89 @@ class FinancialAgentCalculationMixin:
             selected_claim_ids,
         )
 
+    def _replace_aggregate_final_answer(
+        self,
+        *,
+        aggregate_state: _AggregateSynthesisState,
+        evidence_items: List[Dict[str, Any]],
+        candidate_answer: str,
+        sync_rendered_for_aggregate: bool = True,
+        status_ok: bool = False,
+        force: bool = False,
+        refresh_operand_evidence: bool = False,
+    ) -> tuple[_AggregateSynthesisState, List[Dict[str, Any]], bool]:
+        candidate_answer = _normalise_spaces(candidate_answer)
+        if candidate_answer == aggregate_state.final_answer and not force:
+            return aggregate_state, evidence_items, False
+        aggregate_projection = self._sync_aggregate_projection_final_answer(
+            aggregate_state.aggregate_projection,
+            candidate_answer,
+            sync_rendered_for_aggregate=sync_rendered_for_aggregate,
+            status_ok=status_ok,
+        )
+        if refresh_operand_evidence:
+            evidence_items = self._append_operand_evidence_for_final_answer(
+                evidence_items,
+                operands=list(aggregate_projection.get("calculation_operands") or []),
+                final_answer=candidate_answer,
+            )
+        return (
+            _AggregateSynthesisState(
+                aggregate_state.ordered_results,
+                aggregate_projection,
+                candidate_answer,
+                aggregate_state.selected_claim_ids,
+            ),
+            evidence_items,
+            True,
+        )
+
+    def _replace_mutable_aggregate_answer(
+        self,
+        mutable_state: _AggregateMutableState,
+        *,
+        candidate_answer: str,
+        sync_rendered_for_aggregate: bool = True,
+        status_ok: bool = False,
+        force: bool = False,
+        refresh_operand_evidence: bool = False,
+    ) -> tuple[_AggregateMutableState, bool]:
+        synthesis_state, evidence_items, changed = self._replace_aggregate_final_answer(
+            aggregate_state=mutable_state.synthesis_state,
+            evidence_items=mutable_state.evidence_items,
+            candidate_answer=candidate_answer,
+            sync_rendered_for_aggregate=sync_rendered_for_aggregate,
+            status_ok=status_ok,
+            force=force,
+            refresh_operand_evidence=refresh_operand_evidence,
+        )
+        return _AggregateMutableState(synthesis_state, evidence_items), changed
+
+    def _sync_mutable_aggregate_state(
+        self,
+        mutable_state: _AggregateMutableState,
+        *,
+        ordered_results: Optional[List[Dict[str, Any]]] = None,
+        aggregate_projection: Optional[Dict[str, Any]] = None,
+        final_answer: Optional[str] = None,
+        selected_claim_ids: Optional[List[str]] = None,
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> _AggregateMutableState:
+        synthesis_state = mutable_state.synthesis_state._replace(
+            ordered_results=mutable_state.ordered_results if ordered_results is None else ordered_results,
+            aggregate_projection=mutable_state.aggregate_projection
+            if aggregate_projection is None
+            else aggregate_projection,
+            final_answer=mutable_state.final_answer if final_answer is None else final_answer,
+            selected_claim_ids=mutable_state.selected_claim_ids
+            if selected_claim_ids is None
+            else selected_claim_ids,
+        )
+        return _AggregateMutableState(
+            synthesis_state,
+            mutable_state.evidence_items if evidence_items is None else evidence_items,
+        )
+
     def _replace_aggregate_results(
         self,
         aggregate_state: _AggregateSynthesisState,
@@ -4535,6 +4925,288 @@ class FinancialAgentCalculationMixin:
                 )
             )
         return aggregate_state
+
+    def _replace_mutable_aggregate_results(
+        self,
+        mutable_state: _AggregateMutableState,
+        state: FinancialAgentState,
+        ordered_results: List[Dict[str, Any]],
+        *,
+        refresh_numeric_answer: bool = False,
+        sync_projection: bool = False,
+        rebuild_after_numeric_refresh: bool = True,
+        kept_evidence_ids: Optional[set[str]] = None,
+    ) -> _AggregateMutableState:
+        synthesis_state = self._replace_aggregate_results(
+            mutable_state.synthesis_state,
+            state,
+            ordered_results,
+            mutable_state.evidence_items,
+            refresh_numeric_answer=refresh_numeric_answer,
+            sync_projection=sync_projection,
+            rebuild_after_numeric_refresh=rebuild_after_numeric_refresh,
+            kept_evidence_ids=kept_evidence_ids,
+        )
+        return mutable_state._replace(synthesis_state=synthesis_state)
+
+    def _apply_mutable_numeric_answer(
+        self,
+        mutable_state: _AggregateMutableState,
+        state: FinancialAgentState,
+        numeric_answer: str,
+        *,
+        sync_projection: bool = False,
+    ) -> _AggregateMutableState:
+        synthesis_state = self._apply_numeric_answer_to_aggregate_state(
+            aggregate_state=mutable_state.synthesis_state,
+            state=state,
+            numeric_answer=numeric_answer,
+            evidence_items=mutable_state.evidence_items,
+            sync_projection=sync_projection,
+        )
+        return mutable_state._replace(synthesis_state=synthesis_state)
+
+    def _apply_final_narrative_repair_pipeline(
+        self,
+        state: FinancialAgentState,
+        *,
+        mutable_state: _AggregateMutableState,
+        narrative_docs: List[Any],
+        has_narrative_summary: bool,
+        has_growth_rate_result: bool,
+        deterministic_feedback: str,
+    ) -> _AggregateMutableState:
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = mutable_state.synthesis_state
+        aggregate_evidence_items = mutable_state.evidence_items
+
+        def _sync_locals() -> None:
+            nonlocal ordered_results, aggregate_projection, final_answer, selected_claim_ids, aggregate_evidence_items
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = mutable_state.synthesis_state
+            aggregate_evidence_items = mutable_state.evidence_items
+
+        def _sync_state(**updates: Any) -> None:
+            nonlocal mutable_state
+            mutable_state = self._sync_mutable_aggregate_state(mutable_state, **updates)
+            _sync_locals()
+
+        def _apply_candidate(candidate_answer: str, **kwargs: Any) -> None:
+            nonlocal mutable_state
+            mutable_state, _ = self._replace_mutable_aggregate_answer(
+                mutable_state,
+                candidate_answer=candidate_answer,
+                **kwargs,
+            )
+            _sync_locals()
+
+        realized_context_answer = self._preserve_policy_required_realized_context(
+            final_answer,
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
+        )
+        _apply_candidate(
+            realized_context_answer,
+            status_ok=bool(realized_context_answer and not deterministic_feedback),
+            force=True,
+        )
+        aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+            aggregate_evidence_items,
+            operands=list(aggregate_projection.get("calculation_operands") or []),
+            final_answer=final_answer,
+        )
+        _sync_state(evidence_items=aggregate_evidence_items)
+        aggregate_evidence_items, retrieved_narrative_claim_ids = self._append_retrieved_narrative_evidence_for_final_answer(
+            aggregate_evidence_items,
+            final_answer=final_answer,
+            docs=narrative_docs,
+        )
+        _sync_state(evidence_items=aggregate_evidence_items)
+        if retrieved_narrative_claim_ids:
+            selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *retrieved_narrative_claim_ids]))
+            _sync_state(selected_claim_ids=selected_claim_ids)
+        aggregate_state = self._apply_period_context_realignment_to_aggregate(
+            aggregate_state=mutable_state.synthesis_state,
+            state=state,
+            evidence_items=aggregate_evidence_items,
+        )
+        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
+        _sync_locals()
+        if has_narrative_summary and not self._answer_satisfies_growth_narrative_intent(
+            query=str(state.get("query") or ""),
+            answer=final_answer,
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        ):
+            repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
+                query=str(state.get("query") or ""),
+                ordered_results=ordered_results,
+                existing_answer=final_answer,
+                evidence_items=aggregate_evidence_items,
+            )
+            repaired_answer = _normalise_spaces(
+                str((repaired_growth_narrative_answer or {}).get("compressed_answer") or "")
+            )
+            if repaired_answer and self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=repaired_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            ):
+                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
+                    aggregate_projection,
+                    selected_claim_ids,
+                    self._aggregate_answer_candidate(
+                        repaired_answer,
+                        selected_claim_ids=(repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [],
+                    ),
+                )
+                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+                    aggregate_evidence_items,
+                    operands=list(aggregate_projection.get("calculation_operands") or []),
+                    final_answer=final_answer,
+                )
+                _sync_state(
+                    aggregate_projection=aggregate_projection,
+                    final_answer=final_answer,
+                    selected_claim_ids=selected_claim_ids,
+                    evidence_items=aggregate_evidence_items,
+                )
+        contracted_answer = self._enforce_source_stated_growth_answer_contract(
+            final_answer,
+            ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
+        if contracted_answer != final_answer:
+            _apply_candidate(
+                contracted_answer,
+                refresh_operand_evidence=True,
+            )
+        source_surface_answer = self._preserve_retrieved_narrative_source_surface(
+            final_answer,
+            aggregate_evidence_items,
+        )
+        _apply_candidate(source_surface_answer)
+        unresolved_numeric_gap = self._unresolved_structured_numeric_gap(ordered_results)
+        blocked_narrative_numeric_gap = bool(
+            unresolved_numeric_gap
+            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
+        )
+        if blocked_narrative_numeric_gap:
+            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            if safe_partial_answer:
+                _apply_candidate(safe_partial_answer)
+        if (
+            final_answer
+            and has_narrative_summary
+            and has_growth_rate_result
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+        ):
+            numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
+                final_answer,
+                ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+            if numeric_preserved_answer != final_answer:
+                _apply_candidate(
+                    numeric_preserved_answer,
+                    refresh_operand_evidence=True,
+                )
+        pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
+            final_answer,
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
+        _apply_candidate(pruned_focus_answer)
+        polished_answer = _polish_korean_particle_pairs(final_answer)
+        _apply_candidate(polished_answer)
+        if has_narrative_summary and has_growth_rate_result:
+            final_aligned_results, _final_identity_changed, final_value_changed, _final_alignment_changed = (
+                self._promote_and_align_aggregate_results(
+                    ordered_results,
+                    state,
+                    final_answer,
+                    align_without_promotion=True,
+                )
+            )
+            if final_value_changed:
+                mutable_state = self._replace_mutable_aggregate_results(
+                    mutable_state,
+                    state,
+                    final_aligned_results,
+                    refresh_numeric_answer=True,
+                    sync_projection=True,
+                    rebuild_after_numeric_refresh=False,
+                )
+                _sync_locals()
+            final_explanatory_parts: List[str] = []
+            seen_explanatory_parts: set[str] = set()
+            query_context_terms = {
+                term.lower()
+                for term in self._narrative_context_terms(str(state.get("query") or ""))
+                if len(term) >= 3
+            }
+            for row in ordered_results:
+                operation_family = self._aggregate_result_operation_family(row)
+                if not (self._row_is_narrative_summary(row) or operation_family == "aggregate_subtasks"):
+                    continue
+                row_answer = _normalise_spaces(
+                    str(
+                        row.get("answer")
+                        or (row.get("calculation_result") or {}).get("formatted_result")
+                        or (row.get("calculation_result") or {}).get("rendered_value")
+                        or ""
+                    )
+                )
+                if not row_answer or row_answer in final_answer:
+                    continue
+                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
+                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                        row_sentence,
+                        ordered_results,
+                        evidence_items=aggregate_evidence_items,
+                    )
+                    if not sanitized_sentence or sanitized_sentence in final_answer:
+                        continue
+                    if sanitized_sentence in seen_explanatory_parts:
+                        continue
+                    sentence_context_terms = {
+                        term.lower()
+                        for term in self._narrative_context_terms(sanitized_sentence)
+                        if len(term) >= 3
+                    }
+                    if not (
+                        self._sentence_has_growth_explanatory_signal(sanitized_sentence)
+                        or len(sentence_context_terms & query_context_terms) >= 2
+                    ):
+                        continue
+                    narrative_markers = tuple(
+                        str(item)
+                        for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+                    )
+                    if _narrative_sentence_looks_table_noisy(sanitized_sentence):
+                        continue
+                    if _narrative_sentence_looks_abbreviated_fragment(sanitized_sentence, narrative_markers):
+                        continue
+                    if re.search(r"\d", sanitized_sentence) and not self._text_supports_final_answer_numeric_material(
+                        sanitized_sentence,
+                        self._answer_evidence_numeric_candidates(final_answer),
+                    ):
+                        continue
+                    if self._growth_answer_has_untraced_numeric_material(
+                        sanitized_sentence,
+                        ordered_results,
+                        aggregate_evidence_items,
+                    ):
+                        continue
+                    seen_explanatory_parts.add(sanitized_sentence)
+                    final_explanatory_parts.append(sanitized_sentence)
+                    if len(final_explanatory_parts) >= 2:
+                        break
+                if len(final_explanatory_parts) >= 2:
+                    break
+            if final_explanatory_parts:
+                _apply_candidate(" ".join([final_answer, *final_explanatory_parts]))
+        return mutable_state
 
     def _promote_and_align_aggregate_results(
         self,
@@ -4664,6 +5336,55 @@ class FinancialAgentCalculationMixin:
             aggregate_projection["calculation_plan"] = plan
             aggregate_projection["calculation_result"] = repaired_result
         return aggregate_projection, operands, plan, repaired_result
+
+    def _apply_stale_projection_repair_to_aggregate_state(
+        self,
+        *,
+        state: FinancialAgentState,
+        aggregate_state: _AggregateSynthesisState,
+        evidence_items: List[Dict[str, Any]],
+        prefer_compact_ratio_answer: bool = False,
+    ) -> _AggregateSynthesisState:
+        aggregate_projection, repaired_operands, repaired_plan, repaired_result = (
+            self._repair_stale_aggregate_projection_result(
+                state,
+                aggregate_state.aggregate_projection,
+            )
+        )
+        if not repaired_result.get("stale_result_repaired_from_operands"):
+            return aggregate_state._replace(aggregate_projection=aggregate_projection)
+        repaired_answer = _normalise_spaces(
+            str(repaired_result.get("formatted_result") or repaired_result.get("rendered_value") or "")
+        )
+        if prefer_compact_ratio_answer:
+            repaired_answer = _normalise_spaces(
+                self._compact_ratio_answer_from_projection(
+                    state,
+                    aggregate_projection,
+                    repaired_result,
+                    operands=repaired_operands,
+                    plan=repaired_plan,
+                )
+                or repaired_answer
+                or aggregate_state.final_answer
+            )
+            aggregate_projection["calculation_result"] = {
+                **repaired_result,
+                "formatted_result": repaired_answer,
+            }
+            return aggregate_state._replace(
+                aggregate_projection=aggregate_projection,
+                final_answer=repaired_answer,
+            )
+        if not repaired_answer:
+            return aggregate_state._replace(aggregate_projection=aggregate_projection)
+        return self._apply_numeric_answer_to_aggregate_state(
+            aggregate_state=aggregate_state._replace(aggregate_projection=aggregate_projection),
+            state=state,
+            numeric_answer=repaired_answer,
+            evidence_items=evidence_items,
+            sync_projection=True,
+        )
 
     def _apply_runtime_ratio_projection_for_collapsed_rows(
         self,
@@ -6957,6 +7678,8 @@ class FinancialAgentCalculationMixin:
                     and self._subtask_row_has_direct_source_refs(current_row)
                     and self._aggregate_result_operation_family(current_row) == self._aggregate_result_operation_family(nested_row)
                     and self._subtask_numeric_answers_conflict(nested_row, current_row)
+                    and self._growth_operand_sign_consistency_rank(nested_row)
+                    <= self._growth_operand_sign_consistency_rank(current_row)
                 ):
                     continue
                 if self._nested_aggregate_result_rank(nested_row) <= self._nested_aggregate_result_rank(current_row):
@@ -8756,106 +9479,6 @@ class FinancialAgentCalculationMixin:
             "label": str(row.get("matched_operand_label") or row.get("label") or "").strip(),
             "aliases": [item for item in dict.fromkeys(operand_aliases) if item],
         }
-        early_segment_label = _normalise_spaces(
-            str(_operand_segment_label(row) or dict(row.get("binding_policy") or {}).get("segment_label") or "")
-        )
-        early_segment_label = _normalise_spaces(
-            re.sub(r"^\W+|\W+$", " ", early_segment_label)
-        )
-        early_surface = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for value in (
-                    (evidence_item or {}).get("claim"),
-                    (evidence_item or {}).get("quote_span"),
-                    (evidence_item or {}).get("raw_row_text"),
-                    (evidence_item or {}).get("source_context"),
-                )
-                if str(value or "").strip()
-            )
-        )
-        if early_segment_label and "|" in early_surface:
-            tokens = [_normalise_spaces(token) for token in early_surface.split("|")]
-            row_labels = [
-                _normalise_spaces(line)
-                for line in str(metadata.get("table_row_labels_text") or "").splitlines()
-                if _normalise_spaces(line)
-            ]
-            value_label_lines = [
-                _normalise_spaces(line)
-                for line in str(metadata.get("table_value_labels_text") or "").splitlines()
-                if _normalise_spaces(line)
-            ]
-            metric_terms = tuple(
-                str(item) for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("metric_terms") or ()) if str(item)
-            )
-            operand_surface = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for value in (
-                        operand_spec.get("label"),
-                        " ".join(str(item) for item in (operand_spec.get("aliases") or [])),
-                    )
-                )
-            )
-            numeric_pattern = r"^\(?-?\d[\d,]*(?:\.\d+)?\)?$"
-            value_pattern = re.compile(r"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)\s*$")
-            for row_label in row_labels:
-                if not any(term in row_label and term in operand_surface for term in metric_terms):
-                    continue
-                start_index = next((idx for idx, token in enumerate(tokens) if row_label in token), None)
-                if start_index is None:
-                    continue
-                row_cells: List[str] = []
-                for next_token in tokens[start_index + 1 :]:
-                    positions = [next_token.find(label) for label in row_labels if next_token.find(label) >= 0]
-                    if positions:
-                        prefix_value = _normalise_spaces(next_token[: min(positions)])
-                        if prefix_value:
-                            row_cells.append(prefix_value)
-                        break
-                    row_cells.append(next_token)
-                prefix = _normalise_spaces(tokens[start_index].split(row_label, 1)[0])
-                header_tokens = list(tokens[:start_index])
-                if prefix:
-                    header_tokens.append(prefix)
-                headers_for_cells = header_tokens[-len(row_cells) :] if header_tokens else []
-                if len(headers_for_cells) < len(row_cells):
-                    headers_for_cells = [""] * (len(row_cells) - len(headers_for_cells)) + headers_for_cells
-                numeric_headers = [
-                    header
-                    for header, cell in zip(headers_for_cells, row_cells)
-                    if re.fullmatch(numeric_pattern, _normalise_spaces(cell))
-                ]
-                row_values: List[str] = []
-                for line in value_label_lines:
-                    if row_label not in line:
-                        continue
-                    match = value_pattern.search(line)
-                    if match:
-                        row_values.append(_normalise_spaces(match.group("value")))
-                if len(numeric_headers) != len(row_values):
-                    continue
-                compact_segment = re.sub(r"\s+", "", early_segment_label)
-                for header, value_text in zip(numeric_headers, row_values):
-                    compact_header = re.sub(r"\s+", "", header)
-                    if not (
-                        early_segment_label in header
-                        or (compact_segment and compact_segment in compact_header)
-                    ):
-                        continue
-                    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
-                    cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                    if cell_value is None or cell_unit != "KRW":
-                        continue
-                    refined = dict(row)
-                    refined["raw_value"] = value_text
-                    refined["raw_unit"] = unit_hint
-                    refined["normalized_value"] = float(cell_value)
-                    refined["normalized_unit"] = "KRW"
-                    refined["precision_source"] = "flattened_table_surface_cell"
-                    return refined
-
         def _cell_from_contextual_note_row() -> Optional[Dict[str, Any]]:
             row_labels = [
                 _normalise_spaces(line)
@@ -9000,9 +9623,6 @@ class FinancialAgentCalculationMixin:
                     return -1
                 return token.find(label)
 
-            def _token_matches_row_label(token: str, label: str) -> bool:
-                return _label_position(token, label) >= 0
-
             def _row_label_score(label: str) -> int:
                 if not label:
                     return 0
@@ -9083,22 +9703,6 @@ class FinancialAgentCalculationMixin:
                     else:
                         candidate_indexes = list(range(len(row_cells)))
 
-                    for index in candidate_indexes:
-                        if index < 0 or index >= len(row_cells):
-                            continue
-                        value_text = _normalise_spaces(row_cells[index])
-                        if not re.fullmatch(numeric_pattern, value_text):
-                            continue
-                        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
-                        cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                        if cell_value is None or cell_unit != "KRW":
-                            continue
-                        return {
-                            "column_headers": [headers_for_cells[index]] if headers_for_cells[index] else [],
-                            "value_text": value_text,
-                            "unit_hint": unit_hint,
-                            "flattened_surface_row_label": row_label,
-                        }
                     value_label_lines = [
                         _normalise_spaces(line)
                         for line in str(metadata.get("table_value_labels_text") or "").splitlines()
@@ -9149,6 +9753,23 @@ class FinancialAgentCalculationMixin:
                                 "flattened_surface_row_label": row_label,
                                 "flattened_surface_value_label_fallback": True,
                             }
+
+                    for index in candidate_indexes:
+                        if index < 0 or index >= len(row_cells):
+                            continue
+                        value_text = _normalise_spaces(row_cells[index])
+                        if not re.fullmatch(numeric_pattern, value_text):
+                            continue
+                        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
+                        cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                        if cell_value is None or cell_unit != "KRW":
+                            continue
+                        return {
+                            "column_headers": [headers_for_cells[index]] if headers_for_cells[index] else [],
+                            "value_text": value_text,
+                            "unit_hint": unit_hint,
+                            "flattened_surface_row_label": row_label,
+                        }
             return None
 
         surface = _normalise_spaces(
@@ -9196,90 +9817,89 @@ class FinancialAgentCalculationMixin:
             str(_operand_segment_label(row) or dict(row.get("binding_policy") or {}).get("segment_label") or "")
         )
         segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
-        if best_cell is None or segment_label:
-            if segment_label and "|" in surface:
-                tokens = [_normalise_spaces(token) for token in surface.split("|")]
-                row_labels = [
-                    _normalise_spaces(line)
-                    for line in str(metadata.get("table_row_labels_text") or "").splitlines()
-                    if _normalise_spaces(line)
-                ]
-                value_label_lines = [
-                    _normalise_spaces(line)
-                    for line in str(metadata.get("table_value_labels_text") or "").splitlines()
-                    if _normalise_spaces(line)
-                ]
-                metric_terms = tuple(
-                    str(item) for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("metric_terms") or ()) if str(item)
-                )
-                operand_surface = _normalise_spaces(
-                    " ".join(
-                        str(value or "")
-                        for value in (
-                            operand_spec.get("label"),
-                            " ".join(str(item) for item in (operand_spec.get("aliases") or [])),
-                        )
+        if segment_label and "|" in surface:
+            tokens = [_normalise_spaces(token) for token in surface.split("|")]
+            row_labels = [
+                _normalise_spaces(line)
+                for line in str(metadata.get("table_row_labels_text") or "").splitlines()
+                if _normalise_spaces(line)
+            ]
+            value_label_lines = [
+                _normalise_spaces(line)
+                for line in str(metadata.get("table_value_labels_text") or "").splitlines()
+                if _normalise_spaces(line)
+            ]
+            metric_terms = tuple(
+                str(item) for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("metric_terms") or ()) if str(item)
+            )
+            operand_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        operand_spec.get("label"),
+                        " ".join(str(item) for item in (operand_spec.get("aliases") or [])),
                     )
                 )
-                numeric_pattern = r"^\(?-?\d[\d,]*(?:\.\d+)?\)?$"
-                value_pattern = re.compile(r"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)\s*$")
-                for row_label in row_labels:
-                    if not any(term in row_label and term in operand_surface for term in metric_terms):
-                        continue
-                    start_index = next((idx for idx, token in enumerate(tokens) if row_label in token), None)
-                    if start_index is None:
-                        continue
-                    row_cells: List[str] = []
-                    for next_token in tokens[start_index + 1 :]:
-                        positions = [next_token.find(label) for label in row_labels if next_token.find(label) >= 0]
-                        if positions:
-                            prefix_value = _normalise_spaces(next_token[: min(positions)])
-                            if prefix_value:
-                                row_cells.append(prefix_value)
-                            break
-                        row_cells.append(next_token)
-                    if not row_cells:
-                        continue
-                    prefix = _normalise_spaces(tokens[start_index].split(row_label, 1)[0])
-                    header_tokens = list(tokens[:start_index])
-                    if prefix:
-                        header_tokens.append(prefix)
-                    headers_for_cells = header_tokens[-len(row_cells) :] if header_tokens else []
-                    if len(headers_for_cells) < len(row_cells):
-                        headers_for_cells = [""] * (len(row_cells) - len(headers_for_cells)) + headers_for_cells
-                    numeric_headers = [
-                        header
-                        for header, cell in zip(headers_for_cells, row_cells)
-                        if re.fullmatch(numeric_pattern, _normalise_spaces(cell))
-                    ]
-                    row_values: List[str] = []
-                    for line in value_label_lines:
-                        if row_label not in line:
-                            continue
-                        match = value_pattern.search(line)
-                        if match:
-                            row_values.append(_normalise_spaces(match.group("value")))
-                    if len(numeric_headers) != len(row_values):
-                        continue
-                    compact_segment = re.sub(r"\s+", "", segment_label)
-                    for header, value_text in zip(numeric_headers, row_values):
-                        compact_header = re.sub(r"\s+", "", header)
-                        if not (segment_label in header or (compact_segment and compact_segment in compact_header)):
-                            continue
-                        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
-                        cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                        if cell_value is None or cell_unit != "KRW":
-                            continue
-                        best_cell = {
-                            "column_headers": [header] if header else [],
-                            "value_text": value_text,
-                            "unit_hint": unit_hint,
-                            "flattened_surface_value_label_fallback": True,
-                        }
-                        best_normalized = float(cell_value)
+            )
+            numeric_pattern = r"^\(?-?\d[\d,]*(?:\.\d+)?\)?$"
+            value_pattern = re.compile(r"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)\s*$")
+            for row_label in row_labels:
+                if not any(term in row_label and term in operand_surface for term in metric_terms):
+                    continue
+                start_index = next((idx for idx, token in enumerate(tokens) if row_label in token), None)
+                if start_index is None:
+                    continue
+                row_cells: List[str] = []
+                for next_token in tokens[start_index + 1 :]:
+                    positions = [next_token.find(label) for label in row_labels if next_token.find(label) >= 0]
+                    if positions:
+                        prefix_value = _normalise_spaces(next_token[: min(positions)])
+                        if prefix_value:
+                            row_cells.append(prefix_value)
                         break
-                    if best_cell is not None and best_cell.get("flattened_surface_value_label_fallback"):
-                        break
+                    row_cells.append(next_token)
+                if not row_cells:
+                    continue
+                prefix = _normalise_spaces(tokens[start_index].split(row_label, 1)[0])
+                header_tokens = list(tokens[:start_index])
+                if prefix:
+                    header_tokens.append(prefix)
+                headers_for_cells = header_tokens[-len(row_cells) :] if header_tokens else []
+                if len(headers_for_cells) < len(row_cells):
+                    headers_for_cells = [""] * (len(row_cells) - len(headers_for_cells)) + headers_for_cells
+                numeric_headers = [
+                    header
+                    for header, cell in zip(headers_for_cells, row_cells)
+                    if re.fullmatch(numeric_pattern, _normalise_spaces(cell))
+                ]
+                row_values: List[str] = []
+                for line in value_label_lines:
+                    if row_label not in line:
+                        continue
+                    match = value_pattern.search(line)
+                    if match:
+                        row_values.append(_normalise_spaces(match.group("value")))
+                if len(numeric_headers) != len(row_values):
+                    continue
+                compact_segment = re.sub(r"\s+", "", segment_label)
+                for header, value_text in zip(numeric_headers, row_values):
+                    compact_header = re.sub(r"\s+", "", header)
+                    if not (segment_label in header or (compact_segment and compact_segment in compact_header)):
+                        continue
+                    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
+                    cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                    if cell_value is None or cell_unit != "KRW":
+                        continue
+                    best_cell = {
+                        "column_headers": [header] if header else [],
+                        "value_text": value_text,
+                        "unit_hint": unit_hint,
+                        "flattened_surface_value_label_fallback": True,
+                    }
+                    best_normalized = float(cell_value)
+                    break
+                if best_cell is not None and best_cell.get("flattened_surface_value_label_fallback"):
+                    break
 
         if target_values and best_cell is None:
             for record in records:
@@ -9305,7 +9925,17 @@ class FinancialAgentCalculationMixin:
 
         if not best_cell or best_normalized is None:
             return row
-        if best_target is None and not contextual_cell:
+        candidate_text = _normalise_spaces(str(best_cell.get("value_text") or ""))
+        current_digits_for_header_guard = len(re.sub(r"\D", "", raw_value))
+        if re.fullmatch(r"(?:19|20)\d{2}", candidate_text) and current_digits_for_header_guard > 4:
+            return row
+        has_visible_table_surface = "|" in surface
+        value_label_fallback = bool(best_cell.get("flattened_surface_value_label_fallback"))
+        if (
+            best_target is None
+            and not (value_label_fallback and has_visible_table_surface)
+            and (not contextual_cell or (flattened_cell and not has_visible_table_surface))
+        ):
             try:
                 current_float = float(normalized_value)
                 candidate_float = float(best_normalized)
@@ -9788,6 +10418,37 @@ class FinancialAgentCalculationMixin:
             return left_raw != right_raw
         return left_value != right_value
 
+    def _canonical_structured_reconciliation_id(self, value: Any) -> str:
+        source_id = _normalise_spaces(str(value or ""))
+        if not source_id.startswith("recon::"):
+            return source_id
+        stripped = source_id.removeprefix("recon::")
+        if stripped and not stripped.endswith("::raw_row") and any(
+            marker in stripped
+            for marker in ("::value:", "::rowrec:", "::colrec:")
+        ):
+            return stripped
+        return source_id
+
+    def _canonicalize_structured_operand_reconciliation_refs(
+        self,
+        row: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        updated = dict(row)
+        for key in ("evidence_id", "source_row_id"):
+            canonical = self._canonical_structured_reconciliation_id(updated.get(key))
+            if canonical:
+                updated[key] = canonical
+        source_row_ids = _clean_source_row_ids(updated.get("source_row_ids") or [])
+        canonical_source_ids = [
+            self._canonical_structured_reconciliation_id(source_id)
+            for source_id in source_row_ids
+        ]
+        canonical_source_ids = [source_id for source_id in canonical_source_ids if source_id]
+        if canonical_source_ids:
+            updated["source_row_ids"] = list(dict.fromkeys(canonical_source_ids))
+        return updated
+
     def _task_output_operand_row_should_keep_value(
         self,
         row: Dict[str, Any],
@@ -9818,6 +10479,35 @@ class FinancialAgentCalculationMixin:
         if row_source_ids.intersection(replacement_source_ids):
             return False
         return True
+
+    def _period_comparison_direct_rows_conflict_with_dependency_outputs(
+        self,
+        dependency_rows: List[Dict[str, Any]],
+        direct_rows: List[Dict[str, Any]],
+    ) -> bool:
+        if not dependency_rows or not direct_rows:
+            return False
+        period_roles = {"current_period", "prior_period", "minuend", "subtrahend"}
+
+        def _role(row: Dict[str, Any]) -> str:
+            return _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+
+        direct_by_role: Dict[str, List[Dict[str, Any]]] = {}
+        for row in direct_rows:
+            role = _role(row)
+            if role in period_roles:
+                direct_by_role.setdefault(role, []).append(dict(row))
+        if not direct_by_role:
+            return False
+
+        for dependency_row in dependency_rows:
+            role = _role(dependency_row)
+            if role not in period_roles:
+                continue
+            for direct_row in direct_by_role.get(role, []):
+                if self._task_output_operand_row_should_keep_value(dependency_row, direct_row):
+                    return True
+        return False
 
     def _align_dependency_rows_with_sibling_direct_context(
         self,
@@ -10182,7 +10872,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(required_operands, rows):
                 continue
-            if self._ratio_operand_rows_collapse_to_same_slot(rows):
+            if self._period_comparison_operand_rows_collapse_to_same_slot(rows):
                 continue
             surface = _group_surface(group_items)
             score = float(len(rows) * 100)
@@ -11390,18 +12080,8 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
-    def _ratio_operand_rows_collapse_to_same_slot(self, rows: List[Dict[str, Any]]) -> bool:
-        numerator_rows = [
-            dict(row)
-            for row in rows or []
-            if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")).startswith("numerator")
-        ]
-        denominator_rows = [
-            dict(row)
-            for row in rows or []
-            if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")).startswith("denominator")
-        ]
-        if not numerator_rows or not denominator_rows:
+    def _operand_row_groups_collapse_to_same_slot(self, role_groups: List[List[Dict[str, Any]]]) -> bool:
+        if not all(role_groups):
             return False
 
         def _row_has_material(row: Dict[str, Any]) -> bool:
@@ -11423,24 +12103,51 @@ class FinancialAgentCalculationMixin:
             raw_text = _normalise_spaces(str(row.get("raw_value") or row.get("rendered_value") or ""))
             return source_ids, normalized_text, raw_text
 
-        numerator_identities = {_row_identity(row) for row in numerator_rows if _row_has_material(row)}
-        denominator_identities = {_row_identity(row) for row in denominator_rows if _row_has_material(row)}
-        if not numerator_identities or not denominator_identities:
+        left_identities = {_row_identity(row) for row in role_groups[0] if _row_has_material(row)}
+        right_identities = {_row_identity(row) for row in role_groups[1] if _row_has_material(row)}
+        if not left_identities or not right_identities:
             return False
-        for numerator_identity in numerator_identities:
-            source_ids, normalized_text, raw_text = numerator_identity
+        for source_ids, normalized_text, raw_text in left_identities:
             if not source_ids:
                 continue
-            if numerator_identity in denominator_identities:
+            if (source_ids, normalized_text, raw_text) in right_identities:
                 return True
             if any(
-                denominator_source_ids == source_ids
+                right_source_ids == source_ids
                 and bool(normalized_text or raw_text)
-                and (denominator_normalized == normalized_text or denominator_raw == raw_text)
-                for denominator_source_ids, denominator_normalized, denominator_raw in denominator_identities
+                and (right_normalized == normalized_text or right_raw == raw_text)
+                for right_source_ids, right_normalized, right_raw in right_identities
             ):
                 return True
         return False
+
+    def _ratio_operand_rows_collapse_to_same_slot(self, rows: List[Dict[str, Any]]) -> bool:
+        return self._operand_row_groups_collapse_to_same_slot([
+            [
+                dict(row)
+                for row in rows or []
+                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")).startswith("numerator")
+            ],
+            [
+                dict(row)
+                for row in rows or []
+                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")).startswith("denominator")
+            ],
+        ])
+
+    def _period_comparison_operand_rows_collapse_to_same_slot(self, rows: List[Dict[str, Any]]) -> bool:
+        return self._operand_row_groups_collapse_to_same_slot([
+            [
+                dict(row)
+                for row in rows or []
+                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")) in {"current_period", "minuend"}
+            ],
+            [
+                dict(row)
+                for row in rows or []
+                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")) in {"prior_period", "subtrahend"}
+            ],
+        ])
 
     def _ratio_components_are_complete(self, calculation_result: Dict[str, Any]) -> bool:
         answer_slots = dict(calculation_result.get("answer_slots") or {})
@@ -12599,6 +13306,7 @@ class FinancialAgentCalculationMixin:
             direct_rows_cover_required_operands
             and _rows_have_single_table_context(direct_structured_rows)
             and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+            and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
         if operation_family in {"difference", "growth_rate"} and required_operands:
             period_context_evidence = list(evidence_items)
@@ -12633,6 +13341,7 @@ class FinancialAgentCalculationMixin:
                     direct_rows_cover_required_operands
                     and _rows_have_single_table_context(direct_structured_rows)
                     and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                    and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
                 )
                 used_period_evidence_ids = {
                     str(row.get("evidence_id") or "")
@@ -12698,6 +13407,17 @@ class FinancialAgentCalculationMixin:
                     required_operands,
                     direct_structured_rows,
                 )
+        direct_period_context_conflicts_with_dependency = bool(
+            operation_family in {"difference", "growth_rate"}
+            and dependency_rows_cover_required_operands
+            and direct_rows_cover_required_operands
+            and direct_rows_have_coherent_context
+            and not reconciliation_evidence
+            and self._period_comparison_direct_rows_conflict_with_dependency_outputs(
+                dependency_rows,
+                direct_structured_rows,
+            )
+        )
         prefer_direct_rows_over_dependency = bool(
             operation_family in {"ratio", "difference", "growth_rate"}
             and direct_rows_cover_required_operands
@@ -12713,6 +13433,7 @@ class FinancialAgentCalculationMixin:
                 and dependency_rows_cover_required_operands
                 and required_prefers_aggregate_stage
             )
+            and not direct_period_context_conflicts_with_dependency
         )
         if dependency_rows:
             if operation_family == "ratio":
@@ -12836,6 +13557,11 @@ class FinancialAgentCalculationMixin:
                     include_compatibility_mirrors=False,
                 ),
             }
+        if direct_structured_rows:
+            direct_structured_rows = [
+                self._canonicalize_structured_operand_reconciliation_refs(row)
+                for row in direct_structured_rows
+            ]
         # If reconciliation already found every required operand as clean
         # structured rows, skip the broader fallback path entirely.
         if direct_structured_rows and (
@@ -14746,11 +15472,17 @@ class FinancialAgentCalculationMixin:
             candidate_slot.get("source_row_id"),
             candidate_slot.get("source_row_ids"),
         ])
+        canonical_source_ids = [
+            self._canonical_structured_reconciliation_id(source_id)
+            for source_id in source_row_ids
+        ]
+        source_row_ids = list(dict.fromkeys(source_id for source_id in canonical_source_ids if source_id))
+        canonical_source_id = source_row_ids[0] if source_row_ids else ""
         operand_id = _normalise_spaces(str(candidate_slot.get("role") or "primary_value")) or "primary_value"
         row = {
             "operand_id": operand_id,
-            "evidence_id": source_row_ids[0] if source_row_ids else candidate_slot.get("evidence_id"),
-            "source_row_id": source_row_ids[0] if source_row_ids else candidate_slot.get("source_row_id"),
+            "evidence_id": canonical_source_id or candidate_slot.get("evidence_id"),
+            "source_row_id": canonical_source_id or candidate_slot.get("source_row_id"),
             "source_row_ids": source_row_ids,
             "source_anchor": _normalise_spaces(str(candidate_slot.get("source_anchor") or "")),
             "label": _normalise_spaces(str(candidate_slot.get("label") or metric_label)),
@@ -15400,6 +16132,10 @@ class FinancialAgentCalculationMixin:
             active_subtask["operation_family"] = operation_family
         if metric_label:
             active_subtask["metric_label"] = metric_label
+        if operation_family in {"difference", "growth_rate"} and self._period_comparison_operand_rows_collapse_to_same_slot(
+            operands
+        ):
+            return operands, plan, calculation_result
 
         recalculated = self._execute_calculation(
             {
@@ -15843,8 +16579,7 @@ class FinancialAgentCalculationMixin:
                 compact_rows.append(compact_row)
         return compact_rows
 
-    def _aggregate_calculation_subtasks(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Combine completed subtask outputs into a single caller-facing view."""
+    def _prepare_initial_aggregate_state(self, state: FinancialAgentState) -> _PreparedAggregateState:
         current_result = self._capture_current_subtask_result(state)
         subtask_results = self._upsert_subtask_result(
             list(state.get("subtask_results") or []),
@@ -15895,14 +16630,30 @@ class FinancialAgentCalculationMixin:
             fallback_answer = lookup_list_answer
         numeric_answer_locked = bool(
             has_narrative_summary
-            and
-            complete_numeric_answer
+            and complete_numeric_answer
             and self._complete_numeric_answer_can_replace_final(complete_numeric_answer, ordered_results)
             and not self._query_requests_explanatory_context(str(state.get("query") or ""))
         )
-        final_answer = fallback_answer
-        planner_feedback = ""
-        deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
+        return _PreparedAggregateState(
+            ordered_results=ordered_results,
+            fallback_answer=fallback_answer,
+            supported_aggregate_answer=supported_aggregate_answer,
+            complete_numeric_answer=complete_numeric_answer,
+            has_narrative_summary=has_narrative_summary,
+            has_growth_rate_result=has_growth_rate_result,
+            numeric_answer_locked=numeric_answer_locked,
+        )
+
+    def _collect_initial_aggregate_evidence_state(
+        self,
+        state: FinancialAgentState,
+        *,
+        ordered_results: List[Dict[str, Any]],
+        fallback_answer: str,
+        final_answer: str,
+        deterministic_feedback: str,
+        narrative_docs: List[Any],
+    ) -> _AggregateEvidenceState:
         aggregate_evidence_items: List[Dict[str, Any]] = []
         seen_evidence_ids: set[str] = set()
 
@@ -15925,7 +16676,6 @@ class FinancialAgentCalculationMixin:
             _append_aggregate_evidence(list(row.get("runtime_evidence") or []))
         _append_aggregate_evidence(list(state.get("evidence_items") or []))
         _append_aggregate_evidence(list(state.get("runtime_evidence") or []))
-        narrative_docs = list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or [])
         aggregate_evidence_items = self._append_retrieved_growth_driver_evidence_for_query(
             aggregate_evidence_items,
             query=str(state.get("query") or ""),
@@ -15935,6 +16685,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             aggregate_evidence_items,
         )
+        complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if own_unit_aligned_results != ordered_results:
             ordered_results = self._dedupe_aggregate_subtask_results(own_unit_aligned_results)
             own_unit_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
@@ -15952,270 +16703,21 @@ class FinancialAgentCalculationMixin:
             )
             final_answer = fallback_answer
             deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
-        preliminary_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
-        narrative_context = self._narrative_context_sentence_from_evidence(
-            str(state.get("query") or ""),
-            aggregate_evidence_items,
-        )
-        plan_loop_count = int(state.get("plan_loop_count") or 0)
-        max_plan_loops = 2
-        aggregate_synthesis_input_json = ""
-        aggregate_synthesis_debug: Dict[str, Any] = {}
-        if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
-            structured_llm = self._llm_for_phase("aggregate_synthesis").with_structured_output(AggregateSynthesisOutput)
-            prompt = ChatPromptTemplate.from_template(
-                str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")
-            )
-            try:
-                prompt_rows = self._aggregate_synthesis_prompt_rows(ordered_results, preliminary_projection)
-                aggregate_synthesis_input_json = json.dumps(prompt_rows, ensure_ascii=False, separators=(",", ":"))
-                aggregate_synthesis_debug = {
-                    "row_count": len(prompt_rows),
-                    "input_json_chars": len(aggregate_synthesis_input_json),
-                    "source": "projection_compact_rows",
-                }
-                prompt_value = prompt.invoke(
-                    {
-                        "query": state["query"],
-                        "fallback_answer": fallback_answer,
-                        "deterministic_feedback": deterministic_feedback or "-",
-                        "narrative_context": narrative_context or "-",
-                        "subtask_results_json": aggregate_synthesis_input_json,
-                    }
-                )
-                synthesized: AggregateSynthesisOutput = structured_llm.invoke(prompt_value)
-                final_answer = _normalise_spaces(str(synthesized.final_answer or "")) or fallback_answer
-                planner_feedback = _normalise_spaces(str(synthesized.planner_feedback or ""))
-            except Exception as exc:
-                logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
-        if (
-            deterministic_feedback
-            and self._unresolved_structured_numeric_gap(ordered_results)
-            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
-        ):
-            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
-            final_answer = safe_partial_answer or ""
-        final_answer = self._coerce_sign_aware_subtraction_answer(
-            final_answer,
-            calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
-            subtask_results=ordered_results,
-        )
-        slot_based_difference_answer = self._compose_slot_based_difference_answer(
-            query=str(state.get("query") or ""),
-            report_scope=dict(state.get("report_scope") or {}),
-            calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
-        )
-        if slot_based_difference_answer:
-            final_answer = slot_based_difference_answer
-            complete_numeric_answer = slot_based_difference_answer
-            planner_feedback = ""
-            deterministic_feedback = ""
-        if has_narrative_summary and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
-            final_answer = self._ensure_complete_growth_numeric_answer(
-                final_answer,
-                ordered_results,
-                evidence_items=aggregate_evidence_items,
-            )
-        if not deterministic_feedback:
-            final_answer = self._include_narrative_context_if_needed(
-                final_answer,
-                query=str(state.get("query") or ""),
-                narrative_context=narrative_context,
-            )
-        growth_narrative_answer = self._compose_growth_narrative_answer(
-            query=str(state.get("query") or ""),
+        return _AggregateEvidenceState(
             ordered_results=ordered_results,
-            existing_answer=final_answer,
-            evidence_items=aggregate_evidence_items,
+            aggregate_evidence_items=aggregate_evidence_items,
+            fallback_answer=fallback_answer,
+            final_answer=final_answer,
+            complete_numeric_answer=complete_numeric_answer,
+            deterministic_feedback=deterministic_feedback,
         )
-        entity_table_answer = self._compose_entity_table_summary_answer(
-            query=str(state.get("query") or ""),
-            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
-            evidence_items=aggregate_evidence_items,
-        )
-        composition_selected_claim_ids: List[str] = []
-        calculation_projection_override: Optional[Dict[str, Any]] = None
-        narrative_answer_locked = bool(
-            supported_aggregate_answer
-            and self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
-        )
-        if growth_narrative_answer and not narrative_answer_locked:
-            growth_compressed_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or ""))
-            final_answer = growth_compressed_answer or final_answer
-            composition_selected_claim_ids.extend(
-                str(claim_id).strip()
-                for claim_id in (growth_narrative_answer.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
-            )
-            narrative_answer_locked = bool(growth_compressed_answer) or self._answer_satisfies_growth_narrative_intent(
-                query=str(state.get("query") or ""),
-                answer=final_answer,
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
-            )
-            planner_feedback = ""
-            deterministic_feedback = ""
-        if entity_table_answer and not narrative_answer_locked:
-            final_answer = _normalise_spaces(str(entity_table_answer.get("compressed_answer") or "")) or final_answer
-            composition_selected_claim_ids.extend(
-                str(claim_id).strip()
-                for claim_id in (entity_table_answer.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
-            )
-            projection = entity_table_answer.get("calculation_projection")
-            if isinstance(projection, dict):
-                calculation_projection_override = projection
-            planner_feedback = ""
-            deterministic_feedback = ""
-        business_focus_answer = self._compose_business_technology_focus_answer(
-            query=str(state.get("query") or ""),
-            existing_answer=final_answer,
-            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
-            evidence_items=aggregate_evidence_items,
-        )
-        if business_focus_answer and not narrative_answer_locked:
-            final_answer = _normalise_spaces(str(business_focus_answer.get("compressed_answer") or "")) or final_answer
-            composition_selected_claim_ids.extend(
-                str(claim_id).strip()
-                for claim_id in (business_focus_answer.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
-            )
-            planner_feedback = ""
-            deterministic_feedback = ""
-        dividend_policy_answer = self._compose_dividend_policy_hybrid_answer(
-            query=str(state.get("query") or ""),
-            evidence_items=aggregate_evidence_items,
-        )
-        if dividend_policy_answer:
-            dividend_answer = _normalise_spaces(str(dividend_policy_answer.get("answer") or ""))
-            if dividend_answer:
-                final_answer = dividend_answer
-                composition_selected_claim_ids.extend(
-                    str(claim_id).strip()
-                    for claim_id in (dividend_policy_answer.get("supporting_claim_ids") or [])
-                    if str(claim_id).strip()
-                )
-                calculation_projection_override = None
-                planner_feedback = ""
-                deterministic_feedback = ""
-        quantitative_impact_answer = self._compose_supported_quantitative_impact_answer(
-            query=str(state.get("query") or ""),
-            evidence_items=aggregate_evidence_items,
-        )
-        if quantitative_impact_answer and not narrative_answer_locked:
-            final_answer = _normalise_spaces(str(quantitative_impact_answer.get("answer") or "")) or final_answer
-            composition_selected_claim_ids.extend(
-                str(claim_id).strip()
-                for claim_id in (quantitative_impact_answer.get("supporting_claim_ids") or [])
-                if str(claim_id).strip()
-            )
-            narrative_answer_locked = True
-            planner_feedback = ""
-            deterministic_feedback = ""
-        if not deterministic_feedback:
-            augmented_answer = self._augment_narrative_answer_with_supported_drivers(
-                final_answer,
-                aggregate_evidence_items,
-                query=str(state.get("query") or ""),
-            )
-            if augmented_answer and augmented_answer != final_answer:
-                final_answer = augmented_answer
-                composition_selected_claim_ids = self._expand_selected_claim_ids_for_narrative_drivers(
-                    composition_selected_claim_ids,
-                    aggregate_evidence_items,
-                    query=str(state.get("query") or ""),
-                )
-        if not self._answer_satisfies_growth_narrative_intent(
-            query=str(state.get("query") or ""),
-            answer=final_answer,
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-        ):
-            repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
-                query=str(state.get("query") or ""),
-                ordered_results=ordered_results,
-                existing_answer=final_answer,
-                evidence_items=aggregate_evidence_items,
-            )
-            repaired_answer = _normalise_spaces(
-                str((repaired_growth_narrative_answer or {}).get("compressed_answer") or "")
-            )
-            if repaired_answer and self._answer_satisfies_growth_narrative_intent(
-                query=str(state.get("query") or ""),
-                answer=repaired_answer,
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
-            ):
-                final_answer = repaired_answer
-                composition_selected_claim_ids = [
-                    str(claim_id).strip()
-                    for claim_id in ((repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [])
-                    if str(claim_id).strip()
-                ]
-        if numeric_answer_locked:
-            if has_narrative_summary and has_growth_rate_result:
-                numeric_lock_candidate = self._refresh_numeric_aggregate_answer_candidate(
-                    query=str(state.get("query") or ""),
-                    current_answer=final_answer,
-                    numeric_answer=complete_numeric_answer,
-                    ordered_results=ordered_results,
-                    evidence_items=aggregate_evidence_items,
-                    sync_projection=False,
-                )
-                final_answer = _normalise_spaces(str(numeric_lock_candidate.get("answer") or complete_numeric_answer))
-                composition_selected_claim_ids = list(numeric_lock_candidate.get("selected_claim_ids") or [])
-            else:
-                final_answer = complete_numeric_answer
-                composition_selected_claim_ids = []
-            calculation_projection_override = None
-            planner_feedback = ""
-            deterministic_feedback = ""
-        final_answer = self._preserve_source_visible_query_terms(
-            final_answer,
-            query=str(state.get("query") or ""),
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
-        )
-        policy_preserved_results = self._preserve_policy_required_context_in_narrative_results(
-            ordered_results,
-            query=str(state.get("query") or ""),
-            docs=narrative_docs,
-            evidence_items=aggregate_evidence_items,
-        )
-        if policy_preserved_results is not ordered_results:
-            ordered_results = policy_preserved_results
-            preliminary_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
-        # Prefer the deterministic structured-material check over a stale
-        # deterministic hint, but preserve independent synthesizer feedback for
-        # replan/budget-exhausted cases.
-        preliminary_status = _normalise_spaces(
-            str((preliminary_projection.get("calculation_result") or {}).get("status") or "")
-        ).lower()
-        if (
-            preliminary_status == "ok"
-            and deterministic_feedback
-            and (not planner_feedback or planner_feedback == deterministic_feedback)
-        ):
-            planner_feedback = ""
-            deterministic_feedback = ""
-        if (
-            (planner_feedback or deterministic_feedback)
-            and self._answer_satisfies_growth_narrative_intent(
-                query=str(state.get("query") or ""),
-                answer=final_answer,
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
-            )
-        ):
-            planner_feedback = ""
-            deterministic_feedback = ""
-        source_task_ids = [
-            str(row.get("task_id") or "").strip()
-            for row in ordered_results
-            if str(row.get("task_id") or "").strip()
-        ]
-        selected_claim_ids_for_integrity = list(
+
+    def _aggregate_selected_claim_ids(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        composition_selected_claim_ids: List[str],
+    ) -> List[str]:
+        return list(
             dict.fromkeys(
                 [
                     *[
@@ -16227,6 +16729,31 @@ class FinancialAgentCalculationMixin:
                     *composition_selected_claim_ids,
                 ]
             )
+        )
+
+    def _resolve_aggregate_feedback_state(
+        self,
+        state: FinancialAgentState,
+        *,
+        ordered_results: List[Dict[str, Any]],
+        preliminary_projection: Dict[str, Any],
+        calculation_projection_override: Optional[Dict[str, Any]],
+        final_answer: str,
+        fallback_answer: str,
+        composition_selected_claim_ids: List[str],
+        planner_feedback: str,
+        deterministic_feedback: str,
+        plan_loop_count: int,
+        max_plan_loops: int,
+    ) -> _AggregateFeedbackState:
+        source_task_ids = [
+            str(row.get("task_id") or "").strip()
+            for row in ordered_results
+            if str(row.get("task_id") or "").strip()
+        ]
+        selected_claim_ids_for_integrity = self._aggregate_selected_claim_ids(
+            ordered_results,
+            composition_selected_claim_ids,
         )
         ordered_result_source_refs = _clean_source_row_ids(
             [
@@ -16364,53 +16891,184 @@ class FinancialAgentCalculationMixin:
                     )
                 else:
                     final_answer = "질문에 필요한 수치를 끝내 충분히 확보하지 못했습니다."
-        selected_claim_ids = list(
-            dict.fromkeys(
-                [
-                    *[
-                        claim_id
-                        for row in ordered_results
-                        for claim_id in (row.get("selected_claim_ids") or [])
-                        if str(claim_id).strip()
-                    ],
-                    *composition_selected_claim_ids,
-                ]
-            )
+        return _AggregateFeedbackState(
+            final_answer=final_answer,
+            planner_feedback=planner_feedback,
+            deterministic_feedback=deterministic_feedback,
+            ledger_artifacts=ledger_artifacts,
+            task_artifact_trace=task_artifact_trace,
+            should_replan=should_replan,
+            replan_blocked_reason=replan_blocked_reason,
         )
-        aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-        def _replace_final_answer_local(
-            candidate_answer: str,
-            *,
-            sync_rendered_for_aggregate: bool = True,
-            status_ok: bool = False,
-            force: bool = False,
-            refresh_operand_evidence: bool = False,
-        ) -> bool:
-            nonlocal aggregate_evidence_items, aggregate_projection, final_answer
-            candidate_answer = _normalise_spaces(candidate_answer)
-            if candidate_answer == final_answer and not force:
-                return False
-            final_answer = candidate_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-                sync_rendered_for_aggregate=sync_rendered_for_aggregate,
-                status_ok=status_ok,
-            )
-            if refresh_operand_evidence:
-                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
-                    aggregate_evidence_items,
-                    operands=list(aggregate_projection.get("calculation_operands") or []),
-                    final_answer=final_answer,
-                )
-            return True
 
-        aggregate_state = self._apply_period_context_realignment_to_aggregate(
-            aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-            state=state,
+    def _aggregate_calculation_subtasks(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Combine completed subtask outputs into a single caller-facing view."""
+        prepared_state = self._prepare_initial_aggregate_state(state)
+        ordered_results = prepared_state.ordered_results
+        fallback_answer = prepared_state.fallback_answer
+        supported_aggregate_answer = prepared_state.supported_aggregate_answer
+        complete_numeric_answer = prepared_state.complete_numeric_answer
+        has_narrative_summary = prepared_state.has_narrative_summary
+        has_growth_rate_result = prepared_state.has_growth_rate_result
+        numeric_answer_locked = prepared_state.numeric_answer_locked
+        final_answer = fallback_answer
+        planner_feedback = ""
+        deterministic_feedback = self._infer_planner_feedback_from_answer_slots(ordered_results)
+        narrative_docs = list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or [])
+        evidence_state = self._collect_initial_aggregate_evidence_state(
+            state,
+            ordered_results=ordered_results,
+            fallback_answer=fallback_answer,
+            final_answer=final_answer,
+            deterministic_feedback=deterministic_feedback,
+            narrative_docs=narrative_docs,
+        )
+        ordered_results = evidence_state.ordered_results
+        aggregate_evidence_items = evidence_state.aggregate_evidence_items
+        fallback_answer = evidence_state.fallback_answer
+        final_answer = evidence_state.final_answer
+        complete_numeric_answer = evidence_state.complete_numeric_answer
+        deterministic_feedback = evidence_state.deterministic_feedback
+        preliminary_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
+        narrative_context = self._narrative_context_sentence_from_evidence(
+            str(state.get("query") or ""),
+            aggregate_evidence_items,
+        )
+        plan_loop_count = int(state.get("plan_loop_count") or 0)
+        max_plan_loops = 2
+        aggregate_synthesis_input_json = ""
+        aggregate_synthesis_debug: Dict[str, Any] = {}
+        if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
+            structured_llm = self._llm_for_phase("aggregate_synthesis").with_structured_output(AggregateSynthesisOutput)
+            prompt = ChatPromptTemplate.from_template(
+                str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")
+            )
+            try:
+                prompt_rows = self._aggregate_synthesis_prompt_rows(ordered_results, preliminary_projection)
+                aggregate_synthesis_input_json = json.dumps(prompt_rows, ensure_ascii=False, separators=(",", ":"))
+                aggregate_synthesis_debug = {
+                    "row_count": len(prompt_rows),
+                    "input_json_chars": len(aggregate_synthesis_input_json),
+                    "source": "projection_compact_rows",
+                }
+                prompt_value = prompt.invoke(
+                    {
+                        "query": state["query"],
+                        "fallback_answer": fallback_answer,
+                        "deterministic_feedback": deterministic_feedback or "-",
+                        "narrative_context": narrative_context or "-",
+                        "subtask_results_json": aggregate_synthesis_input_json,
+                    }
+                )
+                synthesized: AggregateSynthesisOutput = structured_llm.invoke(prompt_value)
+                final_answer = _normalise_spaces(str(synthesized.final_answer or "")) or fallback_answer
+                planner_feedback = _normalise_spaces(str(synthesized.planner_feedback or ""))
+            except Exception as exc:
+                logger.warning("[aggregate_synth] structured output failed, using fallback join: %s", exc)
+        composition_state, complete_numeric_answer = self._apply_initial_aggregate_answer_composition(
+            state,
+            ordered_results=ordered_results,
+            preliminary_projection=preliminary_projection,
+            aggregate_evidence_items=aggregate_evidence_items,
+            narrative_docs=narrative_docs,
+            narrative_context=narrative_context,
+            final_answer=final_answer,
+            supported_aggregate_answer=supported_aggregate_answer,
+            complete_numeric_answer=complete_numeric_answer,
+            has_narrative_summary=has_narrative_summary,
+            has_growth_rate_result=has_growth_rate_result,
+            numeric_answer_locked=numeric_answer_locked,
+            planner_feedback=planner_feedback,
+            deterministic_feedback=deterministic_feedback,
+        )
+        final_answer = composition_state.final_answer
+        composition_selected_claim_ids = composition_state.selected_claim_ids
+        calculation_projection_override = composition_state.calculation_projection_override
+        narrative_answer_locked = composition_state.narrative_answer_locked
+        planner_feedback = composition_state.planner_feedback
+        deterministic_feedback = composition_state.deterministic_feedback
+        final_answer = self._preserve_source_visible_query_terms(
+            final_answer,
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+            docs=list(state.get("seed_retrieved_docs", []) or []) + list(state.get("retrieved_docs", []) or []),
+        )
+        policy_preserved_results = self._preserve_policy_required_context_in_narrative_results(
+            ordered_results,
+            query=str(state.get("query") or ""),
+            docs=narrative_docs,
             evidence_items=aggregate_evidence_items,
         )
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+        if policy_preserved_results is not ordered_results:
+            ordered_results = policy_preserved_results
+            preliminary_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
+        # Prefer the deterministic structured-material check over a stale
+        # deterministic hint, but preserve independent synthesizer feedback for
+        # replan/budget-exhausted cases.
+        preliminary_status = _normalise_spaces(
+            str((preliminary_projection.get("calculation_result") or {}).get("status") or "")
+        ).lower()
+        if (
+            preliminary_status == "ok"
+            and deterministic_feedback
+            and (not planner_feedback or planner_feedback == deterministic_feedback)
+        ):
+            planner_feedback = ""
+            deterministic_feedback = ""
+        if (
+            (planner_feedback or deterministic_feedback)
+            and self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=final_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+        ):
+            planner_feedback = ""
+            deterministic_feedback = ""
+        feedback_state = self._resolve_aggregate_feedback_state(
+            state,
+            ordered_results=ordered_results,
+            preliminary_projection=preliminary_projection,
+            calculation_projection_override=calculation_projection_override,
+            final_answer=final_answer,
+            fallback_answer=fallback_answer,
+            composition_selected_claim_ids=composition_selected_claim_ids,
+            planner_feedback=planner_feedback,
+            deterministic_feedback=deterministic_feedback,
+            plan_loop_count=plan_loop_count,
+            max_plan_loops=max_plan_loops,
+        )
+        final_answer = feedback_state.final_answer
+        planner_feedback = feedback_state.planner_feedback
+        deterministic_feedback = feedback_state.deterministic_feedback
+        ledger_artifacts = feedback_state.ledger_artifacts
+        task_artifact_trace = feedback_state.task_artifact_trace
+        should_replan = feedback_state.should_replan
+        replan_blocked_reason = feedback_state.replan_blocked_reason
+        selected_claim_ids = self._aggregate_selected_claim_ids(
+            ordered_results,
+            composition_selected_claim_ids,
+        )
+        aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+        mutable_state = _AggregateMutableState(
+            _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            aggregate_evidence_items,
+        )
+
+        def _sync_aggregate_locals() -> None:
+            nonlocal ordered_results, aggregate_projection, final_answer, selected_claim_ids, aggregate_evidence_items
+            ordered_results, aggregate_projection, final_answer, selected_claim_ids = mutable_state.synthesis_state
+            aggregate_evidence_items = mutable_state.evidence_items
+
+        aggregate_state = self._apply_period_context_realignment_to_aggregate(
+            aggregate_state=mutable_state.synthesis_state,
+            state=state,
+            evidence_items=mutable_state.evidence_items,
+        )
+        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
+        _sync_aggregate_locals()
         aligned_ordered_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
             state,
@@ -16421,22 +17079,30 @@ class FinancialAgentCalculationMixin:
                 not narrative_answer_locked
                 or self._aggregate_results_include_source_task_slot_realignment(aligned_ordered_results)
             )
-            aggregate_state = self._replace_aggregate_results(
-                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._replace_mutable_aggregate_results(
+                mutable_state,
                 state,
                 aligned_ordered_results,
-                aggregate_evidence_items,
                 refresh_numeric_answer=refresh_aligned_numeric,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
         if calculation_projection_override:
             for key in ("calculation_operands", "calculation_plan", "calculation_result"):
                 if calculation_projection_override.get(key):
                     aggregate_projection[key] = calculation_projection_override[key]
+            mutable_state = mutable_state._replace(
+                synthesis_state=mutable_state.synthesis_state._replace(aggregate_projection=aggregate_projection)
+            )
         aggregate_projection, final_answer, _ = self._apply_ratio_projection_answer_if_rendered_missing(
             state,
             aggregate_projection,
             final_answer=final_answer,
+        )
+        mutable_state = mutable_state._replace(
+            synthesis_state=mutable_state.synthesis_state._replace(
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+            )
         )
         slot_based_difference_answer = self._compose_slot_based_difference_answer(
             query=str(state.get("query") or ""),
@@ -16444,7 +17110,12 @@ class FinancialAgentCalculationMixin:
             calculation_result=dict(aggregate_projection.get("calculation_result") or {}),
         )
         if slot_based_difference_answer:
-            _replace_final_answer_local(slot_based_difference_answer, sync_rendered_for_aggregate=False)
+            mutable_state, _ = self._replace_mutable_aggregate_answer(
+                mutable_state,
+                candidate_answer=slot_based_difference_answer,
+                sync_rendered_for_aggregate=False,
+            )
+            _sync_aggregate_locals()
         final_answer = self._preserve_source_visible_query_terms(
             final_answer,
             query=str(state.get("query") or ""),
@@ -16459,6 +17130,7 @@ class FinancialAgentCalculationMixin:
                 ordered_results=ordered_results,
                 evidence_items=aggregate_evidence_items,
             )
+        mutable_state = self._sync_mutable_aggregate_state(mutable_state, final_answer=final_answer)
         final_conflicting_narrative: Dict[str, Any] = {}
         if not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
             final_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
@@ -16484,6 +17156,14 @@ class FinancialAgentCalculationMixin:
                         sync_projection=False,
                     ),
                 )
+                mutable_state = mutable_state._replace(
+                    synthesis_state=_AggregateSynthesisState(
+                        ordered_results,
+                        aggregate_projection,
+                        final_answer,
+                        selected_claim_ids,
+                    )
+                )
                 final_conflicting_narrative_locked = True
         if (
             has_narrative_summary
@@ -16495,6 +17175,9 @@ class FinancialAgentCalculationMixin:
                 ordered_results,
                 evidence_items=aggregate_evidence_items,
             )
+            mutable_state = mutable_state._replace(
+                synthesis_state=mutable_state.synthesis_state._replace(final_answer=final_answer)
+            )
         late_aligned_results, late_identity_changed, _late_value_changed, _late_alignment_changed = (
             self._promote_and_align_aggregate_results(
                 ordered_results,
@@ -16504,13 +17187,12 @@ class FinancialAgentCalculationMixin:
             )
         )
         if late_identity_changed:
-            aggregate_state = self._replace_aggregate_results(
-                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._replace_mutable_aggregate_results(
+                mutable_state,
                 state,
                 late_aligned_results,
-                aggregate_evidence_items,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
             late_supported_answer = self._supported_aggregate_subtask_answer(ordered_results)
             late_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
             late_answer = late_supported_answer or (
@@ -16519,25 +17201,26 @@ class FinancialAgentCalculationMixin:
                 else ""
             )
             if late_answer:
-                aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                mutable_state = self._apply_mutable_numeric_answer(
+                    mutable_state,
                     state=state,
                     numeric_answer=late_answer,
-                    evidence_items=aggregate_evidence_items,
                 )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+                _sync_aggregate_locals()
         runtime_numeric_answer = self._late_runtime_numeric_answer(state, final_answer)
         if runtime_numeric_answer:
             if has_narrative_summary and has_growth_rate_result:
-                aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+                mutable_state = self._apply_mutable_numeric_answer(
+                    mutable_state,
                     state=state,
                     numeric_answer=runtime_numeric_answer,
-                    evidence_items=aggregate_evidence_items,
                 )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+                _sync_aggregate_locals()
             else:
                 final_answer = runtime_numeric_answer
+                mutable_state = mutable_state._replace(
+                    synthesis_state=mutable_state.synthesis_state._replace(final_answer=final_answer)
+                )
         final_complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if (
             final_complete_numeric_answer
@@ -16545,297 +17228,21 @@ class FinancialAgentCalculationMixin:
             and not self._answer_covers_numeric_projection(final_answer, ordered_results)
             and self._complete_numeric_answer_can_replace_final(final_complete_numeric_answer, ordered_results)
         ):
-            aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._apply_mutable_numeric_answer(
+                mutable_state,
                 state=state,
                 numeric_answer=final_complete_numeric_answer,
-                evidence_items=aggregate_evidence_items,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-        final_answer = self._enforce_source_stated_growth_answer_contract(
-            final_answer,
-            ordered_results,
-            evidence_items=aggregate_evidence_items,
+            _sync_aggregate_locals()
+        mutable_state = self._apply_final_narrative_repair_pipeline(
+            state,
+            mutable_state=mutable_state,
+            narrative_docs=narrative_docs,
+            has_narrative_summary=has_narrative_summary,
+            has_growth_rate_result=has_growth_rate_result,
+            deterministic_feedback=deterministic_feedback,
         )
-        realized_context_answer = self._preserve_policy_required_realized_context(
-            final_answer,
-            query=str(state.get("query") or ""),
-            docs=narrative_docs,
-        )
-        _replace_final_answer_local(
-            realized_context_answer,
-            status_ok=bool(realized_context_answer and not deterministic_feedback),
-            force=True,
-        )
-        aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
-            aggregate_evidence_items,
-            operands=list(aggregate_projection.get("calculation_operands") or []),
-            final_answer=final_answer,
-        )
-        aggregate_evidence_items, retrieved_narrative_claim_ids = self._append_retrieved_narrative_evidence_for_final_answer(
-            aggregate_evidence_items,
-            final_answer=final_answer,
-            docs=narrative_docs,
-        )
-        if retrieved_narrative_claim_ids:
-            selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *retrieved_narrative_claim_ids]))
-            source_surface_answer = self._preserve_retrieved_narrative_source_surface(
-                final_answer,
-                aggregate_evidence_items,
-            )
-            _replace_final_answer_local(source_surface_answer)
-        aggregate_state = self._apply_period_context_realignment_to_aggregate(
-            aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-            state=state,
-            evidence_items=aggregate_evidence_items,
-        )
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-        if has_narrative_summary and not self._answer_satisfies_growth_narrative_intent(
-            query=str(state.get("query") or ""),
-            answer=final_answer,
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-        ):
-            repaired_growth_narrative_answer = self._compose_growth_narrative_answer(
-                query=str(state.get("query") or ""),
-                ordered_results=ordered_results,
-                existing_answer=final_answer,
-                evidence_items=aggregate_evidence_items,
-            )
-            repaired_answer = _normalise_spaces(
-                str((repaired_growth_narrative_answer or {}).get("compressed_answer") or "")
-            )
-            if repaired_answer and self._answer_satisfies_growth_narrative_intent(
-                query=str(state.get("query") or ""),
-                answer=repaired_answer,
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
-            ):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        repaired_answer,
-                        selected_claim_ids=(repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [],
-                    ),
-                )
-                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
-                    aggregate_evidence_items,
-                    operands=list(aggregate_projection.get("calculation_operands") or []),
-                    final_answer=final_answer,
-                )
-        contracted_answer = self._enforce_source_stated_growth_answer_contract(
-            final_answer,
-            ordered_results,
-            evidence_items=aggregate_evidence_items,
-        )
-        if contracted_answer != final_answer:
-            _replace_final_answer_local(contracted_answer, refresh_operand_evidence=True)
-        source_surface_answer = self._preserve_retrieved_narrative_source_surface(
-            final_answer,
-            aggregate_evidence_items,
-        )
-        _replace_final_answer_local(source_surface_answer)
-        unresolved_numeric_gap = self._unresolved_structured_numeric_gap(ordered_results)
-        blocked_narrative_numeric_gap = bool(
-            unresolved_numeric_gap
-            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
-        )
-        if blocked_narrative_numeric_gap:
-            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
-            if safe_partial_answer:
-                _replace_final_answer_local(safe_partial_answer)
-        pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
-            final_answer,
-            query=str(state.get("query") or ""),
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-        )
-        _replace_final_answer_local(pruned_focus_answer)
-        if (
-            final_answer
-            and has_narrative_summary
-            and has_growth_rate_result
-            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
-        ):
-            numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
-                final_answer,
-                ordered_results,
-                evidence_items=aggregate_evidence_items,
-            )
-            if numeric_preserved_answer != final_answer:
-                _replace_final_answer_local(numeric_preserved_answer, refresh_operand_evidence=True)
-        if final_answer and has_narrative_summary and has_growth_rate_result:
-            missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
-            final_answer_is_missing = any(marker and marker in final_answer for marker in missing_markers)
-            final_has_nonnumeric_narrative = False
-            for sentence in _split_narrative_sentences(final_answer):
-                cleaned_sentence = _normalise_spaces(sentence)
-                if not cleaned_sentence or self._answer_evidence_numeric_candidates(cleaned_sentence):
-                    continue
-                sentence_terms = [
-                    term
-                    for term in self._narrative_context_terms(cleaned_sentence)
-                    if len(term) >= 3
-                ]
-                if len(sentence_terms) >= 2 and self._sentence_has_growth_explanatory_signal(cleaned_sentence):
-                    final_has_nonnumeric_narrative = True
-                    break
-            final_answer_terms = {
-                term.lower()
-                for term in self._narrative_context_terms(final_answer)
-                if len(term) >= 3
-            }
-            narrative_rows = [
-                row
-                for row in ordered_results
-                if self._row_is_narrative_summary(row)
-            ] if not (blocked_narrative_numeric_gap or final_answer_is_missing or final_has_nonnumeric_narrative) else []
-            for row in narrative_rows:
-                row_answer = _normalise_spaces(
-                    str(
-                        row.get("answer")
-                        or (row.get("calculation_result") or {}).get("formatted_result")
-                        or (row.get("calculation_result") or {}).get("rendered_value")
-                        or ""
-                    )
-                )
-                if not row_answer or row_answer in final_answer:
-                    continue
-                if any(marker and marker in row_answer for marker in missing_markers):
-                    continue
-                sanitized_row_parts: List[str] = []
-                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
-                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
-                        row_sentence,
-                        ordered_results,
-                        evidence_items=aggregate_evidence_items,
-                    )
-                    if sanitized_sentence and self._sentence_has_growth_explanatory_signal(sanitized_sentence):
-                        sanitized_row_parts.append(sanitized_sentence)
-                if sanitized_row_parts:
-                    row_answer = _normalise_spaces(" ".join(sanitized_row_parts))
-                if (
-                    self._answer_evidence_numeric_candidates(row_answer)
-                    and self._growth_answer_has_untraced_numeric_material(
-                        row_answer,
-                        ordered_results,
-                        aggregate_evidence_items,
-                    )
-                ):
-                    continue
-                row_answer_terms = {
-                    term.lower()
-                    for term in self._narrative_context_terms(row_answer)
-                    if len(term) >= 3
-                }
-                if row_answer_terms and final_answer_terms:
-                    overlap = row_answer_terms & final_answer_terms
-                    if len(overlap) >= max(2, min(len(row_answer_terms), len(final_answer_terms)) // 2):
-                        continue
-                if self._narrative_summary_conflicts_with_growth_trace(
-                    row_answer,
-                    ordered_results,
-                    aggregate_evidence_items,
-                ):
-                    continue
-                combined_answer = _normalise_spaces(f"{final_answer} {row_answer}")
-                if self._growth_answer_has_untraced_numeric_material(
-                    combined_answer,
-                    ordered_results,
-                    aggregate_evidence_items,
-                ):
-                    continue
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        combined_answer,
-                        selected_claim_ids=row.get("selected_claim_ids") or [],
-                    ),
-                )
-                break
-        pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
-            final_answer,
-            query=str(state.get("query") or ""),
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-        )
-        _replace_final_answer_local(pruned_focus_answer)
-        polished_answer = _polish_korean_particle_pairs(final_answer)
-        _replace_final_answer_local(polished_answer)
-        if has_narrative_summary and has_growth_rate_result:
-            final_aligned_results, _final_identity_changed, final_value_changed, _final_alignment_changed = (
-                self._promote_and_align_aggregate_results(
-                    ordered_results,
-                    state,
-                    final_answer,
-                    align_without_promotion=True,
-                )
-            )
-            if final_value_changed:
-                aggregate_state = self._replace_aggregate_results(
-                    _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                    state,
-                    final_aligned_results,
-                    aggregate_evidence_items,
-                    refresh_numeric_answer=True,
-                    sync_projection=True,
-                    rebuild_after_numeric_refresh=False,
-                )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-            final_explanatory_parts: List[str] = []
-            seen_explanatory_parts: set[str] = set()
-            for row in ordered_results:
-                operation_family = self._aggregate_result_operation_family(row)
-                if not (self._row_is_narrative_summary(row) or operation_family == "aggregate_subtasks"):
-                    continue
-                row_answer = _normalise_spaces(
-                    str(
-                        row.get("answer")
-                        or (row.get("calculation_result") or {}).get("formatted_result")
-                        or (row.get("calculation_result") or {}).get("rendered_value")
-                        or ""
-                    )
-                )
-                if not row_answer or row_answer in final_answer:
-                    continue
-                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
-                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
-                        row_sentence,
-                        ordered_results,
-                        evidence_items=aggregate_evidence_items,
-                    )
-                    if not sanitized_sentence or sanitized_sentence in final_answer:
-                        continue
-                    if sanitized_sentence in seen_explanatory_parts:
-                        continue
-                    if not self._sentence_has_growth_explanatory_signal(sanitized_sentence):
-                        continue
-                    narrative_markers = tuple(
-                        str(item)
-                        for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
-                    )
-                    if _narrative_sentence_looks_table_noisy(sanitized_sentence):
-                        continue
-                    if _narrative_sentence_looks_abbreviated_fragment(sanitized_sentence, narrative_markers):
-                        continue
-                    if re.search(r"\d", sanitized_sentence):
-                        continue
-                    if self._growth_answer_has_untraced_numeric_material(
-                        sanitized_sentence,
-                        ordered_results,
-                        aggregate_evidence_items,
-                    ):
-                        continue
-                    seen_explanatory_parts.add(sanitized_sentence)
-                    final_explanatory_parts.append(sanitized_sentence)
-                    if len(final_explanatory_parts) >= 2:
-                        break
-                if len(final_explanatory_parts) >= 2:
-                    break
-            if final_explanatory_parts:
-                _replace_final_answer_local(" ".join([final_answer, *final_explanatory_parts]))
+        _sync_aggregate_locals()
         (
             final_consistent_aligned_results,
             _consistent_identity_changed,
@@ -16850,32 +17257,35 @@ class FinancialAgentCalculationMixin:
             )
         )
         if final_consistent_changed:
-            aggregate_state = self._replace_aggregate_results(
-                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._replace_mutable_aggregate_results(
+                mutable_state,
                 state,
                 final_consistent_aligned_results,
-                aggregate_evidence_items,
                 refresh_numeric_answer=final_consistent_aligned,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
         ordered_results, aggregate_projection = self._sync_projection_subtask_results_with_nested_promotions(
             ordered_results,
             state,
             aggregate_projection,
             final_answer,
         )
+        mutable_state = self._sync_mutable_aggregate_state(
+            mutable_state,
+            ordered_results=ordered_results,
+            aggregate_projection=aggregate_projection,
+        )
         post_sync_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
             ordered_results,
             aggregate_evidence_items,
         )
         if post_sync_unit_aligned_results != ordered_results:
-            aggregate_state = self._replace_aggregate_results(
-                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._replace_mutable_aggregate_results(
+                mutable_state,
                 state,
                 post_sync_unit_aligned_results,
-                aggregate_evidence_items,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
         post_sync_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         post_sync_aligned_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
@@ -16883,14 +17293,13 @@ class FinancialAgentCalculationMixin:
             post_sync_projection,
         )
         if post_sync_aligned_results != ordered_results:
-            aggregate_state = self._replace_aggregate_results(
-                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._replace_mutable_aggregate_results(
+                mutable_state,
                 state,
                 post_sync_aligned_results,
-                aggregate_evidence_items,
                 refresh_numeric_answer=True,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
         aggregate_evidence_items, missing_context_claim_ids = self._append_missing_decision_context_evidence(
             aggregate_evidence_items,
             final_answer=final_answer,
@@ -16898,8 +17307,10 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             docs=narrative_docs,
         )
+        mutable_state = self._sync_mutable_aggregate_state(mutable_state, evidence_items=aggregate_evidence_items)
         if missing_context_claim_ids:
             selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *missing_context_claim_ids]))
+            mutable_state = self._sync_mutable_aggregate_state(mutable_state, selected_claim_ids=selected_claim_ids)
         late_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
             ordered_results,
             aggregate_evidence_items,
@@ -16914,14 +17325,13 @@ class FinancialAgentCalculationMixin:
             )
             if late_unit_aligned_results != late_unit_results:
                 late_unit_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
-            aggregate_state = self._replace_aggregate_results(
-                _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._replace_mutable_aggregate_results(
+                mutable_state,
                 state,
                 late_unit_results,
-                aggregate_evidence_items,
                 refresh_numeric_answer=True,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
         consistent_numeric_answer = self._preferred_complete_numeric_answer(
             ordered_results,
             query=str(state.get("query") or ""),
@@ -16946,7 +17356,11 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
         )
         if nested_numeric_narrative_answer:
-            _replace_final_answer_local(nested_numeric_narrative_answer)
+            mutable_state, _ = self._replace_mutable_aggregate_answer(
+                mutable_state,
+                candidate_answer=nested_numeric_narrative_answer,
+            )
+            _sync_aggregate_locals()
             final_answer_already_covers_trace = (
                 self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
                 or self._answer_covers_numeric_projection(final_answer, ordered_results)
@@ -16964,14 +17378,17 @@ class FinancialAgentCalculationMixin:
             and self._complete_numeric_answer_can_replace_final(consistent_numeric_answer, ordered_results)
             and (not final_answer_already_covers_trace or final_answer_has_untraced_numeric)
         ):
-            aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            mutable_state = self._apply_mutable_numeric_answer(
+                mutable_state,
                 state=state,
                 numeric_answer=consistent_numeric_answer,
-                evidence_items=aggregate_evidence_items,
             )
-            ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+            _sync_aggregate_locals()
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            mutable_state = self._sync_mutable_aggregate_state(
+                mutable_state,
+                aggregate_projection=aggregate_projection,
+            )
         projection_result = dict(aggregate_projection.get("calculation_result") or {})
         compact_ratio_answer = self._compact_ratio_answer_from_projection(
             state,
@@ -16979,7 +17396,12 @@ class FinancialAgentCalculationMixin:
             projection_result,
         )
         if compact_ratio_answer and compact_ratio_answer != _normalise_spaces(final_answer):
-            _replace_final_answer_local(compact_ratio_answer, sync_rendered_for_aggregate=False)
+            mutable_state, _ = self._replace_mutable_aggregate_answer(
+                mutable_state,
+                candidate_answer=compact_ratio_answer,
+                sync_rendered_for_aggregate=False,
+            )
+            _sync_aggregate_locals()
         aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
             self._filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence_items,
@@ -16988,64 +17410,55 @@ class FinancialAgentCalculationMixin:
                 selected_claim_ids=selected_claim_ids,
             )
         )
-        aggregate_projection, _repaired_operands, _repaired_plan, repaired_result = (
-            self._repair_stale_aggregate_projection_result(
-                state,
-                aggregate_projection,
-            )
+        mutable_state = self._sync_mutable_aggregate_state(
+            mutable_state,
+            aggregate_projection=aggregate_projection,
+            selected_claim_ids=selected_claim_ids,
+            evidence_items=aggregate_evidence_items,
         )
-        if repaired_result.get("stale_result_repaired_from_operands"):
-            repaired_answer = _normalise_spaces(
-                str(repaired_result.get("formatted_result") or repaired_result.get("rendered_value") or "")
-            )
-            if repaired_answer:
-                aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
-                    state=state,
-                    numeric_answer=repaired_answer,
-                    evidence_items=aggregate_evidence_items,
-                    sync_projection=True,
-                )
-                ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+        aggregate_state = self._apply_stale_projection_repair_to_aggregate_state(
+            state=state,
+            aggregate_state=mutable_state.synthesis_state,
+            evidence_items=aggregate_evidence_items,
+        )
+        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         aggregate_projection, final_answer = self._apply_runtime_ratio_projection_for_collapsed_rows(
             state,
             aggregate_projection,
             ordered_results,
             final_answer,
         )
-        aggregate_projection, final_repaired_operands, final_repaired_plan, final_repaired_result = (
-            self._repair_stale_aggregate_projection_result(
-                state,
-                aggregate_projection,
-            )
+        mutable_state = self._sync_mutable_aggregate_state(
+            mutable_state,
+            aggregate_projection=aggregate_projection,
+            final_answer=final_answer,
         )
-        if final_repaired_result.get("stale_result_repaired_from_operands"):
-            repaired_ratio_answer = self._compact_ratio_answer_from_projection(
-                state,
-                aggregate_projection,
-                final_repaired_result,
-                operands=final_repaired_operands,
-                plan=final_repaired_plan,
-            )
-            final_answer = _normalise_spaces(
-                repaired_ratio_answer
-                or str(final_repaired_result.get("formatted_result") or final_repaired_result.get("rendered_value") or final_answer)
-            )
-            aggregate_projection["calculation_result"] = {
-                **final_repaired_result,
-                "formatted_result": final_answer,
-            }
+        aggregate_state = self._apply_stale_projection_repair_to_aggregate_state(
+            state=state,
+            aggregate_state=mutable_state.synthesis_state,
+            evidence_items=aggregate_evidence_items,
+            prefer_compact_ratio_answer=True,
+        )
+        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         aggregate_projection, final_answer, _ = self._apply_ratio_projection_answer_if_rendered_missing(
             state,
             aggregate_projection,
             final_answer=final_answer,
         )
+        mutable_state = self._sync_mutable_aggregate_state(
+            mutable_state,
+            aggregate_projection=aggregate_projection,
+            final_answer=final_answer,
+        )
         aggregate_state = self._apply_period_context_realignment_to_aggregate(
-            aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            aggregate_state=mutable_state.synthesis_state,
             state=state,
             evidence_items=aggregate_evidence_items,
             kept_evidence_ids=kept_evidence_ids,
         )
+        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
         ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         late_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
             query=str(state.get("query") or ""),
@@ -17055,6 +17468,20 @@ class FinancialAgentCalculationMixin:
         if late_conflicting_narrative:
             conflicting_answer = _normalise_spaces(str(late_conflicting_narrative.get("answer") or ""))
             final_answer_surface = _normalise_spaces(final_answer)
+            final_answer_satisfies_growth_narrative = self._answer_satisfies_growth_narrative_intent(
+                query=str(state.get("query") or ""),
+                answer=final_answer_surface,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+            final_answer_preserves_numeric_trace = bool(
+                self._answer_covers_numeric_projection(final_answer_surface, ordered_results)
+                and not self._growth_answer_has_untraced_numeric_material(
+                    final_answer_surface,
+                    ordered_results,
+                    aggregate_evidence_items,
+                )
+            )
             conflicting_numeric_tokens = set(re.findall(r"[\(\)\-+]?\d[\d,]*(?:\.\d+)?%?", conflicting_answer))
             final_numeric_tokens = set(re.findall(r"[\(\)\-+]?\d[\d,]*(?:\.\d+)?%?", final_answer_surface))
             final_contains_conflicting_answer_with_extra_numbers = bool(
@@ -17063,12 +17490,16 @@ class FinancialAgentCalculationMixin:
                 and final_numeric_tokens - conflicting_numeric_tokens
             )
             if conflicting_answer and (
-                final_contains_conflicting_answer_with_extra_numbers
-                or self._growth_narrative_numeric_incompatible_with_trace(
-                narrative_answer=conflicting_answer,
-                numeric_answer=final_answer,
-                ordered_results=ordered_results,
-                evidence_items=aggregate_evidence_items,
+                not final_answer_satisfies_growth_narrative
+                and not final_answer_preserves_numeric_trace
+                and (
+                    final_contains_conflicting_answer_with_extra_numbers
+                    or self._growth_narrative_numeric_incompatible_with_trace(
+                        narrative_answer=conflicting_answer,
+                        numeric_answer=final_answer,
+                        ordered_results=ordered_results,
+                        evidence_items=aggregate_evidence_items,
+                    )
                 )
             ):
                 aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
@@ -17083,6 +17514,12 @@ class FinancialAgentCalculationMixin:
                 aggregate_projection = self._rebuild_aggregate_projection(
                     ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
                 )
+                mutable_state = self._sync_mutable_aggregate_state(
+                    mutable_state,
+                    aggregate_projection=aggregate_projection,
+                    final_answer=final_answer,
+                    selected_claim_ids=selected_claim_ids,
+                )
         post_conflict_nested_numeric_answer = self._preferred_complete_nested_numeric_narrative_answer(
             current_answer=final_answer,
             ordered_results=ordered_results,
@@ -17092,6 +17529,11 @@ class FinancialAgentCalculationMixin:
             final_answer = post_conflict_nested_numeric_answer
             aggregate_projection = self._rebuild_aggregate_projection(
                 ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
+            )
+            mutable_state = self._sync_mutable_aggregate_state(
+                mutable_state,
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
             )
         preserved_aggregate_candidate = self._preferred_existing_aggregate_artifact_candidate(
             ledger_artifacts,
@@ -17104,6 +17546,13 @@ class FinancialAgentCalculationMixin:
                 selected_claim_ids,
                 preserved_aggregate_candidate,
             )
+            mutable_state = self._sync_mutable_aggregate_state(
+                mutable_state,
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
+            )
+        _sync_aggregate_locals()
         artifacts = list(ledger_artifacts)
         tasks = list(state.get("tasks") or [])
         artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
