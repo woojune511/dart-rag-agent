@@ -16330,8 +16330,9 @@ class FinancialAgentCalculationMixin:
             sync_rendered_for_aggregate: bool = True,
             status_ok: bool = False,
             force: bool = False,
+            refresh_operand_evidence: bool = False,
         ) -> bool:
-            nonlocal aggregate_projection, final_answer
+            nonlocal aggregate_evidence_items, aggregate_projection, final_answer
             candidate_answer = _normalise_spaces(candidate_answer)
             if candidate_answer == final_answer and not force:
                 return False
@@ -16342,6 +16343,12 @@ class FinancialAgentCalculationMixin:
                 sync_rendered_for_aggregate=sync_rendered_for_aggregate,
                 status_ok=status_ok,
             )
+            if refresh_operand_evidence:
+                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+                    aggregate_evidence_items,
+                    operands=list(aggregate_projection.get("calculation_operands") or []),
+                    final_answer=final_answer,
+                )
             return True
 
         aggregate_state = self._apply_period_context_realignment_to_aggregate(
@@ -16569,12 +16576,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
         )
         if contracted_answer != final_answer:
-            _replace_final_answer_local(contracted_answer)
-            aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
-                aggregate_evidence_items,
-                operands=list(aggregate_projection.get("calculation_operands") or []),
-                final_answer=final_answer,
-            )
+            _replace_final_answer_local(contracted_answer, refresh_operand_evidence=True)
         source_surface_answer = self._preserve_retrieved_narrative_source_surface(
             final_answer,
             aggregate_evidence_items,
@@ -16608,12 +16610,7 @@ class FinancialAgentCalculationMixin:
                 evidence_items=aggregate_evidence_items,
             )
             if numeric_preserved_answer != final_answer:
-                _replace_final_answer_local(numeric_preserved_answer)
-                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
-                    aggregate_evidence_items,
-                    operands=list(aggregate_projection.get("calculation_operands") or []),
-                    final_answer=final_answer,
-                )
+                _replace_final_answer_local(numeric_preserved_answer, refresh_operand_evidence=True)
         if final_answer and has_narrative_summary and has_growth_rate_result:
             missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
             final_answer_is_missing = any(marker and marker in final_answer for marker in missing_markers)
