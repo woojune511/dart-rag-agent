@@ -4419,6 +4419,49 @@ class FinancialAgentCalculationMixin:
         )
         return aggregate_projection, final_answer, merged_claim_ids
 
+    def _apply_period_context_realignment_to_aggregate(
+        self,
+        *,
+        ordered_results: List[Dict[str, Any]],
+        state: FinancialAgentState,
+        evidence_items: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+        final_answer: str,
+        selected_claim_ids: List[str],
+        kept_evidence_ids: Optional[set[str]] = None,
+    ) -> tuple[List[Dict[str, Any]], Dict[str, Any], str, List[str]]:
+        realigned_results = self._realign_period_comparison_results_from_table_label_context(
+            ordered_results,
+            state,
+            evidence_items,
+        )
+        if realigned_results is ordered_results:
+            return ordered_results, aggregate_projection, final_answer, selected_claim_ids
+        ordered_results = realigned_results
+        refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+        if refreshed_numeric_answer and self._complete_numeric_answer_can_replace_final(
+            refreshed_numeric_answer,
+            ordered_results,
+        ):
+            aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
+                aggregate_projection,
+                selected_claim_ids,
+                self._refresh_numeric_aggregate_answer_candidate(
+                    query=str(state.get("query") or ""),
+                    current_answer=final_answer,
+                    numeric_answer=refreshed_numeric_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=evidence_items,
+                    sync_projection=False,
+                ),
+            )
+        aggregate_projection = self._rebuild_aggregate_projection(
+            ordered_results,
+            final_answer,
+            kept_evidence_ids=kept_evidence_ids,
+        )
+        return ordered_results, aggregate_projection, final_answer, selected_claim_ids
+
     def _sync_aggregate_artifact_projection_payload(
         self,
         artifacts: List[Dict[str, Any]],
@@ -10165,6 +10208,36 @@ class FinancialAgentCalculationMixin:
             changed = True
         return updated_results if changed else ordered_results
 
+    def _retrieval_context_docs(
+        self,
+        retrieved_docs: List[Any],
+        seed_retrieved_docs: List[Any],
+        *,
+        seed_limit: int,
+    ) -> List[Any]:
+        context_docs = list(retrieved_docs or [])
+        seen_doc_ids: set[str] = set()
+        for doc_score in context_docs:
+            doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            doc_id = _normalise_spaces(
+                str(metadata.get("chunk_uid") or metadata.get("chunk_id") or getattr(doc, "id", "") or "")
+            )
+            if doc_id:
+                seen_doc_ids.add(doc_id)
+        for doc_score in list(seed_retrieved_docs or [])[:seed_limit]:
+            doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+            doc_id = _normalise_spaces(
+                str(metadata.get("chunk_uid") or metadata.get("chunk_id") or getattr(doc, "id", "") or "")
+            )
+            if doc_id and doc_id in seen_doc_ids:
+                continue
+            if doc_id:
+                seen_doc_ids.add(doc_id)
+            context_docs.append(doc_score)
+        return context_docs
+
     def _ratio_operand_context_evidence_from_docs(
         self,
         docs: List[Any],
@@ -12186,19 +12259,11 @@ class FinancialAgentCalculationMixin:
             if isinstance(item, dict) and not evidence_conflicts_requested_scope(dict(item))
         ]
         if retrieved_docs or seed_retrieved_docs:
-            target_context_docs = list(retrieved_docs or [])
-            seen_target_doc_ids = {
-                str((getattr(doc, "metadata", {}) or {}).get("chunk_uid") or (getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-                for doc, _score in target_context_docs
-            }
-            for doc, score in list(seed_retrieved_docs or [])[:48]:
-                metadata = dict(getattr(doc, "metadata", {}) or {})
-                doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
-                if doc_id and doc_id in seen_target_doc_ids:
-                    continue
-                if doc_id:
-                    seen_target_doc_ids.add(doc_id)
-                target_context_docs.append((doc, score))
+            target_context_docs = self._retrieval_context_docs(
+                retrieved_docs,
+                seed_retrieved_docs,
+                seed_limit=48,
+            )
             direct_target_evidence_pool.extend(
                 item
                 for item in self._ratio_operand_context_evidence_from_docs(target_context_docs, max_docs=48)
@@ -12388,23 +12453,11 @@ class FinancialAgentCalculationMixin:
         if operation_family in {"difference", "growth_rate"} and required_operands:
             period_context_evidence = list(evidence_items)
             if retrieved_docs or seed_retrieved_docs:
-                period_context_docs = list(retrieved_docs or [])
-                seen_period_doc_ids = {
-                    str(
-                        (getattr(doc, "metadata", {}) or {}).get("chunk_uid")
-                        or (getattr(doc, "metadata", {}) or {}).get("chunk_id")
-                        or ""
-                    )
-                    for doc, _score in period_context_docs
-                }
-                for doc, score in list(seed_retrieved_docs or [])[:48]:
-                    metadata = dict(getattr(doc, "metadata", {}) or {})
-                    doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
-                    if doc_id and doc_id in seen_period_doc_ids:
-                        continue
-                    if doc_id:
-                        seen_period_doc_ids.add(doc_id)
-                    period_context_docs.append((doc, score))
+                period_context_docs = self._retrieval_context_docs(
+                    retrieved_docs,
+                    seed_retrieved_docs,
+                    seed_limit=48,
+                )
                 period_context_evidence.extend(
                     item
                     for item in self._ratio_operand_context_evidence_from_docs(period_context_docs, max_docs=64)
@@ -12452,19 +12505,11 @@ class FinancialAgentCalculationMixin:
             (direct_rows_cover_required_operands and not direct_rows_have_coherent_context)
             or dependency_rows_cover_required_operands
         ):
-            ratio_context_docs = list(retrieved_docs or [])
-            seen_ratio_doc_ids = {
-                str((getattr(doc, "metadata", {}) or {}).get("chunk_uid") or (getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-                for doc, _score in ratio_context_docs
-            }
-            for doc, score in list(seed_retrieved_docs or [])[:32]:
-                metadata = dict(getattr(doc, "metadata", {}) or {})
-                doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
-                if doc_id and doc_id in seen_ratio_doc_ids:
-                    continue
-                if doc_id:
-                    seen_ratio_doc_ids.add(doc_id)
-                ratio_context_docs.append((doc, score))
+            ratio_context_docs = self._retrieval_context_docs(
+                retrieved_docs,
+                seed_retrieved_docs,
+                seed_limit=32,
+            )
             ratio_context_evidence = self._ratio_operand_context_evidence_from_docs(
                 ratio_context_docs,
                 max_docs=64,
@@ -16183,31 +16228,16 @@ class FinancialAgentCalculationMixin:
             )
         )
         aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-        period_context_realigned_results = self._realign_period_comparison_results_from_table_label_context(
-            ordered_results,
-            state,
-            aggregate_evidence_items,
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = (
+            self._apply_period_context_realignment_to_aggregate(
+                ordered_results=ordered_results,
+                state=state,
+                evidence_items=aggregate_evidence_items,
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
+            )
         )
-        if period_context_realigned_results is not ordered_results:
-            ordered_results = period_context_realigned_results
-            refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if refreshed_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                refreshed_numeric_answer,
-                ordered_results,
-            ):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._refresh_numeric_aggregate_answer_candidate(
-                        query=str(state.get("query") or ""),
-                        current_answer=final_answer,
-                        numeric_answer=refreshed_numeric_answer,
-                        ordered_results=ordered_results,
-                        evidence_items=aggregate_evidence_items,
-                        sync_projection=False,
-                    ),
-                )
-        aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         aligned_ordered_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
             state,
@@ -16415,34 +16445,16 @@ class FinancialAgentCalculationMixin:
                     aggregate_projection,
                     final_answer,
                 )
-        late_period_context_results = self._realign_period_comparison_results_from_table_label_context(
-            ordered_results,
-            state,
-            aggregate_evidence_items,
-        )
-        if late_period_context_results is not ordered_results:
-            ordered_results = late_period_context_results
-            refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if refreshed_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                refreshed_numeric_answer,
-                ordered_results,
-            ):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._refresh_numeric_aggregate_answer_candidate(
-                        query=str(state.get("query") or ""),
-                        current_answer=final_answer,
-                        numeric_answer=refreshed_numeric_answer,
-                        ordered_results=ordered_results,
-                        evidence_items=aggregate_evidence_items,
-                        sync_projection=False,
-                    ),
-                )
-            aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results,
-                final_answer,
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = (
+            self._apply_period_context_realignment_to_aggregate(
+                ordered_results=ordered_results,
+                state=state,
+                evidence_items=aggregate_evidence_items,
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
             )
+        )
         if has_narrative_summary and not self._answer_satisfies_growth_narrative_intent(
             query=str(state.get("query") or ""),
             answer=final_answer,
@@ -16999,35 +17011,17 @@ class FinancialAgentCalculationMixin:
             aggregate_projection,
             final_answer=final_answer,
         )
-        final_period_context_results = self._realign_period_comparison_results_from_table_label_context(
-            ordered_results,
-            state,
-            aggregate_evidence_items,
-        )
-        if final_period_context_results is not ordered_results:
-            ordered_results = final_period_context_results
-            refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-            if refreshed_numeric_answer and self._complete_numeric_answer_can_replace_final(
-                refreshed_numeric_answer,
-                ordered_results,
-            ):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._refresh_numeric_aggregate_answer_candidate(
-                        query=str(state.get("query") or ""),
-                        current_answer=final_answer,
-                        numeric_answer=refreshed_numeric_answer,
-                        ordered_results=ordered_results,
-                        evidence_items=aggregate_evidence_items,
-                        sync_projection=False,
-                    ),
-                )
-            aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results,
-                final_answer,
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = (
+            self._apply_period_context_realignment_to_aggregate(
+                ordered_results=ordered_results,
+                state=state,
+                evidence_items=aggregate_evidence_items,
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
                 kept_evidence_ids=kept_evidence_ids,
             )
+        )
         late_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
             query=str(state.get("query") or ""),
             ordered_results=ordered_results,
