@@ -3795,6 +3795,8 @@ class FinancialAgentCalculationMixin:
             candidate_numeric_candidates = self._answer_evidence_numeric_candidates(candidate)
             if not candidate_numeric_candidates:
                 continue
+            if not self._answer_covers_numeric_projection(candidate, ordered_results):
+                continue
             if self._growth_answer_has_untraced_numeric_material(
                 candidate,
                 ordered_results,
