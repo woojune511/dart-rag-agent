@@ -573,6 +573,41 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
 
         self.assertEqual([item["evidence_id"] for item in result["evidence_items"]], ["ev_existing"])
 
+    def test_run_compacts_large_runtime_evidence_metadata(self) -> None:
+        final_state = self._base_final_state()
+        final_state["report_scope"] = {"company": "ExampleCo", "year": 2023}
+        final_state["evidence_items"] = [
+            {
+                "evidence_id": "ev_existing",
+                "source_anchor": "Financial review",
+                "claim": "Metric value is 25.4%.",
+                "quote_span": "Metric value is 25.4%.",
+                "metadata": {
+                    "section_path": "Financial review",
+                    "table_object_json": "{" + ("x" * 50_000) + "}",
+                    "table_value_records_json": "[" + ("y" * 30_000) + "]",
+                    "table_row_records_json": '[{"row_label":"Metric","cells":[{"value_text":"25.4%"}]}]',
+                    "table_value_labels_text": "Metric 25.4%",
+                },
+            }
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        metadata = result["evidence_items"][0]["metadata"]
+        self.assertNotIn("table_object_json", metadata)
+        self.assertNotIn("table_value_records_json", metadata)
+        self.assertIn("table_row_records_json", metadata)
+        self.assertEqual(metadata["company"], "ExampleCo")
+        self.assertEqual(metadata["year"], 2023)
+        self.assertEqual(
+            metadata["metadata_compacted_fields"],
+            ["table_object_json", "table_value_records_json"],
+        )
+
     def test_run_filters_existing_runtime_evidence_with_trace_operand_support(self) -> None:
         final_state = self._base_final_state()
         final_state["answer"] = "The final ratio is 25.4%."
