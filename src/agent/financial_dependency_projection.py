@@ -714,6 +714,15 @@ def dedupe_dependency_operands_by_id(operands: List[Dict[str, Any]]) -> List[Dic
     return deduped_operands
 
 
+def _numeric_values_differ(left: Any, right: Any) -> bool:
+    try:
+        if left is not None and right is not None:
+            return abs(float(left) - float(right)) > 1e-6
+    except (TypeError, ValueError):
+        pass
+    return left != right
+
+
 def fill_missing_ratio_dependency_operands(
     updated_operands: List[Dict[str, Any]],
     *,
@@ -893,16 +902,6 @@ def realign_lookup_row_from_dependency_projection(
     source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
     direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
     if f"task_output:{task_id}" in source_ids:
-        candidate_normalized = candidate.get("normalized_value")
-        current_normalized = current_slot.get("normalized_value")
-        normalized_differs = False
-        try:
-            if candidate_normalized is not None and current_normalized is not None:
-                normalized_differs = abs(float(candidate_normalized) - float(current_normalized)) > 1e-6
-            else:
-                normalized_differs = candidate_normalized != current_normalized
-        except (TypeError, ValueError):
-            normalized_differs = candidate_normalized != current_normalized
         candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
         current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
         current_source_ids = _clean_source_row_ids([current_slot.get("source_row_id"), current_slot.get("source_row_ids")])
@@ -916,6 +915,7 @@ def realign_lookup_row_from_dependency_projection(
             and current_unit
             and candidate_unit != current_unit
         )
+        normalized_differs = _numeric_values_differ(candidate.get("normalized_value"), current_slot.get("normalized_value"))
         if candidate_raw == current_raw and normalized_differs and not evidence_backed_unit_realignment:
             return row, {}, False
     component_slot = build_operand_value_slot(
