@@ -5138,74 +5138,33 @@ class FinancialAgentCalculationMixin:
                     rebuild_after_numeric_refresh=False,
                 )
                 _sync_locals()
-            final_explanatory_parts: List[str] = []
-            seen_explanatory_parts: set[str] = set()
-            query_context_terms = {
-                term.lower()
-                for term in self._narrative_context_terms(str(state.get("query") or ""))
-                if len(term) >= 3
-            }
-            for row in ordered_results:
-                operation_family = self._aggregate_result_operation_family(row)
-                if not (self._row_is_narrative_summary(row) or operation_family == "aggregate_subtasks"):
-                    continue
-                row_answer = _normalise_spaces(
-                    str(
-                        row.get("answer")
-                        or (row.get("calculation_result") or {}).get("formatted_result")
-                        or (row.get("calculation_result") or {}).get("rendered_value")
-                        or ""
+            if self._query_requests_explanatory_context(str(state.get("query") or "")):
+                appended_explanation = False
+                for row in ordered_results:
+                    if not self._row_is_narrative_summary(row):
+                        continue
+                    row_answer = _normalise_spaces(
+                        str(
+                            row.get("answer")
+                            or (row.get("calculation_result") or {}).get("formatted_result")
+                            or (row.get("calculation_result") or {}).get("rendered_value")
+                            or ""
+                        )
                     )
-                )
-                if not row_answer or row_answer in final_answer:
-                    continue
-                for row_sentence in _split_narrative_sentences(row_answer) or [row_answer]:
-                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
-                        row_sentence,
-                        ordered_results,
-                        evidence_items=aggregate_evidence_items,
-                    )
-                    if not sanitized_sentence or sanitized_sentence in final_answer:
+                    if not row_answer or row_answer in final_answer:
                         continue
-                    if sanitized_sentence in seen_explanatory_parts:
-                        continue
-                    sentence_context_terms = {
-                        term.lower()
-                        for term in self._narrative_context_terms(sanitized_sentence)
-                        if len(term) >= 3
-                    }
-                    if not (
-                        self._sentence_has_growth_explanatory_signal(sanitized_sentence)
-                        or len(sentence_context_terms & query_context_terms) >= 2
-                    ):
-                        continue
-                    narrative_markers = tuple(
-                        str(item)
-                        for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
-                    )
-                    if _narrative_sentence_looks_table_noisy(sanitized_sentence):
-                        continue
-                    if _narrative_sentence_looks_abbreviated_fragment(sanitized_sentence, narrative_markers):
-                        continue
-                    if re.search(r"\d", sanitized_sentence) and not self._text_supports_final_answer_numeric_material(
-                        sanitized_sentence,
-                        self._answer_evidence_numeric_candidates(final_answer),
-                    ):
-                        continue
-                    if self._growth_answer_has_untraced_numeric_material(
-                        sanitized_sentence,
-                        ordered_results,
-                        aggregate_evidence_items,
-                    ):
-                        continue
-                    seen_explanatory_parts.add(sanitized_sentence)
-                    final_explanatory_parts.append(sanitized_sentence)
-                    if len(final_explanatory_parts) >= 2:
+                    for sentence in _split_narrative_sentences(row_answer) or [row_answer]:
+                        cleaned = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                            sentence,
+                            ordered_results,
+                            evidence_items=aggregate_evidence_items,
+                        )
+                        if cleaned and cleaned not in final_answer:
+                            _apply_candidate(" ".join([final_answer, cleaned]))
+                            appended_explanation = True
+                            break
+                    if appended_explanation:
                         break
-                if len(final_explanatory_parts) >= 2:
-                    break
-            if final_explanatory_parts:
-                _apply_candidate(" ".join([final_answer, *final_explanatory_parts]))
         return mutable_state
 
     def _promote_and_align_aggregate_results(

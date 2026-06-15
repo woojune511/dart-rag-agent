@@ -13435,7 +13435,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("acquisition integration improved", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
-    def test_late_numeric_refresh_recovers_clean_narrative_from_conflicting_summary_child(self) -> None:
+    def test_late_numeric_refresh_keeps_clean_explicit_explanation_from_conflicting_summary_child(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(
                 {
@@ -13539,7 +13539,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("40.9%", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
-    def test_late_source_surface_preservation_keeps_growth_numeric_contract(self) -> None:
+    def test_late_source_surface_preservation_keeps_numeric_contract_with_explicit_explanation(self) -> None:
         self.agent.llm = None
         self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
         self.agent._align_lookup_results_with_dependency_projection = (
