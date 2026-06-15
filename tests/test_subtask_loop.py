@@ -181,6 +181,43 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("시장 환경 둔화", candidate["sentence"])
         self.assertIn("driver_2", candidate["selected_claim_ids"])
 
+    def test_uncovered_growth_narrative_skips_covered_driver_group(self) -> None:
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "operation_family": "growth_rate",
+            "answer": "41.4%",
+            "status": "ok",
+        }
+        narrative_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "operation_family": "narrative_summary",
+            "answer": "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다.",
+            "status": "ok",
+            "selected_claim_ids": ["driver_cost"],
+        }
+        final_answer = (
+            "2023년 커머스 매출액은 전년 대비 41.4% 성장했습니다. "
+            "Poshmark의 성공적인 체질 개선이 주요 원인 중 하나입니다. "
+            "또한 연결 편입 효과도 실적 성장에 기여했습니다."
+        )
+
+        candidate = self.agent._uncovered_supported_growth_narrative_candidate(
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            answer=final_answer,
+            ordered_results=[growth_row, narrative_row],
+            evidence_items=[
+                {
+                    "evidence_id": "driver_cost",
+                    "claim": "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다.",
+                    "quote_span": "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다.",
+                }
+            ],
+        )
+
+        self.assertEqual({}, candidate)
+
     def test_nested_promotion_reads_answer_slot_subtask_results(self) -> None:
         stale_prior = {
             "task_id": "task_prior",
@@ -10325,7 +10362,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 {
                     "final_answer": (
                         "2023년 신용손실충당금전입액은 3,146,409백만원이며, "
-                        "2022년 1,847,775백만원 대비 70.28% 증가했습니다."
+                        "2022년 1,847,775백만원 대비 70.23% 증가했습니다."
                     ),
                     "planner_feedback": "",
                 }
@@ -10362,12 +10399,16 @@ class SubtaskLoopTests(unittest.TestCase):
                                 "label": "신용손실충당금전입액",
                                 "period": "2023",
                                 "rendered_value": "3,146,409백만원",
+                                "normalized_value": 3146409000000.0,
+                                "source_row_ids": ["ev_current"],
                             },
                             "prior_value": {
                                 "status": "ok",
                                 "label": "신용손실충당금전입액",
                                 "period": "2022",
                                 "rendered_value": "1,847,775백만원",
+                                "normalized_value": 1847775000000.0,
+                                "source_row_ids": ["ev_prior"],
                             },
                         },
                     },
@@ -10393,6 +10434,7 @@ class SubtaskLoopTests(unittest.TestCase):
         updated = self.agent._aggregate_calculation_subtasks(state)
 
         self.assertIn("70.28%", updated["answer"])
+        self.assertNotIn("70.23%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])
         self.assertIn("미래경기 불확실성", updated["answer"])
         self.assertIn("보수적인 충당금적립", updated["answer"])
@@ -11522,6 +11564,37 @@ class SubtaskLoopTests(unittest.TestCase):
             self.assertEqual(len(retrieved), 1)
             self.assertEqual(retrieved[0]["claim"], "DriverB expansion")
             self.assertNotIn("|", retrieved[0]["quote_span"])
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+
+    def test_retrieved_growth_driver_evidence_compacts_numeric_table_tail(self) -> None:
+        original_driver_groups = self.agent._narrative_driver_groups
+        self.agent._narrative_driver_groups = lambda _query: [
+            {"label": "driver_b", "variants": ["DriverB effect"], "phrase": "DriverB effect"},
+        ]
+        try:
+            evidence = self.agent._append_retrieved_growth_driver_evidence_for_query(
+                [],
+                query="Calculate 2023 revenue growth and summarize the acquisition impact.",
+                docs=[
+                    (
+                        Document(
+                            page_content=(
+                                "segment | current | prior | change | operating costs rose because DriverB effect "
+                                "increased development expense by 24.3% and excluding DriverB effect it rose 14.7%."
+                            ),
+                            metadata={"section_path": "Management discussion"},
+                        ),
+                        0.9,
+                    )
+                ],
+            )
+
+            retrieved = [item for item in evidence if str(item.get("evidence_id") or "").startswith("retrieved_driver::")]
+            self.assertEqual(len(retrieved), 1)
+            self.assertEqual("DriverB effect", retrieved[0]["claim"])
+            self.assertEqual("DriverB effect", retrieved[0]["quote_span"])
+            self.assertIn("24.3%", retrieved[0]["metadata"]["raw_driver_quote_span"])
         finally:
             self.agent._narrative_driver_groups = original_driver_groups
 

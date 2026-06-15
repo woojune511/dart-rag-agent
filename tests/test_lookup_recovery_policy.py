@@ -284,6 +284,53 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         self.assertIn("70.28%", refreshed["answer"])
         self.assertNotIn("27.34%", refreshed["answer"])
 
+    def test_growth_refresh_appends_supported_row_narrative_driver(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "answer": "The metric increased by 12.50%.",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "12.50%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "metric growth",
+                            "period": "2023",
+                            "rendered_value": "12.50%",
+                            "normalized_value": 12.5,
+                            "normalized_unit": "PERCENT",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_narrative",
+                "metric_family": "narrative_summary",
+                "operation_family": "aggregate_subtasks",
+                "status": "ok",
+                "answer": "The driver was broader customer adoption.",
+                "selected_claim_ids": ["ev_driver"],
+            },
+        ]
+
+        refreshed = agent._refresh_numeric_answer_preserving_narrative_context(
+            query="Calculate the growth rate and explain the driver.",
+            current_answer="The metric increased by 12.50%.",
+            numeric_answer="The metric increased by 12.50%.",
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+
+        self.assertIn("12.50%", refreshed["answer"])
+        self.assertIn("broader customer adoption", refreshed["answer"])
+        self.assertEqual(["ev_driver"], refreshed["selected_claim_ids"])
+
     def test_aggregate_fallback_prefers_conflicting_narrative_summary(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ordered_results = [
