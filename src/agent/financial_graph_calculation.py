@@ -17320,26 +17320,19 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             evidence_items=aggregate_evidence_items,
         )
-        final_answer_matches_supported_aggregate = self._answer_matches_supported_aggregate_subtask(
-            final_answer,
-            ordered_results,
-        )
-        final_answer_already_covers_trace = (
-            final_answer_matches_supported_aggregate
-            or self._answer_covers_numeric_projection(final_answer, ordered_results)
-        )
-        final_answer_has_untraced_numeric = self._growth_answer_has_untraced_numeric_material(
-            final_answer,
-            ordered_results,
-            aggregate_evidence_items,
-        )
         if (
             consistent_numeric_answer
-            and _normalise_spaces(consistent_numeric_answer)
             and _normalise_spaces(consistent_numeric_answer) != _normalise_spaces(final_answer)
-            and not final_answer_matches_supported_aggregate
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and self._complete_numeric_answer_can_replace_final(consistent_numeric_answer, ordered_results)
-            and (not final_answer_already_covers_trace or final_answer_has_untraced_numeric)
+            and (
+                not self._answer_covers_numeric_projection(final_answer, ordered_results)
+                or self._growth_answer_has_untraced_numeric_material(
+                    final_answer,
+                    ordered_results,
+                    aggregate_evidence_items,
+                )
+            )
         ):
             mutable_state = self._apply_mutable_numeric_answer(
                 mutable_state,
