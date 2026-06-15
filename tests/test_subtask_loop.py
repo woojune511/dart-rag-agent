@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Optional
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -15,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_calculation import _AggregateSynthesisState
 from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
@@ -83,6 +85,106 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent = FinancialAgent.__new__(FinancialAgent)
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
         self.agent._llm_for_phase = lambda _phase: self.agent.llm
+
+    def _lookup_result_row(
+        self,
+        *,
+        task_id: str,
+        metric_label: str = "",
+        label: str,
+        concept: str = "",
+        raw_value: str,
+        raw_unit: str = "백만원",
+        normalized_value: float,
+        normalized_unit: str = "KRW",
+        rendered_value: str = "",
+        source_row_id: str = "",
+        source_anchor: str = "",
+        answer: str = "",
+    ) -> dict:
+        return {
+            "task_id": task_id,
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "metric_label": metric_label,
+            "answer": answer,
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": label,
+                        "concept": concept,
+                        "raw_value": raw_value,
+                        "raw_unit": raw_unit,
+                        "normalized_value": normalized_value,
+                        "normalized_unit": normalized_unit,
+                        "rendered_value": rendered_value,
+                        "source_row_id": source_row_id,
+                        "source_row_ids": [source_row_id] if source_row_id else [],
+                        "source_anchor": source_anchor,
+                    }
+                },
+            },
+        }
+
+    def _ratio_component(
+        self,
+        *,
+        role: str,
+        label: str,
+        concept: str = "",
+        raw_value: str,
+        raw_unit: str = "백만원",
+        normalized_value: float,
+        normalized_unit: str = "KRW",
+        source_row_id: str = "",
+        source_anchor: str = "",
+    ) -> dict:
+        return {
+            "role": role,
+            "label": label,
+            "concept": concept,
+            "raw_value": raw_value,
+            "raw_unit": raw_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "source_row_id": source_row_id,
+            "source_row_ids": [source_row_id] if source_row_id else [],
+            "source_anchor": source_anchor,
+        }
+
+    def _ratio_result_row(
+        self,
+        *,
+        status: str,
+        metric_label: str = "target value to base value share",
+        components_by_group: Optional[dict] = None,
+        components_by_role: Optional[dict] = None,
+        answer: str = "",
+    ) -> dict:
+        answer_slots = {
+            "operation_family": "ratio",
+            "metric_label": metric_label,
+        }
+        if components_by_group is not None:
+            answer_slots["components_by_group"] = components_by_group
+        if components_by_role is not None:
+            answer_slots["components_by_role"] = components_by_role
+        return {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "operation_family": "ratio",
+            "status": status,
+            "metric_label": metric_label,
+            "answer": answer,
+            "calculation_result": {
+                "status": status,
+                "answer_slots": answer_slots,
+            },
+        }
 
     def test_growth_explanatory_signal_ignores_numeric_direction_only_sentence(self) -> None:
         self.assertFalse(
@@ -3036,6 +3138,513 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(denominator_slot["raw_unit"], "원")
         ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+
+    def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_num",
+                        "consolidation_scope": "consolidated",
+                    }
+                },
+            },
+        }
+        coherent_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 80.00%.",
+            "status": "ok",
+            "calculation_operands": [
+                {
+                    "operand_id": "num",
+                    "label": "target numerator",
+                    "matched_operand_role": "numerator_1",
+                    "raw_value": "120",
+                    "raw_unit": "unit",
+                    "normalized_value": 120.0,
+                    "normalized_unit": "COUNT",
+                    "source_task_id": "task_num",
+                    "source_row_id": "task_output:task_num",
+                    "consolidation_scope": "consolidated",
+                },
+                {
+                    "operand_id": "den",
+                    "label": "target denominator",
+                    "matched_operand_role": "denominator_1",
+                    "raw_value": "150",
+                    "raw_unit": "unit",
+                    "normalized_value": 150.0,
+                    "normalized_unit": "COUNT",
+                },
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "80.00%",
+                "formatted_result": "target share is 80.00%.",
+                "source_row_ids": ["task_output:task_num", "ev_den"],
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80.00%", "normalized_value": 80.0},
+                },
+            },
+        }
+        conflicting_ratio = {
+            **dict(coherent_ratio),
+            "answer": "target share is 46.67%.",
+            "calculation_operands": [
+                {
+                    **dict(coherent_ratio["calculation_operands"][0]),
+                    "raw_value": "70",
+                    "normalized_value": 70.0,
+                    "source_row_id": "ev_separate",
+                    "source_row_ids": ["ev_separate"],
+                    "consolidation_scope": "separate",
+                    "sibling_table_context_realigned": True,
+                },
+                dict(coherent_ratio["calculation_operands"][1]),
+            ],
+            "calculation_result": {
+                **dict(coherent_ratio["calculation_result"]),
+                "rendered_value": "46.67%",
+                "formatted_result": "target share is 46.67%.",
+                "source_row_ids": ["ev_separate", "ev_den"],
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "46.67%", "normalized_value": 46.67},
+                },
+            },
+        }
+
+        deduped = self.agent._dedupe_aggregate_subtask_results([source_lookup, coherent_ratio, conflicting_ratio])
+
+        ratio_row = next(row for row in deduped if row.get("task_id") == "task_ratio")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "80.00%")
+        self.assertEqual(ratio_row["calculation_operands"][0]["consolidation_scope"], "consolidated")
+
+    def test_collapsed_ratio_runtime_override_rejects_dependency_incoherent_trace(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source A",
+                    }
+                },
+            },
+        }
+        coherent_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 80%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "80%",
+                "formatted_result": "target share is 80%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80%", "normalized_value": 80.0},
+                },
+            },
+        }
+        collapsed_ratio = {
+            "task_id": "task_collapsed",
+            "metric_family": "concept_ratio",
+            "metric_label": "invalid self ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "label": "same",
+                                "raw_value": "1",
+                                "raw_unit": "unit",
+                                "normalized_value": 1.0,
+                                "source_row_id": "ev_same",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "label": "same",
+                                "raw_value": "1",
+                                "raw_unit": "unit",
+                                "normalized_value": 1.0,
+                                "source_row_id": "ev_same",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        aggregate_projection = self.agent._rebuild_aggregate_projection(
+            [source_lookup, coherent_ratio, collapsed_ratio],
+            "target share is 80%.",
+        )
+        stale_state = {
+            "query": "target share",
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "matched_operand_role": "numerator_1",
+                        "label": "target numerator",
+                        "raw_value": "70",
+                        "raw_unit": "unit",
+                        "normalized_value": 70.0,
+                        "normalized_unit": "COUNT",
+                        "source_task_id": "task_num",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source B",
+                    },
+                    {
+                        "operand_id": "den",
+                        "matched_operand_role": "denominator_1",
+                        "label": "target denominator",
+                        "raw_value": "150",
+                        "raw_unit": "unit",
+                        "normalized_value": 150.0,
+                        "normalized_unit": "COUNT",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "(A / B) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "46.67%",
+                    "formatted_result": "target share is 46.67%.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "target share",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "label": "target numerator",
+                                    "raw_value": "70",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 70.0,
+                                    "source_task_id": "task_num",
+                                    "source_row_id": "ev_same",
+                                    "source_anchor": "source B",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "label": "target denominator",
+                                    "raw_value": "150",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 150.0,
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        }
+
+        projection, answer = self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
+            stale_state,
+            aggregate_projection,
+            [source_lookup, coherent_ratio, collapsed_ratio],
+            "target share is 80%.",
+        )
+
+        self.assertEqual(answer, "target share is 80%.")
+        self.assertEqual(projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+    def test_stale_projection_repair_rejects_dependency_incoherent_operands(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source A",
+                    }
+                },
+            },
+        }
+        coherent_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "target share is 80%.",
+                "rendered_value": "80%",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80%", "normalized_value": 80.0},
+                },
+            },
+        }
+        stale_projection = {
+            "calculation_operands": [
+                {
+                    "operand_id": "num",
+                    "matched_operand_role": "numerator_1",
+                    "label": "target numerator",
+                    "raw_value": "70",
+                    "raw_unit": "unit",
+                    "normalized_value": 70.0,
+                    "normalized_unit": "COUNT",
+                    "source_task_id": "task_num",
+                    "source_row_id": "ev_same",
+                    "source_row_ids": ["ev_same"],
+                    "source_anchor": "source B",
+                },
+                {
+                    "operand_id": "den",
+                    "matched_operand_role": "denominator_1",
+                    "label": "target denominator",
+                    "raw_value": "150",
+                    "raw_unit": "unit",
+                    "normalized_value": 150.0,
+                    "normalized_unit": "COUNT",
+                },
+            ],
+            "calculation_plan": {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "ratio",
+                "ordered_operand_ids": ["num", "den"],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "num"},
+                    {"variable": "B", "operand_id": "den"},
+                ],
+                "formula": "(A / B) * 100",
+                "result_unit": "%",
+            },
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 80.0,
+                "result_unit": "%",
+                "rendered_value": "80%",
+                "formatted_result": "target share is 80%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80%", "normalized_value": 80.0},
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "label": "target numerator",
+                                "raw_value": "70",
+                                "raw_unit": "unit",
+                                "normalized_value": 70.0,
+                                "normalized_unit": "COUNT",
+                                "source_task_id": "task_num",
+                                "source_row_id": "ev_same",
+                                "source_anchor": "source B",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "label": "target denominator",
+                                "raw_value": "150",
+                                "raw_unit": "unit",
+                                "normalized_value": 150.0,
+                                "normalized_unit": "COUNT",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        aggregate_state = _AggregateSynthesisState(
+            [source_lookup, coherent_ratio],
+            stale_projection,
+            "target share is 80%.",
+            [],
+        )
+
+        repaired = self.agent._apply_stale_projection_repair_to_aggregate_state(
+            state={"query": "target share"},
+            aggregate_state=aggregate_state,
+            evidence_items=[],
+            prefer_compact_ratio_answer=True,
+        )
+
+        self.assertEqual(repaired.final_answer, "target share is 80%.")
+        self.assertEqual(repaired.aggregate_projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+    def test_late_runtime_numeric_answer_rejects_dependency_incoherent_trace(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source A",
+                    }
+                },
+            },
+        }
+        state = {
+            "query": "target share",
+            "subtask_results": [source_lookup],
+            "active_subtask": {"metric_label": "target share", "operation_family": "ratio"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "matched_operand_role": "numerator_1",
+                        "label": "target numerator",
+                        "raw_value": "70",
+                        "raw_unit": "unit",
+                        "normalized_value": 70.0,
+                        "normalized_unit": "COUNT",
+                        "source_task_id": "task_num",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source B",
+                    },
+                    {
+                        "operand_id": "den",
+                        "matched_operand_role": "denominator_1",
+                        "label": "target denominator",
+                        "raw_value": "150",
+                        "raw_unit": "unit",
+                        "normalized_value": 150.0,
+                        "normalized_unit": "COUNT",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "(A / B) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 46.6666666667,
+                    "result_unit": "%",
+                    "rendered_value": "46.67%",
+                    "formatted_result": "target share is 46.67%.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "target share",
+                        "primary_value": {"status": "ok", "rendered_value": "46.67%", "normalized_value": 46.6666666667},
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "target numerator",
+                                    "raw_value": "70",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 70.0,
+                                    "normalized_unit": "COUNT",
+                                    "source_task_id": "task_num",
+                                    "source_row_id": "ev_same",
+                                    "source_anchor": "source B",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "target denominator",
+                                    "raw_value": "150",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 150.0,
+                                    "normalized_unit": "COUNT",
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        }
+
+        answer = self.agent._late_runtime_numeric_answer(state, "target share is 80%.")
+
+        self.assertEqual(answer, "")
 
     def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
         original_execute = self.agent._execute_calculation
@@ -12084,6 +12693,115 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
         self.assertNotIn("sibling_table_context_realigned", rows[0])
 
+    def test_dependency_alignment_preserves_task_output_only_row_when_direct_value_conflicts(self) -> None:
+        dependency_rows = [
+            {
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "source_task_id": "task_lookup",
+                "source_row_id": "task_output:task_lookup",
+                "source_row_ids": ["task_output:task_lookup"],
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "ev_direct_num",
+                "source_row_id": "ev_direct_num",
+                "source_row_ids": ["ev_direct_num"],
+                "table_source_id": "table_a",
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "70",
+                "raw_unit": "unit",
+                "normalized_value": 70.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "evidence_id": "ev_direct_den",
+                "source_row_id": "ev_direct_den",
+                "source_row_ids": ["ev_direct_den"],
+                "table_source_id": "table_a",
+                "label": "base value",
+                "matched_operand_label": "base value",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "30",
+                "raw_unit": "unit",
+                "normalized_value": 30.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "120")
+        self.assertEqual(rows[0]["normalized_value"], 120.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup"])
+        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
+        self.assertNotIn("sibling_table_context_realigned", rows[0])
+
+    def test_dependency_alignment_preserves_source_task_row_when_shared_id_has_conflicting_anchor(self) -> None:
+        dependency_rows = [
+            {
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "source_task_id": "task_lookup",
+                "source_row_id": "ev_shared",
+                "source_row_ids": ["ev_shared"],
+                "source_anchor": "source task table",
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "ev_shared",
+                "source_row_id": "ev_shared",
+                "source_row_ids": ["ev_shared"],
+                "source_anchor": "direct sibling table",
+                "table_source_id": "table_a",
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "70",
+                "raw_unit": "unit",
+                "normalized_value": 70.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "evidence_id": "ev_direct_den",
+                "source_row_id": "ev_direct_den",
+                "source_row_ids": ["ev_direct_den"],
+                "source_anchor": "direct sibling table",
+                "table_source_id": "table_a",
+                "label": "base value",
+                "matched_operand_label": "base value",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "30",
+                "raw_unit": "unit",
+                "normalized_value": 30.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "120")
+        self.assertEqual(rows[0]["normalized_value"], 120.0)
+        self.assertEqual(rows[0]["source_anchor"], "source task table")
+        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
+        self.assertNotIn("sibling_table_context_realigned", rows[0])
+
     def test_dependency_alignment_still_realigns_unanchored_row_to_complete_direct_context(self) -> None:
         dependency_rows = [
             {
@@ -12133,6 +12851,273 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows[0]["normalized_value"], 80.0)
         self.assertEqual(rows[0]["source_row_ids"], ["ev_direct_num"])
         self.assertTrue(rows[0]["sibling_table_context_realigned"])
+
+    def test_aggregate_dependency_coherence_infers_source_task_from_matching_slot(self) -> None:
+        source_slots = {
+            "task_lookup": {
+                "status": "ok",
+                "label": "target value",
+                "concept": "target_metric",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "source_anchor": "source task table",
+            }
+        }
+        row = {
+            "operation_family": "ratio",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_role": {
+                        "numerator_1": [
+                            {
+                                "role": "numerator_1",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "70",
+                                "raw_unit": "unit",
+                                "normalized_value": 70.0,
+                                "normalized_unit": "COUNT",
+                                "source_row_id": "ev_shared",
+                                "source_anchor": "direct sibling table",
+                            }
+                        ]
+                    },
+                },
+            },
+        }
+
+        self.assertEqual(
+            self.agent._aggregate_result_dependency_coherence_ranks(row, source_slots)[0],
+            0,
+        )
+
+    def test_compact_ratio_answer_from_projection_rejects_dependency_incoherent_operands(self) -> None:
+        self.agent._compact_ratio_answer = lambda _state, _result: "target share is 70%."
+        state = {
+            "subtask_results": [
+                {
+                    "task_id": "task_lookup",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "120",
+                                "raw_unit": "unit",
+                                "normalized_value": 120.0,
+                                "normalized_unit": "COUNT",
+                                "source_anchor": "source task table",
+                            }
+                        }
+                    },
+                }
+            ]
+        }
+        result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "components_by_role": {
+                    "numerator_1": [
+                        {
+                            "role": "numerator_1",
+                            "label": "target value",
+                            "concept": "target_metric",
+                            "raw_value": "70",
+                            "raw_unit": "unit",
+                            "normalized_value": 70.0,
+                            "normalized_unit": "COUNT",
+                            "source_anchor": "direct sibling table",
+                        }
+                    ],
+                    "denominator_1": [
+                        {
+                            "role": "denominator_1",
+                            "label": "base value",
+                            "concept": "base_metric",
+                            "raw_value": "100",
+                            "raw_unit": "unit",
+                            "normalized_value": 100.0,
+                            "normalized_unit": "COUNT",
+                            "source_anchor": "direct sibling table",
+                        }
+                    ],
+                },
+            },
+        }
+
+        self.assertEqual(
+            self.agent._compact_ratio_answer_from_projection(
+                state,
+                {
+                    "calculation_operands": [],
+                    "calculation_plan": {"operation": "ratio"},
+                    "calculation_result": result,
+                },
+            ),
+            "",
+        )
+
+    def test_preferred_complete_numeric_answer_skips_dependency_incoherent_ratio_row(self) -> None:
+        self.agent._compact_ratio_answer = lambda _state, _result: "target share is 70%."
+        ordered_results = [
+            self._lookup_result_row(
+                task_id="task_lookup",
+                label="target value",
+                concept="target_metric",
+                raw_value="120",
+                raw_unit="unit",
+                normalized_value=120.0,
+                normalized_unit="COUNT",
+                source_anchor="source task table",
+            ),
+            self._ratio_result_row(
+                status="ok",
+                components_by_role={
+                    "numerator_1": [
+                        self._ratio_component(
+                            role="numerator_1",
+                            label="target value",
+                            concept="target_metric",
+                            raw_value="70",
+                            raw_unit="unit",
+                            normalized_value=70.0,
+                            normalized_unit="COUNT",
+                            source_anchor="direct sibling table",
+                        )
+                    ],
+                    "denominator_1": [
+                        self._ratio_component(
+                            role="denominator_1",
+                            label="base value",
+                            concept="base_metric",
+                            raw_value="100",
+                            raw_unit="unit",
+                            normalized_value=100.0,
+                            normalized_unit="COUNT",
+                            source_anchor="direct sibling table",
+                        )
+                    ],
+                },
+            ),
+        ]
+
+        self.assertEqual(self.agent._preferred_complete_numeric_answer(ordered_results), "")
+
+    def test_preferred_complete_numeric_answer_rebuilds_ratio_from_dependency_source_slots(self) -> None:
+        ordered_results = [
+            self._lookup_result_row(
+                task_id="task_num",
+                metric_label="target value",
+                label="target value",
+                concept="target_metric",
+                raw_value="120",
+                normalized_value=120000000.0,
+                rendered_value="120백만원",
+                source_row_id="ev_num",
+                source_anchor="source task table",
+                answer="target value is 120백만원.",
+            ),
+            self._ratio_result_row(
+                status="insufficient_operands",
+                answer="not enough operands",
+                components_by_group={
+                    "operand": [
+                        self._ratio_component(
+                            role="operand",
+                            label="target value",
+                            concept="target_metric",
+                            raw_value="70",
+                            normalized_value=70000000.0,
+                            source_row_id="ev_direct",
+                            source_anchor="direct sibling table",
+                        )
+                    ]
+                },
+            ),
+            self._lookup_result_row(
+                task_id="task_den",
+                metric_label="base value",
+                label="stale sibling value",
+                concept="base_metric",
+                raw_value="70",
+                normalized_value=70000000.0,
+                rendered_value="70백만원",
+                source_row_id="ev_stale",
+                source_anchor="direct sibling table",
+                answer="base value is 150백만원.",
+            ),
+        ]
+
+        answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertIn("80%", answer)
+        self.assertIn("target value", answer)
+        self.assertIn("base value", answer)
+        self.assertNotIn("70", answer)
+
+    def test_preferred_complete_numeric_answer_uses_lookup_metric_label_for_denominator_source(self) -> None:
+        ordered_results = [
+            self._lookup_result_row(
+                task_id="task_num",
+                metric_label="target value",
+                label="target value",
+                concept="metric",
+                raw_value="120",
+                normalized_value=120000000.0,
+                rendered_value="120백만원",
+                source_row_id="ev_num",
+                answer="target value is 120백만원.",
+            ),
+            self._lookup_result_row(
+                task_id="task_part",
+                metric_label="sibling value",
+                label="sibling value",
+                concept="metric",
+                raw_value="30",
+                normalized_value=30000000.0,
+                rendered_value="30백만원",
+                source_row_id="ev_part",
+                answer="sibling value is 30백만원.",
+            ),
+            self._ratio_result_row(
+                status="insufficient_operands",
+                components_by_group={
+                    "operand": [
+                        self._ratio_component(
+                            role="operand",
+                            label="target value",
+                            concept="metric",
+                            raw_value="70",
+                            normalized_value=70000000.0,
+                            source_row_id="ev_direct",
+                        )
+                    ]
+                },
+            ),
+            self._lookup_result_row(
+                task_id="task_den",
+                metric_label="base value",
+                label="value",
+                concept="metric",
+                raw_value="150",
+                normalized_value=150000000.0,
+                rendered_value="150백만원",
+                source_row_id="ev_den",
+                answer="base value is 150백만원.",
+            ),
+        ]
+
+        answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertIn("80%", answer)
+        self.assertIn("base value", answer)
+        self.assertNotIn("400%", answer)
 
     def test_precision_refinement_prefers_more_specific_contextual_row_label(self) -> None:
         row = {

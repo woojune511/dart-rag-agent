@@ -901,13 +901,21 @@ def realign_lookup_row_from_dependency_projection(
 
     source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
     direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
-    if f"task_output:{task_id}" in source_ids:
+    current_source_ids = _clean_source_row_ids([current_slot.get("source_row_id"), current_slot.get("source_row_ids")])
+    direct_current_source_ids = [
+        source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
+    ]
+    self_task_projection = f"task_output:{task_id}" in source_ids
+    source_overlap_required = direct_current_source_ids and direct_source_ids
+    source_ids_disjoint = source_overlap_required and not (set(direct_current_source_ids) & set(direct_source_ids))
+    candidate_anchor = _normalise_spaces(str(candidate.get("source_anchor") or ""))
+    current_anchor = _normalise_spaces(str(current_slot.get("source_anchor") or ""))
+    source_anchor_conflict = bool(candidate_anchor and current_anchor and candidate_anchor != current_anchor)
+    if not self_task_projection and (source_ids_disjoint or source_anchor_conflict):
+        return row, {}, False
+    if self_task_projection:
         candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
         current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
-        current_source_ids = _clean_source_row_ids([current_slot.get("source_row_id"), current_slot.get("source_row_ids")])
-        direct_current_source_ids = [
-            source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
-        ]
         evidence_backed_unit_realignment = bool(
             direct_source_ids
             and (not direct_current_source_ids or bool(set(direct_source_ids) & set(direct_current_source_ids)))

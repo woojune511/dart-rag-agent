@@ -11,6 +11,39 @@
 
 ## 최신 상태
 
+- 2026-06-16 `HYU_T1_034` source-slot ratio rebuild residual을 다시 닫았다.
+  - 이전 refactor 이후 잘못된 incoherent ratio 후보(`44.1%`, `914.97%`
+    계열)는 막았지만, aggregate answer가 이미 확보한 lookup source slots
+    에서 ratio를 다시 조립하지 못하는 상태가 있었다.
+  - 변경은 일반 source-slot / provenance 계약으로 처리했다.
+    - preferred numeric answer path가 lookup/single-value producer slots만
+      source 후보로 보도록 제한했다.
+    - lookup primary slot이 stale이거나 일반 label이면 producer
+      `metric_label`을 source-slot metadata로 보존해 denominator selection에
+      사용한다.
+    - ratio row가 `insufficient_operands`이거나 dependency-incoherent여도
+      numerator/denominator source slots가 material하고 distinct이면
+      deterministic ratio answer를 재구성한다.
+    - projected lookup realignment는 self-task projection은 유지하되,
+      다른 direct provenance끼리는 source id가 disjoint이거나 source
+      anchor가 충돌하면 lookup primary slot을 덮어쓰지 않는다.
+  - focused store-fixed eval-only:
+    - result bundle:
+      `benchmarks/results/focused_hyu_t1_034_after_skip_incoherent_numeric_candidate_2026-06-16/`
+    - `HYU_T1_034`: numeric `PASS`, faithfulness `1.000`, retrieval hit
+      `1.000`, avg score `0.948`.
+    - final answer:
+      `2023년 전체 영업이익에서 차량 부문이 차지하는 비중은 83.81%입니다. 계산: 차량 영업이익 12조 6,773억원 / 전체 영업이익 15조 1,269억원.`
+  - 검증:
+    - targeted ratio source-slot tests: `3` OK
+    - `tests.test_subtask_loop`: `205` OK
+    - related projection/subtask suite: `255` OK
+    - full unittest: `1171` OK
+    - `.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+  - 이 benchmark result bundle과 heartbeat logs는 local experiment artifacts라
+    commit 대상이 아니다.
+
 - 2026-06-15 `HYU_T1_034` ratio binding residual을 store-fixed focused
   eval-only에서 닫았다.
   - 변경은 runtime domain branch가 아니라 dependency projection 계약 보강이다.
