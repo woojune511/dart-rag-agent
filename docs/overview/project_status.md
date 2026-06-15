@@ -50,6 +50,36 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Growth Narrative Payload Close
+
+- Run date: 2026-06-15
+- Scope: `NAV_T2_006` and `KBF_T2_018` focused store-fixed eval-only after
+  growth narrative numeric refresh and runtime/evaluator payload compaction.
+- Related commits:
+  - `64753a2` Stabilize growth narrative numeric refresh
+  - `5188bda` Compact runtime evidence judge payloads
+- Local result bundles summarized, then cleaned:
+  - `benchmarks/results/numeric_first_nav_t2_006_refactor5_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_refactor4_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_payload2_probe_2026-06-15/`
+- `NAV_T2_006`: faithfulness `1.000`, answer relevancy `0.845`,
+  completeness `1.000`, calculation correctness `1.000`, grounded rendering
+  `1.000`, error `0.0%`.
+- `KBF_T2_018`: pre-compaction run was numeric `PASS` but the
+  grounded-rendering judge exceeded the token limit. Post-compaction
+  `payload2` run is numeric `PASS`, numeric equivalence/grounding `1.000`,
+  calculation correctness `1.000`, grounded rendering `1.000`, answer
+  relevancy `0.841`, and no token overflow.
+- Payload note: public runtime evidence for the KBF canary dropped from about
+  `115k` chars to about `23.6k` chars. The persisted full calculation trace
+  can still be large for debugging, but LLM judge prompts now receive compact
+  projections.
+- Runtime principle: the fix is generic metadata/judge-payload projection.
+  No company, question, metric, or benchmark-specific runtime branch was added.
+- Verification: lookup recovery `16` OK, subtask loop `192` OK, financial agent
+  run projection `43` OK, evaluator runtime projection `65` OK, and runtime
+  domain-term audit passed.
+
 ### Latest HYU Ratio Binding Close
 
 - Run date: 2026-06-15

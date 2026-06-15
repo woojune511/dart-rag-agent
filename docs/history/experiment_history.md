@@ -48,6 +48,7 @@
 | [CEL_T1_038 Unit and Final Answer Consistency (2026-06-12)](#cel_t1_038-unit-and-final-answer-consistency-2026-06-12) | margin-drag focused regression | claim-visible `원` unit is preserved through lookup capture, late ratio projection, and query-focused final answer selection |
 | [Financial Graph Calculation Refactor Focused Eval (2026-06-15)](#financial-graph-calculation-refactor-focused-eval-2026-06-15) | aggregate/projection refactor after repeated patching | SKI/POS PASS cases stayed stable; HYU self-ratio regression is blocked and remaining gap is operand binding/table structure |
 | [HYU Ratio Task-Output Rebinding (2026-06-15)](#hyu-ratio-task-output-rebinding-2026-06-15) | HYU_T1_034 late denominator task-output binding | focused eval-only recovered `83.81%` ratio and returned numeric PASS |
+| [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -60,6 +61,59 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)
+
+참조:
+
+- commits:
+  - `64753a2` Stabilize growth narrative numeric refresh
+  - `5188bda` Compact runtime evidence judge payloads
+- local focused result bundles summarized, then cleaned:
+  - `benchmarks/results/numeric_first_nav_t2_006_refactor5_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_refactor4_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_payload2_probe_2026-06-15/`
+- artifact hygiene: these benchmark result bundles were local experiment output
+  and were not staged.
+
+### Context
+
+- After the growth narrative numeric refresh, `NAV_T2_006` and `KBF_T2_018`
+  were numerically healthy in focused eval-only runs.
+- `KBF_T2_018` still exposed an evaluator/runtime payload issue: the
+  grounded-rendering judge received an oversized nested `calculation_result`
+  payload and failed with a token-limit error even though numeric equivalence
+  and grounding were already `1.000`.
+- The runtime evidence symptom was table-backed metadata carrying large
+  serialized table payloads into public evidence items.
+
+### Code / Contract Change
+
+- Caller-facing runtime evidence metadata is compacted before final result
+  projection: large table payload JSON fields are dropped while small
+  provenance, unit, routing, and row-summary metadata are preserved.
+- Trend and grounded-rendering LLM judges receive a compact
+  `calculation_result` projection that omits nested subtask results, retrieved
+  documents, runtime evidence, and debug payloads. Deterministic numeric
+  scoring still uses the full runtime trace.
+- The change stayed generic payload/projection plumbing; no company, question,
+  metric, or benchmark-specific runtime branch was added.
+
+### Focused Results
+
+| Question | Result bundle | Key outcome |
+| --- | --- | --- |
+| `NAV_T2_006` | `numeric_first_nav_t2_006_refactor5_probe_2026-06-15` | faithfulness `1.000`, answer relevancy `0.845`, completeness `1.000`, calculation correctness `1.000`, grounded rendering `1.000`, error `0.0%` |
+| `KBF_T2_018` before payload compaction | `numeric_first_kbf_t2_018_refactor4_probe_2026-06-15` | numeric `PASS`, but grounded-rendering judge hit the token limit; public runtime evidence was about `115k` chars |
+| `KBF_T2_018` after payload compaction | `numeric_first_kbf_t2_018_payload2_probe_2026-06-15` | numeric `PASS`, numeric equivalence/grounding `1.000`, calculation correctness `1.000`, grounded rendering `1.000`, answer relevancy `0.841`, public runtime evidence about `23.6k` chars |
+
+### Validation
+
+- `python -m unittest tests.test_lookup_recovery_policy`: `16` tests OK.
+- `python -m unittest tests.test_subtask_loop`: `192` tests OK.
+- `python -m unittest tests.test_financial_agent_run_projection`: `43` tests OK.
+- `python -m unittest tests.test_evaluator_runtime_projection`: `65` tests OK.
+- `python -m src.ops.audit_runtime_domain_terms`: passed.
 
 ## HYU Ratio Task-Output Rebinding (2026-06-15)
 
