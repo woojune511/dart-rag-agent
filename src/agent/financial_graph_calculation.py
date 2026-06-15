@@ -551,6 +551,13 @@ class FinancialAgentCalculationMixin:
             combined.append(dict(item))
         return combined
 
+    def _evidence_items_by_id(self, evidence_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        return {
+            str(item.get("evidence_id") or "").strip(): dict(item)
+            for item in evidence_items
+            if str(item.get("evidence_id") or "").strip()
+        }
+
     def _enrich_reconciliation_artifact_refs(
         self,
         artifacts: List[Dict[str, Any]],
@@ -1761,11 +1768,7 @@ class FinancialAgentCalculationMixin:
         if operation_family not in {"lookup", "single_value", "ratio"} or not required_operands:
             return direct_structured_rows
 
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_items
-            if str(item.get("evidence_id") or "").strip()
-        }
+        evidence_by_id = self._evidence_items_by_id(evidence_items)
         refined_rows = [dict(row) for row in direct_structured_rows]
 
         for operand in [dict(item) for item in required_operands]:
@@ -1909,11 +1912,7 @@ class FinancialAgentCalculationMixin:
                 evidence_pool.append(dict(item))
         if not evidence_pool:
             return ordered_results
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_pool
-            if str(item.get("evidence_id") or "").strip()
-        }
+        evidence_by_id = self._evidence_items_by_id(evidence_pool)
 
         def _digit_count(value: Any) -> int:
             return len(re.findall(r"\d", str(value or "")))
@@ -2232,11 +2231,7 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_items
-            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-        }
+        evidence_by_id = self._evidence_items_by_id(evidence_items)
         if not evidence_by_id:
             return ordered_results
 
@@ -10301,11 +10296,7 @@ class FinancialAgentCalculationMixin:
         evidence_pool = [dict(item) for item in (evidence_items or []) if isinstance(item, dict)]
         if not evidence_pool:
             return self._align_ratio_operand_units_with_shared_table_context(ordered_operands)
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_pool
-            if str(item.get("evidence_id") or "").strip()
-        }
+        evidence_by_id = self._evidence_items_by_id(evidence_pool)
 
         def _row_as_operand(row: Dict[str, Any]) -> Dict[str, Any]:
             return {
@@ -12592,11 +12583,7 @@ class FinancialAgentCalculationMixin:
     ) -> List[Dict[str, Any]]:
         if not rows or not required_operands:
             return rows
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_items
-            if str(item.get("evidence_id") or "").strip()
-        }
+        evidence_by_id = self._evidence_items_by_id(evidence_items)
         return [
             row
             for row in rows
@@ -13152,11 +13139,7 @@ class FinancialAgentCalculationMixin:
                     len(evidence_items),
                 )
         if direct_structured_rows:
-            evidence_by_id = {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in evidence_items
-                if str(item.get("evidence_id") or "").strip()
-            }
+            evidence_by_id = self._evidence_items_by_id(evidence_items)
             direct_structured_rows = [
                 self._coerce_operand_row_from_evidence(
                     row,
@@ -13221,11 +13204,7 @@ class FinancialAgentCalculationMixin:
                 "direct_target_metric_lookup_preferred": True,
             }
         if direct_structured_rows and required_operands:
-            evidence_by_id = {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in evidence_items
-                if str(item.get("evidence_id") or "").strip()
-            }
+            evidence_by_id = self._evidence_items_by_id(evidence_items)
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
@@ -13248,11 +13227,7 @@ class FinancialAgentCalculationMixin:
                 )
             ]
         if direct_structured_rows and operation_family in {"lookup", "single_value"}:
-            evidence_by_id = {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in evidence_items
-                if str(item.get("evidence_id") or "").strip()
-            }
+            evidence_by_id = self._evidence_items_by_id(evidence_items)
             if required_operands:
                 direct_structured_rows = [
                     row
@@ -13994,11 +13969,7 @@ class FinancialAgentCalculationMixin:
                 {"query": query, "evidence": evidence_text}
             )
             operand_rows: List[Dict[str, Any]] = []
-            evidence_by_id = {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in evidence_items
-                if str(item.get("evidence_id") or "").strip()
-            }
+            evidence_by_id = self._evidence_items_by_id(evidence_items)
             for index, item in enumerate(extracted.operands, start=1):
                 row = item.model_dump()
                 evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
@@ -15355,11 +15326,7 @@ class FinancialAgentCalculationMixin:
         operands: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_items
-            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-        }
+        evidence_by_id = self._evidence_items_by_id(evidence_items)
         if not evidence_by_id:
             return operands
 
