@@ -96,6 +96,91 @@ class SubtaskLoopTests(unittest.TestCase):
             )
         )
 
+    def test_supported_growth_narrative_candidate_selects_uncovered_driver_sentence(self) -> None:
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "metric growth",
+            "operation_family": "growth_rate",
+            "answer": "2023년 metric은 303백만원이며, 2022년 202백만원 대비 50% 증가했습니다.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "growth_rate",
+                "rendered_value": "50%",
+                "formatted_result": "2023년 metric은 303백만원이며, 2022년 202백만원 대비 50% 증가했습니다.",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "metric growth",
+                        "period": "2023",
+                        "rendered_value": "50%",
+                        "raw_value": "50",
+                        "raw_unit": "%",
+                        "normalized_value": 50.0,
+                        "normalized_unit": "PERCENT",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "metric",
+                        "period": "2023",
+                        "rendered_value": "303백만원",
+                        "raw_value": "303",
+                        "raw_unit": "백만원",
+                        "normalized_value": 303_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "metric",
+                        "period": "2022",
+                        "rendered_value": "202백만원",
+                        "raw_value": "202",
+                        "raw_unit": "백만원",
+                        "normalized_value": 202_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                },
+            },
+        }
+        narrative_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "operation_family": "narrative_summary",
+            "answer": "보수적인 관리 강화가 증가 원인입니다.",
+            "status": "ok",
+            "selected_claim_ids": ["driver_1"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "보수적인 관리 강화가 증가 원인입니다.",
+            },
+        }
+        final_answer = (
+            "2023년 metric은 303백만원이며, 2022년 202백만원 대비 50% 증가했습니다. "
+            "보수적인 관리 강화가 증가 원인입니다."
+        )
+        candidate = self.agent._uncovered_supported_growth_narrative_candidate(
+            query="2023년 metric 증가율을 계산하고 원인을 설명해 줘.",
+            answer=final_answer,
+            ordered_results=[growth_row, narrative_row],
+            evidence_items=[
+                {
+                    "evidence_id": "driver_1",
+                    "claim": "보수적인 관리 강화가 증가 원인입니다.",
+                    "quote_span": "보수적인 관리 강화가 증가 원인입니다.",
+                },
+                {
+                    "evidence_id": "driver_2",
+                    "claim": "시장 환경 둔화에 따라 추가 관리가 강화되었으며 이는 metric 증가의 원인 중 하나입니다.",
+                    "quote_span": "시장 환경 둔화에 따라 추가 관리가 강화되었으며 이는 metric 증가의 원인 중 하나입니다.",
+                },
+            ],
+        )
+
+        self.assertIn("시장 환경 둔화", candidate["sentence"])
+        self.assertIn("driver_2", candidate["selected_claim_ids"])
+
     def test_nested_promotion_reads_answer_slot_subtask_results(self) -> None:
         stale_prior = {
             "task_id": "task_prior",

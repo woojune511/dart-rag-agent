@@ -489,6 +489,8 @@ def _narrative_sentence_looks_table_noisy(sentence: str) -> bool:
     numeric_count = len(re.findall(r"\d[\d,]*(?:\.\d+)?%?", text))
     if pipe_count >= 3:
         return True
+    if bracket_header_count >= 3 and re.search(r"\[[a-z_]+:", text.lower()):
+        return True
     if len(text) >= 120 and numeric_count >= 6 and (pipe_count or bullet_count or bracket_header_count):
         return True
     if len(text) >= 180 and numeric_count >= 8:
@@ -3831,6 +3833,42 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
+    def _uncovered_supported_growth_narrative_candidate(
+        self,
+        *,
+        query: str,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        for _score, sentence, claim_ids in self._growth_narrative_sentence_candidates(
+            query=query,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        ):
+            candidate_sentence = _normalise_spaces(sentence)
+            candidate_claim_ids = [str(claim_id).strip() for claim_id in (claim_ids or []) if str(claim_id).strip()]
+            if (
+                not candidate_claim_ids
+                or not candidate_sentence
+                or self._answer_covers_narrative_context(answer, candidate_sentence)
+            ):
+                continue
+            cleaned = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                candidate_sentence,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+            if (
+                not cleaned
+                or not self._sentence_has_growth_explanatory_signal(cleaned)
+                or self._answer_covers_narrative_context(answer, cleaned)
+                or self._growth_answer_has_untraced_numeric_material(cleaned, ordered_results, evidence_items)
+            ):
+                continue
+            return {"sentence": cleaned, "selected_claim_ids": candidate_claim_ids}
+        return {}
+
     def _preferred_complete_nested_numeric_narrative_answer(
         self,
         *,
@@ -3909,7 +3947,10 @@ class FinancialAgentCalculationMixin:
         evidence_items: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
         numeric_text = _normalise_spaces(str(numeric_answer or ""))
-        if not any(self._row_is_narrative_summary(row) for row in ordered_results):
+        current_answer_text = _normalise_spaces(str(current_answer or ""))
+        if not any(self._row_is_narrative_summary(row) for row in ordered_results) and not (
+            current_answer_text and self._query_requests_explanatory_context(query)
+        ):
             return {"answer": numeric_text, "selected_claim_ids": []}
 
         query_text = _normalise_spaces(str(query or ""))
@@ -4029,7 +4070,6 @@ class FinancialAgentCalculationMixin:
 
         row_narrative_parts: List[str] = []
         row_selected_claim_ids: List[str] = []
-        max_driver_sentences = int(CALCULATION_NARRATIVE_POLICY.get("max_growth_driver_sentences") or 4)
         for row in ordered_results:
             if not self._row_is_narrative_summary(row):
                 continue
@@ -5119,7 +5159,17 @@ class FinancialAgentCalculationMixin:
         _apply_candidate(pruned_focus_answer)
         polished_answer = _polish_korean_particle_pairs(final_answer)
         _apply_candidate(polished_answer)
-        if has_narrative_summary and has_growth_rate_result:
+        has_growth_narrative_intent = has_narrative_summary or self._query_requests_explanatory_context(
+            str(state.get("query") or "")
+        )
+        projection_plan = dict(aggregate_projection.get("calculation_plan") or {})
+        projection_result = dict(aggregate_projection.get("calculation_result") or {})
+        has_growth_material = (
+            has_growth_rate_result
+            or str(projection_plan.get("operation") or projection_result.get("operation_family") or "").strip().lower()
+            == "growth_rate"
+        )
+        if has_growth_narrative_intent and has_growth_material:
             final_aligned_results, _final_identity_changed, final_value_changed, _final_alignment_changed = (
                 self._promote_and_align_aggregate_results(
                     ordered_results,
@@ -17417,6 +17467,35 @@ class FinancialAgentCalculationMixin:
                 final_answer=final_answer,
                 selected_claim_ids=selected_claim_ids,
             )
+        projection_plan = dict(aggregate_projection.get("calculation_plan") or {})
+        projection_result = dict(aggregate_projection.get("calculation_result") or {})
+        has_growth_material = (
+            has_growth_rate_result
+            or str(projection_plan.get("operation") or projection_result.get("operation_family") or "").strip().lower()
+            == "growth_rate"
+        )
+        if has_growth_material and self._query_requests_explanatory_context(str(state.get("query") or "")):
+            supported_candidate = self._uncovered_supported_growth_narrative_candidate(
+                query=str(state.get("query") or ""),
+                answer=final_answer,
+                ordered_results=ordered_results,
+                evidence_items=aggregate_evidence_items,
+            )
+            supported_sentence = _normalise_spaces(str(supported_candidate.get("sentence") or ""))
+            if supported_sentence:
+                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
+                    aggregate_projection,
+                    selected_claim_ids,
+                    self._aggregate_answer_candidate(
+                        _normalise_spaces(" ".join([final_answer, supported_sentence])),
+                        selected_claim_ids=supported_candidate.get("selected_claim_ids") or [],
+                    ),
+                )
+                _sync_state(
+                    aggregate_projection=aggregate_projection,
+                    final_answer=final_answer,
+                    selected_claim_ids=selected_claim_ids,
+                )
         _sync_aggregate_locals()
         return self._build_aggregate_completion_update(
             state,
