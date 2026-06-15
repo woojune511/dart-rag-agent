@@ -2868,6 +2868,200 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(result["answer_slots"]["current_value"]["raw_value"], "409,219")
         self.assertEqual(result["answer_slots"]["prior_value"]["raw_value"], "2,600,786")
 
+    def test_period_comparison_realign_does_not_replace_complete_growth_slots(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_weak_table",
+            "source_anchor": "company | 2023 | Notes",
+            "claim": "target metric 193,270 target metric 2023",
+            "quote_span": "target metric 193,270 target metric 2023",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "notes",
+                "table_source_id": "notes::table:1",
+                "table_row_labels_text": "target metric",
+                "table_value_labels_text": "target metric 193,270\ntarget metric 2023",
+            },
+        }
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "target metric growth",
+                "operation_family": "growth_rate",
+                "answer": "4.51%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "4.51%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {"status": "ok", "rendered_value": "4.51%"},
+                        "current_value": {
+                            "status": "ok",
+                            "role": "current_value",
+                            "label": "target metric",
+                            "raw_value": "3,673,524",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3_673_524_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,673,524백만원",
+                            "source_row_id": "task_output:current",
+                            "source_row_ids": ["task_output:current", "row_current"],
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "role": "prior_value",
+                            "label": "target metric",
+                            "raw_value": "3,514,902",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3_514_902_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,514,902백만원",
+                            "source_row_id": "task_output:prior",
+                            "source_row_ids": ["task_output:prior", "row_prior"],
+                        },
+                    },
+                },
+            }
+        ]
+        state = {
+            "query": "calculate year-over-year target metric growth",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "target metric growth",
+                    "operation_family": "growth_rate",
+                    "required_operands": [
+                        {"label": "target metric", "role": "current_period", "required": True},
+                        {"label": "target metric", "role": "prior_period", "required": True},
+                    ],
+                }
+            ],
+        }
+
+        rows = agent._realign_period_comparison_results_from_table_label_context(
+            ordered_results,
+            state,
+            [evidence],
+        )
+
+        self.assertIs(rows, ordered_results)
+        self.assertEqual(rows[0]["calculation_result"]["rendered_value"], "4.51%")
+
+    def test_period_comparison_operand_recovery_uses_seed_table_context_before_dependency_rows(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        agent._surface_contract_numeric_evidence_items = lambda _items, _operands: []
+        agent._direct_target_metric_operand_from_evidence = lambda _state, _items: ({}, {})
+        agent._dependency_binding_resolution_state = lambda _state: {
+            "rows": [
+                {
+                    "operand_id": "current_period",
+                    "matched_operand_role": "current_period",
+                    "matched_operand_label": "target metric",
+                    "raw_value": "900",
+                    "raw_unit": "million",
+                    "normalized_value": 900_000_000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                    "source_anchor": "lookup output",
+                },
+                {
+                    "operand_id": "prior_period",
+                    "matched_operand_role": "prior_period",
+                    "matched_operand_label": "target metric",
+                    "raw_value": "700",
+                    "raw_unit": "million",
+                    "normalized_value": 700_000_000.0,
+                    "normalized_unit": "KRW",
+                    "period": "2022",
+                    "source_anchor": "lookup output",
+                },
+            ],
+            "bindings": [],
+            "resolved_keys": set(),
+            "missing_bindings": [],
+        }
+        stale_visible_doc = SimpleNamespace(
+            page_content="summary table",
+            metadata={
+                "company": "ExampleCo",
+                "year": 2022,
+                "section_path": "III. Financial statements > Summary",
+                "statement_type": "summary_financials",
+                "table_source_id": "summary::table:1",
+                "table_row_labels_text": "target metric",
+                "table_value_labels_text": "target metric 900\ntarget metric 700",
+                "unit_hint": "million",
+            },
+        )
+        seed_comparison_doc = SimpleNamespace(
+            page_content="comparison table",
+            metadata={
+                "company": "ExampleCo",
+                "year": 2023,
+                "section_path": "IV. Management discussion",
+                "statement_type": "mda",
+                "table_source_id": "mda::table:1",
+                "table_row_labels_text": "target metric",
+                "table_value_labels_text": (
+                    "target metric 1,200\n"
+                    "target metric 1,000\n"
+                    "target metric 200\n"
+                    "target metric 20%"
+                ),
+                "unit_hint": "million",
+            },
+        )
+        required_operands = [
+            {
+                "label": "2023 target metric",
+                "aliases": ["target metric"],
+                "concept": "target_metric",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+            {
+                "label": "2022 target metric",
+                "aliases": ["target metric"],
+                "concept": "target_metric",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+        ]
+
+        result = agent._extract_calculation_operands(
+            {
+                "query": "calculate year-over-year target metric growth and summarize the impact",
+                "report_scope": {"year": 2023},
+                "active_subtask": {
+                    "task_id": "task_growth",
+                    "metric_family": "generic_numeric",
+                    "metric_label": "target metric growth",
+                    "operation_family": "growth_rate",
+                    "required_operands": required_operands,
+                },
+                "retrieved_docs": [(stale_visible_doc, 1.0)],
+                "seed_retrieved_docs": [(seed_comparison_doc, 0.9)],
+                "evidence_items": [],
+                "evidence_bullets": [],
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        rows = _resolve_runtime_calculation_trace(result)["calculation_operands"]
+        by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(by_role["current_period"]["raw_value"], "1,200")
+        self.assertEqual(by_role["prior_period"]["raw_value"], "1,000")
+        self.assertEqual(by_role["current_period"]["table_source_id"], "mda::table:1")
+        self.assertEqual(by_role["prior_period"]["table_source_id"], "mda::table:1")
+
     def test_preferred_complete_numeric_answer_joins_multiple_ratio_rows(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 
