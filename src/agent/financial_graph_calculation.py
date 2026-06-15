@@ -7768,19 +7768,21 @@ class FinancialAgentCalculationMixin:
         self,
         ordered_results: List[Dict[str, Any]],
     ) -> Dict[str, Dict[str, Any]]:
-        lookup_task_ids = {
-            _normalise_spaces(str(row.get("task_id") or ""))
-            for row in ordered_results
-            if isinstance(row, dict)
-            and (
-                _normalise_spaces(
-                    str(row.get("operation_family") or self._aggregate_result_operation_family(row) or "")
-                ).lower()
-                in {"lookup", "single_value"}
-                or _normalise_spaces(str(row.get("metric_family") or "")).lower()
-                in {"concept_lookup", "generic_numeric"}
-            )
-        }
+        lookup_task_ids: set[str] = set()
+        metric_label_by_task_id: Dict[str, str] = {}
+        for row in ordered_results:
+            if not isinstance(row, dict):
+                continue
+            task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            if not task_id:
+                continue
+            metric_label_by_task_id[task_id] = _normalise_spaces(str(row.get("metric_label") or ""))
+            operation_family = _normalise_spaces(
+                str(row.get("operation_family") or self._aggregate_result_operation_family(row) or "")
+            ).lower()
+            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+            if operation_family in {"lookup", "single_value"} or metric_family in {"concept_lookup", "generic_numeric"}:
+                lookup_task_ids.add(task_id)
         source_slots = {
             task_id: slot
             for task_id, slot in self._aggregate_source_slot_by_task_id(ordered_results).items()
@@ -7793,11 +7795,6 @@ class FinancialAgentCalculationMixin:
             slot_has_material=self._answer_slot_has_material,
         )
         source_slots.update(dependency_slots)
-        metric_label_by_task_id = {
-            _normalise_spaces(str(row.get("task_id") or "")): _normalise_spaces(str(row.get("metric_label") or ""))
-            for row in ordered_results
-            if isinstance(row, dict)
-        }
         for task_id, slot in list(source_slots.items()):
             metric_label = metric_label_by_task_id.get(task_id, "")
             if metric_label and not slot.get("metric_label"):
