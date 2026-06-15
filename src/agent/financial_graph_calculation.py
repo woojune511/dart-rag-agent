@@ -16289,10 +16289,7 @@ class FinancialAgentCalculationMixin:
                     evidence_items=aggregate_evidence_items,
                 )
                 ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-            aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results,
-                final_answer,
-            )
+            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         if calculation_projection_override:
             for key in ("calculation_operands", "calculation_plan", "calculation_result"):
                 if calculation_projection_override.get(key):
@@ -16310,9 +16307,7 @@ class FinancialAgentCalculationMixin:
         if slot_based_difference_answer:
             final_answer = slot_based_difference_answer
             aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-                sync_rendered_for_aggregate=False,
+                aggregate_projection, final_answer, sync_rendered_for_aggregate=False
             )
         final_answer = self._preserve_source_visible_query_terms(
             final_answer,
@@ -16375,10 +16370,7 @@ class FinancialAgentCalculationMixin:
             )
             if late_aligned_results is not ordered_results:
                 ordered_results = late_aligned_results
-                aggregate_projection = self._rebuild_aggregate_projection(
-                    ordered_results,
-                    final_answer,
-                )
+                aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
             late_supported_answer = self._supported_aggregate_subtask_answer(ordered_results)
             late_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
             late_answer = late_supported_answer or (
@@ -16431,9 +16423,7 @@ class FinancialAgentCalculationMixin:
             docs=narrative_docs,
         )
         aggregate_projection = self._sync_aggregate_projection_final_answer(
-            aggregate_projection,
-            final_answer,
-            status_ok=bool(final_answer and not deterministic_feedback),
+            aggregate_projection, final_answer, status_ok=bool(final_answer and not deterministic_feedback)
         )
         aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
             aggregate_evidence_items,
@@ -16453,10 +16443,7 @@ class FinancialAgentCalculationMixin:
             )
             if source_surface_answer != final_answer:
                 final_answer = source_surface_answer
-                aggregate_projection = self._sync_aggregate_projection_final_answer(
-                    aggregate_projection,
-                    final_answer,
-                )
+                aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         aggregate_state = self._apply_period_context_realignment_to_aggregate(
             aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
             state=state,
@@ -16504,10 +16491,7 @@ class FinancialAgentCalculationMixin:
         )
         if contracted_answer != final_answer:
             final_answer = contracted_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-            )
+            aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
             aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
                 aggregate_evidence_items,
                 operands=list(aggregate_projection.get("calculation_operands") or []),
@@ -16519,10 +16503,7 @@ class FinancialAgentCalculationMixin:
         )
         if source_surface_answer != final_answer:
             final_answer = source_surface_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-            )
+            aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         unresolved_numeric_gap = self._unresolved_structured_numeric_gap(ordered_results)
         blocked_narrative_numeric_gap = bool(
             unresolved_numeric_gap
@@ -16532,10 +16513,7 @@ class FinancialAgentCalculationMixin:
             safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
             if safe_partial_answer and safe_partial_answer != final_answer:
                 final_answer = safe_partial_answer
-                aggregate_projection = self._sync_aggregate_projection_final_answer(
-                    aggregate_projection,
-                    final_answer,
-                )
+                aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         pruned_focus_answer = self._prune_nonfocus_numeric_narrative_sentences(
             final_answer,
             query=str(state.get("query") or ""),
@@ -16544,10 +16522,7 @@ class FinancialAgentCalculationMixin:
         )
         if pruned_focus_answer != final_answer:
             final_answer = pruned_focus_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-            )
+            aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         if (
             final_answer
             and has_narrative_summary
@@ -16561,10 +16536,7 @@ class FinancialAgentCalculationMixin:
             )
             if numeric_preserved_answer != final_answer:
                 final_answer = numeric_preserved_answer
-                aggregate_projection = self._sync_aggregate_projection_final_answer(
-                    aggregate_projection,
-                    final_answer,
-                )
+                aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
                 aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
                     aggregate_evidence_items,
                     operands=list(aggregate_projection.get("calculation_operands") or []),
@@ -16668,17 +16640,11 @@ class FinancialAgentCalculationMixin:
         )
         if pruned_focus_answer != final_answer:
             final_answer = pruned_focus_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-            )
+            aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         polished_answer = _polish_korean_particle_pairs(final_answer)
         if polished_answer != final_answer:
             final_answer = polished_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-            )
+            aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
         if has_narrative_summary and has_growth_rate_result:
             final_promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
             final_projection = self._rebuild_aggregate_projection(final_promoted_results, final_answer)
@@ -16805,10 +16771,7 @@ class FinancialAgentCalculationMixin:
         )
         if post_sync_unit_aligned_results != ordered_results:
             ordered_results = post_sync_unit_aligned_results
-            aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results,
-                final_answer,
-            )
+            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         post_sync_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
         post_sync_aligned_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
@@ -16891,10 +16854,7 @@ class FinancialAgentCalculationMixin:
         )
         if nested_numeric_narrative_answer:
             final_answer = nested_numeric_narrative_answer
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-            )
+            aggregate_projection = self._sync_aggregate_projection_final_answer(aggregate_projection, final_answer)
             final_answer_already_covers_trace = (
                 self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
                 or self._answer_covers_numeric_projection(final_answer, ordered_results)
@@ -16929,9 +16889,7 @@ class FinancialAgentCalculationMixin:
         if compact_ratio_answer and compact_ratio_answer != _normalise_spaces(final_answer):
             final_answer = compact_ratio_answer
             aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-                sync_rendered_for_aggregate=False,
+                aggregate_projection, final_answer, sync_rendered_for_aggregate=False
             )
         aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
             self._filter_final_aggregate_evidence_and_projection(
@@ -17034,9 +16992,7 @@ class FinancialAgentCalculationMixin:
                     ),
                 )
                 aggregate_projection = self._rebuild_aggregate_projection(
-                    ordered_results,
-                    final_answer,
-                    kept_evidence_ids=kept_evidence_ids,
+                    ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
                 )
         post_conflict_nested_numeric_answer = self._preferred_complete_nested_numeric_narrative_answer(
             current_answer=final_answer,
@@ -17046,9 +17002,7 @@ class FinancialAgentCalculationMixin:
         if post_conflict_nested_numeric_answer:
             final_answer = post_conflict_nested_numeric_answer
             aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results,
-                final_answer,
-                kept_evidence_ids=kept_evidence_ids,
+                ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
             )
         preserved_aggregate_candidate = self._preferred_existing_aggregate_artifact_candidate(
             ledger_artifacts,
