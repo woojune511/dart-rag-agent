@@ -16901,6 +16901,93 @@ class FinancialAgentCalculationMixin:
             replan_blocked_reason=replan_blocked_reason,
         )
 
+    def _build_aggregate_completion_update(
+        self,
+        state: FinancialAgentState,
+        *,
+        ordered_results: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+        final_answer: str,
+        selected_claim_ids: List[str],
+        aggregate_evidence_items: List[Dict[str, Any]],
+        ledger_artifacts: List[Dict[str, Any]],
+        planner_feedback: str,
+        should_replan: bool,
+        replan_blocked_reason: str,
+        aggregate_synthesis_debug: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        artifacts = list(ledger_artifacts)
+        tasks = list(state.get("tasks") or [])
+        artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=artifact_id,
+            task_id="aggregate",
+            kind=ArtifactKind.AGGREGATED_ANSWER,
+            status="ok",
+            summary=final_answer[:200],
+            payload={
+                "subtask_results": ordered_results,
+                "final_answer": final_answer,
+                "planner_feedback": planner_feedback,
+                **aggregate_projection,
+            },
+            evidence_refs=selected_claim_ids,
+        )
+        tasks = _upsert_task(
+            tasks,
+            task_id="aggregate",
+            kind=TaskKind.SYNTHESIS,
+            label="Aggregate subtask results",
+            status=TaskStatus.PARTIAL if planner_feedback else TaskStatus.COMPLETED,
+            query=str(state.get("query") or ""),
+            metric_family="aggregate",
+            artifact_id=artifact_id,
+        )
+        tasks, artifacts = self._finalize_aggregate_task_ledger(
+            tasks,
+            artifacts,
+            ordered_results=ordered_results,
+            aggregate_projection=aggregate_projection,
+            aggregate_artifact_id=artifact_id,
+        )
+        aggregate_projection, final_answer, artifacts = self._apply_ratio_projection_answer_if_rendered_missing(
+            state,
+            aggregate_projection,
+            artifact_id=artifact_id,
+            final_answer=final_answer,
+            artifacts=artifacts,
+        )
+        return {
+            "subtask_results": ordered_results,
+            "subtask_loop_complete": True,
+            "answer": final_answer,
+            "compressed_answer": final_answer,
+            "planner_mode": "replan" if should_replan else "initial",
+            "planner_feedback": planner_feedback,
+            "replan_blocked_reason": replan_blocked_reason,
+            "draft_points": [final_answer] if final_answer else [],
+            "selected_claim_ids": selected_claim_ids,
+            "kept_claim_ids": selected_claim_ids,
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [],
+            "tasks": tasks,
+            "artifacts": artifacts,
+            "evidence_items": aggregate_evidence_items or aggregate_projection.get("evidence_items", []),
+            "subtask_debug_trace": {
+                **dict(state.get("subtask_debug_trace") or {}),
+                "aggregate_synthesis_prompt": aggregate_synthesis_debug,
+            },
+            **_runtime_trace_state_update(
+                state,
+                calculation_operands=aggregate_projection["calculation_operands"],
+                calculation_plan=aggregate_projection["calculation_plan"],
+                calculation_result=aggregate_projection["calculation_result"],
+                include_compatibility_mirrors=False,
+            ),
+        }
+
     def _aggregate_calculation_subtasks(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Combine completed subtask outputs into a single caller-facing view."""
         prepared_state = self._prepare_initial_aggregate_state(state)
@@ -17062,6 +17149,11 @@ class FinancialAgentCalculationMixin:
             ordered_results, aggregate_projection, final_answer, selected_claim_ids = mutable_state.synthesis_state
             aggregate_evidence_items = mutable_state.evidence_items
 
+        def _sync_state(**updates: Any) -> None:
+            nonlocal mutable_state
+            mutable_state = self._sync_mutable_aggregate_state(mutable_state, **updates)
+            _sync_aggregate_locals()
+
         aggregate_state = self._apply_period_context_realignment_to_aggregate(
             aggregate_state=mutable_state.synthesis_state,
             state=state,
@@ -17130,7 +17222,7 @@ class FinancialAgentCalculationMixin:
                 ordered_results=ordered_results,
                 evidence_items=aggregate_evidence_items,
             )
-        mutable_state = self._sync_mutable_aggregate_state(mutable_state, final_answer=final_answer)
+        _sync_state(final_answer=final_answer)
         final_conflicting_narrative: Dict[str, Any] = {}
         if not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
             final_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
@@ -17270,11 +17362,7 @@ class FinancialAgentCalculationMixin:
             aggregate_projection,
             final_answer,
         )
-        mutable_state = self._sync_mutable_aggregate_state(
-            mutable_state,
-            ordered_results=ordered_results,
-            aggregate_projection=aggregate_projection,
-        )
+        _sync_state(ordered_results=ordered_results, aggregate_projection=aggregate_projection)
         post_sync_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
             ordered_results,
             aggregate_evidence_items,
@@ -17307,10 +17395,10 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             docs=narrative_docs,
         )
-        mutable_state = self._sync_mutable_aggregate_state(mutable_state, evidence_items=aggregate_evidence_items)
+        _sync_state(evidence_items=aggregate_evidence_items)
         if missing_context_claim_ids:
             selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *missing_context_claim_ids]))
-            mutable_state = self._sync_mutable_aggregate_state(mutable_state, selected_claim_ids=selected_claim_ids)
+            _sync_state(selected_claim_ids=selected_claim_ids)
         late_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
             ordered_results,
             aggregate_evidence_items,
@@ -17385,10 +17473,7 @@ class FinancialAgentCalculationMixin:
             )
             _sync_aggregate_locals()
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-            mutable_state = self._sync_mutable_aggregate_state(
-                mutable_state,
-                aggregate_projection=aggregate_projection,
-            )
+            _sync_state(aggregate_projection=aggregate_projection)
         projection_result = dict(aggregate_projection.get("calculation_result") or {})
         compact_ratio_answer = self._compact_ratio_answer_from_projection(
             state,
@@ -17410,8 +17495,7 @@ class FinancialAgentCalculationMixin:
                 selected_claim_ids=selected_claim_ids,
             )
         )
-        mutable_state = self._sync_mutable_aggregate_state(
-            mutable_state,
+        _sync_state(
             aggregate_projection=aggregate_projection,
             selected_claim_ids=selected_claim_ids,
             evidence_items=aggregate_evidence_items,
@@ -17429,11 +17513,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             final_answer,
         )
-        mutable_state = self._sync_mutable_aggregate_state(
-            mutable_state,
-            aggregate_projection=aggregate_projection,
-            final_answer=final_answer,
-        )
+        _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         aggregate_state = self._apply_stale_projection_repair_to_aggregate_state(
             state=state,
             aggregate_state=mutable_state.synthesis_state,
@@ -17447,11 +17527,7 @@ class FinancialAgentCalculationMixin:
             aggregate_projection,
             final_answer=final_answer,
         )
-        mutable_state = self._sync_mutable_aggregate_state(
-            mutable_state,
-            aggregate_projection=aggregate_projection,
-            final_answer=final_answer,
-        )
+        _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         aggregate_state = self._apply_period_context_realignment_to_aggregate(
             aggregate_state=mutable_state.synthesis_state,
             state=state,
@@ -17514,8 +17590,7 @@ class FinancialAgentCalculationMixin:
                 aggregate_projection = self._rebuild_aggregate_projection(
                     ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
                 )
-                mutable_state = self._sync_mutable_aggregate_state(
-                    mutable_state,
+                _sync_state(
                     aggregate_projection=aggregate_projection,
                     final_answer=final_answer,
                     selected_claim_ids=selected_claim_ids,
@@ -17530,8 +17605,7 @@ class FinancialAgentCalculationMixin:
             aggregate_projection = self._rebuild_aggregate_projection(
                 ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
             )
-            mutable_state = self._sync_mutable_aggregate_state(
-                mutable_state,
+            _sync_state(
                 aggregate_projection=aggregate_projection,
                 final_answer=final_answer,
             )
@@ -17546,84 +17620,25 @@ class FinancialAgentCalculationMixin:
                 selected_claim_ids,
                 preserved_aggregate_candidate,
             )
-            mutable_state = self._sync_mutable_aggregate_state(
-                mutable_state,
+            _sync_state(
                 aggregate_projection=aggregate_projection,
                 final_answer=final_answer,
                 selected_claim_ids=selected_claim_ids,
             )
         _sync_aggregate_locals()
-        artifacts = list(ledger_artifacts)
-        tasks = list(state.get("tasks") or [])
-        artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=artifact_id,
-            task_id="aggregate",
-            kind=ArtifactKind.AGGREGATED_ANSWER,
-            status="ok",
-            summary=final_answer[:200],
-            payload={
-                "subtask_results": ordered_results,
-                "final_answer": final_answer,
-                "planner_feedback": planner_feedback,
-                **aggregate_projection,
-            },
-            evidence_refs=selected_claim_ids,
-        )
-        tasks = _upsert_task(
-            tasks,
-            task_id="aggregate",
-            kind=TaskKind.SYNTHESIS,
-            label="Aggregate subtask results",
-            status=TaskStatus.PARTIAL if planner_feedback else TaskStatus.COMPLETED,
-            query=str(state.get("query") or ""),
-            metric_family="aggregate",
-            artifact_id=artifact_id,
-        )
-        tasks, artifacts = self._finalize_aggregate_task_ledger(
-            tasks,
-            artifacts,
+        return self._build_aggregate_completion_update(
+            state,
             ordered_results=ordered_results,
             aggregate_projection=aggregate_projection,
-            aggregate_artifact_id=artifact_id,
-        )
-        aggregate_projection, final_answer, artifacts = self._apply_ratio_projection_answer_if_rendered_missing(
-            state,
-            aggregate_projection,
-            artifact_id=artifact_id,
             final_answer=final_answer,
-            artifacts=artifacts,
+            selected_claim_ids=selected_claim_ids,
+            aggregate_evidence_items=aggregate_evidence_items,
+            ledger_artifacts=ledger_artifacts,
+            planner_feedback=planner_feedback,
+            should_replan=should_replan,
+            replan_blocked_reason=replan_blocked_reason,
+            aggregate_synthesis_debug=aggregate_synthesis_debug,
         )
-        return {
-            "subtask_results": ordered_results,
-            "subtask_loop_complete": True,
-            "answer": final_answer,
-            "compressed_answer": final_answer,
-            "planner_mode": "replan" if should_replan else "initial",
-            "planner_feedback": planner_feedback,
-            "replan_blocked_reason": replan_blocked_reason,
-            "draft_points": [final_answer] if final_answer else [],
-            "selected_claim_ids": selected_claim_ids,
-            "kept_claim_ids": selected_claim_ids,
-            "dropped_claim_ids": [],
-            "unsupported_sentences": [],
-            "sentence_checks": [],
-            "tasks": tasks,
-            "artifacts": artifacts,
-            "evidence_items": aggregate_evidence_items or aggregate_projection.get("evidence_items", []),
-            "subtask_debug_trace": {
-                **dict(state.get("subtask_debug_trace") or {}),
-                "aggregate_synthesis_prompt": aggregate_synthesis_debug,
-            },
-            **_runtime_trace_state_update(
-                state,
-                calculation_operands=aggregate_projection["calculation_operands"],
-                calculation_plan=aggregate_projection["calculation_plan"],
-                calculation_result=aggregate_projection["calculation_result"],
-                include_compatibility_mirrors=False,
-            ),
-        }
 
     def _prepare_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
         current_count = int(state.get("reflection_count") or 0)
