@@ -2586,7 +2586,11 @@ def _compute_trend_interpretation_correctness(
     prompt = _TREND_INTERPRETATION_PROMPT.format(
         question=example.question,
         expected_direction=expected_direction,
-        result_json=json.dumps(calculation_result, ensure_ascii=False, indent=2),
+        result_json=json.dumps(
+            _compact_calculation_result_for_llm_judge(calculation_result),
+            ensure_ascii=False,
+            indent=2,
+        ),
         answer=answer[:1500],
     )
     try:
@@ -2598,6 +2602,40 @@ def _compute_trend_interpretation_correctness(
     except Exception as exc:
         logger.warning("trend interpretation judge failed: %s", exc)
         return 0.5, str(exc)
+
+
+def _compact_calculation_result_for_llm_judge(calculation_result: Dict[str, Any]) -> Dict[str, Any]:
+    drop_keys = {
+        "subtask_results",
+        "runtime_evidence",
+        "evidence_items",
+        "retrieved_docs",
+        "seed_retrieved_docs",
+        "debug_trace",
+        "retrieval_debug_trace",
+    }
+    max_string_chars = 2_000
+    max_list_items = 12
+
+    def _compact(value: Any, depth: int = 0) -> Any:
+        if depth > 6:
+            return None
+        if isinstance(value, dict):
+            compacted: Dict[str, Any] = {}
+            for key, child in value.items():
+                key_text = str(key)
+                if key_text in drop_keys:
+                    continue
+                compacted[key_text] = _compact(child, depth + 1)
+            return compacted
+        if isinstance(value, list):
+            return [_compact(item, depth + 1) for item in value[:max_list_items]]
+        if isinstance(value, str):
+            return value[:max_string_chars]
+        return value
+
+    result = _compact(dict(calculation_result or {}))
+    return result if isinstance(result, dict) else {}
 
 
 def _compute_grounded_rendering_correctness(
@@ -2614,7 +2652,11 @@ def _compute_grounded_rendering_correctness(
     prompt = _GROUNDED_RENDERING_PROMPT.format(
         question=example.question,
         operands_json=json.dumps(calculation_operands, ensure_ascii=False, indent=2),
-        result_json=json.dumps(calculation_result, ensure_ascii=False, indent=2),
+        result_json=json.dumps(
+            _compact_calculation_result_for_llm_judge(calculation_result),
+            ensure_ascii=False,
+            indent=2,
+        ),
         answer=answer[:1500],
     )
     try:
