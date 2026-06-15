@@ -2659,6 +2659,12 @@ class FinancialAgentCalculationMixin:
             parts.extend([str(primary_slot.get("label") or ""), str(primary_slot.get("concept") or "")])
             return _normalise_spaces(" ".join(part for part in parts if part))
 
+        def _append_ranked_answer(row: Dict[str, Any], answer: str) -> None:
+            calculation_result = dict(row.get("calculation_result") or {})
+            focus_text = _row_focus_text(row, calculation_result)
+            score, label_len = _label_overlap_score(focus_text)
+            answer_parts.append((score, label_len, answer))
+
         source_slot_by_task_id = self._aggregate_dependency_source_slot_by_task_id(ordered_results)
         answer_parts: List[tuple[int, int, str]] = []
         for row in ordered_results:
@@ -2671,10 +2677,7 @@ class FinancialAgentCalculationMixin:
             if operation_family == "ratio" and status != "ok":
                 answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
                 if answer:
-                    calculation_result = dict(row.get("calculation_result") or {})
-                    focus_text = _row_focus_text(row, calculation_result)
-                    score, label_len = _label_overlap_score(focus_text)
-                    answer_parts.append((score, label_len, answer))
+                    _append_ranked_answer(row, answer)
                 continue
             if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
                 continue
@@ -2682,10 +2685,7 @@ class FinancialAgentCalculationMixin:
                 if operation_family == "ratio":
                     answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
                     if answer:
-                        calculation_result = dict(row.get("calculation_result") or {})
-                        focus_text = _row_focus_text(row, calculation_result)
-                        score, label_len = _label_overlap_score(focus_text)
-                        answer_parts.append((score, label_len, answer))
+                        _append_ranked_answer(row, answer)
                 continue
             calculation_result = dict(row.get("calculation_result") or {})
             if operation_family == "growth_rate":
@@ -2697,9 +2697,7 @@ class FinancialAgentCalculationMixin:
                     evidence_items=evidence_items,
                 )
                 if answer:
-                    focus_text = _row_focus_text(row, calculation_result)
-                    score, label_len = _label_overlap_score(focus_text)
-                    answer_parts.append((score, label_len, answer))
+                    _append_ranked_answer(row, answer)
                     continue
             if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
                 answer = self._compact_ratio_answer(
@@ -2716,9 +2714,7 @@ class FinancialAgentCalculationMixin:
                     calculation_result,
                 )
                 if answer:
-                    focus_text = _row_focus_text(row, calculation_result)
-                    score, label_len = _label_overlap_score(focus_text)
-                    answer_parts.append((score, label_len, answer))
+                    _append_ranked_answer(row, answer)
                     continue
             answer = _normalise_spaces(
                 str(
@@ -2729,9 +2725,7 @@ class FinancialAgentCalculationMixin:
                 )
             )
             if answer:
-                focus_text = _row_focus_text(row, calculation_result)
-                score, label_len = _label_overlap_score(focus_text)
-                answer_parts.append((score, label_len, answer))
+                _append_ranked_answer(row, answer)
         if query_terms and answer_parts:
             best_score = max(score for score, _label_len, _answer in answer_parts)
             if best_score > 0:
