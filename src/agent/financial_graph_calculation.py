@@ -558,6 +558,38 @@ class FinancialAgentCalculationMixin:
             if str(item.get("evidence_id") or "").strip()
         }
 
+    @staticmethod
+    def _known_consolidation_scope_value(*values: Any) -> str:
+        policy_values = {
+            str(scope): tuple(str(marker).lower() for marker in (markers or ()) if str(marker))
+            for scope, markers in dict(CONSOLIDATION_SCOPE_POLICY.get("metadata_values") or {}).items()
+        }
+        for value in values:
+            scope = _normalise_spaces(str(value or "")).lower()
+            if not scope:
+                continue
+            if scope in {"consolidated", "separate"}:
+                return scope
+            exact_scope = next(
+                (
+                    candidate_scope
+                    for candidate_scope, markers in policy_values.items()
+                    if scope in markers
+                ),
+                "",
+            )
+            if exact_scope:
+                return exact_scope
+            marker_matches = [
+                (len(marker), candidate_scope)
+                for candidate_scope, markers in policy_values.items()
+                for marker in markers
+                if marker and marker in scope
+            ]
+            if marker_matches:
+                return max(marker_matches)[1]
+        return ""
+
     def _enrich_reconciliation_artifact_refs(
         self,
         artifacts: List[Dict[str, Any]],
@@ -6605,6 +6637,9 @@ class FinancialAgentCalculationMixin:
             sibling_row = sibling_rows.get(preferred_task_id)
             if not sibling_row:
                 continue
+            sibling_evidence_by_id = self._evidence_items_by_id(
+                [dict(item) for item in (sibling_row.get("runtime_evidence") or []) if isinstance(item, dict)]
+            )
             sibling_result = dict(sibling_row.get("calculation_result") or {})
             answer_slots = dict(sibling_result.get("answer_slots") or {})
             source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
@@ -6666,7 +6701,11 @@ class FinancialAgentCalculationMixin:
             if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row, state=state):
                 continue
             source_slot_from_answer_slots = True
-            current_evidence = self._evidence_item_for_operand_row(source_slot, evidence_by_id)
+            current_evidence = self._evidence_item_for_operand_row(
+                source_slot,
+                sibling_evidence_by_id,
+            ) or self._evidence_item_for_operand_row(source_slot, evidence_by_id)
+            current_metadata = dict((current_evidence or {}).get("metadata") or {})
             current_score = (
                 self._direct_structured_lookup_evidence_score(binding, current_evidence)
                 if current_evidence
@@ -6674,6 +6713,22 @@ class FinancialAgentCalculationMixin:
             )
             preferred_slot: Dict[str, Any] = {}
             preferred_score = 0.0
+
+            def _candidate_slot_scope_conflicts_current(slot: Dict[str, Any]) -> bool:
+                current_scope = self._known_consolidation_scope_value(
+                    source_slot.get("consolidation_scope"),
+                    current_metadata.get("consolidation_scope"),
+                )
+                if not current_scope:
+                    return False
+                candidate_evidence = self._evidence_item_for_operand_row(slot, evidence_by_id)
+                candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
+                candidate_scope = self._known_consolidation_scope_value(
+                    slot.get("consolidation_scope"),
+                    candidate_metadata.get("consolidation_scope"),
+                )
+                return bool(candidate_scope and candidate_scope != current_scope)
+
             if source_slot_from_answer_slots and "retrieval" in source_preference:
                 source_raw_number = _parse_number_text(str(source_slot.get("raw_value") or ""))
                 preferred_raw_number = None
@@ -6682,6 +6737,9 @@ class FinancialAgentCalculationMixin:
                     evidence_pool,
                     state=state,
                 )
+                if candidate_slot and _candidate_slot_scope_conflicts_current(candidate_slot):
+                    candidate_slot = {}
+                    candidate_score = 0.0
                 def _candidate_slot_has_sibling_input_context(slot: Dict[str, Any]) -> bool:
                     candidate_evidence = self._evidence_item_for_operand_row(slot, evidence_by_id)
                     if not candidate_evidence:
@@ -6733,6 +6791,7 @@ class FinancialAgentCalculationMixin:
                         table_label_slot
                         and table_label_score > sibling_candidate_score
                         and _candidate_slot_has_sibling_input_context(table_label_slot)
+                        and not _candidate_slot_scope_conflicts_current(table_label_slot)
                     ):
                         sibling_candidate_slot = table_label_slot
                         sibling_candidate_score = table_label_score
@@ -6761,6 +6820,9 @@ class FinancialAgentCalculationMixin:
                     evidence_pool,
                     state=state,
                 )
+                if preferred_slot and _candidate_slot_scope_conflicts_current(preferred_slot):
+                    preferred_slot = {}
+                    preferred_score = 0.0
             if preferred_slot and preferred_score > current_score:
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
@@ -6859,7 +6921,14 @@ class FinancialAgentCalculationMixin:
                 matched_operand_candidate.get("source_row_ids"),
                 sibling_result.get("source_row_ids"),
             ])
+            selected_evidence = self._evidence_item_for_operand_row(
+                source_slot,
+                sibling_evidence_by_id,
+            ) or self._evidence_item_for_operand_row(source_slot, evidence_by_id)
+            selected_metadata = dict((selected_evidence or current_evidence or {}).get("metadata") or {})
             source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
+            if not source_anchor and selected_evidence:
+                source_anchor = _normalise_spaces(str(selected_evidence.get("source_anchor") or ""))
             if not source_anchor:
                 for evidence_id in source_row_ids:
                     if str(evidence_id).startswith("task_output:"):
@@ -6896,13 +6965,29 @@ class FinancialAgentCalculationMixin:
                 "normalized_unit": normalized_unit,
                 "period": _normalise_spaces(str(source_slot.get("period") or binding.get("period") or "")),
                 "consolidation_scope": _normalise_spaces(
-                    str(source_slot.get("consolidation_scope") or matched_operand_candidate.get("consolidation_scope") or "")
+                    str(
+                        source_slot.get("consolidation_scope")
+                        or matched_operand_candidate.get("consolidation_scope")
+                        or self._known_consolidation_scope_value(selected_metadata.get("consolidation_scope"))
+                        or selected_metadata.get("consolidation_scope")
+                        or ""
+                    )
                 ),
                 "statement_type": _normalise_spaces(
-                    str(source_slot.get("statement_type") or matched_operand_candidate.get("statement_type") or "")
+                    str(
+                        source_slot.get("statement_type")
+                        or matched_operand_candidate.get("statement_type")
+                        or selected_metadata.get("statement_type")
+                        or ""
+                    )
                 ),
                 "table_source_id": _normalise_spaces(
-                    str(source_slot.get("table_source_id") or matched_operand_candidate.get("table_source_id") or "")
+                    str(
+                        source_slot.get("table_source_id")
+                        or matched_operand_candidate.get("table_source_id")
+                        or selected_metadata.get("table_source_id")
+                        or ""
+                    )
                 ),
                 "value_role": _normalise_spaces(
                     str(source_slot.get("value_role") or matched_operand_candidate.get("value_role") or "")
@@ -10346,6 +10431,17 @@ class FinancialAgentCalculationMixin:
                         return True
             return False
 
+        def _peer_consolidation_scopes(current_row: Dict[str, Any]) -> set[str]:
+            current_id = str(current_row.get("operand_id") or "")
+            scopes: set[str] = set()
+            for other_row in ordered_operands:
+                if current_id and str(other_row.get("operand_id") or "") == current_id:
+                    continue
+                scope = self._known_consolidation_scope_value(other_row.get("consolidation_scope"))
+                if scope:
+                    scopes.add(scope)
+            return scopes
+
         aligned: List[Dict[str, Any]] = []
         changed = False
         for row in ordered_operands:
@@ -10375,6 +10471,23 @@ class FinancialAgentCalculationMixin:
             if candidate_identity_surface and not _operand_text_match(candidate_identity_surface, operand):
                 aligned.append(current_row)
                 continue
+            candidate_evidence = self._evidence_item_for_operand_row(candidate_slot, evidence_by_id)
+            candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
+            candidate_scope = self._known_consolidation_scope_value(
+                candidate_slot.get("consolidation_scope"),
+                candidate_metadata.get("consolidation_scope"),
+            )
+            current_scope = self._known_consolidation_scope_value(current_row.get("consolidation_scope"))
+            peer_scopes = _peer_consolidation_scopes(current_row)
+            if (
+                candidate_scope
+                and (
+                    (current_scope and candidate_scope != current_scope)
+                    or (len(peer_scopes) == 1 and candidate_scope not in peer_scopes)
+                )
+            ):
+                aligned.append(current_row)
+                continue
             segment_label = _normalise_spaces(
                 str(
                     dict(current_row.get("binding_policy") or {}).get("segment_label")
@@ -10384,8 +10497,6 @@ class FinancialAgentCalculationMixin:
             )
             segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
             if segment_label:
-                candidate_evidence = self._evidence_item_for_operand_row(candidate_slot, evidence_by_id)
-                candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
                 candidate_segment_surfaces = (
                     (candidate_evidence or {}).get("claim"),
                     (candidate_evidence or {}).get("quote_span"),
@@ -10434,6 +10545,11 @@ class FinancialAgentCalculationMixin:
                     "normalized_value": candidate_slot.get("normalized_value"),
                     "normalized_unit": candidate_slot.get("normalized_unit"),
                     "period": candidate_slot.get("period") or current_row.get("period"),
+                    "consolidation_scope": (
+                        candidate_slot.get("consolidation_scope")
+                        or candidate_metadata.get("consolidation_scope")
+                        or current_row.get("consolidation_scope")
+                    ),
                     "sibling_table_context_realigned": True,
                 }
             )

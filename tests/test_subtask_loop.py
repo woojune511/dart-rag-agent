@@ -881,6 +881,122 @@ class SubtaskLoopTests(unittest.TestCase):
             "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
         )
 
+    def test_dependency_rows_preserve_task_output_when_retrieval_scope_conflicts_evidence_metadata(self) -> None:
+        state = {
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "numerator",
+                        "concept": "operating_income",
+                        "period": "2023",
+                        "label": "target metric",
+                        "preferred_task_id": "task_target",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator",
+                        "concept": "operating_income",
+                        "period": "2023",
+                        "label": "total metric",
+                        "preferred_task_id": "task_total",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    },
+                ]
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_target",
+                    "metric_label": "target metric",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_target",
+                            "source_anchor": "[ACME | 2023 | note]",
+                            "metadata": {"consolidation_scope": "연결 기준으로 판단"},
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "target metric",
+                                "concept": "operating_income",
+                                "period": "2023",
+                                "raw_value": "120",
+                                "raw_unit": "unit",
+                                "normalized_value": 120.0,
+                                "normalized_unit": "COUNT",
+                                "rendered_value": "120unit",
+                                "source_row_id": "ev_target",
+                                "source_row_ids": ["ev_target"],
+                            }
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_total",
+                    "metric_label": "total metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "total metric",
+                                "concept": "operating_income",
+                                "period": "2023",
+                                "raw_value": "150",
+                                "raw_unit": "unit",
+                                "normalized_value": 150.0,
+                                "normalized_unit": "COUNT",
+                                "rendered_value": "150unit",
+                                "source_row_id": "ev_total",
+                                "source_row_ids": ["ev_total"],
+                            }
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_target",
+                    "claim": "target metric 70; total metric 150",
+                    "raw_row_text": "target metric 70; total metric 150",
+                    "metadata": {
+                        "table_value_labels_text": "target metric total metric",
+                        "consolidation_scope": "separate",
+                    },
+                }
+            ],
+        }
+        separate_slot = {
+            "label": "target metric",
+            "matched_operand_label": "target metric",
+            "matched_operand_role": "numerator",
+            "raw_value": "70",
+            "raw_unit": "unit",
+            "normalized_value": 70.0,
+            "normalized_unit": "COUNT",
+            "period": "2023",
+            "source_row_id": "ev_target",
+            "source_row_ids": ["ev_target"],
+            "consolidation_scope": "separate",
+        }
+        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
+        self.agent._best_direct_lookup_slot_from_evidence_pool_compat = (
+            lambda binding, _pool, state=None: (dict(separate_slot), 10.0)
+            if binding.get("label") == "target metric"
+            else ({}, 0.0)
+        )
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(rows[0]["raw_value"], "120")
+        self.assertEqual(rows[0]["normalized_value"], 120.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_target", "ev_target"])
+        self.assertEqual(rows[0]["consolidation_scope"], "consolidated")
+
     def test_growth_rate_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
             "query": "2023년 시설투자(CAPEX) 총액과 전년 대비 증감률을 계산해 줘.",
@@ -2395,6 +2511,68 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(aligned[1]["original_raw_unit"], smaller_unit)
         self.assertEqual(aligned[1]["normalized_value"], 258_935_494 * scale_by_unit[larger_unit])
         self.assertTrue(aligned[1]["ratio_unit_aligned_from_sibling_table"])
+
+    def test_ratio_operand_alignment_rejects_direct_candidate_with_conflicting_scope(self) -> None:
+        ordered_operands = [
+            {
+                "operand_id": "numerator",
+                "label": "target metric",
+                "matched_operand_label": "target metric",
+                "matched_operand_role": "numerator",
+                "period": "2023",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "consolidation_scope": "consolidated",
+                "source_row_ids": ["task_output:numerator", "ev_consolidated_numerator"],
+            },
+            {
+                "operand_id": "denominator",
+                "label": "total metric",
+                "matched_operand_label": "total metric",
+                "matched_operand_role": "denominator",
+                "period": "2023",
+                "raw_value": "150",
+                "raw_unit": "unit",
+                "normalized_value": 150.0,
+                "normalized_unit": "COUNT",
+                "consolidation_scope": "consolidated",
+                "source_row_ids": ["ev_consolidated_denominator"],
+            },
+        ]
+        direct_slot = {
+            "label": "target metric",
+            "matched_operand_label": "target metric",
+            "matched_operand_role": "numerator",
+            "raw_value": "70",
+            "raw_unit": "unit",
+            "normalized_value": 70.0,
+            "normalized_unit": "COUNT",
+            "period": "2023",
+            "source_row_id": "ev_separate_numerator",
+            "source_row_ids": ["ev_separate_numerator"],
+            "consolidation_scope": "separate",
+        }
+        evidence_items = [
+            {
+                "evidence_id": "ev_separate_numerator",
+                "claim": "target metric 70; total metric 150",
+                "raw_row_text": "target metric 70; total metric 150",
+                "metadata": {
+                    "table_value_labels_text": "target metric total metric",
+                    "consolidation_scope": "separate",
+                },
+            }
+        ]
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (dict(direct_slot), 10.0)
+
+        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, evidence_items)
+
+        self.assertEqual(aligned[0]["raw_value"], "120")
+        self.assertEqual(aligned[0]["normalized_value"], 120.0)
+        self.assertEqual(aligned[0]["source_row_ids"], ["task_output:numerator", "ev_consolidated_numerator"])
+        self.assertNotIn("sibling_table_context_realigned", aligned[0])
 
     def test_best_direct_lookup_slot_rejects_ambiguous_context_table_without_scope(self) -> None:
         operand = {
