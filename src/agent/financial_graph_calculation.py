@@ -529,6 +529,28 @@ class FinancialAgentCalculationMixin:
             )
         return list(dict.fromkeys(refs))
 
+    def _evidence_items_with_runtime(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        state: FinancialAgentState,
+    ) -> List[Dict[str, Any]]:
+        combined = list(evidence_items)
+        existing_ids = {
+            str(item.get("evidence_id") or "").strip()
+            for item in combined
+            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+        }
+        for item in state.get("runtime_evidence") or []:
+            if not isinstance(item, dict):
+                continue
+            evidence_id = str(item.get("evidence_id") or "").strip()
+            if evidence_id and evidence_id in existing_ids:
+                continue
+            if evidence_id:
+                existing_ids.add(evidence_id)
+            combined.append(dict(item))
+        return combined
+
     def _enrich_reconciliation_artifact_refs(
         self,
         artifacts: List[Dict[str, Any]],
@@ -13252,52 +13274,17 @@ class FinancialAgentCalculationMixin:
                 )
             ]
         if direct_structured_rows and required_operands and operation_family in {"lookup", "single_value"}:
-            evidence_by_id = {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in evidence_items
-                if str(item.get("evidence_id") or "").strip()
-            }
-            lookup_preference_evidence = list(evidence_items)
-            existing_preference_ids = {
-                str(item.get("evidence_id") or "").strip()
-                for item in lookup_preference_evidence
-                if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-            }
-            for item in state.get("runtime_evidence") or []:
-                if not isinstance(item, dict):
-                    continue
-                evidence_id = str(item.get("evidence_id") or "").strip()
-                if evidence_id and evidence_id in existing_preference_ids:
-                    continue
-                if evidence_id:
-                    existing_preference_ids.add(evidence_id)
-                lookup_preference_evidence.append(dict(item))
             direct_structured_rows = self._prefer_direct_structured_lookup_evidence_rows(
                 direct_structured_rows,
-                evidence_items=lookup_preference_evidence,
+                evidence_items=self._evidence_items_with_runtime(evidence_items, state),
                 required_operands=required_operands,
                 operation_family=operation_family,
                 state=state,
             )
         if direct_structured_rows and required_operands and operation_family == "ratio":
-            ratio_preference_evidence = list(evidence_items)
-            existing_preference_ids = {
-                str(item.get("evidence_id") or "").strip()
-                for item in ratio_preference_evidence
-                if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-            }
-            for item in state.get("runtime_evidence") or []:
-                if not isinstance(item, dict):
-                    continue
-                evidence_id = str(item.get("evidence_id") or "").strip()
-                if evidence_id and evidence_id in existing_preference_ids:
-                    continue
-                if evidence_id:
-                    existing_preference_ids.add(evidence_id)
-                ratio_preference_evidence.append(dict(item))
             direct_structured_rows = self._prefer_direct_structured_evidence_rows(
                 direct_structured_rows,
-                evidence_items=ratio_preference_evidence,
+                evidence_items=self._evidence_items_with_runtime(evidence_items, state),
                 required_operands=required_operands,
                 operation_family=operation_family,
                 state=state,
