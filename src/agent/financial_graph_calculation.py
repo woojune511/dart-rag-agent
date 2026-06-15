@@ -11,7 +11,7 @@ This module owns the structured numeric path after reconciliation:
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_dependency_projection import (
@@ -77,6 +77,13 @@ from src.config.retrieval_policy import (
 from src.schema import ArtifactKind, TaskKind, TaskStatus
 
 logger = logging.getLogger(__name__)
+
+
+class _AggregateSynthesisState(NamedTuple):
+    ordered_results: List[Dict[str, Any]]
+    aggregate_projection: Dict[str, Any]
+    final_answer: str
+    selected_claim_ids: List[str]
 
 
 def _inline_unit_match_has_right_boundary(
@@ -4422,22 +4429,22 @@ class FinancialAgentCalculationMixin:
     def _apply_period_context_realignment_to_aggregate(
         self,
         *,
-        ordered_results: List[Dict[str, Any]],
+        aggregate_state: _AggregateSynthesisState,
         state: FinancialAgentState,
         evidence_items: List[Dict[str, Any]],
-        aggregate_projection: Dict[str, Any],
-        final_answer: str,
-        selected_claim_ids: List[str],
         kept_evidence_ids: Optional[set[str]] = None,
-    ) -> tuple[List[Dict[str, Any]], Dict[str, Any], str, List[str]]:
+    ) -> _AggregateSynthesisState:
         realigned_results = self._realign_period_comparison_results_from_table_label_context(
-            ordered_results,
+            aggregate_state.ordered_results,
             state,
             evidence_items,
         )
-        if realigned_results is ordered_results:
-            return ordered_results, aggregate_projection, final_answer, selected_claim_ids
+        if realigned_results is aggregate_state.ordered_results:
+            return aggregate_state
         ordered_results = realigned_results
+        aggregate_projection = aggregate_state.aggregate_projection
+        final_answer = aggregate_state.final_answer
+        selected_claim_ids = aggregate_state.selected_claim_ids
         refreshed_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if refreshed_numeric_answer and self._complete_numeric_answer_can_replace_final(
             refreshed_numeric_answer,
@@ -4460,7 +4467,7 @@ class FinancialAgentCalculationMixin:
             final_answer,
             kept_evidence_ids=kept_evidence_ids,
         )
-        return ordered_results, aggregate_projection, final_answer, selected_claim_ids
+        return _AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids)
 
     def _sync_aggregate_artifact_projection_payload(
         self,
@@ -16228,16 +16235,12 @@ class FinancialAgentCalculationMixin:
             )
         )
         aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = (
-            self._apply_period_context_realignment_to_aggregate(
-                ordered_results=ordered_results,
-                state=state,
-                evidence_items=aggregate_evidence_items,
-                aggregate_projection=aggregate_projection,
-                final_answer=final_answer,
-                selected_claim_ids=selected_claim_ids,
-            )
+        aggregate_state = self._apply_period_context_realignment_to_aggregate(
+            aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            state=state,
+            evidence_items=aggregate_evidence_items,
         )
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         aligned_ordered_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
             state,
@@ -16445,16 +16448,12 @@ class FinancialAgentCalculationMixin:
                     aggregate_projection,
                     final_answer,
                 )
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = (
-            self._apply_period_context_realignment_to_aggregate(
-                ordered_results=ordered_results,
-                state=state,
-                evidence_items=aggregate_evidence_items,
-                aggregate_projection=aggregate_projection,
-                final_answer=final_answer,
-                selected_claim_ids=selected_claim_ids,
-            )
+        aggregate_state = self._apply_period_context_realignment_to_aggregate(
+            aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            state=state,
+            evidence_items=aggregate_evidence_items,
         )
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         if has_narrative_summary and not self._answer_satisfies_growth_narrative_intent(
             query=str(state.get("query") or ""),
             answer=final_answer,
@@ -17011,17 +17010,13 @@ class FinancialAgentCalculationMixin:
             aggregate_projection,
             final_answer=final_answer,
         )
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = (
-            self._apply_period_context_realignment_to_aggregate(
-                ordered_results=ordered_results,
-                state=state,
-                evidence_items=aggregate_evidence_items,
-                aggregate_projection=aggregate_projection,
-                final_answer=final_answer,
-                selected_claim_ids=selected_claim_ids,
-                kept_evidence_ids=kept_evidence_ids,
-            )
+        aggregate_state = self._apply_period_context_realignment_to_aggregate(
+            aggregate_state=_AggregateSynthesisState(ordered_results, aggregate_projection, final_answer, selected_claim_ids),
+            state=state,
+            evidence_items=aggregate_evidence_items,
+            kept_evidence_ids=kept_evidence_ids,
         )
+        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         late_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
             query=str(state.get("query") or ""),
             ordered_results=ordered_results,
