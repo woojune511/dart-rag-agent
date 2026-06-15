@@ -183,6 +183,44 @@ def collect_table_label_evidence_candidates(
     return candidates
 
 
+def _dependency_operand_from_slot(
+    operand: Dict[str, Any],
+    slot: Dict[str, Any],
+    *,
+    source_row_ids: List[str],
+    evidence_id: Any,
+    source_row_id: Any,
+    extra_fields: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    row = {
+        **dict(operand),
+        "evidence_id": evidence_id,
+        "source_row_id": source_row_id,
+        "source_row_ids": source_row_ids,
+        "normalized_value": slot.get("normalized_value"),
+        "normalized_unit": _normalise_spaces(
+            str(slot.get("normalized_unit") or operand.get("normalized_unit") or "UNKNOWN")
+        ).upper()
+        or "UNKNOWN",
+        "matched_operand_label": _normalise_spaces(
+            str(operand.get("matched_operand_label") or slot.get("label") or "")
+        ),
+        "matched_operand_concept": _normalise_spaces(
+            str(operand.get("matched_operand_concept") or slot.get("concept") or "")
+        ),
+        "matched_operand_role": _normalise_spaces(
+            str(operand.get("matched_operand_role") or operand.get("role") or slot.get("role") or "")
+        ),
+        "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
+        "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
+    }
+    for key in ("source_anchor", "label", "raw_value", "raw_unit", "period"):
+        row[key] = _normalise_spaces(str(slot.get(key) or operand.get(key) or ""))
+    if extra_fields:
+        row.update(extra_fields)
+    return row
+
+
 def dependency_operand_from_source_slot(
     operand: Dict[str, Any],
     slot: Dict[str, Any],
@@ -194,37 +232,19 @@ def dependency_operand_from_source_slot(
         slot.get("source_row_id"),
         slot.get("source_row_ids"),
     ])
-    role = _normalise_spaces(
-        str(operand.get("matched_operand_role") or operand.get("role") or slot.get("role") or "")
+    task_output_id = f"task_output:{source_task_id}"
+    return _dependency_operand_from_slot(
+        operand,
+        slot,
+        source_row_ids=source_row_ids or [task_output_id],
+        evidence_id=task_output_id,
+        source_row_id=source_row_ids[0] if source_row_ids else task_output_id,
+        extra_fields={
+            "source_task_id": source_task_id,
+            "source_slot": _normalise_spaces(str(operand.get("source_slot") or "primary_value")) or "primary_value",
+            "dependency_resolved": True,
+        },
     )
-    return {
-        **dict(operand),
-        "evidence_id": f"task_output:{source_task_id}",
-        "source_row_id": source_row_ids[0] if source_row_ids else f"task_output:{source_task_id}",
-        "source_row_ids": source_row_ids or [f"task_output:{source_task_id}"],
-        "source_anchor": _normalise_spaces(str(slot.get("source_anchor") or operand.get("source_anchor") or "")),
-        "label": _normalise_spaces(str(slot.get("label") or operand.get("label") or "")),
-        "raw_value": _normalise_spaces(str(slot.get("raw_value") or operand.get("raw_value") or "")),
-        "raw_unit": _normalise_spaces(str(slot.get("raw_unit") or operand.get("raw_unit") or "")),
-        "normalized_value": slot.get("normalized_value"),
-        "normalized_unit": _normalise_spaces(
-            str(slot.get("normalized_unit") or operand.get("normalized_unit") or "UNKNOWN")
-        ).upper()
-        or "UNKNOWN",
-        "period": _normalise_spaces(str(slot.get("period") or operand.get("period") or "")),
-        "matched_operand_label": _normalise_spaces(
-            str(operand.get("matched_operand_label") or slot.get("label") or "")
-        ),
-        "matched_operand_concept": _normalise_spaces(
-            str(operand.get("matched_operand_concept") or slot.get("concept") or "")
-        ),
-        "matched_operand_role": role,
-        "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
-        "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
-        "source_task_id": source_task_id,
-        "source_slot": _normalise_spaces(str(operand.get("source_slot") or "primary_value")) or "primary_value",
-        "dependency_resolved": True,
-    }
 
 
 def dependency_operand_from_answer_slot(
@@ -232,34 +252,13 @@ def dependency_operand_from_answer_slot(
     slot: Dict[str, Any],
 ) -> Dict[str, Any]:
     source_row_ids = _clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")])
-    role = _normalise_spaces(
-        str(operand.get("matched_operand_role") or operand.get("role") or slot.get("role") or "")
+    return _dependency_operand_from_slot(
+        operand,
+        slot,
+        source_row_ids=source_row_ids,
+        evidence_id=source_row_ids[0] if source_row_ids else operand.get("evidence_id"),
+        source_row_id=source_row_ids[0] if source_row_ids else operand.get("source_row_id"),
     )
-    return {
-        **dict(operand),
-        "evidence_id": source_row_ids[0] if source_row_ids else operand.get("evidence_id"),
-        "source_row_id": source_row_ids[0] if source_row_ids else operand.get("source_row_id"),
-        "source_row_ids": source_row_ids,
-        "source_anchor": _normalise_spaces(str(slot.get("source_anchor") or operand.get("source_anchor") or "")),
-        "label": _normalise_spaces(str(slot.get("label") or operand.get("label") or "")),
-        "raw_value": _normalise_spaces(str(slot.get("raw_value") or operand.get("raw_value") or "")),
-        "raw_unit": _normalise_spaces(str(slot.get("raw_unit") or operand.get("raw_unit") or "")),
-        "normalized_value": slot.get("normalized_value"),
-        "normalized_unit": _normalise_spaces(
-            str(slot.get("normalized_unit") or operand.get("normalized_unit") or "UNKNOWN")
-        ).upper()
-        or "UNKNOWN",
-        "period": _normalise_spaces(str(slot.get("period") or operand.get("period") or "")),
-        "matched_operand_label": _normalise_spaces(
-            str(operand.get("matched_operand_label") or slot.get("label") or "")
-        ),
-        "matched_operand_concept": _normalise_spaces(
-            str(operand.get("matched_operand_concept") or slot.get("concept") or "")
-        ),
-        "matched_operand_role": role,
-        "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
-        "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
-    }
 
 
 def dependency_operand_from_table_label_evidence(
