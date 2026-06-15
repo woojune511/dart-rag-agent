@@ -6880,6 +6880,49 @@ class FinancialAgentCalculationMixin:
             len(answer_text),
         )
 
+    def _subtask_numeric_answers_conflict(
+        self,
+        candidate_row: Dict[str, Any],
+        current_row: Dict[str, Any],
+    ) -> bool:
+        candidate_answer = _normalise_spaces(
+            str(
+                candidate_row.get("answer")
+                or (candidate_row.get("calculation_result") or {}).get("formatted_result")
+                or (candidate_row.get("calculation_result") or {}).get("rendered_value")
+                or ""
+            )
+        )
+        current_answer = _normalise_spaces(
+            str(
+                current_row.get("answer")
+                or (current_row.get("calculation_result") or {}).get("formatted_result")
+                or (current_row.get("calculation_result") or {}).get("rendered_value")
+                or ""
+            )
+        )
+        candidate_numbers = self._answer_evidence_numeric_candidates(candidate_answer)
+        current_numbers = self._answer_evidence_numeric_candidates(current_answer)
+        if not candidate_numbers or not current_numbers:
+            return False
+        return not all(
+            any(
+                self._numeric_candidates_equivalent_for_evidence(candidate_number, current_number)
+                for current_number in current_numbers
+            )
+            for candidate_number in candidate_numbers
+        )
+
+    def _subtask_row_has_direct_source_refs(self, row: Dict[str, Any]) -> bool:
+        calculation_result = dict(row.get("calculation_result") or {})
+        source_ids = _clean_source_row_ids([
+            row.get("source_row_ids"),
+            calculation_result.get("source_row_ids"),
+            row.get("selected_claim_ids"),
+            calculation_result.get("source_evidence_ids"),
+        ])
+        return any(source_id and not source_id.startswith("task_output:") for source_id in source_ids)
+
     def _promote_stronger_nested_aggregate_results(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -6904,6 +6947,17 @@ class FinancialAgentCalculationMixin:
                     continue
                 current_row = replacements.get(nested_task_id) or by_task_id.get(nested_task_id)
                 if not current_row:
+                    continue
+                current_status = _normalise_spaces(
+                    str(current_row.get("status") or (current_row.get("calculation_result") or {}).get("status") or "")
+                ).lower()
+                if (
+                    current_status == "ok"
+                    and not self._material_gap_feedback_for_subtask_result(current_row)
+                    and self._subtask_row_has_direct_source_refs(current_row)
+                    and self._aggregate_result_operation_family(current_row) == self._aggregate_result_operation_family(nested_row)
+                    and self._subtask_numeric_answers_conflict(nested_row, current_row)
+                ):
                     continue
                 if self._nested_aggregate_result_rank(nested_row) <= self._nested_aggregate_result_rank(current_row):
                     continue

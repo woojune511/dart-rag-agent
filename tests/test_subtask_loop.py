@@ -3106,6 +3106,113 @@ class SubtaskLoopTests(unittest.TestCase):
             "(3,146,409)",
         )
 
+    def test_nested_aggregate_does_not_promote_conflicting_direct_growth_row(self) -> None:
+        current_growth = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "segment profit growth",
+            "operation_family": "growth_rate",
+            "answer": "Segment profit decreased by 84.3%.",
+            "status": "ok",
+            "source_row_ids": ["row_current", "row_prior"],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-84.3%",
+                "formatted_result": "-84.3%",
+                "source_row_ids": ["row_current", "row_prior"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment profit growth",
+                        "normalized_value": -84.3,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "-84.3%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2023",
+                        "raw_value": "409,219",
+                        "raw_unit": "million",
+                        "normalized_value": 409_219_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "409,219 million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2022",
+                        "raw_value": "2,600,786",
+                        "raw_unit": "million",
+                        "normalized_value": 2_600_786_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "2,600,786 million",
+                    },
+                },
+            },
+        }
+        conflicting_nested_growth = {
+            **current_growth,
+            "answer": "Segment profit decreased by 76.08%.",
+            "source_row_ids": ["task_output:lookup_current", "task_output:lookup_prior", "row_context"],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-76.08%",
+                "formatted_result": "-76.08%",
+                "source_row_ids": ["task_output:lookup_current", "task_output:lookup_prior", "row_context"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment profit growth",
+                        "normalized_value": -76.08,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "-76.08%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2023",
+                        "raw_value": "810,900",
+                        "raw_unit": "million",
+                        "normalized_value": 810_900_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "810,900 million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2022",
+                        "raw_value": "3,390,092",
+                        "raw_unit": "million",
+                        "normalized_value": 3_390_092_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "3,390,092 million",
+                    },
+                },
+            },
+        }
+        aggregate_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "metric_label": "summary",
+            "operation_family": "aggregate_subtasks",
+            "answer": "Segment profit decreased by 76.08%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "Segment profit decreased by 76.08%.",
+                "subtask_results": [conflicting_nested_growth],
+            },
+        }
+
+        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+
+        self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
+        self.assertIn("84.3%", promoted[0]["answer"])
+        self.assertNotIn("76.08%", promoted[0]["answer"])
+
     def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
         current_growth = {
             "task_id": "task_growth",
