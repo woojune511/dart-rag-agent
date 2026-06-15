@@ -7831,14 +7831,11 @@ class FinancialAgentCalculationMixin:
             elif self._answer_slot_has_material(seed):
                 ungrouped.append(seed)
 
-        for group, entries in dict(answer_slots.get("components_by_group") or {}).items():
-            for entry in list(entries or []):
-                if isinstance(entry, dict):
-                    _add_seed(entry, str(group or ""))
-        for role, entries in dict(answer_slots.get("components_by_role") or {}).items():
-            for entry in list(entries or []):
-                if isinstance(entry, dict):
-                    _add_seed(entry, str(role or ""))
+        for container_key in ("components_by_group", "components_by_role"):
+            for role, entries in dict(answer_slots.get(container_key) or {}).items():
+                for entry in list(entries or []):
+                    if isinstance(entry, dict):
+                        _add_seed(entry, str(role or ""))
         for operand in list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or []):
             if isinstance(operand, dict):
                 _add_seed(operand)
