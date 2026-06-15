@@ -50,6 +50,30 @@ class EvalCompanyAliasTests(unittest.TestCase):
         self.assertEqual(len(examples), 1)
         self.assertEqual(examples[0].id, "NAV_T1_071")
 
+    def test_all_filtered_eval_limit_zero_selects_all_company_examples(self) -> None:
+        dataset = [
+            {
+                "id": f"NAV_T1_{idx:03d}",
+                "company": "네이버",
+                "year": 2023,
+                "question": "질문",
+                "ground_truth": "정답",
+            }
+            for idx in range(7)
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dataset_path = Path(tmpdir) / "dataset.json"
+            dataset_path.write_text(json.dumps(dataset, ensure_ascii=False), encoding="utf-8")
+            examples = _select_eval_examples(
+                {
+                    "eval_dataset_path": str(dataset_path),
+                    "eval_mode": "all_filtered",
+                    "eval_limit": 0,
+                },
+                {"company": "네이버", "year": 2023},
+            )
+        self.assertEqual(len(examples), 7)
+
     def test_retrieval_hit_accepts_company_alias_match(self) -> None:
         example = EvalExample(
             id="NAV_T1_071",

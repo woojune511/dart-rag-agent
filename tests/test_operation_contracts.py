@@ -38,12 +38,14 @@ from src.agent.financial_graph_helpers import (
     _desired_statement_types,
     _extract_numeric_value_after_operand_text,
     _extract_generic_operand_labels,
+    _infer_statement_and_section_hints,
     _label_implies_percent_metric,
     _normalise_operand_value,
     _operand_target_years,
     _operand_row_matches_requirement,
     _order_concept_specs_by_query,
     _parse_unstructured_table_row_cells,
+    _prioritize_candidate_items,
     _resolve_candidate_local_unit_hint,
     _requires_direct_numeric_grounding,
     _retrieval_hint_from_topic,
@@ -550,6 +552,111 @@ class OperationContractTests(unittest.TestCase):
 
         values_by_role = {row["matched_operand_role"]: row["raw_value"] for row in filtered}
         self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
+
+    def test_segment_surface_contract_rejects_metric_prefix_false_positive(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        required_operands = [
+            {
+                "label": "매출액",
+                "role": "numerator_1",
+                "concept": "revenue",
+                "required": True,
+                "binding_policy": {"segment_label": "'금융"},
+            }
+        ]
+        evidence_by_id = {
+            "ev_statement": {
+                "evidence_id": "ev_statement",
+                "claim": "매출액 | 제 56 기 162,663,579 백만원",
+                "quote_span": "매출액 | 제 56 기 162,663,579 백만원",
+                "metadata": {
+                    "row_label": "매출액",
+                    "semantic_label": "매출액",
+                    "table_row_labels_text": "매출액\n금융수익\n금융비용",
+                    "table_value_labels_text": "매출액 162,663,579\n금융수익 1,559,538",
+                },
+            },
+            "ev_segment": {
+                "evidence_id": "ev_segment",
+                "claim": "외부고객 매출액 | 금융 22,401,156 | 합계 162,663,579",
+                "quote_span": "외부고객 매출액 | 금융 22,401,156 | 합계 162,663,579",
+                "metadata": {
+                    "row_label": "외부고객 매출액",
+                    "semantic_label": "외부고객 매출액",
+                    "table_row_labels_text": "외부고객 매출액",
+                    "table_value_labels_text": "금융 22,401,156\n합계 162,663,579",
+                },
+            },
+        }
+        broad_row = {
+            "evidence_id": "ev_statement",
+            "source_row_id": "ev_statement",
+            "label": "매출액",
+            "matched_operand_label": "매출액",
+            "matched_operand_role": "numerator_1",
+            "matched_operand_concept": "revenue",
+            "raw_value": "162,663,579",
+            "raw_unit": "백만원",
+        }
+        segment_row = {
+            **broad_row,
+            "evidence_id": "ev_segment",
+            "source_row_id": "ev_segment",
+            "raw_value": "22,401,156",
+        }
+
+        self.assertFalse(
+            agent._operand_row_satisfies_required_surface_contract(
+                broad_row,
+                evidence_by_id,
+                required_operands,
+                require_direct_support=True,
+            )
+        )
+        self.assertTrue(
+            agent._operand_row_satisfies_required_surface_contract(
+                segment_row,
+                evidence_by_id,
+                required_operands,
+                require_direct_support=True,
+            )
+        )
+
+    def test_segment_revenue_priority_prefers_direct_customer_row_surface(self) -> None:
+        candidates = [
+            {
+                "evidence_id": "ev_adjusted_segment_income",
+                "claim": "부문간 제거한 금액 | 합계 | 매출액 212,367,654 | 금융 11,985,990",
+                "metadata": {
+                    "statement_type": "segment_note",
+                    "consolidation_scope": "consolidated",
+                    "period_labels": ["2023"],
+                    "table_source_id": "table:segment_income",
+                    "table_summary_text": "부문간 제거한 금액 | 합계 | 매출액 212,367,654",
+                },
+            },
+            {
+                "evidence_id": "ev_direct_customer_revenue",
+                "claim": "순매출액 | 금융 22,401,156 | 합계 162,663,579",
+                "metadata": {
+                    "statement_type": "segment_note",
+                    "consolidation_scope": "consolidated",
+                    "period_labels": ["2023"],
+                    "table_source_id": "table:external_customer_revenue",
+                    "table_summary_text": "순매출액 | 금융 22,401,156 | 합계 162,663,579",
+                },
+            },
+        ]
+
+        ranked = _prioritize_candidate_items(
+            candidates,
+            query="2023년 연결기준 금융 부문 매출 비중",
+            topic="금융 부문 매출액",
+            report_scope={"consolidation_scope": "consolidated"},
+            query_years=[2023],
+        )
+
+        self.assertEqual(ranked[0]["evidence_id"], "ev_direct_customer_revenue")
 
     def test_operating_margin_drag_numerator_requires_exact_surface_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -1063,6 +1170,16 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertIn("income_statement", statement_types)
         self.assertIn("summary_financials", statement_types)
+
+    def test_ebitda_kpi_query_prefers_management_metric_sections(self) -> None:
+        statement_types, preferred_sections = _infer_statement_and_section_hints(
+            "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘."
+        )
+
+        self.assertIn("mda", statement_types)
+        self.assertIn("summary_financials", statement_types)
+        self.assertIn("주요 경영지표", preferred_sections)
+        self.assertIn("영업실적", preferred_sections)
 
     def test_extract_generic_operand_labels_uses_ontology_match_seeds(self) -> None:
         labels = _extract_generic_operand_labels(
@@ -3326,6 +3443,153 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(refined["raw_unit"], "백만원")
         self.assertEqual(refined["normalized_value"], 180388580000000.0)
         self.assertEqual(refined["precision_source"], "contextual_note_structured_table_cell")
+
+    def test_operand_precision_recovers_segment_cell_from_flattened_table_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2023 B 매출액",
+            "matched_operand_label": "B 매출액",
+            "matched_operand_role": "numerator_1",
+            "raw_value": "2",
+            "raw_unit": "백만원",
+            "normalized_value": 2000000.0,
+            "normalized_unit": "KRW",
+            "binding_policy": {"segment_label": "B"},
+        }
+        evidence_item = {
+            "claim": "| A | B | C | 합계 순매출액 | 100 | 25 | 10 | 135 매출액 | 120 | 26 | 11 | 157",
+            "quote_span": "",
+            "metadata": {
+                "unit_hint": "백만원",
+                "table_row_labels_text": "\n".join(["순매출액", "매출액"]),
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "segment:1",
+                            "row_label": "순매출액",
+                            "cells": [
+                                {"column_headers": ["segment"], "value_text": "100", "unit_hint": "백만원"},
+                                {"column_headers": ["segment"], "value_text": "25", "unit_hint": "백만원"},
+                                {"column_headers": ["segment"], "value_text": "10", "unit_hint": "백만원"},
+                                {"column_headers": ["합계"], "value_text": "135", "unit_hint": "백만원"},
+                            ],
+                        }
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "25")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 25000000.0)
+        self.assertEqual(refined["precision_source"], "flattened_table_surface_cell")
+
+    def test_operand_precision_recovers_total_cell_from_flattened_table_surface_for_denominator(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2023 total 매출액",
+            "matched_operand_label": "total 매출액",
+            "matched_operand_role": "denominator_1",
+            "raw_value": "100",
+            "raw_unit": "백만원",
+            "normalized_value": 100000000.0,
+            "normalized_unit": "KRW",
+        }
+        evidence_item = {
+            "claim": "| A | B | C | 합계 순매출액 | 100 | 25 | 10 | 135 매출액 | 120 | 26 | 11 | 157",
+            "quote_span": "",
+            "metadata": {
+                "unit_hint": "백만원",
+                "table_row_labels_text": "\n".join(["순매출액", "매출액"]),
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "segment:1",
+                            "row_label": "순매출액",
+                            "cells": [
+                                {"column_headers": ["segment"], "value_text": "100", "unit_hint": "백만원"},
+                                {"column_headers": ["segment"], "value_text": "25", "unit_hint": "백만원"},
+                                {"column_headers": ["segment"], "value_text": "10", "unit_hint": "백만원"},
+                                {"column_headers": ["합계"], "value_text": "135", "unit_hint": "백만원"},
+                            ],
+                        }
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "135")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 135000000.0)
+        self.assertEqual(refined["precision_source"], "flattened_table_surface_cell")
+
+    def test_operand_precision_recovers_quoted_segment_from_span_table_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = {
+            "label": "2023년 '금융 매출액",
+            "matched_operand_label": "'금융 매출액",
+            "matched_operand_role": "numerator_1",
+            "raw_value": "2",
+            "raw_unit": "백만원",
+            "normalized_value": 2000000.0,
+            "normalized_unit": "KRW",
+            "binding_policy": {"segment_label": "'금융"},
+        }
+        evidence_item = {
+            "claim": (
+                "| 합계 | 합계 | 합계 | 합계 | 합계 | 합계 | 합계 | 합계 | 합계 합계 | 영업부문 | 영업부문 | 영업부문 | 영업부문 | "
+                "부문간 제거한 금액 | 부문간 제거한 금액 | 부문간 제거한 금액 | 부문간 제거한 금액 | 합계 합계 | 구분 | 구분 | 구분 | "
+                "구분 합계 | 구분 합계 | 구분 합계 | 구분 합계 | 구분 합계 | 합계 합계 | 차량 | 금융 | 기타 | 구분 합계 | 차량 | 금융 | 기타 | "
+                "구분 합계 | 합계 합계 순매출액 (*1) | 130,149,921 | 22,401,156 | 10,112,502 | | | | | | 162,663,579 매출액 (*2) | "
+                "212,367,654 | 22,688,779 | 11,985,990 | | | | | (84,378,844) | 162,663,579"
+            ),
+            "quote_span": "",
+            "metadata": {
+                "unit_hint": "백만원",
+                "table_row_labels_text": "\n".join(["합계 합계", "순매출액 (*1)", "매출액 (*2)"]),
+                "table_value_labels_text": "\n".join(
+                    [
+                        "순매출액 (*1) 130,149,921",
+                        "순매출액 (*1) 22,401,156",
+                        "순매출액 (*1) 10,112,502",
+                        "순매출액 (*1) 162,663,579",
+                        "매출액 (*2) 212,367,654",
+                        "매출액 (*2) 22,688,779",
+                        "매출액 (*2) 11,985,990",
+                        "매출액 (*2) (84,378,844)",
+                        "매출액 (*2) 162,663,579",
+                    ]
+                ),
+                "table_row_records_json": json.dumps(
+                    [
+                        {
+                            "row_id": "span:1",
+                            "row_label": "순매출액 (*1)",
+                            "cells": [
+                                {"column_headers": ["합계", "영업부문", "구분"], "value_text": "130,149,921", "unit_hint": "백만원"},
+                                {"column_headers": ["합계", "영업부문", "구분"], "value_text": "22,401,156", "unit_hint": "백만원"},
+                                {"column_headers": ["합계", "영업부문", "구분"], "value_text": "10,112,502", "unit_hint": "백만원"},
+                                {"column_headers": ["합계 합계"], "value_text": "162,663,579", "unit_hint": "백만원"},
+                            ],
+                        }
+                    ],
+                    ensure_ascii=False,
+                ),
+            },
+        }
+
+        refined = agent._refine_operand_precision_from_evidence_table(row, evidence_item)
+
+        self.assertEqual(refined["raw_value"], "22,401,156")
+        self.assertEqual(refined["raw_unit"], "백만원")
+        self.assertEqual(refined["normalized_value"], 22401156000000.0)
+        self.assertEqual(refined["precision_source"], "flattened_table_surface_cell")
 
     def test_operand_value_extraction_prefers_nearest_suffix_value_with_parenthetical_unit(self) -> None:
         operand = {

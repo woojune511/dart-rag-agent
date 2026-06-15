@@ -6546,6 +6546,101 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(answer, "")
 
+    def test_aggregate_answer_refreshes_when_supported_row_answer_is_stale(self) -> None:
+        self.agent.llm = None
+        ratio_result = {
+            "status": "ok",
+            "result_value": 13.771463862847872,
+            "result_unit": "%",
+            "rendered_value": "13.77%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "segment revenue ratio",
+                "primary_value": {"status": "ok", "rendered_value": "13.77%"},
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "segment revenue",
+                            "raw_value": "22,401",
+                            "raw_unit": "million",
+                            "normalized_value": 22401.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "22,401 million",
+                            "source_row_id": "row_segment",
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "total revenue",
+                            "raw_value": "162,664",
+                            "raw_unit": "million",
+                            "normalized_value": 162664.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "162,664 million",
+                            "source_row_id": "row_total",
+                        }
+                    ],
+                },
+            },
+        }
+        state = {
+            "query": "Calculate segment revenue ratio.",
+            "calc_subtasks": [
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+                {"task_id": "aggregate", "metric_family": "aggregate", "operation_family": "aggregate_subtasks"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "aggregate",
+                    "metric_family": "aggregate",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": "segment revenue ratio is 100%.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "segment revenue ratio is 100%.",
+                        "formatted_result": "segment revenue ratio is 100%.",
+                        "subtask_results": [
+                            {
+                                "task_id": "task_ratio",
+                                "metric_family": "concept_ratio",
+                                "operation_family": "ratio",
+                                "answer": "segment revenue ratio is 100%.",
+                                "status": "ok",
+                                "calculation_result": ratio_result,
+                            }
+                        ],
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                },
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "segment revenue ratio",
+                    "operation_family": "ratio",
+                    "answer": "segment revenue ratio is 100%.",
+                    "status": "ok",
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": ratio_result,
+                },
+            ],
+            "evidence_items": [],
+            "runtime_evidence": [],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("13.77%", updated["answer"])
+        self.assertNotIn("100%", updated["answer"])
+        self.assertIn("13.77%", trace["calculation_result"]["formatted_result"])
+
     def test_aggregate_subtasks_prefers_lookup_list_over_raw_narrative_table(self) -> None:
         self.agent.llm = None
         state = {

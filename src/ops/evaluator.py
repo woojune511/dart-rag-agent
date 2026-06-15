@@ -20,6 +20,9 @@ import numpy as np
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.agent.financial_numeric_surface import (
+    runtime_evidence_numeric_candidates as _shared_runtime_evidence_numeric_candidates,
+)
 from src.config.retrieval_policy import FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES
 from src.utils.gemini_usage import (
     GeminiUsageCallbackHandler,
@@ -2201,24 +2204,12 @@ def _numeric_candidate_supported_by_candidate_derivation(
 
 
 def _runtime_evidence_numeric_candidates(runtime_evidence: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    candidates: List[Dict[str, Any]] = []
-    for row in list(runtime_evidence or []):
-        evidence_text = " ".join(
-            part
-            for part in [
-                str(row.get("claim") or "").strip(),
-                str(row.get("quote_span") or "").strip(),
-                str(row.get("raw_row_text") or "").strip(),
-                str(row.get("source_context") or "").strip(),
-            ]
-            if part
-        )
-        if not evidence_text:
-            continue
-        row_candidates = list(_extract_numeric_candidates(evidence_text))
-        for kind in ("currency", "percent", "ratio"):
-            row_candidates.extend(_extract_unitless_number_candidates(evidence_text, kind))
-        candidates.extend(row_candidates)
+    candidates = _shared_runtime_evidence_numeric_candidates(
+        runtime_evidence,
+        text_candidate_extractor=_extract_numeric_candidates,
+        unitless_candidate_extractor=_extract_unitless_number_candidates,
+        structured_table_formatter=_format_structured_table_values_for_numeric_judge,
+    )
     return [
         candidate
         for candidate in candidates

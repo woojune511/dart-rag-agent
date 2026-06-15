@@ -161,6 +161,241 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
 
+    def test_run_refreshes_public_answer_from_resolved_ratio_trace(self) -> None:
+        final_state = self._base_final_state()
+        final_state["answer"] = "segment revenue ratio is 100%."
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "ok", "operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 50.0,
+                "result_unit": "%",
+                "rendered_value": "50%",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "segment revenue ratio",
+                    "primary_value": {"status": "ok", "rendered_value": "50%"},
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "role": "numerator_1",
+                                "label": "segment revenue",
+                                "raw_value": "10",
+                                "raw_unit": "million",
+                                "normalized_value": 10.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "10 million",
+                                "source_row_id": "row_segment",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "role": "denominator_1",
+                                "label": "total revenue",
+                                "raw_value": "20",
+                                "raw_unit": "million",
+                                "normalized_value": 20.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "20 million",
+                                "source_row_id": "row_total",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertIn("50%", result["answer"])
+        self.assertNotIn("100%", result["answer"])
+
+    def test_run_repairs_collapsed_ratio_trace_from_runtime_evidence(self) -> None:
+        final_state = self._base_final_state()
+        final_state["answer"] = "segment operating income ratio is 100%."
+        final_state["evidence_items"] = [
+            {
+                "evidence_id": "ev_num",
+                "claim": "segment operating income 10백만원",
+                "quote_span": "segment operating income 10백만원",
+            },
+            {
+                "evidence_id": "ev_den",
+                "claim": "total operating income 20백만원",
+                "quote_span": "total operating income 20백만원",
+            },
+        ]
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {
+                    "operand_id": "op_001",
+                    "matched_operand_role": "numerator_1",
+                    "raw_value": "5",
+                    "raw_unit": "백만원",
+                    "normalized_value": 5.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_same",
+                },
+                {
+                    "operand_id": "op_002",
+                    "matched_operand_role": "denominator_1",
+                    "raw_value": "5",
+                    "raw_unit": "백만원",
+                    "normalized_value": 5.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_same",
+                },
+            ],
+            "calculation_plan": {"status": "ok", "operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 100.0,
+                "result_unit": "%",
+                "rendered_value": "100%",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "segment operating income ratio",
+                    "primary_value": {"status": "ok", "rendered_value": "100%"},
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "role": "numerator_1",
+                                "label": "segment operating income",
+                                "concept": "operating_income",
+                                "raw_value": "5",
+                                "raw_unit": "백만원",
+                                "normalized_value": 5.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "5백만원",
+                                "source_row_id": "ev_same",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "role": "denominator_1",
+                                "label": "operating income",
+                                "raw_value": "5",
+                                "raw_unit": "백만원",
+                                "normalized_value": 5.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "5백만원",
+                                "source_row_id": "ev_same",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertIn("50%", result["answer"])
+        self.assertEqual(result["resolved_calculation_trace"]["calculation_result"]["rendered_value"], "50%")
+        self.assertTrue(
+            result["resolved_calculation_trace"]["calculation_result"]["stale_result_repaired_from_evidence"]
+        )
+
+    def test_run_repairs_collapsed_ratio_trace_from_dict_retrieved_doc(self) -> None:
+        final_state = self._base_final_state()
+        final_state["answer"] = "segment operating income ratio is 100%."
+        final_state["evidence_items"] = []
+        final_state["retrieved_docs"] = [
+            {
+                "page_content": "segment operating income (1)원 ... total operating income 51,988,692백만원",
+                "metadata": {"section_path": "Unrelated section", "unit_hint": "백만원"},
+            },
+            {
+                "page_content": "segment operating income 50.5% ... segment operating income 10백만원 ... operating income total 20백만원",
+                "metadata": {"section_path": "Segment note", "unit_hint": "백만원"},
+            }
+        ]
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {
+                    "operand_id": "op_001",
+                    "matched_operand_role": "numerator_1",
+                    "raw_value": "5",
+                    "raw_unit": "백만원",
+                    "normalized_value": 5.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_same",
+                },
+                {
+                    "operand_id": "op_002",
+                    "matched_operand_role": "denominator_1",
+                    "raw_value": "5",
+                    "raw_unit": "백만원",
+                    "normalized_value": 5.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_same",
+                },
+            ],
+            "calculation_plan": {"status": "ok", "operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 100.0,
+                "result_unit": "%",
+                "rendered_value": "100%",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "segment operating income ratio",
+                    "primary_value": {"status": "ok", "rendered_value": "100%"},
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "role": "numerator_1",
+                                "label": "segment operating income",
+                                "raw_value": "5",
+                                "raw_unit": "백만원",
+                                "normalized_value": 5.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "5백만원",
+                                "source_row_id": "ev_same",
+                                "source_anchor": "Segment note",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "role": "denominator_1",
+                                "label": "total operating income",
+                                "concept": "operating_income",
+                                "raw_value": "5",
+                                "raw_unit": "백만원",
+                                "normalized_value": 5.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "5백만원",
+                                "source_row_id": "ev_same",
+                                "source_anchor": "Segment note",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertIn("50%", result["answer"])
+        trace_result = result["resolved_calculation_trace"]["calculation_result"]
+        self.assertEqual(trace_result["rendered_value"], "50%")
+        self.assertTrue(trace_result["stale_result_repaired_from_evidence"])
+
     def test_run_projects_llm_usage_by_phase_from_callback(self) -> None:
         final_state = self._base_final_state()
         agent = FinancialAgent.__new__(FinancialAgent)
