@@ -17442,20 +17442,6 @@ class FinancialAgentCalculationMixin:
                     final_answer=final_answer,
                     selected_claim_ids=selected_claim_ids,
                 )
-        post_conflict_nested_numeric_answer = self._preferred_complete_nested_numeric_narrative_answer(
-            current_answer=final_answer,
-            ordered_results=ordered_results,
-            evidence_items=aggregate_evidence_items,
-        )
-        if post_conflict_nested_numeric_answer:
-            final_answer = post_conflict_nested_numeric_answer
-            aggregate_projection = self._rebuild_aggregate_projection(
-                ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
-            )
-            _sync_state(
-                aggregate_projection=aggregate_projection,
-                final_answer=final_answer,
-            )
         preserved_aggregate_candidate = self._preferred_existing_aggregate_artifact_candidate(
             ledger_artifacts,
             ordered_results,
