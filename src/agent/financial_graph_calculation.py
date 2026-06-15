@@ -534,20 +534,25 @@ class FinancialAgentCalculationMixin:
         evidence_items: List[Dict[str, Any]],
         state: FinancialAgentState,
     ) -> List[Dict[str, Any]]:
+        return self._append_evidence_items_by_id(evidence_items, state.get("runtime_evidence") or [])
+
+    def _append_evidence_items_by_id(
+        self,
+        evidence_items: List[Dict[str, Any]],
+        candidates: List[Dict[str, Any]],
+        *,
+        allowed_ids: Optional[set[str]] = None,
+    ) -> List[Dict[str, Any]]:
         combined = list(evidence_items)
-        existing_ids = {
-            str(item.get("evidence_id") or "").strip()
-            for item in combined
-            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-        }
-        for item in state.get("runtime_evidence") or []:
+        existing_ids = set(self._evidence_items_by_id(combined).keys())
+        allowed = None if allowed_ids is None else {str(item).strip() for item in allowed_ids if str(item).strip()}
+        for item in candidates:
             if not isinstance(item, dict):
                 continue
             evidence_id = str(item.get("evidence_id") or "").strip()
-            if evidence_id and evidence_id in existing_ids:
+            if not evidence_id or evidence_id in existing_ids or (allowed is not None and evidence_id not in allowed):
                 continue
-            if evidence_id:
-                existing_ids.add(evidence_id)
+            existing_ids.add(evidence_id)
             combined.append(dict(item))
         return combined
 
@@ -13184,19 +13189,11 @@ class FinancialAgentCalculationMixin:
                 target_metric_row.get("source_row_id"),
                 target_metric_row.get("source_row_ids"),
             ]))
-            existing_evidence_ids = {
-                str(item.get("evidence_id") or "").strip()
-                for item in evidence_items
-                if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-            }
-            for item in direct_target_evidence_pool:
-                if not isinstance(item, dict):
-                    continue
-                evidence_id = str(item.get("evidence_id") or "").strip()
-                if not evidence_id or evidence_id not in target_source_ids or evidence_id in existing_evidence_ids:
-                    continue
-                evidence_items.append(dict(item))
-                existing_evidence_ids.add(evidence_id)
+            evidence_items = self._append_evidence_items_by_id(
+                evidence_items,
+                direct_target_evidence_pool,
+                allowed_ids=target_source_ids,
+            )
             active_subtask = {
                 **active_subtask,
                 "operation_family": "lookup",
@@ -13347,17 +13344,11 @@ class FinancialAgentCalculationMixin:
                     for row in period_context_rows
                     if str(row.get("evidence_id") or "").strip()
                 }
-                existing_evidence_ids = {
-                    str(item.get("evidence_id") or "")
-                    for item in evidence_items
-                    if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-                }
-                evidence_items = evidence_items + [
-                    item
-                    for item in period_context_evidence
-                    if str(item.get("evidence_id") or "") in used_period_evidence_ids
-                    and str(item.get("evidence_id") or "") not in existing_evidence_ids
-                ]
+                evidence_items = self._append_evidence_items_by_id(
+                    evidence_items,
+                    period_context_evidence,
+                    allowed_ids=used_period_evidence_ids,
+                )
                 logger.info("[calc_operands] coherent period-comparison table-label rows=%s", len(period_context_rows))
         if operation_family == "ratio" and required_operands and (
             (direct_rows_cover_required_operands and not direct_rows_have_coherent_context)
@@ -13390,17 +13381,11 @@ class FinancialAgentCalculationMixin:
                     for row in coherent_ratio_rows
                     if str(row.get("evidence_id") or "").strip()
                 }
-                existing_evidence_ids = {
-                    str(item.get("evidence_id") or "")
-                    for item in evidence_items
-                    if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-                }
-                evidence_items = evidence_items + [
-                    item
-                    for item in ratio_context_evidence
-                    if str(item.get("evidence_id") or "") in used_context_evidence_ids
-                    and str(item.get("evidence_id") or "") not in existing_evidence_ids
-                ]
+                evidence_items = self._append_evidence_items_by_id(
+                    evidence_items,
+                    ratio_context_evidence,
+                    allowed_ids=used_context_evidence_ids,
+                )
                 logger.info("[calc_operands] coherent ratio context rows=%s", len(coherent_ratio_rows))
                 direct_rows_cover_required_operands = not _missing_required_operands(
                     required_operands,
