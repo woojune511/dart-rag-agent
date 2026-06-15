@@ -17154,13 +17154,6 @@ class FinancialAgentCalculationMixin:
             mutable_state = self._sync_mutable_aggregate_state(mutable_state, **updates)
             _sync_aggregate_locals()
 
-        aggregate_state = self._apply_period_context_realignment_to_aggregate(
-            aggregate_state=mutable_state.synthesis_state,
-            state=state,
-            evidence_items=mutable_state.evidence_items,
-        )
-        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
-        _sync_aggregate_locals()
         aligned_ordered_results = self._align_lookup_results_with_dependency_projection(
             ordered_results,
             state,
@@ -17185,17 +17178,6 @@ class FinancialAgentCalculationMixin:
             mutable_state = mutable_state._replace(
                 synthesis_state=mutable_state.synthesis_state._replace(aggregate_projection=aggregate_projection)
             )
-        aggregate_projection, final_answer, _ = self._apply_ratio_projection_answer_if_rendered_missing(
-            state,
-            aggregate_projection,
-            final_answer=final_answer,
-        )
-        mutable_state = mutable_state._replace(
-            synthesis_state=mutable_state.synthesis_state._replace(
-                aggregate_projection=aggregate_projection,
-                final_answer=final_answer,
-            )
-        )
         slot_based_difference_answer = self._compose_slot_based_difference_answer(
             query=str(state.get("query") or ""),
             report_scope=dict(state.get("report_scope") or {}),
@@ -17363,31 +17345,6 @@ class FinancialAgentCalculationMixin:
             final_answer,
         )
         _sync_state(ordered_results=ordered_results, aggregate_projection=aggregate_projection)
-        post_sync_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
-            ordered_results,
-            aggregate_evidence_items,
-        )
-        if post_sync_unit_aligned_results != ordered_results:
-            mutable_state = self._replace_mutable_aggregate_results(
-                mutable_state,
-                state,
-                post_sync_unit_aligned_results,
-            )
-            _sync_aggregate_locals()
-        post_sync_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
-        post_sync_aligned_results = self._align_lookup_results_with_dependency_projection(
-            ordered_results,
-            {"query": str(state.get("query") or ""), "calc_subtasks": []},
-            post_sync_projection,
-        )
-        if post_sync_aligned_results != ordered_results:
-            mutable_state = self._replace_mutable_aggregate_results(
-                mutable_state,
-                state,
-                post_sync_aligned_results,
-                refresh_numeric_answer=True,
-            )
-            _sync_aggregate_locals()
         aggregate_evidence_items, missing_context_claim_ids = self._append_missing_decision_context_evidence(
             aggregate_evidence_items,
             final_answer=final_answer,
@@ -17500,13 +17457,6 @@ class FinancialAgentCalculationMixin:
             selected_claim_ids=selected_claim_ids,
             evidence_items=aggregate_evidence_items,
         )
-        aggregate_state = self._apply_stale_projection_repair_to_aggregate_state(
-            state=state,
-            aggregate_state=mutable_state.synthesis_state,
-            evidence_items=aggregate_evidence_items,
-        )
-        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         aggregate_projection, final_answer = self._apply_runtime_ratio_projection_for_collapsed_rows(
             state,
             aggregate_projection,
@@ -17519,20 +17469,6 @@ class FinancialAgentCalculationMixin:
             aggregate_state=mutable_state.synthesis_state,
             evidence_items=aggregate_evidence_items,
             prefer_compact_ratio_answer=True,
-        )
-        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
-        aggregate_projection, final_answer, _ = self._apply_ratio_projection_answer_if_rendered_missing(
-            state,
-            aggregate_projection,
-            final_answer=final_answer,
-        )
-        _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
-        aggregate_state = self._apply_period_context_realignment_to_aggregate(
-            aggregate_state=mutable_state.synthesis_state,
-            state=state,
-            evidence_items=aggregate_evidence_items,
-            kept_evidence_ids=kept_evidence_ids,
         )
         mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
         ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
