@@ -3147,6 +3147,68 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         )
         self.assertEqual(answer, source_stated_nested_answer)
 
+    def test_nested_numeric_narrative_must_cover_sibling_numeric_projection(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "net fee income growth",
+                "operation_family": "growth_rate",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "growth_rate",
+                    "rendered_value": "4.51%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {"status": "ok", "rendered_value": "4.51%"},
+                        "current_value": {"status": "ok", "rendered_value": "3,673,524백만원"},
+                        "prior_value": {"status": "ok", "rendered_value": "3,514,902백만원"},
+                    },
+                },
+            },
+            {
+                "task_id": "task_narrative",
+                "metric_family": "narrative_summary",
+                "operation_family": "aggregate_subtasks",
+                "status": "ok",
+                "answer": (
+                    "Asset management operating profit increased by 1,162억원 "
+                    "to 2,654억원, and AUM reached 1,216,729억원."
+                ),
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "aggregate_subtasks",
+                    "formatted_result": (
+                        "Asset management operating profit increased by 1,162억원 "
+                        "to 2,654억원, and AUM reached 1,216,729억원."
+                    ),
+                },
+            },
+        ]
+
+        answer = agent._preferred_complete_nested_numeric_narrative_answer(
+            current_answer="",
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+
+        self.assertEqual(answer, "")
+
+        ordered_results[1]["answer"] = (
+            "Net fee income was 3,673,524백만원, up 4.51% from the prior year."
+        )
+
+        answer = agent._preferred_complete_nested_numeric_narrative_answer(
+            current_answer="",
+            ordered_results=ordered_results,
+            evidence_items=[],
+        )
+
+        self.assertIn("4.51%", answer)
+        self.assertIn("3,673,524백만원", answer)
+
     def test_table_metadata_source_stated_change_is_allowed_narrative_numeric_material(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ordered_results = [
