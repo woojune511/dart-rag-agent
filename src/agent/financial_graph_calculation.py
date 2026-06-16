@@ -27,6 +27,7 @@ from src.agent.financial_dependency_projection import (
     dependency_operand_from_table_label_evidence,
     derive_dependency_operands_from_source_task_slots,
     fill_missing_ratio_dependency_operands,
+    lookup_primary_slot,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
     rebuild_dependency_calculation_plan,
@@ -2389,7 +2390,7 @@ class FinancialAgentCalculationMixin:
             if operation_family not in {"lookup", "single_value"}:
                 aligned_results.append(row)
                 continue
-            primary_slot = self._lookup_primary_slot(row)
+            primary_slot = lookup_primary_slot(row)
             if not self._answer_slot_has_material(primary_slot):
                 aligned_results.append(row)
                 continue
@@ -2433,11 +2434,6 @@ class FinancialAgentCalculationMixin:
             )
             changed_any = True
         return aligned_results if changed_any else ordered_results
-
-    def _lookup_primary_slot(self, row: Dict[str, Any]) -> Dict[str, Any]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        return dict(answer_slots.get("primary_value") or {})
 
     def _align_lookup_result_units_from_peer_source_slots(
         self,

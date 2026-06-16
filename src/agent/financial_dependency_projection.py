@@ -1053,6 +1053,12 @@ def replace_lookup_primary_slot(
     }
 
 
+def lookup_primary_slot(row: Dict[str, Any]) -> Dict[str, Any]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    return dict(answer_slots.get("primary_value") or {})
+
+
 def align_lookup_result_units_from_peer_source_slots(
     ordered_results: List[Dict[str, Any]],
     *,
@@ -1066,11 +1072,6 @@ def align_lookup_result_units_from_peer_source_slots(
         if _normalise_spaces(str(item))
     }
 
-    def _primary_slot(row: Dict[str, Any]) -> Dict[str, Any]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        return dict(answer_slots.get("primary_value") or {})
-
     def _source_keys(slot: Dict[str, Any]) -> set[str]:
         source_ids = set(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
         source_anchor = _normalise_spaces(str(slot.get("source_anchor") or ""))
@@ -1079,11 +1080,11 @@ def align_lookup_result_units_from_peer_source_slots(
         return source_ids
 
     peer_slots = [
-        _primary_slot(row)
+        lookup_primary_slot(row)
         for row in ordered_results
         if isinstance(row, dict)
         and operation_family_for_result(row) in {"lookup", "single_value"}
-        and slot_has_material(_primary_slot(row))
+        and slot_has_material(lookup_primary_slot(row))
     ]
 
     def _peer_unit_for(slot: Dict[str, Any]) -> str:
@@ -1137,7 +1138,7 @@ def align_lookup_result_units_from_peer_source_slots(
         if not isinstance(row, dict) or operation_family_for_result(row) not in {"lookup", "single_value"}:
             aligned_results.append(row)
             continue
-        primary_slot = _primary_slot(row)
+        primary_slot = lookup_primary_slot(row)
         peer_unit = _peer_unit_for(primary_slot)
         if not peer_unit:
             aligned_results.append(row)
