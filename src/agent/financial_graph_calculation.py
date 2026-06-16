@@ -16132,198 +16132,23 @@ class FinancialAgentCalculationMixin:
         current_row: Optional[Dict[str, Any]] = None,
         prior_row: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        family = str(
-            operation_family or active_subtask.get("operation_family") or "single_value"
-        ).strip().lower()
-        metric_label = str(
-            active_subtask.get("metric_label")
-            or active_subtask.get("query")
-            or active_subtask.get("task_id")
-            or ""
-        )
-        required_operands = [dict(item) for item in (active_subtask.get("required_operands") or [])]
-
-        def _seed_for_roles(*roles: str) -> Dict[str, Any]:
-            role_set = {str(role).strip().lower() for role in roles if str(role).strip()}
-            for requirement in required_operands:
-                req_role = str(requirement.get("role") or "").strip().lower()
-                if req_role and req_role in role_set:
-                    return requirement
-            for row in ordered_operands:
-                row_role = str(row.get("matched_operand_role") or "").strip().lower()
-                if row_role and row_role in role_set:
-                    return row
-            return {}
-
-        components_by_role: Dict[str, List[Dict[str, Any]]] = {}
-        components_by_group: Dict[str, List[Dict[str, Any]]] = {}
-        preserve_difference_source_display = bool(
-            family == "difference"
-            and self._adjusted_difference_source_display_unit(
-                active_subtask=active_subtask,
-                ordered_operands=ordered_operands,
-            )
-        )
-        for row in ordered_operands:
-            row_normalized_unit = str(row.get("normalized_unit") or "").strip().upper()
-            preserve_ratio_source_display = family == "ratio"
-            preserve_growth_source_display = family == "growth_rate" and row_normalized_unit not in {"", "KRW"}
-            slot = self._build_operand_value_slot(
-                row,
-                preserve_source_display=(
-                    family in {"lookup", "single_value"}
-                    or preserve_ratio_source_display
-                    or preserve_difference_source_display
-                    or preserve_growth_source_display
-                ),
-            )
-            role = str(slot.get("role") or "operand")
-            components_by_role.setdefault(role, []).append(slot)
-            role_group = role.split("_", 1)[0] if "_" in role else role
-            components_by_group.setdefault(role_group, []).append(slot)
-
-        answer_slots: Dict[str, Any] = {
-            "operation_family": family,
-            "metric_label": metric_label,
-            "components_by_role": components_by_role,
-            "components_by_group": components_by_group,
-            "source_row_ids": list(source_row_ids or []),
-        }
-
-        if family in {"lookup", "single_value"}:
-            if ordered_operands:
-                primary_slot = self._build_operand_value_slot(
-                    ordered_operands[0],
-                    default_role="primary_value",
-                    preserve_source_display=True,
-                )
-                primary_slot["role"] = "primary_value"
-                answer_slots["primary_value"] = primary_slot
-            else:
-                seed = _seed_for_roles("operand", "current_period", "primary_value")
-                answer_slots["primary_value"] = self._build_missing_value_slot(
-                    role="primary_value",
-                    label=str(seed.get("label") or metric_label),
-                    concept=str(seed.get("concept") or seed.get("matched_operand_concept") or ""),
-                    period=str(seed.get("period") or seed.get("period_hint") or current_period or ""),
-                    raw_unit=str(seed.get("raw_unit") or result_unit or ""),
-                    normalized_unit=str(seed.get("normalized_unit") or source_normalized_unit or "UNKNOWN"),
-                    source_anchor=str(seed.get("source_anchor") or ""),
-                )
-            return validate_answer_slots_payload(answer_slots)
-
-        operand_roles = {
-            str(spec.get("role") or "").strip()
-            for spec in required_operands
-            if str(spec.get("role") or "").strip()
-        }
-        row_roles = {
-            str(row.get("matched_operand_role") or "").strip()
-            for row in ordered_operands
-            if str(row.get("matched_operand_role") or "").strip()
-        }
-        period_difference = family in {"difference", "growth_rate"} and bool(
-            {"current_period", "prior_period"} & (operand_roles | row_roles)
-        )
-
-        primary_role = "delta_value" if family == "difference" and period_difference else "primary_value"
-        answer_slots["primary_value"] = self._build_calculated_value_slot(
-            label=metric_label,
-            normalized_value=result_value,
+        return financial_answer_slots.build_answer_slots(
+            active_subtask=active_subtask,
+            operation_family=operation_family,
+            ordered_operands=ordered_operands,
+            result_value=result_value,
+            result_unit=result_unit,
             normalized_unit=normalized_unit,
-            display_unit=result_unit,
-            period=current_period,
+            source_normalized_unit=source_normalized_unit,
+            current_value=current_value,
+            prior_value=prior_value,
+            delta_value=delta_value,
+            current_period=current_period,
+            prior_period=prior_period,
             source_row_ids=source_row_ids,
-            role=primary_role,
+            current_row=current_row,
+            prior_row=prior_row,
         )
-
-        if family in {"difference", "growth_rate"}:
-            current_seed = current_row or _seed_for_roles("current_period")
-            if current_row:
-                current_preserve_display = str(current_row.get("normalized_unit") or "").strip().upper() != "KRW"
-                current_slot = self._build_operand_value_slot(
-                    current_row,
-                    default_role="current_value",
-                    preserve_source_display=current_preserve_display,
-                )
-                current_slot["role"] = "current_value"
-                answer_slots["current_value"] = current_slot
-            elif current_value is not None:
-                answer_slots["current_value"] = self._build_calculated_value_slot(
-                    label=str(current_seed.get("label") or metric_label),
-                    normalized_value=current_value,
-                    normalized_unit=source_normalized_unit or normalized_unit,
-                    display_unit="",
-                    period=current_period,
-                    source_row_ids=source_row_ids[:1],
-                    role="current_value",
-                    source_anchor=str(current_seed.get("source_anchor") or ""),
-                )
-            else:
-                answer_slots["current_value"] = self._build_missing_value_slot(
-                    role="current_value",
-                    label=str(current_seed.get("label") or metric_label),
-                    concept=str(current_seed.get("concept") or current_seed.get("matched_operand_concept") or ""),
-                    period=str(current_seed.get("period") or current_seed.get("period_hint") or current_period or ""),
-                    raw_unit=str(current_seed.get("raw_unit") or result_unit or ""),
-                    normalized_unit=str(current_seed.get("normalized_unit") or source_normalized_unit or normalized_unit or "UNKNOWN"),
-                    source_anchor=str(current_seed.get("source_anchor") or ""),
-                )
-
-            prior_seed = prior_row or _seed_for_roles("prior_period")
-            if prior_row:
-                prior_preserve_display = str(prior_row.get("normalized_unit") or "").strip().upper() != "KRW"
-                prior_slot = self._build_operand_value_slot(
-                    prior_row,
-                    default_role="prior_value",
-                    preserve_source_display=prior_preserve_display,
-                )
-                prior_slot["role"] = "prior_value"
-                answer_slots["prior_value"] = prior_slot
-            elif prior_value is not None:
-                answer_slots["prior_value"] = self._build_calculated_value_slot(
-                    label=str(prior_seed.get("label") or metric_label),
-                    normalized_value=prior_value,
-                    normalized_unit=source_normalized_unit or normalized_unit,
-                    display_unit="",
-                    period=prior_period,
-                    source_row_ids=source_row_ids[1:2],
-                    role="prior_value",
-                    source_anchor=str(prior_seed.get("source_anchor") or ""),
-                )
-            else:
-                answer_slots["prior_value"] = self._build_missing_value_slot(
-                    role="prior_value",
-                    label=str(prior_seed.get("label") or metric_label),
-                    concept=str(prior_seed.get("concept") or prior_seed.get("matched_operand_concept") or ""),
-                    period=str(prior_seed.get("period") or prior_seed.get("period_hint") or prior_period or ""),
-                    raw_unit=str(prior_seed.get("raw_unit") or result_unit or ""),
-                    normalized_unit=str(prior_seed.get("normalized_unit") or source_normalized_unit or normalized_unit or "UNKNOWN"),
-                    source_anchor=str(prior_seed.get("source_anchor") or ""),
-                )
-
-            if family == "difference":
-                answer_slots["delta_value"] = self._build_calculated_value_slot(
-                    label=metric_label,
-                    normalized_value=delta_value,
-                    normalized_unit=normalized_unit,
-                    display_unit=result_unit,
-                    period=current_period,
-                    source_row_ids=source_row_ids,
-                    role="delta_value",
-                )
-                if current_value is not None and prior_value is not None:
-                    if delta_value > 0:
-                        direction = "increase"
-                    elif delta_value < 0:
-                        direction = "decrease"
-                    else:
-                        direction = "flat"
-                    answer_slots["direction"] = direction
-                else:
-                    answer_slots["direction"] = None
-
-        return validate_answer_slots_payload(answer_slots)
 
     def _binding_policy_for_operand_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
         row_policy = dict(row.get("binding_policy") or {})

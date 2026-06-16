@@ -50,6 +50,39 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Answer Slot Assembly Extraction
+
+- Run date: 2026-06-17
+- Scope: fifth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - `_build_answer_slots` operation-family assembly moved from
+    `financial_graph_calculation.py` to
+    `src/agent/financial_answer_slots.py` as `build_answer_slots`.
+  - The calculation mixin keeps `_build_answer_slots` as a compatibility
+    wrapper, so graph-node and caller contracts stay stable.
+  - Answer slot row builders and answer slot assembly now live in the same
+    module; the calculation mixin only forwards deterministic execution output
+    into that construction boundary.
+- Interpretation: this is a no-behavior-change boundary extraction. It does not
+  alter operand binding, arithmetic execution, answer rendering policy,
+  validation schema, or retry behavior.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_answer_slots`:
+    `7` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_failed_lookup_emits_explicit_missing_primary_slot`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_runtime_domain_term_audit tests.test_financial_answer_slots`:
+    `13` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_answer_slots.py`:
+    passed
+- Note: the first new answer-slot assembly unit-test fixture failed because it
+  used a non-schema normalized unit for percent-point display. The fixture was
+  corrected to the runtime contract shape (`normalized_unit=PERCENT`,
+  `result_unit=%p`).
+
 ### Latest Answer Slot Construction Extraction
 
 - Run date: 2026-06-17

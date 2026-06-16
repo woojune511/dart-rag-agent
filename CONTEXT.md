@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 다섯 번째 조각을 진행했다.
+  - `_build_answer_slots`의 operation-family별 answer slot assembly를
+    `src/agent/financial_answer_slots.py`의 `build_answer_slots`로 이동했다.
+  - `financial_graph_calculation.py`의 `_build_answer_slots` method는 기존
+    호출 계약을 보존하는 compatibility wrapper로 남겼다.
+  - answer slot row builder와 전체 answer slot assembly가 같은 모듈에 모였고,
+    calculation mixin은 실행 결과를 slot construction helper에 전달하는
+    orchestration 역할만 남겼다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_answer_slots`:
+      `7` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_failed_lookup_emits_explicit_missing_primary_slot`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_runtime_domain_term_audit tests.test_financial_answer_slots`:
+      `13` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_answer_slots.py`:
+      passed
+  - Note: the first new unit-test fixture used a non-schema normalized unit for
+    percent-point display and failed validation. The fixture was corrected to
+    the runtime contract shape (`normalized_unit=PERCENT`, `result_unit=%p`).
+
 - 2026-06-17 PR 4 범위의 calculation extraction 네 번째 조각을 진행했다.
   - `financial_graph_calculation.py`에 있던 answer slot row construction helper를
     새 module `src/agent/financial_answer_slots.py`로 분리했다.
