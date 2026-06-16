@@ -50,6 +50,34 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Calculation Failure Payload Extraction
+
+- Run date: 2026-06-17
+- Scope: seventh narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Failure-path `calculation_result` payload construction moved from the local
+    `_execute_calculation._fail()` closure to
+    `src/agent/financial_calculation_execution.py`.
+  - Extracted helper: `build_failed_calculation_result`.
+  - `_execute_calculation` still owns state updates, selected evidence ids,
+    fallback answer fields, and routing semantics.
+- Interpretation: this is a no-behavior-change execution-boundary extraction.
+  It isolates deterministic failure result shape and answer-slot construction
+  without changing operand repair, formula execution, retry routing, or trace
+  projection.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution`:
+    `2` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_failed_lookup_emits_explicit_missing_primary_slot tests.test_operation_contracts.OperationContractTests.test_execute_calculation_ignores_legacy_top_level_operands_and_plan tests.test_operation_contracts.OperationContractTests.test_ratio_calculation_rejects_duplicate_operand_binding`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution tests.test_financial_answer_slots`:
+    `9` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+    passed
+
 ### Latest Render Direction Helper Extraction
 
 - Run date: 2026-06-17

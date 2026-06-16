@@ -15,6 +15,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent import financial_answer_slots
+from src.agent.financial_calculation_execution import build_failed_calculation_result
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
@@ -16478,22 +16479,14 @@ class FinancialAgentCalculationMixin:
 
         def _fail(status: str, reason: str, calculation_plan: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
             fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
-            failure_slots = self._build_answer_slots(
+            failed_result = build_failed_calculation_result(
                 active_subtask=active_subtask,
                 operation_family=operation_family or "single_value",
-                ordered_operands=list(runtime_operands),
-                result_value=None,
+                runtime_operands=list(runtime_operands),
                 result_unit=result_unit,
-                normalized_unit="UNKNOWN",
                 source_normalized_unit=source_normalized_unit or "UNKNOWN",
-                current_value=None,
-                prior_value=None,
-                delta_value=None,
-                current_period="",
-                prior_period="",
-                source_row_ids=[],
-                current_row=None,
-                prior_row=None,
+                status=status,
+                reason=reason,
             )
             return {
                 "answer": fallback,
@@ -16508,17 +16501,7 @@ class FinancialAgentCalculationMixin:
                     state,
                     calculation_operands=runtime_operands,
                     calculation_plan=calculation_plan if calculation_plan is not None else plan,
-                    calculation_result={
-                        "status": status,
-                        "result_value": None,
-                        "result_unit": result_unit,
-                        "rendered_value": "",
-                        "formatted_result": "",
-                        "series": [],
-                        "answer_slots": failure_slots,
-                        "derived_metrics": {},
-                        "explanation": reason,
-                    },
+                    calculation_result=failed_result,
                     include_compatibility_mirrors=False,
                 ),
             }

@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 일곱 번째 조각을 진행했다.
+  - `_execute_calculation` 내부 실패 경로의 `calculation_result` payload 생성을
+    새 module `src/agent/financial_calculation_execution.py`로 분리했다.
+    - `build_failed_calculation_result`
+  - `_execute_calculation`의 state update, selected evidence, fallback answer,
+    route semantics는 그대로 두고, 실패 결과 스키마와 answer slot construction만
+    helper에서 만들도록 했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution`:
+      `2` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_failed_lookup_emits_explicit_missing_primary_slot tests.test_operation_contracts.OperationContractTests.test_execute_calculation_ignores_legacy_top_level_operands_and_plan tests.test_operation_contracts.OperationContractTests.test_ratio_calculation_rejects_duplicate_operand_binding`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution tests.test_financial_answer_slots`:
+      `9` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+      passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 여섯 번째 조각을 진행했다.
   - render/verify 경로에 중복돼 있던 direction hint 계산과 negative
     rendered-value sign 보정을
