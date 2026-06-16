@@ -278,6 +278,36 @@ def _extract_subtask_source_evidence_ids(
     return _clean_source_row_ids(values)
 
 
+def _collect_nested_result_evidence(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    max_depth: int = 6,
+) -> List[Dict[str, Any]]:
+    evidence: List[Dict[str, Any]] = []
+
+    def _append(items: Any) -> None:
+        evidence.extend(dict(item) for item in list(items or []) if isinstance(item, dict))
+
+    def _collect(row: Mapping[str, Any], depth: int = 0) -> None:
+        if depth > max_depth:
+            return
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        for payload in (row, calculation_result):
+            _append(payload.get("runtime_evidence"))
+            _append(payload.get("evidence_items"))
+        nested_rows = list(calculation_result.get("subtask_results") or [])
+        nested_rows.extend(list(answer_slots.get("subtask_results") or []))
+        for nested_row in nested_rows:
+            if isinstance(nested_row, Mapping):
+                _collect(nested_row, depth + 1)
+
+    for row in list(rows or []):
+        if isinstance(row, Mapping):
+            _collect(row)
+    return evidence
+
+
 def _operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
     status = _normalise_spaces(str(row.get("status") or "")).lower()
     if status == "missing":
