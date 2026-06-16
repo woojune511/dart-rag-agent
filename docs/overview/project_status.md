@@ -50,6 +50,32 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Scalar Calculation Result Extraction
+
+- Run date: 2026-06-17
+- Scope: twelfth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Scalar success `calculation_result` dict assembly moved from
+    `_execute_calculation` to `src/agent/financial_calculation_execution.py`.
+  - Extracted helper: `build_scalar_calculation_result`.
+  - The helper packages the already-computed result value, rendered value,
+    result series, scalar state, answer slots, and formula metadata into the
+    existing result payload shape.
+- Interpretation: this is a no-behavior-change execution-boundary extraction.
+  Arithmetic, operand binding, evidence selection, answer slot construction,
+  rendering, ledger publication, and runtime trace publication remain in their
+  existing paths.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution`:
+    `8` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+    `4` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+    passed
+
 ### Latest Scalar Calculation State Extraction
 
 - Run date: 2026-06-17

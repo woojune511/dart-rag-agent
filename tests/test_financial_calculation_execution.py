@@ -2,6 +2,7 @@ import unittest
 
 from src.agent.financial_calculation_execution import (
     build_failed_calculation_result,
+    build_scalar_calculation_result,
     build_scalar_calculation_state,
     build_success_calculation_state_payload,
 )
@@ -210,6 +211,47 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         self.assertTrue(state["source_stated_result_used"])
         self.assertEqual(state["current_value"], 112.0)
         self.assertEqual(state["prior_value"], 100.0)
+
+    def test_build_scalar_calculation_result_projects_state_slots_and_metrics(self) -> None:
+        result = build_scalar_calculation_result(
+            result_value=12.3,
+            result_unit="%",
+            rendered_with_unit="12.3%",
+            result_series=[{"label": "current", "normalized_value": 112.0}],
+            scalar_state={
+                "current_value": 112.0,
+                "prior_value": 100.0,
+                "delta_value": None,
+                "current_period": "current",
+                "prior_period": "prior",
+                "source_row_ids": ["ev_1"],
+                "source_stated_result_used": True,
+            },
+            answer_slots={"operation_family": "growth_rate"},
+            operand_labels=["current", "prior"],
+            formula="((A - B) / B) * 100",
+            operation_family="growth_rate",
+            operation="growth_rate",
+            formula_result_value=12.0,
+            explanation="calculated",
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["result_value"], 12.3)
+        self.assertEqual(result["result_unit"], "%")
+        self.assertEqual(result["rendered_value"], "12.3%")
+        self.assertEqual(result["series"][0]["label"], "current")
+        self.assertEqual(result["current_value"], 112.0)
+        self.assertEqual(result["prior_value"], 100.0)
+        self.assertEqual(result["current_period"], "current")
+        self.assertEqual(result["source_row_ids"], ["ev_1"])
+        self.assertEqual(result["answer_slots"]["operation_family"], "growth_rate")
+        self.assertEqual(result["derived_metrics"]["operand_labels"], ["current", "prior"])
+        self.assertEqual(result["derived_metrics"]["formula"], "((A - B) / B) * 100")
+        self.assertEqual(result["derived_metrics"]["operation_family"], "growth_rate")
+        self.assertEqual(result["derived_metrics"]["formula_result_value"], 12.0)
+        self.assertTrue(result["derived_metrics"]["source_stated_result_used"])
+        self.assertEqual(result["explanation"], "calculated")
 
 
 if __name__ == "__main__":

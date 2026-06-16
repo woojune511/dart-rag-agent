@@ -201,3 +201,43 @@ def build_scalar_calculation_state(
         "prior_row": prior_row,
         "source_row_ids": source_row_ids,
     }
+
+
+def build_scalar_calculation_result(
+    *,
+    result_value: float,
+    result_unit: str,
+    rendered_with_unit: str,
+    result_series: List[Dict[str, Any]],
+    scalar_state: Dict[str, Any],
+    answer_slots: Dict[str, Any],
+    operand_labels: List[str],
+    formula: str,
+    operation_family: str,
+    operation: str,
+    formula_result_value: float,
+    explanation: str,
+) -> Dict[str, Any]:
+    return {
+        "status": "ok",
+        "result_value": result_value,
+        "result_unit": result_unit,
+        "rendered_value": rendered_with_unit,
+        "formatted_result": "",
+        "series": list(result_series),
+        "current_value": scalar_state.get("current_value"),
+        "prior_value": scalar_state.get("prior_value"),
+        "delta_value": scalar_state.get("delta_value"),
+        "current_period": scalar_state.get("current_period") or "",
+        "prior_period": scalar_state.get("prior_period") or "",
+        "source_row_ids": list(scalar_state.get("source_row_ids") or []),
+        "answer_slots": dict(answer_slots),
+        "derived_metrics": {
+            "operand_labels": list(operand_labels),
+            "formula": formula,
+            "operation_family": operation_family or operation,
+            "formula_result_value": formula_result_value,
+            "source_stated_result_used": bool(scalar_state.get("source_stated_result_used")),
+        },
+        "explanation": explanation,
+    }

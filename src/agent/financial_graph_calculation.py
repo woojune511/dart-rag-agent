@@ -18,6 +18,7 @@ from src.agent import financial_answer_slots
 from src.agent.financial_calculation_execution import (
     build_failed_calculation_result,
     build_scalar_calculation_state,
+    build_scalar_calculation_result,
     build_success_calculation_state_payload,
 )
 from src.agent.financial_dependency_projection import (
@@ -16880,29 +16881,20 @@ class FinancialAgentCalculationMixin:
             prior_row=prior_row,
         )
         logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
-        calc_result = {
-            "status": "ok",
-            "result_value": result_value,
-            "result_unit": result_display_unit or result_unit,
-            "rendered_value": rendered_with_unit,
-            "formatted_result": "",
-            "series": result_series,
-            "current_value": current_value,
-            "prior_value": prior_value,
-            "delta_value": delta_value,
-            "current_period": current_period,
-            "prior_period": prior_period,
-            "source_row_ids": source_row_ids,
-            "answer_slots": answer_slots,
-            "derived_metrics": {
-                "operand_labels": labels,
-                "formula": formula,
-                "operation_family": operation_family or operation,
-                "formula_result_value": formula_result_value,
-                "source_stated_result_used": source_stated_result_used,
-            },
-            "explanation": explanation or str(plan.get("operation_text") or operation or mode),
-        }
+        calc_result = build_scalar_calculation_result(
+            result_value=float(result_value),
+            result_unit=result_display_unit or result_unit,
+            rendered_with_unit=rendered_with_unit,
+            result_series=result_series,
+            scalar_state=scalar_state,
+            answer_slots=answer_slots,
+            operand_labels=labels,
+            formula=formula,
+            operation_family=operation_family,
+            operation=operation,
+            formula_result_value=float(formula_result_value),
+            explanation=explanation or str(plan.get("operation_text") or operation or mode),
+        )
         return build_success_calculation_state_payload(
             state=state,
             calc_result=calc_result,
