@@ -4888,6 +4888,87 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertEqual(extracted["artifacts"][0]["kind"], "operand_set")
 
+    def test_partial_dependency_rows_are_preserved_when_llm_extraction_is_empty(self) -> None:
+        state = {
+            "query": "calculate the change from completed task output and a missing prior value",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_change",
+                "metric_label": "change",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": "current value", "role": "minuend", "required": True},
+                    {"label": "prior value", "role": "subtrahend", "required": True},
+                ],
+                "inputs": [
+                    {
+                        "role": "minuend",
+                        "period": "current",
+                        "label": "current value",
+                        "preferred_task_id": "task_2",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "current value",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "current value",
+                                "period": "current",
+                                "raw_value": "10",
+                                "raw_unit": "원",
+                                "normalized_value": 10.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "10원",
+                                "source_row_id": "ev_current",
+                                "source_row_ids": ["ev_current"],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_context",
+                    "claim": "completed task output should remain available for downstream arithmetic.",
+                    "support_level": "context",
+                    "metadata": {},
+                }
+            ],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertEqual(extracted["evidence_status"], "partial")
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "minuend")
+        self.assertEqual(extracted["artifacts"][0]["payload"]["calculation_operands"][0]["raw_value"], "10")
+
     def test_route_after_reconcile_plan_uses_operand_extractor_for_synthesis_strategy(self) -> None:
         route = self.agent._route_after_reconcile_plan(
             {
@@ -11844,6 +11925,87 @@ class SubtaskLoopTests(unittest.TestCase):
             self.assertIn("870,000 units", pruned)
             self.assertIn("11.5%", pruned)
             self.assertIn("PolicyA requires an active response", pruned)
+        finally:
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
+    def test_numeric_refresh_prunes_irrelevant_boilerplate_context_sentence(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in ("growth_query_pattern", "growth_impact_markers", "growth_narrative_markers")
+        }
+        CALCULATION_NARRATIVE_POLICY["growth_query_pattern"] = r"growth"
+        CALCULATION_NARRATIVE_POLICY["growth_impact_markers"] = ("impact", "pressure", "reduced")
+        CALCULATION_NARRATIVE_POLICY["growth_narrative_markers"] = ("impact", "pressure", "reduced")
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment profit growth",
+                    "operation_family": "growth_rate",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "-20.0%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment profit growth",
+                                "period": "2023",
+                                "rendered_value": "-20.0%",
+                                "normalized_value": -20.0,
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "segment profit",
+                                "period": "2023",
+                                "rendered_value": "80 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "segment profit",
+                                "period": "2022",
+                                "rendered_value": "100 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_narrative",
+                    "metric_family": "narrative_summary",
+                    "operation_family": "narrative_summary",
+                    "answer": "MarginX pressure reduced segment profit.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ]
+            evidence_items = [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "MarginX pressure reduced segment profit.",
+                    "quote_span": "MarginX pressure reduced segment profit.",
+                }
+            ]
+            current_answer = (
+                "2023 segment profit was 80 million, from 2022 100 million, down -20.0%. "
+                "The forward-looking warning discusses uncertain future assumptions that may impact results. "
+                "MarginX pressure reduced segment profit."
+            )
+
+            refreshed = self.agent._refresh_numeric_answer_preserving_narrative_context(
+                query="Calculate segment profit growth and summarize the impact of MarginX.",
+                current_answer=current_answer,
+                numeric_answer="2023 segment profit was 80 million, from 2022 100 million, down -20.0%.",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+
+            self.assertIn("20.0%", refreshed["answer"])
+            self.assertIn("MarginX pressure", refreshed["answer"])
+            self.assertNotIn("forward-looking warning", refreshed["answer"])
         finally:
             for key, value in original_policy.items():
                 CALCULATION_NARRATIVE_POLICY[key] = value

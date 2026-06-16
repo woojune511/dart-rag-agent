@@ -553,6 +553,10 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             final,
             runtime_calculation_trace,
         )
+        runtime_calculation_trace = self._repair_period_comparison_trace_from_evidence(
+            final,
+            runtime_calculation_trace,
+        )
         public_answer = _normalise_spaces(str(final.get("answer") or ""))
         runtime_numeric_answer = self._late_runtime_numeric_answer(
             {
@@ -566,6 +570,18 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         final_for_evidence = {**dict(final), "answer": public_answer, "compressed_answer": public_answer}
         runtime_evidence = self._runtime_evidence_from_retrieved_docs(final_for_evidence)
         runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
+            {
+                **final_for_evidence,
+                "evidence_items": [
+                    *list(final_for_evidence.get("evidence_items") or []),
+                    *list(runtime_evidence or []),
+                ],
+                "runtime_evidence": runtime_evidence,
+                "resolved_calculation_trace": runtime_calculation_trace,
+            },
+            runtime_calculation_trace,
+        )
+        runtime_calculation_trace = self._repair_period_comparison_trace_from_evidence(
             {
                 **final_for_evidence,
                 "evidence_items": [

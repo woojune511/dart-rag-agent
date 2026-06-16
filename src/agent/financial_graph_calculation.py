@@ -4186,6 +4186,12 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             evidence_items=evidence_items,
         )
+        candidate_answer = self._prune_irrelevant_growth_narrative_sentences(
+            query=query_text,
+            answer=candidate_answer,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        )
         if (
             not self._growth_answer_has_untraced_numeric_material(candidate_answer, ordered_results, evidence_items)
             and self._answer_satisfies_growth_narrative_intent(
@@ -4202,6 +4208,21 @@ class FinancialAgentCalculationMixin:
             str(item)
             for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
         )
+        supported_context_candidates = self._supported_growth_narrative_candidate_sentences(
+            query=query_text,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        )
+
+        def _matches_supported_growth_context(sentence: str) -> bool:
+            if not supported_context_candidates:
+                return True
+            return any(
+                self._answer_covers_narrative_context(sentence, candidate)
+                or self._answer_covers_narrative_context(candidate, sentence)
+                for candidate in supported_context_candidates
+            )
+
         for sentence in _split_narrative_sentences(candidate_answer) or [candidate_answer]:
             cleaned_sentence = _normalise_spaces(sentence)
             if not cleaned_sentence or cleaned_sentence in numeric_text:
@@ -4216,6 +4237,8 @@ class FinancialAgentCalculationMixin:
             if _narrative_sentence_looks_table_noisy(cleaned_sentence):
                 continue
             if _narrative_sentence_looks_abbreviated_fragment(cleaned_sentence, narrative_markers):
+                continue
+            if not _matches_supported_growth_context(cleaned_sentence):
                 continue
             current_context_parts.append(cleaned_sentence)
         current_context_answer = _normalise_spaces(" ".join([numeric_text, *current_context_parts]))
@@ -9400,6 +9423,45 @@ class FinancialAgentCalculationMixin:
             return False
         return True
 
+    def _supported_growth_narrative_candidate_sentences(
+        self,
+        *,
+        query: str,
+        ordered_results: List[Dict[str, Any]],
+        evidence_items: List[Dict[str, Any]],
+        min_evidence_score: Optional[int] = None,
+    ) -> List[str]:
+        evidence_score_floor = int(
+            min_evidence_score
+            if min_evidence_score is not None
+            else CALCULATION_NARRATIVE_POLICY.get("growth_supported_candidate_min_score") or 12
+        )
+        row_sentences = [
+            _normalise_spaces(sentence)
+            for row in ordered_results or []
+            if self._row_is_narrative_summary(row)
+            for sentence in _split_narrative_sentences(str(row.get("answer") or ""))
+            if _normalise_spaces(sentence)
+        ]
+        row_sentence_set = set(row_sentences)
+        evidence_sentences: List[str] = []
+        for score, candidate, _claim_ids in self._growth_narrative_sentence_candidates(
+            query=query,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        ):
+            normalized_candidate = _normalise_spaces(candidate)
+            if score < evidence_score_floor and normalized_candidate not in row_sentence_set:
+                continue
+            evidence_sentences.extend(_split_narrative_sentences(normalized_candidate))
+        return list(
+            dict.fromkeys(
+                _normalise_spaces(sentence)
+                for sentence in [*row_sentences, *evidence_sentences]
+                if _normalise_spaces(sentence)
+            )
+        )
+
     def _growth_narrative_sentence_candidates(
         self,
         *,
@@ -9989,12 +10051,9 @@ class FinancialAgentCalculationMixin:
         sentences = _split_narrative_sentences(answer_text)
         if len(sentences) < 2 or not _query_requests_narrative_context(query):
             return answer_text
-        if not self._answer_satisfies_growth_narrative_intent(
-            query=query,
-            answer=answer_text,
-            ordered_results=ordered_results,
-            evidence_items=evidence_items,
-        ):
+        if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("growth_query_pattern") or r"$^"), query):
+            return answer_text
+        if not re.search(str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"$^"), answer_text):
             return answer_text
 
         has_growth_row = any(
@@ -10020,14 +10079,11 @@ class FinancialAgentCalculationMixin:
             )
         required_values = list(dict.fromkeys(required_values))
 
-        candidate_sentences: List[str] = []
-        for _score, candidate, _claim_ids in self._growth_narrative_sentence_candidates(
+        candidate_sentences = self._supported_growth_narrative_candidate_sentences(
             query=query,
             ordered_results=ordered_results,
             evidence_items=evidence_items,
-        ):
-            candidate_sentences.extend(_split_narrative_sentences(candidate))
-        candidate_sentences = list(dict.fromkeys(_normalise_spaces(item) for item in candidate_sentences if item))
+        )
 
         focus_variants = [_normalise_spaces(str(item)) for item in self._narrative_focus_variants(query) if item]
         impact_markers = [
@@ -10079,6 +10135,8 @@ class FinancialAgentCalculationMixin:
                 if _token_overlap_supported(cleaned, candidate):
                     return True
             if any(marker and marker in cleaned for marker in impact_markers + narrative_markers):
+                if candidate_sentences:
+                    return False
                 return any(variant and variant.lower() in cleaned_lower for variant in focus_variants)
             return False
 
@@ -10086,12 +10144,17 @@ class FinancialAgentCalculationMixin:
         if len(kept_sentences) == len(sentences) or not kept_sentences:
             return answer_text
         pruned_answer = _normalise_spaces(" ".join(kept_sentences))
+        has_supported_narrative_sentence = any(
+            _normalise_spaces(sentence) in candidate_sentences
+            for sentence in kept_sentences
+            if not any(value and value in _normalise_spaces(sentence) for value in required_values)
+        )
         if not self._answer_satisfies_growth_narrative_intent(
             query=query,
             answer=pruned_answer,
             ordered_results=ordered_results,
             evidence_items=evidence_items,
-        ):
+        ) and not has_supported_narrative_sentence:
             return answer_text
         if self._growth_answer_has_untraced_numeric_material(
             pruned_answer,
@@ -11950,9 +12013,7 @@ class FinancialAgentCalculationMixin:
             if operation_family not in {"difference", "growth_rate"}:
                 updated_results.append(result_row)
                 continue
-            if _result_has_complete_period_slots(result_row):
-                updated_results.append(result_row)
-                continue
+            has_complete_period_slots = _result_has_complete_period_slots(result_row)
             task = task_by_id.get(str(result_row.get("task_id") or "")) or {}
             required_operands = [
                 dict(item)
@@ -11986,6 +12047,13 @@ class FinancialAgentCalculationMixin:
             if _missing_required_operands(required_operands, context_rows):
                 updated_results.append(result_row)
                 continue
+            context_has_source_stated_change = bool(
+                operation_family == "growth_rate"
+                and any(_normalise_spaces(str(row.get("stated_change_raw_value") or "")) for row in context_rows)
+            )
+            if has_complete_period_slots and not context_has_source_stated_change:
+                updated_results.append(result_row)
+                continue
             active_subtask = {
                 **task,
                 "task_id": result_row.get("task_id") or task.get("task_id") or "period_comparison",
@@ -12002,6 +12070,7 @@ class FinancialAgentCalculationMixin:
                     "calculation_plan": {},
                     "calculation_result": {},
                 },
+                "subtask_results": [],
                 "tasks": [],
                 "artifacts": [],
             }
@@ -12415,13 +12484,55 @@ class FinancialAgentCalculationMixin:
                 answer_slots.get("operation_family")
                 or calculation_result.get("operation_family")
                 or calculation_plan.get("operation")
+                or calculation_plan.get("mode")
                 or ""
             )
         ).lower()
-        if operation_family not in {"ratio", "growth_rate", "difference", "sum"}:
+        if operation_family not in {"ratio", "growth_rate", "difference", "sum", "aggregate_subtasks"}:
             return ""
         status = _normalise_spaces(str(calculation_result.get("status") or "")).lower()
         if status != "ok":
+            return ""
+        if operation_family == "aggregate_subtasks":
+            if calculation_result.get("stale_result_repaired_from_evidence"):
+                formatted_result = _normalise_spaces(
+                    str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
+                )
+                if formatted_result and formatted_result != _normalise_spaces(str(final_answer or "")):
+                    return formatted_result
+            nested_results = [
+                dict(row)
+                for row in list(
+                    calculation_result.get("subtask_results")
+                    or answer_slots.get("subtask_results")
+                    or state.get("subtask_results")
+                    or []
+                )
+                if isinstance(row, dict)
+            ]
+            evidence_rows = [
+                dict(item)
+                for item in [
+                    *list(state.get("evidence_items") or []),
+                    *list(state.get("runtime_evidence") or []),
+                ]
+                if isinstance(item, dict)
+            ]
+            conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
+                query=str(state.get("query") or ""),
+                ordered_results=nested_results,
+                evidence_items=evidence_rows,
+            )
+            conflicting_answer = _normalise_spaces(str(conflicting_narrative.get("answer") or ""))
+            if (
+                conflicting_answer
+                and str(conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks"
+                and conflicting_answer != _normalise_spaces(str(final_answer or ""))
+            ):
+                return conflicting_answer
+            supported_answer = self._supported_aggregate_subtask_answer(nested_results)
+            if supported_answer and supported_answer != _normalise_spaces(str(final_answer or "")):
+                return supported_answer
             return ""
         rendered_value = _normalise_spaces(
             str(
@@ -12854,15 +12965,32 @@ class FinancialAgentCalculationMixin:
             "answer_slots": updated_slots,
             "stale_result_repaired_from_evidence": True,
         }
-        updated_operands: List[Dict[str, Any]] = []
         role_updates = {
             numerator_role: updated_numerator,
             denominator_role: updated_denominator,
         }
+        updated_trace = dict(trace or {})
+        updated_trace["calculation_operands"] = self._updated_operands_from_slots(
+            trace,
+            role_updates,
+        )
+        updated_trace["calculation_result"] = updated_result
+        return updated_trace
+
+    def _updated_operands_from_slots(
+        self,
+        trace: Dict[str, Any],
+        slot_by_role: Dict[str, Dict[str, Any]],
+        *,
+        normalize_role: bool = False,
+    ) -> List[Dict[str, Any]]:
+        updated_operands: List[Dict[str, Any]] = []
         for operand in list((trace or {}).get("calculation_operands") or []):
             row = dict(operand)
             role = str(row.get("matched_operand_role") or row.get("role") or "")
-            slot = role_updates.get(role)
+            if normalize_role:
+                role = _normalise_spaces(role).lower()
+            slot = slot_by_role.get(role)
             if slot:
                 row.update(
                     {
@@ -12876,9 +13004,235 @@ class FinancialAgentCalculationMixin:
                     }
                 )
             updated_operands.append(row)
-        updated_trace = dict(trace or {})
-        updated_trace["calculation_operands"] = updated_operands
+        return updated_operands
+
+    def _runtime_evidence_rows_with_context_docs(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
+        evidence_rows = [
+            dict(item)
+            for item in [
+                *list(state.get("evidence_items") or []),
+                *list(state.get("runtime_evidence") or []),
+            ]
+            if isinstance(item, dict)
+        ]
+        context_docs = self._retrieval_context_docs(
+            list(state.get("retrieved_docs") or []),
+            list(state.get("seed_retrieved_docs") or []),
+            seed_limit=8,
+        )
+        evidence_rows.extend(self._ratio_operand_context_evidence_from_docs(context_docs))
+        return evidence_rows
+
+    def _ordered_aggregate_subtask_results_for_repair(
+        self,
+        *,
+        state: FinancialAgentState,
+        calculation_result: Dict[str, Any],
+        answer_slots: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        structured_result = dict(state.get("structured_result") or {})
+        ordered_results: List[Dict[str, Any]] = []
+        seen_result_keys: set[str] = set()
+        for rows in (
+            calculation_result.get("subtask_results"),
+            answer_slots.get("subtask_results"),
+            structured_result.get("subtask_results"),
+            state.get("subtask_results"),
+        ):
+            for row in list(rows or []):
+                if not isinstance(row, dict):
+                    continue
+                task_id = _normalise_spaces(str(row.get("task_id") or ""))
+                dedupe_key = task_id or self._aggregate_result_signature(dict(row))
+                if dedupe_key and dedupe_key in seen_result_keys:
+                    continue
+                if dedupe_key:
+                    seen_result_keys.add(dedupe_key)
+                ordered_results.append(dict(row))
+        return ordered_results
+
+    def _repair_period_comparison_trace_from_evidence(
+        self,
+        state: FinancialAgentState,
+        trace: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        calculation_plan = dict((trace or {}).get("calculation_plan") or {})
+        calculation_result = dict((trace or {}).get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        operation_family = _normalise_spaces(
+            str(
+                answer_slots.get("operation_family")
+                or calculation_result.get("operation_family")
+                or calculation_plan.get("operation")
+                or calculation_plan.get("mode")
+                or ""
+            )
+        ).lower()
+        if operation_family == "aggregate_subtasks":
+            return self._repair_aggregate_period_comparison_trace_from_evidence(
+                state=state,
+                trace=trace,
+                calculation_result=calculation_result,
+                answer_slots=answer_slots,
+            )
+        if operation_family not in {"difference", "growth_rate"}:
+            return trace
+        if _normalise_spaces(str(calculation_result.get("status") or "")).lower() != "ok":
+            return trace
+        return self._repair_single_period_comparison_trace_from_evidence(
+            state=state,
+            trace=trace,
+            calculation_plan=calculation_plan,
+            calculation_result=calculation_result,
+            answer_slots=answer_slots,
+            operation_family=operation_family,
+        )
+
+    def _repair_aggregate_period_comparison_trace_from_evidence(
+        self,
+        *,
+        state: FinancialAgentState,
+        trace: Dict[str, Any],
+        calculation_result: Dict[str, Any],
+        answer_slots: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        evidence_rows = self._runtime_evidence_rows_with_context_docs(state)
+        ordered_results = self._ordered_aggregate_subtask_results_for_repair(
+            state=state,
+            calculation_result=calculation_result,
+            answer_slots=answer_slots,
+        )
+        if not ordered_results or not evidence_rows:
+            return trace
+        final_answer = _normalise_spaces(
+            str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
+        )
+        realigned_results = self._realign_period_comparison_results_from_table_label_context(
+            ordered_results,
+            state,
+            evidence_rows,
+        )
+        if realigned_results is ordered_results and state.get("calc_subtasks"):
+            realigned_results = self._realign_period_comparison_results_from_table_label_context(
+                ordered_results,
+                {**dict(state), "calc_subtasks": []},
+                evidence_rows,
+            )
+        if realigned_results is ordered_results:
+            return trace
+        numeric_answer = self._preferred_complete_numeric_answer(
+            realigned_results,
+            query=str(state.get("query") or ""),
+            evidence_items=evidence_rows,
+        )
+        refreshed_payload = (
+            self._refresh_numeric_answer_preserving_narrative_context(
+                query=str(state.get("query") or ""),
+                current_answer=final_answer,
+                numeric_answer=numeric_answer,
+                ordered_results=realigned_results,
+                evidence_items=evidence_rows,
+            )
+            if numeric_answer
+            else {}
+        )
+        refreshed_answer = _normalise_spaces(str((refreshed_payload or {}).get("answer") or ""))
+        refreshed_answer = self._enforce_source_stated_growth_answer_contract(
+            refreshed_answer or final_answer,
+            realigned_results,
+            evidence_items=evidence_rows,
+        )
+        aggregate_projection = self._rebuild_aggregate_projection(
+            realigned_results,
+            refreshed_answer or final_answer,
+            kept_evidence_ids=None,
+        )
+        if refreshed_answer:
+            aggregate_projection = self._sync_aggregate_projection_final_answer(
+                aggregate_projection,
+                refreshed_answer,
+                sync_rendered_for_aggregate=True,
+                status_ok=True,
+            )
+        updated_trace = dict(aggregate_projection)
+        updated_result = dict(updated_trace.get("calculation_result") or {})
+        updated_result["stale_result_repaired_from_evidence"] = True
         updated_trace["calculation_result"] = updated_result
+        return updated_trace
+
+    def _repair_single_period_comparison_trace_from_evidence(
+        self,
+        *,
+        state: FinancialAgentState,
+        trace: Dict[str, Any],
+        calculation_plan: Dict[str, Any],
+        calculation_result: Dict[str, Any],
+        answer_slots: Dict[str, Any],
+        operation_family: str,
+    ) -> Dict[str, Any]:
+        evidence_rows = self._runtime_evidence_rows_with_context_docs(state)
+        if not evidence_rows:
+            return trace
+        task_id = _normalise_spaces(
+            str(
+                calculation_result.get("task_id")
+                or calculation_plan.get("task_id")
+                or (state.get("active_subtask") or {}).get("task_id")
+                or "runtime_period_comparison"
+            )
+        )
+        ordered_result = {
+            "task_id": task_id,
+            "metric_family": calculation_result.get("metric_family")
+            or calculation_plan.get("metric_family")
+            or (state.get("active_subtask") or {}).get("metric_family")
+            or "",
+            "metric_label": answer_slots.get("metric_label")
+            or calculation_result.get("metric_label")
+            or calculation_plan.get("metric_label")
+            or (state.get("active_subtask") or {}).get("metric_label")
+            or "",
+            "operation_family": operation_family,
+            "status": "ok",
+            "answer": calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+            or "",
+            "calculation_result": calculation_result,
+        }
+        ordered_results = [ordered_result]
+        realigned = self._realign_period_comparison_results_from_table_label_context(
+            ordered_results,
+            state,
+            evidence_rows,
+        )
+        if realigned is ordered_results or not realigned:
+            return trace
+        realigned_row = dict(realigned[0] or {})
+        if not realigned_row.get("period_comparison_recovered_from_table_label_context"):
+            return trace
+        updated_result = dict(realigned_row.get("calculation_result") or {})
+        if _normalise_spaces(str(updated_result.get("status") or "")).lower() != "ok":
+            return trace
+        updated_trace = dict(trace or {})
+        updated_trace["calculation_result"] = {
+            **calculation_result,
+            **updated_result,
+            "stale_result_repaired_from_evidence": True,
+        }
+
+        slot_by_role = {
+            "current_period": dict((updated_result.get("answer_slots") or {}).get("current_value") or {}),
+            "prior_period": dict((updated_result.get("answer_slots") or {}).get("prior_value") or {}),
+            "minuend": dict((updated_result.get("answer_slots") or {}).get("current_value") or {}),
+            "subtrahend": dict((updated_result.get("answer_slots") or {}).get("prior_value") or {}),
+        }
+        updated_operands = self._updated_operands_from_slots(
+            trace,
+            slot_by_role,
+            normalize_role=True,
+        )
+        if updated_operands:
+            updated_trace["calculation_operands"] = updated_operands
         return updated_trace
 
     def _compact_ratio_answer(
@@ -15064,11 +15418,31 @@ class FinancialAgentCalculationMixin:
                     if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
                 ]
                 logger.info("[calc_operands] percent-diff operand filtering retained=%s", len(operand_rows))
+            preserved_operand_source = ""
+            if not operand_rows:
+                if direct_structured_rows:
+                    operand_rows = [dict(row) for row in direct_structured_rows]
+                    preserved_operand_source = "structured_rows"
+                elif dependency_rows:
+                    operand_rows = [dict(row) for row in dependency_rows]
+                    preserved_operand_source = "dependency_outputs"
+                if preserved_operand_source:
+                    logger.info(
+                        "[calc_operands] preserved %s fallback operands from %s",
+                        len(operand_rows),
+                        preserved_operand_source,
+                    )
             merged_coverage = extracted.coverage
             if direct_structured_rows and operand_rows and required_operands:
                 merged_coverage = (
                     "sufficient"
                     if not _missing_required_operands(required_operands, operand_rows)
+                    else "partial"
+                )
+            elif preserved_operand_source and operand_rows:
+                merged_coverage = (
+                    "sufficient"
+                    if required_operands and not _missing_required_operands(required_operands, operand_rows)
                     else "partial"
                 )
             logger.info("[calc_operands] coverage=%s operands=%s", merged_coverage, len(operand_rows))
