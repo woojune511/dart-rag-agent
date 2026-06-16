@@ -25,6 +25,14 @@ benchmarks/results/tmp_*.json
 benchmarks/results/tmp_*/
 benchmarks/results/*_manual/
 benchmarks/results/ablation_*/
+benchmarks/results/curated_single_doc_official_77_*/
+benchmarks/results/focused_*/
+benchmarks/results/full_eval_only_*/
+benchmarks/results/hyu_t1_034_*/
+benchmarks/results/refactor_check_*/
+benchmarks/results/refactor_projection_*/
+benchmarks/results/regression_*_after_hyu_rebind_*/
+benchmarks/results/replay_multi_entity_manual_*/
 benchmarks/results/*_final_smoke_*/
 benchmarks/results/*_formal_structural_*/
 benchmarks/results/*_structural_probe_*/
