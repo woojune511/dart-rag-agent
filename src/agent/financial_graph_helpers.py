@@ -393,6 +393,33 @@ def _aggregate_operand_key(row: Mapping[str, Any], source_ids: Sequence[str] | N
     )
 
 
+def _append_aggregate_operand(
+    aggregate_operands: List[Dict[str, Any]],
+    seen_operand_keys: set[tuple[str, ...]],
+    operand_row: Mapping[str, Any],
+    source_ids: Sequence[Any] | None = None,
+) -> None:
+    row = dict(operand_row)
+    cleaned_source_ids = (
+        _clean_source_row_ids(source_ids)
+        if source_ids is not None
+        else _clean_source_row_ids([
+            row.get("source_row_id"),
+            row.get("source_row_ids"),
+        ])
+    )
+    if source_ids is not None and cleaned_source_ids:
+        row["source_row_id"] = cleaned_source_ids[0]
+        row["source_row_ids"] = cleaned_source_ids
+    if not _operand_row_has_material_numeric_payload(row):
+        return
+    operand_key = _aggregate_operand_key(row, cleaned_source_ids)
+    if operand_key in seen_operand_keys:
+        return
+    seen_operand_keys.add(operand_key)
+    aggregate_operands.append(row)
+
+
 def _split_sentences(text: str) -> List[str]:
     cleaned = _normalise_spaces(text)
     if not cleaned:
@@ -1246,20 +1273,10 @@ def _build_aggregate_calculation_projection(
         if not has_result_surface or _subtask_numeric_result_visible_in_answer(final_answer, row, calculation_result, answer_slots):
             for operand in list(row.get("calculation_operands") or []):
                 operand_row = dict(operand)
-                if not _operand_row_has_material_numeric_payload(operand_row):
-                    continue
                 operand_row.setdefault("task_id", task_id)
                 operand_row.setdefault("metric_family", metric_family)
                 operand_row.setdefault("metric_label", metric_label)
-                operand_source_ids = _clean_source_row_ids([
-                    operand_row.get("source_row_id"),
-                    operand_row.get("source_row_ids"),
-                ])
-                operand_key = _aggregate_operand_key(operand_row, operand_source_ids)
-                if operand_key in seen_operand_keys:
-                    continue
-                seen_operand_keys.add(operand_key)
-                aggregate_operands.append(operand_row)
+                _append_aggregate_operand(aggregate_operands, seen_operand_keys, operand_row)
 
         plan = dict(row.get("calculation_plan") or {})
         if plan:
@@ -1295,14 +1312,7 @@ def _build_aggregate_calculation_projection(
                 row.get("source_row_ids"),
                 calculation_result.get("source_row_ids"),
             ])
-            if source_ids:
-                operand_row["source_row_id"] = source_ids[0]
-                operand_row["source_row_ids"] = source_ids
-            if _operand_row_has_material_numeric_payload(operand_row):
-                operand_key = _aggregate_operand_key(operand_row, source_ids)
-                if operand_key not in seen_operand_keys:
-                    seen_operand_keys.add(operand_key)
-                    aggregate_operands.append(operand_row)
+            _append_aggregate_operand(aggregate_operands, seen_operand_keys, operand_row, source_ids)
         subtask_source_row_ids = _clean_source_row_ids([
             row.get("source_row_id"),
             row.get("source_row_ids"),
