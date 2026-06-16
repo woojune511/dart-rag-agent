@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Callable, Dict, List
 
-from src.agent.financial_graph_helpers import _clean_source_row_ids, _normalise_spaces
+from src.agent.financial_graph_helpers import _clean_source_row_ids, _normalise_operand_value, _normalise_spaces
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
-from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
+from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
 def _slot_from_single_answer_numeric(
@@ -26,26 +28,22 @@ def _slot_from_single_answer_numeric(
     if len(candidates) != 1:
         return {}
     candidate = candidates[0]
-    candidate_text = _normalise_spaces(str(candidate.get("text") or ""))
-    candidate_unit = _normalise_spaces(str(candidate.get("unit") or ""))
-    raw_value = candidate_text
-    if candidate_unit and raw_value.endswith(candidate_unit):
-        raw_value = _normalise_spaces(raw_value[: -len(candidate_unit)])
-    if not raw_value:
+    components = numeric_surface_slot_components(candidate)
+    if not components:
         return {}
     normalized_unit = _normalise_spaces(str(current_slot.get("normalized_unit") or ""))
     if not normalized_unit:
-        normalized_unit = "KRW" if candidate.get("kind") == "currency" else "UNKNOWN"
+        normalized_unit = str(components.get("normalized_unit") or "UNKNOWN")
     return {
         **dict(current_slot),
         "status": "ok",
         "role": current_slot.get("role") or "primary_value",
         "label": _normalise_spaces(str(result_row.get("metric_label") or current_slot.get("label") or "")),
-        "raw_value": raw_value,
-        "raw_unit": candidate_unit or _normalise_spaces(str(current_slot.get("raw_unit") or "")),
-        "normalized_value": candidate.get("value"),
+        "raw_value": components.get("raw_value"),
+        "raw_unit": components.get("raw_unit") or _normalise_spaces(str(current_slot.get("raw_unit") or "")),
+        "normalized_value": components.get("normalized_value"),
         "normalized_unit": normalized_unit,
-        "rendered_value": candidate_text,
+        "rendered_value": components.get("rendered_value"),
     }
 
 
@@ -183,6 +181,44 @@ def collect_table_label_evidence_candidates(
     return candidates
 
 
+def _dependency_operand_from_slot(
+    operand: Dict[str, Any],
+    slot: Dict[str, Any],
+    *,
+    source_row_ids: List[str],
+    evidence_id: Any,
+    source_row_id: Any,
+    extra_fields: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    row = {
+        **dict(operand),
+        "evidence_id": evidence_id,
+        "source_row_id": source_row_id,
+        "source_row_ids": source_row_ids,
+        "normalized_value": slot.get("normalized_value"),
+        "normalized_unit": _normalise_spaces(
+            str(slot.get("normalized_unit") or operand.get("normalized_unit") or "UNKNOWN")
+        ).upper()
+        or "UNKNOWN",
+        "matched_operand_label": _normalise_spaces(
+            str(operand.get("matched_operand_label") or slot.get("label") or "")
+        ),
+        "matched_operand_concept": _normalise_spaces(
+            str(operand.get("matched_operand_concept") or slot.get("concept") or "")
+        ),
+        "matched_operand_role": _normalise_spaces(
+            str(operand.get("matched_operand_role") or operand.get("role") or slot.get("role") or "")
+        ),
+        "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
+        "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
+    }
+    for key in ("source_anchor", "label", "raw_value", "raw_unit", "period"):
+        row[key] = _normalise_spaces(str(slot.get(key) or operand.get(key) or ""))
+    if extra_fields:
+        row.update(extra_fields)
+    return row
+
+
 def dependency_operand_from_source_slot(
     operand: Dict[str, Any],
     slot: Dict[str, Any],
@@ -194,37 +230,19 @@ def dependency_operand_from_source_slot(
         slot.get("source_row_id"),
         slot.get("source_row_ids"),
     ])
-    role = _normalise_spaces(
-        str(operand.get("matched_operand_role") or operand.get("role") or slot.get("role") or "")
+    task_output_id = f"task_output:{source_task_id}"
+    return _dependency_operand_from_slot(
+        operand,
+        slot,
+        source_row_ids=source_row_ids or [task_output_id],
+        evidence_id=task_output_id,
+        source_row_id=source_row_ids[0] if source_row_ids else task_output_id,
+        extra_fields={
+            "source_task_id": source_task_id,
+            "source_slot": _normalise_spaces(str(operand.get("source_slot") or "primary_value")) or "primary_value",
+            "dependency_resolved": True,
+        },
     )
-    return {
-        **dict(operand),
-        "evidence_id": f"task_output:{source_task_id}",
-        "source_row_id": source_row_ids[0] if source_row_ids else f"task_output:{source_task_id}",
-        "source_row_ids": source_row_ids or [f"task_output:{source_task_id}"],
-        "source_anchor": _normalise_spaces(str(slot.get("source_anchor") or operand.get("source_anchor") or "")),
-        "label": _normalise_spaces(str(slot.get("label") or operand.get("label") or "")),
-        "raw_value": _normalise_spaces(str(slot.get("raw_value") or operand.get("raw_value") or "")),
-        "raw_unit": _normalise_spaces(str(slot.get("raw_unit") or operand.get("raw_unit") or "")),
-        "normalized_value": slot.get("normalized_value"),
-        "normalized_unit": _normalise_spaces(
-            str(slot.get("normalized_unit") or operand.get("normalized_unit") or "UNKNOWN")
-        ).upper()
-        or "UNKNOWN",
-        "period": _normalise_spaces(str(slot.get("period") or operand.get("period") or "")),
-        "matched_operand_label": _normalise_spaces(
-            str(operand.get("matched_operand_label") or slot.get("label") or "")
-        ),
-        "matched_operand_concept": _normalise_spaces(
-            str(operand.get("matched_operand_concept") or slot.get("concept") or "")
-        ),
-        "matched_operand_role": role,
-        "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
-        "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
-        "source_task_id": source_task_id,
-        "source_slot": _normalise_spaces(str(operand.get("source_slot") or "primary_value")) or "primary_value",
-        "dependency_resolved": True,
-    }
 
 
 def dependency_operand_from_answer_slot(
@@ -232,34 +250,13 @@ def dependency_operand_from_answer_slot(
     slot: Dict[str, Any],
 ) -> Dict[str, Any]:
     source_row_ids = _clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")])
-    role = _normalise_spaces(
-        str(operand.get("matched_operand_role") or operand.get("role") or slot.get("role") or "")
+    return _dependency_operand_from_slot(
+        operand,
+        slot,
+        source_row_ids=source_row_ids,
+        evidence_id=source_row_ids[0] if source_row_ids else operand.get("evidence_id"),
+        source_row_id=source_row_ids[0] if source_row_ids else operand.get("source_row_id"),
     )
-    return {
-        **dict(operand),
-        "evidence_id": source_row_ids[0] if source_row_ids else operand.get("evidence_id"),
-        "source_row_id": source_row_ids[0] if source_row_ids else operand.get("source_row_id"),
-        "source_row_ids": source_row_ids,
-        "source_anchor": _normalise_spaces(str(slot.get("source_anchor") or operand.get("source_anchor") or "")),
-        "label": _normalise_spaces(str(slot.get("label") or operand.get("label") or "")),
-        "raw_value": _normalise_spaces(str(slot.get("raw_value") or operand.get("raw_value") or "")),
-        "raw_unit": _normalise_spaces(str(slot.get("raw_unit") or operand.get("raw_unit") or "")),
-        "normalized_value": slot.get("normalized_value"),
-        "normalized_unit": _normalise_spaces(
-            str(slot.get("normalized_unit") or operand.get("normalized_unit") or "UNKNOWN")
-        ).upper()
-        or "UNKNOWN",
-        "period": _normalise_spaces(str(slot.get("period") or operand.get("period") or "")),
-        "matched_operand_label": _normalise_spaces(
-            str(operand.get("matched_operand_label") or slot.get("label") or "")
-        ),
-        "matched_operand_concept": _normalise_spaces(
-            str(operand.get("matched_operand_concept") or slot.get("concept") or "")
-        ),
-        "matched_operand_role": role,
-        "stated_change_raw_value": _normalise_spaces(str(slot.get("stated_change_raw_value") or "")),
-        "stated_change_raw_unit": _normalise_spaces(str(slot.get("stated_change_raw_unit") or "")),
-    }
 
 
 def dependency_operand_from_table_label_evidence(
@@ -715,6 +712,15 @@ def dedupe_dependency_operands_by_id(operands: List[Dict[str, Any]]) -> List[Dic
     return deduped_operands
 
 
+def _numeric_values_differ(left: Any, right: Any) -> bool:
+    try:
+        if left is not None and right is not None:
+            return abs(float(left) - float(right)) > 1e-6
+    except (TypeError, ValueError):
+        pass
+    return left != right
+
+
 def fill_missing_ratio_dependency_operands(
     updated_operands: List[Dict[str, Any]],
     *,
@@ -893,23 +899,21 @@ def realign_lookup_row_from_dependency_projection(
 
     source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
     direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
-    if f"task_output:{task_id}" in source_ids:
-        candidate_normalized = candidate.get("normalized_value")
-        current_normalized = current_slot.get("normalized_value")
-        normalized_differs = False
-        try:
-            if candidate_normalized is not None and current_normalized is not None:
-                normalized_differs = abs(float(candidate_normalized) - float(current_normalized)) > 1e-6
-            else:
-                normalized_differs = candidate_normalized != current_normalized
-        except (TypeError, ValueError):
-            normalized_differs = candidate_normalized != current_normalized
+    current_source_ids = _clean_source_row_ids([current_slot.get("source_row_id"), current_slot.get("source_row_ids")])
+    direct_current_source_ids = [
+        source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
+    ]
+    self_task_projection = f"task_output:{task_id}" in source_ids
+    source_overlap_required = direct_current_source_ids and direct_source_ids
+    source_ids_disjoint = source_overlap_required and not (set(direct_current_source_ids) & set(direct_source_ids))
+    candidate_anchor = _normalise_spaces(str(candidate.get("source_anchor") or ""))
+    current_anchor = _normalise_spaces(str(current_slot.get("source_anchor") or ""))
+    source_anchor_conflict = bool(candidate_anchor and current_anchor and candidate_anchor != current_anchor)
+    if not self_task_projection and (source_ids_disjoint or source_anchor_conflict):
+        return row, {}, False
+    if self_task_projection:
         candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
         current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
-        current_source_ids = _clean_source_row_ids([current_slot.get("source_row_id"), current_slot.get("source_row_ids")])
-        direct_current_source_ids = [
-            source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
-        ]
         evidence_backed_unit_realignment = bool(
             direct_source_ids
             and (not direct_current_source_ids or bool(set(direct_source_ids) & set(direct_current_source_ids)))
@@ -917,6 +921,7 @@ def realign_lookup_row_from_dependency_projection(
             and current_unit
             and candidate_unit != current_unit
         )
+        normalized_differs = _numeric_values_differ(candidate.get("normalized_value"), current_slot.get("normalized_value"))
         if candidate_raw == current_raw and normalized_differs and not evidence_backed_unit_realignment:
             return row, {}, False
     component_slot = build_operand_value_slot(
@@ -985,3 +990,177 @@ def realign_lookup_row_from_dependency_projection(
         primary_slot,
         True,
     )
+
+
+def replace_lookup_primary_slot(
+    row: Dict[str, Any],
+    updated_primary: Dict[str, Any],
+    *,
+    marker_key: str,
+    component_source_ids: set[str] | None = None,
+) -> Dict[str, Any]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    updated_slots = dict(answer_slots)
+    updated_slots["primary_value"] = updated_primary
+    raw_value = _normalise_spaces(str(updated_primary.get("raw_value") or ""))
+    raw_unit = _normalise_spaces(str(updated_primary.get("raw_unit") or ""))
+    normalized_value = updated_primary.get("normalized_value")
+    normalized_unit = _normalise_spaces(str(updated_primary.get("normalized_unit") or ""))
+    rendered_value = _normalise_spaces(str(updated_primary.get("rendered_value") or f"{raw_value}{raw_unit}"))
+    if component_source_ids:
+        for container_key in ("components_by_role", "components_by_group"):
+            container = dict(updated_slots.get(container_key) or {})
+            if not container:
+                continue
+            updated_slots[container_key] = {
+                key: [
+                    {
+                        **dict(item),
+                        "raw_unit": raw_unit,
+                        "normalized_value": normalized_value,
+                        "normalized_unit": normalized_unit,
+                        "rendered_value": rendered_value,
+                        marker_key: True,
+                    }
+                    if isinstance(item, dict)
+                    and _normalise_spaces(str(item.get("raw_value") or "")) == raw_value
+                    and (
+                        not component_source_ids
+                        or set(_clean_source_row_ids([item.get("source_row_id"), item.get("source_row_ids")]))
+                        & component_source_ids
+                    )
+                    else item
+                    for item in list(entries or [])
+                ]
+                for key, entries in container.items()
+            }
+    label = _normalise_spaces(str(updated_primary.get("label") or row.get("metric_label") or ""))
+    updated_result = {
+        **calculation_result,
+        "result_value": normalized_value,
+        "result_unit": raw_unit or normalized_unit,
+        "rendered_value": rendered_value,
+        "formatted_result": _normalise_spaces(f"{label} {rendered_value}") if label and rendered_value else rendered_value,
+        "answer_slots": updated_slots,
+    }
+    return {
+        **dict(row),
+        "answer": str(updated_result.get("formatted_result") or rendered_value),
+        "calculation_result": updated_result,
+        "answer_slots": updated_slots,
+        marker_key: True,
+    }
+
+
+def lookup_primary_slot(row: Dict[str, Any]) -> Dict[str, Any]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    return dict(answer_slots.get("primary_value") or {})
+
+
+def align_lookup_result_units_from_peer_source_slots(
+    ordered_results: List[Dict[str, Any]],
+    *,
+    operation_family_for_result: Callable[[Dict[str, Any]], str],
+    slot_has_material: Callable[[Dict[str, Any]], bool],
+) -> List[Dict[str, Any]]:
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    krw_units = {
+        _normalise_spaces(str(item))
+        for item in (render_policy.get("krw_display_units") or ())
+        if _normalise_spaces(str(item))
+    }
+
+    def _source_keys(slot: Dict[str, Any]) -> set[str]:
+        source_ids = set(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
+        source_anchor = _normalise_spaces(str(slot.get("source_anchor") or ""))
+        if source_anchor:
+            source_ids.add(f"anchor::{source_anchor}")
+        return source_ids
+
+    peer_slots = [
+        lookup_primary_slot(row)
+        for row in ordered_results
+        if isinstance(row, dict)
+        and operation_family_for_result(row) in {"lookup", "single_value"}
+        and slot_has_material(lookup_primary_slot(row))
+    ]
+
+    def _peer_unit_for(slot: Dict[str, Any]) -> str:
+        raw_value = _normalise_spaces(str(slot.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+        if (
+            not raw_value
+            or not raw_unit
+            or raw_unit not in krw_units
+            or normalized_unit != "KRW"
+            or not re.fullmatch(str(render_policy.get("operand_unit_bare_numeric_pattern") or r"$^"), raw_value)
+        ):
+            return ""
+        keys = _source_keys(slot)
+        if not keys:
+            return ""
+        concept = _normalise_spaces(str(slot.get("concept") or ""))
+        candidates: List[str] = []
+        for peer in peer_slots:
+            if peer is slot:
+                continue
+            peer_unit = _normalise_spaces(str(peer.get("raw_unit") or ""))
+            if not peer_unit or peer_unit == raw_unit or peer_unit not in krw_units:
+                continue
+            if _normalise_spaces(str(peer.get("normalized_unit") or "")).upper() != normalized_unit:
+                continue
+            peer_concept = _normalise_spaces(str(peer.get("concept") or ""))
+            if concept and peer_concept and concept != peer_concept:
+                continue
+            if _source_keys(peer) & keys:
+                candidates.append(peer_unit)
+        if not candidates:
+            return ""
+        counts = {unit: candidates.count(unit) for unit in set(candidates)}
+        best_count = max(counts.values())
+        best_units = [unit for unit, count in counts.items() if count == best_count]
+        if len(best_units) != 1:
+            return ""
+        peer_value, _peer_unit = _normalise_operand_value(raw_value, best_units[0])
+        try:
+            if abs(float(peer_value)) <= abs(float(slot.get("normalized_value"))):
+                return ""
+        except (TypeError, ValueError):
+            return ""
+        return best_units[0]
+
+    aligned_results: List[Dict[str, Any]] = []
+    changed_any = False
+    for row in ordered_results:
+        if not isinstance(row, dict) or operation_family_for_result(row) not in {"lookup", "single_value"}:
+            aligned_results.append(row)
+            continue
+        primary_slot = lookup_primary_slot(row)
+        peer_unit = _peer_unit_for(primary_slot)
+        if not peer_unit:
+            aligned_results.append(row)
+            continue
+        raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, peer_unit)
+        if normalized_value is None:
+            aligned_results.append(row)
+            continue
+        aligned_results.append(
+            replace_lookup_primary_slot(
+                row,
+                {
+                    **primary_slot,
+                    "raw_unit": peer_unit,
+                    "normalized_value": normalized_value,
+                    "normalized_unit": normalized_unit,
+                    "rendered_value": f"{raw_value}{peer_unit}",
+                    "unit_aligned_from_peer_source_slot": True,
+                },
+                marker_key="unit_aligned_from_peer_source_slot",
+            )
+        )
+        changed_any = True
+    return aligned_results if changed_any else ordered_results

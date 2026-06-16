@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Positioning
 
@@ -49,6 +49,88 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest SKI Source-Stated Growth Repair Close
+
+- Run date: 2026-06-16
+- Scope: `SKI_T2_069` store-fixed focused eval-only after aggregate
+  period-comparison repair and evidence-supported narrative pruning.
+- Local result bundle:
+  - `benchmarks/results/regression_ski_t2_069_repro_from_refactor_check_2026-06-16/`
+- Result: numeric `PASS`, faithfulness `1.000`, completeness `1.000`,
+  numeric pass rate `1.000`, context P@5 `0.800`.
+- Final answer preserves the source-stated `84.3%` decrease and removes the
+  unrelated forward-looking-information boilerplate.
+- Runtime change stays generic:
+  - source-stated growth displays can repair stale period-comparison traces
+    while deterministic formula traces remain available;
+  - aggregate-subtask repair reads trace rows before stale state rows;
+  - empty LLM operand extraction cannot overwrite dependency/direct structured
+    operand rows;
+  - narrative carryover is limited to supported narrative-summary or high-score
+    evidence candidates, with the score floor declared in retrieval policy.
+- Verification: focused aggregate/projection tests OK, related runtime suite
+  `398` tests OK, runtime domain-term audit passed with `216` reviewed
+  literals, and `git diff --check` passed.
+- Artifact hygiene: the regression result bundles and heartbeat logs are local
+  experiment artifacts and are not commit candidates.
+
+### Latest HYU Source-Slot Ratio Rebuild Close
+
+- Run date: 2026-06-16
+- Scope: `HYU_T1_034` store-fixed focused eval-only after incoherent ratio
+  candidate suppression and source-slot ratio rebuild.
+- Local result bundle:
+  - `benchmarks/results/focused_hyu_t1_034_after_skip_incoherent_numeric_candidate_2026-06-16/`
+- Result: numeric `PASS`, faithfulness `1.000`, retrieval hit `1.000`, avg
+  score `0.948`.
+- Final answer: `2023년 전체 영업이익에서 차량 부문이 차지하는 비중은
+  83.81%입니다. 계산: 차량 영업이익 12조 6,773억원 / 전체 영업이익
+  15조 1,269억원.`
+- Runtime change stays generic:
+  - source-slot rebuild uses lookup/single-value producer slots only
+  - producer `metric_label` is preserved as source-slot metadata when primary
+    labels are too generic or stale
+  - insufficient/incoherent ratio rows can be deterministically rebuilt only
+    from material, distinct source slots
+  - lookup realignment refuses to overwrite a current primary slot with a
+    non-self-task projection when direct provenance is disjoint or source
+    anchors conflict
+- Verification: targeted ratio tests `3` OK, `tests.test_subtask_loop` `205`
+  OK, related projection/subtask suite `255` OK, full unittest `1171` OK, and
+  runtime domain-term audit passed with `216` reviewed literals.
+- Artifact hygiene: the result bundle and heartbeat logs are local experiment
+  artifacts and are not commit candidates.
+
+### Latest Growth Narrative Payload Close
+
+- Run date: 2026-06-15
+- Scope: `NAV_T2_006` and `KBF_T2_018` focused store-fixed eval-only after
+  growth narrative numeric refresh and runtime/evaluator payload compaction.
+- Related commits:
+  - `64753a2` Stabilize growth narrative numeric refresh
+  - `5188bda` Compact runtime evidence judge payloads
+- Local result bundles summarized, then cleaned:
+  - `benchmarks/results/numeric_first_nav_t2_006_refactor5_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_refactor4_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_payload2_probe_2026-06-15/`
+- `NAV_T2_006`: faithfulness `1.000`, answer relevancy `0.845`,
+  completeness `1.000`, calculation correctness `1.000`, grounded rendering
+  `1.000`, error `0.0%`.
+- `KBF_T2_018`: pre-compaction run was numeric `PASS` but the
+  grounded-rendering judge exceeded the token limit. Post-compaction
+  `payload2` run is numeric `PASS`, numeric equivalence/grounding `1.000`,
+  calculation correctness `1.000`, grounded rendering `1.000`, answer
+  relevancy `0.841`, and no token overflow.
+- Payload note: public runtime evidence for the KBF canary dropped from about
+  `115k` chars to about `23.6k` chars. The persisted full calculation trace
+  can still be large for debugging, but LLM judge prompts now receive compact
+  projections.
+- Runtime principle: the fix is generic metadata/judge-payload projection.
+  No company, question, metric, or benchmark-specific runtime branch was added.
+- Verification: lookup recovery `16` OK, subtask loop `192` OK, financial agent
+  run projection `43` OK, evaluator runtime projection `65` OK, and runtime
+  domain-term audit passed.
 
 ### Latest HYU Ratio Binding Close
 

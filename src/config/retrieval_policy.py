@@ -567,6 +567,7 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
     "growth_generic_focus_terms": ("부문", "매출", "성장률", "계산하고", "요약해", "영향", "실적", "전년", "대비"),
     "growth_metric_label_terms": ("성장률",),
     "growth_direction_metric_terms": ("매출",),
+    "growth_supported_candidate_min_score": 12,
     "direction_words": {"decrease": "감소", "increase": "증가", "growth": "성장"},
     "default_prior_period": "전년",
     "growth_numeric_sentence_template": (

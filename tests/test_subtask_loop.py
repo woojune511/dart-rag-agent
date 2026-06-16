@@ -3,6 +3,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Optional
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -15,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_calculation import _AggregateSynthesisState
 from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
@@ -84,6 +86,106 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
         self.agent._llm_for_phase = lambda _phase: self.agent.llm
 
+    def _lookup_result_row(
+        self,
+        *,
+        task_id: str,
+        metric_label: str = "",
+        label: str,
+        concept: str = "",
+        raw_value: str,
+        raw_unit: str = "백만원",
+        normalized_value: float,
+        normalized_unit: str = "KRW",
+        rendered_value: str = "",
+        source_row_id: str = "",
+        source_anchor: str = "",
+        answer: str = "",
+    ) -> dict:
+        return {
+            "task_id": task_id,
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "metric_label": metric_label,
+            "answer": answer,
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": label,
+                        "concept": concept,
+                        "raw_value": raw_value,
+                        "raw_unit": raw_unit,
+                        "normalized_value": normalized_value,
+                        "normalized_unit": normalized_unit,
+                        "rendered_value": rendered_value,
+                        "source_row_id": source_row_id,
+                        "source_row_ids": [source_row_id] if source_row_id else [],
+                        "source_anchor": source_anchor,
+                    }
+                },
+            },
+        }
+
+    def _ratio_component(
+        self,
+        *,
+        role: str,
+        label: str,
+        concept: str = "",
+        raw_value: str,
+        raw_unit: str = "백만원",
+        normalized_value: float,
+        normalized_unit: str = "KRW",
+        source_row_id: str = "",
+        source_anchor: str = "",
+    ) -> dict:
+        return {
+            "role": role,
+            "label": label,
+            "concept": concept,
+            "raw_value": raw_value,
+            "raw_unit": raw_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "source_row_id": source_row_id,
+            "source_row_ids": [source_row_id] if source_row_id else [],
+            "source_anchor": source_anchor,
+        }
+
+    def _ratio_result_row(
+        self,
+        *,
+        status: str,
+        metric_label: str = "target value to base value share",
+        components_by_group: Optional[dict] = None,
+        components_by_role: Optional[dict] = None,
+        answer: str = "",
+    ) -> dict:
+        answer_slots = {
+            "operation_family": "ratio",
+            "metric_label": metric_label,
+        }
+        if components_by_group is not None:
+            answer_slots["components_by_group"] = components_by_group
+        if components_by_role is not None:
+            answer_slots["components_by_role"] = components_by_role
+        return {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "operation_family": "ratio",
+            "status": status,
+            "metric_label": metric_label,
+            "answer": answer,
+            "calculation_result": {
+                "status": status,
+                "answer_slots": answer_slots,
+            },
+        }
+
     def test_growth_explanatory_signal_ignores_numeric_direction_only_sentence(self) -> None:
         self.assertFalse(
             self.agent._sentence_has_growth_explanatory_signal(
@@ -95,6 +197,128 @@ class SubtaskLoopTests(unittest.TestCase):
                 "The reason was weaker demand and stricter risk management."
             )
         )
+
+    def test_supported_growth_narrative_candidate_selects_uncovered_driver_sentence(self) -> None:
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "metric growth",
+            "operation_family": "growth_rate",
+            "answer": "2023년 metric은 303백만원이며, 2022년 202백만원 대비 50% 증가했습니다.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "growth_rate",
+                "rendered_value": "50%",
+                "formatted_result": "2023년 metric은 303백만원이며, 2022년 202백만원 대비 50% 증가했습니다.",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "metric growth",
+                        "period": "2023",
+                        "rendered_value": "50%",
+                        "raw_value": "50",
+                        "raw_unit": "%",
+                        "normalized_value": 50.0,
+                        "normalized_unit": "PERCENT",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "metric",
+                        "period": "2023",
+                        "rendered_value": "303백만원",
+                        "raw_value": "303",
+                        "raw_unit": "백만원",
+                        "normalized_value": 303_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "metric",
+                        "period": "2022",
+                        "rendered_value": "202백만원",
+                        "raw_value": "202",
+                        "raw_unit": "백만원",
+                        "normalized_value": 202_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                },
+            },
+        }
+        narrative_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "operation_family": "narrative_summary",
+            "answer": "보수적인 관리 강화가 증가 원인입니다.",
+            "status": "ok",
+            "selected_claim_ids": ["driver_1"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "보수적인 관리 강화가 증가 원인입니다.",
+            },
+        }
+        final_answer = (
+            "2023년 metric은 303백만원이며, 2022년 202백만원 대비 50% 증가했습니다. "
+            "보수적인 관리 강화가 증가 원인입니다."
+        )
+        candidate = self.agent._uncovered_supported_growth_narrative_candidate(
+            query="2023년 metric 증가율을 계산하고 원인을 설명해 줘.",
+            answer=final_answer,
+            ordered_results=[growth_row, narrative_row],
+            evidence_items=[
+                {
+                    "evidence_id": "driver_1",
+                    "claim": "보수적인 관리 강화가 증가 원인입니다.",
+                    "quote_span": "보수적인 관리 강화가 증가 원인입니다.",
+                },
+                {
+                    "evidence_id": "driver_2",
+                    "claim": "시장 환경 둔화에 따라 추가 관리가 강화되었으며 이는 metric 증가의 원인 중 하나입니다.",
+                    "quote_span": "시장 환경 둔화에 따라 추가 관리가 강화되었으며 이는 metric 증가의 원인 중 하나입니다.",
+                },
+            ],
+        )
+
+        self.assertIn("시장 환경 둔화", candidate["sentence"])
+        self.assertIn("driver_2", candidate["selected_claim_ids"])
+
+    def test_uncovered_growth_narrative_skips_covered_driver_group(self) -> None:
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "operation_family": "growth_rate",
+            "answer": "41.4%",
+            "status": "ok",
+        }
+        narrative_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "operation_family": "narrative_summary",
+            "answer": "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다.",
+            "status": "ok",
+            "selected_claim_ids": ["driver_cost"],
+        }
+        final_answer = (
+            "2023년 커머스 매출액은 전년 대비 41.4% 성장했습니다. "
+            "Poshmark의 성공적인 체질 개선이 주요 원인 중 하나입니다. "
+            "또한 연결 편입 효과도 실적 성장에 기여했습니다."
+        )
+
+        candidate = self.agent._uncovered_supported_growth_narrative_candidate(
+            query="커머스 부문의 2023년 매출 성장률을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+            answer=final_answer,
+            ordered_results=[growth_row, narrative_row],
+            evidence_items=[
+                {
+                    "evidence_id": "driver_cost",
+                    "claim": "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다.",
+                    "quote_span": "개발/운영비는 Poshmark 연결 편입효과로 인해 전년대비 상승하였습니다.",
+                }
+            ],
+        )
+
+        self.assertEqual({}, candidate)
 
     def test_nested_promotion_reads_answer_slot_subtask_results(self) -> None:
         stale_prior = {
@@ -758,6 +982,122 @@ class SubtaskLoopTests(unittest.TestCase):
             rows[0]["source_anchor"],
             "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
         )
+
+    def test_dependency_rows_preserve_task_output_when_retrieval_scope_conflicts_evidence_metadata(self) -> None:
+        state = {
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "numerator",
+                        "concept": "operating_income",
+                        "period": "2023",
+                        "label": "target metric",
+                        "preferred_task_id": "task_target",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator",
+                        "concept": "operating_income",
+                        "period": "2023",
+                        "label": "total metric",
+                        "preferred_task_id": "task_total",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    },
+                ]
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_target",
+                    "metric_label": "target metric",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_target",
+                            "source_anchor": "[ACME | 2023 | note]",
+                            "metadata": {"consolidation_scope": "연결 기준으로 판단"},
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "target metric",
+                                "concept": "operating_income",
+                                "period": "2023",
+                                "raw_value": "120",
+                                "raw_unit": "unit",
+                                "normalized_value": 120.0,
+                                "normalized_unit": "COUNT",
+                                "rendered_value": "120unit",
+                                "source_row_id": "ev_target",
+                                "source_row_ids": ["ev_target"],
+                            }
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_total",
+                    "metric_label": "total metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "total metric",
+                                "concept": "operating_income",
+                                "period": "2023",
+                                "raw_value": "150",
+                                "raw_unit": "unit",
+                                "normalized_value": 150.0,
+                                "normalized_unit": "COUNT",
+                                "rendered_value": "150unit",
+                                "source_row_id": "ev_total",
+                                "source_row_ids": ["ev_total"],
+                            }
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_target",
+                    "claim": "target metric 70; total metric 150",
+                    "raw_row_text": "target metric 70; total metric 150",
+                    "metadata": {
+                        "table_value_labels_text": "target metric total metric",
+                        "consolidation_scope": "separate",
+                    },
+                }
+            ],
+        }
+        separate_slot = {
+            "label": "target metric",
+            "matched_operand_label": "target metric",
+            "matched_operand_role": "numerator",
+            "raw_value": "70",
+            "raw_unit": "unit",
+            "normalized_value": 70.0,
+            "normalized_unit": "COUNT",
+            "period": "2023",
+            "source_row_id": "ev_target",
+            "source_row_ids": ["ev_target"],
+            "consolidation_scope": "separate",
+        }
+        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
+        self.agent._best_direct_lookup_slot_from_evidence_pool_compat = (
+            lambda binding, _pool, state=None: (dict(separate_slot), 10.0)
+            if binding.get("label") == "target metric"
+            else ({}, 0.0)
+        )
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(rows[0]["raw_value"], "120")
+        self.assertEqual(rows[0]["normalized_value"], 120.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_target", "ev_target"])
+        self.assertEqual(rows[0]["consolidation_scope"], "consolidated")
 
     def test_growth_rate_task_consumes_sibling_lookup_outputs_before_retrieval(self) -> None:
         state = {
@@ -2274,6 +2614,68 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(aligned[1]["normalized_value"], 258_935_494 * scale_by_unit[larger_unit])
         self.assertTrue(aligned[1]["ratio_unit_aligned_from_sibling_table"])
 
+    def test_ratio_operand_alignment_rejects_direct_candidate_with_conflicting_scope(self) -> None:
+        ordered_operands = [
+            {
+                "operand_id": "numerator",
+                "label": "target metric",
+                "matched_operand_label": "target metric",
+                "matched_operand_role": "numerator",
+                "period": "2023",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "consolidation_scope": "consolidated",
+                "source_row_ids": ["task_output:numerator", "ev_consolidated_numerator"],
+            },
+            {
+                "operand_id": "denominator",
+                "label": "total metric",
+                "matched_operand_label": "total metric",
+                "matched_operand_role": "denominator",
+                "period": "2023",
+                "raw_value": "150",
+                "raw_unit": "unit",
+                "normalized_value": 150.0,
+                "normalized_unit": "COUNT",
+                "consolidation_scope": "consolidated",
+                "source_row_ids": ["ev_consolidated_denominator"],
+            },
+        ]
+        direct_slot = {
+            "label": "target metric",
+            "matched_operand_label": "target metric",
+            "matched_operand_role": "numerator",
+            "raw_value": "70",
+            "raw_unit": "unit",
+            "normalized_value": 70.0,
+            "normalized_unit": "COUNT",
+            "period": "2023",
+            "source_row_id": "ev_separate_numerator",
+            "source_row_ids": ["ev_separate_numerator"],
+            "consolidation_scope": "separate",
+        }
+        evidence_items = [
+            {
+                "evidence_id": "ev_separate_numerator",
+                "claim": "target metric 70; total metric 150",
+                "raw_row_text": "target metric 70; total metric 150",
+                "metadata": {
+                    "table_value_labels_text": "target metric total metric",
+                    "consolidation_scope": "separate",
+                },
+            }
+        ]
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (dict(direct_slot), 10.0)
+
+        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, evidence_items)
+
+        self.assertEqual(aligned[0]["raw_value"], "120")
+        self.assertEqual(aligned[0]["normalized_value"], 120.0)
+        self.assertEqual(aligned[0]["source_row_ids"], ["task_output:numerator", "ev_consolidated_numerator"])
+        self.assertNotIn("sibling_table_context_realigned", aligned[0])
+
     def test_best_direct_lookup_slot_rejects_ambiguous_context_table_without_scope(self) -> None:
         operand = {
             "label": "interest expense",
@@ -2459,6 +2861,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("37.47%", trace["calculation_result"]["formatted_result"])
         self.assertIn("37.47%", trace["calculation_result"]["rendered_value"])
         self.assertNotIn("0.04%", trace["calculation_result"]["formatted_result"])
+        trace_ratio_row = next(
+            row for row in trace["calculation_result"]["subtask_results"] if row["task_id"] == "task_1"
+        )
+        self.assertIn("37.47%", trace_ratio_row["answer"])
+        self.assertNotIn("0.04%", trace_ratio_row["answer"])
 
     def test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment(self) -> None:
         state = {
@@ -2736,6 +3143,712 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(denominator_slot["raw_unit"], "원")
         ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+
+    def test_aggregate_compact_ratio_preserves_uncovered_lookup_item(self) -> None:
+        state = {
+            "query": "Extract the target and peer metrics, then calculate the target share of total.",
+            "calc_subtasks": [
+                {"task_id": "task_target", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_peer", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_total", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+            ],
+            "subtask_results": [
+                self._lookup_result_row(
+                    task_id="task_target",
+                    metric_label="target metric",
+                    label="target metric",
+                    concept="operating_metric",
+                    raw_value="120",
+                    raw_unit="백만원",
+                    normalized_value=120_000_000.0,
+                    rendered_value="120백만원",
+                    source_row_id="ev_segment",
+                    source_anchor="shared source table",
+                    answer="target metric 120백만원",
+                ),
+                self._lookup_result_row(
+                    task_id="task_peer",
+                    metric_label="peer metric",
+                    label="peer metric",
+                    concept="operating_metric",
+                    raw_value="30",
+                    raw_unit="천원",
+                    normalized_value=30_000.0,
+                    rendered_value="30천원",
+                    source_row_id="ev_segment",
+                    source_anchor="shared source table",
+                    answer="peer metric 30천원",
+                ),
+                self._lookup_result_row(
+                    task_id="task_total",
+                    metric_label="total metric",
+                    label="total metric",
+                    concept="operating_metric_total",
+                    raw_value="150",
+                    raw_unit="백만원",
+                    normalized_value=150_000_000.0,
+                    rendered_value="150백만원",
+                    source_row_id="ev_total",
+                    source_anchor="total source table",
+                    answer="total metric 150백만원",
+                ),
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "target share",
+                    "operation_family": "ratio",
+                    "answer": "target share is 80.00%.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 80.0,
+                        "result_unit": "%",
+                        "rendered_value": "80.00%",
+                        "formatted_result": "target share is 80.00%.",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "target share",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "rendered_value": "80.00%",
+                                "normalized_value": 80.0,
+                                "normalized_unit": "PERCENT",
+                            },
+                            "components_by_group": {
+                                "numerator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator",
+                                        "label": "target metric",
+                                        "concept": "operating_metric",
+                                        "raw_value": "120",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 120_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "120백만원",
+                                        "source_row_id": "task_output:task_target",
+                                        "source_row_ids": ["task_output:task_target", "ev_segment"],
+                                    }
+                                ],
+                                "denominator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "denominator",
+                                        "label": "total metric",
+                                        "concept": "operating_metric_total",
+                                        "raw_value": "150",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 150_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "150백만원",
+                                        "source_row_id": "task_output:task_total",
+                                        "source_row_ids": ["task_output:task_total", "ev_total"],
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "artifacts": [],
+            "tasks": [],
+        }
+        self.agent.llm = None
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("80%", updated["answer"])
+        self.assertIn("peer metric 30백만원", updated["answer"])
+        self.assertNotIn("30천원", updated["answer"])
+        peer_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_peer")
+        peer_slot = peer_row["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertTrue(peer_slot.get("unit_aligned_from_peer_source_slot"))
+        self.assertEqual(trace["calculation_result"]["formatted_result"], updated["answer"])
+
+    def test_aggregate_trace_sync_replaces_stale_single_ratio_subtask_surface(self) -> None:
+        stale_ratio_row = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 400.00%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 400.0,
+                "result_unit": "%",
+                "rendered_value": "400.00%",
+                "formatted_result": "target share is 400.00%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "normalized_value": 400.0,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "400.00%",
+                    },
+                },
+            },
+        }
+        final_answer = "target share is 80.00%."
+        projection = {
+            "calculation_plan": {
+                "mode": "aggregate_subtasks",
+                "subtasks": [{"task_id": "task_ratio", "calculation_plan": {"operation": "ratio"}}],
+            },
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": final_answer,
+                "rendered_value": final_answer,
+                "subtask_results": [stale_ratio_row],
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [
+                        {
+                            "task_id": "task_ratio",
+                            "operation_family": "ratio",
+                            "answer": "target share is 400.00%.",
+                            "rendered_value": "400.00%",
+                        }
+                    ],
+                },
+            },
+        }
+
+        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            [stale_ratio_row],
+            projection,
+            final_answer,
+        )
+
+        ratio_row = next(row for row in ordered_results if row["task_id"] == "task_ratio")
+        projected_ratio_row = next(
+            row
+            for row in synced_projection["calculation_result"]["subtask_results"]
+            if row["task_id"] == "task_ratio"
+        )
+        slot_ratio_row = next(
+            row
+            for row in synced_projection["calculation_result"]["answer_slots"]["subtask_results"]
+            if row["task_id"] == "task_ratio"
+        )
+        self.assertEqual(ratio_row["answer"], "target share is 80.00%.")
+        self.assertEqual(projected_ratio_row["calculation_result"]["rendered_value"], "80.00%")
+        self.assertEqual(slot_ratio_row["rendered_value"], "80.00%")
+        self.assertNotIn("400.00%", projected_ratio_row["answer"])
+
+    def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_num",
+                        "consolidation_scope": "consolidated",
+                    }
+                },
+            },
+        }
+        coherent_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 80.00%.",
+            "status": "ok",
+            "calculation_operands": [
+                {
+                    "operand_id": "num",
+                    "label": "target numerator",
+                    "matched_operand_role": "numerator_1",
+                    "raw_value": "120",
+                    "raw_unit": "unit",
+                    "normalized_value": 120.0,
+                    "normalized_unit": "COUNT",
+                    "source_task_id": "task_num",
+                    "source_row_id": "task_output:task_num",
+                    "consolidation_scope": "consolidated",
+                },
+                {
+                    "operand_id": "den",
+                    "label": "target denominator",
+                    "matched_operand_role": "denominator_1",
+                    "raw_value": "150",
+                    "raw_unit": "unit",
+                    "normalized_value": 150.0,
+                    "normalized_unit": "COUNT",
+                },
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "80.00%",
+                "formatted_result": "target share is 80.00%.",
+                "source_row_ids": ["task_output:task_num", "ev_den"],
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80.00%", "normalized_value": 80.0},
+                },
+            },
+        }
+        conflicting_ratio = {
+            **dict(coherent_ratio),
+            "answer": "target share is 46.67%.",
+            "calculation_operands": [
+                {
+                    **dict(coherent_ratio["calculation_operands"][0]),
+                    "raw_value": "70",
+                    "normalized_value": 70.0,
+                    "source_row_id": "ev_separate",
+                    "source_row_ids": ["ev_separate"],
+                    "consolidation_scope": "separate",
+                    "sibling_table_context_realigned": True,
+                },
+                dict(coherent_ratio["calculation_operands"][1]),
+            ],
+            "calculation_result": {
+                **dict(coherent_ratio["calculation_result"]),
+                "rendered_value": "46.67%",
+                "formatted_result": "target share is 46.67%.",
+                "source_row_ids": ["ev_separate", "ev_den"],
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "46.67%", "normalized_value": 46.67},
+                },
+            },
+        }
+
+        deduped = self.agent._dedupe_aggregate_subtask_results([source_lookup, coherent_ratio, conflicting_ratio])
+
+        ratio_row = next(row for row in deduped if row.get("task_id") == "task_ratio")
+        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "80.00%")
+        self.assertEqual(ratio_row["calculation_operands"][0]["consolidation_scope"], "consolidated")
+
+    def test_collapsed_ratio_runtime_override_rejects_dependency_incoherent_trace(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source A",
+                    }
+                },
+            },
+        }
+        coherent_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 80%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "80%",
+                "formatted_result": "target share is 80%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80%", "normalized_value": 80.0},
+                },
+            },
+        }
+        collapsed_ratio = {
+            "task_id": "task_collapsed",
+            "metric_family": "concept_ratio",
+            "metric_label": "invalid self ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "label": "same",
+                                "raw_value": "1",
+                                "raw_unit": "unit",
+                                "normalized_value": 1.0,
+                                "source_row_id": "ev_same",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "label": "same",
+                                "raw_value": "1",
+                                "raw_unit": "unit",
+                                "normalized_value": 1.0,
+                                "source_row_id": "ev_same",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        aggregate_projection = self.agent._rebuild_aggregate_projection(
+            [source_lookup, coherent_ratio, collapsed_ratio],
+            "target share is 80%.",
+        )
+        stale_state = {
+            "query": "target share",
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "matched_operand_role": "numerator_1",
+                        "label": "target numerator",
+                        "raw_value": "70",
+                        "raw_unit": "unit",
+                        "normalized_value": 70.0,
+                        "normalized_unit": "COUNT",
+                        "source_task_id": "task_num",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source B",
+                    },
+                    {
+                        "operand_id": "den",
+                        "matched_operand_role": "denominator_1",
+                        "label": "target denominator",
+                        "raw_value": "150",
+                        "raw_unit": "unit",
+                        "normalized_value": 150.0,
+                        "normalized_unit": "COUNT",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "(A / B) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "46.67%",
+                    "formatted_result": "target share is 46.67%.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "target share",
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "label": "target numerator",
+                                    "raw_value": "70",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 70.0,
+                                    "source_task_id": "task_num",
+                                    "source_row_id": "ev_same",
+                                    "source_anchor": "source B",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "label": "target denominator",
+                                    "raw_value": "150",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 150.0,
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        }
+
+        projection, answer = self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
+            stale_state,
+            aggregate_projection,
+            [source_lookup, coherent_ratio, collapsed_ratio],
+            "target share is 80%.",
+        )
+
+        self.assertEqual(answer, "target share is 80%.")
+        self.assertEqual(projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+    def test_stale_projection_repair_rejects_dependency_incoherent_operands(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source A",
+                    }
+                },
+            },
+        }
+        coherent_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "target share is 80%.",
+                "rendered_value": "80%",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80%", "normalized_value": 80.0},
+                },
+            },
+        }
+        stale_projection = {
+            "calculation_operands": [
+                {
+                    "operand_id": "num",
+                    "matched_operand_role": "numerator_1",
+                    "label": "target numerator",
+                    "raw_value": "70",
+                    "raw_unit": "unit",
+                    "normalized_value": 70.0,
+                    "normalized_unit": "COUNT",
+                    "source_task_id": "task_num",
+                    "source_row_id": "ev_same",
+                    "source_row_ids": ["ev_same"],
+                    "source_anchor": "source B",
+                },
+                {
+                    "operand_id": "den",
+                    "matched_operand_role": "denominator_1",
+                    "label": "target denominator",
+                    "raw_value": "150",
+                    "raw_unit": "unit",
+                    "normalized_value": 150.0,
+                    "normalized_unit": "COUNT",
+                },
+            ],
+            "calculation_plan": {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "ratio",
+                "ordered_operand_ids": ["num", "den"],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "num"},
+                    {"variable": "B", "operand_id": "den"},
+                ],
+                "formula": "(A / B) * 100",
+                "result_unit": "%",
+            },
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 80.0,
+                "result_unit": "%",
+                "rendered_value": "80%",
+                "formatted_result": "target share is 80%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "80%", "normalized_value": 80.0},
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "label": "target numerator",
+                                "raw_value": "70",
+                                "raw_unit": "unit",
+                                "normalized_value": 70.0,
+                                "normalized_unit": "COUNT",
+                                "source_task_id": "task_num",
+                                "source_row_id": "ev_same",
+                                "source_anchor": "source B",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "label": "target denominator",
+                                "raw_value": "150",
+                                "raw_unit": "unit",
+                                "normalized_value": 150.0,
+                                "normalized_unit": "COUNT",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        aggregate_state = _AggregateSynthesisState(
+            [source_lookup, coherent_ratio],
+            stale_projection,
+            "target share is 80%.",
+            [],
+        )
+
+        repaired = self.agent._apply_stale_projection_repair_to_aggregate_state(
+            state={"query": "target share"},
+            aggregate_state=aggregate_state,
+            evidence_items=[],
+            prefer_compact_ratio_answer=True,
+        )
+
+        self.assertEqual(repaired.final_answer, "target share is 80%.")
+        self.assertEqual(repaired.aggregate_projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+    def test_late_runtime_numeric_answer_rejects_dependency_incoherent_trace(self) -> None:
+        source_lookup = {
+            "task_id": "task_num",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target numerator",
+                        "raw_value": "120",
+                        "raw_unit": "unit",
+                        "normalized_value": 120.0,
+                        "normalized_unit": "COUNT",
+                        "rendered_value": "120unit",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source A",
+                    }
+                },
+            },
+        }
+        state = {
+            "query": "target share",
+            "subtask_results": [source_lookup],
+            "active_subtask": {"metric_label": "target share", "operation_family": "ratio"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "matched_operand_role": "numerator_1",
+                        "label": "target numerator",
+                        "raw_value": "70",
+                        "raw_unit": "unit",
+                        "normalized_value": 70.0,
+                        "normalized_unit": "COUNT",
+                        "source_task_id": "task_num",
+                        "source_row_id": "ev_same",
+                        "source_row_ids": ["ev_same"],
+                        "source_anchor": "source B",
+                    },
+                    {
+                        "operand_id": "den",
+                        "matched_operand_role": "denominator_1",
+                        "label": "target denominator",
+                        "raw_value": "150",
+                        "raw_unit": "unit",
+                        "normalized_value": 150.0,
+                        "normalized_unit": "COUNT",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "(A / B) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 46.6666666667,
+                    "result_unit": "%",
+                    "rendered_value": "46.67%",
+                    "formatted_result": "target share is 46.67%.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "target share",
+                        "primary_value": {"status": "ok", "rendered_value": "46.67%", "normalized_value": 46.6666666667},
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "target numerator",
+                                    "raw_value": "70",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 70.0,
+                                    "normalized_unit": "COUNT",
+                                    "source_task_id": "task_num",
+                                    "source_row_id": "ev_same",
+                                    "source_anchor": "source B",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "target denominator",
+                                    "raw_value": "150",
+                                    "raw_unit": "unit",
+                                    "normalized_value": 150.0,
+                                    "normalized_unit": "COUNT",
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        }
+
+        answer = self.agent._late_runtime_numeric_answer(state, "target share is 80%.")
+
+        self.assertEqual(answer, "")
 
     def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
         original_execute = self.agent._execute_calculation
@@ -3774,6 +4887,87 @@ class SubtaskLoopTests(unittest.TestCase):
             ["numerator_1", "denominator_1"],
         )
         self.assertEqual(extracted["artifacts"][0]["kind"], "operand_set")
+
+    def test_partial_dependency_rows_are_preserved_when_llm_extraction_is_empty(self) -> None:
+        state = {
+            "query": "calculate the change from completed task output and a missing prior value",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "active_subtask": {
+                "task_id": "task_1",
+                "metric_family": "concept_change",
+                "metric_label": "change",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": "current value", "role": "minuend", "required": True},
+                    {"label": "prior value", "role": "subtrahend", "required": True},
+                ],
+                "inputs": [
+                    {
+                        "role": "minuend",
+                        "period": "current",
+                        "label": "current value",
+                        "preferred_task_id": "task_2",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "current value",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "current value",
+                                "period": "current",
+                                "raw_value": "10",
+                                "raw_unit": "원",
+                                "normalized_value": 10.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "10원",
+                                "source_row_id": "ev_current",
+                                "source_row_ids": ["ev_current"],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_context",
+                    "claim": "completed task output should remain available for downstream arithmetic.",
+                    "support_level": "context",
+                    "metadata": {},
+                }
+            ],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+
+        self.assertEqual(extracted["evidence_status"], "partial")
+        self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "minuend")
+        self.assertEqual(extracted["artifacts"][0]["payload"]["calculation_operands"][0]["raw_value"], "10")
 
     def test_route_after_reconcile_plan_uses_operand_extractor_for_synthesis_strategy(self) -> None:
         route = self.agent._route_after_reconcile_plan(
@@ -10240,7 +11434,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 {
                     "final_answer": (
                         "2023년 신용손실충당금전입액은 3,146,409백만원이며, "
-                        "2022년 1,847,775백만원 대비 70.28% 증가했습니다."
+                        "2022년 1,847,775백만원 대비 70.23% 증가했습니다."
                     ),
                     "planner_feedback": "",
                 }
@@ -10277,12 +11471,16 @@ class SubtaskLoopTests(unittest.TestCase):
                                 "label": "신용손실충당금전입액",
                                 "period": "2023",
                                 "rendered_value": "3,146,409백만원",
+                                "normalized_value": 3146409000000.0,
+                                "source_row_ids": ["ev_current"],
                             },
                             "prior_value": {
                                 "status": "ok",
                                 "label": "신용손실충당금전입액",
                                 "period": "2022",
                                 "rendered_value": "1,847,775백만원",
+                                "normalized_value": 1847775000000.0,
+                                "source_row_ids": ["ev_prior"],
                             },
                         },
                     },
@@ -10308,6 +11506,7 @@ class SubtaskLoopTests(unittest.TestCase):
         updated = self.agent._aggregate_calculation_subtasks(state)
 
         self.assertIn("70.28%", updated["answer"])
+        self.assertNotIn("70.23%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])
         self.assertIn("미래경기 불확실성", updated["answer"])
         self.assertIn("보수적인 충당금적립", updated["answer"])
@@ -10726,6 +11925,87 @@ class SubtaskLoopTests(unittest.TestCase):
             self.assertIn("870,000 units", pruned)
             self.assertIn("11.5%", pruned)
             self.assertIn("PolicyA requires an active response", pruned)
+        finally:
+            for key, value in original_policy.items():
+                CALCULATION_NARRATIVE_POLICY[key] = value
+
+    def test_numeric_refresh_prunes_irrelevant_boilerplate_context_sentence(self) -> None:
+        original_policy = {
+            key: CALCULATION_NARRATIVE_POLICY.get(key)
+            for key in ("growth_query_pattern", "growth_impact_markers", "growth_narrative_markers")
+        }
+        CALCULATION_NARRATIVE_POLICY["growth_query_pattern"] = r"growth"
+        CALCULATION_NARRATIVE_POLICY["growth_impact_markers"] = ("impact", "pressure", "reduced")
+        CALCULATION_NARRATIVE_POLICY["growth_narrative_markers"] = ("impact", "pressure", "reduced")
+        try:
+            ordered_results = [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment profit growth",
+                    "operation_family": "growth_rate",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "-20.0%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "segment profit growth",
+                                "period": "2023",
+                                "rendered_value": "-20.0%",
+                                "normalized_value": -20.0,
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "segment profit",
+                                "period": "2023",
+                                "rendered_value": "80 million",
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "segment profit",
+                                "period": "2022",
+                                "rendered_value": "100 million",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_narrative",
+                    "metric_family": "narrative_summary",
+                    "operation_family": "narrative_summary",
+                    "answer": "MarginX pressure reduced segment profit.",
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {"status": "ok", "answer_slots": {"operation_family": "narrative_summary"}},
+                },
+            ]
+            evidence_items = [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "MarginX pressure reduced segment profit.",
+                    "quote_span": "MarginX pressure reduced segment profit.",
+                }
+            ]
+            current_answer = (
+                "2023 segment profit was 80 million, from 2022 100 million, down -20.0%. "
+                "The forward-looking warning discusses uncertain future assumptions that may impact results. "
+                "MarginX pressure reduced segment profit."
+            )
+
+            refreshed = self.agent._refresh_numeric_answer_preserving_narrative_context(
+                query="Calculate segment profit growth and summarize the impact of MarginX.",
+                current_answer=current_answer,
+                numeric_answer="2023 segment profit was 80 million, from 2022 100 million, down -20.0%.",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+
+            self.assertIn("20.0%", refreshed["answer"])
+            self.assertIn("MarginX pressure", refreshed["answer"])
+            self.assertNotIn("forward-looking warning", refreshed["answer"])
         finally:
             for key, value in original_policy.items():
                 CALCULATION_NARRATIVE_POLICY[key] = value
@@ -11440,6 +12720,37 @@ class SubtaskLoopTests(unittest.TestCase):
         finally:
             self.agent._narrative_driver_groups = original_driver_groups
 
+    def test_retrieved_growth_driver_evidence_compacts_numeric_table_tail(self) -> None:
+        original_driver_groups = self.agent._narrative_driver_groups
+        self.agent._narrative_driver_groups = lambda _query: [
+            {"label": "driver_b", "variants": ["DriverB effect"], "phrase": "DriverB effect"},
+        ]
+        try:
+            evidence = self.agent._append_retrieved_growth_driver_evidence_for_query(
+                [],
+                query="Calculate 2023 revenue growth and summarize the acquisition impact.",
+                docs=[
+                    (
+                        Document(
+                            page_content=(
+                                "segment | current | prior | change | operating costs rose because DriverB effect "
+                                "increased development expense by 24.3% and excluding DriverB effect it rose 14.7%."
+                            ),
+                            metadata={"section_path": "Management discussion"},
+                        ),
+                        0.9,
+                    )
+                ],
+            )
+
+            retrieved = [item for item in evidence if str(item.get("evidence_id") or "").startswith("retrieved_driver::")]
+            self.assertEqual(len(retrieved), 1)
+            self.assertEqual("DriverB effect", retrieved[0]["claim"])
+            self.assertEqual("DriverB effect", retrieved[0]["quote_span"])
+            self.assertIn("24.3%", retrieved[0]["metadata"]["raw_driver_quote_span"])
+        finally:
+            self.agent._narrative_driver_groups = original_driver_groups
+
     def test_aggregate_growth_narrative_uses_retrieved_doc_driver_evidence(self) -> None:
         self.agent.llm = None
         original_driver_groups = self.agent._narrative_driver_groups
@@ -11748,6 +13059,115 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
         self.assertNotIn("sibling_table_context_realigned", rows[0])
 
+    def test_dependency_alignment_preserves_task_output_only_row_when_direct_value_conflicts(self) -> None:
+        dependency_rows = [
+            {
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "source_task_id": "task_lookup",
+                "source_row_id": "task_output:task_lookup",
+                "source_row_ids": ["task_output:task_lookup"],
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "ev_direct_num",
+                "source_row_id": "ev_direct_num",
+                "source_row_ids": ["ev_direct_num"],
+                "table_source_id": "table_a",
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "70",
+                "raw_unit": "unit",
+                "normalized_value": 70.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "evidence_id": "ev_direct_den",
+                "source_row_id": "ev_direct_den",
+                "source_row_ids": ["ev_direct_den"],
+                "table_source_id": "table_a",
+                "label": "base value",
+                "matched_operand_label": "base value",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "30",
+                "raw_unit": "unit",
+                "normalized_value": 30.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "120")
+        self.assertEqual(rows[0]["normalized_value"], 120.0)
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup"])
+        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
+        self.assertNotIn("sibling_table_context_realigned", rows[0])
+
+    def test_dependency_alignment_preserves_source_task_row_when_shared_id_has_conflicting_anchor(self) -> None:
+        dependency_rows = [
+            {
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "source_task_id": "task_lookup",
+                "source_row_id": "ev_shared",
+                "source_row_ids": ["ev_shared"],
+                "source_anchor": "source task table",
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "ev_shared",
+                "source_row_id": "ev_shared",
+                "source_row_ids": ["ev_shared"],
+                "source_anchor": "direct sibling table",
+                "table_source_id": "table_a",
+                "label": "target value",
+                "matched_operand_label": "target value",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "70",
+                "raw_unit": "unit",
+                "normalized_value": 70.0,
+                "normalized_unit": "COUNT",
+            },
+            {
+                "evidence_id": "ev_direct_den",
+                "source_row_id": "ev_direct_den",
+                "source_row_ids": ["ev_direct_den"],
+                "source_anchor": "direct sibling table",
+                "table_source_id": "table_a",
+                "label": "base value",
+                "matched_operand_label": "base value",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "30",
+                "raw_unit": "unit",
+                "normalized_value": 30.0,
+                "normalized_unit": "COUNT",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "120")
+        self.assertEqual(rows[0]["normalized_value"], 120.0)
+        self.assertEqual(rows[0]["source_anchor"], "source task table")
+        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
+        self.assertNotIn("sibling_table_context_realigned", rows[0])
+
     def test_dependency_alignment_still_realigns_unanchored_row_to_complete_direct_context(self) -> None:
         dependency_rows = [
             {
@@ -11797,6 +13217,273 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows[0]["normalized_value"], 80.0)
         self.assertEqual(rows[0]["source_row_ids"], ["ev_direct_num"])
         self.assertTrue(rows[0]["sibling_table_context_realigned"])
+
+    def test_aggregate_dependency_coherence_infers_source_task_from_matching_slot(self) -> None:
+        source_slots = {
+            "task_lookup": {
+                "status": "ok",
+                "label": "target value",
+                "concept": "target_metric",
+                "raw_value": "120",
+                "raw_unit": "unit",
+                "normalized_value": 120.0,
+                "normalized_unit": "COUNT",
+                "source_anchor": "source task table",
+            }
+        }
+        row = {
+            "operation_family": "ratio",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_role": {
+                        "numerator_1": [
+                            {
+                                "role": "numerator_1",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "70",
+                                "raw_unit": "unit",
+                                "normalized_value": 70.0,
+                                "normalized_unit": "COUNT",
+                                "source_row_id": "ev_shared",
+                                "source_anchor": "direct sibling table",
+                            }
+                        ]
+                    },
+                },
+            },
+        }
+
+        self.assertEqual(
+            self.agent._aggregate_result_dependency_coherence_ranks(row, source_slots)[0],
+            0,
+        )
+
+    def test_compact_ratio_answer_from_projection_rejects_dependency_incoherent_operands(self) -> None:
+        self.agent._compact_ratio_answer = lambda _state, _result: "target share is 70%."
+        state = {
+            "subtask_results": [
+                {
+                    "task_id": "task_lookup",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "target value",
+                                "concept": "target_metric",
+                                "raw_value": "120",
+                                "raw_unit": "unit",
+                                "normalized_value": 120.0,
+                                "normalized_unit": "COUNT",
+                                "source_anchor": "source task table",
+                            }
+                        }
+                    },
+                }
+            ]
+        }
+        result = {
+            "status": "ok",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "components_by_role": {
+                    "numerator_1": [
+                        {
+                            "role": "numerator_1",
+                            "label": "target value",
+                            "concept": "target_metric",
+                            "raw_value": "70",
+                            "raw_unit": "unit",
+                            "normalized_value": 70.0,
+                            "normalized_unit": "COUNT",
+                            "source_anchor": "direct sibling table",
+                        }
+                    ],
+                    "denominator_1": [
+                        {
+                            "role": "denominator_1",
+                            "label": "base value",
+                            "concept": "base_metric",
+                            "raw_value": "100",
+                            "raw_unit": "unit",
+                            "normalized_value": 100.0,
+                            "normalized_unit": "COUNT",
+                            "source_anchor": "direct sibling table",
+                        }
+                    ],
+                },
+            },
+        }
+
+        self.assertEqual(
+            self.agent._compact_ratio_answer_from_projection(
+                state,
+                {
+                    "calculation_operands": [],
+                    "calculation_plan": {"operation": "ratio"},
+                    "calculation_result": result,
+                },
+            ),
+            "",
+        )
+
+    def test_preferred_complete_numeric_answer_skips_dependency_incoherent_ratio_row(self) -> None:
+        self.agent._compact_ratio_answer = lambda _state, _result: "target share is 70%."
+        ordered_results = [
+            self._lookup_result_row(
+                task_id="task_lookup",
+                label="target value",
+                concept="target_metric",
+                raw_value="120",
+                raw_unit="unit",
+                normalized_value=120.0,
+                normalized_unit="COUNT",
+                source_anchor="source task table",
+            ),
+            self._ratio_result_row(
+                status="ok",
+                components_by_role={
+                    "numerator_1": [
+                        self._ratio_component(
+                            role="numerator_1",
+                            label="target value",
+                            concept="target_metric",
+                            raw_value="70",
+                            raw_unit="unit",
+                            normalized_value=70.0,
+                            normalized_unit="COUNT",
+                            source_anchor="direct sibling table",
+                        )
+                    ],
+                    "denominator_1": [
+                        self._ratio_component(
+                            role="denominator_1",
+                            label="base value",
+                            concept="base_metric",
+                            raw_value="100",
+                            raw_unit="unit",
+                            normalized_value=100.0,
+                            normalized_unit="COUNT",
+                            source_anchor="direct sibling table",
+                        )
+                    ],
+                },
+            ),
+        ]
+
+        self.assertEqual(self.agent._preferred_complete_numeric_answer(ordered_results), "")
+
+    def test_preferred_complete_numeric_answer_rebuilds_ratio_from_dependency_source_slots(self) -> None:
+        ordered_results = [
+            self._lookup_result_row(
+                task_id="task_num",
+                metric_label="target value",
+                label="target value",
+                concept="target_metric",
+                raw_value="120",
+                normalized_value=120000000.0,
+                rendered_value="120백만원",
+                source_row_id="ev_num",
+                source_anchor="source task table",
+                answer="target value is 120백만원.",
+            ),
+            self._ratio_result_row(
+                status="insufficient_operands",
+                answer="not enough operands",
+                components_by_group={
+                    "operand": [
+                        self._ratio_component(
+                            role="operand",
+                            label="target value",
+                            concept="target_metric",
+                            raw_value="70",
+                            normalized_value=70000000.0,
+                            source_row_id="ev_direct",
+                            source_anchor="direct sibling table",
+                        )
+                    ]
+                },
+            ),
+            self._lookup_result_row(
+                task_id="task_den",
+                metric_label="base value",
+                label="stale sibling value",
+                concept="base_metric",
+                raw_value="70",
+                normalized_value=70000000.0,
+                rendered_value="70백만원",
+                source_row_id="ev_stale",
+                source_anchor="direct sibling table",
+                answer="base value is 150백만원.",
+            ),
+        ]
+
+        answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertIn("80%", answer)
+        self.assertIn("target value", answer)
+        self.assertIn("base value", answer)
+        self.assertNotIn("70", answer)
+
+    def test_preferred_complete_numeric_answer_uses_lookup_metric_label_for_denominator_source(self) -> None:
+        ordered_results = [
+            self._lookup_result_row(
+                task_id="task_num",
+                metric_label="target value",
+                label="target value",
+                concept="metric",
+                raw_value="120",
+                normalized_value=120000000.0,
+                rendered_value="120백만원",
+                source_row_id="ev_num",
+                answer="target value is 120백만원.",
+            ),
+            self._lookup_result_row(
+                task_id="task_part",
+                metric_label="sibling value",
+                label="sibling value",
+                concept="metric",
+                raw_value="30",
+                normalized_value=30000000.0,
+                rendered_value="30백만원",
+                source_row_id="ev_part",
+                answer="sibling value is 30백만원.",
+            ),
+            self._ratio_result_row(
+                status="insufficient_operands",
+                components_by_group={
+                    "operand": [
+                        self._ratio_component(
+                            role="operand",
+                            label="target value",
+                            concept="metric",
+                            raw_value="70",
+                            normalized_value=70000000.0,
+                            source_row_id="ev_direct",
+                        )
+                    ]
+                },
+            ),
+            self._lookup_result_row(
+                task_id="task_den",
+                metric_label="base value",
+                label="value",
+                concept="metric",
+                raw_value="150",
+                normalized_value=150000000.0,
+                rendered_value="150백만원",
+                source_row_id="ev_den",
+                answer="base value is 150백만원.",
+            ),
+        ]
+
+        answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertIn("80%", answer)
+        self.assertIn("base value", answer)
+        self.assertNotIn("400%", answer)
 
     def test_precision_refinement_prefers_more_specific_contextual_row_label(self) -> None:
         row = {
@@ -12267,6 +13954,85 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertTrue(recovered[0].get("unit_aligned_from_evidence_metadata"))
         self.assertEqual(slot["raw_unit"], "백만원")
         self.assertEqual(slot["normalized_value"], 2546649000000.0)
+
+    def test_lookup_recovery_uses_nested_subtask_runtime_evidence(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+        }
+        current_slot = {
+            "status": "ok",
+            "label": "segment operating income",
+            "concept": "operating_income",
+            "period": "2023",
+            "raw_value": "1,385,538",
+            "raw_unit": "천원",
+            "normalized_value": 1385538000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "1,385,538천원",
+            "source_row_id": "ev_weak",
+            "source_row_ids": ["ev_weak"],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": current_slot},
+            },
+        }
+        nested_evidence_row = {
+            "task_id": "task_nested",
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_direct",
+                    "claim": "segment operating income 1,385,538백만원",
+                    "quote_span": "segment operating income | 1,385,538",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "백만원",
+                        "table_source_id": "table_income",
+                        "table_value_labels_text": "\n".join(
+                            [
+                                "operating income 1,385,538",
+                                "other line 100",
+                            ]
+                        ),
+                    },
+                }
+            ],
+        }
+        sibling_row = {
+            "task_id": "task_aggregate",
+            "operation_family": "aggregate_subtasks",
+            "calculation_result": {"subtask_results": [nested_evidence_row]},
+        }
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence(
+            [current_row, sibling_row],
+            state,
+        )
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertTrue(recovered[0].get("recovered_from_sibling_table_evidence"))
+        self.assertEqual(slot["raw_value"], "1,385,538")
+        self.assertEqual(slot["raw_unit"], "백만원")
+        self.assertEqual(slot["source_row_id"], "ev_direct")
 
     def test_table_label_lookup_uses_partial_row_label_and_requested_period(self) -> None:
         evidence = {
@@ -13435,7 +15201,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("acquisition integration improved", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
-    def test_late_numeric_refresh_recovers_clean_narrative_from_conflicting_summary_child(self) -> None:
+    def test_late_numeric_refresh_keeps_clean_explicit_explanation_from_conflicting_summary_child(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(
                 {
@@ -13539,7 +15305,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("40.9%", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
-    def test_late_source_surface_preservation_keeps_growth_numeric_contract(self) -> None:
+    def test_late_source_surface_preservation_keeps_numeric_contract_with_explicit_explanation(self) -> None:
         self.agent.llm = None
         self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
         self.agent._align_lookup_results_with_dependency_projection = (

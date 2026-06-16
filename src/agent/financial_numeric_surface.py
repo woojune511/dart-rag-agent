@@ -156,6 +156,25 @@ def numeric_surface_candidates_equivalent(left: Dict[str, Any], right: Dict[str,
     return abs(left_value - right_value) <= tolerance
 
 
+def numeric_surface_slot_components(candidate: Dict[str, Any]) -> Dict[str, Any]:
+    value_text = _normalise_spaces(str(candidate.get("text") or ""))
+    unit = _normalise_spaces(str(candidate.get("unit") or ""))
+    raw_value = value_text
+    if unit and raw_value.endswith(unit):
+        raw_value = _normalise_spaces(raw_value[: -len(unit)])
+    if not raw_value or candidate.get("value") is None:
+        return {}
+    kind = str(candidate.get("kind") or "")
+    normalized_unit = "KRW" if kind == "currency" else "PERCENT" if kind == "percent" else "UNKNOWN"
+    return {
+        "raw_value": raw_value,
+        "raw_unit": unit,
+        "normalized_value": candidate.get("value"),
+        "normalized_unit": normalized_unit,
+        "rendered_value": value_text,
+    }
+
+
 def table_value_label_surfaces_with_unit_hint(table_value_labels: str, unit_hint: str) -> List[str]:
     cleaned_unit = _normalise_spaces(str(unit_hint or ""))
     if not cleaned_unit:

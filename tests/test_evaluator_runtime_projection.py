@@ -21,6 +21,7 @@ from src.ops.evaluator import (
     _compute_entity_coverage,
     _compute_ndcg_at_k,
     _contains_section,
+    _compute_grounded_rendering_correctness,
     _compute_numeric_result_correctness,
     _compute_operand_selection_correctness,
     _compute_unit_consistency_pass,
@@ -58,6 +59,19 @@ class _FakeAgent:
 class _FailingAgent:
     def run(self, question: str, report_scope=None) -> dict:
         raise RuntimeError("model unavailable")
+
+
+class _RecordingJudgeLLM:
+    def __init__(self) -> None:
+        self.prompt = ""
+
+    def invoke(self, prompt: str):
+        self.prompt = prompt
+
+        class _Response:
+            content = '{"score": 1.0, "reason": "ok"}'
+
+        return _Response()
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
@@ -305,6 +319,42 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
                 for row in corpus
             )
         )
+
+    def test_grounded_rendering_judge_compacts_nested_calculation_result(self) -> None:
+        llm = _RecordingJudgeLLM()
+        example = EvalExample(
+            id="Q1",
+            question="Calculate growth.",
+            ground_truth="70.28%",
+            company="ExampleCo",
+            year=2023,
+            section="Financial review",
+        )
+        calculation_result = {
+            "status": "ok",
+            "rendered_value": "70.28%",
+            "formatted_result": "2023 value grew 70.28%.",
+            "answer_slots": {
+                "primary_value": {"rendered_value": "70.28%"},
+                "subtask_results": [{"payload": "x" * 80_000}],
+            },
+            "subtask_results": [{"payload": "y" * 120_000}],
+        }
+
+        score, reason = _compute_grounded_rendering_correctness(
+            llm,
+            example,
+            answer="2023 value grew 70.28%.",
+            calculation_operands=[{"label": "growth", "raw_value": "70.28", "raw_unit": "%"}],
+            calculation_result=calculation_result,
+        )
+
+        self.assertEqual(score, 1.0)
+        self.assertEqual(reason, "ok")
+        self.assertLess(len(llm.prompt), 10_000)
+        self.assertNotIn("x" * 100, llm.prompt)
+        self.assertNotIn("y" * 100, llm.prompt)
+        self.assertIn("70.28%", llm.prompt)
 
     def test_should_override_numeric_grounding_for_direct_composed_ratio(self) -> None:
         numeric_eval = {

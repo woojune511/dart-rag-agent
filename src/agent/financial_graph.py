@@ -62,6 +62,32 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             year = years[0] if years else None
         return {"company": company, "year": year}
 
+    def _compact_runtime_evidence_metadata(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Keep caller-facing evidence metadata small while preserving routing signals."""
+        compacted = dict(metadata or {})
+        dropped_fields: list[str] = []
+        always_drop = {"table_object_json", "table_value_records_json"}
+        max_field_chars = 4_000
+        max_structured_row_chars = 20_000
+        for key in list(compacted):
+            value = compacted.get(key)
+            value_text = str(value or "")
+            if key in always_drop:
+                compacted.pop(key, None)
+                dropped_fields.append(key)
+                continue
+            if key == "table_row_records_json":
+                if len(value_text) > max_structured_row_chars:
+                    compacted.pop(key, None)
+                    dropped_fields.append(key)
+                continue
+            if len(value_text) > max_field_chars:
+                compacted.pop(key, None)
+                dropped_fields.append(key)
+        if dropped_fields:
+            compacted["metadata_compacted_fields"] = sorted(set(dropped_fields))
+        return compacted
+
     def _enrich_runtime_evidence_metadata(
         self,
         final: Dict[str, Any],
@@ -85,7 +111,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 )
                 if anchor:
                     row["source_anchor"] = _normalise_spaces(str(anchor))
-            row["metadata"] = metadata
+            row["metadata"] = self._compact_runtime_evidence_metadata(metadata)
             enriched.append(row)
         return enriched
 
@@ -527,6 +553,10 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             final,
             runtime_calculation_trace,
         )
+        runtime_calculation_trace = self._repair_period_comparison_trace_from_evidence(
+            final,
+            runtime_calculation_trace,
+        )
         public_answer = _normalise_spaces(str(final.get("answer") or ""))
         runtime_numeric_answer = self._late_runtime_numeric_answer(
             {
@@ -540,6 +570,18 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         final_for_evidence = {**dict(final), "answer": public_answer, "compressed_answer": public_answer}
         runtime_evidence = self._runtime_evidence_from_retrieved_docs(final_for_evidence)
         runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
+            {
+                **final_for_evidence,
+                "evidence_items": [
+                    *list(final_for_evidence.get("evidence_items") or []),
+                    *list(runtime_evidence or []),
+                ],
+                "runtime_evidence": runtime_evidence,
+                "resolved_calculation_trace": runtime_calculation_trace,
+            },
+            runtime_calculation_trace,
+        )
+        runtime_calculation_trace = self._repair_period_comparison_trace_from_evidence(
             {
                 **final_for_evidence,
                 "evidence_items": [

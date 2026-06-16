@@ -19,7 +19,7 @@ import json
 import math
 from pathlib import Path
 import re
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
 
 from src.config import get_financial_ontology
 from src.config.report_scoped_cache import (
@@ -278,6 +278,36 @@ def _extract_subtask_source_evidence_ids(
     return _clean_source_row_ids(values)
 
 
+def _collect_nested_result_evidence(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    max_depth: int = 6,
+) -> List[Dict[str, Any]]:
+    evidence: List[Dict[str, Any]] = []
+
+    def _append(items: Any) -> None:
+        evidence.extend(dict(item) for item in list(items or []) if isinstance(item, dict))
+
+    def _collect(row: Mapping[str, Any], depth: int = 0) -> None:
+        if depth > max_depth:
+            return
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        for payload in (row, calculation_result):
+            _append(payload.get("runtime_evidence"))
+            _append(payload.get("evidence_items"))
+        nested_rows = list(calculation_result.get("subtask_results") or [])
+        nested_rows.extend(list(answer_slots.get("subtask_results") or []))
+        for nested_row in nested_rows:
+            if isinstance(nested_row, Mapping):
+                _collect(nested_row, depth + 1)
+
+    for row in list(rows or []):
+        if isinstance(row, Mapping):
+            _collect(row)
+    return evidence
+
+
 def _operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
     status = _normalise_spaces(str(row.get("status") or "")).lower()
     if status == "missing":
@@ -299,6 +329,125 @@ def _operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
     if row.get("normalized_value") is not None:
         return True
     return bool(raw_value)
+
+
+def _answer_mentions_any_surface(
+    final_answer: str,
+    surfaces: Iterable[Any],
+    *,
+    default_on_empty_answer: bool = False,
+) -> bool:
+    final_text = _normalise_spaces(str(final_answer or ""))
+    if not final_text:
+        return default_on_empty_answer
+    return any(
+        surface_text and surface_text in final_text
+        for surface_text in (_normalise_spaces(str(surface or "")) for surface in surfaces)
+    )
+
+
+def _subtask_numeric_result_visible_in_answer(
+    final_answer: str,
+    row: Mapping[str, Any],
+    calculation_result: Mapping[str, Any],
+    answer_slots: Mapping[str, Any],
+) -> bool:
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    return _answer_mentions_any_surface(
+        final_answer,
+        [
+            row.get("answer"),
+            calculation_result.get("formatted_result"),
+            calculation_result.get("rendered_value"),
+            primary_slot.get("rendered_value"),
+            primary_slot.get("raw_value"),
+        ],
+        default_on_empty_answer=True,
+    )
+
+
+def _answer_mentions_numeric_slot(final_answer: str, slot: Mapping[str, Any]) -> bool:
+    if _answer_mentions_any_surface(
+        final_answer,
+        [
+            slot.get("rendered_value"),
+            slot.get("raw_value"),
+            slot.get("display_value"),
+        ],
+    ):
+        return True
+    normalized_value = slot.get("normalized_value")
+    if normalized_value is None:
+        return False
+    try:
+        target_value = float(normalized_value)
+    except (TypeError, ValueError):
+        return False
+    normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+    try:
+        from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+    except Exception:
+        return False
+    for candidate in extract_numeric_surface_candidates(final_answer):
+        candidate_value = candidate.get("value")
+        if candidate_value is None:
+            continue
+        candidate_kind = _normalise_spaces(str(candidate.get("kind") or "")).lower()
+        if normalized_unit == "KRW" and candidate_kind != "currency":
+            continue
+        if normalized_unit == "PERCENT" and candidate_kind != "percent":
+            continue
+        try:
+            candidate_float = float(candidate_value)
+        except (TypeError, ValueError):
+            continue
+        tolerance = max(abs(target_value), abs(candidate_float), 1.0) * 1e-6
+        if abs(candidate_float - target_value) <= tolerance:
+            return True
+    return False
+
+
+def _aggregate_operand_key(row: Mapping[str, Any], source_ids: Sequence[str] | None = None) -> tuple[str, ...]:
+    cleaned_source_ids = list(source_ids or _clean_source_row_ids([
+        row.get("source_row_id"),
+        row.get("source_row_ids"),
+    ]))
+    return (
+        str(row.get("task_id") or ""),
+        str(row.get("operand_id") or row.get("matched_operand_role") or ""),
+        cleaned_source_ids[0] if cleaned_source_ids else "",
+        "|".join(cleaned_source_ids),
+        str(row.get("raw_value") or row.get("value") or ""),
+        str(row.get("raw_unit") or ""),
+        str(row.get("label") or row.get("label_kr") or ""),
+    )
+
+
+def _append_aggregate_operand(
+    aggregate_operands: List[Dict[str, Any]],
+    seen_operand_keys: set[tuple[str, ...]],
+    operand_row: Mapping[str, Any],
+    source_ids: Sequence[Any] | None = None,
+) -> None:
+    row = dict(operand_row)
+    cleaned_source_ids = (
+        _clean_source_row_ids(source_ids)
+        if source_ids is not None
+        else _clean_source_row_ids([
+            row.get("source_row_id"),
+            row.get("source_row_ids"),
+        ])
+    )
+    if source_ids is not None and cleaned_source_ids:
+        row["source_row_id"] = cleaned_source_ids[0]
+        row["source_row_ids"] = cleaned_source_ids
+    if not _operand_row_has_material_numeric_payload(row):
+        return
+    operand_key = _aggregate_operand_key(row, cleaned_source_ids)
+    if operand_key in seen_operand_keys:
+        return
+    seen_operand_keys.add(operand_key)
+    aggregate_operands.append(row)
 
 
 def _split_sentences(text: str) -> List[str]:
@@ -1147,31 +1296,17 @@ def _build_aggregate_calculation_projection(
         task_id = str(row.get("task_id") or "").strip()
         metric_family = str(row.get("metric_family") or "").strip()
         metric_label = str(row.get("metric_label") or "").strip()
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
 
-        for operand in list(row.get("calculation_operands") or []):
-            operand_row = dict(operand)
-            if not _operand_row_has_material_numeric_payload(operand_row):
-                continue
-            operand_row.setdefault("task_id", task_id)
-            operand_row.setdefault("metric_family", metric_family)
-            operand_row.setdefault("metric_label", metric_label)
-            operand_source_ids = _clean_source_row_ids([
-                operand_row.get("source_row_id"),
-                operand_row.get("source_row_ids"),
-            ])
-            operand_key = (
-                str(operand_row.get("task_id") or ""),
-                str(operand_row.get("operand_id") or operand_row.get("matched_operand_role") or ""),
-                operand_source_ids[0] if operand_source_ids else "",
-                "|".join(operand_source_ids),
-                str(operand_row.get("raw_value") or operand_row.get("value") or ""),
-                str(operand_row.get("raw_unit") or ""),
-                str(operand_row.get("label") or operand_row.get("label_kr") or ""),
-            )
-            if operand_key in seen_operand_keys:
-                continue
-            seen_operand_keys.add(operand_key)
-            aggregate_operands.append(operand_row)
+        has_result_surface = bool(calculation_result or answer_slots or str(row.get("answer") or "").strip())
+        if not has_result_surface or _subtask_numeric_result_visible_in_answer(final_answer, row, calculation_result, answer_slots):
+            for operand in list(row.get("calculation_operands") or []):
+                operand_row = dict(operand)
+                operand_row.setdefault("task_id", task_id)
+                operand_row.setdefault("metric_family", metric_family)
+                operand_row.setdefault("metric_label", metric_label)
+                _append_aggregate_operand(aggregate_operands, seen_operand_keys, operand_row)
 
         plan = dict(row.get("calculation_plan") or {})
         if plan:
@@ -1184,12 +1319,30 @@ def _build_aggregate_calculation_projection(
                 }
             )
 
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
         operation_family = _trace_operation_family(
             calculation_plan=plan,
             calculation_result=calculation_result,
         ) or str(answer_slots.get("operation_family") or row.get("operation_family") or "").strip()
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        if operation_family in {"lookup", "single_value"} and _answer_mentions_numeric_slot(final_answer, primary_slot):
+            operand_row = {
+                **primary_slot,
+                "operand_id": primary_slot.get("operand_id") or f"{task_id}:primary_value",
+                "matched_operand_role": primary_slot.get("matched_operand_role") or primary_slot.get("role") or "primary_value",
+                "task_id": task_id,
+                "metric_family": metric_family,
+                "metric_label": metric_label,
+                "source_task_id": primary_slot.get("source_task_id") or task_id,
+                "source_slot": primary_slot.get("source_slot") or "primary_value",
+            }
+            source_ids = _clean_source_row_ids([
+                operand_row.get("source_row_id"),
+                operand_row.get("source_row_ids"),
+                row.get("source_row_id"),
+                row.get("source_row_ids"),
+                calculation_result.get("source_row_ids"),
+            ])
+            _append_aggregate_operand(aggregate_operands, seen_operand_keys, operand_row, source_ids)
         subtask_source_row_ids = _clean_source_row_ids([
             row.get("source_row_id"),
             row.get("source_row_ids"),

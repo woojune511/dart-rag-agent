@@ -48,6 +48,9 @@
 | [CEL_T1_038 Unit and Final Answer Consistency (2026-06-12)](#cel_t1_038-unit-and-final-answer-consistency-2026-06-12) | margin-drag focused regression | claim-visible `원` unit is preserved through lookup capture, late ratio projection, and query-focused final answer selection |
 | [Financial Graph Calculation Refactor Focused Eval (2026-06-15)](#financial-graph-calculation-refactor-focused-eval-2026-06-15) | aggregate/projection refactor after repeated patching | SKI/POS PASS cases stayed stable; HYU self-ratio regression is blocked and remaining gap is operand binding/table structure |
 | [HYU Ratio Task-Output Rebinding (2026-06-15)](#hyu-ratio-task-output-rebinding-2026-06-15) | HYU_T1_034 late denominator task-output binding | focused eval-only recovered `83.81%` ratio and returned numeric PASS |
+| [HYU Source-Slot Ratio Rebuild (2026-06-16)](#hyu-source-slot-ratio-rebuild-2026-06-16) | HYU_T1_034 incoherent ratio candidate suppression and source-slot fallback | lookup/single-value source slots rebuild `83.81%` answer; focused eval-only numeric PASS |
+| [SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)](#ski-source-stated-growth-repair-and-narrative-pruning-2026-06-16) | SKI_T2_069 aggregate period-comparison repair and boilerplate context pruning | source-stated `84.3%` display is preserved; focused eval-only numeric PASS and irrelevant forward-looking boilerplate removed |
+| [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
 
@@ -60,6 +63,184 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/regression_ski_t2_069_repro_from_refactor_check_2026-06-16/`
+- artifact hygiene: this result bundle and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed focused eval-only over `SKI_T2_069`.
+- Command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_single_doc_official_77.json --output-dir <existing-regression-dir> --company-run-id ski_2023_official_77 --eval-only --question-id SKI_T2_069 --numeric-fast-gate --progress-heartbeat-sec 30 --heartbeat-log <path>`.
+
+### Code / Policy Change
+
+- Period-comparison traces can be repaired from evidence after runtime
+  projection when source evidence states a derived growth display that differs
+  from stale task-output arithmetic.
+- Aggregate-subtask period-comparison repair now preserves trace subtask rows
+  before older state rows, then realigns growth/difference slots against
+  table-label context and rebuilds the aggregate projection.
+- If LLM operand extraction is empty, dependency or direct structured operand
+  rows are preserved instead of being replaced by an empty operand artifact.
+- Mixed numeric+narrative refresh now prunes existing context sentences unless
+  they match supported narrative-summary rows or high-score evidence
+  candidates. The score floor is declarative policy:
+  `CALCULATION_NARRATIVE_POLICY["growth_supported_candidate_min_score"]`.
+- The implementation stayed generic: no company name, benchmark ID,
+  report-specific phrase, or metric-specific keyword bundle was added to
+  runtime control flow.
+
+### Results
+
+- Latest focused `SKI_T2_069` eval-only:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - numeric pass rate `1.000`
+  - context P@5 `0.800`
+- Final answer preserves the source-stated `84.3%` decrease and removes the
+  unrelated forward-looking-information boilerplate:
+  `2023년 정유 영업이익은 4,092억원이며, 2022년 2조 6,008억원 대비 84.3% 감소했습니다. 이러한 영업이익 감소는 유가 하락의 영향으로 제품가와 유가와의 차이(마진)가 감소했기 때문입니다.`
+
+### Validation
+
+- `python -m unittest tests.test_structured_operand_extraction tests.test_aggregate_subtask_projection tests.test_subtask_loop tests.test_financial_agent_run_projection tests.test_evaluator_runtime_projection`:
+  `398` tests OK.
+- `python -m src.ops.audit_runtime_domain_terms`: passed with `216` reviewed
+  literals.
+- `git diff --check`: passed.
+
+### Interpretation
+
+- The blocker was not a company-specific answer patch. It was stale
+  period-comparison projection and overly broad preservation of narrative-like
+  context sentences.
+- The fix keeps source-stated numeric displays visible while retaining formula
+  traces, and narrows answer-context carryover to evidence-supported narrative
+  material.
+- Remaining cleanup work is structural: continue shrinking/refactoring
+  `financial_graph_calculation.py` around common trace projection and repair
+  primitives before adding new benchmark-driven behavior.
+
+## HYU Source-Slot Ratio Rebuild (2026-06-16)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/focused_hyu_t1_034_after_skip_incoherent_numeric_candidate_2026-06-16/`
+- artifact hygiene: benchmark result bundle and heartbeat logs are local
+  experiment output and should not be staged.
+
+### Setup
+
+- Store-fixed focused eval-only over `HYU_T1_034`.
+- Command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_single_doc_official_77.json --output-dir <existing-focused-dir> --company-run-id hyundai_2023_official_77 --eval-only --question-id HYU_T1_034 --progress-heartbeat-sec 30 --heartbeat-log <path>`.
+
+### Context
+
+- Earlier guards blocked incoherent ratio candidates that mixed dependency
+  slots with conflicting direct evidence, but the aggregate answer could still
+  close as partial because the known lookup source slots were not reused to
+  rebuild the ratio.
+- A first source-slot fallback attempt exposed a denominator-selection issue:
+  explicit stale denominator seeds could prefer a sibling lookup over the true
+  base lookup.
+
+### Code / Contract Change
+
+- Preferred complete numeric answer can rebuild a ratio from source-task
+  slots when the ratio row is insufficient or dependency-incoherent, but only
+  when numerator and denominator slots are material and distinct.
+- Source-slot candidates are restricted to lookup / single-value producer rows;
+  ratio rows cannot become their own denominator source.
+- Producer `metric_label` is preserved on source slots and used as generic
+  matching metadata when a lookup primary label is stale or too broad.
+- Lookup realignment from projected operands now keeps self-task projection
+  behavior but blocks non-self-task overwrites when direct provenance is
+  disjoint or source anchors conflict.
+- The change is generic source-slot / provenance handling. No company,
+  benchmark-id, report-specific phrase, or metric-specific runtime branch was
+  added.
+
+### Result
+
+| Question | Previous focused state | New focused eval-only | Interpretation |
+| --- | ---: | ---: | --- |
+| `HYU_T1_034` | FAIL, avg `0.774`, safe partial after bad ratio suppression | PASS, avg `0.948` | Source slots rebuild `차량 영업이익 / 전체 영업이익 = 83.81%`. |
+
+Final answer:
+
+`2023년 전체 영업이익에서 차량 부문이 차지하는 비중은 83.81%입니다. 계산: 차량 영업이익 12조 6,773억원 / 전체 영업이익 15조 1,269억원.`
+
+### Validation
+
+- targeted ratio source-slot tests: `3` tests OK
+- `python -m unittest tests.test_subtask_loop`: `205` tests OK
+- related projection/subtask suite: `255` tests OK
+- `python -m unittest discover -s tests`: `1171` tests OK
+- `python -m src.ops.audit_runtime_domain_terms`: passed with `216`
+  reviewed literals
+
+## Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)
+
+참조:
+
+- commits:
+  - `64753a2` Stabilize growth narrative numeric refresh
+  - `5188bda` Compact runtime evidence judge payloads
+- local focused result bundles summarized, then cleaned:
+  - `benchmarks/results/numeric_first_nav_t2_006_refactor5_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_refactor4_probe_2026-06-15/`
+  - `benchmarks/results/numeric_first_kbf_t2_018_payload2_probe_2026-06-15/`
+- artifact hygiene: these benchmark result bundles were local experiment output
+  and were not staged.
+
+### Context
+
+- After the growth narrative numeric refresh, `NAV_T2_006` and `KBF_T2_018`
+  were numerically healthy in focused eval-only runs.
+- `KBF_T2_018` still exposed an evaluator/runtime payload issue: the
+  grounded-rendering judge received an oversized nested `calculation_result`
+  payload and failed with a token-limit error even though numeric equivalence
+  and grounding were already `1.000`.
+- The runtime evidence symptom was table-backed metadata carrying large
+  serialized table payloads into public evidence items.
+
+### Code / Contract Change
+
+- Caller-facing runtime evidence metadata is compacted before final result
+  projection: large table payload JSON fields are dropped while small
+  provenance, unit, routing, and row-summary metadata are preserved.
+- Trend and grounded-rendering LLM judges receive a compact
+  `calculation_result` projection that omits nested subtask results, retrieved
+  documents, runtime evidence, and debug payloads. Deterministic numeric
+  scoring still uses the full runtime trace.
+- The change stayed generic payload/projection plumbing; no company, question,
+  metric, or benchmark-specific runtime branch was added.
+
+### Focused Results
+
+| Question | Result bundle | Key outcome |
+| --- | --- | --- |
+| `NAV_T2_006` | `numeric_first_nav_t2_006_refactor5_probe_2026-06-15` | faithfulness `1.000`, answer relevancy `0.845`, completeness `1.000`, calculation correctness `1.000`, grounded rendering `1.000`, error `0.0%` |
+| `KBF_T2_018` before payload compaction | `numeric_first_kbf_t2_018_refactor4_probe_2026-06-15` | numeric `PASS`, but grounded-rendering judge hit the token limit; public runtime evidence was about `115k` chars |
+| `KBF_T2_018` after payload compaction | `numeric_first_kbf_t2_018_payload2_probe_2026-06-15` | numeric `PASS`, numeric equivalence/grounding `1.000`, calculation correctness `1.000`, grounded rendering `1.000`, answer relevancy `0.841`, public runtime evidence about `23.6k` chars |
+
+### Validation
+
+- `python -m unittest tests.test_lookup_recovery_policy`: `16` tests OK.
+- `python -m unittest tests.test_subtask_loop`: `192` tests OK.
+- `python -m unittest tests.test_financial_agent_run_projection`: `43` tests OK.
+- `python -m unittest tests.test_evaluator_runtime_projection`: `65` tests OK.
+- `python -m src.ops.audit_runtime_domain_terms`: passed.
 
 ## HYU Ratio Task-Output Rebinding (2026-06-15)
 
