@@ -1,6 +1,6 @@
 import unittest
 
-from src.agent.financial_graph_calculation import _reflection_report_from_action
+from src.agent.financial_reflection_projection import reflection_action_from_plan, reflection_report_from_action
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_graph_reconciliation import (
     ALLOWED_REFLECTION_RETRY_STRATEGIES,
@@ -114,7 +114,23 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         self.assertEqual(request["remaining_retry_budget"], 0)
 
     def test_reflection_report_records_retry_handoff(self) -> None:
-        report = _reflection_report_from_action(
+        action = reflection_action_from_plan(
+            {
+                "preferred_sections": [" 재무제표 ", ""],
+                "synthesis_source_ids": ["artifact_1", ""],
+                "explanation": "retry with focused evidence",
+            },
+            retry_queries=["find value"],
+            retry_strategy="retry_retrieval",
+        )
+
+        self.assertEqual(action["action_type"], "retry_retrieval")
+        self.assertEqual(action["retry_queries"], ["find value"])
+        self.assertEqual(action["retrieval_scope_hints"], ["재무제표"])
+        self.assertEqual(action["synthesis_source_ids"], ["artifact_1"])
+        self.assertEqual(action["stop_reason"], "retry with focused evidence")
+
+        report = reflection_report_from_action(
             {
                 "active_subtask": {
                     "task_id": "task_1",
@@ -139,7 +155,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         self.assertEqual(report["blocking_issues"], [])
 
     def test_reflection_report_records_stop_reason_without_retry_budget(self) -> None:
-        report = _reflection_report_from_action(
+        report = reflection_report_from_action(
             {"active_subtask": {"task_id": "task_1"}},
             reflection_action={
                 "action_type": "stop_insufficient",

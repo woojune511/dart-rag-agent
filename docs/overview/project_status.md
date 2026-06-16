@@ -50,6 +50,33 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Calculation Reflection Projection Extraction
+
+- Run date: 2026-06-17
+- Scope: first narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Reflection handoff projection helpers moved from
+    `financial_graph_calculation.py` to
+    `src/agent/financial_reflection_projection.py`.
+  - Extracted helpers:
+    `reflection_action_from_plan` and `reflection_report_from_action`.
+  - The calculation mixin keeps using alias imports, so behavior and call sites
+    stay stable.
+- Interpretation: this is a no-behavior-change boundary extraction. It does not
+  alter operand binding, deterministic execution, answer rendering, or
+  benchmark behavior.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_reflection_capability_contract`:
+    `7` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection tests.test_subtask_loop.SubtaskLoopTests.test_prepare_synthesis_reflection_retry_records_task_output_source_ids`:
+    `2` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_reflection_projection.py`:
+    passed
+  - `git diff --check`: passed
+
 ### Latest State Type Split Start
 
 - Run date: 2026-06-17

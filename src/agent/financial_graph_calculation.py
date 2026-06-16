@@ -48,6 +48,10 @@ from src.agent.financial_numeric_surface import (
     numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
 )
+from src.agent.financial_reflection_projection import (
+    reflection_action_from_plan as _reflection_action_from_plan,
+    reflection_report_from_action as _reflection_report_from_action,
+)
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
     CalculationPlan,
@@ -56,8 +60,6 @@ from src.agent.financial_graph_models import (
     CalculationVerificationOutput,
     FinancialAgentState,
     OperandExtraction,
-    ReflectionAction,
-    ReflectionReport,
     validate_answer_slots_payload,
 )
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
@@ -247,29 +249,6 @@ def _evidence_item_conflicts_requested_scope(
     return False
 
 
-def _reflection_action_from_plan(
-    reflection_plan: Dict[str, Any],
-    *,
-    retry_queries: List[str],
-    retry_strategy: str,
-) -> ReflectionAction:
-    return {
-        "action_type": retry_strategy,
-        "retry_queries": list(retry_queries),
-        "retrieval_scope_hints": [
-            str(item).strip()
-            for item in (reflection_plan.get("preferred_sections") or [])
-            if str(item).strip()
-        ],
-        "synthesis_source_ids": [
-            str(item).strip()
-            for item in (reflection_plan.get("synthesis_source_ids") or [])
-            if str(item).strip()
-        ],
-        "stop_reason": str(reflection_plan.get("explanation") or ""),
-    }
-
-
 def _synthesis_source_ids_from_task_outputs(state: FinancialAgentState) -> List[str]:
     active_subtask = dict(state.get("active_subtask") or {})
     preferred_task_ids: List[str] = []
@@ -327,41 +306,6 @@ def _synthesis_source_ids_from_task_outputs(state: FinancialAgentState) -> List[
             source_ids.append(f"task_output:{task_id}")
 
     return list(dict.fromkeys(item for item in source_ids if item))
-
-
-def _reflection_report_from_action(
-    state: FinancialAgentState,
-    *,
-    reflection_action: ReflectionAction,
-    reflection_request: Dict[str, Any],
-) -> ReflectionReport:
-    action_type = _normalise_spaces(str(reflection_action.get("action_type") or "")).lower()
-    stop_reason = str(reflection_action.get("stop_reason") or "").strip()
-    active_subtask = dict(state.get("active_subtask") or {})
-    task_id = str(active_subtask.get("task_id") or "").strip()
-    artifact_id = str(
-        active_subtask.get("artifact_id")
-        or active_subtask.get("result_artifact_id")
-        or active_subtask.get("source_artifact_id")
-        or ""
-    ).strip()
-    blocking_issues: List[Dict[str, Any]] = []
-    if action_type == "stop_insufficient":
-        blocking_issues.append(
-            {
-                "type": "stop_insufficient",
-                "reason": stop_reason
-                or str(reflection_request.get("failure_status") or "insufficient evidence"),
-            }
-        )
-    return {
-        "outcome": "stop_requested" if action_type == "stop_insufficient" else "retry_prepared",
-        "action_taken": action_type,
-        "budget_consumed": 0 if action_type == "stop_insufficient" else 1,
-        "target_task_ids": [task_id] if task_id else [],
-        "target_artifact_ids": [artifact_id] if artifact_id else [],
-        "blocking_issues": blocking_issues,
-    }
 
 
 def _next_reflection_task_id(

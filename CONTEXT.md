@@ -11,6 +11,27 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 첫 조각을 진행했다.
+  - `financial_graph_calculation.py`에 있던 reflection handoff projection helper
+    두 개를 새 module `src/agent/financial_reflection_projection.py`로 분리했다.
+    - `reflection_action_from_plan`
+    - `reflection_report_from_action`
+  - 계산 실행/operand binding/answer rendering 동작은 건드리지 않은
+    no-behavior-change extraction이다. 기존 calculation mixin은 alias import로
+    같은 helper를 계속 호출한다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_reflection_capability_contract`:
+      `7` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection tests.test_subtask_loop.SubtaskLoopTests.test_prepare_synthesis_reflection_retry_records_task_output_source_ids`:
+      `2` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_reflection_projection.py`:
+      passed
+    - `git diff --check`: passed
+  - Note: two earlier focused unittest invocations failed because the specified
+    test method names did not exist; the corrected reflection tests above passed.
+
 - 2026-06-17 PR 3 범위의 `FinancialAgentState` concern split 첫 조각을
   진행했다.
   - 기존 state key와 graph contract는 유지하면서 TypedDict를 아래 concern별
