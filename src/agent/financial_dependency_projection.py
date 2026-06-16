@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, List
 
 from src.agent.financial_graph_helpers import _clean_source_row_ids, _normalise_spaces
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
-from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
 
 
 def _slot_from_single_answer_numeric(
@@ -26,26 +26,22 @@ def _slot_from_single_answer_numeric(
     if len(candidates) != 1:
         return {}
     candidate = candidates[0]
-    candidate_text = _normalise_spaces(str(candidate.get("text") or ""))
-    candidate_unit = _normalise_spaces(str(candidate.get("unit") or ""))
-    raw_value = candidate_text
-    if candidate_unit and raw_value.endswith(candidate_unit):
-        raw_value = _normalise_spaces(raw_value[: -len(candidate_unit)])
-    if not raw_value:
+    components = numeric_surface_slot_components(candidate)
+    if not components:
         return {}
     normalized_unit = _normalise_spaces(str(current_slot.get("normalized_unit") or ""))
     if not normalized_unit:
-        normalized_unit = "KRW" if candidate.get("kind") == "currency" else "UNKNOWN"
+        normalized_unit = str(components.get("normalized_unit") or "UNKNOWN")
     return {
         **dict(current_slot),
         "status": "ok",
         "role": current_slot.get("role") or "primary_value",
         "label": _normalise_spaces(str(result_row.get("metric_label") or current_slot.get("label") or "")),
-        "raw_value": raw_value,
-        "raw_unit": candidate_unit or _normalise_spaces(str(current_slot.get("raw_unit") or "")),
-        "normalized_value": candidate.get("value"),
+        "raw_value": components.get("raw_value"),
+        "raw_unit": components.get("raw_unit") or _normalise_spaces(str(current_slot.get("raw_unit") or "")),
+        "normalized_value": components.get("normalized_value"),
         "normalized_unit": normalized_unit,
-        "rendered_value": candidate_text,
+        "rendered_value": components.get("rendered_value"),
     }
 
 
