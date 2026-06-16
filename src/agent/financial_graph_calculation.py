@@ -1704,6 +1704,62 @@ class FinancialAgentCalculationMixin:
                 return 0.35
             return 0.0
 
+        def _claim_visible_lookup_slot(evidence: Dict[str, Any]) -> tuple[Dict[str, Any], float]:
+            evidence_id = _normalise_spaces(str(evidence.get("evidence_id") or ""))
+            source_text = _normalise_spaces(
+                " ".join(
+                    str(evidence.get(key) or "")
+                    for key in ("claim", "quote_span", "raw_row_text")
+                    if str(evidence.get(key) or "").strip()
+                )
+            )
+            if not source_text or not _text_has_positive_surface(source_text, operand):
+                return {}, 0.0
+            metadata = dict(evidence.get("metadata") or {})
+            best_candidate: Dict[str, Any] = {}
+            for candidate in extract_numeric_surface_candidates(source_text):
+                unit = _normalise_spaces(str(candidate.get("unit") or ""))
+                value_text = _normalise_spaces(str(candidate.get("text") or ""))
+                if not unit or not value_text:
+                    continue
+                raw_value = value_text
+                if raw_value.endswith(unit):
+                    raw_value = _normalise_spaces(raw_value[: -len(unit)])
+                if not raw_value or candidate.get("value") is None:
+                    continue
+                best_candidate = {
+                    "source_row_id": evidence_id,
+                    "source_row_ids": [evidence_id] if evidence_id else [],
+                    "source_anchor": _normalise_spaces(str(evidence.get("source_anchor") or "")),
+                    "label": _normalise_spaces(str(operand.get("label") or metadata.get("semantic_label") or "")),
+                    "raw_value": raw_value,
+                    "raw_unit": unit,
+                    "normalized_value": candidate.get("value"),
+                    "normalized_unit": (
+                        "KRW"
+                        if candidate.get("kind") == "currency"
+                        else "PERCENT" if candidate.get("kind") == "percent" else "UNKNOWN"
+                    ),
+                    "rendered_value": value_text,
+                    "period": _normalise_spaces(str(metadata.get("year") or "")),
+                    "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
+                    "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
+                    "matched_operand_role": _normalise_spaces(str(operand.get("role") or "")),
+                }
+                break
+            if not best_candidate:
+                return {}, 0.0
+            score = 6.0
+            if _normalise_spaces(str(metadata.get("unit_hint") or "")):
+                score += 0.5
+            if _normalise_spaces(str(metadata.get("table_value_labels_text") or "")):
+                score += 0.5
+            if _normalise_spaces(str(metadata.get("table_source_id") or "")):
+                score += 0.5
+            if _normalise_spaces(str(evidence.get("source_anchor") or "")):
+                score += 0.25
+            return best_candidate, score
+
         for evidence_item in evidence_pool:
             evidence = dict(evidence_item or {})
             score = self._direct_structured_lookup_evidence_score(operand, evidence)
@@ -1763,6 +1819,20 @@ class FinancialAgentCalculationMixin:
             ):
                 best_slot = table_label_slot
                 best_score = table_label_score
+
+            claim_slot, claim_score = _claim_visible_lookup_slot(evidence)
+            if claim_score > 0:
+                claim_score += _context_scope_score(evidence)
+            if claim_slot and (
+                claim_score > best_score
+                or (
+                    claim_score == best_score
+                    and best_slot
+                    and _candidate_preferred_on_tie(claim_slot, best_slot)
+                )
+            ):
+                best_slot = claim_slot
+                best_score = claim_score
 
         if not best_slot or best_score < 6.0:
             return {}, 0.0
@@ -1903,8 +1973,31 @@ class FinancialAgentCalculationMixin:
             if str(task.get("task_id") or "").strip()
         }
         evidence_pool: List[Dict[str, Any]] = []
+
+        def _append_evidence_items(items: Any) -> None:
+            for item in list(items or []):
+                if isinstance(item, dict):
+                    evidence_pool.append(dict(item))
+
+        def _collect_result_evidence(row: Dict[str, Any], depth: int = 0) -> None:
+            if depth > 6 or not isinstance(row, dict):
+                return
+            _append_evidence_items(row.get("runtime_evidence"))
+            _append_evidence_items(row.get("evidence_items"))
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+            _append_evidence_items(calculation_result.get("runtime_evidence"))
+            _append_evidence_items(calculation_result.get("evidence_items"))
+            for nested_row in [
+                *list(calculation_result.get("subtask_results") or []),
+                *list(answer_slots.get("subtask_results") or []),
+            ]:
+                if isinstance(nested_row, dict):
+                    _collect_result_evidence(nested_row, depth + 1)
+
         for row in ordered_results:
-            evidence_pool.extend(dict(item) for item in (row.get("runtime_evidence") or []) if isinstance(item, dict))
+            if isinstance(row, dict):
+                _collect_result_evidence(row)
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
         context_docs = list(state.get("seed_retrieved_docs") or []) + list(state.get("retrieved_docs") or [])

@@ -13589,6 +13589,85 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(slot["raw_unit"], "백만원")
         self.assertEqual(slot["normalized_value"], 2546649000000.0)
 
+    def test_lookup_recovery_uses_nested_subtask_runtime_evidence(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "segment operating income",
+                            "concept": "operating_income",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+        }
+        current_slot = {
+            "status": "ok",
+            "label": "segment operating income",
+            "concept": "operating_income",
+            "period": "2023",
+            "raw_value": "1,385,538",
+            "raw_unit": "천원",
+            "normalized_value": 1385538000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "1,385,538천원",
+            "source_row_id": "ev_weak",
+            "source_row_ids": ["ev_weak"],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": current_slot},
+            },
+        }
+        nested_evidence_row = {
+            "task_id": "task_nested",
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_direct",
+                    "claim": "segment operating income 1,385,538백만원",
+                    "quote_span": "segment operating income | 1,385,538",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "백만원",
+                        "table_source_id": "table_income",
+                        "table_value_labels_text": "\n".join(
+                            [
+                                "operating income 1,385,538",
+                                "other line 100",
+                            ]
+                        ),
+                    },
+                }
+            ],
+        }
+        sibling_row = {
+            "task_id": "task_aggregate",
+            "operation_family": "aggregate_subtasks",
+            "calculation_result": {"subtask_results": [nested_evidence_row]},
+        }
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence(
+            [current_row, sibling_row],
+            state,
+        )
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertTrue(recovered[0].get("recovered_from_sibling_table_evidence"))
+        self.assertEqual(slot["raw_value"], "1,385,538")
+        self.assertEqual(slot["raw_unit"], "백만원")
+        self.assertEqual(slot["source_row_id"], "ev_direct")
+
     def test_table_label_lookup_uses_partial_row_label_and_requested_period(self) -> None:
         evidence = {
             "evidence_id": "ev_segment_table",

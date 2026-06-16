@@ -3103,6 +3103,84 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIn("current ratio", answer)
         self.assertIn("258.77%", answer)
 
+    def test_aggregate_projection_skips_operands_for_hidden_subtask_result(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_numerator",
+                "metric_family": "concept_lookup",
+                "metric_label": "reported numerator",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "120백만원",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "primary_value",
+                            "label": "reported numerator",
+                            "raw_value": "120",
+                            "raw_unit": "백만원",
+                            "normalized_value": 120_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "120백만원",
+                            "source_row_id": "ev_numerator",
+                        },
+                    },
+                    "source_row_ids": ["ev_numerator"],
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "segment share",
+                "operation_family": "ratio",
+                "status": "ok",
+                "answer": "Segment share is 481.47%.",
+                "calculation_operands": [
+                    {
+                        "operand_id": "numerator_1",
+                        "matched_operand_role": "numerator_1",
+                        "label": "stale numerator",
+                        "raw_value": "6,670,971",
+                        "raw_unit": "백만원",
+                        "normalized_value": 6_670_971_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "denominator_1",
+                        "matched_operand_role": "denominator_1",
+                        "label": "stale denominator",
+                        "raw_value": "1,385,538",
+                        "raw_unit": "백만원",
+                        "normalized_value": 1_385_538_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                ],
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "481.47%",
+                    "formatted_result": "Segment share is 481.47%.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {"status": "ok", "rendered_value": "481.47%"},
+                    },
+                },
+            }
+        ]
+
+        projection = agent._build_aggregate_calculation_projection(
+            ordered_results,
+            "Reported numerator is 1.2억원. Segment share is 83.81%.",
+        )
+
+        operands = projection["calculation_operands"]
+        self.assertEqual(len(operands), 1)
+        self.assertEqual(operands[0]["task_id"], "task_numerator")
+        self.assertEqual(operands[0]["raw_value"], "120")
+
     def test_complete_numeric_answer_does_not_replace_unresolved_ratio_final_answer(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ordered_results = [
