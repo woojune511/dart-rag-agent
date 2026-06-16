@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Callable, Dict, List
 
-from src.agent.financial_graph_helpers import _clean_source_row_ids, _normalise_spaces
+from src.agent.financial_graph_helpers import _clean_source_row_ids, _normalise_operand_value, _normalise_spaces
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
+from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
 def _slot_from_single_answer_numeric(
@@ -988,3 +990,116 @@ def realign_lookup_row_from_dependency_projection(
         primary_slot,
         True,
     )
+
+
+def align_lookup_result_units_from_peer_source_slots(
+    ordered_results: List[Dict[str, Any]],
+    *,
+    operation_family_for_result: Callable[[Dict[str, Any]], str],
+    slot_has_material: Callable[[Dict[str, Any]], bool],
+    replace_lookup_primary_slot: Callable[..., Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    krw_units = {
+        _normalise_spaces(str(item))
+        for item in (render_policy.get("krw_display_units") or ())
+        if _normalise_spaces(str(item))
+    }
+
+    def _primary_slot(row: Dict[str, Any]) -> Dict[str, Any]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        return dict(answer_slots.get("primary_value") or {})
+
+    def _source_keys(slot: Dict[str, Any]) -> set[str]:
+        source_ids = set(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
+        source_anchor = _normalise_spaces(str(slot.get("source_anchor") or ""))
+        if source_anchor:
+            source_ids.add(f"anchor::{source_anchor}")
+        return source_ids
+
+    peer_slots = [
+        _primary_slot(row)
+        for row in ordered_results
+        if isinstance(row, dict)
+        and operation_family_for_result(row) in {"lookup", "single_value"}
+        and slot_has_material(_primary_slot(row))
+    ]
+
+    def _peer_unit_for(slot: Dict[str, Any]) -> str:
+        raw_value = _normalise_spaces(str(slot.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+        if (
+            not raw_value
+            or not raw_unit
+            or raw_unit not in krw_units
+            or normalized_unit != "KRW"
+            or not re.fullmatch(str(render_policy.get("operand_unit_bare_numeric_pattern") or r"$^"), raw_value)
+        ):
+            return ""
+        keys = _source_keys(slot)
+        if not keys:
+            return ""
+        concept = _normalise_spaces(str(slot.get("concept") or ""))
+        candidates: List[str] = []
+        for peer in peer_slots:
+            if peer is slot:
+                continue
+            peer_unit = _normalise_spaces(str(peer.get("raw_unit") or ""))
+            if not peer_unit or peer_unit == raw_unit or peer_unit not in krw_units:
+                continue
+            if _normalise_spaces(str(peer.get("normalized_unit") or "")).upper() != normalized_unit:
+                continue
+            peer_concept = _normalise_spaces(str(peer.get("concept") or ""))
+            if concept and peer_concept and concept != peer_concept:
+                continue
+            if _source_keys(peer) & keys:
+                candidates.append(peer_unit)
+        if not candidates:
+            return ""
+        counts = {unit: candidates.count(unit) for unit in set(candidates)}
+        best_count = max(counts.values())
+        best_units = [unit for unit, count in counts.items() if count == best_count]
+        if len(best_units) != 1:
+            return ""
+        peer_value, _peer_unit = _normalise_operand_value(raw_value, best_units[0])
+        try:
+            if abs(float(peer_value)) <= abs(float(slot.get("normalized_value"))):
+                return ""
+        except (TypeError, ValueError):
+            return ""
+        return best_units[0]
+
+    aligned_results: List[Dict[str, Any]] = []
+    changed_any = False
+    for row in ordered_results:
+        if not isinstance(row, dict) or operation_family_for_result(row) not in {"lookup", "single_value"}:
+            aligned_results.append(row)
+            continue
+        primary_slot = _primary_slot(row)
+        peer_unit = _peer_unit_for(primary_slot)
+        if not peer_unit:
+            aligned_results.append(row)
+            continue
+        raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, peer_unit)
+        if normalized_value is None:
+            aligned_results.append(row)
+            continue
+        aligned_results.append(
+            replace_lookup_primary_slot(
+                row,
+                {
+                    **primary_slot,
+                    "raw_unit": peer_unit,
+                    "normalized_value": normalized_value,
+                    "normalized_unit": normalized_unit,
+                    "rendered_value": f"{raw_value}{peer_unit}",
+                    "unit_aligned_from_peer_source_slot": True,
+                },
+                marker_key="unit_aligned_from_peer_source_slot",
+            )
+        )
+        changed_any = True
+    return aligned_results if changed_any else ordered_results
