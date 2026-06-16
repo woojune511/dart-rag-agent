@@ -50,6 +50,36 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Render Direction Helper Extraction
+
+- Run date: 2026-06-17
+- Scope: sixth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Direction hint calculation and duplicate negative-sign display correction
+    moved from `financial_graph_calculation.py` to
+    `src/agent/financial_graph_calculation_rendering.py`.
+  - Extracted helpers: `direction_hint_for_result` and
+    `coerce_rendered_value_for_direction`.
+  - Render and verification nodes now share the same deterministic direction
+    helper while keeping their existing LLM prompts, fallback behavior, trace
+    updates, and ratio compact rendering unchanged.
+- Interpretation: this is a no-behavior-change rendering-boundary extraction.
+  It removes duplicated render/verify policy interpretation from the
+  calculation orchestration file without changing arithmetic or verification
+  semantics.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_rendered_subtraction_answer_rewrites_double_negative_subtrahend tests.test_operation_contracts.OperationContractTests.test_rendered_subtraction_answer_rewrites_negative_denominator_difference tests.test_subtask_loop.SubtaskLoopTests.test_verify_calculation_skip_does_not_rewrite_compatibility_mirrors`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering tests.test_financial_answer_slots`:
+    `10` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_graph_calculation_rendering.py`:
+    passed
+
 ### Latest Answer Slot Assembly Extraction
 
 - Run date: 2026-06-17

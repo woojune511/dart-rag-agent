@@ -11,6 +11,27 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 여섯 번째 조각을 진행했다.
+  - render/verify 경로에 중복돼 있던 direction hint 계산과 negative
+    rendered-value sign 보정을
+    `src/agent/financial_graph_calculation_rendering.py`로 이동했다.
+    - `direction_hint_for_result`
+    - `coerce_rendered_value_for_direction`
+  - `financial_graph_calculation.py`는 rendering helper를 호출하도록 바뀌었고,
+    LLM render/verify 호출, fallback, ratio compact rendering, trace update
+    동작은 변경하지 않았다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_rendered_subtraction_answer_rewrites_double_negative_subtrahend tests.test_operation_contracts.OperationContractTests.test_rendered_subtraction_answer_rewrites_negative_denominator_difference tests.test_subtask_loop.SubtaskLoopTests.test_verify_calculation_skip_does_not_rewrite_compatibility_mirrors`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering tests.test_financial_answer_slots`:
+      `10` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_graph_calculation_rendering.py`:
+      passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 다섯 번째 조각을 진행했다.
   - `_build_answer_slots`의 operation-family별 answer slot assembly를
     `src/agent/financial_answer_slots.py`의 `build_answer_slots`로 이동했다.

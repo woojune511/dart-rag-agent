@@ -17,6 +17,36 @@ from src.agent.financial_graph_helpers import (
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
+def direction_hint_for_result(
+    *,
+    operation: str,
+    result_value: float,
+    render_policy: Optional[Dict[str, Any]] = None,
+) -> str:
+    policy = dict(render_policy or CALCULATION_RENDER_POLICY)
+    direction_policy = dict((policy.get("direction_hints") or {}).get(str(operation or "")) or {})
+    if not direction_policy:
+        return ""
+    if result_value > 0:
+        return str(direction_policy.get("positive") or "")
+    if result_value < 0:
+        return str(direction_policy.get("negative") or "")
+    return str(direction_policy.get("zero") or "")
+
+
+def coerce_rendered_value_for_direction(
+    calculation_result: Dict[str, Any],
+    *,
+    direction_hint: str,
+    result_value: float,
+) -> Dict[str, Any]:
+    updated = dict(calculation_result or {})
+    if direction_hint and result_value < 0:
+        rendered_value = str(updated.get("rendered_value") or "")
+        updated["rendered_value"] = rendered_value.lstrip("-")
+    return updated
+
+
 def format_calculation_value(value: float, result_unit: str, normalized_unit: str) -> str:
     if normalized_unit == "KRW":
         return _format_korean_won_compact(value)

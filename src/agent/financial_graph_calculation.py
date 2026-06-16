@@ -17121,7 +17121,6 @@ class FinancialAgentCalculationMixin:
             calculation_result=calculation_result,
         )
 
-        # direction_hint: Python에서 결정론적으로 계산 — LLM에게 부호 판단 위임하지 않음
         operation = str(plan.get("operation") or "")
         operation_family = _normalise_spaces(
             str(
@@ -17131,24 +17130,15 @@ class FinancialAgentCalculationMixin:
             )
         ).lower()
         result_val = float(calculation_result.get("result_value") or 0)
-        direction_hints = dict(CALCULATION_RENDER_POLICY.get("direction_hints") or {})
-        direction_hint_set = dict(direction_hints.get(operation) or {})
-        if direction_hint_set:
-            direction_hint = str(
-                direction_hint_set.get("positive")
-                if result_val > 0
-                else direction_hint_set.get("negative")
-                if result_val < 0
-                else direction_hint_set.get("zero")
-                or ""
-            )
-        else:
-            direction_hint = ""
-
-        # direction_hint가 방향을 표현할 때 rendered_value의 부호는 중복 — 제거
-        if direction_hint and result_val < 0:
-            rv = str(calculation_result.get("rendered_value") or "")
-            calculation_result["rendered_value"] = rv.lstrip("-")
+        direction_hint = calculation_rendering.direction_hint_for_result(
+            operation=operation,
+            result_value=result_val,
+        )
+        calculation_result = calculation_rendering.coerce_rendered_value_for_direction(
+            calculation_result,
+            direction_hint=direction_hint,
+            result_value=result_val,
+        )
 
         if str(calculation_result.get("status") or "") != "ok":
             fallback = str(CALCULATION_RENDER_POLICY.get("insufficient_evidence_fallback") or "")
@@ -17277,17 +17267,11 @@ class FinancialAgentCalculationMixin:
         ).lower()
         result_val = float(calculation_result.get("result_value") or 0)
         render_policy = dict(CALCULATION_RENDER_POLICY)
-        direction_policy = dict((render_policy.get("direction_hints") or {}).get(operation) or {})
-        if direction_policy:
-            direction_hint = (
-                str(direction_policy.get("positive") or "")
-                if result_val > 0
-                else str(direction_policy.get("negative") or "")
-                if result_val < 0
-                else str(direction_policy.get("zero") or "")
-            )
-        else:
-            direction_hint = ""
+        direction_hint = calculation_rendering.direction_hint_for_result(
+            operation=operation,
+            result_value=result_val,
+            render_policy=render_policy,
+        )
         structured_llm = self._llm_for_phase("calculation_verification").with_structured_output(CalculationVerificationOutput)
         prompt = ChatPromptTemplate.from_template(
             str(render_policy.get("verification_prompt_template") or "")
