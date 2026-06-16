@@ -87,6 +87,8 @@ class IngestResponse(BaseModel):
 
 class QueryRequest(BaseModel):
     question: str = Field(..., examples=["삼성전자 2023년 주요 리스크는 무엇인가요?"])
+    include_review_trace: bool = Field(default=False)
+    include_debug_bundle: bool = Field(default=False)
 
 
 class QueryResponse(BaseModel):
@@ -98,6 +100,8 @@ class QueryResponse(BaseModel):
     citations:  List[str]
     structured_result: Dict[str, Any] = Field(default_factory=dict)
     resolved_calculation_trace: Dict[str, Any] = Field(default_factory=dict)
+    review_trace: Optional[Dict[str, Any]] = None
+    debug_bundle: Optional[Dict[str, Any]] = None
 
 
 class CompanyInfo(BaseModel):
@@ -114,6 +118,39 @@ class CompaniesResponse(BaseModel):
 class HealthResponse(BaseModel):
     status:      str
     indexed_docs: int
+
+
+def _query_response_from_agent_result(
+    question: str,
+    result: Dict[str, Any],
+    *,
+    include_review_trace: bool = False,
+    include_debug_bundle: bool = False,
+) -> QueryResponse:
+    agent_answer = dict(result.get("agent_answer") or {})
+    response = QueryResponse(
+        question=question,
+        answer=str(agent_answer.get("answer") or result.get("answer") or ""),
+        query_type=str(agent_answer.get("query_type") or result.get("query_type") or "unknown"),
+        companies=list(agent_answer.get("companies") or result.get("companies") or []),
+        years=list(agent_answer.get("years") or result.get("years") or []),
+        citations=list(agent_answer.get("citations") or result.get("citations") or []),
+        structured_result=dict(
+            agent_answer.get("structured_result")
+            or result.get("structured_result")
+            or {}
+        ),
+        resolved_calculation_trace=dict(
+            agent_answer.get("resolved_calculation_trace")
+            or result.get("resolved_calculation_trace")
+            or {}
+        ),
+    )
+    if include_review_trace:
+        response.review_trace = dict(result.get("review_trace") or {})
+    if include_debug_bundle:
+        response.debug_bundle = dict(result.get("debug_bundle") or {})
+    return response
 
 
 # --------------------------------------------------------------------------
@@ -232,7 +269,7 @@ async def ingest(req: IngestRequest):
     )
 
 
-@router.post("/query", response_model=QueryResponse)
+@router.post("/query", response_model=QueryResponse, response_model_exclude_none=True)
 async def query(req: QueryRequest):
     """
     자연어 질문을 FinancialAgent로 처리하여 분석 답변 반환.
@@ -251,13 +288,9 @@ async def query(req: QueryRequest):
         logger.error(f"agent.run 실패: {e}")
         raise HTTPException(status_code=500, detail=f"분석 실패: {e}")
 
-    return QueryResponse(
-        question=req.question,
-        answer=result.get("answer", ""),
-        query_type=result.get("query_type", "unknown"),
-        companies=result.get("companies", []),
-        years=result.get("years", []),
-        citations=result.get("citations", []),
-        structured_result=dict(result.get("structured_result") or {}),
-        resolved_calculation_trace=dict(result.get("resolved_calculation_trace") or {}),
+    return _query_response_from_agent_result(
+        req.question,
+        result,
+        include_review_trace=req.include_review_trace,
+        include_debug_bundle=req.include_debug_bundle,
     )

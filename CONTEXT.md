@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 2 범위의 API public response slimming 첫 조각을 진행했다.
+  - `/api/query`는 이제 `FinancialAgent.run()`의 flat compatibility payload보다
+    `agent_answer` projection을 우선 소비한다.
+  - 기본 응답은 answer/query metadata/citations/`structured_result`/
+    `resolved_calculation_trace` 중심으로 유지한다.
+  - `review_trace`와 `debug_bundle`은 새 request flags
+    `include_review_trace`, `include_debug_bundle`가 `true`일 때만 응답에
+    포함된다. FastAPI response model은 `None` fields를 제외하도록 설정했다.
+  - `.gitignore`는 local-only benchmark result bundles
+    `cel_t1_038_unit_repair_check_*`,
+    `hard_structural_current_smoke_*`를 무시하도록 보강했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_router_response tests.test_financial_agent_run_projection`:
+      `49` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_portfolio_demo tests.test_mas_e2e_smoke_contract`:
+      `12` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `git diff --check`: passed
+
 - 2026-06-17 core runtime surface refactor plan을 `main`에 병합하고,
   PR 1 범위의 output boundary cleanup 첫 조각을 시작했다.
   - 새 계획 문서:

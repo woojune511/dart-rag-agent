@@ -25,9 +25,11 @@ benchmarks/results/tmp_*.json
 benchmarks/results/tmp_*/
 benchmarks/results/*_manual/
 benchmarks/results/ablation_*/
+benchmarks/results/cel_t1_038_unit_repair_check_*/
 benchmarks/results/curated_single_doc_official_77_*/
 benchmarks/results/focused_*/
 benchmarks/results/full_eval_only_*/
+benchmarks/results/hard_structural_current_smoke_*/
 benchmarks/results/hyu_t1_034_*/
 benchmarks/results/refactor_check_*/
 benchmarks/results/refactor_projection_*/

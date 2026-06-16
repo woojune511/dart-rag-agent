@@ -50,6 +50,30 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest API Response Boundary Start
+
+- Run date: 2026-06-17
+- Scope: first public-response slimming step after `agent_answer` /
+  `review_trace` / `debug_bundle` projections were introduced.
+- Change:
+  - `/api/query` now builds its public response from `agent_answer` first and
+    falls back to the legacy flat agent payload for compatibility.
+  - The default response remains slim: answer, query metadata, citations,
+    `structured_result`, and `resolved_calculation_trace`.
+  - `review_trace` and `debug_bundle` are exposed only when request flags
+    `include_review_trace` / `include_debug_bundle` are explicitly true.
+  - Local-only benchmark result bundles
+    `cel_t1_038_unit_repair_check_*` and `hard_structural_current_smoke_*` are
+    now ignored.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_router_response tests.test_financial_agent_run_projection`:
+    `49` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_portfolio_demo tests.test_mas_e2e_smoke_contract`:
+    `12` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `git diff --check`: passed
+
 ### Latest Core Runtime Surface Boundary Start
 
 - Run date: 2026-06-17
