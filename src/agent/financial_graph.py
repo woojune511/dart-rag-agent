@@ -23,7 +23,14 @@ from src.agent.financial_graph_contextual import (
     DEFAULT_CONTEXT_MAX_WORKERS,
     FinancialAgentContextualMixin,
 )
-from src.agent.financial_graph_models import DebugTraceBundle, FinancialAgentState
+from src.agent.financial_graph_models import (
+    AgentAnswer,
+    DebugBundle,
+    DebugTraceBundle,
+    FinancialAgentState,
+    ReviewTrace,
+    RuntimeCalculationTrace,
+)
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 from src.routing import QueryRouter
@@ -117,6 +124,102 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
     def _project_debug_traces(self, final: Dict[str, Any]) -> DebugTraceBundle:
         return {"calculation": dict(final.get(CALCULATION_DEBUG_TRACE_FIELD) or {})}
+
+    def _project_agent_answer(
+        self,
+        final: Dict[str, Any],
+        *,
+        public_answer: str,
+        citations: list[str],
+        structured_result: Dict[str, Any],
+        runtime_calculation_trace: RuntimeCalculationTrace,
+    ) -> AgentAnswer:
+        return {
+            "query": final["query"],
+            "report_scope": final.get("report_scope", {}),
+            "query_type": final["query_type"],
+            "intent": final.get("intent", final["query_type"]),
+            "planner_mode": final.get("planner_mode", "initial"),
+            "planner_feedback": final.get("planner_feedback", ""),
+            "plan_loop_count": final.get("plan_loop_count", 0),
+            "target_metric_family": final.get("target_metric_family", ""),
+            "target_metric_family_hint": final.get(
+                "target_metric_family_hint",
+                final.get("target_metric_family", ""),
+            ),
+            "planned_metric_families": final.get("planned_metric_families", []),
+            "format_preference": final.get("format_preference", ""),
+            "routing_source": final.get("routing_source", ""),
+            "routing_confidence": final.get("routing_confidence", 0.0),
+            "routing_scores": final.get("routing_scores", {}),
+            "companies": final["companies"],
+            "years": final["years"],
+            "answer": public_answer,
+            "citations": citations,
+            "resolved_calculation_trace": runtime_calculation_trace,
+            "structured_result": structured_result,
+        }
+
+    def _project_review_trace(
+        self,
+        final: Dict[str, Any],
+        *,
+        runtime_evidence: list[Dict[str, Any]],
+        task_artifact_trace: Dict[str, Any],
+    ) -> ReviewTrace:
+        return {
+            "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
+            "retrieved_docs": final["retrieved_docs"],
+            "retrieval_debug_trace": final.get("retrieval_debug_trace", {}),
+            "retrieval_debug_trace_history": final.get("retrieval_debug_trace_history", []),
+            "evidence_items": runtime_evidence,
+            "selected_claim_ids": final.get("selected_claim_ids", []),
+            "draft_points": final.get("draft_points", []),
+            "kept_claim_ids": final.get("kept_claim_ids", []),
+            "dropped_claim_ids": final.get("dropped_claim_ids", []),
+            "unsupported_sentences": final.get("unsupported_sentences", []),
+            "sentence_checks": final.get("sentence_checks", []),
+            "numeric_debug_trace": final.get("numeric_debug_trace", {}),
+            "numeric_debug_trace_history": final.get("numeric_debug_trace_history", []),
+            "planner_debug_trace": final.get("planner_debug_trace", {}),
+            "missing_info": final.get("missing_info", []),
+            "reflection_count": final.get("reflection_count", 0),
+            "retry_reason": final.get("retry_reason", ""),
+            "retry_strategy": final.get("retry_strategy", ""),
+            "retry_queries": final.get("retry_queries", []),
+            "reconciliation_retry_count": final.get("reconciliation_retry_count", 0),
+            "reflection_plan": final.get("reflection_plan", {}),
+            "reflection_request": final.get("reflection_request", {}),
+            "reflection_action": final.get("reflection_action", {}),
+            "reflection_report": final.get("reflection_report", {}),
+            "semantic_plan": final.get("semantic_plan", {}),
+            "calc_subtasks": final.get("calc_subtasks", []),
+            "retrieval_queries": final.get("retrieval_queries", []),
+            "active_subtask_index": final.get("active_subtask_index", 0),
+            "active_subtask": final.get("active_subtask", {}),
+            "subtask_results": final.get("subtask_results", []),
+            "subtask_debug_trace": final.get("subtask_debug_trace", {}),
+            "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
+            "reconciliation_result": final.get("reconciliation_result", {}),
+            "tasks": final.get("tasks", []),
+            "artifacts": final.get("artifacts", []),
+            "task_artifact_trace": task_artifact_trace,
+        }
+
+    def _project_debug_bundle(
+        self,
+        *,
+        debug_traces: DebugTraceBundle,
+        llm_usage: Dict[str, Any],
+        llm_usage_by_phase: Dict[str, Any],
+        embedding_usage: Dict[str, Any],
+    ) -> DebugBundle:
+        return {
+            "debug_traces": debug_traces,
+            "llm_usage": llm_usage,
+            "llm_usage_by_phase": llm_usage_by_phase,
+            "embedding_usage": embedding_usage,
+        }
 
     def _augment_citations_from_runtime_evidence(
         self,
@@ -613,74 +716,40 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         )
         debug_traces = self._project_debug_traces(final)
         citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
+        task_artifact_trace = _project_task_artifact_trace(
+            final.get("tasks", []),
+            final.get("artifacts", []),
+        )
+        agent_answer = self._project_agent_answer(
+            final,
+            public_answer=public_answer,
+            citations=citations,
+            structured_result=structured_result,
+            runtime_calculation_trace=runtime_calculation_trace,
+        )
+        review_trace = self._project_review_trace(
+            final,
+            runtime_evidence=runtime_evidence,
+            task_artifact_trace=task_artifact_trace,
+        )
+        debug_bundle = self._project_debug_bundle(
+            debug_traces=debug_traces,
+            llm_usage=llm_usage,
+            llm_usage_by_phase=llm_usage_by_phase,
+            embedding_usage=embedding_usage,
+        )
         return {
-            "query": final["query"],
-            "report_scope": final.get("report_scope", {}),
-            "query_type": final["query_type"],
-            "intent": final.get("intent", final["query_type"]),
-            "planner_mode": final.get("planner_mode", "initial"),
-            "planner_feedback": final.get("planner_feedback", ""),
-            "plan_loop_count": final.get("plan_loop_count", 0),
-            "target_metric_family": final.get("target_metric_family", ""),
-            "target_metric_family_hint": final.get("target_metric_family_hint", final.get("target_metric_family", "")),
-            "planned_metric_families": final.get("planned_metric_families", []),
-            "format_preference": final.get("format_preference", ""),
-            "routing_source": final.get("routing_source", ""),
-            "routing_confidence": final.get("routing_confidence", 0.0),
-            "routing_scores": final.get("routing_scores", {}),
-            "companies": final["companies"],
-            "years": final["years"],
-            "answer": public_answer,
-            "citations": citations,
-            "seed_retrieved_docs": final.get("seed_retrieved_docs", []),
-            "retrieved_docs": final["retrieved_docs"],
-            "retrieval_debug_trace": final.get("retrieval_debug_trace", {}),
-            "retrieval_debug_trace_history": final.get("retrieval_debug_trace_history", []),
-            "evidence_items": runtime_evidence,
-            "selected_claim_ids": final.get("selected_claim_ids", []),
-            "draft_points": final.get("draft_points", []),
-            "kept_claim_ids": final.get("kept_claim_ids", []),
-            "dropped_claim_ids": final.get("dropped_claim_ids", []),
-            "unsupported_sentences": final.get("unsupported_sentences", []),
-            "sentence_checks": final.get("sentence_checks", []),
-            "numeric_debug_trace": final.get("numeric_debug_trace", {}),
-            "numeric_debug_trace_history": final.get("numeric_debug_trace_history", []),
-            # Preferred structured runtime contract for external callers.
-            "resolved_calculation_trace": runtime_calculation_trace,
-            "structured_result": structured_result,
-            "debug_traces": debug_traces,
+            **agent_answer,
+            **review_trace,
+            **debug_bundle,
+            # Preferred named projections for new callers. Flat keys above stay
+            # as the compatibility adapter for existing API/eval code.
+            "agent_answer": agent_answer,
+            "review_trace": review_trace,
+            "debug_bundle": debug_bundle,
             # Compatibility bridge for callers that have not moved to
             # `debug_traces.calculation` yet.
             CALCULATION_DEBUG_TRACE_FIELD: debug_traces.get("calculation", {}),
-            "planner_debug_trace": final.get("planner_debug_trace", {}),
-            "missing_info": final.get("missing_info", []),
-            "reflection_count": final.get("reflection_count", 0),
-            "retry_reason": final.get("retry_reason", ""),
-            "retry_strategy": final.get("retry_strategy", ""),
-            "retry_queries": final.get("retry_queries", []),
-            "reconciliation_retry_count": final.get("reconciliation_retry_count", 0),
-            "reflection_plan": final.get("reflection_plan", {}),
-            "reflection_request": final.get("reflection_request", {}),
-            "reflection_action": final.get("reflection_action", {}),
-            "reflection_report": final.get("reflection_report", {}),
-            "semantic_plan": final.get("semantic_plan", {}),
-            "calc_subtasks": final.get("calc_subtasks", []),
-            "retrieval_queries": final.get("retrieval_queries", []),
-            "active_subtask_index": final.get("active_subtask_index", 0),
-            "active_subtask": final.get("active_subtask", {}),
-            "subtask_results": final.get("subtask_results", []),
-            "subtask_debug_trace": final.get("subtask_debug_trace", {}),
-            "subtask_loop_complete": bool(final.get("subtask_loop_complete", False)),
-            "reconciliation_result": final.get("reconciliation_result", {}),
-            "llm_usage": llm_usage,
-            "llm_usage_by_phase": llm_usage_by_phase,
-            "embedding_usage": embedding_usage,
-            "tasks": final.get("tasks", []),
-            "artifacts": final.get("artifacts", []),
-            "task_artifact_trace": _project_task_artifact_trace(
-                final.get("tasks", []),
-                final.get("artifacts", []),
-            ),
         }
 
 

@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_models import FinancialAgentState
+from src.agent.financial_graph_models import AgentAnswer, DebugBundle, FinancialAgentState, ReviewTrace
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
 
@@ -51,6 +51,9 @@ class _PhaseUsageGraph:
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
     def test_state_typing_keeps_legacy_calculation_and_debug_surfaces_optional(self) -> None:
+        self.assertIn("answer", AgentAnswer.__optional_keys__)
+        self.assertIn("task_artifact_trace", ReviewTrace.__optional_keys__)
+        self.assertIn("llm_usage", DebugBundle.__optional_keys__)
         self.assertIn("calculation_operands", FinancialAgentState.__optional_keys__)
         self.assertIn("calculation_plan", FinancialAgentState.__optional_keys__)
         self.assertIn("calculation_result", FinancialAgentState.__optional_keys__)
@@ -156,6 +159,16 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(result["reflection_request"], {})
         self.assertEqual(result["reflection_action"], {})
         self.assertEqual(result["reflection_report"], {})
+        self.assertEqual(result["agent_answer"]["answer"], result["answer"])
+        self.assertEqual(result["agent_answer"]["structured_result"], result["structured_result"])
+        self.assertEqual(
+            result["agent_answer"]["resolved_calculation_trace"],
+            result["resolved_calculation_trace"],
+        )
+        self.assertEqual(result["review_trace"]["retrieval_debug_trace"], result["retrieval_debug_trace"])
+        self.assertEqual(result["review_trace"]["task_artifact_trace"], result["task_artifact_trace"])
+        self.assertEqual(result["debug_bundle"]["debug_traces"], result["debug_traces"])
+        self.assertEqual(result["debug_bundle"]["llm_usage"], result["llm_usage"])
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)

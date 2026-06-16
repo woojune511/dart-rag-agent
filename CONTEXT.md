@@ -11,6 +11,38 @@
 
 ## 최신 상태
 
+- 2026-06-17 core runtime surface refactor plan을 `main`에 병합하고,
+  PR 1 범위의 output boundary cleanup 첫 조각을 시작했다.
+  - 새 계획 문서:
+    `docs/architecture/core_runtime_surface_refactoring_plan.md`
+  - `FinancialAgent.run()`의 기존 flat dict 반환은 유지하면서, 동일 payload를
+    명시적인 nested projection으로도 노출한다.
+    - `agent_answer`: public answer / query metadata /
+      `structured_result` / `resolved_calculation_trace`
+    - `review_trace`: retrieval, evidence, reflection, subtask,
+      task/artifact review material
+    - `debug_bundle`: `debug_traces`, LLM usage, embedding usage
+  - API/evaluator compatibility를 깨지 않기 위해 기존 top-level keys는 그대로
+    남겼다. 이 변경은 behavior change가 아니라 public/review/debug surface를
+    분리하기 위한 boundary extraction이다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_agent_run_projection`:
+      `46` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
+      `225` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_portfolio_demo tests.test_mas_e2e_smoke_contract`:
+      `12` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `git diff --check`: passed
+  - 기본 `python` / `.venv/bin/python`는 현재 `langchain_google_genai`가 없어
+    import 기반 tests가 실패한다. 이번 검증은 repo 문서의 `uv run` 경로에 맞춰
+    필요한 dependency만 `--with`로 추가해서 수행했다.
+  - 남은 local artifact:
+    `benchmarks/results/cel_t1_038_unit_repair_check_2026-06-12/`,
+    `benchmarks/results/hard_structural_current_smoke_2026-06-12/`는 benchmark
+    output이라 commit 대상이 아니다.
+
 - 2026-06-16 `HYU_T1_034` source-slot ratio rebuild residual을 다시 닫았다.
   - 이전 refactor 이후 잘못된 incoherent ratio 후보(`44.1%`, `914.97%`
     계열)는 막았지만, aggregate answer가 이미 확보한 lookup source slots

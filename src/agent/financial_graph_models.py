@@ -25,6 +25,36 @@ class DebugTraceBundle(TypedDict, total=False):
     calculation: Dict[str, Any]
 
 
+class AgentAnswer(TypedDict, total=False):
+    query: str
+    report_scope: Dict[str, Any]
+    query_type: str
+    intent: str
+    planner_mode: str
+    planner_feedback: str
+    plan_loop_count: int
+    target_metric_family: str
+    target_metric_family_hint: str
+    planned_metric_families: List[str]
+    format_preference: str
+    routing_source: str
+    routing_confidence: float
+    routing_scores: Dict[str, float]
+    companies: List[str]
+    years: List[int]
+    answer: str
+    citations: List[str]
+    structured_result: Dict[str, Any]
+    resolved_calculation_trace: RuntimeCalculationTrace
+
+
+class DebugBundle(TypedDict, total=False):
+    debug_traces: DebugTraceBundle
+    llm_usage: Dict[str, Any]
+    llm_usage_by_phase: Dict[str, Any]
+    embedding_usage: Dict[str, Any]
+
+
 class TaskResultRecord(TypedDict, total=False):
     task_id: str
     metric_family: str
@@ -80,6 +110,45 @@ class ReflectionReport(TypedDict, total=False):
     target_task_ids: List[str]
     target_artifact_ids: List[str]
     blocking_issues: List[Dict[str, Any]]
+
+
+class ReviewTrace(TypedDict, total=False):
+    seed_retrieved_docs: List[Any]
+    retrieved_docs: List[Any]
+    retrieval_debug_trace: Dict[str, Any]
+    retrieval_debug_trace_history: List[Dict[str, Any]]
+    evidence_items: List[Dict[str, Any]]
+    selected_claim_ids: List[str]
+    draft_points: List[str]
+    kept_claim_ids: List[str]
+    dropped_claim_ids: List[str]
+    unsupported_sentences: List[str]
+    sentence_checks: List[Dict[str, Any]]
+    numeric_debug_trace: Dict[str, Any]
+    numeric_debug_trace_history: List[Dict[str, Any]]
+    planner_debug_trace: Dict[str, Any]
+    missing_info: List[str]
+    reflection_count: int
+    retry_reason: str
+    retry_strategy: str
+    retry_queries: List[str]
+    reconciliation_retry_count: int
+    reflection_plan: Dict[str, Any]
+    reflection_request: ReflectionRequest
+    reflection_action: ReflectionAction
+    reflection_report: ReflectionReport
+    semantic_plan: Dict[str, Any]
+    calc_subtasks: List[Dict[str, Any]]
+    retrieval_queries: List[str]
+    active_subtask_index: int
+    active_subtask: Dict[str, Any]
+    subtask_results: List[TaskResultRecord]
+    subtask_debug_trace: Dict[str, Any]
+    subtask_loop_complete: bool
+    reconciliation_result: Dict[str, Any]
+    tasks: List[Dict[str, Any]]
+    artifacts: List[Dict[str, Any]]
+    task_artifact_trace: Dict[str, Any]
 
 
 class FinancialAgentState(TypedDict):

@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 ## Positioning
 
@@ -49,6 +49,33 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest Core Runtime Surface Boundary Start
+
+- Run date: 2026-06-17
+- Scope: behavior-preserving start of PR 1 from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - `FinancialAgent.run()` still returns the existing flat compatibility
+    payload for API/evaluator callers.
+  - The same payload is now also grouped into explicit projections:
+    `agent_answer`, `review_trace`, and `debug_bundle`.
+  - New TypedDicts document those boundaries: `AgentAnswer`, `ReviewTrace`,
+    and `DebugBundle`.
+- Interpretation: this is output-boundary extraction, not an answer-quality
+  patch. It prepares the next public response slimming step while preserving
+  `structured_result`, `resolved_calculation_trace`, task/artifact trace, and
+  debug/usage surfaces.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_agent_run_projection`:
+    `46` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
+    `225` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_portfolio_demo tests.test_mas_e2e_smoke_contract`:
+    `12` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `git diff --check`: passed
 
 ### Latest SKI Source-Stated Growth Repair Close
 
