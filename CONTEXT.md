@@ -11,6 +11,37 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 네 번째 조각을 진행했다.
+  - `financial_graph_calculation.py`에 있던 answer slot row construction helper를
+    새 module `src/agent/financial_answer_slots.py`로 분리했다.
+    - `slot_status`
+    - `coerce_slot_numeric`
+    - `build_missing_value_slot`
+    - `build_operand_value_slot`
+    - `build_calculated_value_slot`
+  - `_build_answer_slots` orchestration 자체는 아직 calculation mixin에 남겼고,
+    기존 mixin method names는 compatibility wrapper로 유지했다.
+  - KRW display-unit 판정은 새 runtime literal을 만들지 않도록
+    `CALCULATION_RENDER_POLICY`의 `krw_normalized_unit` /
+    `krw_display_unit_scales`를 소비한다. 이에 따라
+    `runtime_domain_terms_baseline.json`은 기존 calculation 파일에서
+    policy-driven helper로 빠진 `천원`/`백만원` literal count 감소만 반영했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_answer_slots`:
+      `5` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_failed_lookup_emits_explicit_missing_primary_slot`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_runtime_domain_term_audit tests.test_financial_answer_slots`:
+      `11` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_answer_slots.py`:
+      passed
+  - Note: one earlier operation-contract command failed because the specified
+    test method names did not exist. An earlier audit run also failed before
+    the display-unit check was converted to policy consumption and the baseline
+    count reduction was recorded; the corrected audit passed.
+
 - 2026-06-17 PR 4 범위의 calculation extraction 세 번째 조각을 진행했다.
   - `financial_graph_calculation.py`에 있던 narrative/text surface helper를
     새 module `src/agent/financial_text_surface.py`로 분리했다.

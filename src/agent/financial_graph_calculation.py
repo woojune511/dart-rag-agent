@@ -14,6 +14,7 @@ import re
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence
 
 from langchain_core.prompts import ChatPromptTemplate
+from src.agent import financial_answer_slots
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
@@ -16044,17 +16045,14 @@ class FinancialAgentCalculationMixin:
         rendered_value: str,
         raw_value: str,
     ) -> str:
-        if normalized_value is not None:
-            return "ok"
-        if str(rendered_value or raw_value or "").strip():
-            return "derived"
-        return "missing"
+        return financial_answer_slots.slot_status(
+            normalized_value=normalized_value,
+            rendered_value=rendered_value,
+            raw_value=raw_value,
+        )
 
     def _coerce_slot_numeric(self, value: Any) -> Optional[float]:
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return None
+        return financial_answer_slots.coerce_slot_numeric(value)
 
     def _build_missing_value_slot(
         self,
@@ -16068,22 +16066,16 @@ class FinancialAgentCalculationMixin:
         source_row_ids: Optional[List[str]] = None,
         source_anchor: str = "",
     ) -> Dict[str, Any]:
-        row_ids = _clean_source_row_ids(source_row_ids or [])
-        return {
-            "status": "missing",
-            "role": role,
-            "label": _display_operand_label(label),
-            "concept": concept,
-            "period": str(period or ""),
-            "raw_value": "",
-            "raw_unit": str(raw_unit or ""),
-            "normalized_value": None,
-            "normalized_unit": str(normalized_unit or "UNKNOWN"),
-            "rendered_value": "",
-            "source_row_id": row_ids[0] if row_ids else "",
-            "source_row_ids": row_ids,
-            "source_anchor": str(source_anchor or ""),
-        }
+        return financial_answer_slots.build_missing_value_slot(
+            role=role,
+            label=label,
+            concept=concept,
+            period=period,
+            raw_unit=raw_unit,
+            normalized_unit=normalized_unit,
+            source_row_ids=source_row_ids,
+            source_anchor=source_anchor,
+        )
 
     def _build_operand_value_slot(
         self,
@@ -16092,44 +16084,11 @@ class FinancialAgentCalculationMixin:
         default_role: str = "operand",
         preserve_source_display: bool = False,
     ) -> Dict[str, Any]:
-        raw_unit = str(row.get("raw_unit") or row.get("result_unit") or "")
-        normalized_unit = str(row.get("normalized_unit") or "")
-        normalized_value = row.get("normalized_value")
-        rendered_value = self._render_grounded_operand_display(row) if preserve_source_display else ""
-        if normalized_value is not None:
-            try:
-                if not rendered_value:
-                    rendered_value = self._render_value_with_unit(float(normalized_value), raw_unit, normalized_unit)
-            except (TypeError, ValueError):
-                rendered_value = str(row.get("raw_value") or "")
-        source_row_ids = _clean_source_row_ids([
-            row.get("evidence_id"),
-            row.get("row_id"),
-            row.get("source_row_id"),
-            row.get("source_row_ids"),
-        ])
-        return {
-            "status": self._slot_status(
-                normalized_value=self._coerce_slot_numeric(normalized_value),
-                rendered_value=rendered_value,
-                raw_value=str(row.get("raw_value") or ""),
-            ),
-            "role": str(row.get("matched_operand_role") or default_role),
-            "label": _display_operand_label(str(row.get("label") or row.get("matched_operand_label") or "")),
-            "concept": str(row.get("matched_operand_concept") or ""),
-            "period": str(row.get("period") or ""),
-            "raw_value": str(row.get("raw_value") or ""),
-            "raw_unit": raw_unit,
-            "normalized_value": normalized_value,
-            "normalized_unit": normalized_unit,
-            "rendered_value": rendered_value,
-            "source_row_id": source_row_ids[0] if source_row_ids else "",
-            "source_row_ids": source_row_ids,
-            "source_anchor": str(row.get("source_anchor") or ""),
-            "consolidation_scope": str(row.get("consolidation_scope") or ""),
-            "stated_change_raw_value": str(row.get("stated_change_raw_value") or ""),
-            "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
-        }
+        return financial_answer_slots.build_operand_value_slot(
+            row,
+            default_role=default_role,
+            preserve_source_display=preserve_source_display,
+        )
 
     def _build_calculated_value_slot(
         self,
@@ -16143,32 +16102,16 @@ class FinancialAgentCalculationMixin:
         role: str = "primary_value",
         source_anchor: str = "",
     ) -> Dict[str, Any]:
-        rendered_value = ""
-        if normalized_value is not None:
-            if str(normalized_unit or "").upper() == "KRW" and display_unit in {"천원", "백만원"}:
-                rendered_value = self._format_calculation_value_in_display_unit(float(normalized_value), display_unit)
-            else:
-                rendered_value = self._render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
-        row_ids = _clean_source_row_ids(source_row_ids or [])
-        return {
-            "status": self._slot_status(
-                normalized_value=self._coerce_slot_numeric(normalized_value),
-                rendered_value=rendered_value,
-                raw_value="",
-            ),
-            "role": role,
-            "label": _display_operand_label(label),
-            "concept": "",
-            "period": str(period or ""),
-            "raw_value": "",
-            "raw_unit": str(display_unit or ""),
-            "normalized_value": normalized_value,
-            "normalized_unit": normalized_unit,
-            "rendered_value": rendered_value,
-            "source_row_id": row_ids[0] if row_ids else "",
-            "source_row_ids": row_ids,
-            "source_anchor": str(source_anchor or ""),
-        }
+        return financial_answer_slots.build_calculated_value_slot(
+            label=label,
+            normalized_value=normalized_value,
+            normalized_unit=normalized_unit,
+            display_unit=display_unit,
+            period=period,
+            source_row_ids=source_row_ids,
+            role=role,
+            source_anchor=source_anchor,
+        )
 
     def _build_answer_slots(
         self,

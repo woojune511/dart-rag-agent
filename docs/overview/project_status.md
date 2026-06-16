@@ -50,6 +50,48 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Answer Slot Construction Extraction
+
+- Run date: 2026-06-17
+- Scope: fourth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Answer slot row construction helpers moved from
+    `financial_graph_calculation.py` to
+    `src/agent/financial_answer_slots.py`.
+  - Extracted helpers: `slot_status`, `coerce_slot_numeric`,
+    `build_missing_value_slot`, `build_operand_value_slot`, and
+    `build_calculated_value_slot`.
+  - `_build_answer_slots` remains in the calculation mixin because it still
+    orchestrates operation-family-specific slot assembly. Existing mixin method
+    names remain as compatibility wrappers.
+- Interpretation: this is a no-behavior-change boundary extraction. It moves
+  deterministic answer-slot row construction out of the calculation
+  orchestration file while leaving operand binding, operation-family assembly,
+  validation, and rendering behavior unchanged.
+- Audit note:
+  - The extracted helper consumes `CALCULATION_RENDER_POLICY` for KRW display
+    unit handling instead of adding display-unit literals in the new runtime
+    module.
+  - `tests/fixtures/runtime_domain_terms_baseline.json` was updated only to
+    reflect the reduced `천원` / `백만원` literal count in
+    `financial_graph_calculation.py` after that policy-driven extraction.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_answer_slots`:
+    `5` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_failed_lookup_emits_explicit_missing_primary_slot`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_runtime_domain_term_audit tests.test_financial_answer_slots`:
+    `11` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_answer_slots.py`:
+    passed
+- Note: one early operation-contract command failed because the specified test
+  method names did not exist. One early audit run failed before display-unit
+  handling was converted to policy consumption and the reviewed baseline count
+  reduction was recorded; the corrected audit passed.
+
 ### Latest Text Surface Helper Extraction
 
 - Run date: 2026-06-17

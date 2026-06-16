@@ -121,10 +121,9 @@
       "text": "백만원",
       "category": "runtime_literal",
       "fingerprint": "5b9aca9efa1cb642",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        8015,
-        11677
+        10774
       ]
     },
     {
@@ -202,10 +201,9 @@
       "text": "천원",
       "category": "runtime_literal",
       "fingerprint": "9e011f27d9f7b129",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        8015,
-        11677
+        10774
       ]
     },
     {
