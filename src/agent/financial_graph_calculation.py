@@ -4638,6 +4638,36 @@ class FinancialAgentCalculationMixin:
             return ""
         return _normalise_spaces(str(candidates[0].get("surface") or ""))
 
+    def _with_synced_projection_row_surface(
+        self,
+        row: Dict[str, Any],
+        *,
+        answer: str,
+        rendered_value: str,
+    ) -> Dict[str, Any]:
+        updated = {
+            **dict(row),
+            "answer": answer,
+            "projection_surface_synced_from_final_answer": True,
+        }
+        if rendered_value:
+            updated["rendered_value"] = rendered_value
+
+        calculation_result = dict(row.get("calculation_result") or {})
+        if not calculation_result:
+            return updated
+        calculation_result["formatted_result"] = answer
+        if rendered_value:
+            calculation_result["rendered_value"] = rendered_value
+            answer_slots = dict(calculation_result.get("answer_slots") or {})
+            primary_value = dict(answer_slots.get("primary_value") or {})
+            if primary_value:
+                primary_value["rendered_value"] = rendered_value
+                answer_slots["primary_value"] = primary_value
+                calculation_result["answer_slots"] = answer_slots
+        updated["calculation_result"] = calculation_result
+        return updated
+
     def _sync_aggregate_arithmetic_subtask_surfaces(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -4698,25 +4728,11 @@ class FinancialAgentCalculationMixin:
             return ordered_results, aggregate_projection
         operation_family = self._aggregate_result_operation_family(target_row)
         rendered_value = self._rendered_value_from_answer_sentence(synced_answer, operation_family)
-        updated_result = dict(target_row.get("calculation_result") or {})
-        if updated_result:
-            updated_result["formatted_result"] = synced_answer
-            if rendered_value:
-                updated_result["rendered_value"] = rendered_value
-                slots = dict(updated_result.get("answer_slots") or {})
-                primary_value = dict(slots.get("primary_value") or {})
-                if primary_value:
-                    primary_value["rendered_value"] = rendered_value
-                    slots["primary_value"] = primary_value
-                    updated_result["answer_slots"] = slots
-        updated_row = {
-            **dict(target_row),
-            "answer": synced_answer,
-            "calculation_result": updated_result,
-            "projection_surface_synced_from_final_answer": True,
-        }
-        if rendered_value:
-            updated_row["rendered_value"] = rendered_value
+        updated_row = self._with_synced_projection_row_surface(
+            target_row,
+            answer=synced_answer,
+            rendered_value=rendered_value,
+        )
         projection_rows[target_index] = updated_row
 
         target_task_id = _normalise_spaces(str(updated_row.get("task_id") or ""))
@@ -4727,18 +4743,16 @@ class FinancialAgentCalculationMixin:
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         slot_rows = [dict(row) for row in list(answer_slots.get("subtask_results") or []) if isinstance(row, dict)]
         if slot_rows:
-            synced_slot_rows: List[Dict[str, Any]] = []
-            for row in slot_rows:
-                if _normalise_spaces(str(row.get("task_id") or "")) == target_task_id:
-                    row = {
-                        **row,
-                        "answer": synced_answer,
-                        "projection_surface_synced_from_final_answer": True,
-                    }
-                    if rendered_value:
-                        row["rendered_value"] = rendered_value
-                synced_slot_rows.append(row)
-            answer_slots["subtask_results"] = synced_slot_rows
+            answer_slots["subtask_results"] = [
+                self._with_synced_projection_row_surface(
+                    row,
+                    answer=synced_answer,
+                    rendered_value=rendered_value,
+                )
+                if _normalise_spaces(str(row.get("task_id") or "")) == target_task_id
+                else row
+                for row in slot_rows
+            ]
             calculation_result["answer_slots"] = answer_slots
         calculation_result["subtask_results"] = projection_rows
         aggregate_projection = {
