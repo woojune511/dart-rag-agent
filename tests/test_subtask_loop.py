@@ -2861,6 +2861,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("37.47%", trace["calculation_result"]["formatted_result"])
         self.assertIn("37.47%", trace["calculation_result"]["rendered_value"])
         self.assertNotIn("0.04%", trace["calculation_result"]["formatted_result"])
+        trace_ratio_row = next(
+            row for row in trace["calculation_result"]["subtask_results"] if row["task_id"] == "task_1"
+        )
+        self.assertIn("37.47%", trace_ratio_row["answer"])
+        self.assertNotIn("0.04%", trace_ratio_row["answer"])
 
     def test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment(self) -> None:
         state = {
@@ -3138,6 +3143,205 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(denominator_slot["raw_unit"], "원")
         ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
+
+    def test_aggregate_compact_ratio_preserves_uncovered_lookup_item(self) -> None:
+        state = {
+            "query": "Extract the target and peer metrics, then calculate the target share of total.",
+            "calc_subtasks": [
+                {"task_id": "task_target", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_peer", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_total", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+            ],
+            "subtask_results": [
+                self._lookup_result_row(
+                    task_id="task_target",
+                    metric_label="target metric",
+                    label="target metric",
+                    concept="operating_metric",
+                    raw_value="120",
+                    raw_unit="백만원",
+                    normalized_value=120_000_000.0,
+                    rendered_value="120백만원",
+                    source_row_id="ev_segment",
+                    source_anchor="shared source table",
+                    answer="target metric 120백만원",
+                ),
+                self._lookup_result_row(
+                    task_id="task_peer",
+                    metric_label="peer metric",
+                    label="peer metric",
+                    concept="operating_metric",
+                    raw_value="30",
+                    raw_unit="천원",
+                    normalized_value=30_000.0,
+                    rendered_value="30천원",
+                    source_row_id="ev_segment",
+                    source_anchor="shared source table",
+                    answer="peer metric 30천원",
+                ),
+                self._lookup_result_row(
+                    task_id="task_total",
+                    metric_label="total metric",
+                    label="total metric",
+                    concept="operating_metric_total",
+                    raw_value="150",
+                    raw_unit="백만원",
+                    normalized_value=150_000_000.0,
+                    rendered_value="150백만원",
+                    source_row_id="ev_total",
+                    source_anchor="total source table",
+                    answer="total metric 150백만원",
+                ),
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "target share",
+                    "operation_family": "ratio",
+                    "answer": "target share is 80.00%.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 80.0,
+                        "result_unit": "%",
+                        "rendered_value": "80.00%",
+                        "formatted_result": "target share is 80.00%.",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "target share",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "rendered_value": "80.00%",
+                                "normalized_value": 80.0,
+                                "normalized_unit": "PERCENT",
+                            },
+                            "components_by_group": {
+                                "numerator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator",
+                                        "label": "target metric",
+                                        "concept": "operating_metric",
+                                        "raw_value": "120",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 120_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "120백만원",
+                                        "source_row_id": "task_output:task_target",
+                                        "source_row_ids": ["task_output:task_target", "ev_segment"],
+                                    }
+                                ],
+                                "denominator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "denominator",
+                                        "label": "total metric",
+                                        "concept": "operating_metric_total",
+                                        "raw_value": "150",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 150_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "rendered_value": "150백만원",
+                                        "source_row_id": "task_output:task_total",
+                                        "source_row_ids": ["task_output:task_total", "ev_total"],
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "artifacts": [],
+            "tasks": [],
+        }
+        self.agent.llm = None
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("80%", updated["answer"])
+        self.assertIn("peer metric 30백만원", updated["answer"])
+        self.assertNotIn("30천원", updated["answer"])
+        peer_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_peer")
+        peer_slot = peer_row["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertTrue(peer_slot.get("unit_aligned_from_peer_source_slot"))
+        self.assertEqual(trace["calculation_result"]["formatted_result"], updated["answer"])
+
+    def test_aggregate_trace_sync_replaces_stale_single_ratio_subtask_surface(self) -> None:
+        stale_ratio_row = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 400.00%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 400.0,
+                "result_unit": "%",
+                "rendered_value": "400.00%",
+                "formatted_result": "target share is 400.00%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "normalized_value": 400.0,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "400.00%",
+                    },
+                },
+            },
+        }
+        final_answer = "target share is 80.00%."
+        projection = {
+            "calculation_plan": {
+                "mode": "aggregate_subtasks",
+                "subtasks": [{"task_id": "task_ratio", "calculation_plan": {"operation": "ratio"}}],
+            },
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": final_answer,
+                "rendered_value": final_answer,
+                "subtask_results": [stale_ratio_row],
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [
+                        {
+                            "task_id": "task_ratio",
+                            "operation_family": "ratio",
+                            "answer": "target share is 400.00%.",
+                            "rendered_value": "400.00%",
+                        }
+                    ],
+                },
+            },
+        }
+
+        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            [stale_ratio_row],
+            projection,
+            final_answer,
+        )
+
+        ratio_row = next(row for row in ordered_results if row["task_id"] == "task_ratio")
+        projected_ratio_row = next(
+            row
+            for row in synced_projection["calculation_result"]["subtask_results"]
+            if row["task_id"] == "task_ratio"
+        )
+        slot_ratio_row = next(
+            row
+            for row in synced_projection["calculation_result"]["answer_slots"]["subtask_results"]
+            if row["task_id"] == "task_ratio"
+        )
+        self.assertEqual(ratio_row["answer"], "target share is 80.00%.")
+        self.assertEqual(projected_ratio_row["calculation_result"]["rendered_value"], "80.00%")
+        self.assertEqual(slot_ratio_row["rendered_value"], "80.00%")
+        self.assertNotIn("400.00%", projected_ratio_row["answer"])
 
     def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
         source_lookup = {

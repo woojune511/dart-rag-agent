@@ -16,6 +16,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
+    align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
     build_dependency_recalculated_row,
     build_dependency_recalculation_state,
@@ -1207,37 +1208,92 @@ class FinancialAgentCalculationMixin:
             ).lower()
             if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
                 continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            primary_slot = dict(answer_slots.get("primary_value") or {})
-            value = _normalise_spaces(
-                str(
-                    primary_slot.get("rendered_value")
-                    or calculation_result.get("formatted_result")
-                    or calculation_result.get("rendered_value")
-                    or row.get("answer")
-                    or ""
-                )
-            )
-            try:
-                normalized_value = float(primary_slot.get("normalized_value"))
-            except (TypeError, ValueError):
-                normalized_value = None
-            if normalized_value is not None and normalized_value >= 0 and value.startswith("("):
-                value = _normalise_spaces(value[1:].replace(")", "", 1))
-            label = _normalise_spaces(
-                str(primary_slot.get("label") or row.get("metric_label") or "")
-            )
-            if not label or not value:
-                continue
-            item_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_item_template") or "{label} {value}")
-            items.append(_normalise_spaces(item_template.format(label=label, value=value)))
+            item_answer = self._lookup_numeric_item_answer(row)
+            if item_answer:
+                items.append(item_answer)
         items = list(dict.fromkeys(item for item in items if item))
         if lookup_result_count < 2 or len(items) < 2:
             return ""
         separator = str(CALCULATION_RENDER_POLICY.get("lookup_list_separator") or ", ")
         answer_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_answer_template") or "{items}")
         return _normalise_spaces(answer_template.format(items=separator.join(items)))
+
+    def _lookup_numeric_item_answer(
+        self,
+        row: Dict[str, Any],
+        *,
+        require_primary_slot: bool = False,
+        require_numeric: bool = False,
+    ) -> str:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        if require_primary_slot and not self._answer_slot_has_material(primary_slot):
+            return ""
+        value = _normalise_spaces(
+            str(
+                primary_slot.get("rendered_value")
+                or calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or row.get("answer")
+                or ""
+            )
+        )
+        try:
+            normalized_value = float(primary_slot.get("normalized_value"))
+        except (TypeError, ValueError):
+            normalized_value = None
+        if normalized_value is not None and normalized_value >= 0 and value.startswith("("):
+            value = _normalise_spaces(value[1:].replace(")", "", 1))
+        label = _normalise_spaces(str(primary_slot.get("label") or row.get("metric_label") or ""))
+        if not (label and value):
+            return ""
+        if require_numeric and not self._answer_evidence_numeric_candidates(value):
+            return ""
+        item_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_item_template") or "{label} {value}")
+        return _normalise_spaces(item_template.format(label=label, value=value))
+
+    def _append_uncovered_lookup_numeric_items(
+        self,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> str:
+        answer_text = _normalise_spaces(str(answer or ""))
+        if not answer_text:
+            return answer_text
+        has_aggregate_numeric = any(
+            self._aggregate_result_operation_family(row) in {"ratio", "sum", "difference", "growth_rate"}
+            for row in ordered_results
+            if isinstance(row, dict)
+        )
+        if not has_aggregate_numeric:
+            return answer_text
+        missing_items: List[str] = []
+        for row in ordered_results:
+            if not isinstance(row, dict) or self._row_is_narrative_summary(row):
+                continue
+            if self._aggregate_result_operation_family(row) not in {"lookup", "single_value"}:
+                continue
+            status = _normalise_spaces(
+                str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            item_answer = self._lookup_numeric_item_answer(
+                row,
+                require_primary_slot=True,
+                require_numeric=True,
+            )
+            if not item_answer or self._answer_covers_numeric_answer(answer_text, item_answer):
+                continue
+            missing_items.append(item_answer)
+        missing_items = list(dict.fromkeys(item for item in missing_items if item))
+        if not missing_items:
+            return answer_text
+        prefix = ". ".join(item.rstrip(".") for item in missing_items)
+        if prefix:
+            prefix = f"{prefix}."
+        return _normalise_spaces(" ".join([prefix, answer_text]))
 
     def _lookup_value_from_table_label_metadata(
         self,
@@ -2323,27 +2379,6 @@ class FinancialAgentCalculationMixin:
         if not evidence_by_id:
             return ordered_results
 
-        def _slot_matches_source(slot: Dict[str, Any], source_ids: set[str], raw_value: str) -> bool:
-            slot_source_ids = set(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
-            if source_ids and not (slot_source_ids & source_ids):
-                return False
-            return _normalise_spaces(str(slot.get("raw_value") or "")) == raw_value
-
-        def _updated_slot(slot: Dict[str, Any], source_ids: set[str], raw_value: str, unit: str) -> Dict[str, Any]:
-            if not _slot_matches_source(slot, source_ids, raw_value):
-                return slot
-            normalized_value, normalized_unit = _normalise_operand_value(raw_value, unit)
-            if normalized_value is None:
-                return slot
-            return {
-                **dict(slot),
-                "raw_unit": unit,
-                "normalized_value": normalized_value,
-                "normalized_unit": normalized_unit,
-                "rendered_value": f"{raw_value}{unit}",
-                "unit_aligned_from_own_evidence": True,
-            }
-
         aligned_results: List[Dict[str, Any]] = []
         changed_any = False
         for row in ordered_results:
@@ -2353,9 +2388,7 @@ class FinancialAgentCalculationMixin:
             if operation_family not in {"lookup", "single_value"}:
                 aligned_results.append(row)
                 continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            primary_slot = dict(answer_slots.get("primary_value") or {})
+            primary_slot = self._lookup_primary_slot(row)
             if not self._answer_slot_has_material(primary_slot):
                 aligned_results.append(row)
                 continue
@@ -2389,43 +2422,93 @@ class FinancialAgentCalculationMixin:
                 "rendered_value": f"{raw_value}{coerced_unit}",
                 "unit_aligned_from_own_evidence": True,
             }
-            updated_slots = dict(answer_slots)
-            updated_slots["primary_value"] = updated_primary
+            aligned_results.append(
+                self._with_replaced_lookup_primary_slot(
+                    row,
+                    updated_primary,
+                    marker_key="unit_aligned_from_own_evidence",
+                    component_source_ids=source_ids,
+                )
+            )
+            changed_any = True
+        return aligned_results if changed_any else ordered_results
+
+    def _lookup_primary_slot(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        return dict(answer_slots.get("primary_value") or {})
+
+    def _with_replaced_lookup_primary_slot(
+        self,
+        row: Dict[str, Any],
+        updated_primary: Dict[str, Any],
+        *,
+        marker_key: str,
+        component_source_ids: Optional[set[str]] = None,
+    ) -> Dict[str, Any]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        updated_slots = dict(answer_slots)
+        updated_slots["primary_value"] = updated_primary
+        raw_value = _normalise_spaces(str(updated_primary.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(updated_primary.get("raw_unit") or ""))
+        normalized_value = updated_primary.get("normalized_value")
+        normalized_unit = _normalise_spaces(str(updated_primary.get("normalized_unit") or ""))
+        rendered_value = _normalise_spaces(str(updated_primary.get("rendered_value") or f"{raw_value}{raw_unit}"))
+        if component_source_ids:
             for container_key in ("components_by_role", "components_by_group"):
                 container = dict(updated_slots.get(container_key) or {})
                 if not container:
                     continue
-                updated_container: Dict[str, List[Dict[str, Any]]] = {}
-                for key, entries in container.items():
-                    updated_container[key] = [
-                        _updated_slot(dict(item), source_ids, raw_value, coerced_unit)
+                updated_slots[container_key] = {
+                    key: [
+                        {
+                            **dict(item),
+                            "raw_unit": raw_unit,
+                            "normalized_value": normalized_value,
+                            "normalized_unit": normalized_unit,
+                            "rendered_value": rendered_value,
+                            marker_key: True,
+                        }
                         if isinstance(item, dict)
+                        and _normalise_spaces(str(item.get("raw_value") or "")) == raw_value
+                        and (
+                            not component_source_ids
+                            or set(_clean_source_row_ids([item.get("source_row_id"), item.get("source_row_ids")]))
+                            & component_source_ids
+                        )
                         else item
                         for item in list(entries or [])
                     ]
-                updated_slots[container_key] = updated_container
-
-            rendered_value = updated_primary["rendered_value"]
-            label = _normalise_spaces(str(updated_primary.get("label") or row.get("metric_label") or ""))
-            updated_result = {
-                **calculation_result,
-                "result_value": normalized_value,
-                "result_unit": coerced_unit,
-                "rendered_value": rendered_value,
-                "formatted_result": _normalise_spaces(f"{label} {rendered_value}") if label and rendered_value else rendered_value,
-                "answer_slots": updated_slots,
-            }
-            aligned_results.append(
-                {
-                    **dict(row),
-                    "answer": str(updated_result.get("formatted_result") or rendered_value),
-                    "calculation_result": updated_result,
-                    "answer_slots": updated_slots,
-                    "unit_aligned_from_own_evidence": True,
+                    for key, entries in container.items()
                 }
-            )
-            changed_any = True
-        return aligned_results if changed_any else ordered_results
+        label = _normalise_spaces(str(updated_primary.get("label") or row.get("metric_label") or ""))
+        updated_result = {
+            **calculation_result,
+            "result_value": normalized_value,
+            "result_unit": raw_unit or normalized_unit,
+            "rendered_value": rendered_value,
+            "formatted_result": _normalise_spaces(f"{label} {rendered_value}") if label and rendered_value else rendered_value,
+            "answer_slots": updated_slots,
+        }
+        return {
+            **dict(row),
+            "answer": str(updated_result.get("formatted_result") or rendered_value),
+            "calculation_result": updated_result,
+            "answer_slots": updated_slots,
+            marker_key: True,
+        }
+
+    def _align_lookup_result_units_from_peer_source_slots(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        return align_lookup_result_units_from_peer_source_slots(
+            ordered_results,
+            operation_family_for_result=self._aggregate_result_operation_family,
+            slot_has_material=self._answer_slot_has_material,
+            replace_lookup_primary_slot=self._with_replaced_lookup_primary_slot,
+        )
 
     def _align_lookup_results_with_dependency_projection(
         self,
@@ -4513,6 +4596,156 @@ class FinancialAgentCalculationMixin:
         if status_ok:
             calculation_result["status"] = "ok"
         return aggregate_projection
+
+    def _answer_sentence_for_projection_subtask_row(
+        self,
+        final_answer: str,
+        row: Dict[str, Any],
+    ) -> str:
+        final_answer = _normalise_spaces(final_answer)
+        if not final_answer:
+            return ""
+        row_label = _normalise_spaces(str(row.get("metric_label") or "")).lower()
+        operation_family = self._aggregate_result_operation_family(row)
+        sentences = _split_narrative_sentences(final_answer) or [final_answer]
+
+        def _score(sentence: str) -> tuple[int, int, int, int]:
+            normalized = _normalise_spaces(sentence)
+            if not normalized or not self._answer_evidence_numeric_candidates(normalized):
+                return (0, 0, 0, 0)
+            lower = normalized.lower()
+            label_score = int(bool(row_label and row_label in lower))
+            percent_score = int(operation_family in {"ratio", "growth_rate"} and "%" in normalized)
+            conflict_score = int(self._subtask_numeric_answers_conflict({"answer": normalized}, row))
+            return (label_score, percent_score, conflict_score, len(normalized))
+
+        best_sentence = max(sentences, key=_score, default="")
+        return _normalise_spaces(best_sentence) if _score(best_sentence)[:3] != (0, 0, 0) else ""
+
+    def _rendered_value_from_answer_sentence(
+        self,
+        answer_sentence: str,
+        operation_family: str,
+    ) -> str:
+        sentence = _normalise_spaces(answer_sentence)
+        if not sentence:
+            return ""
+        if operation_family in {"ratio", "growth_rate"}:
+            match = re.search(r"[\(\)\-+]?\d[\d,]*(?:\.\d+)?\s*%p?", sentence)
+            return _normalise_spaces(match.group(0)) if match else ""
+        candidates = self._answer_evidence_numeric_candidates(sentence)
+        if not candidates:
+            return ""
+        return _normalise_spaces(str(candidates[0].get("surface") or ""))
+
+    def _sync_aggregate_arithmetic_subtask_surfaces(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+        final_answer: str,
+    ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        calculation_result = dict(aggregate_projection.get("calculation_result") or {})
+        projection_rows = [
+            dict(row)
+            for row in list(calculation_result.get("subtask_results") or [])
+            if isinstance(row, dict)
+        ]
+        if not projection_rows:
+            return ordered_results, aggregate_projection
+        arithmetic_families = {"ratio", "growth_rate", "difference", "sum"}
+        plan = dict(aggregate_projection.get("calculation_plan") or {})
+        planned_arithmetic_task_ids = {
+            _normalise_spaces(str(item.get("task_id") or ""))
+            for item in list(plan.get("subtasks") or [])
+            if _normalise_spaces(
+                str(
+                    (dict(item.get("calculation_plan") or {})).get("operation")
+                    or item.get("operation_family")
+                    or ""
+                )
+            ).lower()
+            in {"ratio", "growth_rate", "subtract", "difference", "add", "sum"}
+        }
+
+        candidate_indexes: List[int] = []
+        for index, row in enumerate(projection_rows):
+            task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            operation_family = self._aggregate_result_operation_family(row)
+            if operation_family not in arithmetic_families:
+                continue
+            if planned_arithmetic_task_ids and task_id not in planned_arithmetic_task_ids:
+                continue
+            row_surface = _normalise_spaces(
+                str(
+                    row.get("answer")
+                    or (row.get("calculation_result") or {}).get("formatted_result")
+                    or (row.get("calculation_result") or {}).get("rendered_value")
+                    or ""
+                )
+            )
+            if not row_surface or not self._subtask_numeric_answers_conflict({"answer": final_answer}, row):
+                continue
+            if self._answer_covers_numeric_answer(final_answer, row_surface):
+                continue
+            candidate_indexes.append(index)
+        if len(candidate_indexes) != 1:
+            return ordered_results, aggregate_projection
+
+        target_index = candidate_indexes[0]
+        target_row = projection_rows[target_index]
+        synced_answer = self._answer_sentence_for_projection_subtask_row(final_answer, target_row)
+        if not synced_answer:
+            return ordered_results, aggregate_projection
+        operation_family = self._aggregate_result_operation_family(target_row)
+        rendered_value = self._rendered_value_from_answer_sentence(synced_answer, operation_family)
+        updated_result = dict(target_row.get("calculation_result") or {})
+        if updated_result:
+            updated_result["formatted_result"] = synced_answer
+            if rendered_value:
+                updated_result["rendered_value"] = rendered_value
+                slots = dict(updated_result.get("answer_slots") or {})
+                primary_value = dict(slots.get("primary_value") or {})
+                if primary_value:
+                    primary_value["rendered_value"] = rendered_value
+                    slots["primary_value"] = primary_value
+                    updated_result["answer_slots"] = slots
+        updated_row = {
+            **dict(target_row),
+            "answer": synced_answer,
+            "calculation_result": updated_result,
+            "projection_surface_synced_from_final_answer": True,
+        }
+        if rendered_value:
+            updated_row["rendered_value"] = rendered_value
+        projection_rows[target_index] = updated_row
+
+        target_task_id = _normalise_spaces(str(updated_row.get("task_id") or ""))
+        ordered_results = [
+            dict(updated_row) if _normalise_spaces(str(row.get("task_id") or "")) == target_task_id else dict(row)
+            for row in ordered_results
+        ]
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        slot_rows = [dict(row) for row in list(answer_slots.get("subtask_results") or []) if isinstance(row, dict)]
+        if slot_rows:
+            synced_slot_rows: List[Dict[str, Any]] = []
+            for row in slot_rows:
+                if _normalise_spaces(str(row.get("task_id") or "")) == target_task_id:
+                    row = {
+                        **row,
+                        "answer": synced_answer,
+                        "projection_surface_synced_from_final_answer": True,
+                    }
+                    if rendered_value:
+                        row["rendered_value"] = rendered_value
+                synced_slot_rows.append(row)
+            answer_slots["subtask_results"] = synced_slot_rows
+            calculation_result["answer_slots"] = answer_slots
+        calculation_result["subtask_results"] = projection_rows
+        aggregate_projection = {
+            **dict(aggregate_projection),
+            "calculation_result": calculation_result,
+        }
+        return ordered_results, aggregate_projection
 
     def _rebuild_aggregate_projection(
         self,
@@ -17361,6 +17594,7 @@ class FinancialAgentCalculationMixin:
         ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
         ordered_results = self._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
         ordered_results = self._promote_stronger_nested_aggregate_results(ordered_results)
+        ordered_results = self._align_lookup_result_units_from_peer_source_slots(ordered_results)
         ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
         has_growth_rate_result = any(
             self._aggregate_result_operation_family(row) == "growth_rate"
@@ -17450,6 +17684,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             aggregate_evidence_items,
         )
+        own_unit_aligned_results = self._align_lookup_result_units_from_peer_source_slots(own_unit_aligned_results)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if own_unit_aligned_results != ordered_results:
             ordered_results = self._dedupe_aggregate_subtask_results(own_unit_aligned_results)
@@ -18063,6 +18298,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             aggregate_evidence_items,
         )
+        late_unit_aligned_results = self._align_lookup_result_units_from_peer_source_slots(late_unit_aligned_results)
         if late_unit_aligned_results != ordered_results:
             late_unit_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
             late_unit_projection = self._rebuild_aggregate_projection(late_unit_results, final_answer)
@@ -18118,6 +18354,15 @@ class FinancialAgentCalculationMixin:
                 mutable_state,
                 candidate_answer=compact_ratio_answer,
                 sync_rendered_for_aggregate=False,
+            )
+            _sync_aggregate_locals()
+        lookup_preserved_answer = self._append_uncovered_lookup_numeric_items(final_answer, ordered_results)
+        if lookup_preserved_answer != _normalise_spaces(final_answer):
+            mutable_state, _ = self._replace_mutable_aggregate_answer(
+                mutable_state,
+                candidate_answer=lookup_preserved_answer,
+                sync_rendered_for_aggregate=False,
+                refresh_operand_evidence=True,
             )
             _sync_aggregate_locals()
         aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
@@ -18279,6 +18524,12 @@ class FinancialAgentCalculationMixin:
                     selected_claim_ids=selected_claim_ids,
                 )
         _sync_aggregate_locals()
+        ordered_results, aggregate_projection = self._sync_aggregate_arithmetic_subtask_surfaces(
+            ordered_results,
+            aggregate_projection,
+            final_answer,
+        )
+        _sync_state(ordered_results=ordered_results, aggregate_projection=aggregate_projection)
         return self._build_aggregate_completion_update(
             state,
             ordered_results=ordered_results,
