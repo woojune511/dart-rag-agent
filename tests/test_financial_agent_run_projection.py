@@ -306,6 +306,310 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             result["resolved_calculation_trace"]["calculation_result"]["stale_result_repaired_from_evidence"]
         )
 
+    def test_run_repairs_period_comparison_trace_from_source_stated_evidence(self) -> None:
+        final_state = self._base_final_state()
+        final_state["query"] = "calculate year-over-year operating profit growth and summarize the MD&A impact"
+        final_state["answer"] = (
+            "2023 operating profit was 810,900백만원 versus 3,390,092백만원, down -76.08%. "
+            "The MD&A says operating profit was 409,219백만원 and decreased 84.3%."
+        )
+        final_state["evidence_items"] = [
+            {
+                "evidence_id": "ev_mda",
+                "source_anchor": "company | 2023 | MD&A",
+                "claim": "Operating profit was 409,219백만원 and decreased 84.3%.",
+                "quote_span": "Operating profit was 409,219백만원 and decreased 84.3%.",
+                "metadata": {
+                    "year": 2023,
+                    "statement_type": "mda",
+                    "unit_hint": "백만원",
+                    "table_source_id": "mda::table:1",
+                    "table_row_labels_text": "Operating profit",
+                    "table_value_labels_text": (
+                        "Operating profit 409,219\n"
+                        "Operating profit 2,600,786\n"
+                        "Operating profit 712,064\n"
+                        "Operating profit -84.3%"
+                    ),
+                },
+            }
+        ]
+        final_state["calc_subtasks"] = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "refining operating profit growth",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": "refining operating profit",
+                        "aliases": ["Operating profit"],
+                        "concept": "operating_income",
+                        "role": "current_period",
+                        "required": True,
+                        "unit_family": "KRW",
+                    },
+                    {
+                        "label": "refining operating profit",
+                        "aliases": ["Operating profit"],
+                        "concept": "operating_income",
+                        "role": "prior_period",
+                        "required": True,
+                        "unit_family": "KRW",
+                    },
+                ],
+            }
+        ]
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {
+                    "operand_id": "current_period",
+                    "matched_operand_role": "current_period",
+                    "raw_value": "810,900",
+                    "raw_unit": "백만원",
+                    "normalized_value": 810_900_000_000.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "task_output:current",
+                },
+                {
+                    "operand_id": "prior_period",
+                    "matched_operand_role": "prior_period",
+                    "raw_value": "3,390,092",
+                    "raw_unit": "백만원",
+                    "normalized_value": 3_390_092_000_000.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "task_output:prior",
+                },
+            ],
+            "calculation_plan": {
+                "status": "ok",
+                "operation": "growth_rate",
+                "task_id": "task_growth",
+                "metric_label": "refining operating profit growth",
+            },
+            "calculation_result": {
+                "status": "ok",
+                "result_value": -76.08,
+                "result_unit": "%",
+                "rendered_value": "-76.08%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": "refining operating profit growth",
+                    "primary_value": {"status": "ok", "rendered_value": "-76.08%"},
+                    "current_value": {
+                        "status": "ok",
+                        "role": "current_value",
+                        "label": "refining operating profit",
+                        "raw_value": "810,900",
+                        "raw_unit": "백만원",
+                        "normalized_value": 810_900_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "810,900백만원",
+                        "source_row_id": "task_output:current",
+                        "source_row_ids": ["task_output:current", "row_current"],
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "role": "prior_value",
+                        "label": "refining operating profit",
+                        "raw_value": "3,390,092",
+                        "raw_unit": "백만원",
+                        "normalized_value": 3_390_092_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "3,390,092백만원",
+                        "source_row_id": "task_output:prior",
+                        "source_row_ids": ["task_output:prior", "row_prior"],
+                    },
+                },
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace_result = result["resolved_calculation_trace"]["calculation_result"]
+        self.assertIn("84.3%", result["answer"])
+        self.assertNotIn("-76.08%", result["answer"])
+        self.assertEqual(trace_result["rendered_value"], "-84.3%")
+        self.assertTrue(trace_result["derived_metrics"]["source_stated_result_used"])
+        self.assertEqual(trace_result["answer_slots"]["current_value"]["raw_value"], "409,219")
+        self.assertEqual(trace_result["answer_slots"]["prior_value"]["raw_value"], "2,600,786")
+        self.assertTrue(trace_result["stale_result_repaired_from_evidence"])
+
+    def test_run_repairs_aggregate_period_comparison_subtask_from_source_stated_evidence(self) -> None:
+        final_state = self._base_final_state()
+        final_state["query"] = "calculate year-over-year operating profit growth and summarize the MD&A impact"
+        final_state["answer"] = (
+            "2023 operating profit was 810,900백만원 versus 3,390,092백만원, down -76.08%. "
+            "The margin decline weighed on performance."
+        )
+        final_state["evidence_items"] = [
+            {
+                "evidence_id": "ev_mda",
+                "source_anchor": "company | 2023 | MD&A",
+                "claim": "Operating profit | 409,219 | 2,600,786 | 712,064 | -84.3%",
+                "quote_span": "Operating profit | 409,219 | 2,600,786 | 712,064 | -84.3%",
+                "metadata": {
+                    "year": 2023,
+                    "statement_type": "mda",
+                    "unit_hint": "백만원",
+                    "table_source_id": "mda::table:1",
+                    "table_row_labels_text": "Operating profit",
+                    "table_value_labels_text": (
+                        "Operating profit 409,219\n"
+                        "Operating profit 2,600,786\n"
+                        "Operating profit 712,064\n"
+                        "Operating profit -84.3%"
+                    ),
+                },
+            }
+        ]
+        final_state["calc_subtasks"] = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "refining operating profit growth",
+                "operation_family": "growth_rate",
+                "required_operands": [
+                    {
+                        "label": "refining operating profit",
+                        "aliases": ["Operating profit"],
+                        "concept": "operating_income",
+                        "role": "current_period",
+                        "required": True,
+                        "unit_family": "KRW",
+                    },
+                    {
+                        "label": "refining operating profit",
+                        "aliases": ["Operating profit"],
+                        "concept": "operating_income",
+                        "role": "prior_period",
+                        "required": True,
+                        "unit_family": "KRW",
+                    },
+                ],
+            }
+        ]
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "refining operating profit growth",
+            "operation_family": "growth_rate",
+            "answer": "-76.08%",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "result_value": -76.08,
+                "result_unit": "%",
+                "rendered_value": "-76.08%",
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": "refining operating profit growth",
+                    "primary_value": {"status": "ok", "rendered_value": "-76.08%"},
+                    "current_value": {
+                        "status": "ok",
+                        "role": "current_value",
+                        "label": "refining operating profit",
+                        "raw_value": "810,900",
+                        "raw_unit": "백만원",
+                        "normalized_value": 810_900_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "810,900백만원",
+                        "source_row_id": "task_output:current",
+                        "source_row_ids": ["task_output:current", "row_current"],
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "role": "prior_value",
+                        "label": "refining operating profit",
+                        "raw_value": "3,390,092",
+                        "raw_unit": "백만원",
+                        "normalized_value": 3_390_092_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "3,390,092백만원",
+                        "source_row_id": "task_output:prior",
+                        "source_row_ids": ["task_output:prior", "row_prior"],
+                    },
+                },
+            },
+        }
+        final_state["subtask_results"] = [growth_row]
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "aggregate_subtasks",
+                "rendered_value": final_state["answer"],
+                "formatted_result": final_state["answer"],
+                "subtask_results": [growth_row],
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [growth_row],
+                },
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace_result = result["resolved_calculation_trace"]["calculation_result"]
+        self.assertIn("84.3%", result["answer"])
+        self.assertNotIn("-76.08%", result["answer"])
+        self.assertTrue(trace_result["stale_result_repaired_from_evidence"])
+        repaired_growth = trace_result["subtask_results"][0]["calculation_result"]
+        self.assertEqual(repaired_growth["rendered_value"], "-84.3%")
+        self.assertEqual(repaired_growth["answer_slots"]["current_value"]["raw_value"], "409,219")
+
+    def test_run_prefers_supported_nested_aggregate_answer_over_stale_prefix(self) -> None:
+        final_state = self._base_final_state()
+        stale_answer = "2023 operating profit was 810,900백만원 versus 3,390,092백만원, down -76.08%."
+        supported_answer = "The refining segment operating profit was 409,219백만원, down 84.3% year over year."
+        final_state["answer"] = f"{stale_answer} {supported_answer}"
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "aggregate_subtasks",
+                "rendered_value": final_state["answer"],
+                "formatted_result": final_state["answer"],
+                "subtask_results": [
+                    {
+                        "task_id": "task_growth",
+                        "operation_family": "growth_rate",
+                        "answer": "-76.08%",
+                        "status": "ok",
+                        "calculation_result": {"status": "ok", "rendered_value": "-76.08%"},
+                    },
+                    {
+                        "task_id": "task_narrative",
+                        "operation_family": "aggregate_subtasks",
+                        "answer": supported_answer,
+                        "status": "ok",
+                        "calculation_result": {
+                            "status": "ok",
+                            "operation_family": "aggregate_subtasks",
+                            "rendered_value": supported_answer,
+                            "formatted_result": supported_answer,
+                        },
+                    },
+                ],
+            },
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["answer"], supported_answer)
+        self.assertNotIn("-76.08%", result["answer"])
+
     def test_run_repairs_collapsed_ratio_trace_from_dict_retrieved_doc(self) -> None:
         final_state = self._base_final_state()
         final_state["answer"] = "segment operating income ratio is 100%."

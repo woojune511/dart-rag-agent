@@ -8,6 +8,47 @@ from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evi
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_ordered_aggregate_subtask_results_for_repair_preserves_trace_priority(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        calculation_result = {
+            "subtask_results": [
+                {"task_id": "task_growth", "answer": "fresh trace growth", "status": "ok"},
+            ]
+        }
+        answer_slots = {
+            "subtask_results": [
+                {"task_id": "task_growth", "answer": "slot duplicate growth", "status": "ok"},
+                {"task_id": "task_narrative", "answer": "slot narrative", "status": "ok"},
+            ]
+        }
+        state = {
+            "structured_result": {
+                "subtask_results": [
+                    {"task_id": "task_narrative", "answer": "structured duplicate narrative", "status": "ok"},
+                    {"task_id": "task_lookup", "answer": "structured lookup", "status": "ok"},
+                ]
+            },
+            "subtask_results": [
+                {"task_id": "task_growth", "answer": "stale state growth", "status": "ok"},
+                {"task_id": "task_lookup", "answer": "stale state lookup", "status": "ok"},
+            ],
+        }
+
+        ordered = agent._ordered_aggregate_subtask_results_for_repair(
+            state=state,
+            calculation_result=calculation_result,
+            answer_slots=answer_slots,
+        )
+
+        self.assertEqual(
+            [(row["task_id"], row["answer"]) for row in ordered],
+            [
+                ("task_growth", "fresh trace growth"),
+                ("task_narrative", "slot narrative"),
+                ("task_lookup", "structured lookup"),
+            ],
+        )
+
     def test_active_lookup_promotes_matching_nested_result_from_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         active_subtask = {
@@ -2949,6 +2990,113 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         self.assertIs(rows, ordered_results)
         self.assertEqual(rows[0]["calculation_result"]["rendered_value"], "4.51%")
+
+    def test_period_comparison_realigns_complete_growth_slots_from_source_stated_change(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_mda",
+            "source_anchor": "company | 2023 | MD&A",
+            "claim": "Operating profit decreased because the product-price spread narrowed.",
+            "quote_span": "Operating profit decreased because the product-price spread narrowed.",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "mda",
+                "unit_hint": "백만원",
+                "table_source_id": "mda::table:1",
+                "table_row_labels_text": "Operating profit",
+                "table_value_labels_text": (
+                    "Operating profit 409,219\n"
+                    "Operating profit 2,600,786\n"
+                    "Operating profit 712,064\n"
+                    "Operating profit -84.3%"
+                ),
+            },
+        }
+        required_operands = [
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "current_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+            {
+                "label": "refining operating profit",
+                "aliases": ["Operating profit"],
+                "concept": "operating_income",
+                "role": "prior_period",
+                "required": True,
+                "unit_family": "KRW",
+            },
+        ]
+        ordered_results = [
+            {
+                "task_id": "task_growth",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "refining operating profit growth",
+                "operation_family": "growth_rate",
+                "answer": "-76.08%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": -76.08,
+                    "rendered_value": "-76.08%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {"status": "ok", "rendered_value": "-76.08%"},
+                        "current_value": {
+                            "status": "ok",
+                            "role": "current_value",
+                            "label": "refining operating profit",
+                            "raw_value": "810,900",
+                            "raw_unit": "백만원",
+                            "normalized_value": 810_900_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "810,900백만원",
+                            "source_row_id": "task_output:current",
+                            "source_row_ids": ["task_output:current", "row_current"],
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "role": "prior_value",
+                            "label": "refining operating profit",
+                            "raw_value": "3,390,092",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3_390_092_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,390,092백만원",
+                            "source_row_id": "task_output:prior",
+                            "source_row_ids": ["task_output:prior", "row_prior"],
+                        },
+                    },
+                },
+            }
+        ]
+        state = {
+            "query": "calculate year-over-year operating profit growth and summarize the MD&A impact",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "refining operating profit growth",
+                    "operation_family": "growth_rate",
+                    "required_operands": required_operands,
+                }
+            ],
+        }
+
+        rows = agent._realign_period_comparison_results_from_table_label_context(
+            ordered_results,
+            state,
+            [evidence],
+        )
+
+        result = rows[0]["calculation_result"]
+        self.assertEqual(result["rendered_value"], "-84.3%")
+        self.assertTrue(result["derived_metrics"]["source_stated_result_used"])
+        self.assertEqual(result["answer_slots"]["current_value"]["raw_value"], "409,219")
+        self.assertEqual(result["answer_slots"]["prior_value"]["raw_value"], "2,600,786")
 
     def test_period_comparison_operand_recovery_uses_seed_table_context_before_dependency_rows(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

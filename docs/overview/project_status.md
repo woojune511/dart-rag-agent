@@ -50,6 +50,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest SKI Source-Stated Growth Repair Close
+
+- Run date: 2026-06-16
+- Scope: `SKI_T2_069` store-fixed focused eval-only after aggregate
+  period-comparison repair and evidence-supported narrative pruning.
+- Local result bundle:
+  - `benchmarks/results/regression_ski_t2_069_repro_from_refactor_check_2026-06-16/`
+- Result: numeric `PASS`, faithfulness `1.000`, completeness `1.000`,
+  numeric pass rate `1.000`, context P@5 `0.800`.
+- Final answer preserves the source-stated `84.3%` decrease and removes the
+  unrelated forward-looking-information boilerplate.
+- Runtime change stays generic:
+  - source-stated growth displays can repair stale period-comparison traces
+    while deterministic formula traces remain available;
+  - aggregate-subtask repair reads trace rows before stale state rows;
+  - empty LLM operand extraction cannot overwrite dependency/direct structured
+    operand rows;
+  - narrative carryover is limited to supported narrative-summary or high-score
+    evidence candidates, with the score floor declared in retrieval policy.
+- Verification: focused aggregate/projection tests OK, related runtime suite
+  `398` tests OK, runtime domain-term audit passed with `216` reviewed
+  literals, and `git diff --check` passed.
+- Artifact hygiene: the regression result bundles and heartbeat logs are local
+  experiment artifacts and are not commit candidates.
+
 ### Latest HYU Source-Slot Ratio Rebuild Close
 
 - Run date: 2026-06-16
