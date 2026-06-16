@@ -50,6 +50,32 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Task Artifact Feedback Projection Extraction
+
+- Run date: 2026-06-17
+- Scope: second narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Task/artifact ledger integrity feedback projection moved from
+    `financial_graph_calculation.py` to
+    `src/agent/financial_reflection_projection.py`.
+  - Extracted helper: `task_artifact_integrity_feedback`.
+  - The calculation mixin keeps using an alias import, so aggregate-subtask
+    integrity handling and retry feedback behavior stay stable.
+- Interpretation: this is a no-behavior-change boundary extraction. It keeps
+  ledger integrity diagnosis in the reflection projection surface while leaving
+  task aggregation, artifact validation, and retry control unchanged.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_reflection_capability_contract`:
+    `9` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_task_artifact_integrity_error tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_missing_required_calculation_artifact_kind tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_missing_required_artifact_payload`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_reflection_projection.py`:
+    passed
+  - `git diff --check`: passed
+
 ### Latest Calculation Reflection Projection Extraction
 
 - Run date: 2026-06-17

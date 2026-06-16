@@ -1,6 +1,10 @@
 import unittest
 
-from src.agent.financial_reflection_projection import reflection_action_from_plan, reflection_report_from_action
+from src.agent.financial_reflection_projection import (
+    reflection_action_from_plan,
+    reflection_report_from_action,
+    task_artifact_integrity_feedback,
+)
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_graph_reconciliation import (
     ALLOWED_REFLECTION_RETRY_STRATEGIES,
@@ -174,6 +178,44 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
             report["blocking_issues"],
             [{"type": "stop_insufficient", "reason": "no grounded evidence"}],
         )
+
+    def test_task_artifact_integrity_feedback_projects_error_issues(self) -> None:
+        feedback = task_artifact_integrity_feedback(
+            {
+                "integrity_status": "error",
+                "integrity_issues": [
+                    {
+                        "severity": "warning",
+                        "type": "task_without_artifacts",
+                        "task_id": "task_warn",
+                    },
+                    {
+                        "severity": "error",
+                        "type": "missing_required_artifact_kind",
+                        "task_id": "task_1",
+                        "artifact_kind": "calculation_result",
+                    },
+                    {
+                        "severity": "error",
+                        "type": "missing_required_artifact_payload",
+                        "task_id": "task_1",
+                        "artifact_id": "artifact_result",
+                        "payload_key": "calculation_result.rendered_value",
+                    },
+                ],
+            }
+        )
+
+        self.assertIn("Task/artifact ledger integrity error", feedback)
+        self.assertIn("missing_required_artifact_kind:task_1:calculation_result", feedback)
+        self.assertIn(
+            "missing_required_artifact_payload:task_1:artifact_result:calculation_result.rendered_value",
+            feedback,
+        )
+        self.assertNotIn("task_without_artifacts", feedback)
+
+    def test_task_artifact_integrity_feedback_ignores_non_error_status(self) -> None:
+        self.assertEqual(task_artifact_integrity_feedback({"integrity_status": "ok"}), "")
 
 
 if __name__ == "__main__":

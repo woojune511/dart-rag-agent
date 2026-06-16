@@ -51,6 +51,7 @@ from src.agent.financial_numeric_surface import (
 from src.agent.financial_reflection_projection import (
     reflection_action_from_plan as _reflection_action_from_plan,
     reflection_report_from_action as _reflection_report_from_action,
+    task_artifact_integrity_feedback as _task_artifact_integrity_feedback,
 )
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
@@ -335,33 +336,6 @@ def _next_reflection_task_id(
     while next_index in used_indexes:
         next_index += 1
     return f"{prefix}{next_index:03d}"
-
-
-def _task_artifact_integrity_feedback(trace: Dict[str, Any]) -> str:
-    status = _normalise_spaces(str(trace.get("integrity_status") or "")).lower()
-    if status != "error":
-        return ""
-    issue_surfaces: List[str] = []
-    for issue in trace.get("integrity_issues") or []:
-        if not isinstance(issue, dict):
-            continue
-        if str(issue.get("severity") or "").strip().lower() != "error":
-            continue
-        issue_type = str(issue.get("type") or "").strip()
-        if not issue_type:
-            continue
-        detail_parts = [
-            str(issue.get("task_id") or "").strip(),
-            str(issue.get("artifact_kind") or issue.get("artifact_id") or "").strip(),
-            str(issue.get("payload_key") or "").strip(),
-        ]
-        detail = ":".join(part for part in detail_parts if part)
-        issue_surfaces.append(f"{issue_type}:{detail}" if detail else issue_type)
-    issue_surface = ", ".join(sorted(set(issue_surfaces))) if issue_surfaces else "unknown_integrity_error"
-    return (
-        "Task/artifact ledger integrity error prevents final answer closure. "
-        f"Repair the required artifact contract before closing: {issue_surface}."
-    )
 
 
 def _has_duplicate_direct_lookup_rejection(state: FinancialAgentState) -> bool:

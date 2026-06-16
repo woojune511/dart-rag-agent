@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 두 번째 조각을 진행했다.
+  - `financial_graph_calculation.py`에 남아 있던 task/artifact ledger
+    integrity feedback projection helper를
+    `src/agent/financial_reflection_projection.py`로 이동했다.
+    - `task_artifact_integrity_feedback`
+  - aggregate subtask integrity error를 reflection retry 문장으로 투영하는
+    경계만 분리한 no-behavior-change extraction이다. 기존 calculation mixin은
+    alias import로 같은 helper를 계속 호출한다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_reflection_capability_contract`:
+      `9` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_task_artifact_integrity_error tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_missing_required_calculation_artifact_kind tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_missing_required_artifact_payload`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_reflection_projection.py`:
+      passed
+    - `git diff --check`: passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 첫 조각을 진행했다.
   - `financial_graph_calculation.py`에 있던 reflection handoff projection helper
     두 개를 새 module `src/agent/financial_reflection_projection.py`로 분리했다.
