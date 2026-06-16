@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 아홉 번째 조각을 진행했다.
+  - `_execute_calculation`의 scalar result series row assembly를
+    `src/agent/financial_graph_calculation_rendering.py`로 이동했다.
+    - `scalar_result_series`
+  - ordered operand rows를 result `series` rows로 투영하는 렌더링/표시 계층
+    helper이며, source-visible rendered value 보존과 fallback value formatting을
+    기존과 동일하게 유지한다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering`:
+      `7` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering tests.test_financial_calculation_execution`:
+      `9` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_graph_calculation_rendering.py`:
+      passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 여덟 번째 조각을 진행했다.
   - `_execute_calculation`의 scalar result display 결정 로직을
     `src/agent/financial_graph_calculation_rendering.py`로 이동했다.

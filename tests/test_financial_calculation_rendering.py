@@ -4,6 +4,7 @@ from src.agent.financial_graph_calculation_rendering import (
     coerce_rendered_value_for_direction,
     direction_hint_for_result,
     scalar_result_display,
+    scalar_result_series,
 )
 
 
@@ -96,6 +97,36 @@ class FinancialCalculationRenderingTests(unittest.TestCase):
 
         self.assertEqual(result["rendered_value"], "100백만원")
         self.assertEqual(result["rendered_with_unit"], "100백만원")
+
+    def test_scalar_result_series_preserves_operand_rows_and_rendered_values(self) -> None:
+        series = scalar_result_series(
+            ordered_operands=[
+                {
+                    "label": "당기",
+                    "period": "2023",
+                    "raw_value": "10",
+                    "raw_unit": "%",
+                    "normalized_value": 10.0,
+                    "normalized_unit": "PERCENT",
+                },
+                {
+                    "label": "전기",
+                    "period": "2022",
+                    "raw_value": "100",
+                    "raw_unit": "백만원",
+                    "normalized_value": 100_000_000.0,
+                    "normalized_unit": "KRW",
+                    "rendered_value": "100백만원",
+                    "value_coercion": True,
+                },
+            ],
+            source_normalized_unit="PERCENT",
+        )
+
+        self.assertEqual(series[0]["label"], "당기")
+        self.assertEqual(series[0]["rendered_value"], "10%")
+        self.assertEqual(series[1]["label"], "전기")
+        self.assertEqual(series[1]["rendered_value"], "100백만원")
 
 
 if __name__ == "__main__":

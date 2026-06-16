@@ -16833,27 +16833,10 @@ class FinancialAgentCalculationMixin:
         rendered_value = display_state["rendered_value"]
         rendered_with_unit = display_state["rendered_with_unit"]
         labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
-        result_series = []
-        for row in ordered_operands:
-            point_value = float(row.get("normalized_value"))
-            point_rendered = self._render_grounded_operand_display(row)
-            if not point_rendered:
-                point_rendered = self._format_calculation_value(
-                    point_value,
-                    str(row.get("raw_unit") or row.get("result_unit") or ""),
-                    source_normalized_unit,
-                )
-            result_series.append(
-                {
-                    "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
-                    "period": str(row.get("period") or ""),
-                    "raw_value": str(row.get("raw_value") or ""),
-                    "raw_unit": str(row.get("raw_unit") or ""),
-                    "normalized_value": point_value,
-                    "normalized_unit": source_normalized_unit,
-                    "rendered_value": point_rendered,
-                }
-            )
+        result_series = calculation_rendering.scalar_result_series(
+            ordered_operands=ordered_operands,
+            source_normalized_unit=source_normalized_unit,
+        )
         current_value: Optional[float] = None
         prior_value: Optional[float] = None
         delta_value: Optional[float] = None
