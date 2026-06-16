@@ -11,6 +11,33 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 세 번째 조각을 진행했다.
+  - `financial_graph_calculation.py`에 있던 narrative/text surface helper를
+    새 module `src/agent/financial_text_surface.py`로 분리했다.
+    - `topic_particle`
+    - `polish_korean_particle_pairs`
+    - `split_narrative_sentences`
+    - `narrative_sentence_looks_table_noisy`
+    - `narrative_sentence_looks_abbreviated_fragment`
+  - answer/narrative surface 정리 경계만 분리한 no-behavior-change
+    extraction이다. 기존 calculation mixin은 alias import로 같은 helper를
+    계속 호출한다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_text_surface`:
+      `5` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_reflection_capability_contract tests.test_financial_text_surface`:
+      `14` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection tests.test_subtask_loop.SubtaskLoopTests.test_prepare_synthesis_reflection_retry_records_task_output_source_ids tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_task_artifact_integrity_error`:
+      `3` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_text_surface.py`:
+      passed
+  - Note: one earlier focused unittest invocation failed after the extraction
+    because `CALCULATION_NARRATIVE_POLICY` was still used elsewhere in the
+    calculation file; restoring that import fixed the issue and the same tests
+    passed.
+
 - 2026-06-17 PR 4 범위의 calculation extraction 두 번째 조각을 진행했다.
   - `financial_graph_calculation.py`에 남아 있던 task/artifact ledger
     integrity feedback projection helper를

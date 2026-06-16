@@ -50,6 +50,41 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Text Surface Helper Extraction
+
+- Run date: 2026-06-17
+- Scope: third narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Narrative/text surface helpers moved from
+    `financial_graph_calculation.py` to
+    `src/agent/financial_text_surface.py`.
+  - Extracted helpers: `topic_particle`, `polish_korean_particle_pairs`,
+    `split_narrative_sentences`, `narrative_sentence_looks_table_noisy`, and
+    `narrative_sentence_looks_abbreviated_fragment`.
+  - The calculation mixin keeps using alias imports, so answer/narrative
+    composition call sites stay stable.
+- Interpretation: this is a no-behavior-change boundary extraction. It moves
+  sentence splitting, table-noise filtering, abbreviated-fragment detection, and
+  Korean particle polishing out of the calculation orchestration file while
+  leaving evidence selection, operand binding, calculation, and retry behavior
+  unchanged.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_text_surface`:
+    `5` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_reflection_capability_contract tests.test_financial_text_surface`:
+    `14` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_prepare_reflection_retry_ignores_legacy_top_level_runtime_projection tests.test_subtask_loop.SubtaskLoopTests.test_prepare_synthesis_reflection_retry_records_task_output_source_ids tests.test_subtask_loop.SubtaskLoopTests.test_aggregate_subtasks_replans_on_task_artifact_integrity_error`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_text_surface.py`:
+    passed
+- Note: one early focused unittest invocation failed because
+  `CALCULATION_NARRATIVE_POLICY` was still needed elsewhere in
+  `financial_graph_calculation.py`; the import was restored and the same tests
+  passed.
+
 ### Latest Task Artifact Feedback Projection Extraction
 
 - Run date: 2026-06-17
