@@ -17,6 +17,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from src.agent import financial_answer_slots
 from src.agent.financial_calculation_execution import (
     build_failed_calculation_result,
+    build_scalar_calculation_state,
     build_success_calculation_state_payload,
 )
 from src.agent.financial_dependency_projection import (
@@ -16840,61 +16841,27 @@ class FinancialAgentCalculationMixin:
             ordered_operands=ordered_operands,
             source_normalized_unit=source_normalized_unit,
         )
-        current_value: Optional[float] = None
-        prior_value: Optional[float] = None
-        delta_value: Optional[float] = None
-        current_period = ""
-        prior_period = ""
-        current_row: Optional[Dict[str, Any]] = None
-        prior_row: Optional[Dict[str, Any]] = None
-        source_row_ids = _clean_source_row_ids(
-            [
-                [
-                    row.get("evidence_id"),
-                    row.get("source_row_id"),
-                    row.get("source_row_ids"),
-                ]
-                for row in ordered_operands
-            ]
+        scalar_state = build_scalar_calculation_state(
+            operation_family=operation_family,
+            ordered_operands=ordered_operands,
+            result_value=float(result_value),
+            normalized_unit=normalized_unit,
+            result_unit=result_unit,
+            rendered_with_unit=rendered_with_unit,
         )
-        if operation_family in {"lookup", "single_value"} and ordered_operands:
-            current_value = float(ordered_operands[0].get("normalized_value"))
-            current_period = str(ordered_operands[0].get("period") or "")
-        elif operation_family in {"difference", "growth_rate"}:
-            current_row = next(
-                (row for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "current_period"),
-                None,
-            )
-            prior_row = next(
-                (row for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "prior_period"),
-                None,
-            )
-            if current_row is None and len(ordered_operands) >= 1:
-                current_row = ordered_operands[0]
-            if prior_row is None and len(ordered_operands) >= 2:
-                prior_row = ordered_operands[1]
-            if current_row and current_row.get("normalized_value") is not None:
-                current_value = float(current_row.get("normalized_value"))
-                current_period = str(current_row.get("period") or "")
-            if prior_row and prior_row.get("normalized_value") is not None:
-                prior_value = float(prior_row.get("normalized_value"))
-                prior_period = str(prior_row.get("period") or "")
-            if operation_family == "difference":
-                delta_value = float(result_value)
-            elif operation_family == "growth_rate" and current_row:
-                stated_change_raw_value = _normalise_spaces(str(current_row.get("stated_change_raw_value") or ""))
-                stated_change_raw_unit = _normalise_spaces(str(current_row.get("stated_change_raw_unit") or "%"))
-                if stated_change_raw_value:
-                    stated_value, stated_unit = _normalise_operand_value(
-                        stated_change_raw_value,
-                        stated_change_raw_unit or "%",
-                    )
-                    if stated_value is not None and str(stated_unit or "").strip().upper() == "PERCENT":
-                        result_value = stated_value
-                        normalized_unit = "PERCENT"
-                        result_unit = "%"
-                        rendered_with_unit = f"{stated_change_raw_value}%"
-                        source_stated_result_used = True
+        result_value = scalar_state["result_value"]
+        normalized_unit = scalar_state["normalized_unit"]
+        result_unit = scalar_state["result_unit"]
+        rendered_with_unit = scalar_state["rendered_with_unit"]
+        source_stated_result_used = scalar_state["source_stated_result_used"]
+        current_value = scalar_state["current_value"]
+        prior_value = scalar_state["prior_value"]
+        delta_value = scalar_state["delta_value"]
+        current_period = scalar_state["current_period"]
+        prior_period = scalar_state["prior_period"]
+        current_row = scalar_state["current_row"]
+        prior_row = scalar_state["prior_row"]
+        source_row_ids = scalar_state["source_row_ids"]
         answer_slots = self._build_answer_slots(
             active_subtask=active_subtask,
             operation_family=operation_family,

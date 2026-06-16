@@ -2,6 +2,7 @@ import unittest
 
 from src.agent.financial_calculation_execution import (
     build_failed_calculation_result,
+    build_scalar_calculation_state,
     build_success_calculation_state_payload,
 )
 
@@ -126,6 +127,89 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         self.assertEqual(payload["tasks"][0]["query"], "new query")
         self.assertEqual(payload["tasks"][0]["metric_family"], "new metric")
         self.assertEqual(payload["tasks"][0]["artifact_ids"], ["artifact:operand_set", "result:task_1:002"])
+
+    def test_build_scalar_calculation_state_sets_lookup_current_value(self) -> None:
+        state = build_scalar_calculation_state(
+            operation_family="lookup",
+            ordered_operands=[
+                {
+                    "evidence_id": "ev_1",
+                    "source_row_ids": ["row_1"],
+                    "normalized_value": 10.0,
+                    "period": "p1",
+                }
+            ],
+            result_value=10.0,
+            normalized_unit="COUNT",
+            result_unit="",
+            rendered_with_unit="10",
+        )
+
+        self.assertEqual(state["current_value"], 10.0)
+        self.assertEqual(state["current_period"], "p1")
+        self.assertEqual(state["source_row_ids"], ["ev_1", "row_1"])
+        self.assertFalse(state["source_stated_result_used"])
+
+    def test_build_scalar_calculation_state_sets_difference_period_components(self) -> None:
+        state = build_scalar_calculation_state(
+            operation_family="difference",
+            ordered_operands=[
+                {
+                    "matched_operand_role": "current_period",
+                    "normalized_value": 30.0,
+                    "period": "current",
+                    "evidence_id": "ev_current",
+                },
+                {
+                    "matched_operand_role": "prior_period",
+                    "normalized_value": 20.0,
+                    "period": "prior",
+                    "evidence_id": "ev_prior",
+                },
+            ],
+            result_value=10.0,
+            normalized_unit="COUNT",
+            result_unit="",
+            rendered_with_unit="10",
+        )
+
+        self.assertEqual(state["current_value"], 30.0)
+        self.assertEqual(state["prior_value"], 20.0)
+        self.assertEqual(state["delta_value"], 10.0)
+        self.assertEqual(state["current_period"], "current")
+        self.assertEqual(state["prior_period"], "prior")
+        self.assertEqual(state["source_row_ids"], ["ev_current", "ev_prior"])
+
+    def test_build_scalar_calculation_state_preserves_source_stated_growth_display(self) -> None:
+        state = build_scalar_calculation_state(
+            operation_family="growth_rate",
+            ordered_operands=[
+                {
+                    "matched_operand_role": "current_period",
+                    "normalized_value": 112.0,
+                    "period": "current",
+                    "stated_change_raw_value": "12.3",
+                    "stated_change_raw_unit": "%",
+                },
+                {
+                    "matched_operand_role": "prior_period",
+                    "normalized_value": 100.0,
+                    "period": "prior",
+                },
+            ],
+            result_value=12.0,
+            normalized_unit="PERCENT",
+            result_unit="%",
+            rendered_with_unit="12%",
+        )
+
+        self.assertEqual(state["result_value"], 12.3)
+        self.assertEqual(state["normalized_unit"], "PERCENT")
+        self.assertEqual(state["result_unit"], "%")
+        self.assertEqual(state["rendered_with_unit"], "12.3%")
+        self.assertTrue(state["source_stated_result_used"])
+        self.assertEqual(state["current_value"], 112.0)
+        self.assertEqual(state["prior_value"], 100.0)
 
 
 if __name__ == "__main__":
