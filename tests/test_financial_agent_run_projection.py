@@ -3,6 +3,14 @@ from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import AgentAnswer, DebugBundle, FinancialAgentState, ReviewTrace
+from src.agent.financial_graph_models import (
+    CalculationState,
+    EvidenceState,
+    LedgerState,
+    ReflectionState,
+    RetrievalState,
+    RoutingState,
+)
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
 
@@ -64,6 +72,33 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertIn("reflection_report", FinancialAgentState.__optional_keys__)
         self.assertIn("replan_blocked_reason", FinancialAgentState.__optional_keys__)
         self.assertNotIn("calculation_debug_trace", FinancialAgentState.__required_keys__)
+
+    def test_state_typing_is_split_by_runtime_concern_without_changing_full_shape(self) -> None:
+        component_keys = set().union(
+            RoutingState.__required_keys__,
+            RoutingState.__optional_keys__,
+            RetrievalState.__required_keys__,
+            RetrievalState.__optional_keys__,
+            EvidenceState.__required_keys__,
+            EvidenceState.__optional_keys__,
+            CalculationState.__required_keys__,
+            CalculationState.__optional_keys__,
+            ReflectionState.__required_keys__,
+            ReflectionState.__optional_keys__,
+            LedgerState.__required_keys__,
+            LedgerState.__optional_keys__,
+        )
+
+        self.assertEqual(
+            FinancialAgentState.__required_keys__ | FinancialAgentState.__optional_keys__,
+            component_keys,
+        )
+        self.assertIn("query", RoutingState.__required_keys__)
+        self.assertIn("retrieved_docs", RetrievalState.__required_keys__)
+        self.assertIn("evidence_items", EvidenceState.__required_keys__)
+        self.assertIn("resolved_calculation_trace", CalculationState.__required_keys__)
+        self.assertIn("reflection_request", ReflectionState.__optional_keys__)
+        self.assertIn("tasks", LedgerState.__required_keys__)
 
     def _base_final_state(self):
         return {

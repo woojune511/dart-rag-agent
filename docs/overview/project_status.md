@@ -50,6 +50,25 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest State Type Split Start
+
+- Run date: 2026-06-17
+- Scope: first no-behavior-change step for PR 3 from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - `FinancialAgentState` is now composed from concern-specific TypedDicts:
+    `RoutingState`, `RetrievalState`, `EvidenceState`, `CalculationState`,
+    `ReflectionState`, and `LedgerState`.
+  - The full graph state shape is preserved through multiple inheritance; no
+    graph nodes, runtime keys, or caller payloads changed.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_agent_run_projection`:
+    `47` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_models.py`: passed
+  - `git diff --check`: passed
+
 ### Latest API Response Boundary Start
 
 - Run date: 2026-06-17

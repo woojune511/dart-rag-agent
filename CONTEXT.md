@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 3 범위의 `FinancialAgentState` concern split 첫 조각을
+  진행했다.
+  - 기존 state key와 graph contract는 유지하면서 TypedDict를 아래 concern별
+    component로 분리했다.
+    - `RoutingState`
+    - `RetrievalState`
+    - `EvidenceState`
+    - `CalculationState`
+    - `ReflectionState`
+    - `LedgerState`
+  - `FinancialAgentState`는 이 component TypedDict들을 다중 상속해 기존 전체
+    shape를 보존한다. 런타임 동작 변경은 없다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_agent_run_projection`:
+      `47` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_models.py`: passed
+    - `git diff --check`: passed
+
 - 2026-06-17 PR 2 범위의 API public response slimming 첫 조각을 진행했다.
   - `/api/query`는 이제 `FinancialAgent.run()`의 flat compatibility payload보다
     `agent_answer` projection을 우선 소비한다.

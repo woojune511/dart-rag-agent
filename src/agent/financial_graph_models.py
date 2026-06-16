@@ -151,7 +151,7 @@ class ReviewTrace(TypedDict, total=False):
     task_artifact_trace: Dict[str, Any]
 
 
-class FinancialAgentState(TypedDict):
+class RoutingState(TypedDict):
     query: str
     report_scope: Dict[str, Any]
     query_type: str
@@ -170,11 +170,17 @@ class FinancialAgentState(TypedDict):
     years: List[int]
     topic: str
     section_filter: Optional[str]
+
+
+class RetrievalState(TypedDict):
     seed_retrieved_docs: List
     retrieved_docs: List
     retrieval_debug_trace: Dict[str, Any]
     retrieval_debug_trace_history: List[Dict[str, Any]]
     retrieval_query_result_cache: NotRequired[Dict[str, Dict[str, Any]]]
+
+
+class EvidenceState(TypedDict):
     evidence_bullets: List[str]
     evidence_items: List[Dict[str, Any]]
     evidence_status: str
@@ -187,6 +193,9 @@ class FinancialAgentState(TypedDict):
     sentence_checks: List[Dict[str, Any]]
     answer: str
     citations: List[str]
+
+
+class CalculationState(TypedDict):
     numeric_debug_trace: Dict[str, Any]
     numeric_debug_trace_history: List[Dict[str, Any]]
     resolved_calculation_trace: RuntimeCalculationTrace
@@ -201,6 +210,18 @@ class FinancialAgentState(TypedDict):
     calculation_debug_trace: NotRequired[Dict[str, Any]]
     debug_traces: NotRequired[DebugTraceBundle]
     planner_debug_trace: Dict[str, Any]
+    semantic_plan: Dict[str, Any]
+    calc_subtasks: List[Dict[str, Any]]
+    retrieval_queries: List[str]
+    active_subtask_index: int
+    active_subtask: Dict[str, Any]
+    subtask_results: List[TaskResultRecord]
+    subtask_debug_trace: Dict[str, Any]
+    subtask_loop_complete: bool
+    reconciliation_result: Dict[str, Any]
+
+
+class ReflectionState(TypedDict):
     missing_info: List[str]
     reflection_count: int
     retry_reason: str
@@ -211,18 +232,23 @@ class FinancialAgentState(TypedDict):
     reflection_request: NotRequired[ReflectionRequest]
     reflection_action: NotRequired[ReflectionAction]
     reflection_report: NotRequired[ReflectionReport]
-    semantic_plan: Dict[str, Any]
-    calc_subtasks: List[Dict[str, Any]]
-    retrieval_queries: List[str]
-    active_subtask_index: int
-    active_subtask: Dict[str, Any]
-    subtask_results: List[TaskResultRecord]
-    subtask_debug_trace: Dict[str, Any]
-    subtask_loop_complete: bool
     replan_blocked_reason: NotRequired[str]
-    reconciliation_result: Dict[str, Any]
+
+
+class LedgerState(TypedDict):
     tasks: List[Dict[str, Any]]
     artifacts: List[Dict[str, Any]]
+
+
+class FinancialAgentState(
+    RoutingState,
+    RetrievalState,
+    EvidenceState,
+    CalculationState,
+    ReflectionState,
+    LedgerState,
+):
+    pass
 
 
 class EntityExtraction(BaseModel):
