@@ -992,12 +992,72 @@ def realign_lookup_row_from_dependency_projection(
     )
 
 
+def replace_lookup_primary_slot(
+    row: Dict[str, Any],
+    updated_primary: Dict[str, Any],
+    *,
+    marker_key: str,
+    component_source_ids: set[str] | None = None,
+) -> Dict[str, Any]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    updated_slots = dict(answer_slots)
+    updated_slots["primary_value"] = updated_primary
+    raw_value = _normalise_spaces(str(updated_primary.get("raw_value") or ""))
+    raw_unit = _normalise_spaces(str(updated_primary.get("raw_unit") or ""))
+    normalized_value = updated_primary.get("normalized_value")
+    normalized_unit = _normalise_spaces(str(updated_primary.get("normalized_unit") or ""))
+    rendered_value = _normalise_spaces(str(updated_primary.get("rendered_value") or f"{raw_value}{raw_unit}"))
+    if component_source_ids:
+        for container_key in ("components_by_role", "components_by_group"):
+            container = dict(updated_slots.get(container_key) or {})
+            if not container:
+                continue
+            updated_slots[container_key] = {
+                key: [
+                    {
+                        **dict(item),
+                        "raw_unit": raw_unit,
+                        "normalized_value": normalized_value,
+                        "normalized_unit": normalized_unit,
+                        "rendered_value": rendered_value,
+                        marker_key: True,
+                    }
+                    if isinstance(item, dict)
+                    and _normalise_spaces(str(item.get("raw_value") or "")) == raw_value
+                    and (
+                        not component_source_ids
+                        or set(_clean_source_row_ids([item.get("source_row_id"), item.get("source_row_ids")]))
+                        & component_source_ids
+                    )
+                    else item
+                    for item in list(entries or [])
+                ]
+                for key, entries in container.items()
+            }
+    label = _normalise_spaces(str(updated_primary.get("label") or row.get("metric_label") or ""))
+    updated_result = {
+        **calculation_result,
+        "result_value": normalized_value,
+        "result_unit": raw_unit or normalized_unit,
+        "rendered_value": rendered_value,
+        "formatted_result": _normalise_spaces(f"{label} {rendered_value}") if label and rendered_value else rendered_value,
+        "answer_slots": updated_slots,
+    }
+    return {
+        **dict(row),
+        "answer": str(updated_result.get("formatted_result") or rendered_value),
+        "calculation_result": updated_result,
+        "answer_slots": updated_slots,
+        marker_key: True,
+    }
+
+
 def align_lookup_result_units_from_peer_source_slots(
     ordered_results: List[Dict[str, Any]],
     *,
     operation_family_for_result: Callable[[Dict[str, Any]], str],
     slot_has_material: Callable[[Dict[str, Any]], bool],
-    replace_lookup_primary_slot: Callable[..., Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
     krw_units = {
