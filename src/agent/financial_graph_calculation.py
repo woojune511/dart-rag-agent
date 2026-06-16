@@ -15,7 +15,10 @@ from typing import Any, Dict, List, NamedTuple, Optional, Sequence
 
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent import financial_answer_slots
-from src.agent.financial_calculation_execution import build_failed_calculation_result
+from src.agent.financial_calculation_execution import (
+    build_failed_calculation_result,
+    build_success_calculation_state_payload,
+)
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
@@ -16933,52 +16936,15 @@ class FinancialAgentCalculationMixin:
             },
             "explanation": explanation or str(plan.get("operation_text") or operation or mode),
         }
-        result_payload = {
-            "answer": "",
-            "compressed_answer": "",
-            "selected_claim_ids": selected_evidence_ids,
-            "draft_points": [],
-            "kept_claim_ids": selected_evidence_ids,
-            "dropped_claim_ids": [],
-            "unsupported_sentences": [],
-            "sentence_checks": [],
-        }
-        artifacts = list(state.get("artifacts") or [])
-        tasks = list(state.get("tasks") or [])
-        task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
-        artifact_id = f"result:{task_id}:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=artifact_id,
-            task_id=task_id,
-            kind=ArtifactKind.CALCULATION_RESULT,
-            status=str(calc_result.get("status") or "ok"),
-            summary=str(calc_result.get("rendered_value") or calc_result.get("formatted_result") or ""),
-            payload={"calculation_result": calc_result},
-            evidence_refs=selected_evidence_ids,
-        )
-        tasks = _upsert_task(
-            tasks,
-            task_id=task_id,
-            kind=TaskKind.CALCULATION,
-            label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
-            status=TaskStatus.COMPLETED if str(calc_result.get("status") or "") == "ok" else TaskStatus.FAILED,
+        return build_success_calculation_state_payload(
+            state=state,
+            calc_result=calc_result,
+            selected_evidence_ids=selected_evidence_ids,
+            runtime_operands=runtime_operands,
+            calculation_plan=plan,
             query=self._calc_query(state),
             metric_family=self._calc_metric_family(state),
-            artifact_id=artifact_id,
         )
-        result_payload["tasks"] = tasks
-        result_payload["artifacts"] = artifacts
-        result_payload.update(
-            _runtime_trace_state_update(
-                state,
-                calculation_operands=runtime_operands,
-                calculation_plan=plan,
-                calculation_result=calc_result,
-                include_compatibility_mirrors=False,
-            )
-        )
-        return result_payload
 
     def _repair_stale_calculation_result_from_operands(
         self,

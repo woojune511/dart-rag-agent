@@ -50,6 +50,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Calculation Success Payload Extraction
+
+- Run date: 2026-06-17
+- Scope: tenth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Successful calculation state payload assembly moved from
+    `_execute_calculation` to `src/agent/financial_calculation_execution.py`.
+  - Extracted helper: `build_success_calculation_state_payload`.
+  - The helper appends the calculation-result artifact, upserts the calculation
+    task, and publishes `resolved_calculation_trace` / `structured_result`.
+- Interpretation: this is a no-behavior-change execution-boundary extraction.
+  It keeps arithmetic, evidence selection, answer slot construction, and
+  rendering behavior in their existing paths while moving ledger/trace payload
+  publication behind a focused helper.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution`:
+    `4` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+    passed
+
 ### Latest Scalar Result Series Extraction
 
 - Run date: 2026-06-17
