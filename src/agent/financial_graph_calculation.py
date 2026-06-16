@@ -33,6 +33,7 @@ from src.agent.financial_dependency_projection import (
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import (
+    _collect_nested_result_evidence,
     _operand_row_has_material_numeric_payload,
     _operand_segment_label,
     _surface_match_variants,
@@ -1959,32 +1960,7 @@ class FinancialAgentCalculationMixin:
             for task in (state.get("calc_subtasks") or [])
             if str(task.get("task_id") or "").strip()
         }
-        evidence_pool: List[Dict[str, Any]] = []
-
-        def _append_evidence_items(items: Any) -> None:
-            for item in list(items or []):
-                if isinstance(item, dict):
-                    evidence_pool.append(dict(item))
-
-        def _collect_result_evidence(row: Dict[str, Any], depth: int = 0) -> None:
-            if depth > 6 or not isinstance(row, dict):
-                return
-            _append_evidence_items(row.get("runtime_evidence"))
-            _append_evidence_items(row.get("evidence_items"))
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            _append_evidence_items(calculation_result.get("runtime_evidence"))
-            _append_evidence_items(calculation_result.get("evidence_items"))
-            for nested_row in [
-                *list(calculation_result.get("subtask_results") or []),
-                *list(answer_slots.get("subtask_results") or []),
-            ]:
-                if isinstance(nested_row, dict):
-                    _collect_result_evidence(nested_row, depth + 1)
-
-        for row in ordered_results:
-            if isinstance(row, dict):
-                _collect_result_evidence(row)
+        evidence_pool: List[Dict[str, Any]] = _collect_nested_result_evidence(ordered_results)
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
         context_docs = list(state.get("seed_retrieved_docs") or []) + list(state.get("retrieved_docs") or [])
