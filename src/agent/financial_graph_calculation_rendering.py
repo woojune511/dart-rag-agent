@@ -154,6 +154,37 @@ def render_value_with_unit(value: float, display_unit: str, normalized_unit: str
     return rendered
 
 
+def scalar_result_display(
+    *,
+    result_value: float,
+    result_unit: str,
+    normalized_unit: str,
+    result_display_unit: str = "",
+    operation_family: str = "",
+    ordered_operands: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, str]:
+    if result_display_unit:
+        rendered_value = format_calculation_value_in_display_unit(result_value, result_display_unit)
+    else:
+        rendered_value = format_calculation_value(result_value, result_unit or "", normalized_unit)
+    if normalized_unit == "KRW":
+        rendered_with_unit = rendered_value
+    elif result_unit:
+        rendered_with_unit = f"{rendered_value}{result_unit}"
+    else:
+        rendered_with_unit = rendered_value
+    if operation_family in {"lookup", "single_value"} and ordered_operands:
+        grounded_display = render_grounded_operand_display(ordered_operands[0])
+        if grounded_display:
+            rendered_value = grounded_display
+            rendered_with_unit = grounded_display
+    return {
+        "rendered_value": rendered_value,
+        "rendered_with_unit": rendered_with_unit,
+        "result_display_unit": result_display_unit,
+    }
+
+
 def render_grounded_operand_display(row: Dict[str, Any]) -> str:
     raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
     raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))

@@ -50,6 +50,34 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Scalar Result Display Extraction
+
+- Run date: 2026-06-17
+- Scope: eighth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - Scalar result display selection moved from `_execute_calculation` to
+    `src/agent/financial_graph_calculation_rendering.py`.
+  - Extracted helper: `scalar_result_display`.
+  - The helper decides `rendered_value` and `rendered_with_unit` from
+    `result_value`, `result_unit`, `normalized_unit`, optional
+    `result_display_unit`, operation family, and ordered operands.
+- Interpretation: this is a no-behavior-change rendering-boundary extraction.
+  KRW display units, non-KRW unit suffixes, and lookup/single-value source
+  display preservation now live with rendering helpers, while arithmetic
+  execution and trace update behavior stay in `_execute_calculation`.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering`:
+    `6` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value`:
+    `3` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering tests.test_financial_calculation_execution`:
+    `8` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_graph_calculation_rendering.py`:
+    passed
+
 ### Latest Calculation Failure Payload Extraction
 
 - Run date: 2026-06-17

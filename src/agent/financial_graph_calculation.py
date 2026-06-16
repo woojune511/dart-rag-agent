@@ -16822,21 +16822,16 @@ class FinancialAgentCalculationMixin:
                 active_subtask=active_subtask,
                 ordered_operands=ordered_operands,
             )
-        if result_display_unit:
-            rendered_value = self._format_calculation_value_in_display_unit(result_value, result_display_unit)
-        else:
-            rendered_value = self._format_calculation_value(result_value, result_unit or "", normalized_unit)
-        if normalized_unit == "KRW":
-            rendered_with_unit = rendered_value
-        elif result_unit:
-            rendered_with_unit = f"{rendered_value}{result_unit}"
-        else:
-            rendered_with_unit = rendered_value
-        if operation_family in {"lookup", "single_value"} and ordered_operands:
-            grounded_display = self._render_grounded_operand_display(ordered_operands[0])
-            if grounded_display:
-                rendered_value = grounded_display
-                rendered_with_unit = grounded_display
+        display_state = calculation_rendering.scalar_result_display(
+            result_value=float(result_value),
+            result_unit=result_unit,
+            normalized_unit=normalized_unit,
+            result_display_unit=result_display_unit,
+            operation_family=operation_family,
+            ordered_operands=ordered_operands,
+        )
+        rendered_value = display_state["rendered_value"]
+        rendered_with_unit = display_state["rendered_with_unit"]
         labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
         result_series = []
         for row in ordered_operands:
