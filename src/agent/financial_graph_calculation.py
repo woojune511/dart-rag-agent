@@ -41,6 +41,7 @@ from src.agent.financial_numeric_surface import (
     evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
+    numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
 )
 from src.agent.financial_graph_models import (
@@ -1718,29 +1719,15 @@ class FinancialAgentCalculationMixin:
             metadata = dict(evidence.get("metadata") or {})
             best_candidate: Dict[str, Any] = {}
             for candidate in extract_numeric_surface_candidates(source_text):
-                unit = _normalise_spaces(str(candidate.get("unit") or ""))
-                value_text = _normalise_spaces(str(candidate.get("text") or ""))
-                if not unit or not value_text:
-                    continue
-                raw_value = value_text
-                if raw_value.endswith(unit):
-                    raw_value = _normalise_spaces(raw_value[: -len(unit)])
-                if not raw_value or candidate.get("value") is None:
+                components = numeric_surface_slot_components(candidate)
+                if not components or not components.get("raw_unit"):
                     continue
                 best_candidate = {
                     "source_row_id": evidence_id,
                     "source_row_ids": [evidence_id] if evidence_id else [],
                     "source_anchor": _normalise_spaces(str(evidence.get("source_anchor") or "")),
                     "label": _normalise_spaces(str(operand.get("label") or metadata.get("semantic_label") or "")),
-                    "raw_value": raw_value,
-                    "raw_unit": unit,
-                    "normalized_value": candidate.get("value"),
-                    "normalized_unit": (
-                        "KRW"
-                        if candidate.get("kind") == "currency"
-                        else "PERCENT" if candidate.get("kind") == "percent" else "UNKNOWN"
-                    ),
-                    "rendered_value": value_text,
+                    **components,
                     "period": _normalise_spaces(str(metadata.get("year") or "")),
                     "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
                     "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
