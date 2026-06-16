@@ -3106,6 +3106,143 @@ class SubtaskLoopTests(unittest.TestCase):
             "(3,146,409)",
         )
 
+    def test_nested_aggregate_does_not_promote_conflicting_direct_growth_row(self) -> None:
+        current_growth = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "segment profit growth",
+            "operation_family": "growth_rate",
+            "answer": "Segment profit decreased by 84.3%.",
+            "status": "ok",
+            "source_row_ids": ["row_current", "row_prior"],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-84.3%",
+                "formatted_result": "-84.3%",
+                "source_row_ids": ["row_current", "row_prior"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment profit growth",
+                        "normalized_value": -84.3,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "-84.3%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2023",
+                        "raw_value": "409,219",
+                        "raw_unit": "million",
+                        "normalized_value": 409_219_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "409,219 million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2022",
+                        "raw_value": "2,600,786",
+                        "raw_unit": "million",
+                        "normalized_value": 2_600_786_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "2,600,786 million",
+                    },
+                },
+            },
+        }
+        conflicting_nested_growth = {
+            **current_growth,
+            "answer": "Segment profit decreased by 76.08%.",
+            "source_row_ids": ["task_output:lookup_current", "task_output:lookup_prior", "row_context"],
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-76.08%",
+                "formatted_result": "-76.08%",
+                "source_row_ids": ["task_output:lookup_current", "task_output:lookup_prior", "row_context"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "segment profit growth",
+                        "normalized_value": -76.08,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "-76.08%",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2023",
+                        "raw_value": "810,900",
+                        "raw_unit": "million",
+                        "normalized_value": 810_900_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "810,900 million",
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "segment profit",
+                        "period": "2022",
+                        "raw_value": "3,390,092",
+                        "raw_unit": "million",
+                        "normalized_value": 3_390_092_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "3,390,092 million",
+                    },
+                },
+            },
+        }
+        aggregate_row = {
+            "task_id": "task_summary",
+            "metric_family": "narrative_summary",
+            "metric_label": "summary",
+            "operation_family": "aggregate_subtasks",
+            "answer": "Segment profit decreased by 76.08%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "Segment profit decreased by 76.08%.",
+                "subtask_results": [conflicting_nested_growth],
+            },
+        }
+
+        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+
+        self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
+        self.assertIn("84.3%", promoted[0]["answer"])
+        self.assertNotIn("76.08%", promoted[0]["answer"])
+
+    def test_period_comparison_rows_detect_same_source_value_collapse(self) -> None:
+        current_row = {
+            "matched_operand_role": "current_period",
+            "source_row_id": "row_income",
+            "source_row_ids": ["row_income"],
+            "raw_value": "1,000",
+            "normalized_value": 1000.0,
+            "period": "2023",
+        }
+        stale_prior_row = {
+            "matched_operand_role": "prior_period",
+            "source_row_id": "row_income",
+            "source_row_ids": ["row_income"],
+            "raw_value": "1,000",
+            "normalized_value": 1000.0,
+            "period": "2022",
+        }
+        real_prior_row = {
+            **stale_prior_row,
+            "raw_value": "700",
+            "normalized_value": 700.0,
+        }
+
+        self.assertTrue(
+            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, stale_prior_row])
+        )
+        self.assertFalse(
+            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, real_prior_row])
+        )
+
     def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
         current_growth = {
             "task_id": "task_growth",
@@ -4965,6 +5102,154 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(operands_by_role["prior_period"]["raw_value"], "100")
         self.assertNotEqual(operands_by_role["prior_period"]["raw_value"], "3")
 
+    def test_period_comparison_dependency_outputs_block_conflicting_direct_context(self) -> None:
+        state = {
+            "query": "2023년 target metric의 전년 대비 증가액을 계산해 줘.",
+            "query_type": "trend",
+            "intent": "trend",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target metric difference",
+            "active_subtask": {
+                "task_id": "task_difference",
+                "metric_family": "concept_difference",
+                "metric_label": "target metric difference",
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": "target metric", "concept": "target_metric", "role": "current_period", "period": "2023"},
+                    {"label": "target metric", "concept": "target_metric", "role": "prior_period", "period": "2022"},
+                ],
+                "depends_on": ["task_current", "task_prior"],
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "target_metric",
+                        "period": "2023",
+                        "label": "target metric",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "target_metric",
+                        "period": "2022",
+                        "label": "target metric",
+                        "preferred_task_id": "task_prior",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2023",
+                                "raw_value": "200",
+                                "raw_unit": "",
+                                "normalized_value": 200.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "200",
+                                "source_row_id": "ev_current",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_prior",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2022 target metric",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "target metric",
+                                "concept": "target_metric",
+                                "period": "2022",
+                                "raw_value": "100",
+                                "raw_unit": "",
+                                "normalized_value": 100.0,
+                                "normalized_unit": "UNKNOWN",
+                                "rendered_value": "100",
+                                "source_row_id": "ev_prior",
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "evidence_status": "missing",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+            {
+                "operand_id": "op_current",
+                "evidence_id": "direct_current",
+                "source_row_id": "direct_current",
+                "table_source_id": "direct_table",
+                "label": "target metric",
+                "raw_value": "200",
+                "raw_unit": "",
+                "normalized_value": 200.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2023",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "current_period",
+            },
+            {
+                "operand_id": "op_prior",
+                "evidence_id": "direct_prior",
+                "source_row_id": "direct_prior",
+                "table_source_id": "direct_table",
+                "label": "target metric",
+                "raw_value": "30",
+                "raw_unit": "",
+                "normalized_value": 30.0,
+                "normalized_unit": "UNKNOWN",
+                "period": "2022",
+                "matched_operand_label": "target metric",
+                "matched_operand_concept": "target_metric",
+                "matched_operand_role": "prior_period",
+            },
+        ]
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+
+        extracted = self.agent._extract_calculation_operands(state)
+        trace = _resolve_runtime_calculation_trace(extracted)
+        operands_by_role = {
+            row["matched_operand_role"]: row
+            for row in trace["calculation_operands"]
+        }
+
+        self.assertEqual(operands_by_role["current_period"]["raw_value"], "200")
+        self.assertEqual(operands_by_role["prior_period"]["raw_value"], "100")
+        self.assertNotEqual(operands_by_role["prior_period"]["raw_value"], "30")
+        self.assertIn("task_output:task_prior", operands_by_role["prior_period"]["source_row_ids"])
+
     def test_compact_ratio_answer_includes_component_slots(self) -> None:
         calculation_result = {
             "status": "ok",
@@ -6545,6 +6830,101 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertEqual(answer, "")
+
+    def test_aggregate_answer_refreshes_when_supported_row_answer_is_stale(self) -> None:
+        self.agent.llm = None
+        ratio_result = {
+            "status": "ok",
+            "result_value": 13.771463862847872,
+            "result_unit": "%",
+            "rendered_value": "13.77%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "segment revenue ratio",
+                "primary_value": {"status": "ok", "rendered_value": "13.77%"},
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "segment revenue",
+                            "raw_value": "22,401",
+                            "raw_unit": "million",
+                            "normalized_value": 22401.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "22,401 million",
+                            "source_row_id": "row_segment",
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "total revenue",
+                            "raw_value": "162,664",
+                            "raw_unit": "million",
+                            "normalized_value": 162664.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "162,664 million",
+                            "source_row_id": "row_total",
+                        }
+                    ],
+                },
+            },
+        }
+        state = {
+            "query": "Calculate segment revenue ratio.",
+            "calc_subtasks": [
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+                {"task_id": "aggregate", "metric_family": "aggregate", "operation_family": "aggregate_subtasks"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "aggregate",
+                    "metric_family": "aggregate",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": "segment revenue ratio is 100%.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "segment revenue ratio is 100%.",
+                        "formatted_result": "segment revenue ratio is 100%.",
+                        "subtask_results": [
+                            {
+                                "task_id": "task_ratio",
+                                "metric_family": "concept_ratio",
+                                "operation_family": "ratio",
+                                "answer": "segment revenue ratio is 100%.",
+                                "status": "ok",
+                                "calculation_result": ratio_result,
+                            }
+                        ],
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                },
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "segment revenue ratio",
+                    "operation_family": "ratio",
+                    "answer": "segment revenue ratio is 100%.",
+                    "status": "ok",
+                    "calculation_plan": {"status": "ok", "operation": "ratio"},
+                    "calculation_result": ratio_result,
+                },
+            ],
+            "evidence_items": [],
+            "runtime_evidence": [],
+            "tasks": [],
+            "artifacts": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+        trace = _resolve_runtime_calculation_trace(updated)
+
+        self.assertIn("13.77%", updated["answer"])
+        self.assertNotIn("100%", updated["answer"])
+        self.assertIn("13.77%", trace["calculation_result"]["formatted_result"])
 
     def test_aggregate_subtasks_prefers_lookup_list_over_raw_narrative_table(self) -> None:
         self.agent.llm = None

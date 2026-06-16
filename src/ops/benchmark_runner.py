@@ -1431,7 +1431,8 @@ def _select_eval_examples(
     ]
 
     eval_mode = config.get("eval_mode", "single_company_slice")
-    eval_limit = int(config.get("eval_limit", 5) or 5)
+    raw_eval_limit = config.get("eval_limit")
+    eval_limit = 5 if raw_eval_limit in (None, "") else int(raw_eval_limit)
 
     if eval_mode == "question_ids":
         allowed = set(config.get("question_ids") or [])
@@ -1441,7 +1442,10 @@ def _select_eval_examples(
         return filtered[:eval_limit] if eval_limit > 0 else filtered
 
     if eval_mode == "single_company_slice":
-        return _build_single_company_eval_slice(filtered, max_questions=eval_limit)
+        return _build_single_company_eval_slice(
+            filtered,
+            max_questions=eval_limit if eval_limit > 0 else 5,
+        )
 
     return filtered[:eval_limit] if eval_limit > 0 else filtered
 

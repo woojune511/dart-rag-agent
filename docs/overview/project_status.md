@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-12
+Last updated: 2026-06-15
 
 ## Positioning
 
@@ -49,6 +49,111 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest HYU Ratio Binding Close
+
+- Run date: 2026-06-15
+- Scope: `HYU_T1_034` focused store-fixed eval-only after the aggregate /
+  dependency projection refactor.
+- Local result bundle:
+  - `benchmarks/results/hyu_t1_034_ratio_task_output_distinct_source_2026-06-15/`
+- Result: numeric `PASS`, faithfulness `1.000`, numeric grounding `1.000`,
+  numeric retrieval support `1.000`, avg score `0.947`.
+- Final answer: `2023년 전체 영업이익에서 차량 부문이 차지하는 비중은
+  83.81%입니다. 계산: 차량 영업이익 12,677,300백만원 / 전체 영업이익
+  15,126,901백만원.`
+- Runtime change stays generic: recovered lookup task-output slots keep
+  task-output provenance, inherit producer required-operand metadata when
+  source slots are stale, and ratio source binding avoids reusing a task output
+  already selected for the opposite ratio role group.
+- Verification: aggregate projection/evaluator/run projection suites `152`
+  tests OK, runtime domain-term audit passed.
+- Post-fix focused regression:
+  - `SKI_T2_069`: numeric `PASS`, faithfulness/completeness `1.000`
+    (`benchmarks/results/regression_ski_t2_069_after_hyu_rebind_2026-06-15/`)
+  - `POS_T1_075`: numeric `PASS`, faithfulness/completeness `1.000`
+    (`benchmarks/results/regression_pos_t1_075_after_hyu_rebind_2026-06-15/`)
+  - `HYU_T1_034`: numeric `PASS`, faithfulness `1.000`, numeric grounding
+    `1.000`
+    (`benchmarks/results/regression_hyu_t1_034_after_hyu_rebind_2026-06-15/`)
+- Large-diff review follow-up: renamed the structured-cell affinity policy keys
+  from `segment_revenue_*` to generic `scoped_*` names in runtime/config
+  consumers. Domain marker vocabulary remains in retrieval policy, while agent
+  code consumes only the generic policy contract. Scoped surface affinity
+  scoring and dependency-projection slot/source matching helpers are now
+  centralized in `financial_graph_helpers` instead of repeated as nested
+  implementation in `financial_graph_calculation`. Lookup task-output slot
+  recovery is now delegated to `src/agent/financial_dependency_projection.py`.
+  Validation:
+  `tests.test_operation_contracts` plus
+  `tests.test_aggregate_subtask_projection` `271` OK, runtime domain-term audit
+  passed, projection/evaluator/run projection suites `152` OK, and
+  `git diff --check` passed.
+- Additional structure cleanup moved table-label evidence collection and
+  dependency operand construction helpers into
+  `src/agent/financial_dependency_projection.py`, leaving
+  `financial_graph_calculation` closer to orchestration-only code for this
+  path. Source-task answer-slot candidate extraction for dependency projection
+  now lives in the same module, along with source-task operand derivation and
+  fallback dependency operation-plan construction for ratio/growth repair.
+  Existing operand refresh from lookup slots and operand-id dedupe are also
+  delegated there. Ratio missing-role fill, including denominator candidate
+  inference from sibling lookup rows, is also centralized there. Dependency
+  calculation-plan executability checks and deterministic/fallback rebuild are
+  delegated there via callbacks. Recalculation state creation, absolute-ratio
+  magnitude post-processing, and recalculated row assembly are now delegated
+  there too. Lookup-row realignment from projected task-output operands is now
+  delegated there as a row-level helper.
+
+### Latest Financial Graph Calculation Refactor And Focused Eval Check
+
+- Run date: 2026-06-15
+- Scope:
+  - `financial_graph_calculation` aggregate/projection helper refactor
+  - shared numeric surface extraction in `financial_numeric_surface`
+  - evaluator reuse of runtime numeric evidence candidate extraction
+  - generic ratio collapse guard for numerator/denominator rows that share the
+    same source/value slot
+- Local eval-only result bundles:
+  - `benchmarks/results/refactor_check_ski_t2_069_eval_only_2026-06-15/`
+  - `benchmarks/results/refactor_check_hyu_t1_034_eval_only_2026-06-15/`
+  - `benchmarks/results/refactor_check_pos_t1_075_eval_only_2026-06-15/`
+- Follow-up projection-helper smoke bundles:
+  - `benchmarks/results/refactor_projection_ski_t2_069_eval_only_2026-06-15/`
+  - `benchmarks/results/refactor_projection_hyu_t1_034_eval_only_2026-06-15/`
+  - `benchmarks/results/refactor_projection_pos_t1_075_eval_only_2026-06-15/`
+- Artifact hygiene: these benchmark bundles are local experiment artifacts and
+  are not commit candidates.
+
+Focused store-fixed eval-only result:
+
+| Question | Previous | Initial refactor check | Projection-helper smoke | Note |
+| --- | ---: | ---: | ---: | --- |
+| `SKI_T2_069` | PASS, avg `0.9630` | PASS, avg `0.9645` | PASS, avg `0.965` | source-stated growth/narrative answer remains stable |
+| `POS_T1_075` | PASS, avg `0.9444` | PASS, avg `0.9194` | PASS, avg `0.919` | answer unchanged; score movement is evaluator-side detail |
+| `HYU_T1_034` | FAIL, avg `0.7612` | FAIL, avg `0.7751` | PASS, avg `0.947` | late total operating-income lookup remains bound as denominator after helper extraction |
+
+Interpretation:
+
+- The two already-passing focused cases remained faithful after the refactor.
+- `HYU_T1_034` initially exposed a same-source/value self-ratio path. The
+  generic guard rejected that invalid path, and the later dependency-projection
+  binding fix recovered the distinct total operating-income denominator.
+- The latest projection-helper extraction preserved that repaired behavior:
+  `HYU_T1_034` still returns `83.81%` with numeric grounding and retrieval
+  support intact.
+- No company name, benchmark id, or report-specific runtime branch was added.
+
+Validation:
+
+- targeted `py_compile`: OK
+- `.venv\Scripts\python.exe -m unittest tests.test_aggregate_subtask_projection tests.test_evaluator_runtime_projection tests.test_financial_agent_run_projection`:
+  `152` tests OK after the latest helper extraction
+- `.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`: passed
+  with `216` reviewed literals
+- `git diff --check`: passed
+- Store-fixed focused eval-only smoke after latest projection-helper extraction:
+  `HYU_T1_034`, `POS_T1_075`, and `SKI_T2_069` all numeric `PASS`.
 
 ### Latest CEL Margin-Drag Unit/Answer Consistency Closure
 

@@ -23,6 +23,26 @@ class FinancialOntologyManagerTests(unittest.TestCase):
         self.assertIn("FCF", aliases)
         self.assertIn("잉여현금흐름", aliases)
 
+    def test_ebitda_metric_family_exposes_components_and_mda_hints(self) -> None:
+        metric = self.ontology.best_metric_family(
+            "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
+            intent="comparison",
+        )
+        self.assertIsNotNone(metric)
+        self.assertEqual(metric.get("key"), "ebitda")
+        self.assertTrue(metric.get("direct_lookup_preferred"))
+
+        specs = self.ontology.build_operand_spec("ebitda")
+        self.assertEqual(
+            [(spec["role"], spec["concept"]) for spec in specs],
+            [
+                ("addend_1", "operating_income"),
+                ("addend_2", "depreciation_expense"),
+                ("addend_3", "amortization_expense"),
+            ],
+        )
+        self.assertIn("mda", self.ontology.statement_type_hints_for_metric("ebitda"))
+
     def test_statement_type_hints_are_exposed(self) -> None:
         hints = self.ontology.statement_type_hints_for_metric("debt_ratio")
         self.assertIn("balance_sheet", hints)

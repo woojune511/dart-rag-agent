@@ -1,5 +1,157 @@
 {
   "metric_families": {
+    "ebitda": {
+      "display_name": "EBITDA",
+      "intent_keywords": [
+        "EBITDA",
+        "ebitda",
+        "상각전영업이익",
+        "상각전 영업이익"
+      ],
+      "aliases": [
+        "EBITDA",
+        "ebitda",
+        "상각전영업이익",
+        "상각전 영업이익"
+      ],
+      "preferred_sections": [
+        "IV. 이사의 경영진단 및 분석의견",
+        "주요 경영지표",
+        "경영지표",
+        "영업성과",
+        "영업실적"
+      ],
+      "supplement_sections": [
+        "주요 경영지표",
+        "경영지표",
+        "영업성과",
+        "영업실적",
+        "비용의 성격별 분류",
+        "연결재무제표 주석",
+        "재무제표 주석"
+      ],
+      "query_hints": [
+        "EBITDA",
+        "주요 경영지표",
+        "영업이익",
+        "감가상각비",
+        "무형자산상각비"
+      ],
+      "retrieval_keywords": [
+        "EBITDA",
+        "주요 경영지표",
+        "영업이익",
+        "감가상각비",
+        "무형자산상각비"
+      ],
+      "statement_type_hints": [
+        "mda",
+        "summary_financials",
+        "income_statement",
+        "notes"
+      ],
+      "row_patterns": [
+        "EBITDA",
+        "상각전\\s*영업이익"
+      ],
+      "direct_lookup_preferred": true,
+      "formula_template": "operating_income + depreciation_expense + amortization_expense",
+      "formula_family": "sum",
+      "result_unit": "KRW",
+      "default_constraints": {
+        "period_focus": "current",
+        "entity_scope": "company",
+        "segment_scope": "none"
+      },
+      "components": {
+        "addend_1": {
+          "concept_ref": "operating_income",
+          "name": "영업이익",
+          "aliases": [
+            "영업손익"
+          ],
+          "keywords": [
+            "영업이익",
+            "영업손익"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "주요 경영지표",
+            "경영지표",
+            "영업성과",
+            "영업실적",
+            "요약재무정보",
+            "손익계산서"
+          ],
+          "preferred_statement_types": [
+            "mda",
+            "summary_financials",
+            "income_statement"
+          ]
+        },
+        "addend_2": {
+          "concept_ref": "depreciation_expense",
+          "name": "감가상각비",
+          "aliases": [
+            "감가 상각비",
+            "depreciation expense"
+          ],
+          "keywords": [
+            "감가상각비",
+            "감가 상각비",
+            "상각"
+          ],
+          "required": true,
+          "preferred_sections": [
+            "주요 경영지표",
+            "경영지표",
+            "영업성과",
+            "영업실적",
+            "비용의 성격별 분류",
+            "연결재무제표 주석",
+            "재무제표 주석"
+          ],
+          "preferred_statement_types": [
+            "mda",
+            "notes",
+            "cash_flow",
+            "income_statement"
+          ]
+        },
+        "addend_3": {
+          "concept_ref": "amortization_expense",
+          "name": "무형자산상각비",
+          "aliases": [
+            "무형자산 상각비",
+            "상각비",
+            "amortization expense"
+          ],
+          "keywords": [
+            "무형자산상각비",
+            "무형자산 상각비",
+            "상각비",
+            "상각"
+          ],
+          "required": false,
+          "preferred_sections": [
+            "주요 경영지표",
+            "경영지표",
+            "영업성과",
+            "영업실적",
+            "무형자산",
+            "비용의 성격별 분류",
+            "연결재무제표 주석",
+            "재무제표 주석"
+          ],
+          "preferred_statement_types": [
+            "mda",
+            "notes",
+            "cash_flow",
+            "income_statement"
+          ]
+        }
+      }
+    },
     "rnd_ratio": {
       "display_name": "연구개발비용 비중",
       "intent_keywords": [

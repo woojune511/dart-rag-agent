@@ -11,6 +11,9 @@ KOREAN_COUNT_SCALE_PREFIXES = (("천", 1_000.0), ("만", 10_000.0), ("백만", 1
 KOREAN_COUNT_UNIT_RE_FRAGMENT = (
     r"(?:(?:백만|만|천)?\s*(?:개|명|건|곳|사|대))"
 )
+KOREAN_TABLE_CHANGE_HEADER_LABEL = "증감"
+KOREAN_TABLE_LABEL_ALPHA_RE_FRAGMENT = r"[A-Za-z가-힣]"
+KOREAN_TABLE_LABEL_LEFT_BOUNDARY_RE_FRAGMENT = r"(?<![A-Za-z0-9가-힣])"
 KOREAN_PERCENT_METRIC_HINT_TERMS = (
     "비율",
     "비중",
@@ -60,12 +63,24 @@ FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES: Tuple[Dict[str, Any], ...] = (
         "markers": ("영업활동현금흐름", "투자활동현금흐름", "재무활동현금흐름", "FCF", "현금흐름"),
         "statement_types": ("cash_flow", "summary_financials"),
     },
+    {
+        "markers": ("EBITDA", "경영지표", "KPI"),
+        "statement_types": ("mda", "summary_financials"),
+    },
 )
 
 FINANCIAL_SEGMENT_SECTION_HINT_POLICY: Dict[str, Any] = {
     "markers": ("부문", "segment", "세그먼트"),
     "statement_types": ("segment_note",),
-    "preferred_sections": ("부문정보", "영업부문", "영업실적"),
+    "preferred_sections": (
+        "부문정보",
+        "영업부문",
+        "영업실적",
+        "(금융업)영업의 현황",
+        "(금융업)사업의 개요",
+        "영업의 현황",
+        "매출현황",
+    ),
 }
 
 CONTEXTUAL_INGEST_POLICY: Dict[str, Any] = {
@@ -171,9 +186,11 @@ PERCENT_POINT_DIFFERENCE_POLICY: Dict[str, Any] = {
 STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "metric_terms": ("매출액", "매출", "영업수익", "수익"),
     "entity_surface_drop_terms": ("부문", "사업부", "사업"),
+    "scoped_direct_row_markers": ("외부고객", "순매출액", "external customer", "net sales"),
+    "scoped_adjustment_row_markers": ("부문간 제거", "제거한 금액", "intersegment", "elimination"),
     "year_pattern": r"20\d{2}\s*년?",
     "entity_token_split_pattern": r"[\s/|,]+",
-    "aggregate_tokens": ("합계", "총계", "소계", "계"),
+    "aggregate_tokens": ("합계", "총계", "소계", "계", "전체", "total"),
     "aggregate_stage_tokens": {
         "subtotal": ("소계",),
         "final": ("합계", "총계", "계"),
@@ -415,6 +432,12 @@ NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
         "preferred_sections": ("영업비용", "연결재무제표 주석", "재무제표 주석", "연결 손익계산서", "손익계산서"),
         "statement_types": ("notes",),
     },
+    {
+        "name": "management_kpi",
+        "trigger_terms": ("EBITDA", "경영지표", "KPI"),
+        "preferred_sections": ("주요 경영지표", "경영지표", "영업성과", "영업실적", "경영진단"),
+        "statement_types": ("mda", "summary_financials"),
+    },
 )
 
 NUMERIC_IMPAIRMENT_LOOKUP_POLICY: Dict[str, Any] = {
@@ -626,6 +649,7 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     },
     "ratio_answer_template": "{period_prefix}{metric_label}은 {rendered_value}입니다.",
     "ratio_krw_suspicious_percent_threshold": 10000.0,
+    "ratio_absolute_magnitude_markers": ("절대값", "절대 값", "absolute", "magnitude"),
     "ratio_component_answer_template": (
         "{period_prefix}{metric_label}은 {rendered_value}입니다. "
         "계산: {numerator_label} {numerator_value} / {denominator_label} {denominator_value}."

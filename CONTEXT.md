@@ -11,6 +11,109 @@
 
 ## 최신 상태
 
+- 2026-06-15 `HYU_T1_034` ratio binding residual을 store-fixed focused
+  eval-only에서 닫았다.
+  - 변경은 runtime domain branch가 아니라 dependency projection 계약 보강이다.
+    - lookup task output에서 answer text와 primary slot이 어긋난 경우 단일
+      numeric answer surface로 slot value/label을 복구한다.
+    - 복구된 task-output slot에 `task_output:<task_id>` provenance를 보존한다.
+    - producer task의 단일 required operand concept/period를 recovered slot에
+      보강한다.
+    - ratio source binding은 이미 다른 ratio role group에 사용된 task output을
+      제외하고 다음 후보를 보도록 했다.
+  - focused eval-only:
+    - result bundle:
+      `benchmarks/results/hyu_t1_034_ratio_task_output_distinct_source_2026-06-15/`
+    - `HYU_T1_034`: numeric `PASS`, faithfulness `1.000`, numeric grounding
+      `1.000`, numeric retrieval support `1.000`, avg score `0.947`.
+    - final answer:
+      `2023년 전체 영업이익에서 차량 부문이 차지하는 비중은 83.81%입니다. 계산: 차량 영업이익 12,677,300백만원 / 전체 영업이익 15,126,901백만원.`
+  - 검증:
+    - `tests.test_aggregate_subtask_projection`,
+      `tests.test_evaluator_runtime_projection`,
+      `tests.test_financial_agent_run_projection`: `152` tests OK
+    - `.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `git diff --check`: passed for touched source/test files
+  - HYU fix 이후 focused regression도 store-fixed eval-only로 확인했다.
+    - `regression_ski_t2_069_after_hyu_rebind_2026-06-15`: `SKI_T2_069`
+      numeric `PASS`, faithfulness/completeness `1.000`.
+    - `regression_pos_t1_075_after_hyu_rebind_2026-06-15`: `POS_T1_075`
+      numeric `PASS`, faithfulness/completeness `1.000`.
+    - `regression_hyu_t1_034_after_hyu_rebind_2026-06-15`: `HYU_T1_034`
+      numeric `PASS`, faithfulness `1.000`, numeric grounding `1.000`.
+  - Post-fix large-diff review also removed `segment_revenue_*` policy-key
+    names from runtime/config consumers, replacing them with generic
+    `scoped_*` structured-cell affinity keys. Marker vocabulary remains in
+    retrieval policy; runtime now consumes the policy through generic names.
+    The same cleanup centralized scoped surface affinity scoring and
+    dependency-projection slot/source matching helpers in
+    `financial_graph_helpers`, removing duplicated nested implementation from
+    `financial_graph_calculation`. Lookup task-output slot recovery is now in
+    `src/agent/financial_dependency_projection.py`, so
+    `_align_lookup_results_with_dependency_projection()` delegates stale slot
+    repair instead of carrying the recovery implementation inline.
+    Validation: `tests.test_operation_contracts` plus
+    `tests.test_aggregate_subtask_projection` `271` OK, runtime domain-term
+    audit passed, projection/evaluator/run projection suites `152` OK, and
+    `git diff --check` passed for touched files.
+  - Additional structure cleanup moved table-label evidence collection and
+    dependency operand construction helpers into
+    `financial_dependency_projection.py`, leaving the calculation mixin with
+    orchestration rather than inline provenance row assembly. Source-task
+    answer-slot candidate extraction for dependency projection now lives in
+    the same module. Source-task operand derivation and fallback dependency
+    operation-plan construction for ratio/growth repair are also delegated
+    there. Existing operand refresh from lookup slots and operand-id dedupe are
+    now delegated there as well. Ratio missing-role fill, including denominator
+    candidate inference from sibling lookup rows, is also centralized there.
+    Dependency calculation-plan executability checks and deterministic/fallback
+    rebuild are delegated there via callbacks. Recalculation state creation,
+    absolute-ratio magnitude post-processing, and recalculated row assembly are
+    now delegated there too. Lookup-row realignment from projected task-output
+    operands is now delegated there as a row-level helper.
+  - 이 추가 projection helper 추출 이후 store-fixed focused eval-only smoke를
+    다시 돌렸다.
+    - `refactor_projection_hyu_t1_034_eval_only_2026-06-15`: `HYU_T1_034`
+      numeric `PASS`, faithfulness `1.000`, avg `0.947`.
+    - `refactor_projection_pos_t1_075_eval_only_2026-06-15`: `POS_T1_075`
+      numeric `PASS`, faithfulness/completeness `1.000`, avg `0.919`.
+    - `refactor_projection_ski_t2_069_eval_only_2026-06-15`: `SKI_T2_069`
+      numeric `PASS`, faithfulness/completeness `1.000`, avg `0.965`.
+    - 이 benchmark result bundles는 commit 대상이 아니다.
+
+- 2026-06-15 `financial_graph_calculation` refactor focused check를 마쳤다.
+  - 목적은 반복 patch로 길어진 aggregate/projection 경로를 줄이고, 숫자
+    surface/evidence 후보 추출을 공용 helper로 빼서 evaluator와 runtime이 같은
+    해석을 쓰게 만드는 것이었다.
+  - 변경은 일반 계약으로 처리했다.
+    - numeric display/evidence candidate 추출은
+      `src/agent/financial_numeric_surface.py`로 분리했다.
+    - aggregate answer candidate, projection rebuild, artifact payload sync,
+      ratio answer refresh helpers를 도입해 중복 갱신 코드를 줄였다.
+    - ratio numerator/denominator가 label이나 operand id만 다르고 같은
+      source/value slot으로 접히면 plan/evidence complete로 보지 않는다.
+  - focused store-fixed eval-only:
+    - `SKI_T2_069`: `PASS -> PASS`, avg `0.9630 -> 0.9645`
+    - `POS_T1_075`: `PASS -> PASS`, avg `0.9444 -> 0.9194`, answer unchanged
+    - `HYU_T1_034`: `FAIL -> FAIL`, avg `0.7612 -> 0.7751`
+      - self-ratio `100%` regression은 generic collapse guard로 막혔다.
+      - 현재는 안전한 partial answer로 닫히며, 남은 gap은 aggregate answer
+        composition이 아니라 operand binding policy / table-structure 쪽이다.
+  - 검증:
+    - targeted py_compile: OK
+    - `tests.test_aggregate_subtask_projection`,
+      `tests.test_evaluator_runtime_projection`,
+      `tests.test_financial_agent_run_projection`: `145` tests OK
+    - `.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `git diff --check`: passed
+  - raw result bundles:
+    - `benchmarks/results/refactor_check_ski_t2_069_eval_only_2026-06-15/`
+    - `benchmarks/results/refactor_check_hyu_t1_034_eval_only_2026-06-15/`
+    - `benchmarks/results/refactor_check_pos_t1_075_eval_only_2026-06-15/`
+    - 이들은 commit 대상이 아니다.
+
 - 2026-06-12 `CEL_T1_038` margin-drag regression을 다시 닫았다.
   - root cause는 세 층이었다.
     1. numeric extractor evidence가 `claim=2,176,431,531,380 (원)`,
