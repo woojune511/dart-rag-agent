@@ -4,6 +4,8 @@
 
 구현 단위의 세부 계약은 `docs/architecture/agent_runtime_contract.md`를 따른다. 이 문서와 충돌하면 더 구체적인 runtime contract를 우선하고, 원칙 변경이 필요하면 두 문서를 함께 갱신한다.
 
+구조 리팩터링, 파일 이동, public API surface 축소, MAS/eval/ops 분리 작업을 시작하기 전에는 `docs/architecture/core_runtime_surface_refactoring_plan.md`를 먼저 확인한다. 이 리팩터링 계획은 "코드 줄 수 줄이기"보다 "core runtime / review trace / debug-eval-experimental surface 분리"를 우선한다.
+
 ## Core Principles
 
 ### Domain Knowledge Boundary
@@ -63,6 +65,7 @@
 1. **Classify**
    - bug, architecture cleanup, benchmark regression, docs-only 중 하나로 분류한다.
    - 관련 owner file과 계약 테스트를 먼저 찾는다.
+   - architecture cleanup이면 `docs/architecture/core_runtime_surface_refactoring_plan.md`의 PR 순서와 deletion criteria를 확인한다.
 
 2. **Design**
    - 새 분기를 추가하기 전에 기존 policy/config/ontology로 표현할 수 있는지 확인한다.
