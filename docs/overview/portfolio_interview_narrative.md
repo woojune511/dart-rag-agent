@@ -26,13 +26,12 @@ which operands were used, where they came from, which formula ran, and whether
 the final answer followed the trace.
 
 The strongest current evidence is narrow and partly diagnostic. Reviewer gates
-are ready, and the latest store-fixed expanded full-system refresh reached
-`6 / 9` numeric PASS. That is below the documented `7 / 9` threshold for
-rerunning the plain baseline, so I treat it as a stop-line rather than a
-promoted ablation win. The useful reproduced separator is `SKH_T3_080`, where
-the structural path binds the right foreign-currency gain/loss rows. The
-remaining failures identify concrete residual work in final numeric
-preservation and sign/display handling.
+are ready, and the latest store-fixed expanded ablation refresh reached
+structural full-system `7 / 9` numeric PASS versus plain retrieval `4 / 9`.
+The useful reproduced separators are `SAM_T3_028`, `CEL_T1_013`, and
+`SKH_T3_080`, where the structural path preserves scale, denominator, or row
+binding that plain retrieval loses. The remaining shared failures identify
+concrete residual work in sign/display handling and debt-component aggregation.
 
 ## Problem Framing
 
@@ -82,9 +81,10 @@ Current expanded refresh:
 
 | Run | Result | Interpretation |
 | --- | ---: | --- |
-| Structural full-system refresh | `6 / 9` numeric PASS | Below the `7 / 9` threshold for running the plain baseline; use as a stop-line. |
-| Reproduced separator | `SKH_T3_080` PASS | Structural binding keeps `573,884백만원 - 906,120백만원 = -3,322억원`. |
-| Residual failures | `POS_T1_057`, `KBF_T2_018`, `SKH_T1_060` | Evidence is often present, but final composition/sign/display or aggregation remains unstable. |
+| Structural full-system refresh | `7 / 9` numeric PASS | Clears the expanded-slice promotion rule. |
+| Plain retrieval refresh | `4 / 9` numeric PASS | Same questions, weaker scale/denominator/row binding. |
+| Reproduced separators | `SAM_T3_028`, `CEL_T1_013`, `SKH_T3_080` | Structural binding keeps key numeric surfaces that plain retrieval loses. |
+| Shared residual failures | `POS_T1_057`, `SKH_T1_060` | Sign/display handling and debt aggregation remain unstable. |
 
 Historical hard structural replay:
 

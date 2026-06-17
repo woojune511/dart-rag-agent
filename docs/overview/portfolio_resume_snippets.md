@@ -20,11 +20,11 @@ calculation traces, critic reports, and reproducible reviewer gates.
   intent/concept interpretation, while code handles operand binding, arithmetic,
   unit handling, dedupe, validation, and final rendering.
 - Validated the design with trace-based gates and store-fixed benchmark
-  refreshes; the latest expanded full-system refresh is explicitly treated as a
-  stop-line at `6 / 9` numeric PASS rather than an overclaimed ablation win.
-- Reproduced a structural operand-binding separator in `SKH_T3_080` and used
-  the remaining failures (`POS_T1_057`, `KBF_T2_018`, `SKH_T1_060`) to define
-  concrete residual work before running a broader plain-baseline comparison.
+  refreshes; the latest expanded ablation slice reports structural
+  full-system `7 / 9` numeric PASS versus plain retrieval `4 / 9`.
+- Reproduced structural separators in `SAM_T3_028`, `CEL_T1_013`, and
+  `SKH_T3_080`, while keeping `POS_T1_057` and `SKH_T1_060` as explicit
+  residual follow-up cases.
 
 ## Technical Portfolio Version
 
@@ -56,8 +56,8 @@ focused on making numeric answers auditable. The project combines
 structure-aware retrieval, deterministic numeric execution, multi-agent artifact
 handoff, and reviewer-facing gates. Current results support a narrow claim:
 structured provenance and trace-based gates make operand, unit, and period-row
-drift visible. The latest expanded refresh is a transparent stop-line before
-broader ablation or full-benchmark claims.
+drift visible. The latest expanded comparison supports a narrow structural
+claim, not a full-benchmark claim.
 
 ## Korean Short Version
 
@@ -84,5 +84,5 @@ Safer alternatives:
   extraction"
 - "Used trace-based numeric grounding gates for acceptance"
 - "Used store-fixed benchmark refreshes as promotion gates, including a latest
-  expanded refresh that stopped at `6 / 9` and exposed residual
-  composition/sign-display issues before rerunning the plain baseline"
+  expanded refresh that separates structural full-system `7 / 9` from plain
+  retrieval `4 / 9`, while leaving shared residuals visible"

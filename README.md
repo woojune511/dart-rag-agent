@@ -20,10 +20,10 @@ overfit.
 - **Key design:** LLMs handle semantic planning; deterministic code handles
   operand binding, arithmetic, unit handling, validation, and final rendering.
 - **Current evidence:** `portfolio_review_gates` reports `ready`. The latest
-  store-fixed expanded full-system refresh is a stop-line rather than a win:
-  `6 / 9` numeric PASS, with `SKH_T3_080` still reproducing the structural
-  operand-binding case and `POS_T1_057` / `KBF_T2_018` exposing residual
-  composition and sign/display issues before a plain-baseline rerun.
+  store-fixed expanded ablation refresh is structural full-system `7 / 9`
+  numeric PASS vs plain retrieval `4 / 9`, with separating cases on
+  `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080`; `POS_T1_057` and
+  `SKH_T1_060` remain residual cases.
 - **Disabled by design:** cache serving, retrieval bypass, automatic cache
   writes, cache-ledger insertion, LLM critic as final acceptance authority, and
   benchmark-specific runtime branches.
@@ -102,12 +102,12 @@ duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
 `$0.056292`.
 
 The structural ablation evidence is intentionally narrow. The latest expanded
-refresh still reproduces `SKH_T3_080`: the structural path binds
-`573,884백만원` and `906,120백만원` and answers `-3,322억원`. It also shows that
-the expanded slice is not ready to promote as a refreshed ablation win:
-`POS_T1_057`, `KBF_T2_018`, and `SKH_T1_060` remain residual cases. Historical
-hard-replay traces are kept as diagnostics for current/prior row binding, but
-the current README treats the latest `6 / 9` refresh as the active stop-line.
+refresh compares structural full-system `7 / 9` against plain retrieval
+`4 / 9`. Structural separates on `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080`;
+the last case binds `573,884백만원` and `906,120백만원` and answers
+`-3,322억원`. `POS_T1_057` and `SKH_T1_060` remain shared residuals, so the
+claim is improved row/scale/denominator binding on the expanded slice, not a
+fully solved benchmark.
 
 ## Quick Review Path
 

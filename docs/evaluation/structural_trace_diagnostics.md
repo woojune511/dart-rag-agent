@@ -117,34 +117,34 @@ Run-level readout:
 
 | Metric | Full-system refresh |
 | --- | ---: |
-| Numeric PASS | `6 / 9` |
-| Avg numeric pass rate | `0.667` |
-| Avg completeness | `0.600` |
-| Avg faithfulness | `0.783` |
-| Avg context recall | `0.889` |
+| Numeric PASS | structural `7 / 9`, plain `4 / 9` |
+| Avg numeric pass rate | structural `0.778`, plain `0.444` |
+| Avg completeness | structural `0.578`, plain `0.389` |
+| Avg faithfulness | structural `0.833`, plain `0.678` |
+| Avg context recall | structural `0.867`, plain `0.904` |
 
 Question-level read:
 
-| Question | Judgement | Diagnostic read |
-| --- | --- | --- |
-| `KAB_T1_066` | PASS | positive CIR control remains stable |
-| `POS_T1_057` | FAIL | high retrieval support, but signed/displayed interest-cost handling made the final ratio invalid |
-| `SAM_T3_028` | PASS | inventory valuation loss and cost-of-sales denominator preserved |
-| `MIX_T1_021` | PASS | both ratios computed, with partial final-answer completeness |
-| `CEL_T1_013` | PASS | capitalized development cost and R&D denominator preserved |
-| `KBF_T2_018` | FAIL | growth operands appeared in trace, but final answer was narrative-only |
-| `KBF_T1_017` | PASS | NIM difference recovered through retry/aggregate fallback |
-| `SKH_T3_080` | PASS | foreign-currency gain/loss row binding reproduced |
-| `SKH_T1_060` | FAIL | debt-component numerator aggregation remains unstable |
+| Question | Structural | Plain | Diagnostic read |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS | PASS | positive CIR control passes in both variants |
+| `POS_T1_057` | FAIL | FAIL | shared interest-cost sign/display and unit-binding residual |
+| `SAM_T3_028` | PASS | FAIL | structural preserves the cost-of-sales denominator; plain scale drifts to `2792.63%` |
+| `MIX_T1_021` | PASS | PASS | both ratios computed, with partial final-answer completeness |
+| `CEL_T1_013` | PASS | FAIL | structural preserves the R&D denominator; plain selects a broader denominator |
+| `KBF_T2_018` | PASS | PASS | aggregate mixed numeric+narrative projection now survives; plain has noisier unit/value surfaces |
+| `KBF_T1_017` | PASS | PASS | NIM difference recovered through retry/aggregate fallback |
+| `SKH_T3_080` | PASS | FAIL | structural preserves foreign-currency gain/loss row binding; plain binds the loss surface incorrectly |
+| `SKH_T1_060` | FAIL | FAIL | debt-component numerator aggregation remains unstable |
 
 Interpretation:
 
-- The current refresh is a stop-line. It did not clear the `7 / 9`
-  full-system threshold for running the plain-retrieval counterpart.
-- `SKH_T3_080` remains the strongest current structural case-study trace.
-- `POS_T1_057` and `KBF_T2_018` are higher-value residual fixes than spending
-  on the plain baseline now because both expose final-state/composition issues
-  after relevant evidence has been recovered.
+- The current expanded comparison is no longer a stop-line: structural cleared
+  the `7 / 9` rule and plain rerun produced `4 / 9`.
+- `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080` are the current separating
+  structural traces.
+- `POS_T1_057` and `SKH_T1_060` remain shared residuals and should be tracked
+  as follow-up runtime/evidence-contract work.
 
 ## Hard Replay Separator: `SKH_T1_060` (2026-06-11)
 

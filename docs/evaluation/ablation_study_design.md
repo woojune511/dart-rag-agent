@@ -431,69 +431,67 @@ Interpretation rule:
 - If both variants pass most questions, focus the write-up on trace quality,
   unit/display stability, and failure taxonomy rather than pass-rate delta.
 
-### Full-System Store-Fixed Refresh: 2026-06-17
+### Expanded Store-Fixed Ablation Refresh: 2026-06-17
 
-After the PR 4 simplification sequence, the expanded candidate full-system
-profile was refreshed with `--eval-only` against the existing local stores. The
-plain-retrieval counterpart was not run because the full-system pass count fell
-below the execution rule threshold.
+After the aggregate public-answer projection fix, the expanded candidate
+full-system profile was refreshed with `--eval-only` against the existing local
+stores. It cleared the `7 / 9` execution rule, so the plain-retrieval
+counterpart was rerun for a current ablation comparison.
 
-Local artifact directory:
+Local artifact directories:
 
 - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10`
 
-Heartbeat log:
+Heartbeat logs:
 
-- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_current_2026-06-17.jsonl`
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_after_kbf_projection_fix_2026-06-17.jsonl`
+- `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/heartbeat_evalonly_after_fullsystem_7of9_2026-06-17.jsonl`
 
 Run-level readout:
 
-| Metric | Full-system refresh |
-| --- | ---: |
-| Numeric PASS | `6/9` |
-| Avg numeric pass rate | `0.667` |
-| Avg completeness | `0.600` |
-| Avg faithfulness | `0.783` |
-| Avg context recall | `0.889` |
-| Estimated runtime cost | `$0.6312` |
-| LLM calls / tokens | `138` / `747,220` |
-| Query embedding calls | `54` |
-| Wall-clock runtime | `30.5m` |
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Numeric PASS | `7/9` | `4/9` |
+| Avg numeric pass rate | `0.778` | `0.444` |
+| Avg completeness | `0.578` | `0.389` |
+| Avg faithfulness | `0.833` | `0.678` |
+| Avg context recall | `0.867` | `0.904` |
+| Avg Context P@5 | `0.867` | `0.778` |
+| Estimated runtime cost | `$0.6156` | `$0.8348` |
+| LLM calls / tokens | `133` / `732,650` | `120` / `687,109` |
+| Query embedding calls | `54` | `62` |
+| Heartbeat wall-clock runtime | `28.5m` | `32.1m` |
 
 Question-level readout:
 
-| Question id | Numeric judgement | Context recall | Context P@5 | Completeness | Faithfulness | Numeric grounding | Answer / failure shape |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| `KAB_T1_066` | PASS | 1.000 | 0.800 | 1.000 | 1.000 | 1.000 | `37.47%` |
-| `POS_T1_057` | FAIL | 1.000 | 1.000 | 0.000 | 0.300 | 0.000 | `-791.7%`; sign/display handling around interest cost made the final ratio invalid |
-| `SAM_T3_028` | PASS | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | `2.79%`; inventory valuation loss over cost of sales |
-| `MIX_T1_021` | PASS | 1.000 | 1.000 | 0.500 | 1.000 | 1.000 | calculated both ratios, but final response emphasized the current ratio |
-| `CEL_T1_013` | PASS | 0.667 | 1.000 | 1.000 | 1.000 | 1.000 | `52.99%`; capitalized development cost over R&D cost |
-| `KBF_T2_018` | FAIL | 0.333 | 0.600 | 0.000 | 0.500 | 0.000 | growth operands were present in trace, but final answer was narrative-only |
-| `KBF_T1_017` | PASS | 1.000 | 0.400 | 0.700 | 1.000 | 1.000 | `0.1%`; retry/aggregate fallback recovered the NIM difference |
-| `SKH_T3_080` | PASS | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | `-3,322억원`; foreign-currency gain/loss pairing reproduced |
-| `SKH_T1_060` | FAIL | 1.000 | 1.000 | 0.000 | 0.300 | 0.000 | `42.02%`; debt-component numerator aggregation remains unstable |
+| Question id | Structural | Plain | Diagnostic read |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS | PASS | CIR control passes in both variants; plain has lower Context P@5. |
+| `POS_T1_057` | FAIL | FAIL | Both variants still expose interest-cost sign/display and unit binding instability. |
+| `SAM_T3_028` | PASS | FAIL | Structural preserves the cost-of-sales denominator and returns `2.79%`; plain drifts to a scale-broken `2792.63%`. |
+| `MIX_T1_021` | PASS | PASS | Both compute the balance-sheet ratios, with partial completeness. |
+| `CEL_T1_013` | PASS | FAIL | Structural binds the R&D denominator and returns `52.99%`; plain selects a broader denominator and returns `49.74%`. |
+| `KBF_T2_018` | PASS | PASS | Both pass after aggregate public-answer projection, but the plain trace shows noisier unit/value surfaces. |
+| `KBF_T1_017` | PASS | PASS | Both recover the NIM difference as `0.1%`. |
+| `SKH_T3_080` | PASS | FAIL | Structural preserves the foreign-currency gain/loss row binding and returns `-3,322억원`; plain binds the loss surface incorrectly. |
+| `SKH_T1_060` | FAIL | FAIL | Debt-component numerator/asset denominator aggregation remains the hard residual. |
 
 Interpretation:
 
-- This refresh is a stop-line, not a portfolio success claim. The full-system
-  variant reached `6/9`, below the documented `7/9` threshold for running the
-  plain-retrieval counterpart.
-- `SKH_T3_080` still supports the structural operand-binding narrative, but
-  the expanded slice is not currently strong enough to promote as a refreshed
-  ablation result.
-- `POS_T1_057` and `KBF_T2_018` are higher-value residual bugs than running the
-  plain baseline now: retrieval often contains the relevant evidence, but final
-  sign/display handling or numeric preservation through answer composition
-  fails.
-- `SKH_T1_060` should remain a hard diagnostic case until debt-component
-  aggregation is represented more robustly in the planner/evidence contract.
+- The full-system variant cleared the documented `7/9` threshold, so the
+  plain-retrieval counterpart was rerun and now provides a current ablation
+  comparison.
+- Structural representation separates on `SAM_T3_028`, `CEL_T1_013`, and
+  `SKH_T3_080`. In each case, plain retrieval still reaches nearby evidence but
+  loses scale, denominator, or row-binding semantics.
+- `POS_T1_057` and `SKH_T1_060` remain shared residuals. They are useful
+  follow-up cases, not proof that the structural layer should be removed.
 
 Next action before full benchmark expansion:
 
-1. Debug `KBF_T2_018` as numeric trace preservation into mixed final answers.
-2. Debug `POS_T1_057` as sign/display handling for cost-like operands in ratio
+1. Debug `POS_T1_057` as sign/display handling for cost-like operands in ratio
    composition.
-3. Re-run this full-system expanded slice store-fixed.
-4. Run the plain-retrieval expanded baseline only after the full-system slice
-   returns to at least `7/9`.
+2. Keep `SKH_T1_060` as the debt-component aggregation diagnostic.
+3. Use this expanded comparison as the current portfolio ablation result while
+   keeping raw `benchmarks/results/**` artifacts local.

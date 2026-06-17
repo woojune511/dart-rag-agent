@@ -94,9 +94,9 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Latest expanded full-system refresh | `6 / 9` numeric PASS; below the `7 / 9` threshold for running the plain-retrieval counterpart |
-| Reproduced structural separator | `SKH_T3_080` remains PASS with `573,884백만원 - 906,120백만원 = -3,322억원` |
-| Residual stop-line cases | `POS_T1_057`, `KBF_T2_018`, and `SKH_T1_060` expose final sign/display, mixed-answer numeric preservation, and debt aggregation issues |
+| Latest expanded ablation refresh | structural full-system `7 / 9` numeric PASS vs plain retrieval `4 / 9` |
+| Reproduced structural separators | `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080` pass structurally but fail under plain retrieval |
+| Shared residual cases | `POS_T1_057` and `SKH_T1_060` expose remaining sign/display and debt aggregation issues |
 
 Representative KAB answer:
 
@@ -108,37 +108,38 @@ Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`. 
 fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 `8` agent LLM calls, and estimated runtime cost `$0.056292`.
 
-### Current Expanded Refresh Stop-Line
+### Current Expanded Ablation Refresh
 
-After the PR 4 simplification sequence, the expanded candidate full-system
-profile was rerun as a store-fixed `eval-only` refresh. This is the current
-experiment state for portfolio review.
+After the aggregate public-answer projection fix, the expanded candidate
+full-system profile and its plain-retrieval counterpart were rerun as
+store-fixed `eval-only` refreshes. This is the current experiment state for
+portfolio review.
 
-| Metric | Current full-system refresh |
-| --- | ---: |
-| Numeric PASS | `6 / 9` |
-| Avg numeric pass rate | `0.667` |
-| Avg faithfulness | `0.783` |
-| Avg completeness | `0.600` |
-| Avg context recall | `0.889` |
-| Estimated runtime cost | `$0.6312` |
-| Runtime | `30.5m` |
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Numeric PASS | `7 / 9` | `4 / 9` |
+| Avg numeric pass rate | `0.778` | `0.444` |
+| Avg faithfulness | `0.833` | `0.678` |
+| Avg completeness | `0.578` | `0.389` |
+| Avg context recall | `0.867` | `0.904` |
+| Estimated runtime cost | `$0.6156` | `$0.8348` |
+| Heartbeat runtime | `28.5m` | `32.1m` |
 
-| Question | Judgement | Diagnostic read |
-| --- | --- | --- |
-| `KAB_T1_066` | PASS | CIR positive control remains stable at `37.47%`. |
-| `POS_T1_057` | FAIL | Retrieval support is high, but sign/display handling around interest cost makes the final ratio invalid. |
-| `SAM_T3_028` | PASS | Recovered inventory valuation loss and cost-of-sales denominator. |
-| `MIX_T1_021` | PASS | Computed both ratios, but final response still under-emphasizes one required ratio. |
-| `CEL_T1_013` | PASS | Preserved source-unit operands for capitalized development cost over R&D cost. |
-| `KBF_T2_018` | FAIL | Growth operands appear in the trace, but final answer composition drops the numeric result. |
-| `KBF_T1_017` | PASS | Retry/aggregate fallback recovers the NIM difference. |
-| `SKH_T3_080` | PASS | Reproduces the structural operand-binding case for foreign-currency gain/loss rows. |
-| `SKH_T1_060` | FAIL | Debt-component numerator aggregation remains unstable. |
+| Question | Structural | Plain | Diagnostic read |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS | PASS | CIR positive control remains stable. |
+| `POS_T1_057` | FAIL | FAIL | Interest-cost sign/display and unit binding remain unstable. |
+| `SAM_T3_028` | PASS | FAIL | Structural returns `2.79%`; plain drifts to scale-broken `2792.63%`. |
+| `MIX_T1_021` | PASS | PASS | Both compute the balance-sheet ratios with partial completeness. |
+| `CEL_T1_013` | PASS | FAIL | Structural returns `52.99%`; plain selects a broader denominator and returns `49.74%`. |
+| `KBF_T2_018` | PASS | PASS | Mixed numeric+narrative projection now survives. |
+| `KBF_T1_017` | PASS | PASS | Both recover the NIM difference. |
+| `SKH_T3_080` | PASS | FAIL | Structural preserves foreign-currency gain/loss row binding; plain binds the loss surface incorrectly. |
+| `SKH_T1_060` | FAIL | FAIL | Debt-component numerator aggregation remains unstable. |
 
-Because the full-system variant did not clear the documented `7 / 9` threshold,
-the plain-retrieval counterpart was not rerun. This is a stop-line before full
-benchmark expansion, not a promoted structural-ablation win.
+The result supports a narrow structural-representation claim: it improves
+scale, denominator, and row-binding behavior on several hard cases, while two
+cases remain shared runtime/evidence-contract residuals.
 
 ### Historical Expanded Structural Ablation
 
@@ -165,7 +166,8 @@ Separating numeric cases:
 
 This historical run remains useful as a diagnostic trace source, especially for
 `SKH_T3_080`. It is no longer the active portfolio-facing result because the
-latest store-fixed full-system refresh reached only `6 / 9`.
+latest store-fixed expanded comparison supersedes it with structural `7 / 9`
+versus plain `4 / 9`.
 
 ### Historical Hard Structural-vs-Plain Replay
 
@@ -236,17 +238,21 @@ Trace summary:
 
 ## Focused Failure Analysis
 
-### `KBF_T2_018`: numeric trace lost in mixed final answer
+### `KBF_T2_018`: numeric trace preservation in mixed final answer
 
-Failure: the latest expanded refresh recovered growth operands during the
-trace, but final answer composition returned a narrative-only answer. The
-failure is not primarily retrieval; it is numeric trace preservation into mixed
-numeric+narrative rendering.
+Failure observed in the latest expanded refresh: growth operands were recovered
+during the trace, but final answer composition returned a narrative-only public
+answer. The failure was not primarily retrieval; it was numeric trace
+preservation into mixed numeric+narrative rendering.
 
-Fix layer: aggregate answer composition and required numeric slot preservation
-for mixed answers.
+Fix layer: aggregate public-answer projection now promotes the supported
+`structured_result.formatted_result` only when it covers the numeric projection
+from nested answer slots and has no untraced growth numeric material.
 
-Current status: residual stop-line before rerunning expanded plain retrieval.
+Current status: focused store-fixed `KBF_T2_018` replay passed, and the
+follow-up nine-question expanded refresh also passed this case in both
+structural and plain variants. The fix is now part of the current ablation
+comparison rather than only a focused closure.
 
 ### `POS_T1_057`: signed cost-like operand rendered as invalid ratio
 
@@ -257,7 +263,8 @@ ratio (`-791.7%`).
 Fix layer: cost-like operand sign/display handling and source-unit preservation
 in ratio composition.
 
-Current status: residual stop-line before rerunning expanded plain retrieval.
+Current status: shared residual in the latest expanded comparison; both
+structural and plain variants still fail this case.
 
 ### `SKH_T1_060`: wrong numerator or subtotal row
 

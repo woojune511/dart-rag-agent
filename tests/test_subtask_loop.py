@@ -15173,6 +15173,91 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("acquisition integration improved", updated["answer"])
         self.assertIn("ev_driver", updated["selected_claim_ids"])
 
+    def test_late_runtime_numeric_answer_promotes_supported_aggregate_formatted_result(self) -> None:
+        nested_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_growth_rate",
+                "metric_label": "commerce revenue growth rate",
+                "operation_family": "growth_rate",
+                "answer": "41.4%",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "41.4%",
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "commerce revenue growth rate",
+                            "period": "2023",
+                            "rendered_value": "41.4%",
+                            "normalized_value": 41.4,
+                            "normalized_unit": "PERCENT",
+                        },
+                        "current_value": {
+                            "status": "ok",
+                            "label": "commerce revenue",
+                            "period": "2023",
+                            "rendered_value": "2,546,649 million",
+                        },
+                        "prior_value": {
+                            "status": "ok",
+                            "label": "commerce revenue",
+                            "period": "2022",
+                            "rendered_value": "1,801,079 million",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_2",
+                "metric_family": "narrative_summary",
+                "metric_label": "acquisition impact summary",
+                "operation_family": "narrative_summary",
+                "answer": "The acquisition integration improved commerce revenue growth.",
+                "status": "ok",
+                "selected_claim_ids": ["ev_driver"],
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {"operation_family": "narrative_summary"},
+                },
+            },
+        ]
+        formatted_result = (
+            "2023 commerce revenue was 2,546,649 million, "
+            "up 41.4% from 1,801,079 million. "
+            "The acquisition integration improved commerce revenue growth."
+        )
+        state = {
+            "query": "Calculate the 2023 commerce revenue growth rate and summarize the acquisition impact.",
+            "resolved_calculation_trace": {
+                "calculation_plan": {"operation": "aggregate_subtasks"},
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "aggregate_subtasks",
+                    "formatted_result": formatted_result,
+                    "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    "subtask_results": nested_results,
+                },
+                "calculation_operands": [],
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "The acquisition integration improved commerce revenue growth.",
+                    "text": "The acquisition integration improved commerce revenue growth.",
+                }
+            ],
+        }
+
+        answer = self.agent._late_runtime_numeric_answer(
+            state,
+            "The acquisition integration improved commerce revenue growth.",
+        )
+
+        self.assertEqual(answer, formatted_result)
+
     def test_late_numeric_refresh_keeps_clean_explicit_explanation_from_conflicting_summary_child(self) -> None:
         self.agent.llm = _StubLLM(
             AggregateSynthesisOutput.model_validate(

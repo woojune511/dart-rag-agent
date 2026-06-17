@@ -11,30 +11,33 @@
 
 ## 최신 상태
 
-- 2026-06-17 expanded candidate full-system store-fixed `eval-only` refresh를
-  실행했다.
-  - 목적: PR 4 simplification 이후, 기존 expanded ablation claim의 기반인
-    9문항 full-system slice가 현재 코드에서도 재현되는지 확인했다.
-  - command:
-    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_current_2026-06-17.jsonl`
-  - 결과: full-system numeric pass `6/9`, avg completeness `0.600`,
-    avg faithfulness `0.783`, avg recall `0.889`.
-  - PASS:
-    - `KAB_T1_066`, `SAM_T3_028`, `MIX_T1_021`, `CEL_T1_013`,
-      `KBF_T1_017`, `SKH_T3_080`
-  - FAIL:
-    - `POS_T1_057`: retrieval recall은 `1.000`이지만 이자비용 sign/display가
-      final ratio를 `-791.7%`로 만들었다.
-    - `KBF_T2_018`: growth calculation trace는 있었지만 final answer가
-      narrative-only로 남아 numeric/completeness가 실패했다.
-    - `SKH_T1_060`: 차입금 numerator aggregation이 여전히 불안정해 `42.02%`
-      실패 형태로 남았다.
+- 2026-06-17 expanded ablation store-fixed `eval-only` refresh를 실행했다.
+  - 목적: aggregate public-answer projection fix 이후, 9문항 expanded
+    structural full-system slice가 promotion rule을 회복하는지 확인하고,
+    threshold 충족 시 plain-retrieval counterpart를 비교했다.
+  - structural command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_after_kbf_projection_fix_2026-06-17.jsonl`
+  - plain command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json --output-dir benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/heartbeat_evalonly_after_fullsystem_7of9_2026-06-17.jsonl`
+  - 결과:
+    - structural full-system: numeric pass `7/9`, avg completeness `0.578`,
+      avg faithfulness `0.833`, avg recall `0.867`, estimated runtime cost
+      `$0.6156`, heartbeat runtime about `28.5m`.
+    - plain retrieval: numeric pass `4/9`, avg completeness `0.389`, avg
+      faithfulness `0.678`, avg recall `0.904`, estimated runtime cost
+      `$0.8348`, heartbeat runtime about `32.1m`.
+  - structural-only PASS separators:
+    - `SAM_T3_028`: structural `2.79%`; plain scale drift `2792.63%`.
+    - `CEL_T1_013`: structural `52.99%`; plain broader denominator `49.74%`.
+    - `SKH_T3_080`: structural `-3,322억원`; plain misbound loss surface
+      `-1,351,498백만원`.
+  - shared residuals:
+    - `POS_T1_057`: interest-cost sign/display and unit binding instability.
+    - `SKH_T1_060`: debt-component numerator / asset denominator aggregation.
   - 해석:
-    - 문서화된 execution rule(`full-system >= 7/9`)을 만족하지 못했으므로
-      expanded plain-retrieval baseline은 실행하지 않았다.
-    - 이 결과는 full benchmark로 확장하기 전 residual binding/composition
-      issues를 먼저 정리해야 한다는 stop-line이다.
-  - raw `benchmarks/results/**` 산출물과 heartbeat log는 local-only다.
+    - expanded slice는 더 이상 stop-line이 아니며, current portfolio
+      ablation result는 structural `7/9` vs plain `4/9`다.
+    - raw `benchmarks/results/**` 산출물과 heartbeat log는 local-only다.
 
 - 2026-06-17 PR 4 simplification 이후 store-fixed ablation smoke
   `eval-only` refresh를 실행했다.

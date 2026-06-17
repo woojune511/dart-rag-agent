@@ -50,6 +50,8 @@
 | [HYU Ratio Task-Output Rebinding (2026-06-15)](#hyu-ratio-task-output-rebinding-2026-06-15) | HYU_T1_034 late denominator task-output binding | focused eval-only recovered `83.81%` ratio and returned numeric PASS |
 | [HYU Source-Slot Ratio Rebuild (2026-06-16)](#hyu-source-slot-ratio-rebuild-2026-06-16) | HYU_T1_034 incoherent ratio candidate suppression and source-slot fallback | lookup/single-value source slots rebuild `83.81%` answer; focused eval-only numeric PASS |
 | [SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)](#ski-source-stated-growth-repair-and-narrative-pruning-2026-06-16) | SKI_T2_069 aggregate period-comparison repair and boilerplate context pruning | source-stated `84.3%` display is preserved; focused eval-only numeric PASS and irrelevant forward-looking boilerplate removed |
+| [KBF Aggregate Public Answer Projection Closure (2026-06-17)](#kbf-aggregate-public-answer-projection-closure-2026-06-17) | KBF_T2_018 mixed numeric+narrative public answer projection | supported aggregate `formatted_result` survives public answer projection; focused eval-only numeric PASS |
+| [Expanded Ablation Refresh After KBF Projection Fix (2026-06-17)](#expanded-ablation-refresh-after-kbf-projection-fix-2026-06-17) | 9문항 structural-vs-plain ablation refresh | structural 7 / 9, plain 4 / 9; `SAM_T3_028`, `CEL_T1_013`, `SKH_T3_080` separate |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -63,6 +65,119 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Expanded Ablation Refresh After KBF Projection Fix (2026-06-17)
+
+참조:
+
+- structural local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- plain local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed `eval-only` over the nine-question expanded ablation slice.
+- Structural profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Plain profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+- Both runs used monitored heartbeats.
+
+### Results
+
+| Metric | Structural full-system | Plain retrieval |
+| --- | ---: | ---: |
+| Numeric PASS | `7 / 9` | `4 / 9` |
+| Avg faithfulness | `0.833` | `0.678` |
+| Avg completeness | `0.578` | `0.389` |
+| Avg context recall | `0.867` | `0.904` |
+| Avg Context P@5 | `0.867` | `0.778` |
+| Estimated runtime cost | `$0.6156` | `$0.8348` |
+| LLM calls / tokens | `133` / `732,650` | `120` / `687,109` |
+| Query embedding calls | `54` | `62` |
+
+Separating cases:
+
+| Question | Structural | Plain | Read |
+| --- | --- | --- | --- |
+| `SAM_T3_028` | PASS | FAIL | structural keeps cost-of-sales scale; plain answers `2792.63%` |
+| `CEL_T1_013` | PASS | FAIL | structural keeps the R&D denominator; plain answers `49.74%` |
+| `SKH_T3_080` | PASS | FAIL | structural keeps foreign-currency gain/loss row binding; plain misbinds the loss surface |
+
+Shared residuals:
+
+- `POS_T1_057`: interest-cost sign/display and unit binding.
+- `SKH_T1_060`: debt-component numerator / asset denominator aggregation.
+
+### Interpretation
+
+- The expanded slice is no longer a stop-line: structural cleared the
+  documented `7 / 9` rule and the plain rerun provides a current baseline.
+- The result supports a narrow structural-representation claim around scale,
+  denominator, and row-binding preservation. It does not support a claim that
+  the benchmark is fully solved.
+
+## KBF Aggregate Public Answer Projection Closure (2026-06-17)
+
+참조:
+
+- local focused result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/kb금융-2023/`
+- artifact hygiene: this result bundle and heartbeat log are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed focused `eval-only` over `KBF_T2_018` using the expanded
+  candidate full-system profile and existing store.
+- Command shape:
+  `benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --company-run-id kbf_2023_expanded_candidate --question-id KBF_T2_018 --progress-heartbeat-sec 60 --heartbeat-log <path>`.
+
+### Context
+
+- The nine-question expanded refresh recovered the growth operands and
+  structured aggregate result, but the public top-level `answer` was
+  narrative-only. The evaluator saw that public answer and failed
+  numeric/completeness even though `structured_result.formatted_result` already
+  contained the complete numeric+narrative answer.
+
+### Code / Contract Change
+
+- Aggregate late numeric answer projection now promotes
+  `calculation_result.formatted_result` / `rendered_value` when:
+  - it differs from the current public answer,
+  - it covers the nested numeric projection,
+  - it has no untraced growth numeric material, and
+  - the current public answer is empty, incomplete, or numerically unsafe.
+- This is a generic trace-preservation fix. No company name, benchmark ID,
+  report-specific phrase, or metric-specific runtime branch was added.
+
+### Result
+
+- Focused `KBF_T2_018` eval-only:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - numeric grounding `1.000`
+  - answer includes `3,146,409백만원`, `1,847,775백만원`, and `70.28%`.
+
+### Validation
+
+- `.venv/bin/python -m unittest tests.test_subtask_loop.SubtaskLoopTests.test_late_runtime_numeric_answer_promotes_supported_aggregate_formatted_result`:
+  `1` test OK.
+- Related aggregate/growth tests:
+  `4` tests OK.
+- `.venv/bin/python -m src.ops.audit_runtime_domain_terms`: passed with
+  `215` reviewed literals.
+
+### Interpretation
+
+- This closes the focused `KBF_T2_018` public projection bug. The follow-up
+  expanded ablation refresh confirmed that the structural full-system slice
+  now reaches `7 / 9` and justifies the plain baseline comparison.
 
 ## SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)
 

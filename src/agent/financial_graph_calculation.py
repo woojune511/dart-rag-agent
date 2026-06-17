@@ -12130,6 +12130,30 @@ class FinancialAgentCalculationMixin:
                 ]
                 if isinstance(item, dict)
             ]
+            formatted_result = _normalise_spaces(
+                str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
+            )
+            answer_text = _normalise_spaces(str(final_answer or ""))
+            if (
+                formatted_result
+                and formatted_result != answer_text
+                and self._answer_covers_numeric_projection(formatted_result, nested_results)
+                and not self._growth_answer_has_untraced_numeric_material(
+                    formatted_result,
+                    nested_results,
+                    evidence_rows,
+                )
+                and (
+                    not answer_text
+                    or not self._answer_covers_numeric_projection(answer_text, nested_results)
+                    or self._growth_answer_has_untraced_numeric_material(
+                        answer_text,
+                        nested_results,
+                        evidence_rows,
+                    )
+                )
+            ):
+                return formatted_result
             conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
                 query=str(state.get("query") or ""),
                 ordered_results=nested_results,
