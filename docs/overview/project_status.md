@@ -72,16 +72,23 @@ role-separated multi-agent system using a task ledger and artifact store.
     filter matching, BM25 index construction, and BM25 candidate collection.
   - Preserved the existing BM25 helper surface in `src.storage.vector_store`
     through compatibility wrappers.
+  - Added `src/storage/structure_graph.py` for structure graph payload
+    normalization, BM25 payload projection, vector result hydration,
+    relationship rebuild/update, indexed chunk uid lookup, and graph accessor
+    document creation.
+  - Preserved the existing structure graph helper/accessor surface in
+    `src.storage.vector_store` through compatibility wrappers.
   - Left `VectorStoreManager.search()` behavior and search telemetry untouched.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
     `18` OK
-  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py`:
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py src/storage/structure_graph.py`:
     passed
   - `git diff --check`: passed
-- Next vector-store extraction candidate: structure graph relationship/accessor
-  helpers. Keep the next change no-behavior-change and preserve search telemetry
-  keys.
+- Current recommendation: pause PR 6 unless a concrete vector-store bug or
+  telemetry contract gap points to another exact seam. Remaining seams such as
+  Chroma access, hybrid merge, and `add_documents` batching sit closer to
+  retrieval behavior.
 
 ### Latest PR 5 Parser Extraction
 

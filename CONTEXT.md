@@ -11,6 +11,30 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 6 vector store extraction 네 번째 조각을 진행했다.
+  - `src/storage/structure_graph.py`를 추가해 structure graph payload
+    normalization, BM25 payload projection, vector result hydration,
+    relationship rebuild/update, indexed chunk uid lookup, graph accessor docs
+    생성을 `VectorStoreManager` facade 밖으로 분리했다.
+  - 기존 `_structure_graph_bm25_payload`,
+    `_hydrate_document_from_structure_graph`, `_load_structure_graph`,
+    `_rebuild_structure_relationships`, `_update_structure_graph`,
+    `_structure_graph_chunk_uids`, `get_structure_node`,
+    `get_section_lead_doc`, `get_described_by_doc`, `get_sibling_docs`,
+    `get_reference_docs` surface는 compatibility wrapper로 유지했다.
+  - `VectorStoreManager.search()`의 vector path, BM25 path, RRF merge,
+    telemetry key는 변경하지 않았다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
+      `18` OK
+    - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py src/storage/structure_graph.py`:
+      passed
+    - `git diff --check`: passed
+  - 현재 판단: PR 6은 embedding config, metadata payload, BM25, structure graph
+    helper extraction까지 진행됐다. 다음 분리는 Chroma access / hybrid merge /
+    add_documents batching처럼 search behavior와 더 가까우므로, concrete bug나
+    telemetry contract gap이 있을 때만 계속하는 편이 안전하다.
+
 - 2026-06-17 PR 6 vector store extraction 세 번째 조각을 진행했다.
   - `src/storage/bm25_index.py`를 추가해 Korean/ASCII tokenization,
     metadata filter matching, BM25 index construction, BM25 candidate
