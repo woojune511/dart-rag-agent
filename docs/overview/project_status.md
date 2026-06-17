@@ -50,6 +50,32 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 5 Parser Table-Record Extraction
+
+- Run date: 2026-06-17
+- Scope: no-behavior-change parser extraction under the
+  `FinancialParser.process_document()` facade.
+- Change:
+  - Added `src/processing/table_records.py` for parser-normalized row/value
+    record construction.
+  - `FinancialParser._build_table_row_records()` and
+    `_build_table_value_records()` now delegate to the extracted module while
+    preserving the existing private method surface for tests and callers.
+  - Moved generic table-axis, period-label, aggregate-role, row-record, and
+    value-record helpers out of `financial_parser.py`.
+- Verification:
+  - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+    `28` OK
+  - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+    `14` OK
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py`:
+    passed
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`
+- Next parser extraction candidates: XML/table-grid reconstruction,
+  section/block extraction, chunking, then reference resolution. Keep these as
+  no-behavior-change extractions unless a metadata snapshot test exposes drift.
+
 ### Latest PR 8 Requirements/Docs Cleanup
 
 - Run date: 2026-06-17

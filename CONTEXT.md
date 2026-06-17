@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 5 parser extraction 첫 조각을 진행했다.
+  - `src/processing/table_records.py`를 추가해 parser-normalized table의
+    row/value record construction을 `FinancialParser` facade 밖으로 분리했다.
+  - `FinancialParser._build_table_row_records()`와
+    `_build_table_value_records()`는 기존 테스트/호출자를 위해 compatibility
+    wrapper로 남겼다.
+  - `process_document()` public facade와 metadata schema는 바꾸지 않았다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+      `28` OK
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+      `14` OK
+    - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+  - 다음 PR 5 후보는 XML/table-grid reconstruction, section/block extraction,
+    chunking, reference resolution 순서의 no-behavior-change extraction이다.
+
 - 2026-06-17 PR 8 requirements/docs cleanup을 진행했다.
   - `requirements.txt`의 Windows 전용 `pywin32` pin에
     `sys_platform == "win32"` marker를 붙여 Linux `uv` 환경에서 dependency

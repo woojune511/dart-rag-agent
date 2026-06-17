@@ -242,6 +242,34 @@ and reference resolution behind that facade.
 Add or preserve metadata snapshot tests because table/value-record drift can
 change retrieval behavior.
 
+#### PR 5 Current Status
+
+Status as of 2026-06-17: PR 5 has started with a no-behavior-change extraction
+of value-cell metadata construction.
+
+- Added `src/processing/table_records.py` for parser-normalized table row/value
+  record construction.
+- `FinancialParser._build_table_row_records()` and
+  `FinancialParser._build_table_value_records()` remain as compatibility
+  wrappers behind the `FinancialParser.process_document()` facade.
+- Generic table-axis, period-label, aggregate-role, row-record, and value-record
+  helpers now live in the parser table-record module instead of the main parser
+  facade.
+- Verification:
+  - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+    `28` OK
+  - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+    `14` OK
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py`:
+    passed
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`
+
+Next PR 5 seams should remain no-behavior-change extractions: XML/table-grid
+reconstruction, section/block extraction, chunking, then reference resolution.
+Do not combine those with parser behavior repair unless a metadata snapshot test
+first exposes a concrete drift.
+
 ### PR 6: Vector Store Extraction
 
 Keep `VectorStoreManager.search()` public behavior stable. Move embedding
