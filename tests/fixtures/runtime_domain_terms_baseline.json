@@ -58,16 +58,6 @@
     },
     {
       "path": "src/agent/financial_graph_calculation.py",
-      "text": "^(20\\d{2}년\\s*)?(연결기준|별도기준)?\\s*",
-      "category": "regex_or_pattern",
-      "fingerprint": "07925292e7605acd",
-      "count": 1,
-      "first_lines": [
-        624
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_calculation.py",
       "text": "^\\d{4}년\\s*",
       "category": "regex_or_pattern",
       "fingerprint": "e0672f42e76a8987",

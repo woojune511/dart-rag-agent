@@ -19,14 +19,18 @@
     conflict 검증은 남겼다.
   - `_apply_mutable_numeric_answer` wrapper를 제거하고 두 호출부가 canonical
     `_apply_numeric_answer_to_aggregate_state`를 직접 사용하게 했다.
+  - 추가로 runtime 호출자가 없는 `_narrative_summary_gap_is_satisfied`와
+    그 private helper만 직접 검증하던 테스트를 제거했다.
+  - 삭제된 regex literal은 runtime domain-term audit baseline에서도 제거했다.
   - 결과:
-    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,483` lines
-    - diff: runtime/test 합산 `336` deletions, `14` insertions
+    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,430` lines
+    - latest diff: runtime/test/baseline 합산 `91` deletions
   - 검증:
     - `python -m src.ops.audit_runtime_domain_terms`: passed
-    - `.venv/bin/python -m unittest tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
-      `508` OK
-    - `.venv/bin/python -m unittest discover -s tests`: `1224` OK
+      (`215` reviewed literals)
+    - `.venv/bin/python -m unittest tests.test_runtime_domain_term_audit tests.test_subtask_loop tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+      `513` OK
+    - `.venv/bin/python -m unittest discover -s tests`: `1223` OK
     - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
       `Status: ready`
     - `git diff --check`: passed

@@ -8313,34 +8313,6 @@ class SubtaskLoopTests(unittest.TestCase):
             "재고자산평가손실 2,526,280천원, 재고자산평가손실환입 48,885,812천원, 재고자산폐기손실 25,163,510천원입니다.",
         )
 
-    def test_narrative_summary_gap_check_handles_wrapped_lookup_rows(self) -> None:
-        rows = [
-            {
-                "task_id": "task_3",
-                "metric_family": "concept_lookup",
-                "metric_label": "2023년 매출원가",
-                "status": "partial",
-                "answer": "2023년 매출원가 계산에 필요한 값(2023년 매출원가)을 문서 근거에서 충분히 확인하지 못해 계산할 수 없습니다.",
-                "calculation_result": {
-                    "status": "partial",
-                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
-                },
-            },
-            {
-                "task_id": "task_2",
-                "metric_family": "narrative_summary",
-                "metric_label": "질문 관련 배경/영향 설명",
-                "status": "ok",
-                "answer": "매출원가는 129,179,183 백만원입니다. 판매비와관리비는 18,357,495 백만원입니다. 총 영업비용은 147,536,678 백만원입니다. 매출액 대비 영업비용률은 약 90.70%입니다.",
-                "calculation_result": {
-                    "status": "ok",
-                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
-                },
-            },
-        ]
-
-        self.assertTrue(self.agent._narrative_summary_gap_is_satisfied(rows[0], rows))
-
     def test_lookup_gap_check_handles_aggregate_wrapped_lookup_rows(self) -> None:
         rows = [
             {

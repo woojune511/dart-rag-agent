@@ -699,59 +699,6 @@ class FinancialAgentCalculationMixin:
                 prior_material = len(sibling_periods) >= 2
         return current_material and prior_material
 
-    def _narrative_summary_gap_is_satisfied(
-        self,
-        row: Dict[str, Any],
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        operation_family = str(
-            row.get("operation_family")
-            or answer_slots.get("operation_family")
-            or (row.get("calculation_plan") or {}).get("operation")
-            or ""
-        ).strip().lower()
-        if operation_family == "aggregate_subtasks":
-            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-            if metric_family.startswith("concept_"):
-                operation_family = metric_family.removeprefix("concept_")
-        if operation_family not in {"lookup", "single_value", "ratio", "sum"}:
-            return False
-
-        target_surfaces: List[str] = []
-        metric_label = _normalise_spaces(str(row.get("metric_label") or ""))
-        if metric_label:
-            target_surfaces.append(metric_label)
-            target_surfaces.append(_normalise_spaces(re.sub(r"^(20\d{2}년\s*)?(연결기준|별도기준)?\s*", "", metric_label)))
-        primary_slot = dict(answer_slots.get("primary_value") or {})
-        slot_label = _normalise_spaces(str(primary_slot.get("label") or ""))
-        if slot_label:
-            target_surfaces.append(slot_label)
-        components_by_role = dict(answer_slots.get("components_by_role") or {})
-        for entries in components_by_role.values():
-            for entry in entries or []:
-                label = _normalise_spaces(str((entry or {}).get("label") or ""))
-                if label:
-                    target_surfaces.append(label)
-        target_surfaces = [surface for surface in dict.fromkeys(target_surfaces) if surface]
-        if not target_surfaces:
-            return False
-
-        for sibling in ordered_results:
-            if sibling is row:
-                continue
-            sibling_metric_family = _normalise_spaces(str(sibling.get("metric_family") or "")).lower()
-            sibling_operation_family = self._aggregate_result_operation_family(sibling)
-            if sibling_metric_family != "narrative_summary" and sibling_operation_family != "narrative_summary":
-                continue
-            sibling_answer = _normalise_spaces(str(sibling.get("answer") or ""))
-            if not sibling_answer or not re.search(r"\d", sibling_answer):
-                continue
-            if any(surface and surface in sibling_answer for surface in target_surfaces):
-                return True
-        return False
-
     def _feedback_gap_is_satisfied_by_derived_slots(
         self,
         feedback: str,
