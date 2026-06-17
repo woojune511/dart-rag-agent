@@ -77,18 +77,22 @@ role-separated multi-agent system using a task ledger and artifact store.
     heading block state machine. `FinancialParser._collect_blocks()` remains as
     a compatibility wrapper that wires parser-specific callbacks into the
     extracted collector.
+  - Added `src/processing/chunking.py` for table row/window splitting,
+    narrative table-row splitting, wide-table column windows, table metadata
+    propagation, and section block chunk assembly.
+  - Existing chunking private methods remain compatibility wrappers for tests
+    and callers.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
     `14` OK
-  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py`:
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
-- Next parser extraction candidates: chunking, then reference resolution. Keep
-  these as no-behavior-change extractions unless a metadata snapshot test
-  exposes drift.
+- Next parser extraction candidate: reference resolution. Keep this as a
+  no-behavior-change extraction unless a metadata snapshot test exposes drift.
 
 ### Latest PR 8 Requirements/Docs Cleanup
 

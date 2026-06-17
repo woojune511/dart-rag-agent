@@ -271,19 +271,26 @@ extractions behind the `FinancialParser.process_document()` facade.
   heading block state machine. `FinancialParser._collect_blocks()` remains as a
   compatibility wrapper that wires parser-specific callbacks into the extracted
   collector.
+- Added `src/processing/chunking.py` for table row/window splitting, narrative
+  table-row splitting, wide-table column windows, table metadata propagation,
+  and section block chunk assembly.
+- `FinancialParser._split_table_by_rows()`, `_looks_like_table_header_row()`,
+  `_split_table_text_fragment()`, `_split_long_table_row()`,
+  `_split_wide_table_by_columns()`, `_split_table_for_chunks()`, and
+  `_chunk_blocks()` remain compatibility wrappers.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
     `14` OK
-  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py`:
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
 
-Next PR 5 seams should remain no-behavior-change extractions: chunking, then
-reference resolution. Do not combine those with parser behavior repair unless a
-metadata snapshot test first exposes a concrete drift.
+Next PR 5 seam should remain a no-behavior-change extraction: reference
+resolution. Do not combine it with parser behavior repair unless a metadata
+snapshot test first exposes a concrete drift.
 
 ### PR 6: Vector Store Extraction
 

@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 5 parser extraction 다섯 번째 조각을 진행했다.
+  - `src/processing/chunking.py`를 추가해 table row/window splitting,
+    narrative table-row splitting, wide-table column windows, table metadata
+    propagation, section block chunk assembly를 `FinancialParser` facade 밖으로
+    분리했다.
+  - 기존 `_split_table_by_rows`, `_looks_like_table_header_row`,
+    `_split_table_text_fragment`, `_split_long_table_row`,
+    `_split_wide_table_by_columns`, `_split_table_for_chunks`,
+    `_chunk_blocks`는 compatibility wrapper로 남겼다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+      `28` OK
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+      `14` OK
+    - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+  - 다음 PR 5 후보는 reference resolution의 no-behavior-change extraction이다.
+
 - 2026-06-17 PR 5 parser extraction 네 번째 조각을 진행했다.
   - `src/processing/block_collection.py`를 추가해 paragraph/table/local
     heading block state machine을 `FinancialParser` facade 밖으로 분리했다.
