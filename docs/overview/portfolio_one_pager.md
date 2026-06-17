@@ -124,16 +124,16 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 
 ## Representative Commands
 
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests
-.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
-.\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
-.\.venv\Scripts\python.exe -m src.ops.report_cache_promotion_evidence_gate
-.\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
-.\.venv\Scripts\python.exe -m src.ops.reference_note_capability_gate
-.\.venv\Scripts\python.exe -m src.ops.promotion_trace_materiality_gate
-.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
+```bash
+uv run --with-requirements requirements.txt python -m unittest discover -s tests
+uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
+uv run --with-requirements requirements-review.txt python -m src.ops.review_report_cache_index_contract
+uv run --with-requirements requirements-review.txt python -m src.ops.report_cache_promotion_evidence_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.reflection_promotion_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.reference_note_capability_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.promotion_trace_materiality_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 ```
 
 ## Portfolio Story

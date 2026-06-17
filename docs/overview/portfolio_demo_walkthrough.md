@@ -10,14 +10,14 @@ concepts from scratch.
 
 ## Run It
 
-```powershell
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
 ```
 
 For machine-readable review output:
 
-```powershell
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo --format json
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json
 ```
 
 The command reads

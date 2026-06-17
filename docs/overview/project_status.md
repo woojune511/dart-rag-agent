@@ -50,6 +50,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 8 Requirements/Docs Cleanup
+
+- Run date: 2026-06-17
+- Scope: reviewer-facing install and command hygiene.
+- Change:
+  - `requirements.txt` now marks `pywin32==311` as Windows-only with
+    `sys_platform == "win32"`, so Linux `uv` environments do not fail on the
+    Windows package.
+  - Added `requirements-review.txt` as the lightweight dependency set for
+    fixture-backed reviewer commands. It avoids forcing `portfolio_demo` and
+    `portfolio_review_gates` to install the full ML/dev stack.
+  - README and compact portfolio docs now use
+    `uv run --with-requirements requirements-review.txt ...` for demo/gate
+    commands. Full development, ingest, benchmark, and app runs remain on
+    `requirements.txt`.
+- Verification:
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json`:
+    `ready`
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `requirements.txt` parsed via `packaging.requirements.Requirement`
+  - `git diff --check`: passed
+
 ### Latest PR 4 Stop-Line Documentation
 
 - Run date: 2026-06-17

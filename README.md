@@ -118,8 +118,8 @@ appendix material unless deeper validation is needed.
 
 | Step | Document / command | Purpose |
 | --- | --- | --- |
-| 1 | `python -m src.ops.portfolio_review_gates` | aggregate ready/not-ready reviewer gate |
-| 2 | `python -m src.ops.portfolio_demo` | compact answer/evidence/trace/integrity demo |
+| 1 | `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates` | aggregate ready/not-ready reviewer gate |
+| 2 | `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo` | compact answer/evidence/trace/integrity demo |
 | 3 | [docs/overview/portfolio_interview_narrative.md](docs/overview/portfolio_interview_narrative.md) | compact interview talk track and claim boundary |
 | 4 | [docs/overview/portfolio_resume_snippets.md](docs/overview/portfolio_resume_snippets.md) | resume and portfolio-ready wording |
 | 5 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
@@ -134,17 +134,19 @@ Everything else is appendix or internal log. Start with
 
 Use the first three commands for normal review. The remaining commands are
 capability-specific gates that the aggregate portfolio gate also covers.
+`requirements-review.txt` is the lightweight fixture/gate dependency set; use
+`requirements.txt` for full development, ingest, benchmark, or app runs.
 
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests
-.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
-.\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
-.\.venv\Scripts\python.exe -m src.ops.report_cache_promotion_evidence_gate
-.\.venv\Scripts\python.exe -m src.ops.reflection_promotion_gate
-.\.venv\Scripts\python.exe -m src.ops.reference_note_capability_gate
-.\.venv\Scripts\python.exe -m src.ops.promotion_trace_materiality_gate
-.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
+```bash
+uv run --with-requirements requirements.txt python -m unittest discover -s tests
+uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
+uv run --with-requirements requirements-review.txt python -m src.ops.review_report_cache_index_contract
+uv run --with-requirements requirements-review.txt python -m src.ops.report_cache_promotion_evidence_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.reflection_promotion_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.reference_note_capability_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.promotion_trace_materiality_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 ```
 
 `portfolio_review_gates` should report aggregate `status = ready`. The cache

@@ -1,0 +1,6 @@
+# Minimal dependencies for fixture-backed reviewer commands.
+#
+# Full development, benchmark, ingest, and app dependencies remain in
+# requirements.txt. The portfolio demo/gate CLIs are intentionally lightweight
+# and should not force reviewers to install the full ML stack.
+pydantic==2.12.5

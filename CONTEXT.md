@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 8 requirements/docs cleanup을 진행했다.
+  - `requirements.txt`의 Windows 전용 `pywin32` pin에
+    `sys_platform == "win32"` marker를 붙여 Linux `uv` 환경에서 dependency
+    parsing/install이 막히지 않게 했다.
+  - reviewer-facing fixture/gate 명령은 새 `requirements-review.txt`를
+    사용하도록 README와 핵심 portfolio 문서를 정리했다. 이 파일은
+    `portfolio_demo` / `portfolio_review_gates` 같은 lightweight review
+    commands가 full ML/dev stack을 설치하지 않도록 분리한 것이다.
+  - full development, ingest, benchmark, app 실행은 계속 `requirements.txt`
+    기준이다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json`:
+      `ready`
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `requirements.txt` parsed via `packaging.requirements.Requirement`
+    - `git diff --check`: passed
+
 - 2026-06-17 PR 4 calculation extraction의 current stop line을 문서화했다.
   - `docs/architecture/core_runtime_surface_refactoring_plan.md`에 PR 4 완료된
     extraction surface, 검증 baseline, 더 진행해도 되는 구체 seam, 중단해야

@@ -132,9 +132,9 @@ from `period_focus=prior`, while structural selected
 
 Use these commands for a reviewer-facing walkthrough:
 
-```powershell
-.\.venv\Scripts\python.exe -m src.ops.portfolio_review_gates
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
 ```
 
 Then open:
