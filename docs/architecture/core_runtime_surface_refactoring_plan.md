@@ -233,6 +233,34 @@ or benchmark-specific score tuning. The next implementation focus should move
 to PR 8 requirements/docs cleanup or PR 5 parser extraction unless a
 calculation regression appears.
 
+#### PR 4 Simplification Addendum
+
+Status as of 2026-06-17: PR 4 was briefly reopened for deletion-oriented
+simplification, not helper extraction.
+
+- Removed runtime-dead `_preferred_complete_nested_numeric_narrative_answer`
+  and its dedicated `_preserve_evidence_numeric_display` helper.
+- Removed private-helper-only tests for that unused branch while preserving
+  source-stated growth conflict coverage.
+- Removed `_apply_mutable_numeric_answer` so its two call sites use the
+  canonical `_apply_numeric_answer_to_aggregate_state` path directly.
+- Result:
+  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,483` lines.
+  - Runtime/test diff: `336` deletions, `14` insertions.
+- Verification:
+  - `python -m src.ops.audit_runtime_domain_terms`: passed.
+  - `.venv/bin/python -m unittest tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+    `508` OK.
+  - `.venv/bin/python -m unittest discover -s tests`: `1224` OK.
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`.
+  - `git diff --check`: passed.
+
+Further PR 4 work should use the same deletion-oriented rule: remove a dead or
+duplicated patch path only when runtime callers, private-helper-only tests, and
+review gates confirm the behavior is covered elsewhere. Do not count moving
+code to another file as simplification.
+
 ### PR 5: Parser Extraction
 
 Keep `FinancialParser.process_document()` as the public facade. Move XML loading,

@@ -50,6 +50,33 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 4 Calculation Simplification
+
+- Run date: 2026-06-17
+- Scope: simplify accumulated calculation patch layers instead of only moving
+  helpers between files.
+- Change:
+  - Removed runtime-dead `_preferred_complete_nested_numeric_narrative_answer`
+    and its dedicated `_preserve_evidence_numeric_display` helper.
+  - Removed tests that directly exercised those unused private helpers while
+    keeping source-stated growth conflict coverage.
+  - Removed `_apply_mutable_numeric_answer` and routed its two call sites
+    through the canonical `_apply_numeric_answer_to_aggregate_state` path.
+- Result:
+  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,483` lines.
+  - Runtime/test diff: `336` deletions, `14` insertions.
+- Verification:
+  - `python -m src.ops.audit_runtime_domain_terms`: passed.
+  - `.venv/bin/python -m unittest tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+    `508` OK.
+  - `.venv/bin/python -m unittest discover -s tests`: `1224` OK.
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`.
+  - `git diff --check`: passed.
+- Next simplification candidate: continue auditing runtime-dead private helpers
+  and private-helper-only tests, or reduce the aggregate mutable wrapper layer
+  only when the call path gets simpler rather than merely moved.
+
 ### Latest PR 7 MAS Isolation
 
 - Run date: 2026-06-17

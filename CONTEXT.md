@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 calculation simplification을 재개했다.
+  - 목적을 "helper extraction"이 아니라 누적 patch/dead branch 삭제로 전환했다.
+  - runtime에서 호출되지 않는 `_preferred_complete_nested_numeric_narrative_answer`
+    및 그 전용 `_preserve_evidence_numeric_display` helper를 제거했다.
+  - 해당 private helper만 직접 붙잡던 테스트를 제거하고, source-stated growth
+    conflict 검증은 남겼다.
+  - `_apply_mutable_numeric_answer` wrapper를 제거하고 두 호출부가 canonical
+    `_apply_numeric_answer_to_aggregate_state`를 직접 사용하게 했다.
+  - 결과:
+    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,483` lines
+    - diff: runtime/test 합산 `336` deletions, `14` insertions
+  - 검증:
+    - `python -m src.ops.audit_runtime_domain_terms`: passed
+    - `.venv/bin/python -m unittest tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+      `508` OK
+    - `.venv/bin/python -m unittest discover -s tests`: `1224` OK
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+    - `git diff --check`: passed
+  - 다음 simplification 후보는 새 추출이 아니라, runtime 호출자가 없는 private
+    helper와 private-helper-only tests를 계속 audit하거나, aggregate mutable
+    wrapper 계층을 더 줄일 수 있는지 보는 것이다.
+
 - 2026-06-17 PR 8 docs cleanup 세 번째 조각을 진행했다.
   - `portfolio_one_pager.md`에서 README와 중복되는 긴 command block을 제거하고,
     reviewer command source를 README로 단일화했다.

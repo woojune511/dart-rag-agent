@@ -3885,74 +3885,6 @@ class FinancialAgentCalculationMixin:
             return {"sentence": cleaned, "selected_claim_ids": candidate_claim_ids}
         return {}
 
-    def _preferred_complete_nested_numeric_narrative_answer(
-        self,
-        *,
-        current_answer: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> str:
-        current_text = _normalise_spaces(str(current_answer or ""))
-        best_answer = ""
-        best_rank: tuple[int, int, int, int] = (0, 0, 0, 0)
-        for row in ordered_results:
-            if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            candidate = _normalise_spaces(
-                str(
-                    row.get("answer")
-                    or calculation_result.get("formatted_result")
-                    or calculation_result.get("rendered_value")
-                    or ""
-                )
-            )
-            if not candidate:
-                continue
-            candidate = self._preserve_evidence_numeric_display(candidate, evidence_items or [])
-            if candidate == current_text:
-                continue
-            candidate_numeric_candidates = self._answer_evidence_numeric_candidates(candidate)
-            if not candidate_numeric_candidates:
-                continue
-            if not self._answer_covers_numeric_projection(candidate, ordered_results):
-                continue
-            if self._growth_answer_has_untraced_numeric_material(
-                candidate,
-                ordered_results,
-                evidence_items,
-            ):
-                continue
-            if self._narrative_summary_conflicts_with_growth_trace(
-                candidate,
-                ordered_results,
-                evidence_items,
-            ):
-                continue
-            if current_text:
-                current_terms = {
-                    term.lower()
-                    for term in self._narrative_context_terms(current_text)
-                    if len(term) >= 2
-                }
-                candidate_terms = {
-                    term.lower()
-                    for term in self._narrative_context_terms(candidate)
-                    if len(term) >= 2
-                }
-                if current_terms and not (current_terms & candidate_terms):
-                    continue
-            rank = (
-                len(candidate_numeric_candidates),
-                len(_split_narrative_sentences(candidate) or [candidate]),
-                len(candidate),
-                len(_clean_source_row_ids([row.get("source_row_ids"), calculation_result.get("source_row_ids")])),
-            )
-            if rank > best_rank:
-                best_answer = candidate
-                best_rank = rank
-        return best_answer
-
     def _refresh_numeric_answer_preserving_narrative_context(
         self,
         *,
@@ -5208,23 +5140,6 @@ class FinancialAgentCalculationMixin:
         )
         return mutable_state._replace(synthesis_state=synthesis_state)
 
-    def _apply_mutable_numeric_answer(
-        self,
-        mutable_state: _AggregateMutableState,
-        state: FinancialAgentState,
-        numeric_answer: str,
-        *,
-        sync_projection: bool = False,
-    ) -> _AggregateMutableState:
-        synthesis_state = self._apply_numeric_answer_to_aggregate_state(
-            aggregate_state=mutable_state.synthesis_state,
-            state=state,
-            numeric_answer=numeric_answer,
-            evidence_items=mutable_state.evidence_items,
-            sync_projection=sync_projection,
-        )
-        return mutable_state._replace(synthesis_state=synthesis_state)
-
     def _apply_final_narrative_repair_pipeline(
         self,
         state: FinancialAgentState,
@@ -5765,67 +5680,6 @@ class FinancialAgentCalculationMixin:
             kept_evidence_ids,
         )
         return filtered_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids
-
-    def _preserve_evidence_numeric_display(
-        self,
-        answer: str,
-        evidence_items: List[Dict[str, Any]],
-    ) -> str:
-        answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text or not evidence_items:
-            return answer_text
-        evidence_surface = _normalise_spaces(
-            " ".join(self._evidence_text_for_final_support(item) for item in evidence_items if isinstance(item, dict))
-        )
-        if not evidence_surface:
-            return answer_text
-        answer_candidates = self._answer_evidence_numeric_candidates(answer_text)
-        evidence_candidates = self._evidence_numeric_display_candidates(evidence_items, evidence_surface)
-        if not answer_candidates or not evidence_candidates:
-            return answer_text
-        replacements: List[tuple[int, int, str]] = []
-        for answer_candidate in answer_candidates:
-            if str(answer_candidate.get("kind") or "") != "currency":
-                continue
-            candidate_text = _normalise_spaces(str(answer_candidate.get("text") or ""))
-            span = answer_candidate.get("span")
-            if not candidate_text or not isinstance(span, tuple) or len(span) != 2:
-                continue
-            supported_displays = [
-                evidence_candidate
-                for evidence_candidate in evidence_candidates
-                if str(evidence_candidate.get("kind") or "") == "currency"
-                and _normalise_spaces(str(evidence_candidate.get("text") or ""))
-                and self._numeric_candidates_equivalent_for_evidence(answer_candidate, evidence_candidate)
-            ]
-            if not supported_displays:
-                continue
-            supported_displays.sort(
-                key=lambda item: (
-                    float(item.get("display_step") or 1.0),
-                    -len(_normalise_spaces(str(item.get("text") or ""))),
-                )
-            )
-            replacement = _normalise_spaces(str(supported_displays[0].get("text") or ""))
-            candidate_in_evidence = candidate_text in evidence_surface
-            if candidate_in_evidence:
-                try:
-                    if float(supported_displays[0].get("display_step") or 1.0) >= float(
-                        answer_candidate.get("display_step") or 1.0
-                    ):
-                        continue
-                except (TypeError, ValueError):
-                    continue
-            if replacement and replacement != candidate_text:
-                if candidate_text.startswith("(") and int(span[1]) < len(answer_text) and answer_text[int(span[1])] == ")":
-                    replacement = f"({replacement}"
-                replacements.append((int(span[0]), int(span[1]), replacement))
-        if not replacements:
-            return answer_text
-        updated = answer_text
-        for start, end, replacement in sorted(replacements, reverse=True):
-            updated = f"{updated[:start]}{replacement}{updated[end:]}"
-        return _normalise_spaces(updated)
 
     def _evidence_numeric_display_candidates(
         self,
@@ -18018,10 +17872,13 @@ class FinancialAgentCalculationMixin:
                 else ""
             )
             if late_answer:
-                mutable_state = self._apply_mutable_numeric_answer(
-                    mutable_state,
-                    state=state,
-                    numeric_answer=late_answer,
+                mutable_state = mutable_state._replace(
+                    synthesis_state=self._apply_numeric_answer_to_aggregate_state(
+                        aggregate_state=mutable_state.synthesis_state,
+                        state=state,
+                        numeric_answer=late_answer,
+                        evidence_items=mutable_state.evidence_items,
+                    )
                 )
                 _sync_aggregate_locals()
         mutable_state = self._apply_final_narrative_repair_pipeline(
@@ -18113,10 +17970,13 @@ class FinancialAgentCalculationMixin:
                 )
             )
         ):
-            mutable_state = self._apply_mutable_numeric_answer(
-                mutable_state,
-                state=state,
-                numeric_answer=consistent_numeric_answer,
+            mutable_state = mutable_state._replace(
+                synthesis_state=self._apply_numeric_answer_to_aggregate_state(
+                    aggregate_state=mutable_state.synthesis_state,
+                    state=state,
+                    numeric_answer=consistent_numeric_answer,
+                    evidence_items=mutable_state.evidence_items,
+                )
             )
             _sync_aggregate_locals()
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
