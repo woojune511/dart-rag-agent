@@ -253,9 +253,11 @@ simplification, not helper extraction.
   agent runtime callers.
 - Removed `_replace_aggregate_final_answer` and `_replace_aggregate_results`
   as middle wrappers used only by mutable aggregate state helpers.
+- Removed the unused `_render_grounded_operand_display` agent shim; the
+  module-level rendering helper remains the active implementation.
 - Result:
-  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,299` lines.
-  - Latest runtime-only diff: `83` deletions, `35` insertions.
+  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,296` lines.
+  - Latest runtime-only diff: `3` deletions.
 - Verification:
   - `python -m src.ops.audit_runtime_domain_terms`: passed
     (`215` reviewed literals).

@@ -15742,9 +15742,6 @@ class FinancialAgentCalculationMixin:
             ordered_operands=ordered_operands,
         )
 
-    def _render_grounded_operand_display(self, row: Dict[str, Any]) -> str:
-        return calculation_rendering.render_grounded_operand_display(row)
-
     def _absolute_display_value(self, value: str) -> str:
         return calculation_rendering.absolute_display_value(value)
 

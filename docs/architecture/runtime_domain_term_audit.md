@@ -371,7 +371,7 @@ For each P0 record, classify it as one of:
   keeps the generic mechanics: resolve trace state, remove duplicate negative
   signs when a direction hint is present, call deterministic fallbacks, and
   preserve the rendered calculation result in runtime trace.
-- `_render_grounded_operand_display()` now reads count/percent normalized-unit
+- `render_grounded_operand_display()` now reads count/percent normalized-unit
   groups, KRW normalized/display units, and embedded-unit markers from
   `CALCULATION_RENDER_POLICY`. Runtime keeps the generic mechanics: preserve
   evidence-visible raw values when they already carry a unit and append source

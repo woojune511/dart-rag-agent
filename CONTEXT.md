@@ -27,9 +27,12 @@
   - mutable aggregate state에서만 쓰이던 `_replace_aggregate_final_answer`,
     `_replace_aggregate_results` 중간 wrapper를 제거하고 mutable update 함수가
     직접 state replacement를 수행하게 했다.
+  - 호출자가 없는 `_render_grounded_operand_display` agent shim을 제거했다.
+    실제 구현은 `financial_graph_calculation_rendering.render_grounded_operand_display`
+    모듈 함수로 유지된다.
   - 결과:
-    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,299` lines
-    - latest diff: runtime-only `83` deletions, `35` insertions
+    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,296` lines
+    - latest diff: runtime-only `3` deletions
   - 검증:
     - `python -m src.ops.audit_runtime_domain_terms`: passed
       (`215` reviewed literals)
