@@ -50,6 +50,57 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Expanded Candidate Refresh
+
+- Run date: 2026-06-17
+- Scope: store-fixed `eval-only` full-system refresh of the nine-question
+  expanded ablation candidate after the PR 4 simplification sequence.
+- Profile:
+  - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Local-only artifact directory:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- Heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_current_2026-06-17.jsonl`
+- Run-level readout:
+
+| Metric | Current full-system refresh |
+| --- | ---: |
+| Numeric PASS | `6/9` |
+| Avg numeric pass rate | `0.667` |
+| Avg completeness | `0.600` |
+| Avg faithfulness | `0.783` |
+| Avg context recall | `0.889` |
+| LLM calls | `138` |
+| LLM tokens | `747,220` |
+| Query embedding calls | `54` |
+| Estimated runtime cost | about `$0.6312` |
+| Wall-clock runtime | about `30.5m` |
+
+| Question id | Status | Observation |
+| --- | --- | --- |
+| `KAB_T1_066` | PASS | Positive CIR control remained stable at `37.47%`. |
+| `POS_T1_057` | FAIL | High retrieval support, but final ratio used a signed/displayed interest-cost surface and answered `-791.7%`. |
+| `SAM_T3_028` | PASS | Recovered inventory valuation loss and cost-of-sales denominator, answering `2.79%`. |
+| `MIX_T1_021` | PASS | Calculated both balance-sheet ratios, but completeness remains partial because final answer emphasized one ratio. |
+| `CEL_T1_013` | PASS | Recovered capitalized development cost and R&D cost denominator, answering `52.99%`. |
+| `KBF_T2_018` | FAIL | Growth operands were recovered during the trace, but final answer was narrative-only and failed numeric/completeness. |
+| `KBF_T1_017` | PASS | Retry/aggregate fallback recovered the NIM difference as `0.1%`. |
+| `SKH_T3_080` | PASS | Reproduced the key foreign-currency separating trace: `573,884백만원 - 906,120백만원 = -3,322억원`. |
+| `SKH_T1_060` | FAIL | Debt-component numerator aggregation remains unstable and reproduced the `42.02%` failure shape. |
+
+- Interpretation:
+  - The documented execution rule for the expanded slice requires at least
+    `7/9` full-system numeric PASS before spending on the plain-retrieval
+    counterpart. The current refresh reached only `6/9`, so the plain baseline
+    was not run.
+  - This should be treated as a stop-line before full benchmark expansion, not
+    as a portfolio ablation win.
+  - The most useful next work is residual failure cleanup around final numeric
+    preservation/composition (`KBF_T2_018`) and operand sign/display binding
+    (`POS_T1_057`), while keeping `SKH_T1_060` as a hard diagnostic case.
+- Artifact hygiene: raw `benchmarks/results/**` bundles remain local unless
+  explicitly published.
+
 ### Latest Ablation Smoke Refresh
 
 - Run date: 2026-06-17

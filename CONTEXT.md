@@ -11,6 +11,31 @@
 
 ## 최신 상태
 
+- 2026-06-17 expanded candidate full-system store-fixed `eval-only` refresh를
+  실행했다.
+  - 목적: PR 4 simplification 이후, 기존 expanded ablation claim의 기반인
+    9문항 full-system slice가 현재 코드에서도 재현되는지 확인했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_current_2026-06-17.jsonl`
+  - 결과: full-system numeric pass `6/9`, avg completeness `0.600`,
+    avg faithfulness `0.783`, avg recall `0.889`.
+  - PASS:
+    - `KAB_T1_066`, `SAM_T3_028`, `MIX_T1_021`, `CEL_T1_013`,
+      `KBF_T1_017`, `SKH_T3_080`
+  - FAIL:
+    - `POS_T1_057`: retrieval recall은 `1.000`이지만 이자비용 sign/display가
+      final ratio를 `-791.7%`로 만들었다.
+    - `KBF_T2_018`: growth calculation trace는 있었지만 final answer가
+      narrative-only로 남아 numeric/completeness가 실패했다.
+    - `SKH_T1_060`: 차입금 numerator aggregation이 여전히 불안정해 `42.02%`
+      실패 형태로 남았다.
+  - 해석:
+    - 문서화된 execution rule(`full-system >= 7/9`)을 만족하지 못했으므로
+      expanded plain-retrieval baseline은 실행하지 않았다.
+    - 이 결과는 full benchmark로 확장하기 전 residual binding/composition
+      issues를 먼저 정리해야 한다는 stop-line이다.
+  - raw `benchmarks/results/**` 산출물과 heartbeat log는 local-only다.
+
 - 2026-06-17 PR 4 simplification 이후 store-fixed ablation smoke
   `eval-only` refresh를 실행했다.
   - 목적: full benchmark로 바로 확장하기 전에, 현재 코드가 기존 smoke
