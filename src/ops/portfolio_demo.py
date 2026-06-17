@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.agent.mas_types import critic_report_runtime_acceptance_state
+from src.experimental.mas.types import critic_report_runtime_acceptance_state
 from src.ops.review_report_cache_index_contract import run_review
 
 

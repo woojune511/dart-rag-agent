@@ -25,8 +25,8 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
-from src.agent.mas_graph import run_mas_graph
-from src.agent.nodes.analyst_node import build_financial_analyst_node
+from src.experimental.mas.graph import run_mas_graph
+from src.experimental.mas.nodes import build_financial_analyst_node
 from src.storage.vector_store import VectorStoreManager
 
 DEFAULT_STORE_DIR = (

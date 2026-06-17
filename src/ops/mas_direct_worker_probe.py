@@ -29,10 +29,12 @@ from src.agent.financial_graph_helpers import (
     _resolve_runtime_calculation_trace,
     _resolve_runtime_structured_result,
 )
-from src.agent.mas_graph import build_initial_state
-from src.agent.nodes import build_financial_orchestrator_plan_node
-from src.agent.nodes.researcher_node import (
+from src.experimental.mas.graph import build_initial_state
+from src.experimental.mas.nodes import (
     NarrativeResearcherCore,
+    build_financial_orchestrator_plan_node,
+)
+from src.agent.nodes.researcher_node import (
     _build_enriched_query,
     _build_where_filter,
     _select_narrative_docs,

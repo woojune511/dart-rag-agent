@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 7 MAS isolation 두 번째 조각을 진행했다.
+  - `src/ops/mas_analyst_smoke.py`, `mas_researcher_smoke.py`,
+    `mas_e2e_smoke.py`, `mas_direct_worker_probe.py`, `portfolio_demo.py`의
+    public MAS graph/type/node imports를 `src.experimental.mas` namespace로
+    전환했다.
+  - `mas_direct_worker_probe.py`의 Researcher private diagnostic helpers
+    (`_build_enriched_query`, `_build_where_filter`, `_select_narrative_docs`)
+    는 아직 legacy implementation path에 남겼다. facade public surface를
+    불필요하게 넓히지 않기 위한 의도적 보류다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_mas_e2e_smoke tests.test_mas_direct_worker_probe tests.test_mas_e2e_smoke_contract tests.test_mas_researcher_smoke_contract tests.test_portfolio_demo`:
+      `30` OK
+    - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
+      passed
+    - `git diff --check`: passed
+  - 다음 PR 7 후보는 tests의 public MAS imports를 새 namespace로 옮기거나,
+    Researcher diagnostic private helpers를 public facade로 올릴지 말지
+    결정하는 것이다. 구현 파일 이동은 아직 보류한다.
+
 - 2026-06-17 PR 7 MAS isolation 첫 조각을 진행했다.
   - `src/experimental/mas/` namespace를 추가해 MAS graph/types/nodes를
     experimental surface로 import할 수 있게 했다.

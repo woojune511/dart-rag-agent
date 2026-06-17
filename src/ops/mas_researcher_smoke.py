@@ -23,12 +23,12 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.mas_graph import run_mas_graph
-from src.agent.mas_types import critic_report_runtime_acceptance_state
-from src.agent.nodes.researcher_node import (
+from src.experimental.mas.graph import run_mas_graph
+from src.experimental.mas.nodes import (
     NarrativeResearcherCore,
     build_financial_researcher_node,
 )
+from src.experimental.mas.types import critic_report_runtime_acceptance_state
 from src.storage.vector_store import VectorStoreManager
 
 DEFAULT_STORE_DIR = (

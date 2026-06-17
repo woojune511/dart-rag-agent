@@ -25,14 +25,14 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.mas_graph import run_mas_graph
-from src.agent.nodes import (
+from src.experimental.mas.graph import run_mas_graph
+from src.experimental.mas.nodes import (
     build_financial_analyst_node,
     build_financial_orchestrator_merge_node,
     build_financial_orchestrator_plan_node,
     build_financial_researcher_node,
 )
-from src.agent.mas_types import project_final_report_carry_forward
+from src.experimental.mas.types import project_final_report_carry_forward
 from src.storage.vector_store import VectorStoreManager, get_embedding_runtime_spec
 
 DEFAULT_STORE_DIR = (

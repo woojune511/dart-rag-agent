@@ -381,16 +381,26 @@ boundary.
 - Added `tests/test_experimental_mas_namespace.py` to pin re-export
   compatibility and dummy MAS graph execution through the experimental
   namespace.
+- Migrated public MAS imports in ops smoke/review scripts to
+  `src.experimental.mas`.
+- Kept `mas_direct_worker_probe.py` Researcher private diagnostic helper imports
+  on the legacy implementation path to avoid widening the public facade
+  prematurely.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
+  - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_mas_e2e_smoke tests.test_mas_direct_worker_probe tests.test_mas_e2e_smoke_contract tests.test_mas_researcher_smoke_contract tests.test_portfolio_demo`:
+    `30` OK
   - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py`:
+    passed
+  - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
     passed
   - `git diff --check`: passed
 
-Next PR 7 seam should remain no-behavior-change: migrate ops smoke scripts or
-docs to prefer `src.experimental.mas`, then move implementation files only after
-all current callers have compatibility coverage.
+Next PR 7 seam should remain no-behavior-change: migrate public MAS imports in
+tests to `src.experimental.mas`, or decide whether Researcher diagnostic private
+helpers deserve an explicit experimental facade. Move implementation files only
+after current callers have compatibility coverage.
 
 ### PR 8: Requirements And Docs Cleanup
 
