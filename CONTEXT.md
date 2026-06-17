@@ -11,6 +11,15 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 calculation extraction 누적 변경 뒤 broad regression을 확인했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
+      `225` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop`:
+      `210` OK
+  - 결과: 최근 calculation execution/rendering/result payload extraction 누적분은
+    operation contract와 subtask loop의 넓은 회귀 축에서 통과했다.
+
 - 2026-06-17 PR 4 범위의 calculation extraction 열두 번째 조각을 진행했다.
   - `_execute_calculation`의 scalar success `calculation_result` dict 조립을
     `src/agent/financial_calculation_execution.py`로 이동했다.

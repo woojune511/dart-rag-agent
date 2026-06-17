@@ -50,6 +50,21 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 4 Broad Regression Check
+
+- Run date: 2026-06-17
+- Scope: broad regression after the accumulated PR 4 calculation
+  execution/rendering/result-payload extractions.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
+    `225` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop`:
+    `210` OK
+- Interpretation: the recent calculation extraction series remains compatible
+  with the operation-contract surface and the subtask-loop orchestration
+  regressions. The next implementation step can move on to the remaining
+  `time_series` calculation branch or continue narrower helper extraction.
+
 ### Latest Scalar Calculation Result Extraction
 
 - Run date: 2026-06-17
