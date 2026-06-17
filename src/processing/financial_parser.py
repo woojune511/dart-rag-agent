@@ -20,6 +20,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from lxml import etree
 from pydantic import BaseModel
+from src.processing.section_extraction import (
+    SECTION_TAGS as _SECTION_TAGS,
+    SectionParseTimeout,
+    build_section_path,
+    extract_sections,
+)
 from src.processing.table_records import (
     build_table_row_records,
     build_table_value_records,
@@ -45,7 +51,6 @@ from src.schema import RowRecord, TableObject, ValueRecord
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_SECTION_TAGS = frozenset({"SECTION-1", "SECTION-2", "SECTION-3"})
 _ROMAN_HEADING_RE = re.compile(r"^[IVXLCDM]+\.\s")
 _NUMERIC_HEADING_RE = re.compile(r"^\d+\.\s")
 _SUBNUMERIC_HEADING_RE = re.compile(r"^\d+(?:-\d+)+\.\s")
@@ -151,14 +156,6 @@ _SHORT_BRACKET_LABEL_MAX_CHARS = 8
 class DocumentChunk(BaseModel):
     content: str
     metadata: Dict[str, Any]
-
-
-class SectionParseTimeout(RuntimeError):
-    def __init__(self, section_path: str, stage: str, elapsed_sec: float):
-        super().__init__(f"Section parse budget exceeded [{section_path}] stage={stage} elapsed={elapsed_sec:.3f}s")
-        self.section_path = section_path
-        self.stage = stage
-        self.elapsed_sec = elapsed_sec
 
 
 def _normalize(text: str) -> str:
@@ -1552,90 +1549,24 @@ class FinancialParser:
         return result
 
     def _build_section_path(self, section_elem, title_text: str) -> List[str]:
-        path_titles: List[str] = []
-        ancestors = list(section_elem.iterancestors())
-        for ancestor in reversed(ancestors):
-            if ancestor.tag not in _SECTION_TAGS:
-                continue
-            title_elem = next(
-                (child for child in ancestor if child.tag == "TITLE" and child.get("ATOC") == "Y"),
-                None,
-            )
-            if title_elem is None:
-                continue
-            ancestor_title = _normalize("".join(title_elem.itertext()))
-            if ancestor_title:
-                path_titles.append(ancestor_title)
-        path_titles.append(title_text)
-        return _sanitize_path_titles(path_titles)
+        return build_section_path(
+            section_elem,
+            title_text,
+            normalize_text=_normalize,
+            sanitize_path_titles=_sanitize_path_titles,
+        )
 
     def _extract_sections(self, root) -> List[Dict[str, Any]]:
-        sections: List[Dict[str, Any]] = []
-
-        for section in root.iter():
-            if section.tag not in _SECTION_TAGS:
-                continue
-
-            title_elem = next(
-                (child for child in section if child.tag == "TITLE" and child.get("ATOC") == "Y"),
-                None,
-            )
-            if title_elem is None:
-                continue
-
-            title_text = _normalize("".join(title_elem.itertext()))
-            if not title_text:
-                continue
-
-            path_titles = self._build_section_path(section, title_text)
-            section_path = " > ".join(path_titles)
-            section_started_at = time.perf_counter()
-            fallback_used = False
-            parse_mode = "structured" if _is_structured_section(section_path) else "plain"
-            deadline_monotonic = None
-            if self.section_parse_budget_sec > 0:
-                deadline_monotonic = section_started_at + self.section_parse_budget_sec
-            try:
-                blocks = self._collect_blocks(
-                    section,
-                    section_path,
-                    deadline_monotonic=deadline_monotonic,
-                    timeout_label=section_path,
-                )
-            except SectionParseTimeout as exc:
-                fallback_used = True
-                logger.warning(
-                    "Section parse budget exceeded; retrying with plain fallback [%s] stage=%s elapsed=%.3fs",
-                    section_path,
-                    exc.stage,
-                    exc.elapsed_sec,
-                )
-                blocks = self._collect_blocks(section, section_path, structured_override=False)
-                parse_mode = "plain_fallback"
-            section_elapsed_sec = time.perf_counter() - section_started_at
-            if section_elapsed_sec >= self.section_warn_sec:
-                logger.info(
-                    "Section parse timing [%s] mode=%s blocks=%s elapsed=%.3fs",
-                    section_path,
-                    parse_mode,
-                    len(blocks),
-                    section_elapsed_sec,
-                )
-            if not blocks:
-                continue
-            sections.append(
-                {
-                    "title": title_text,
-                    "path_titles": path_titles,
-                    "path": section_path,
-                    "blocks": blocks,
-                    "parse_mode": parse_mode,
-                    "parse_sec": section_elapsed_sec,
-                    "fallback_used": fallback_used,
-                }
-            )
-
-        return sections
+        return extract_sections(
+            root,
+            normalize_text=_normalize,
+            sanitize_path_titles=_sanitize_path_titles,
+            is_structured_section=_is_structured_section,
+            collect_blocks=self._collect_blocks,
+            section_warn_sec=self.section_warn_sec,
+            section_parse_budget_sec=self.section_parse_budget_sec,
+            logger=logger,
+        )
 
     def _parse_xml(self, file_path: str):
         parser = etree.XMLParser(recover=True, encoding="utf-8", huge_tree=True)

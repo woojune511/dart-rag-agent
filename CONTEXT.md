@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 5 parser extraction 세 번째 조각을 진행했다.
+  - `src/processing/section_extraction.py`를 추가해 section tag iteration,
+    section path construction, parse budget/fallback orchestration, parse
+    timing, section payload assembly를 `FinancialParser` facade 밖으로
+    분리했다.
+  - `SectionParseTimeout`은 새 모듈로 이동하고, 기존
+    `src.processing.financial_parser.SectionParseTimeout` import surface는
+    re-export 형태로 유지했다.
+  - `FinancialParser._build_section_path()`와 `_extract_sections()`는
+    compatibility wrapper로 남겼다. block state machine인 `_collect_blocks()`
+    는 아직 parser facade 안에 남아 있다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+      `28` OK
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+      `14` OK
+    - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+  - 다음 PR 5 후보는 `_collect_blocks()` block state machine, chunking,
+    reference resolution 순서의 no-behavior-change extraction이다.
+
 - 2026-06-17 PR 5 parser extraction 두 번째 조각을 진행했다.
   - `src/processing/table_structure.py`를 추가해 XML table grid
     reconstruction, merged-cell propagation, table text formatting, span

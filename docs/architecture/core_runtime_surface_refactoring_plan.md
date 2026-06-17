@@ -262,6 +262,12 @@ extractions behind the `FinancialParser.process_document()` facade.
   `_format_table_grid()`, `_table_has_spans()`,
   `_extract_table_row_labels_from_grid()`, `_build_table_object()`, and
   `_grid_row_to_text()` remain compatibility wrappers.
+- Added `src/processing/section_extraction.py` for section tag iteration,
+  section path construction, parse budget/fallback orchestration, parse timing,
+  and section payload assembly.
+- `FinancialParser._build_section_path()` and `_extract_sections()` remain
+  compatibility wrappers. The block state machine still lives in
+  `FinancialParser._collect_blocks()` and is the next parser extraction seam.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
@@ -272,8 +278,8 @@ extractions behind the `FinancialParser.process_document()` facade.
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
 
-Next PR 5 seams should remain no-behavior-change extractions: section/block
-extraction, chunking, then reference resolution. Do not combine those with
+Next PR 5 seams should remain no-behavior-change extractions: block collection
+state machine, chunking, then reference resolution. Do not combine those with
 parser behavior repair unless a metadata snapshot test first exposes a concrete
 drift.
 

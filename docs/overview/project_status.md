@@ -50,7 +50,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
-### Latest PR 5 Parser Table-Record Extraction
+### Latest PR 5 Parser Extraction
 
 - Run date: 2026-06-17
 - Scope: no-behavior-change parser extractions under the
@@ -68,6 +68,12 @@ role-separated multi-agent system using a task ledger and artifact store.
     detection, row-label extraction, and table-object payload assembly.
   - Existing table structure private methods remain compatibility wrappers for
     tests and callers.
+  - Added `src/processing/section_extraction.py` for section tag iteration,
+    section path construction, parse budget/fallback orchestration, parse
+    timing, and section payload assembly.
+  - `FinancialParser._build_section_path()` and `_extract_sections()` now
+    delegate to the extracted module; `_collect_blocks()` remains in the parser
+    facade as the next block-state-machine seam.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
@@ -77,9 +83,9 @@ role-separated multi-agent system using a task ledger and artifact store.
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
-- Next parser extraction candidates: section/block extraction, chunking, then
-  reference resolution. Keep these as no-behavior-change extractions unless a
-  metadata snapshot test exposes drift.
+- Next parser extraction candidates: block collection state machine, chunking,
+  then reference resolution. Keep these as no-behavior-change extractions unless
+  a metadata snapshot test exposes drift.
 
 ### Latest PR 8 Requirements/Docs Cleanup
 
