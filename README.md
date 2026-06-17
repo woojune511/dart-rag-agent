@@ -184,8 +184,9 @@ for traceability, but they are not first-read portfolio documents.
 
 ```text
 src/
-  agent/       runtime graph, MAS nodes, task/artifact contracts
+  agent/       default runtime graph and compatibility MAS imports
   config/      ontology, retrieval policy, cache classification
+  experimental/mas  experimental multi-agent facade
   ops/         evaluator, benchmark runner, smoke/review commands
   processing/  DART parsing and chunk preparation
   storage/     vector/BM25 storage and retrieval support

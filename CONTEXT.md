@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 7 MAS isolation 첫 조각을 진행했다.
+  - `src/experimental/mas/` namespace를 추가해 MAS graph/types/nodes를
+    experimental surface로 import할 수 있게 했다.
+  - 기존 `src.agent.mas_graph`, `src.agent.mas_types`,
+    `src.agent.nodes.*` implementation과 import surface는 compatibility
+    path로 유지했다. 아직 파일 이동은 하지 않았다.
+  - `tests/test_experimental_mas_namespace.py`를 추가해 새 namespace가 기존
+    MAS graph/types/node factory surface를 re-export하고 dummy MAS graph를
+    실행할 수 있음을 고정했다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
+      `36` OK
+    - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py`:
+      passed
+    - `git diff --check`: passed
+  - 다음 PR 7 후보는 ops smoke scripts 또는 docs에서 새
+    `src.experimental.mas` namespace를 우선 사용하도록 바꾸는
+    no-behavior-change adapter migration이다.
+
 - 2026-06-17 PR 6 vector store extraction 네 번째 조각을 진행했다.
   - `src/storage/structure_graph.py`를 추가해 structure graph payload
     normalization, BM25 payload projection, vector result hydration,

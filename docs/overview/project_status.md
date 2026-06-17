@@ -50,6 +50,27 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 7 MAS Isolation
+
+- Run date: 2026-06-17
+- Scope: first no-behavior-change MAS isolation step.
+- Change:
+  - Added the `src.experimental.mas` namespace as the experimental import
+    boundary for MAS graph, typed state, and node factories.
+  - Preserved the existing `src.agent.mas_graph`, `src.agent.mas_types`, and
+    `src.agent.nodes.*` implementation/import surface as compatibility paths.
+  - Added `tests/test_experimental_mas_namespace.py` to pin that the new
+    namespace re-exports the existing MAS graph/types/node factory surface and
+    can run the dummy MAS graph.
+- Verification:
+  - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
+    `36` OK
+  - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py`:
+    passed
+  - `git diff --check`: passed
+- Next MAS isolation candidate: migrate ops smoke scripts or docs to prefer
+  `src.experimental.mas` while keeping legacy imports intact.
+
 ### Latest PR 6 Vector Store Extraction
 
 - Run date: 2026-06-17

@@ -368,6 +368,30 @@ Move MAS code under `experimental/mas` and keep compatibility shims only where
 needed. Documentation should describe MAS as an experimental wrapper around the
 core financial runtime, not as the default product engine.
 
+#### PR 7 Current Status
+
+Status as of 2026-06-17: PR 7 has started with a no-behavior-change import
+boundary.
+
+- Added `src/experimental/mas/` as the experimental namespace for MAS graph,
+  typed state, and node factories.
+- Existing `src.agent.mas_graph`, `src.agent.mas_types`, and
+  `src.agent.nodes.*` implementation/import paths remain compatibility
+  surfaces. Files have not moved yet.
+- Added `tests/test_experimental_mas_namespace.py` to pin re-export
+  compatibility and dummy MAS graph execution through the experimental
+  namespace.
+- Verification:
+  - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
+    `36` OK
+  - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py`:
+    passed
+  - `git diff --check`: passed
+
+Next PR 7 seam should remain no-behavior-change: migrate ops smoke scripts or
+docs to prefer `src.experimental.mas`, then move implementation files only after
+all current callers have compatibility coverage.
+
 ### PR 8: Requirements And Docs Cleanup
 
 Split dependencies or introduce extras so core, API, ingest, eval, dev, and UI
