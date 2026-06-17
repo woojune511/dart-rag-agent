@@ -34,10 +34,10 @@ from src.experimental.mas.nodes import (
     NarrativeResearcherCore,
     build_financial_orchestrator_plan_node,
 )
-from src.agent.nodes.researcher_node import (
-    _build_enriched_query,
-    _build_where_filter,
-    _select_narrative_docs,
+from src.experimental.mas.diagnostics import (
+    build_researcher_probe_query,
+    build_researcher_probe_where_filter,
+    select_researcher_probe_docs,
 )
 from src.ops.mas_e2e_smoke import DEFAULT_COLLECTION, DEFAULT_QUERIES, DEFAULT_SCOPE, DEFAULT_STORE_DIR
 from src.storage.vector_store import VectorStoreManager
@@ -153,15 +153,15 @@ def _researcher_retrieval_probe(
     report_scope: Dict[str, Any],
     k: int,
 ) -> Dict[str, Any]:
-    where_filter = _build_where_filter(dict(report_scope or {}))
-    enriched_query = _build_enriched_query(instruction, dict(report_scope or {}))
+    where_filter = build_researcher_probe_where_filter(dict(report_scope or {}))
+    enriched_query = build_researcher_probe_query(instruction, dict(report_scope or {}))
     try:
         raw_docs = vector_store_manager.search(
             enriched_query,
             k=max(int(k or 0) * 3, 12),
             where_filter=where_filter,
         )
-        selected_docs = _select_narrative_docs(raw_docs, limit=int(k or 0))
+        selected_docs = select_researcher_probe_docs(raw_docs, limit=int(k or 0))
         return {
             "status": "ok",
             "where_filter": where_filter,

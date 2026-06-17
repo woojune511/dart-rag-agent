@@ -390,12 +390,17 @@ boundary.
   `src.experimental.mas`.
 - Legacy test imports remain only for compatibility assertions and
   implementation-private helper/constant tests.
+- Added `src.experimental.mas.diagnostics` for MAS worker-probe Researcher
+  diagnostic helpers, and moved `src/ops/mas_direct_worker_probe.py` off direct
+  `src.agent.nodes.researcher_node` private-helper imports.
+- Diagnostic helpers are not re-exported by top-level `src.experimental.mas`;
+  callers must opt into the diagnostic module explicitly.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_mas_e2e_smoke tests.test_mas_direct_worker_probe tests.test_mas_e2e_smoke_contract tests.test_mas_researcher_smoke_contract tests.test_portfolio_demo`:
-    `30` OK
-  - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py`:
+    `31` OK
+  - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py src/experimental/mas/diagnostics.py`:
     passed
   - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
     passed
@@ -405,10 +410,10 @@ boundary.
     ready
   - `git diff --check`: passed
 
-Next PR 7 seam should remain no-behavior-change: decide whether Researcher
-diagnostic private helpers deserve an explicit experimental facade, then perform
-a full caller import scan before any implementation file move. Move
-implementation files only after current callers have compatibility coverage.
+Next PR 7 seam should remain no-behavior-change: perform a full caller import
+scan and decide the compatibility shim/deprecation strategy before any
+implementation file move. Move implementation files only after current callers
+have compatibility coverage.
 
 ### PR 8: Requirements And Docs Cleanup
 

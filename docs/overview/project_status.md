@@ -73,12 +73,17 @@ role-separated multi-agent system using a task ledger and artifact store.
     `src.experimental.mas`.
   - Kept legacy imports only for compatibility assertions and
     implementation-private helper/constant tests.
+  - Added `src.experimental.mas.diagnostics` for MAS worker-probe Researcher
+    diagnostic helpers, and moved `src/ops/mas_direct_worker_probe.py` off
+    direct `src.agent.nodes.researcher_node` private-helper imports.
+  - Kept diagnostic helpers out of top-level `src.experimental.mas` exports so
+    the main experimental MAS facade remains graph/type/node oriented.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_mas_e2e_smoke tests.test_mas_direct_worker_probe tests.test_mas_e2e_smoke_contract tests.test_mas_researcher_smoke_contract tests.test_portfolio_demo`:
-    `30` OK
-  - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py`:
+    `31` OK
+  - `python -m py_compile src/experimental/__init__.py src/experimental/mas/__init__.py src/experimental/mas/graph.py src/experimental/mas/nodes.py src/experimental/mas/types.py src/experimental/mas/diagnostics.py`:
     passed
   - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
     passed
@@ -88,7 +93,7 @@ role-separated multi-agent system using a task ledger and artifact store.
     ready
   - `git diff --check`: passed
 - Next MAS isolation candidate: decide whether Researcher diagnostic private
-  helpers deserve an explicit experimental facade, then perform a full caller
+  helper compatibility should stay diagnostic-only, then perform a full caller
   import scan before any implementation file move. Keep implementation file
   moves on hold.
 

@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 7 MAS isolation 네 번째 조각을 진행했다.
+  - `src.experimental.mas.diagnostics`를 추가해 MAS worker probe가 쓰는
+    Researcher diagnostic helper surface를 experimental namespace에 분리했다.
+  - `src/ops/mas_direct_worker_probe.py`는 더 이상
+    `src.agent.nodes.researcher_node`의 private helper를 직접 import하지 않는다.
+  - top-level `src.experimental.mas`에는 diagnostic helper를 re-export하지 않아
+    product-facing MAS facade를 불필요하게 넓히지 않았다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_mas_direct_worker_probe tests.test_mas_e2e_smoke tests.test_mas_e2e_smoke_contract tests.test_mas_researcher_smoke_contract tests.test_portfolio_demo`:
+      `31` OK
+    - `python -m py_compile src/experimental/mas/diagnostics.py src/ops/mas_direct_worker_probe.py tests/test_experimental_mas_namespace.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      ready
+    - `git diff --check`: passed
+  - 다음 PR 7 후보는 full caller import scan 결과를 문서화하고,
+    implementation file 이동 전에 compatibility shim/deprecation strategy를
+    확정하는 것이다.
+
 - 2026-06-17 PR 7 MAS isolation 세 번째 조각을 진행했다.
   - MAS focused tests의 public graph/type/node factory imports를
     `src.experimental.mas` namespace로 전환했다.
