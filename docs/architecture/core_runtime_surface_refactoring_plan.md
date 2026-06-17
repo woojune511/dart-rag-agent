@@ -180,6 +180,59 @@ Responsibilities should remain clear:
 - verifier checks trace and answer consistency
 - reflection decides the next action after failure
 
+#### PR 4 Current Status And Stop Line
+
+Status as of 2026-06-17: the high-risk calculation extraction work is
+functionally complete enough to pause. The file is still large, but the most
+important runtime boundaries now have focused modules and regression coverage:
+
+- answer slot construction:
+  `src/agent/financial_answer_slots.py`
+- calculation execution/result payload helpers:
+  `src/agent/financial_calculation_execution.py`
+- calculation rendering helpers:
+  `src/agent/financial_graph_calculation_rendering.py`
+- text/narrative surface helpers:
+  `src/agent/financial_text_surface.py`
+- reflection/task-artifact projection helpers:
+  `src/agent/financial_reflection_projection.py`
+
+The extracted surfaces now cover:
+
+- failure `calculation_result` payloads
+- scalar current/prior/delta state assembly
+- scalar and time-series result payload construction
+- scalar and time-series result `series` rows
+- scalar and time-series rendered result display
+- time-series pairwise YoY growth calculations
+- successful scalar and time-series task/artifact publication
+- answer-slot row construction and aggregate slot assembly
+- reflection action/report and task-artifact integrity feedback
+
+Verification baseline after the extraction sequence:
+
+- `tests.test_operation_contracts`: `226` OK
+- `tests.test_subtask_loop`: `210` OK
+- `tests.test_financial_calculation_execution` +
+  `tests.test_financial_calculation_rendering`: `22` OK
+- `python -m src.ops.audit_runtime_domain_terms`: passed with `216` reviewed
+  literals
+
+Stop line: do not continue splitting `financial_graph_calculation.py` merely to
+reduce file size. Continue PR 4 only when a concrete bug or contract gap points
+to one of these specific seams:
+
+- metric-name derivation for time-series results
+- remaining calculation normalization/repair helpers that can be moved without
+  adding domain vocabulary to runtime code
+- verification/reflection callbacks that need a clearer typed boundary
+- removal of compatibility aliases after callers no longer depend on them
+
+Do not start new PR 4 work for broad aesthetic cleanup, unrelated rename churn,
+or benchmark-specific score tuning. The next implementation focus should move
+to PR 8 requirements/docs cleanup or PR 5 parser extraction unless a
+calculation regression appears.
+
 ### PR 5: Parser Extraction
 
 Keep `FinancialParser.process_document()` as the public facade. Move XML loading,

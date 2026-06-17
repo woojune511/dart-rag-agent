@@ -50,6 +50,30 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 4 Stop-Line Documentation
+
+- Run date: 2026-06-17
+- Scope: PR 4 calculation extraction handoff and stop-line documentation.
+- Change:
+  - `docs/architecture/core_runtime_surface_refactoring_plan.md` now records the
+    extracted calculation surfaces, verification baseline, concrete seams where
+    PR 4 may continue, and cleanup cases that should be avoided.
+  - Current recommendation: pause PR 4 unless a calculation regression or
+    contract gap appears. File-size reduction alone is not a sufficient reason
+    to keep splitting `financial_graph_calculation.py`.
+- Current extracted surfaces include answer slots, execution/result payloads,
+  rendering, text/narrative surface helpers, reflection projection helpers,
+  scalar/time-series result state and display helpers, and scalar/time-series
+  task/artifact publication.
+- Verification baseline referenced by the stop line:
+  - `tests.test_operation_contracts`: `226` OK
+  - `tests.test_subtask_loop`: `210` OK
+  - `tests.test_financial_calculation_execution` +
+    `tests.test_financial_calculation_rendering`: `22` OK
+  - runtime domain-term audit: passed with `216` reviewed literals
+- Next implementation focus should move to PR 8 requirements/docs cleanup or
+  PR 5 parser extraction unless a concrete calculation issue appears.
+
 ### Latest Subtask Loop Broad Regression Check
 
 - Run date: 2026-06-17

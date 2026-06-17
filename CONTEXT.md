@@ -11,6 +11,15 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 calculation extraction의 current stop line을 문서화했다.
+  - `docs/architecture/core_runtime_surface_refactoring_plan.md`에 PR 4 완료된
+    extraction surface, 검증 baseline, 더 진행해도 되는 구체 seam, 중단해야
+    하는 cleanup 유형을 추가했다.
+  - 현재 판단: PR 4는 file-size reduction 자체를 목표로 계속 밀지 않고,
+    concrete calculation regression이나 contract gap이 생길 때만 이어간다.
+    다음 구현 축은 PR 8 requirements/docs cleanup 또는 PR 5 parser extraction이
+    더 적절하다.
+
 - 2026-06-17 `time_series` calculation publication 정렬 후 subtask loop broad
   regression을 확인했다.
   - 검증:
