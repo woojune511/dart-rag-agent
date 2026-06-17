@@ -5,6 +5,7 @@ from src.agent.financial_calculation_execution import (
     build_scalar_calculation_result,
     build_scalar_calculation_state,
     build_success_calculation_state_payload,
+    build_time_series_calculation_result,
 )
 
 
@@ -252,6 +253,41 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         self.assertEqual(result["derived_metrics"]["formula_result_value"], 12.0)
         self.assertTrue(result["derived_metrics"]["source_stated_result_used"])
         self.assertEqual(result["explanation"], "calculated")
+
+    def test_build_time_series_calculation_result_projects_series_slots_and_metrics(self) -> None:
+        result = build_time_series_calculation_result(
+            result_value=15.0,
+            result_unit="%",
+            rendered_value="15.0%",
+            result_series=[
+                {"label": "p1", "normalized_value": 100.0},
+                {"label": "p2", "normalized_value": 115.0},
+            ],
+            operation_family="trend",
+            operation="time_series_trend",
+            metric_name="Metric",
+            normalized_unit="PERCENT",
+            yoy_growth_rates=[None, 15.0],
+            formula="((B - A) / A) * 100",
+            pairwise_formula="((CURR - PREV) / PREV) * 100",
+            explanation="calculated trend",
+        )
+
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["result_value"], 15.0)
+        self.assertEqual(result["result_unit"], "%")
+        self.assertEqual(result["rendered_value"], "15.0%")
+        self.assertEqual(result["series"][1]["label"], "p2")
+        self.assertEqual(result["answer_slots"]["operation_family"], "trend")
+        self.assertEqual(result["answer_slots"]["metric_label"], "Metric")
+        self.assertEqual(result["answer_slots"]["primary_value"]["normalized_value"], 15.0)
+        self.assertEqual(result["answer_slots"]["primary_value"]["normalized_unit"], "PERCENT")
+        self.assertEqual(result["answer_slots"]["primary_value"]["rendered_value"], "15%")
+        self.assertEqual(result["derived_metrics"]["metric_name"], "Metric")
+        self.assertEqual(result["derived_metrics"]["yoy_growth_rates"], [None, 15.0])
+        self.assertEqual(result["derived_metrics"]["formula"], "((B - A) / A) * 100")
+        self.assertEqual(result["derived_metrics"]["pairwise_formula"], "((CURR - PREV) / PREV) * 100")
+        self.assertEqual(result["explanation"], "calculated trend")
 
 
 if __name__ == "__main__":

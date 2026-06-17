@@ -50,6 +50,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Time-Series Calculation Result Extraction
+
+- Run date: 2026-06-17
+- Scope: thirteenth narrow PR 4 calculation extraction from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+- Change:
+  - `time_series` success `calculation_result` dict assembly moved from
+    `_execute_calculation` to `src/agent/financial_calculation_execution.py`.
+  - Extracted helper: `build_time_series_calculation_result`.
+  - The helper packages the already-computed trend result, rendered value,
+    result series, primary answer slot, and formula metadata into the existing
+    result payload shape.
+- Interpretation: this is a no-behavior-change execution-boundary extraction.
+  Time-series operand sorting, formula evaluation, evidence selection, and
+  runtime trace update remain in the existing `_execute_calculation` flow.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution`:
+    `9` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+    `4` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+    passed
+
 ### Latest PR 4 Broad Regression Check
 
 - Run date: 2026-06-17

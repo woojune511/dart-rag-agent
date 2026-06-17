@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List
 
-from src.agent.financial_answer_slots import build_answer_slots
+from src.agent.financial_answer_slots import build_answer_slots, build_calculated_value_slot
 from src.agent.financial_graph_helpers import (
     _append_artifact,
     _clean_source_row_ids,
@@ -238,6 +238,49 @@ def build_scalar_calculation_result(
             "operation_family": operation_family or operation,
             "formula_result_value": formula_result_value,
             "source_stated_result_used": bool(scalar_state.get("source_stated_result_used")),
+        },
+        "explanation": explanation,
+    }
+
+
+def build_time_series_calculation_result(
+    *,
+    result_value: float,
+    result_unit: str,
+    rendered_value: str,
+    result_series: List[Dict[str, Any]],
+    operation_family: str,
+    operation: str,
+    metric_name: str,
+    normalized_unit: str,
+    yoy_growth_rates: List[Any],
+    formula: str,
+    pairwise_formula: str,
+    explanation: str,
+) -> Dict[str, Any]:
+    return {
+        "status": "ok",
+        "result_value": result_value,
+        "result_unit": result_unit,
+        "rendered_value": rendered_value,
+        "formatted_result": "",
+        "series": list(result_series),
+        "answer_slots": {
+            "operation_family": operation_family or operation,
+            "metric_label": metric_name,
+            "primary_value": build_calculated_value_slot(
+                label=metric_name,
+                normalized_value=result_value,
+                normalized_unit=normalized_unit,
+                display_unit=result_unit,
+                role="primary_value",
+            ),
+        },
+        "derived_metrics": {
+            "metric_name": metric_name,
+            "yoy_growth_rates": list(yoy_growth_rates),
+            "formula": formula,
+            "pairwise_formula": pairwise_formula,
         },
         "explanation": explanation,
     }

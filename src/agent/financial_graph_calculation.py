@@ -20,6 +20,7 @@ from src.agent.financial_calculation_execution import (
     build_scalar_calculation_state,
     build_scalar_calculation_result,
     build_success_calculation_state_payload,
+    build_time_series_calculation_result,
 )
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
@@ -16749,32 +16750,20 @@ class FinancialAgentCalculationMixin:
                 else:
                     rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
                 logger.info("[calculator] mode=%s op=%s result=%s", mode, operation, rendered_value)
-                calc_result = {
-                    "status": "ok",
-                    "result_value": result_value,
-                    "result_unit": result_unit,
-                    "rendered_value": rendered_value,
-                    "formatted_result": "",
-                    "series": result_series,
-                    "answer_slots": {
-                        "operation_family": operation_family or operation,
-                        "metric_label": metric_name,
-                        "primary_value": self._build_calculated_value_slot(
-                            label=metric_name,
-                            normalized_value=result_value,
-                            normalized_unit=normalized_unit,
-                            display_unit=result_unit,
-                            role="primary_value",
-                        ),
-                    },
-                    "derived_metrics": {
-                        "metric_name": metric_name,
-                        "yoy_growth_rates": yoy_growth_rates,
-                        "formula": formula,
-                        "pairwise_formula": pairwise_formula,
-                    },
-                    "explanation": explanation or str(plan.get("operation_text") or operation or mode),
-                }
+                calc_result = build_time_series_calculation_result(
+                    result_value=float(result_value),
+                    result_unit=result_unit,
+                    rendered_value=rendered_value,
+                    result_series=result_series,
+                    operation_family=operation_family,
+                    operation=operation,
+                    metric_name=metric_name,
+                    normalized_unit=normalized_unit,
+                    yoy_growth_rates=yoy_growth_rates,
+                    formula=formula,
+                    pairwise_formula=pairwise_formula,
+                    explanation=explanation or str(plan.get("operation_text") or operation or mode),
+                )
                 return {
                     "answer": "",
                     "compressed_answer": "",

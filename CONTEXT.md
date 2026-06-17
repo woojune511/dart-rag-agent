@@ -11,6 +11,23 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 열세 번째 조각을 진행했다.
+  - `_execute_calculation`의 `time_series` success `calculation_result` dict
+    조립을 `src/agent/financial_calculation_execution.py`로 이동했다.
+    - `build_time_series_calculation_result`
+  - helper는 이미 계산된 trend result, rendered value, result series,
+    primary answer slot, formula metadata를 기존 payload shape로 구성한다.
+    시계열 정렬, 수식 평가, evidence selection, trace update는 변경하지 않았다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution`:
+      `9` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+      `4` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+      passed
+
 - 2026-06-17 PR 4 calculation extraction 누적 변경 뒤 broad regression을 확인했다.
   - 검증:
     - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
