@@ -11,6 +11,24 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 6 vector store extraction 두 번째 조각을 진행했다.
+  - `src/storage/metadata_payloads.py`를 추가해 Chroma metadata sanitization,
+    table payload sidecar id/stats/load/hydration/compaction helpers를
+    `VectorStoreManager` facade 밖으로 분리했다.
+  - 기존 `_metadata_for_chroma`, `_table_payload_sidecar_stats`,
+    `_load_table_payloads`, `_table_payload_id`,
+    `_metadata_with_table_payload`, `_compact_node_for_storage` surface는
+    compatibility wrapper로 유지했다.
+  - `VectorStoreManager.search()`와 telemetry path는 건드리지 않았다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
+      `18` OK
+    - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py`:
+      passed
+    - `git diff --check`: passed
+  - 다음 PR 6 후보는 BM25 index/search helpers 또는 structure graph
+    relationship/accessor helpers의 no-behavior-change extraction이다.
+
 - 2026-06-17 PR 6 vector store extraction 첫 조각을 진행했다.
   - `src/storage/embedding_config.py`를 추가해 embedding provider selection,
     default model selection, known dimension lookup, runtime spec 생성,

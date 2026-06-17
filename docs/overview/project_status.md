@@ -53,7 +53,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Latest PR 6 Vector Store Extraction
 
 - Run date: 2026-06-17
-- Scope: first no-behavior-change vector-store extraction under the
+- Scope: no-behavior-change vector-store extractions under the
   `VectorStoreManager` facade.
 - Change:
   - Added `src/storage/embedding_config.py` for embedding provider selection,
@@ -63,16 +63,21 @@ role-separated multi-agent system using a task ledger and artifact store.
     `DEFAULT_EMBEDDING_PROVIDER`, `DEFAULT_EMBEDDING_MODEL`,
     `create_embeddings`, `get_embedding_runtime_spec`,
     `infer_embedding_dimension`, and `_select_default_embedding_provider`.
+  - Added `src/storage/metadata_payloads.py` for Chroma metadata sanitization,
+    table payload sidecar id/stats/load, metadata hydration, and compact node
+    storage helpers.
+  - Preserved the existing metadata/payload helper surface in
+    `src.storage.vector_store` through compatibility wrappers.
   - Left `VectorStoreManager.search()` behavior and search telemetry untouched.
 - Verification:
-  - `.venv/bin/python -m unittest tests.test_embedding_runtime_config tests.test_vector_store_fallback`:
+  - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
     `18` OK
-  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py`:
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py`:
     passed
   - `git diff --check`: passed
-- Next vector-store extraction candidate: Chroma metadata sanitization / table
-  payload sidecar helpers or BM25 index/search helpers. Keep the next change
-  no-behavior-change and preserve telemetry keys.
+- Next vector-store extraction candidate: BM25 index/search helpers or
+  structure graph relationship/accessor helpers. Keep the next change
+  no-behavior-change and preserve search telemetry keys.
 
 ### Latest PR 5 Parser Extraction
 

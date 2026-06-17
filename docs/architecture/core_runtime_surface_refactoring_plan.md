@@ -328,17 +328,22 @@ behind the `VectorStoreManager` facade.
   `DEFAULT_EMBEDDING_PROVIDER`, `DEFAULT_EMBEDDING_MODEL`,
   `create_embeddings`, `get_embedding_runtime_spec`,
   `infer_embedding_dimension`, and `_select_default_embedding_provider`.
+- Added `src/storage/metadata_payloads.py` for Chroma metadata sanitization,
+  table payload sidecar id/stats/load, metadata hydration, and compact node
+  storage helpers.
+- Preserved the existing metadata/payload helper surface in
+  `src.storage.vector_store` through compatibility wrappers.
 - `VectorStoreManager.search()` behavior and telemetry keys are unchanged.
 - Verification:
-  - `.venv/bin/python -m unittest tests.test_embedding_runtime_config tests.test_vector_store_fallback`:
+  - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
     `18` OK
-  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py`:
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py`:
     passed
   - `git diff --check`: passed
 
-Next PR 6 seam should remain no-behavior-change: Chroma metadata sanitization /
-table payload sidecar helpers or BM25 index/search helpers. Do not combine this
-with retrieval behavior tuning.
+Next PR 6 seam should remain no-behavior-change: BM25 index/search helpers or
+structure graph relationship/accessor helpers. Do not combine this with
+retrieval behavior tuning.
 
 ### PR 7: MAS Isolation
 

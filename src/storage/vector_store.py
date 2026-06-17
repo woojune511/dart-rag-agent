@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 import os
@@ -18,6 +17,18 @@ from src.storage.embedding_config import (
     infer_embedding_dimension,
     _select_default_embedding_provider,
 )
+from src.storage.metadata_payloads import (
+    CHROMA_METADATA_DROP_KEYS as _CHROMA_METADATA_DROP_KEYS,
+    CHROMA_METADATA_MAX_STRING_LEN as _CHROMA_METADATA_MAX_STRING_LEN,
+    TABLE_PAYLOAD_ID_KEY as _TABLE_PAYLOAD_ID_KEY,
+    TABLE_PAYLOAD_METADATA_KEYS as _TABLE_PAYLOAD_METADATA_KEYS,
+    compact_node_for_storage,
+    load_table_payloads,
+    metadata_for_chroma,
+    metadata_with_table_payload,
+    table_payload_id,
+    table_payload_sidecar_stats,
+)
 from src.utils.embedding_usage import (
     add_embedding_usage_counts,
     subtract_embedding_usage_counts,
@@ -29,18 +40,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_COLLECTION_NAME = "dart_reports_v2"
 DEFAULT_CHROMA_HNSW_BATCH_SIZE = int(os.getenv("DART_CHROMA_HNSW_BATCH_SIZE", "100") or 100)
 DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD = int(os.getenv("DART_CHROMA_HNSW_SYNC_THRESHOLD", "100000") or 100000)
-
-_CHROMA_METADATA_MAX_STRING_LEN = int(os.getenv("DART_CHROMA_METADATA_MAX_STRING_LEN", "8192") or 8192)
-_CHROMA_METADATA_DROP_KEYS = frozenset(
-    {
-        "table_object_json",
-        "table_row_records_json",
-        "table_value_records_json",
-    }
-)
-_TABLE_PAYLOAD_METADATA_KEYS = tuple(sorted(_CHROMA_METADATA_DROP_KEYS))
-_TABLE_PAYLOAD_ID_KEY = "table_payload_id"
-
 
 def _tokenize_ko(text: str) -> List[str]:
     """Tokenize Korean with character bigrams plus ASCII word tokens."""
@@ -81,24 +80,7 @@ def _chunk_uid_from_metadata(metadata: Dict[str, Any]) -> str:
 
 
 def _metadata_for_chroma(metadata: Dict[str, Any]) -> Dict[str, Any]:
-    """Return bounded metadata for Chroma's sqlite metadata table."""
-    sanitized: Dict[str, Any] = {}
-    for key, value in dict(metadata or {}).items():
-        if key in _CHROMA_METADATA_DROP_KEYS or value is None:
-            continue
-        if isinstance(value, (str, int, float, bool)):
-            sanitized[key] = value[:_CHROMA_METADATA_MAX_STRING_LEN] if isinstance(value, str) else value
-            continue
-        if isinstance(value, (list, tuple, set)):
-            joined = " | ".join(str(item).strip() for item in value if str(item).strip())
-            if joined:
-                sanitized[key] = joined[:_CHROMA_METADATA_MAX_STRING_LEN]
-            continue
-        if isinstance(value, dict):
-            compact_json = json.dumps(value, ensure_ascii=False)
-            if len(compact_json) <= _CHROMA_METADATA_MAX_STRING_LEN:
-                sanitized[key] = compact_json
-    return sanitized
+    return metadata_for_chroma(metadata)
 
 
 def _metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[dict]) -> bool:
@@ -182,27 +164,7 @@ def _table_payload_sidecar_stats(
     payloads: Dict[str, Dict[str, str]],
     nodes: Dict[str, Dict[str, Any]],
 ) -> Dict[str, Any]:
-    payload_json_bytes = {
-        payload_id: len(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
-        for payload_id, payload in dict(payloads or {}).items()
-    }
-    referenced_ids: List[str] = []
-    for node in dict(nodes or {}).values():
-        metadata = dict((node or {}).get("metadata") or {})
-        payload_id = str(metadata.get(_TABLE_PAYLOAD_ID_KEY) or "").strip()
-        if payload_id and payload_id in payload_json_bytes:
-            referenced_ids.append(payload_id)
-
-    inline_payload_bytes = sum(payload_json_bytes[payload_id] for payload_id in referenced_ids)
-    unique_payload_bytes = sum(payload_json_bytes.values())
-    return {
-        "payload_count": len(payload_json_bytes),
-        "referenced_node_count": len(referenced_ids),
-        "metadata_keys": list(_TABLE_PAYLOAD_METADATA_KEYS),
-        "unique_payload_bytes": unique_payload_bytes,
-        "inline_payload_bytes_estimate": inline_payload_bytes,
-        "deduplicated_payload_bytes_saved_estimate": max(0, inline_payload_bytes - unique_payload_bytes),
-    }
+    return table_payload_sidecar_stats(payloads, nodes)
 
 
 class VectorStoreManager:
@@ -491,62 +453,28 @@ class VectorStoreManager:
 
     def _load_table_payloads(self) -> Dict[str, Dict[str, str]]:
         path = getattr(self, "_table_payloads_path", None)
-        if path and path.exists():
-            try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-                raw_payloads = payload.get("payloads", payload) if isinstance(payload, dict) else {}
-                if isinstance(raw_payloads, dict):
-                    return {
-                        str(payload_id): {
-                            key: str(value)
-                            for key, value in dict(raw_payload or {}).items()
-                            if key in _TABLE_PAYLOAD_METADATA_KEYS and str(value or "").strip()
-                        }
-                        for payload_id, raw_payload in raw_payloads.items()
-                        if isinstance(raw_payload, dict)
-                    }
-            except Exception as e:
-                logger.warning("Failed to load table_payloads.json: %s", e)
+        try:
+            return load_table_payloads(path)
+        except Exception as e:
+            logger.warning("Failed to load table_payloads.json: %s", e)
         return {}
 
     def _table_payload_id(self, payload: Dict[str, str]) -> str:
-        encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        return "table_payload:" + hashlib.sha256(encoded).hexdigest()
+        return table_payload_id(payload)
 
     def _metadata_with_table_payload(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
-        hydrated = dict(metadata or {})
-        payload_id = str(hydrated.get(_TABLE_PAYLOAD_ID_KEY) or "").strip()
-        payload = dict(getattr(self, "_table_payloads", {}).get(payload_id, {}) or {}) if payload_id else {}
-        for key, value in payload.items():
-            hydrated.setdefault(key, value)
-        return hydrated
+        return metadata_with_table_payload(metadata, getattr(self, "_table_payloads", {}) or {})
 
     def _compact_node_for_storage(
         self,
         node: Dict[str, Any],
         payloads: Dict[str, Dict[str, str]],
     ) -> Dict[str, Any]:
-        compact_node = dict(node or {})
-        metadata = dict(compact_node.get("metadata") or {})
-        table_payload = {
-            key: str(metadata.pop(key))
-            for key in _TABLE_PAYLOAD_METADATA_KEYS
-            if str(metadata.get(key) or "").strip()
-        }
-
-        payload_id = str(metadata.get(_TABLE_PAYLOAD_ID_KEY) or "").strip()
-        if table_payload:
-            payload_id = self._table_payload_id(table_payload)
-            payloads[payload_id] = table_payload
-            metadata[_TABLE_PAYLOAD_ID_KEY] = payload_id
-        elif payload_id and payload_id in getattr(self, "_table_payloads", {}):
-            payloads[payload_id] = dict(self._table_payloads[payload_id])
-            metadata[_TABLE_PAYLOAD_ID_KEY] = payload_id
-        else:
-            metadata.pop(_TABLE_PAYLOAD_ID_KEY, None)
-
-        compact_node["metadata"] = metadata
-        return compact_node
+        return compact_node_for_storage(
+            node,
+            payloads,
+            existing_payloads=getattr(self, "_table_payloads", {}) or {},
+        )
 
     def _save_structure_graph(self) -> None:
         try:
