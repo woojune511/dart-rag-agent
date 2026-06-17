@@ -244,8 +244,9 @@ change retrieval behavior.
 
 #### PR 5 Current Status
 
-Status as of 2026-06-17: PR 5 has started with no-behavior-change parser
-extractions behind the `FinancialParser.process_document()` facade.
+Status as of 2026-06-17: PR 5 is functionally complete enough to pause. The
+main parser facade remains `FinancialParser.process_document()`, while the
+largest parser responsibilities now sit behind focused modules.
 
 - Added `src/processing/table_records.py` for parser-normalized table row/value
   record construction.
@@ -278,19 +279,34 @@ extractions behind the `FinancialParser.process_document()` facade.
   `_split_table_text_fragment()`, `_split_long_table_row()`,
   `_split_wide_table_by_columns()`, `_split_table_for_chunks()`, and
   `_chunk_blocks()` remain compatibility wrappers.
+- Added `src/processing/reference_resolution.py` for quoted intra-filing
+  reference hint canonicalization, reference index construction, and section
+  path resolution.
+- `FinancialParser._canonicalize_reference_text()`,
+  `_build_reference_index()`, `_resolve_reference_path()`, and
+  `_extract_reference_section_paths()` remain compatibility wrappers.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
     `14` OK
-  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py`:
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py src/processing/reference_resolution.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
+  - `git diff --check`: passed
 
-Next PR 5 seam should remain a no-behavior-change extraction: reference
-resolution. Do not combine it with parser behavior repair unless a metadata
-snapshot test first exposes a concrete drift.
+Stop line: do not continue splitting `financial_parser.py` merely to reduce
+file size. Continue PR 5 only when a concrete parser regression or metadata
+snapshot drift points to one of these specific seams:
+
+- XML loading and parser input normalization
+- parser configuration/value defaults that need a typed boundary
+- remaining small helpers that can move without changing metadata schema
+- removal of compatibility wrappers after callers no longer depend on them
+
+The next implementation focus should move to PR 6 vector store extraction unless
+a parser-specific bug appears.
 
 ### PR 6: Vector Store Extraction
 

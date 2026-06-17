@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 5 parser extraction 여섯 번째 조각을 진행했다.
+  - `src/processing/reference_resolution.py`를 추가해 quoted intra-filing
+    reference hint를 section path로 resolving하는 index/canonicalization
+    로직을 `FinancialParser` facade 밖으로 분리했다.
+  - 기존 `_canonicalize_reference_text`, `_build_reference_index`,
+    `_resolve_reference_path`, `_extract_reference_section_paths`는
+    compatibility wrapper로 남겼다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+      `28` OK
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+      `14` OK
+    - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py src/processing/reference_resolution.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+    - `git diff --check`: passed
+  - 현재 판단: PR 5는 public parser facade를 유지하면서 table records,
+    table structure, section orchestration, block collection, chunking,
+    reference resolution까지 주요 extraction이 끝났다. 추가 parser 분리는
+    concrete metadata drift나 parser regression이 있을 때만 진행하고, 다음
+    큰 구현 축은 PR 6 vector store extraction이 더 적절하다.
+
 - 2026-06-17 PR 5 parser extraction 다섯 번째 조각을 진행했다.
   - `src/processing/chunking.py`를 추가해 table row/window splitting,
     narrative table-row splitting, wide-table column windows, table metadata

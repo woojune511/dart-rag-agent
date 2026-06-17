@@ -82,17 +82,24 @@ role-separated multi-agent system using a task ledger and artifact store.
     propagation, and section block chunk assembly.
   - Existing chunking private methods remain compatibility wrappers for tests
     and callers.
+  - Added `src/processing/reference_resolution.py` for quoted intra-filing
+    reference hint canonicalization, reference index construction, and section
+    path resolution.
+  - Existing reference-resolution private helpers remain compatibility wrappers
+    for tests and callers.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
     `14` OK
-  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py`:
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py src/processing/chunking.py src/processing/reference_resolution.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
-- Next parser extraction candidate: reference resolution. Keep this as a
-  no-behavior-change extraction unless a metadata snapshot test exposes drift.
+  - `git diff --check`: passed
+- Current recommendation: pause PR 5 unless a concrete parser metadata drift or
+  parser regression points to another exact seam. The next broad implementation
+  target should be PR 6 vector store extraction.
 
 ### Latest PR 8 Requirements/Docs Cleanup
 
