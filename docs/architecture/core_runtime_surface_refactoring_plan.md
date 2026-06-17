@@ -333,17 +333,21 @@ behind the `VectorStoreManager` facade.
   storage helpers.
 - Preserved the existing metadata/payload helper surface in
   `src.storage.vector_store` through compatibility wrappers.
+- Added `src/storage/bm25_index.py` for Korean/ASCII tokenization, metadata
+  filter matching, BM25 index construction, and BM25 candidate collection.
+- Preserved the existing BM25 helper surface in `src.storage.vector_store`
+  through compatibility wrappers.
 - `VectorStoreManager.search()` behavior and telemetry keys are unchanged.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
     `18` OK
-  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py`:
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py`:
     passed
   - `git diff --check`: passed
 
-Next PR 6 seam should remain no-behavior-change: BM25 index/search helpers or
-structure graph relationship/accessor helpers. Do not combine this with
-retrieval behavior tuning.
+Next PR 6 seam should remain no-behavior-change: structure graph
+relationship/accessor helpers. Do not combine this with retrieval behavior
+tuning.
 
 ### PR 7: MAS Isolation
 

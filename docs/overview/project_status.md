@@ -68,16 +68,20 @@ role-separated multi-agent system using a task ledger and artifact store.
     storage helpers.
   - Preserved the existing metadata/payload helper surface in
     `src.storage.vector_store` through compatibility wrappers.
+  - Added `src/storage/bm25_index.py` for Korean/ASCII tokenization, metadata
+    filter matching, BM25 index construction, and BM25 candidate collection.
+  - Preserved the existing BM25 helper surface in `src.storage.vector_store`
+    through compatibility wrappers.
   - Left `VectorStoreManager.search()` behavior and search telemetry untouched.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
     `18` OK
-  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py`:
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py`:
     passed
   - `git diff --check`: passed
-- Next vector-store extraction candidate: BM25 index/search helpers or
-  structure graph relationship/accessor helpers. Keep the next change
-  no-behavior-change and preserve search telemetry keys.
+- Next vector-store extraction candidate: structure graph relationship/accessor
+  helpers. Keep the next change no-behavior-change and preserve search telemetry
+  keys.
 
 ### Latest PR 5 Parser Extraction
 

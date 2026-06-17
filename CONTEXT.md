@@ -11,6 +11,23 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 6 vector store extraction 세 번째 조각을 진행했다.
+  - `src/storage/bm25_index.py`를 추가해 Korean/ASCII tokenization,
+    metadata filter matching, BM25 index construction, BM25 candidate
+    collection을 `VectorStoreManager` facade 밖으로 분리했다.
+  - 기존 `_tokenize_ko`, `_metadata_matches_filter`, `_build_bm25_index`
+    surface는 compatibility wrapper로 유지했다.
+  - `VectorStoreManager.search()`의 vector path, RRF merge, telemetry key는
+    변경하지 않았다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
+      `18` OK
+    - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py`:
+      passed
+    - `git diff --check`: passed
+  - 다음 PR 6 후보는 structure graph relationship/accessor helpers의
+    no-behavior-change extraction이다.
+
 - 2026-06-17 PR 6 vector store extraction 두 번째 조각을 진행했다.
   - `src/storage/metadata_payloads.py`를 추가해 Chroma metadata sanitization,
     table payload sidecar id/stats/load/hydration/compaction helpers를

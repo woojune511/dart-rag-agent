@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import time
 from collections import OrderedDict
 from pathlib import Path
@@ -9,6 +8,12 @@ from typing import Any, Dict, Hashable, List, Optional, Tuple
 
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
+from src.storage.bm25_index import (
+    build_bm25_index,
+    collect_bm25_results,
+    metadata_matches_filter,
+    tokenize_ko,
+)
 from src.storage.embedding_config import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_PROVIDER,
@@ -42,17 +47,7 @@ DEFAULT_CHROMA_HNSW_BATCH_SIZE = int(os.getenv("DART_CHROMA_HNSW_BATCH_SIZE", "1
 DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD = int(os.getenv("DART_CHROMA_HNSW_SYNC_THRESHOLD", "100000") or 100000)
 
 def _tokenize_ko(text: str) -> List[str]:
-    """Tokenize Korean with character bigrams plus ASCII word tokens."""
-    tokens: List[str] = []
-    for segment in re.findall(r"[가-힣]+|[a-zA-Z0-9]+", text):
-        if re.fullmatch(r"[가-힣]+", segment):
-            if len(segment) == 1:
-                tokens.append(segment)
-            else:
-                tokens.extend(segment[i : i + 2] for i in range(len(segment) - 1))
-        else:
-            tokens.append(segment.lower())
-    return tokens
+    return tokenize_ko(text)
 
 
 def _doc_identity(doc: Document) -> str:
@@ -84,25 +79,7 @@ def _metadata_for_chroma(metadata: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[dict]) -> bool:
-    if not where_filter:
-        return True
-
-    if "$and" in where_filter:
-        return all(_metadata_matches_filter(metadata, clause) for clause in where_filter["$and"])
-
-    for key, expected in where_filter.items():
-        actual = metadata.get(key)
-        if isinstance(expected, dict):
-            if "$in" in expected:
-                expected_values = expected["$in"]
-                if actual not in expected_values and str(actual) not in {str(value) for value in expected_values}:
-                    return False
-            else:
-                return False
-        else:
-            if actual != expected and str(actual) != str(expected):
-                return False
-    return True
+    return metadata_matches_filter(metadata, where_filter)
 
 
 def _is_embedding_capacity_error(exc: Exception) -> bool:
@@ -371,12 +348,7 @@ class VectorStoreManager:
         }
 
     def _build_bm25_index(self, docs: List[str], metadatas: List[dict]) -> None:
-        from rank_bm25 import BM25Okapi
-
-        tokenized_corpus = [_tokenize_ko(doc) for doc in docs]
-        self.bm25 = BM25Okapi(tokenized_corpus)
-        self.bm25_docs = list(docs)
-        self.bm25_metadatas = list(metadatas or [{} for _ in docs])
+        self.bm25, self.bm25_docs, self.bm25_metadatas = build_bm25_index(docs, metadatas)
 
     def _structure_graph_bm25_payload(self) -> tuple[List[str], List[dict]]:
         nodes = dict((self._structure_graph or {}).get("nodes", {}) or {})
@@ -1078,18 +1050,14 @@ class VectorStoreManager:
         bm25_results = []
         if self.bm25:
             bm25_started = time.perf_counter()
-            tokenized_query = _tokenize_ko(query)
-            bm25_scores = self.bm25.get_scores(tokenized_query)
-            top_n = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[: k * 3]
-
-            for idx in top_n:
-                if bm25_scores[idx] <= 0:
-                    continue
-                metadata = self.bm25_metadatas[idx] or {}
-                if not _metadata_matches_filter(metadata, where_filter):
-                    continue
-                doc = Document(page_content=self.bm25_docs[idx], metadata=metadata)
-                bm25_results.append((doc, bm25_scores[idx]))
+            bm25_results = collect_bm25_results(
+                self.bm25,
+                self.bm25_docs,
+                self.bm25_metadatas,
+                query,
+                k=k,
+                where_filter=where_filter,
+            )
             telemetry["bm25_search_sec"] = _elapsed_sec(bm25_started)
             telemetry["bm25_result_count"] = len(bm25_results)
 
