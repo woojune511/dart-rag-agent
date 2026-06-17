@@ -16750,23 +16750,15 @@ class FinancialAgentCalculationMixin:
                     pairwise_formula=pairwise_formula,
                     explanation=explanation or str(plan.get("operation_text") or operation or mode),
                 )
-                return {
-                    "answer": "",
-                    "compressed_answer": "",
-                    "selected_claim_ids": selected_evidence_ids,
-                    "draft_points": [],
-                    "kept_claim_ids": selected_evidence_ids,
-                    "dropped_claim_ids": [],
-                    "unsupported_sentences": [],
-                    "sentence_checks": [],
-                    **_runtime_trace_state_update(
-                        state,
-                        calculation_operands=runtime_operands,
-                        calculation_plan=plan,
-                        calculation_result=calc_result,
-                        include_compatibility_mirrors=False,
-                    ),
-                }
+                return build_success_calculation_state_payload(
+                    state=state,
+                    calc_result=calc_result,
+                    selected_evidence_ids=selected_evidence_ids,
+                    runtime_operands=runtime_operands,
+                    calculation_plan=plan,
+                    query=self._calc_query(state),
+                    metric_family=self._calc_metric_family(state),
+                )
 
             if not formula:
                 return _fail("parse_error", "missing scalar formula")

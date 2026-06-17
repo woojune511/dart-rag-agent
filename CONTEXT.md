@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation execution contract 정렬을 진행했다.
+  - `time_series` 성공 경로가 scalar 성공 경로처럼
+    `build_success_calculation_state_payload`를 사용하도록 바꿨다.
+  - 이제 `time_series` 성공 결과도 `resolved_calculation_trace` /
+    `structured_result`뿐 아니라 calculation task와 `calculation_result`
+    artifact를 함께 publish한다.
+  - focused contract test를 추가해 `time_series` 성공 경로의 selected
+    evidence ids, calculation-result artifact payload/evidence refs,
+    calculation task status/artifact ids를 고정했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_time_series_success_publishes_calculation_task_artifact_contract`:
+      `1` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+      `22` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_time_series_success_publishes_calculation_task_artifact_contract tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+      `5` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
+      `226` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py`:
+      passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 열여섯 번째 조각을 진행했다.
   - `_execute_calculation`의 `time_series` rendered result 계산을
     `src/agent/financial_graph_calculation_rendering.py`로 이동했다.

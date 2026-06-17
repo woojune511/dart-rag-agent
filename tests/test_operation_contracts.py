@@ -6076,6 +6076,87 @@ class OperationContractTests(unittest.TestCase):
         self.assertAlmostEqual(calc["result_value"], 8.3646014776, places=6)
         self.assertEqual(calc["rendered_value"], "8.36%p")
 
+    def test_time_series_success_publishes_calculation_task_artifact_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        result = _execute_calculation_with_runtime_trace(agent,
+            {
+                "query": "Show the multi-period trend for target metric.",
+                "active_subtask": {
+                    "task_id": "task_trend",
+                    "metric_family": "generic_trend",
+                    "metric_label": "target metric",
+                    "operation_family": "trend",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_2021",
+                        "evidence_id": "ev_2021",
+                        "label": "2021 target metric",
+                        "raw_value": "100",
+                        "raw_unit": "",
+                        "normalized_value": 100.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2021",
+                    },
+                    {
+                        "operand_id": "op_2022",
+                        "evidence_id": "ev_2022",
+                        "label": "2022 target metric",
+                        "raw_value": "110",
+                        "raw_unit": "",
+                        "normalized_value": 110.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2022",
+                    },
+                    {
+                        "operand_id": "op_2023",
+                        "evidence_id": "ev_2023",
+                        "label": "2023 target metric",
+                        "raw_value": "121",
+                        "raw_unit": "",
+                        "normalized_value": 121.0,
+                        "normalized_unit": "COUNT",
+                        "period": "2023",
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "time_series",
+                    "operation": "time_series_trend",
+                    "ordered_operand_ids": ["op_2021", "op_2022", "op_2023"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_2021"},
+                        {"variable": "B", "operand_id": "op_2022"},
+                        {"variable": "C", "operand_id": "op_2023"},
+                    ],
+                    "formula": "((C - A) / A) * 100",
+                    "pairwise_formula": "((CURR - PREV) / PREV) * 100",
+                    "result_unit": "%",
+                    "operation_text": "multi-period trend",
+                },
+                "artifacts": [],
+                "tasks": [],
+            }
+        )
+
+        trace = _resolve_runtime_calculation_trace(result)
+        calc = trace["calculation_result"]
+        self.assertEqual(calc["status"], "ok")
+        self.assertEqual(calc["rendered_value"], "21.0%")
+        self.assertEqual(calc["derived_metrics"]["yoy_growth_rates"], [None, 10.0, 10.0])
+        self.assertEqual(result["selected_claim_ids"], ["ev_2021", "ev_2022", "ev_2023"])
+        self.assertEqual(result["artifacts"][0]["artifact_id"], "result:task_trend:001")
+        self.assertEqual(result["artifacts"][0]["kind"], "calculation_result")
+        self.assertEqual(
+            result["artifacts"][0]["payload"]["calculation_result"]["rendered_value"],
+            "21.0%",
+        )
+        self.assertEqual(result["artifacts"][0]["evidence_refs"], ["ev_2021", "ev_2022", "ev_2023"])
+        self.assertEqual(result["tasks"][0]["task_id"], "task_trend")
+        self.assertEqual(result["tasks"][0]["kind"], "calculation")
+        self.assertEqual(result["tasks"][0]["status"], "completed")
+        self.assertEqual(result["tasks"][0]["artifact_ids"], ["result:task_trend:001"])
+
     def test_ratio_recomputes_operand_scale_from_source_visible_rendered_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))

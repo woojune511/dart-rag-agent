@@ -50,6 +50,39 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Time-Series Publication Contract Alignment
+
+- Run date: 2026-06-17
+- Scope: PR 4 calculation execution contract alignment after the time-series
+  extraction sequence.
+- Change:
+  - The `time_series` success path now publishes through
+    `build_success_calculation_state_payload`, matching scalar success
+    behavior.
+  - Successful time-series calculations now emit `resolved_calculation_trace` /
+    `structured_result` plus a calculation task and `calculation_result`
+    artifact.
+  - Added focused operation-contract coverage for selected evidence ids,
+    calculation-result artifact payload/evidence refs, and calculation task
+    status/artifact ids.
+- Interpretation: this intentionally aligns the time-series success path with
+  the calculation task/artifact contract documented for completed calculation
+  tasks. Arithmetic, rendering, result payload content, and trace projection
+  remain unchanged.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_time_series_success_publishes_calculation_task_artifact_contract`:
+    `1` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+    `22` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_time_series_success_publishes_calculation_task_artifact_contract tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+    `5` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts`:
+    `226` OK
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `216` reviewed literals
+  - `python -m py_compile src/agent/financial_graph_calculation.py`:
+    passed
+
 ### Latest Time-Series Result Display Extraction
 
 - Run date: 2026-06-17
