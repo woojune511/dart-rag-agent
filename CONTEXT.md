@@ -11,6 +11,32 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 simplification 이후 store-fixed ablation smoke
+  `eval-only` refresh를 실행했다.
+  - 목적: full benchmark로 바로 확장하기 전에, 현재 코드가 기존 smoke
+    harness와 결과 형태를 재현하는지 확인했다.
+  - profiles:
+    - `benchmarks/profiles/curated_ablation_smoke_full_system.json`
+    - `benchmarks/profiles/curated_ablation_smoke_plain_retrieval.json`
+  - local-only artifact dirs:
+    - `benchmarks/results/ablation_smoke_full_system_2026-06-10`
+    - `benchmarks/results/ablation_smoke_plain_retrieval_2026-06-10`
+  - 결과:
+    - `KAB_T1_066`: full-system PASS, plain PASS. 최종 정답은 둘 다
+      `37.47%`, 다만 `Context P@5`는 full-system `0.800`, plain `0.400`.
+    - `SKH_T1_060`: full-system FAIL, plain FAIL. 둘 다 아직 debt/asset
+      operand binding diagnostic case로 남는다.
+    - full-system은 SKH context recall `1.000`, plain은 `0.800`으로 structural
+      representation 쪽의 evidence coverage는 더 좋았지만, 2문항 smoke의
+      numeric pass rate는 둘 다 `1/2`다.
+  - 해석:
+    - 이 refresh는 portfolio용 최종 ablation claim이 아니라 harness sanity
+      check다.
+    - 강한 claim은 기존 expanded candidate slice의 documented result를
+      기준으로 유지하고, full benchmark 확장은 별도 비용/시간 결정 후
+      monitored run으로 진행한다.
+  - raw `benchmarks/results/**` 산출물은 commit 대상이 아니다.
+
 - 2026-06-17 PR 4 calculation simplification을 재개했다.
   - 목적을 "helper extraction"이 아니라 누적 patch/dead branch 삭제로 전환했다.
   - runtime에서 호출되지 않는 `_preferred_complete_nested_numeric_narrative_answer`

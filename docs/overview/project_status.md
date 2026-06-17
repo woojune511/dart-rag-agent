@@ -50,6 +50,39 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Ablation Smoke Refresh
+
+- Run date: 2026-06-17
+- Scope: store-fixed `eval-only` refresh of the two-question ablation smoke
+  after the PR 4 calculation simplification sequence.
+- Profiles:
+  - `benchmarks/profiles/curated_ablation_smoke_full_system.json`
+  - `benchmarks/profiles/curated_ablation_smoke_plain_retrieval.json`
+- Local-only artifact directories:
+  - `benchmarks/results/ablation_smoke_full_system_2026-06-10`
+  - `benchmarks/results/ablation_smoke_plain_retrieval_2026-06-10`
+- Result:
+
+| Question id | Structural full-system | Plain retrieval | Main observation |
+| --- | --- | --- | --- |
+| `KAB_T1_066` | PASS, `37.47%`, Context P@5 `0.800` | PASS, `37.47%`, Context P@5 `0.400` | Both answer correctly; structural keeps denser top-5 evidence. |
+| `SKH_T1_060` | FAIL, recall `1.000`, faithfulness `0.000` | FAIL, recall `0.800`, faithfulness `0.300` | Still a diagnostic debt/asset operand-binding case, not a success case. |
+
+- Cost/runtime observations:
+  - Structural: about `$0.0483` / `60.9s` for `KAB_T1_066`, about `$0.0807`
+    / `160.9s` for `SKH_T1_060`.
+  - Plain retrieval: about `$0.0459` / `56.8s` for `KAB_T1_066`, about
+    `$0.1054` / `216.6s` for `SKH_T1_060`.
+- Interpretation:
+  - This is a harness sanity check, not the main portfolio ablation result.
+  - The current code still reproduces the smoke shape: the easy control passes
+    under both variants, while `SKH_T1_060` remains a hard residual diagnostic.
+  - The stronger portfolio claim remains the documented expanded candidate
+    slice, where structural representation separated on specific operand
+    binding cases.
+- Artifact hygiene: raw `benchmarks/results/**` bundles and heartbeat logs stay
+  local unless explicitly published.
+
 ### Latest PR 4 Calculation Simplification
 
 - Run date: 2026-06-17

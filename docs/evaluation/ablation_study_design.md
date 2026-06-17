@@ -347,6 +347,37 @@ question set. It is not yet strong enough to claim a broad success-rate lift.
 The next canary should add more questions where structure, unit normalization,
 and operand binding are known to be independently observable.
 
+### Store-Fixed Refresh: 2026-06-17
+
+After the PR 4 simplification sequence, the same two-question smoke was
+refreshed with `--eval-only` against existing local stores. This checked that
+the harness and result shape still reproduce before spending on a broader
+benchmark refresh.
+
+Heartbeat logs:
+
+- `benchmarks/results/ablation_smoke_full_system_2026-06-10/_logs/heartbeat_evalonly_current_2026-06-17.jsonl`
+- `benchmarks/results/ablation_smoke_plain_retrieval_2026-06-10/_logs/heartbeat_evalonly_current_2026-06-17.jsonl`
+
+| Variant | Question id | Numeric judgement | Context recall | Context P@5 | Completeness | Faithfulness | Numeric grounding | Cost | Latency |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Full system | `KAB_T1_066` | PASS | 1.000 | 0.800 | 1.000 | 1.000 | 1.000 | `$0.0483` | `60.9s` |
+| Plain retrieval | `KAB_T1_066` | PASS | 1.000 | 0.400 | 1.000 | 1.000 | 1.000 | `$0.0459` | `56.8s` |
+| Full system | `SKH_T1_060` | FAIL | 1.000 | 1.000 | 0.000 | 0.000 | 0.000 | `$0.0807` | `160.9s` |
+| Plain retrieval | `SKH_T1_060` | FAIL | 0.800 | 1.000 | 0.000 | 0.300 | 0.000 | `$0.1054` | `216.6s` |
+
+Refresh interpretation:
+
+- The smoke remains a harness sanity check. It should not be promoted to the
+  main portfolio ablation result because both variants have the same final
+  numeric pass rate (`1/2`).
+- `KAB_T1_066` still works as an easy positive control. The structural variant
+  keeps better top-5 evidence precision, but final accuracy does not separate.
+- `SKH_T1_060` is still a hard diagnostic for debt-component aggregation and
+  asset-denominator binding. Structural retrieval preserves stronger evidence
+  coverage, but the final answer remains wrong under both variants.
+- Raw result bundles remain local experiment artifacts.
+
 ## Expanded Candidate Slice
 
 The next expansion step uses locally available reports and questions that have
