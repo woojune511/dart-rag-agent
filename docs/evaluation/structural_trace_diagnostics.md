@@ -66,7 +66,7 @@ be present somewhere in the run, but final operand selection and unit rendering
 can still drift without structured provenance and dependency-preservation
 contracts.
 
-## Expanded Candidate Refresh: 2026-06-10
+## Historical Expanded Candidate Refresh: 2026-06-10
 
 Result directories:
 
@@ -93,8 +93,8 @@ Key question-level deltas:
 
 Notes:
 
-- The expanded refresh replaces the earlier four-question slice as the
-  portfolio-facing structural ablation evidence.
+- This expanded refresh is historical diagnostic evidence, not the latest
+  portfolio-facing result.
 - `Full Eval Fails` in the cross-company summary is not identical to numeric
   failure. It also reflects completeness threshold misses. For this experiment,
   the reliable comparison is numeric grounding/faithfulness plus the
@@ -102,6 +102,49 @@ Notes:
 - `SKH_T3_080` is the strongest narrative example because the plain path did
   not merely omit a value; it selected a plausible but wrong gain row and then
   produced a wrong deterministic difference.
+
+## Current Expanded Full-System Refresh: 2026-06-17
+
+Result directory:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+
+Heartbeat log:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_current_2026-06-17.jsonl`
+
+Run-level readout:
+
+| Metric | Full-system refresh |
+| --- | ---: |
+| Numeric PASS | `6 / 9` |
+| Avg numeric pass rate | `0.667` |
+| Avg completeness | `0.600` |
+| Avg faithfulness | `0.783` |
+| Avg context recall | `0.889` |
+
+Question-level read:
+
+| Question | Judgement | Diagnostic read |
+| --- | --- | --- |
+| `KAB_T1_066` | PASS | positive CIR control remains stable |
+| `POS_T1_057` | FAIL | high retrieval support, but signed/displayed interest-cost handling made the final ratio invalid |
+| `SAM_T3_028` | PASS | inventory valuation loss and cost-of-sales denominator preserved |
+| `MIX_T1_021` | PASS | both ratios computed, with partial final-answer completeness |
+| `CEL_T1_013` | PASS | capitalized development cost and R&D denominator preserved |
+| `KBF_T2_018` | FAIL | growth operands appeared in trace, but final answer was narrative-only |
+| `KBF_T1_017` | PASS | NIM difference recovered through retry/aggregate fallback |
+| `SKH_T3_080` | PASS | foreign-currency gain/loss row binding reproduced |
+| `SKH_T1_060` | FAIL | debt-component numerator aggregation remains unstable |
+
+Interpretation:
+
+- The current refresh is a stop-line. It did not clear the `7 / 9`
+  full-system threshold for running the plain-retrieval counterpart.
+- `SKH_T3_080` remains the strongest current structural case-study trace.
+- `POS_T1_057` and `KBF_T2_018` are higher-value residual fixes than spending
+  on the plain baseline now because both expose final-state/composition issues
+  after relevant evidence has been recovered.
 
 ## Hard Replay Separator: `SKH_T1_060` (2026-06-11)
 

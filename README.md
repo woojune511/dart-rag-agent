@@ -19,11 +19,11 @@ overfit.
   period, unit, subtotal, or provenance path.
 - **Key design:** LLMs handle semantic planning; deterministic code handles
   operand binding, arithmetic, unit handling, validation, and final rendering.
-- **Current evidence:** `portfolio_review_gates` reports `ready`. Expanded
-  structural ablation: structural avg numeric / faithfulness `1.000 / 1.000`
-  vs plain retrieval `0.833 / 0.875`. Hard replay: structural `5 / 5` numeric
-  PASS vs plain `4 / 5`, with `SKH_T1_060` isolating a current/prior
-  row-binding failure.
+- **Current evidence:** `portfolio_review_gates` reports `ready`. The latest
+  store-fixed expanded full-system refresh is a stop-line rather than a win:
+  `6 / 9` numeric PASS, with `SKH_T3_080` still reproducing the structural
+  operand-binding case and `POS_T1_057` / `KBF_T2_018` exposing residual
+  composition and sign/display issues before a plain-baseline rerun.
 - **Disabled by design:** cache serving, retrieval bypass, automatic cache
   writes, cache-ledger insertion, LLM critic as final acceptance authority, and
   benchmark-specific runtime branches.
@@ -101,14 +101,13 @@ hit@k/grounded rendering correctness all `1.000`, `2` executed queries, `0`
 duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
 `$0.056292`.
 
-The structural ablation has a separate row-binding example. In `SKH_T1_060`,
-plain retrieval selected prior-period borrowing rows
-`3,833,263 + 9,073,567 + 6,497,790` while keeping current-period asset rows in
-the denominator, producing `34.32%`. The structural path preserved
-current-period borrowing rows `4,145,647 + 10,121,033 + 9,490,410` and produced
-`42.02%`. The point is narrow: structural metadata helps when similar current
-and prior rows compete in financial note tables; formula execution is still
-deterministic in both variants.
+The structural ablation evidence is intentionally narrow. The latest expanded
+refresh still reproduces `SKH_T3_080`: the structural path binds
+`573,884백만원` and `906,120백만원` and answers `-3,322억원`. It also shows that
+the expanded slice is not ready to promote as a refreshed ablation win:
+`POS_T1_057`, `KBF_T2_018`, and `SKH_T1_060` remain residual cases. Historical
+hard-replay traces are kept as diagnostics for current/prior row binding, but
+the current README treats the latest `6 / 9` refresh as the active stop-line.
 
 ## Quick Review Path
 

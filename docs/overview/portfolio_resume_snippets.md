@@ -19,13 +19,12 @@ calculation traces, critic reports, and reproducible reviewer gates.
 - Separated LLM semantic planning from deterministic execution: LLMs handle
   intent/concept interpretation, while code handles operand binding, arithmetic,
   unit handling, dedupe, validation, and final rendering.
-- Validated the design with trace-based gates and an expanded structural
-  ablation: structural full-system avg numeric `1.000` / faithfulness `1.000`
-  vs plain retrieval avg numeric `0.833` / faithfulness `0.875`, with
-  separating failures caused by operand-binding drift in the plain path.
-- Ran a hard structural-vs-plain replay after ontology/runtime fixes:
-  structural `5 / 5` numeric PASS vs plain `4 / 5`, isolating a current/prior
-  period row-binding failure in `SKH_T1_060`.
+- Validated the design with trace-based gates and store-fixed benchmark
+  refreshes; the latest expanded full-system refresh is explicitly treated as a
+  stop-line at `6 / 9` numeric PASS rather than an overclaimed ablation win.
+- Reproduced a structural operand-binding separator in `SKH_T3_080` and used
+  the remaining failures (`POS_T1_057`, `KBF_T2_018`, `SKH_T1_060`) to define
+  concrete residual work before running a broader plain-baseline comparison.
 
 ## Technical Portfolio Version
 
@@ -44,9 +43,11 @@ mirrors, or missing operand provenance. Built a value-cell-first structured
 metadata and runtime-contract approach that preserves table/row context through
 retrieval, extraction, calculation, and final rendering. Evaluation uses
 trace-based numeric grounding rather than final-text exact match alone.
-In the hard replay, the plain baseline passed four of five hard questions but
-failed a period-ambiguous borrowing ratio by selecting prior-period rows;
-structural metadata preserved the current-period rows and closed the case.
+In structural diagnostics, historical hard replays and the latest expanded
+refresh show the same engineering concern: relevant values can be retrieved,
+but final operand selection, sign/display handling, or mixed answer composition
+can still drift unless the runtime preserves structured traces through final
+rendering.
 
 ## Conservative Version
 
@@ -54,9 +55,9 @@ Built and evaluated an evidence-first RAG prototype for DART financial filings,
 focused on making numeric answers auditable. The project combines
 structure-aware retrieval, deterministic numeric execution, multi-agent artifact
 handoff, and reviewer-facing gates. Current results support a narrow claim:
-structured provenance reduces operand, unit, and period-row drift on
-representative expanded and hard structural cases, while broader benchmark
-generalization remains future work.
+structured provenance and trace-based gates make operand, unit, and period-row
+drift visible. The latest expanded refresh is a transparent stop-line before
+broader ablation or full-benchmark claims.
 
 ## Korean Short Version
 
@@ -82,6 +83,6 @@ Safer alternatives:
 - "Preserved value-cell-first structured metadata through retrieval and
   extraction"
 - "Used trace-based numeric grounding gates for acceptance"
-- "Measured a hard replay where structural retrieval passed `5 / 5` numeric
-  questions versus plain retrieval `4 / 5`, with the delta traced to
-  current/prior row binding"
+- "Used store-fixed benchmark refreshes as promotion gates, including a latest
+  expanded refresh that stopped at `6 / 9` and exposed residual
+  composition/sign-display issues before rerunning the plain baseline"

@@ -25,17 +25,14 @@ The system represents agent handoff as a typed artifact ledger:
 which operands were used, where they came from, which formula ran, and whether
 the final answer followed the trace.
 
-The strongest current evidence is narrow but defensible. An expanded
-structural ablation shows the structural full-system path at avg numeric
-`1.000` / faithfulness `1.000` versus a plain retrieval counterpart at avg
-numeric `0.833` / faithfulness `0.875`. The separating cases are not "better
-prose"; they are operand-binding and row/unit drift in the plain path.
-
-A later hard replay makes the boundary sharper: after ontology/runtime fixes,
-plain retrieval passed `4 / 5` hard numeric questions, but failed
-`SKH_T1_060` by binding prior-period borrowing rows to a current-period asset
-denominator. Structural metadata preserved the current-period borrowing rows,
-so the structural path passed `5 / 5`.
+The strongest current evidence is narrow and partly diagnostic. Reviewer gates
+are ready, and the latest store-fixed expanded full-system refresh reached
+`6 / 9` numeric PASS. That is below the documented `7 / 9` threshold for
+rerunning the plain baseline, so I treat it as a stop-line rather than a
+promoted ablation win. The useful reproduced separator is `SKH_T3_080`, where
+the structural path binds the right foreign-currency gain/loss rows. The
+remaining failures identify concrete residual work in final numeric
+preservation and sign/display handling.
 
 ## Problem Framing
 
@@ -81,14 +78,15 @@ The main experiment claim is deliberately scoped:
 > operand/unit drift when relevant numeric evidence is available but can be
 > rebound or rendered at the wrong scale.
 
-Current expanded structural ablation:
+Current expanded refresh:
 
-| Variant | Numeric / faithfulness result | Interpretation |
+| Run | Result | Interpretation |
 | --- | ---: | --- |
-| Structural full-system | `1.000` / `1.000` | Preserves structural provenance and dependency operands through final calculation. |
-| Plain retrieval counterpart | `0.833` / `0.875` | Fails `KBF_T1_017` and `SKH_T3_080` through operand-binding or row/unit drift. |
+| Structural full-system refresh | `6 / 9` numeric PASS | Below the `7 / 9` threshold for running the plain baseline; use as a stop-line. |
+| Reproduced separator | `SKH_T3_080` PASS | Structural binding keeps `573,884백만원 - 906,120백만원 = -3,322억원`. |
+| Residual failures | `POS_T1_057`, `KBF_T2_018`, `SKH_T1_060` | Evidence is often present, but final composition/sign/display or aggregation remains unstable. |
 
-Hard structural replay:
+Historical hard structural replay:
 
 | Variant | Result | Interpretation |
 | --- | ---: | --- |
@@ -98,6 +96,8 @@ Hard structural replay:
 The point is not that every question needs more structure or that a baseline was
 artificially weakened. The point is that financial RAG needs trace-preserving
 runtime contracts because answer-level text can hide operand and unit mistakes.
+The current expanded refresh also shows why I do not promote an ablation until
+the full-system variant itself clears the documented threshold.
 
 If asked why structure matters after adding ontology and deterministic
 calculation, use `SKH_T1_060`: both variants had a deterministic formula and

@@ -115,12 +115,13 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | REFERENCE_NOTE boundary | `reference_note_capability_gate` keeps note traversal as Researcher graph-expansion context, not cache serving or final acceptance authority |
 | Promotion trace materiality | reviewed trace summaries cover distinct source/action/fallback surfaces |
 | Source-visible ratio close | `KAB_T1_066` resolves CIR from one MDA table: `4,355억원 / 11,623억원 = 37.47%`, numeric `PASS`, grounded rendering `1.000` |
-| Expanded structural ablation | structural avg numeric / faithfulness `1.000 / 1.000` vs plain `0.833 / 0.875`; `KBF_T1_017` and `SKH_T3_080` isolate operand-binding failures |
-| Hard structural replay | structural `5 / 5` numeric PASS vs plain `4 / 5`; `SKH_T1_060` shows current/prior borrowing-row confusion in plain retrieval |
+| Expanded refresh stop-line | latest full-system store-fixed refresh is `6 / 9` numeric PASS; plain baseline was not rerun because the `7 / 9` promotion threshold was not met |
+| Structural separator still reproduced | `SKH_T3_080` binds `573,884백만원 - 906,120백만원 = -3,322억원`; residual failures are `POS_T1_057`, `KBF_T2_018`, and `SKH_T1_060` |
+| Historical hard replay | prior structural `5 / 5` vs plain `4 / 5` replay remains diagnostic evidence for current/prior row binding, not the latest promoted result |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
-| Test coverage | full unittest discovery passed `1048` tests after the expanded structural refresh source fix; runtime domain-term audit passed |
+| Test coverage | latest full unittest discovery passed `1223` tests after PR4 simplification; runtime domain-term audit passed |
 
 ## Review Commands
 
@@ -139,15 +140,13 @@ improvements remain auditable and hard to overfit.
 The compact example starts with KAB CIR: the system had to reject a plausible
 wrong row, avoid overzealous aggregate-result blocking, recover both operands
 from the same source table, and force final prose to follow the canonical
-calculation trace. The follow-up expanded structural ablation keeps the claim
-narrow: the structural path improves numeric grounding on `KBF_T1_017` and
-`SKH_T3_080` because provenance-aware operand binding prevents row/unit drift.
-The hard replay adds a second concrete failure shape: in `SKH_T1_060`, plain
-retrieval selected prior-period borrowing rows while using current-period asset
-rows, producing `34.32%`; structural metadata preserved the current-period
-borrowing rows and produced `42.02%`. The baseline is not a strawman. It passes
-four of five hard questions after the ontology/runtime fixes, which makes the
-remaining separator a cleaner row-binding result.
+calculation trace. The follow-up ablation story is deliberately conservative:
+the latest expanded full-system refresh reached `6 / 9`, so the plain baseline
+was not rerun and the result is treated as a stop-line before full benchmark
+expansion. The useful signal is diagnostic rather than promotional:
+`SKH_T3_080` still demonstrates row/operand binding, while `POS_T1_057` and
+`KBF_T2_018` show that final sign/display handling and mixed numeric+narrative
+composition need cleanup before making a broader structural-ablation claim.
 
 ## What Is Still Intentionally Disabled
 

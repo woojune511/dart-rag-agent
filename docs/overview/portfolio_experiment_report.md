@@ -94,8 +94,9 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Expanded structural ablation | structural avg numeric / faithfulness `1.000 / 1.000` vs plain `0.833 / 0.875`; separating failures are `KBF_T1_017` and `SKH_T3_080` |
-| Hard structural-vs-plain replay | structural `5 / 5` numeric PASS vs plain `4 / 5`; `SKH_T1_060` isolates a current/prior period row-binding failure |
+| Latest expanded full-system refresh | `6 / 9` numeric PASS; below the `7 / 9` threshold for running the plain-retrieval counterpart |
+| Reproduced structural separator | `SKH_T3_080` remains PASS with `573,884백만원 - 906,120백만원 = -3,322억원` |
+| Residual stop-line cases | `POS_T1_057`, `KBF_T2_018`, and `SKH_T1_060` expose final sign/display, mixed-answer numeric preservation, and debt aggregation issues |
 
 Representative KAB answer:
 
@@ -107,7 +108,39 @@ Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`. 
 fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 `8` agent LLM calls, and estimated runtime cost `$0.056292`.
 
-### Expanded Structural Ablation
+### Current Expanded Refresh Stop-Line
+
+After the PR 4 simplification sequence, the expanded candidate full-system
+profile was rerun as a store-fixed `eval-only` refresh. This is the current
+experiment state for portfolio review.
+
+| Metric | Current full-system refresh |
+| --- | ---: |
+| Numeric PASS | `6 / 9` |
+| Avg numeric pass rate | `0.667` |
+| Avg faithfulness | `0.783` |
+| Avg completeness | `0.600` |
+| Avg context recall | `0.889` |
+| Estimated runtime cost | `$0.6312` |
+| Runtime | `30.5m` |
+
+| Question | Judgement | Diagnostic read |
+| --- | --- | --- |
+| `KAB_T1_066` | PASS | CIR positive control remains stable at `37.47%`. |
+| `POS_T1_057` | FAIL | Retrieval support is high, but sign/display handling around interest cost makes the final ratio invalid. |
+| `SAM_T3_028` | PASS | Recovered inventory valuation loss and cost-of-sales denominator. |
+| `MIX_T1_021` | PASS | Computed both ratios, but final response still under-emphasizes one required ratio. |
+| `CEL_T1_013` | PASS | Preserved source-unit operands for capitalized development cost over R&D cost. |
+| `KBF_T2_018` | FAIL | Growth operands appear in the trace, but final answer composition drops the numeric result. |
+| `KBF_T1_017` | PASS | Retry/aggregate fallback recovers the NIM difference. |
+| `SKH_T3_080` | PASS | Reproduces the structural operand-binding case for foreign-currency gain/loss rows. |
+| `SKH_T1_060` | FAIL | Debt-component numerator aggregation remains unstable. |
+
+Because the full-system variant did not clear the documented `7 / 9` threshold,
+the plain-retrieval counterpart was not rerun. This is a stop-line before full
+benchmark expansion, not a promoted structural-ablation win.
+
+### Historical Expanded Structural Ablation
 
 The expanded structural slice compares the current structural-selective runtime
 against a plain-retrieval counterpart on nine curated questions across six
@@ -130,12 +163,11 @@ Separating numeric cases:
 | `KBF_T1_017` | PASS | FAIL | Plain surfaced NIM values but failed operand grounding; structural recovered a numeric-passable difference. |
 | `SKH_T3_080` | PASS | FAIL | Plain used the wrong gain row and answered `-37,353백만원`; structural answered `-332,236백만원`. |
 
-This is still a narrow systems ablation, not a broad SOTA claim. The measured
-delta supports a specific engineering claim: structural representation and
-provenance-aware operand binding reduce numeric failures when relevant values
-are present but can be rebound to the wrong row, unit, or table surface.
+This historical run remains useful as a diagnostic trace source, especially for
+`SKH_T3_080`. It is no longer the active portfolio-facing result because the
+latest store-fixed full-system refresh reached only `6 / 9`.
 
-### Hard Structural-vs-Plain Replay
+### Historical Hard Structural-vs-Plain Replay
 
 After the ontology and runtime-contract fixes, the same five hard numeric
 questions were replayed under structural and plain retrieval profiles. This
@@ -161,7 +193,7 @@ Question-level read:
 | `CEL_T1_038` | PASS, `8.36%p` / `29.93%` | PASS, same | late slot alignment can recover aggregate rows even under plain retrieval |
 | `SKH_T1_060` | PASS, `42.02%` | FAIL, `34.32%` | structural metadata prevents current/prior borrowing-row confusion |
 
-The `SKH_T1_060` trace is the clearest period-binding example. Structural
+The `SKH_T1_060` trace is a historical period-binding example. Structural
 retrieval bound the borrowing operands to `period_focus=current`,
 `period_labels=["당기"]`, `::table:93`:
 
@@ -204,6 +236,29 @@ Trace summary:
 
 ## Focused Failure Analysis
 
+### `KBF_T2_018`: numeric trace lost in mixed final answer
+
+Failure: the latest expanded refresh recovered growth operands during the
+trace, but final answer composition returned a narrative-only answer. The
+failure is not primarily retrieval; it is numeric trace preservation into mixed
+numeric+narrative rendering.
+
+Fix layer: aggregate answer composition and required numeric slot preservation
+for mixed answers.
+
+Current status: residual stop-line before rerunning expanded plain retrieval.
+
+### `POS_T1_057`: signed cost-like operand rendered as invalid ratio
+
+Failure: the latest expanded refresh retrieved the relevant support, but the
+final answer rendered a signed/displayed interest-cost surface into a negative
+ratio (`-791.7%`).
+
+Fix layer: cost-like operand sign/display handling and source-unit preservation
+in ratio composition.
+
+Current status: residual stop-line before rerunning expanded plain retrieval.
+
 ### `SKH_T1_060`: wrong numerator or subtotal row
 
 Failure: a ratio question could bind plausible borrowing rows from the wrong
@@ -214,10 +269,9 @@ Fix layer: period-aware structural metadata, structured evidence selection,
 direct row/semantic-label preference, and dependency projection alignment from
 producer lookup tasks into downstream ratio tasks.
 
-Result: the structural path passes this row without adding a company or
-benchmark-id branch. The difference is visible in trace metadata:
-`period_focus=current` / `["당기"]` for structural versus `period_focus=prior`
-/ `["전기"]` for plain.
+Current status: still a hard diagnostic. Historical traces show a clean
+current/prior row-binding separator, but the latest expanded refresh still
+fails this question through debt-component numerator aggregation.
 
 ### `NAV_T2_006`: mixed numeric and narrative growth answer
 
