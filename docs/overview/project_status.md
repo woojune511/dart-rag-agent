@@ -72,20 +72,23 @@ role-separated multi-agent system using a task ledger and artifact store.
     section path construction, parse budget/fallback orchestration, parse
     timing, and section payload assembly.
   - `FinancialParser._build_section_path()` and `_extract_sections()` now
-    delegate to the extracted module; `_collect_blocks()` remains in the parser
-    facade as the next block-state-machine seam.
+    delegate to the extracted module.
+  - Added `src/processing/block_collection.py` for the paragraph/table/local
+    heading block state machine. `FinancialParser._collect_blocks()` remains as
+    a compatibility wrapper that wires parser-specific callbacks into the
+    extracted collector.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
     `14` OK
-  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py`:
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
-- Next parser extraction candidates: block collection state machine, chunking,
-  then reference resolution. Keep these as no-behavior-change extractions unless
-  a metadata snapshot test exposes drift.
+- Next parser extraction candidates: chunking, then reference resolution. Keep
+  these as no-behavior-change extractions unless a metadata snapshot test
+  exposes drift.
 
 ### Latest PR 8 Requirements/Docs Cleanup
 

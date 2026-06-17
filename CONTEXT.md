@@ -11,6 +11,24 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 5 parser extraction 네 번째 조각을 진행했다.
+  - `src/processing/block_collection.py`를 추가해 paragraph/table/local
+    heading block state machine을 `FinancialParser` facade 밖으로 분리했다.
+  - `FinancialParser._collect_blocks()`는 기존 tests/호출자를 위한
+    compatibility wrapper로 남기고, parser-specific callbacks를 새 collector에
+    주입하도록 바꿨다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+      `28` OK
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+      `14` OK
+    - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+  - 다음 PR 5 후보는 chunking, reference resolution 순서의
+    no-behavior-change extraction이다.
+
 - 2026-06-17 PR 5 parser extraction 세 번째 조각을 진행했다.
   - `src/processing/section_extraction.py`를 추가해 section tag iteration,
     section path construction, parse budget/fallback orchestration, parse

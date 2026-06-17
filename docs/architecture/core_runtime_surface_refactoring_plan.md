@@ -266,22 +266,24 @@ extractions behind the `FinancialParser.process_document()` facade.
   section path construction, parse budget/fallback orchestration, parse timing,
   and section payload assembly.
 - `FinancialParser._build_section_path()` and `_extract_sections()` remain
-  compatibility wrappers. The block state machine still lives in
-  `FinancialParser._collect_blocks()` and is the next parser extraction seam.
+  compatibility wrappers.
+- Added `src/processing/block_collection.py` for the paragraph/table/local
+  heading block state machine. `FinancialParser._collect_blocks()` remains as a
+  compatibility wrapper that wires parser-specific callbacks into the extracted
+  collector.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
     `14` OK
-  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py`:
+  - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py src/processing/section_extraction.py src/processing/block_collection.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
 
-Next PR 5 seams should remain no-behavior-change extractions: block collection
-state machine, chunking, then reference resolution. Do not combine those with
-parser behavior repair unless a metadata snapshot test first exposes a concrete
-drift.
+Next PR 5 seams should remain no-behavior-change extractions: chunking, then
+reference resolution. Do not combine those with parser behavior repair unless a
+metadata snapshot test first exposes a concrete drift.
 
 ### PR 6: Vector Store Extraction
 
