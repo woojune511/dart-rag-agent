@@ -241,6 +241,30 @@ def time_series_result_series(
     return result_series
 
 
+def time_series_result_display(
+    *,
+    result_value: float,
+    result_unit: str,
+    normalized_unit: str,
+) -> Dict[str, str]:
+    display_normalized_unit = normalized_unit
+    if result_unit in {"%", "%p"}:
+        display_normalized_unit = "PERCENT"
+    percent_normalized_units = {
+        str(item).upper()
+        for item in (CALCULATION_RENDER_POLICY.get("count_or_percent_normalized_units") or ())
+        if str(item).upper() != "COUNT"
+    }
+    if (display_normalized_unit or "").upper() in percent_normalized_units:
+        rendered_value = f"{result_value:.1f}%"
+    else:
+        rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
+    return {
+        "normalized_unit": display_normalized_unit,
+        "rendered_value": rendered_value,
+    }
+
+
 def render_grounded_operand_display(row: Dict[str, Any]) -> str:
     raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
     raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))

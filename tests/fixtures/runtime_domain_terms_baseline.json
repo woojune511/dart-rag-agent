@@ -211,10 +211,9 @@
       "text": "퍼센트",
       "category": "runtime_literal",
       "fingerprint": "bd1699610adad626",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        9623,
-        12417
+        14030
       ]
     },
     {

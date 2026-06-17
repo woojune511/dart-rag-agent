@@ -16728,13 +16728,13 @@ class FinancialAgentCalculationMixin:
                 if not formula:
                     return _fail("parse_error", "missing trend formula")
                 result_value = _safe_eval_formula(formula, env)
-                if result_unit in {"%", "%p"}:
-                    normalized_unit = "PERCENT"
-                _is_percent = (normalized_unit or "").upper() in {"PERCENT", "%", "퍼센트"}
-                if _is_percent:
-                    rendered_value = f"{result_value:.1f}%"
-                else:
-                    rendered_value = f"{result_value:,.4f}".rstrip("0").rstrip(".")
+                time_series_display = calculation_rendering.time_series_result_display(
+                    result_value=float(result_value),
+                    result_unit=result_unit,
+                    normalized_unit=normalized_unit,
+                )
+                normalized_unit = time_series_display["normalized_unit"]
+                rendered_value = time_series_display["rendered_value"]
                 logger.info("[calculator] mode=%s op=%s result=%s", mode, operation, rendered_value)
                 calc_result = build_time_series_calculation_result(
                     result_value=float(result_value),

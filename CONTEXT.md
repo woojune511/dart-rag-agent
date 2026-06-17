@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 열여섯 번째 조각을 진행했다.
+  - `_execute_calculation`의 `time_series` rendered result 계산을
+    `src/agent/financial_graph_calculation_rendering.py`로 이동했다.
+    - `time_series_result_display`
+  - helper는 `result_unit`이 percent 계열이면 normalized unit을 `PERCENT`로
+    표시하고, percent/non-percent rendered value formatting을 기존과 동일하게
+    수행한다. percent normalized-unit 판단은 runtime literal이 아니라
+    `CALCULATION_RENDER_POLICY`를 사용하도록 바꿨다.
+  - runtime domain-term baseline은 `financial_graph_calculation.py`에서 제거된
+    기존 `퍼센트` literal count 감소를 반영했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_rendering tests.test_financial_calculation_execution`:
+      `22` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+      `4` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_graph_calculation_rendering.py`:
+      passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 열다섯 번째 조각을 진행했다.
   - `_execute_calculation`의 `time_series` pairwise YoY growth 계산을
     `src/agent/financial_calculation_execution.py`로 이동했다.

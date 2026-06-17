@@ -5,6 +5,7 @@ from src.agent.financial_graph_calculation_rendering import (
     direction_hint_for_result,
     scalar_result_display,
     scalar_result_series,
+    time_series_result_display,
     time_series_result_series,
 )
 
@@ -162,6 +163,26 @@ class FinancialCalculationRenderingTests(unittest.TestCase):
         self.assertEqual(series[0]["rendered_value"], "100")
         self.assertEqual(series[1]["label"], "Metric")
         self.assertEqual(series[1]["rendered_value"], "115")
+
+    def test_time_series_result_display_formats_percent_result(self) -> None:
+        result = time_series_result_display(
+            result_value=12.345,
+            result_unit="%",
+            normalized_unit="COUNT",
+        )
+
+        self.assertEqual(result["normalized_unit"], "PERCENT")
+        self.assertEqual(result["rendered_value"], "12.3%")
+
+    def test_time_series_result_display_formats_non_percent_result(self) -> None:
+        result = time_series_result_display(
+            result_value=1234.5,
+            result_unit="",
+            normalized_unit="COUNT",
+        )
+
+        self.assertEqual(result["normalized_unit"], "COUNT")
+        self.assertEqual(result["rendered_value"], "1,234.5")
 
 
 if __name__ == "__main__":
