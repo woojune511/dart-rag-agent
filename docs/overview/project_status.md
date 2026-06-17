@@ -66,12 +66,17 @@ role-separated multi-agent system using a task ledger and artifact store.
     private-helper-only test.
   - Removed the deleted helper's regex literal from the reviewed runtime
     domain-term audit baseline.
+  - Removed 7 thin wrapper shims that only forwarded to
+    `calculation_rendering` / `financial_answer_slots` and had no remaining
+    agent runtime callers.
 - Result:
-  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,430` lines.
-  - Latest runtime/test/baseline diff: `91` deletions.
+  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,347` lines.
+  - Latest runtime-only diff: `83` deletions.
 - Verification:
   - `python -m src.ops.audit_runtime_domain_terms`: passed
     (`215` reviewed literals).
+  - `.venv/bin/python -m unittest tests.test_financial_answer_slots tests.test_financial_calculation_rendering tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution`:
+    `464` OK.
   - `.venv/bin/python -m unittest tests.test_runtime_domain_term_audit tests.test_subtask_loop tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
     `513` OK.
   - `.venv/bin/python -m unittest discover -s tests`: `1223` OK.

@@ -15790,25 +15790,11 @@ class FinancialAgentCalculationMixin:
             ordered_operands=ordered_operands,
         )
 
-    def _render_value_with_unit(self, value: float, display_unit: str, normalized_unit: str) -> str:
-        return calculation_rendering.render_value_with_unit(value, display_unit, normalized_unit)
-
     def _render_grounded_operand_display(self, row: Dict[str, Any]) -> str:
         return calculation_rendering.render_grounded_operand_display(row)
 
     def _absolute_display_value(self, value: str) -> str:
         return calculation_rendering.absolute_display_value(value)
-
-    def _collect_negative_subtrahend_slots(
-        self,
-        *,
-        calculation_result: Optional[Dict[str, Any]] = None,
-        subtask_results: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[Dict[str, str]]:
-        return calculation_rendering.collect_negative_subtrahend_slots(
-            calculation_result=calculation_result,
-            subtask_results=subtask_results,
-        )
 
     def _coerce_sign_aware_subtraction_answer(
         self,
@@ -15822,16 +15808,6 @@ class FinancialAgentCalculationMixin:
             calculation_result=calculation_result,
             subtask_results=subtask_results,
         )
-
-    def _first_material_slot_for_role(self, answer_slots: Dict[str, Any], role: str) -> Dict[str, Any]:
-        return calculation_rendering.first_material_slot_for_role(
-            answer_slots,
-            role,
-            answer_slot_has_material=self._answer_slot_has_material,
-        )
-
-    def _infer_company_from_answer_slots(self, answer_slots: Dict[str, Any]) -> str:
-        return calculation_rendering.infer_company_from_answer_slots(answer_slots)
 
     def _compose_slot_based_difference_answer(
         self,
@@ -15847,44 +15823,8 @@ class FinancialAgentCalculationMixin:
             answer_slot_has_material=self._answer_slot_has_material,
         )
 
-    def _slot_status(
-        self,
-        *,
-        normalized_value: Optional[float],
-        rendered_value: str,
-        raw_value: str,
-    ) -> str:
-        return financial_answer_slots.slot_status(
-            normalized_value=normalized_value,
-            rendered_value=rendered_value,
-            raw_value=raw_value,
-        )
-
     def _coerce_slot_numeric(self, value: Any) -> Optional[float]:
         return financial_answer_slots.coerce_slot_numeric(value)
-
-    def _build_missing_value_slot(
-        self,
-        *,
-        role: str,
-        label: str,
-        concept: str = "",
-        period: str = "",
-        raw_unit: str = "",
-        normalized_unit: str = "UNKNOWN",
-        source_row_ids: Optional[List[str]] = None,
-        source_anchor: str = "",
-    ) -> Dict[str, Any]:
-        return financial_answer_slots.build_missing_value_slot(
-            role=role,
-            label=label,
-            concept=concept,
-            period=period,
-            raw_unit=raw_unit,
-            normalized_unit=normalized_unit,
-            source_row_ids=source_row_ids,
-            source_anchor=source_anchor,
-        )
 
     def _build_operand_value_slot(
         self,
@@ -15897,29 +15837,6 @@ class FinancialAgentCalculationMixin:
             row,
             default_role=default_role,
             preserve_source_display=preserve_source_display,
-        )
-
-    def _build_calculated_value_slot(
-        self,
-        *,
-        label: str,
-        normalized_value: Optional[float],
-        normalized_unit: str,
-        display_unit: str,
-        period: str = "",
-        source_row_ids: Optional[List[str]] = None,
-        role: str = "primary_value",
-        source_anchor: str = "",
-    ) -> Dict[str, Any]:
-        return financial_answer_slots.build_calculated_value_slot(
-            label=label,
-            normalized_value=normalized_value,
-            normalized_unit=normalized_unit,
-            display_unit=display_unit,
-            period=period,
-            source_row_ids=source_row_ids,
-            role=role,
-            source_anchor=source_anchor,
         )
 
     def _build_answer_slots(
