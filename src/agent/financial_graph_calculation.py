@@ -21,6 +21,7 @@ from src.agent.financial_calculation_execution import (
     build_scalar_calculation_result,
     build_success_calculation_state_payload,
     build_time_series_calculation_result,
+    time_series_yoy_growth_rates,
 )
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
@@ -16720,15 +16721,10 @@ class FinancialAgentCalculationMixin:
                     ordered_operands=ordered_operands,
                     normalized_unit=normalized_unit,
                 )
-                yoy_growth_rates: List[Optional[float]] = [None]
-                if pairwise_formula:
-                    for previous_row, current_row in zip(ordered_operands, ordered_operands[1:]):
-                        prev_value = float(previous_row.get("normalized_value"))
-                        curr_value = float(current_row.get("normalized_value"))
-                        try:
-                            yoy_growth_rates.append(_safe_eval_formula(pairwise_formula, {"PREV": prev_value, "CURR": curr_value}))
-                        except ZeroDivisionError:
-                            yoy_growth_rates.append(None)
+                yoy_growth_rates = time_series_yoy_growth_rates(
+                    ordered_operands=ordered_operands,
+                    pairwise_formula=pairwise_formula,
+                )
                 if not formula:
                     return _fail("parse_error", "missing trend formula")
                 result_value = _safe_eval_formula(formula, env)

@@ -9,6 +9,7 @@ from src.agent.financial_graph_helpers import (
     _normalise_operand_value,
     _normalise_spaces,
     _runtime_trace_state_update,
+    _safe_eval_formula,
     _upsert_task,
 )
 from src.schema import ArtifactKind, TaskKind, TaskStatus
@@ -284,3 +285,23 @@ def build_time_series_calculation_result(
         },
         "explanation": explanation,
     }
+
+
+def time_series_yoy_growth_rates(
+    *,
+    ordered_operands: List[Dict[str, Any]],
+    pairwise_formula: str,
+) -> List[Any]:
+    yoy_growth_rates: List[Any] = [None]
+    if not pairwise_formula:
+        return yoy_growth_rates
+    for previous_row, current_row in zip(ordered_operands, ordered_operands[1:]):
+        prev_value = float(previous_row.get("normalized_value"))
+        curr_value = float(current_row.get("normalized_value"))
+        try:
+            yoy_growth_rates.append(
+                _safe_eval_formula(pairwise_formula, {"PREV": prev_value, "CURR": curr_value})
+            )
+        except ZeroDivisionError:
+            yoy_growth_rates.append(None)
+    return yoy_growth_rates

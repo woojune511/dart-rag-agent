@@ -6,6 +6,7 @@ from src.agent.financial_calculation_execution import (
     build_scalar_calculation_state,
     build_success_calculation_state_payload,
     build_time_series_calculation_result,
+    time_series_yoy_growth_rates,
 )
 
 
@@ -288,6 +289,40 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         self.assertEqual(result["derived_metrics"]["formula"], "((B - A) / A) * 100")
         self.assertEqual(result["derived_metrics"]["pairwise_formula"], "((CURR - PREV) / PREV) * 100")
         self.assertEqual(result["explanation"], "calculated trend")
+
+    def test_time_series_yoy_growth_rates_evaluates_pairwise_formula(self) -> None:
+        rates = time_series_yoy_growth_rates(
+            ordered_operands=[
+                {"normalized_value": 100.0},
+                {"normalized_value": 115.0},
+                {"normalized_value": 138.0},
+            ],
+            pairwise_formula="((CURR - PREV) / PREV) * 100",
+        )
+
+        self.assertEqual(rates, [None, 15.0, 20.0])
+
+    def test_time_series_yoy_growth_rates_keeps_none_for_zero_division(self) -> None:
+        rates = time_series_yoy_growth_rates(
+            ordered_operands=[
+                {"normalized_value": 0.0},
+                {"normalized_value": 10.0},
+            ],
+            pairwise_formula="((CURR - PREV) / PREV) * 100",
+        )
+
+        self.assertEqual(rates, [None, None])
+
+    def test_time_series_yoy_growth_rates_without_formula_returns_initial_gap(self) -> None:
+        rates = time_series_yoy_growth_rates(
+            ordered_operands=[
+                {"normalized_value": 100.0},
+                {"normalized_value": 115.0},
+            ],
+            pairwise_formula="",
+        )
+
+        self.assertEqual(rates, [None])
 
 
 if __name__ == "__main__":

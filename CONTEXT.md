@@ -11,6 +11,22 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 4 범위의 calculation extraction 열다섯 번째 조각을 진행했다.
+  - `_execute_calculation`의 `time_series` pairwise YoY growth 계산을
+    `src/agent/financial_calculation_execution.py`로 이동했다.
+    - `time_series_yoy_growth_rates`
+  - helper는 `pairwise_formula`를 `PREV`/`CURR` 환경에서 평가하고,
+    기존처럼 `ZeroDivisionError`는 해당 growth rate를 `None`으로 남긴다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+      `20` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_operation_contracts.OperationContractTests.test_difference_result_exposes_structured_value_slots tests.test_operation_contracts.OperationContractTests.test_percent_difference_preserves_two_decimal_percent_rendering tests.test_operation_contracts.OperationContractTests.test_lookup_calculation_preserves_source_table_unit_in_rendered_value tests.test_operation_contracts.OperationContractTests.test_growth_rate_preserves_stated_source_percent_when_available`:
+      `4` OK
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `216` reviewed literals
+    - `python -m py_compile src/agent/financial_graph_calculation.py src/agent/financial_calculation_execution.py`:
+      passed
+
 - 2026-06-17 PR 4 범위의 calculation extraction 열네 번째 조각을 진행했다.
   - `_execute_calculation`의 `time_series` result series row assembly를
     `src/agent/financial_graph_calculation_rendering.py`로 이동했다.
