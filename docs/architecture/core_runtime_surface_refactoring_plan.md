@@ -452,6 +452,10 @@ development profile.
 - README representative checks are split into lightweight reviewer commands,
   capability-specific gates, and full development commands.
 - `docs/README.md` documents the dependency profile boundary.
+- `docs/overview/portfolio_one_pager.md` now links to README for reviewer
+  commands instead of duplicating the command block.
+- `docs/README.md` separates the core 5-document reviewer path from optional
+  interview/resume deliverables.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json`:
     `ready`
@@ -459,10 +463,12 @@ development profile.
     `Status: ready`
   - `requirements.txt` and `requirements-review.txt` parsed via
     `packaging.requirements.Requirement`
+  - reviewer-facing doc local link check:
+    passed
   - `git diff --check`: passed
 - Next PR 8 seam should stay docs-only unless a command actually needs a new
-  dependency profile. Check whether the reviewer-facing 5-document path and
-  appendix/internal log links still match the current portfolio narrative.
+  dependency profile. Run a link/claim duplication check across reviewer-facing
+  docs, or close PR 8 with a stop-line before final portfolio review.
 
 ## Deletion Criteria
 

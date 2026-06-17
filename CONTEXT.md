@@ -11,6 +11,20 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 8 docs cleanup 세 번째 조각을 진행했다.
+  - `portfolio_one_pager.md`에서 README와 중복되는 긴 command block을 제거하고,
+    reviewer command source를 README로 단일화했다.
+  - `docs/README.md`의 quick review path를 core 5-document path와 optional
+    interview/resume deliverable로 분리해 문서 역할을 명확히 했다.
+  - 검증:
+    - reviewer-facing doc local link check: passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+    - `git diff --check`: passed
+  - 다음 PR 8 후보는 reviewer-facing 문서의 링크 유효성/중복 claim을
+    자동 점검하거나, PR8을 stop-line으로 닫고 포트폴리오 최종 점검으로
+    넘어가는 것이다.
+
 - 2026-06-17 PR 8 requirements/docs cleanup 두 번째 조각을 진행했다.
   - `requirements.txt`에 full development / ingest / benchmark / app lock임을
     명시했다.

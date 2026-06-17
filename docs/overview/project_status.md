@@ -201,6 +201,26 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Latest PR 8 Requirements/Docs Cleanup
 
 - Run date: 2026-06-17
+- Scope: reviewer-facing document path cleanup.
+- Change:
+  - Removed the duplicated long command block from
+    `docs/overview/portfolio_one_pager.md`; README remains the single source
+    for reviewer commands and dependency-profile guidance.
+  - Clarified `docs/README.md` so the core quick review path is the 5-document
+    path, while interview narrative and resume snippets are optional
+    deliverables.
+- Verification:
+  - reviewer-facing doc local link check: passed
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`
+  - `git diff --check`: passed
+- Next PR 8 candidate: run a link/claim duplication check across
+  reviewer-facing docs, or close PR 8 with a stop-line before final portfolio
+  review.
+
+Historical PR 8 profile cleanup:
+
+- Run date: 2026-06-17
 - Scope: dependency profile presentation and reviewer command cleanup.
 - Change:
   - Marked `requirements.txt` as the full development / ingest / benchmark /

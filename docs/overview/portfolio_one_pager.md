@@ -122,19 +122,11 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
 | Test coverage | full unittest discovery passed `1048` tests after the expanded structural refresh source fix; runtime domain-term audit passed |
 
-## Representative Commands
+## Review Commands
 
-```bash
-uv run --with-requirements requirements.txt python -m unittest discover -s tests
-uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
-uv run --with-requirements requirements-review.txt python -m src.ops.review_report_cache_index_contract
-uv run --with-requirements requirements-review.txt python -m src.ops.report_cache_promotion_evidence_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.reflection_promotion_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.reference_note_capability_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.promotion_trace_materiality_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
-```
+Use the lightweight reviewer commands in [../../README.md](../../README.md).
+This one-pager avoids duplicating the command list so dependency-profile
+guidance stays in one place.
 
 ## Portfolio Story
 
@@ -167,8 +159,9 @@ remaining separator a cleaner row-binding result.
 
 ## Reviewer Path
 
-For a quick review, start with
-[portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md), then scan the
-runtime cleanup row above to understand why stale top-level calculation mirrors
-are no longer treated as canonical state. For an interview or project
-presentation, use [portfolio_presentation_outline.md](portfolio_presentation_outline.md).
+For a quick review, start with the README commands, then use
+[portfolio_demo_walkthrough.md](portfolio_demo_walkthrough.md) for the compact
+runtime output and [portfolio_experiment_report.md](portfolio_experiment_report.md)
+for the ablation evidence. For an interview or project presentation, use
+[portfolio_interview_narrative.md](portfolio_interview_narrative.md) or
+[portfolio_presentation_outline.md](portfolio_presentation_outline.md).
