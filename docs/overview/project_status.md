@@ -69,6 +69,10 @@ role-separated multi-agent system using a task ledger and artifact store.
   - Left the Researcher private diagnostic helper imports in
     `mas_direct_worker_probe.py` on the legacy implementation path rather than
     broadening the experimental public facade.
+  - Migrated public MAS graph/type/node factory imports in focused MAS tests to
+    `src.experimental.mas`.
+  - Kept legacy imports only for compatibility assertions and
+    implementation-private helper/constant tests.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
@@ -78,10 +82,14 @@ role-separated multi-agent system using a task ledger and artifact store.
     passed
   - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
     passed
+  - `python -m py_compile tests/test_analyst_node.py tests/test_researcher_node.py tests/test_critic_node.py tests/test_orchestrator_node.py tests/test_multi_agent_graph.py`:
+    passed
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    ready
   - `git diff --check`: passed
-- Next MAS isolation candidate: migrate public MAS imports in tests to
-  `src.experimental.mas`, or decide whether Researcher diagnostic private
-  helpers deserve an explicit experimental facade. Keep implementation file
+- Next MAS isolation candidate: decide whether Researcher diagnostic private
+  helpers deserve an explicit experimental facade, then perform a full caller
+  import scan before any implementation file move. Keep implementation file
   moves on hold.
 
 ### Latest PR 6 Vector Store Extraction

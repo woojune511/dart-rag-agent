@@ -386,6 +386,10 @@ boundary.
 - Kept `mas_direct_worker_probe.py` Researcher private diagnostic helper imports
   on the legacy implementation path to avoid widening the public facade
   prematurely.
+- Migrated public MAS graph/type/node factory imports in focused MAS tests to
+  `src.experimental.mas`.
+- Legacy test imports remain only for compatibility assertions and
+  implementation-private helper/constant tests.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
@@ -395,12 +399,16 @@ boundary.
     passed
   - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
     passed
+  - `python -m py_compile tests/test_analyst_node.py tests/test_researcher_node.py tests/test_critic_node.py tests/test_orchestrator_node.py tests/test_multi_agent_graph.py`:
+    passed
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    ready
   - `git diff --check`: passed
 
-Next PR 7 seam should remain no-behavior-change: migrate public MAS imports in
-tests to `src.experimental.mas`, or decide whether Researcher diagnostic private
-helpers deserve an explicit experimental facade. Move implementation files only
-after current callers have compatibility coverage.
+Next PR 7 seam should remain no-behavior-change: decide whether Researcher
+diagnostic private helpers deserve an explicit experimental facade, then perform
+a full caller import scan before any implementation file move. Move
+implementation files only after current callers have compatibility coverage.
 
 ### PR 8: Requirements And Docs Cleanup
 

@@ -11,9 +11,9 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.mas_graph import build_initial_state, run_mas_graph
-from src.agent.mas_types import MultiAgentState, TaskStatus
-from src.agent.nodes.analyst_node import make_run_analyst
+from src.experimental.mas.graph import build_initial_state, run_mas_graph
+from src.experimental.mas.nodes import make_run_analyst
+from src.experimental.mas.types import MultiAgentState, TaskStatus
 
 
 class FakeAnalystCore:

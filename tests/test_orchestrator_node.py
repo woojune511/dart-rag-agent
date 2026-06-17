@@ -9,19 +9,21 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.mas_graph import build_initial_state, run_mas_graph
-from src.agent.mas_types import (
+from src.agent.nodes.orchestrator_node import (
+    MERGE_ANSWER_COMPRESSION_GUIDANCE,
+)
+from src.experimental.mas.graph import build_initial_state, run_mas_graph
+from src.experimental.mas.nodes import (
+    make_run_orchestrator_merge,
+    make_run_orchestrator_plan,
+)
+from src.experimental.mas.types import (
     Artifact,
     MultiAgentState,
     TaskStatus,
     build_agent_task,
     build_artifact,
     project_final_report_carry_forward,
-)
-from src.agent.nodes.orchestrator_node import (
-    MERGE_ANSWER_COMPRESSION_GUIDANCE,
-    make_run_orchestrator_merge,
-    make_run_orchestrator_plan,
 )
 
 

@@ -9,14 +9,15 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.mas_graph import build_initial_state
-from src.agent.mas_types import (
+from src.agent.nodes.critic_node import MAX_CRITIC_RETRIES
+from src.experimental.mas.graph import build_initial_state
+from src.experimental.mas.nodes import run_critic
+from src.experimental.mas.types import (
     TaskStatus,
     build_critic_report,
     critic_report_runtime_acceptance_state,
     project_worker_artifact_boundary,
 )
-from src.agent.nodes.critic_node import MAX_CRITIC_RETRIES, run_critic
 
 
 class DeterministicCriticTests(unittest.TestCase):

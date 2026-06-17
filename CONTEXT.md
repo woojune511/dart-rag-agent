@@ -11,6 +11,23 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 7 MAS isolation 세 번째 조각을 진행했다.
+  - MAS focused tests의 public graph/type/node factory imports를
+    `src.experimental.mas` namespace로 전환했다.
+  - legacy import는 `tests/test_experimental_mas_namespace.py`의 compatibility
+    assertion과 implementation-private helper/constant 검증에만 남겼다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
+      `36` OK
+    - `python -m py_compile tests/test_analyst_node.py tests/test_researcher_node.py tests/test_critic_node.py tests/test_orchestrator_node.py tests/test_multi_agent_graph.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      ready
+    - `git diff --check`: passed
+  - 다음 PR 7 후보는 Researcher diagnostic private helpers를 experimental
+    facade로 올릴지 말지 결정하거나, implementation file 이동 전에 전체
+    caller import scan을 한 번 더 고정하는 것이다.
+
 - 2026-06-17 PR 7 MAS isolation 두 번째 조각을 진행했다.
   - `src/ops/mas_analyst_smoke.py`, `mas_researcher_smoke.py`,
     `mas_e2e_smoke.py`, `mas_direct_worker_probe.py`, `portfolio_demo.py`의

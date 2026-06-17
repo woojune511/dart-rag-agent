@@ -9,13 +9,15 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.mas_graph import run_mas_graph
-from src.agent.mas_types import AgentTask, Artifact, MultiAgentState, TaskStatus, build_artifact
+from src.experimental.mas.graph import run_mas_graph
+from src.experimental.mas.nodes import (
+    make_run_orchestrator_merge,
+    make_run_orchestrator_plan,
+)
+from src.experimental.mas.types import AgentTask, Artifact, MultiAgentState, TaskStatus, build_artifact
 from src.agent.nodes.orchestrator_node import (
     _planner_feedback_from_integrity_issues,
     _task_updates_for_replan_carry_forward,
-    make_run_orchestrator_merge,
-    make_run_orchestrator_plan,
 )
 from src.schema import ArtifactKind
 
