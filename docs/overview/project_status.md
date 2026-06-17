@@ -50,6 +50,30 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest PR 6 Vector Store Extraction
+
+- Run date: 2026-06-17
+- Scope: first no-behavior-change vector-store extraction under the
+  `VectorStoreManager` facade.
+- Change:
+  - Added `src/storage/embedding_config.py` for embedding provider selection,
+    default model selection, known dimension lookup, runtime spec construction,
+    and embedding factory creation.
+  - Preserved the existing `src.storage.vector_store` import surface for
+    `DEFAULT_EMBEDDING_PROVIDER`, `DEFAULT_EMBEDDING_MODEL`,
+    `create_embeddings`, `get_embedding_runtime_spec`,
+    `infer_embedding_dimension`, and `_select_default_embedding_provider`.
+  - Left `VectorStoreManager.search()` behavior and search telemetry untouched.
+- Verification:
+  - `.venv/bin/python -m unittest tests.test_embedding_runtime_config tests.test_vector_store_fallback`:
+    `18` OK
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py`:
+    passed
+  - `git diff --check`: passed
+- Next vector-store extraction candidate: Chroma metadata sanitization / table
+  payload sidecar helpers or BM25 index/search helpers. Keep the next change
+  no-behavior-change and preserve telemetry keys.
+
 ### Latest PR 5 Parser Extraction
 
 - Run date: 2026-06-17

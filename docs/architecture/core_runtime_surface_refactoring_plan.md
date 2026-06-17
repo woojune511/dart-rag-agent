@@ -316,6 +316,30 @@ and metadata sidecars behind smaller internal modules.
 
 Search telemetry keys should remain stable.
 
+#### PR 6 Current Status
+
+Status as of 2026-06-17: PR 6 has started with a no-behavior-change extraction
+behind the `VectorStoreManager` facade.
+
+- Added `src/storage/embedding_config.py` for embedding provider selection,
+  default model selection, known dimension lookup, runtime spec construction,
+  and embedding factory creation.
+- Preserved the existing `src.storage.vector_store` import surface for
+  `DEFAULT_EMBEDDING_PROVIDER`, `DEFAULT_EMBEDDING_MODEL`,
+  `create_embeddings`, `get_embedding_runtime_spec`,
+  `infer_embedding_dimension`, and `_select_default_embedding_provider`.
+- `VectorStoreManager.search()` behavior and telemetry keys are unchanged.
+- Verification:
+  - `.venv/bin/python -m unittest tests.test_embedding_runtime_config tests.test_vector_store_fallback`:
+    `18` OK
+  - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py`:
+    passed
+  - `git diff --check`: passed
+
+Next PR 6 seam should remain no-behavior-change: Chroma metadata sanitization /
+table payload sidecar helpers or BM25 index/search helpers. Do not combine this
+with retrieval behavior tuning.
+
 ### PR 7: MAS Isolation
 
 Move MAS code under `experimental/mas` and keep compatibility shims only where

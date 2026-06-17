@@ -11,6 +11,26 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 6 vector store extraction 첫 조각을 진행했다.
+  - `src/storage/embedding_config.py`를 추가해 embedding provider selection,
+    default model selection, known dimension lookup, runtime spec 생성,
+    embedding factory를 `VectorStoreManager` facade 밖으로 분리했다.
+  - 기존 `src.storage.vector_store` import surface는 유지했다.
+    `DEFAULT_EMBEDDING_PROVIDER`, `DEFAULT_EMBEDDING_MODEL`,
+    `create_embeddings`, `get_embedding_runtime_spec`,
+    `infer_embedding_dimension`, `_select_default_embedding_provider`는 계속
+    `vector_store.py`에서 import 가능하다.
+  - `VectorStoreManager.search()`와 telemetry path는 건드리지 않았다.
+  - 검증:
+    - `.venv/bin/python -m unittest tests.test_embedding_runtime_config tests.test_vector_store_fallback`:
+      `18` OK
+    - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py`:
+      passed
+    - `git diff --check`: passed
+  - 다음 PR 6 후보는 Chroma metadata sanitization / table payload sidecar
+    helpers 또는 BM25 index/search helpers 중 하나를 no-behavior-change로
+    분리하는 것이다.
+
 - 2026-06-17 PR 5 parser extraction 여섯 번째 조각을 진행했다.
   - `src/processing/reference_resolution.py`를 추가해 quoted intra-filing
     reference hint를 section path로 resolving하는 index/canonicalization
