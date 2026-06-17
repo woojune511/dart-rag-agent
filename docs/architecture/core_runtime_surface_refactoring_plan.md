@@ -440,6 +440,30 @@ dependencies are not all presented as one default install surface.
 Simplify reviewer-facing docs and move stale benchmark or retrospective material
 to appendix/internal locations.
 
+#### PR 8 Current Status
+
+Status as of 2026-06-17: PR 8 has a lightweight reviewer profile and a full
+development profile.
+
+- `requirements-review.txt` is the quick review profile for fixture-backed
+  demo/gate commands.
+- `requirements.txt` is documented as the full development / ingest /
+  benchmark / app dependency lock.
+- README representative checks are split into lightweight reviewer commands,
+  capability-specific gates, and full development commands.
+- `docs/README.md` documents the dependency profile boundary.
+- Verification:
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json`:
+    `ready`
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`
+  - `requirements.txt` and `requirements-review.txt` parsed via
+    `packaging.requirements.Requirement`
+  - `git diff --check`: passed
+- Next PR 8 seam should stay docs-only unless a command actually needs a new
+  dependency profile. Check whether the reviewer-facing 5-document path and
+  appendix/internal log links still match the current portfolio narrative.
+
 ## Deletion Criteria
 
 Before deleting or archiving a module, answer these questions:

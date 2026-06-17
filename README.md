@@ -132,21 +132,33 @@ Everything else is appendix or internal log. Start with
 
 ## Representative Checks
 
-Use the first three commands for normal review. The remaining commands are
-capability-specific gates that the aggregate portfolio gate also covers.
-`requirements-review.txt` is the lightweight fixture/gate dependency set; use
-`requirements.txt` for full development, ingest, benchmark, or app runs.
+Use the lightweight profile for normal review. It covers fixture-backed demo
+and gate commands without installing the full ML, ingest, app, benchmark, and
+tracing stack. Use the full profile only when running the whole test suite,
+fresh ingest, benchmarks, or the app.
+
+Lightweight reviewer profile:
 
 ```bash
-uv run --with-requirements requirements.txt python -m unittest discover -s tests
 uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
+```
+
+Capability-specific gates covered by `portfolio_review_gates`:
+
+```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.review_report_cache_index_contract
 uv run --with-requirements requirements-review.txt python -m src.ops.report_cache_promotion_evidence_gate
 uv run --with-requirements requirements-review.txt python -m src.ops.reflection_promotion_gate
 uv run --with-requirements requirements-review.txt python -m src.ops.reference_note_capability_gate
 uv run --with-requirements requirements-review.txt python -m src.ops.promotion_trace_materiality_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
+```
+
+Full development profile:
+
+```bash
+uv run --with-requirements requirements.txt python -m unittest discover -s tests
 ```
 
 `portfolio_review_gates` should report aggregate `status = ready`. The cache

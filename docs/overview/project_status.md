@@ -201,6 +201,29 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Latest PR 8 Requirements/Docs Cleanup
 
 - Run date: 2026-06-17
+- Scope: dependency profile presentation and reviewer command cleanup.
+- Change:
+  - Marked `requirements.txt` as the full development / ingest / benchmark /
+    app dependency lock.
+  - Kept `requirements-review.txt` as the lightweight fixture/gate profile for
+    portfolio review commands.
+  - Split README representative checks into lightweight reviewer commands,
+    capability-specific gates, and full development commands.
+  - Added dependency profile guidance to `docs/README.md`.
+- Verification:
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json`:
+    `ready`
+  - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+    `Status: ready`
+  - `requirements.txt` and `requirements-review.txt` parsed via
+    `packaging.requirements.Requirement`
+  - `git diff --check`: passed
+- Next PR 8 candidate: check whether the reviewer-facing 5-document path and
+  appendix/internal log links still match the current portfolio narrative.
+
+Historical PR 8 setup:
+
+- Run date: 2026-06-17
 - Scope: reviewer-facing install and command hygiene.
 - Change:
   - `requirements.txt` now marks `pywin32==311` as Windows-only with

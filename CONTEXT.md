@@ -11,6 +11,25 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 8 requirements/docs cleanup 두 번째 조각을 진행했다.
+  - `requirements.txt`에 full development / ingest / benchmark / app lock임을
+    명시했다.
+  - README의 representative checks를 lightweight reviewer profile,
+    capability-specific gates, full development profile로 분리했다.
+  - `docs/README.md`에 dependency profile 설명을 추가해 quick review path가
+    full ML stack 설치를 요구하지 않는다는 점을 명확히 했다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json`:
+      ready
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+    - `requirements.txt` / `requirements-review.txt` parsed via
+      `packaging.requirements.Requirement`
+    - `git diff --check`: passed
+  - 다음 PR 8 후보는 README/overview 문서 수를 더 줄이는 것이 아니라,
+    reviewer-facing 5개 문서와 appendix/internal log의 역할이 실제 링크와
+    중복 없이 맞는지 점검하는 것이다.
+
 - 2026-06-17 PR 7 MAS isolation 다섯 번째 조각을 진행했다.
   - full MAS caller import scan 결과를 기준으로 compatibility shim 전략을
     고정했다.

@@ -1,3 +1,8 @@
+# Full development / ingest / benchmark / app dependency lock.
+#
+# Reviewer-facing fixture and gate commands should prefer
+# requirements-review.txt so a quick portfolio review does not require the full
+# ML, storage, app, and tracing stack.
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.3
 aiosignal==1.4.0
