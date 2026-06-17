@@ -50,6 +50,19 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Latest Subtask Loop Broad Regression Check
+
+- Run date: 2026-06-17
+- Scope: broad subtask/aggregate regression after aligning successful
+  `time_series` calculations with the calculation task/artifact publication
+  contract.
+- Verification:
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop`:
+    `210` OK
+- Interpretation: publishing calculation tasks/artifacts for successful
+  time-series calculations remains compatible with aggregate/subtask
+  orchestration.
+
 ### Latest Time-Series Publication Contract Alignment
 
 - Run date: 2026-06-17

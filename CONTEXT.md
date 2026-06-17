@@ -11,6 +11,14 @@
 
 ## 최신 상태
 
+- 2026-06-17 `time_series` calculation publication 정렬 후 subtask loop broad
+  regression을 확인했다.
+  - 검증:
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest tests.test_subtask_loop`:
+      `210` OK
+  - 결과: time-series 성공 경로가 calculation task/artifact를 publish하도록
+    바뀐 뒤에도 aggregate/subtask orchestration 회귀는 통과했다.
+
 - 2026-06-17 PR 4 범위의 calculation execution contract 정렬을 진행했다.
   - `time_series` 성공 경로가 scalar 성공 경로처럼
     `build_success_calculation_state_payload`를 사용하도록 바꿨다.
