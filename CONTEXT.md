@@ -11,6 +11,33 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 7 MAS isolation 다섯 번째 조각을 진행했다.
+  - full MAS caller import scan 결과를 기준으로 compatibility shim 전략을
+    고정했다.
+  - 새 public/ops/test caller는 `src.experimental.mas`를 사용한다.
+  - `src.agent.multi_agent_graph`와 `src.agent.nodes.__init__`는 기존 import를
+    깨지 않기 위한 compatibility shim/export surface로 남긴다.
+  - `src.agent.mas_graph`, `src.agent.mas_types`, `src.agent.nodes.*`는 아직
+    실제 구현 위치이며, implementation file move 전까지 삭제하거나 redirect
+    shim으로 바꾸지 않는다.
+  - 남은 legacy import 분류:
+    - `src.experimental.mas.*`: experimental facade가 기존 구현을 감싸는 의도된
+      bridge
+    - `tests/test_experimental_mas_namespace.py`: compatibility identity assertion
+    - focused node tests: implementation-private constant/helper 검증
+    - `src.agent.*` 내부: 구현 내부 의존성
+  - 검증:
+    - `python -m src.ops.audit_runtime_domain_terms`: passed
+    - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
+      `37` OK
+    - `python -m py_compile src/agent/multi_agent_graph.py src/agent/nodes/__init__.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      ready
+    - `git diff --check`: passed
+  - 다음 PR 7 후보는 implementation move 자체가 아니라, move가 필요한지
+    재평가하거나 PR 8 requirements/docs cleanup으로 넘어가는 것이다.
+
 - 2026-06-17 PR 7 MAS isolation 네 번째 조각을 진행했다.
   - `src.experimental.mas.diagnostics`를 추가해 MAS worker probe가 쓰는
     Researcher diagnostic helper surface를 experimental namespace에 분리했다.

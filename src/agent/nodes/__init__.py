@@ -1,5 +1,8 @@
-"""
-Node functions for the DART MAS skeleton.
+"""Compatibility exports for MAS node factories.
+
+New experimental MAS callers should import from ``src.experimental.mas.nodes``.
+The concrete node implementations still live in this package until the
+implementation move has explicit compatibility coverage.
 """
 
 from src.agent.nodes.analyst_node import build_financial_analyst_node, make_run_analyst

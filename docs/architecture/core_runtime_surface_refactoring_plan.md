@@ -395,6 +395,22 @@ boundary.
   `src.agent.nodes.researcher_node` private-helper imports.
 - Diagnostic helpers are not re-exported by top-level `src.experimental.mas`;
   callers must opt into the diagnostic module explicitly.
+- Full caller import scan result:
+  - New public/ops/test callers use `src.experimental.mas`.
+  - `src.experimental.mas.*` modules intentionally bridge to the current
+    `src.agent.*` implementation while files remain unmoved.
+  - `tests/test_experimental_mas_namespace.py` keeps legacy imports only for
+    compatibility identity assertions.
+  - Focused node tests keep legacy imports only for implementation-private
+    constants/helpers.
+  - `src.agent.*` internal imports remain implementation dependencies.
+- Compatibility shim strategy:
+  - Keep `src.agent.multi_agent_graph` and `src.agent.nodes.__init__` as
+    compatibility surfaces for earlier imports.
+  - Keep `src.agent.mas_graph`, `src.agent.mas_types`, and
+    `src.agent.nodes.*` as implementation files for now, not redirect shims.
+  - Do not move implementation files unless a later PR demonstrates a concrete
+    maintenance benefit and preserves compatibility tests.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
@@ -408,12 +424,13 @@ boundary.
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     ready
+  - `python -m src.ops.audit_runtime_domain_terms`:
+    passed
   - `git diff --check`: passed
 
-Next PR 7 seam should remain no-behavior-change: perform a full caller import
-scan and decide the compatibility shim/deprecation strategy before any
-implementation file move. Move implementation files only after current callers
-have compatibility coverage.
+Next PR 7 seam should remain no-behavior-change. Do not move implementation
+files by default; either reassess whether the move is still useful, or switch to
+PR 8 requirements/docs cleanup.
 
 ### PR 8: Requirements And Docs Cleanup
 

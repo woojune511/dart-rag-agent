@@ -1,13 +1,9 @@
-"""
-Backward-compatible wrapper around the MAS skeleton modules.
+"""Backward-compatible wrapper around the experimental MAS modules.
 
-This file exists so earlier local imports that referenced
-`src.agent.multi_agent_graph` keep working while the implementation is split
-into:
-
-- `src.agent.mas_types`
-- `src.agent.nodes.dummy_nodes`
-- `src.agent.mas_graph`
+New callers should import through ``src.experimental.mas``. This module remains
+as a compatibility shim for earlier local imports that referenced
+``src.agent.multi_agent_graph`` while MAS is isolated from the default runtime
+surface.
 """
 
 from __future__ import annotations

@@ -78,6 +78,15 @@ role-separated multi-agent system using a task ledger and artifact store.
     direct `src.agent.nodes.researcher_node` private-helper imports.
   - Kept diagnostic helpers out of top-level `src.experimental.mas` exports so
     the main experimental MAS facade remains graph/type/node oriented.
+  - Documented the compatibility shim strategy after a full caller import scan:
+    new public callers use `src.experimental.mas`; `src.agent.multi_agent_graph`
+    and `src.agent.nodes.__init__` remain compatibility surfaces; concrete
+    `src.agent.mas_graph`, `src.agent.mas_types`, and `src.agent.nodes.*`
+    implementation files stay in place until an implementation move is clearly
+    worth the risk.
+  - Remaining legacy imports are classified as experimental facade bridge
+    imports, compatibility identity assertions, implementation-private tests,
+    or internal implementation dependencies.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_experimental_mas_namespace tests.test_multi_agent_graph tests.test_analyst_node tests.test_researcher_node tests.test_critic_node tests.test_orchestrator_node`:
     `36` OK
@@ -91,11 +100,12 @@ role-separated multi-agent system using a task ledger and artifact store.
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     ready
+  - `python -m src.ops.audit_runtime_domain_terms`:
+    passed
   - `git diff --check`: passed
-- Next MAS isolation candidate: decide whether Researcher diagnostic private
-  helper compatibility should stay diagnostic-only, then perform a full caller
-  import scan before any implementation file move. Keep implementation file
-  moves on hold.
+- Next MAS isolation candidate: do not move implementation files by default.
+  Either reassess whether the move is still useful, or switch to PR 8
+  requirements/docs cleanup.
 
 ### Latest PR 6 Vector Store Extraction
 
