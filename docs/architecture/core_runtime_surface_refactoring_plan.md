@@ -244,8 +244,8 @@ change retrieval behavior.
 
 #### PR 5 Current Status
 
-Status as of 2026-06-17: PR 5 has started with a no-behavior-change extraction
-of value-cell metadata construction.
+Status as of 2026-06-17: PR 5 has started with no-behavior-change parser
+extractions behind the `FinancialParser.process_document()` facade.
 
 - Added `src/processing/table_records.py` for parser-normalized table row/value
   record construction.
@@ -255,6 +255,13 @@ of value-cell metadata construction.
 - Generic table-axis, period-label, aggregate-role, row-record, and value-record
   helpers now live in the parser table-record module instead of the main parser
   facade.
+- Added `src/processing/table_structure.py` for XML table grid reconstruction,
+  merged-cell propagation, table text formatting, span detection, row-label
+  extraction, and table-object payload assembly.
+- `FinancialParser._cell_span_int()`, `_normalize_table_grid()`,
+  `_format_table_grid()`, `_table_has_spans()`,
+  `_extract_table_row_labels_from_grid()`, `_build_table_object()`, and
+  `_grid_row_to_text()` remain compatibility wrappers.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
@@ -265,10 +272,10 @@ of value-cell metadata construction.
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
 
-Next PR 5 seams should remain no-behavior-change extractions: XML/table-grid
-reconstruction, section/block extraction, chunking, then reference resolution.
-Do not combine those with parser behavior repair unless a metadata snapshot test
-first exposes a concrete drift.
+Next PR 5 seams should remain no-behavior-change extractions: section/block
+extraction, chunking, then reference resolution. Do not combine those with
+parser behavior repair unless a metadata snapshot test first exposes a concrete
+drift.
 
 ### PR 6: Vector Store Extraction
 

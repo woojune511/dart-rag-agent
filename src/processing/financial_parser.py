@@ -31,6 +31,15 @@ from src.processing.table_records import (
     is_generic_value_label,
     merge_header_stack,
 )
+from src.processing.table_structure import (
+    build_table_object,
+    cell_span_int,
+    extract_table_row_labels_from_grid,
+    format_table_grid,
+    grid_row_to_text,
+    normalize_table_grid,
+    table_has_spans,
+)
 from src.schema import RowRecord, TableObject, ValueRecord
 
 logger = logging.getLogger(__name__)
@@ -80,8 +89,6 @@ DEFAULT_SECTION_PARSE_WARN_SEC = float(os.getenv("DART_PARSER_SECTION_WARN_SEC",
 DEFAULT_SECTION_PARSE_BUDGET_SEC = float(os.getenv("DART_PARSER_SECTION_BUDGET_SEC", "2.0"))
 _UNIT_HINT_RE = re.compile(r"(천원|백만원|억원|%)")
 _UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(천원|백만원|억원|원|%)")
-_TABLE_CELL_TAGS = ("TD", "TH", "TU", "TE")
-
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
     ("연결재무제표", ["연결재무제표"]),
@@ -752,136 +759,29 @@ class FinancialParser:
 
     @staticmethod
     def _cell_span_int(cell, attr_name: str) -> int:
-        raw = cell.get(attr_name) or cell.get(attr_name.lower()) or cell.get(attr_name.upper())
-        try:
-            value = int(str(raw or "1").strip())
-        except (TypeError, ValueError):
-            value = 1
-        return max(1, value)
+        return cell_span_int(cell, attr_name)
 
     def _normalize_table_grid(self, table_elem) -> List[List[str]]:
-        grid: List[List[str]] = []
-        carry: Dict[int, Dict[str, Any]] = {}
-
-        def advance_carry_into_row(row: List[str], col_idx: int) -> int:
-            while col_idx in carry:
-                slot = carry[col_idx]
-                row.append(slot["text"])
-                slot["remaining_rows"] -= 1
-                if slot["remaining_rows"] <= 0:
-                    del carry[col_idx]
-                col_idx += 1
-            return col_idx
-
-        for tr in table_elem.findall(".//TR"):
-            row: List[str] = []
-            col_idx = 0
-            col_idx = advance_carry_into_row(row, col_idx)
-
-            for cell in tr:
-                if cell.tag not in _TABLE_CELL_TAGS:
-                    continue
-                col_idx = advance_carry_into_row(row, col_idx)
-                text = _normalize("".join(cell.itertext()))
-                rowspan = self._cell_span_int(cell, "ROWSPAN")
-                colspan = self._cell_span_int(cell, "COLSPAN")
-                if not text and rowspan == 1 and colspan == 1:
-                    col_idx += 1
-                    row.append("")
-                    continue
-
-                for _ in range(colspan):
-                    row.append(text)
-                    if rowspan > 1:
-                        carry[col_idx] = {"text": text, "remaining_rows": rowspan - 1}
-                    col_idx += 1
-
-            col_idx = advance_carry_into_row(row, col_idx)
-            if any(cell.strip() for cell in row):
-                grid.append(row)
-
-        if not grid:
-            return []
-
-        max_cols = max(len(row) for row in grid)
-        return [row + [""] * (max_cols - len(row)) for row in grid]
+        return normalize_table_grid(table_elem)
 
     @staticmethod
     def _format_table_grid(grid: List[List[str]]) -> str:
-        rows: List[str] = []
-        for row in grid:
-            trimmed = list(row)
-            while trimmed and not trimmed[-1].strip():
-                trimmed.pop()
-            if trimmed and any(cell.strip() for cell in trimmed):
-                rows.append(" | ".join(trimmed))
-        return "\n".join(rows)
+        return format_table_grid(grid)
 
     @staticmethod
     def _table_has_spans(table_elem) -> bool:
-        cells = []
-        for tag in _TABLE_CELL_TAGS:
-            cells.extend(table_elem.findall(f".//{tag}"))
-        for cell in cells:
-            for attr_name in ("ROWSPAN", "COLSPAN", "rowspan", "colspan"):
-                raw = cell.get(attr_name)
-                if raw and str(raw).strip() not in {"", "1"}:
-                    return True
-        return False
+        return table_has_spans(table_elem)
 
     @staticmethod
     def _extract_table_row_labels_from_grid(grid: List[List[str]], max_labels: int = 20) -> List[str]:
-        def cell_looks_numeric(text: str) -> bool:
-            value = _normalize(text)
-            if not value:
-                return False
-            if re.search(r"[A-Za-z가-힣]", value):
-                return False
-            return bool(re.match(r"^(?:-?\d[\d,]*(?:\.\d+)?|\(\d[\d,]*(?:\.\d+)?\))%?$", value))
-
-        def row_axis_label(row: List[str]) -> str:
-            first_numeric_idx = next((idx for idx, cell in enumerate(row) if cell_looks_numeric(cell)), None)
-            axis_scan = row[:first_numeric_idx] if first_numeric_idx is not None else row
-            axis_labels = [
-                _normalize(cell)
-                for cell in axis_scan
-                if _normalize(cell) and not cell_looks_numeric(cell)
-            ]
-            if axis_labels:
-                meaningful_axis = [label for label in axis_labels if not _is_generic_value_label(label)]
-                return meaningful_axis[-1] if meaningful_axis else axis_labels[-1]
-            return next((_normalize(cell) for cell in row if _normalize(cell)), "")
-
-        labels: List[str] = []
-        seen: set[str] = set()
-        for row in grid:
-            label = row_axis_label(row)
-            if label and label not in seen:
-                seen.add(label)
-                labels.append(label)
-            if len(labels) >= max_labels:
-                break
-        return labels
+        return extract_table_row_labels_from_grid(grid, max_labels=max_labels)
 
     def _build_table_object(self, table_elem) -> Dict[str, Any]:
-        grid = self._normalize_table_grid(table_elem)
-        table_text = self._format_table_grid(grid)
-        row_labels = self._extract_table_row_labels_from_grid(grid)
-        return {
-            "grid": grid,
-            "table_text": table_text,
-            "row_count": len(grid),
-            "column_count": max((len(row) for row in grid), default=0),
-            "row_labels": row_labels,
-            "has_spans": self._table_has_spans(table_elem),
-        }
+        return build_table_object(table_elem)
 
     @staticmethod
     def _grid_row_to_text(row: List[str]) -> str:
-        trimmed = list(row)
-        while trimmed and not trimmed[-1].strip():
-            trimmed.pop()
-        return " | ".join(trimmed)
+        return grid_row_to_text(row)
 
     @staticmethod
     def _cell_looks_numeric(text: str) -> bool:

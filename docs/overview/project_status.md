@@ -53,7 +53,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Latest PR 5 Parser Table-Record Extraction
 
 - Run date: 2026-06-17
-- Scope: no-behavior-change parser extraction under the
+- Scope: no-behavior-change parser extractions under the
   `FinancialParser.process_document()` facade.
 - Change:
   - Added `src/processing/table_records.py` for parser-normalized row/value
@@ -63,6 +63,11 @@ role-separated multi-agent system using a task ledger and artifact store.
     preserving the existing private method surface for tests and callers.
   - Moved generic table-axis, period-label, aggregate-role, row-record, and
     value-record helpers out of `financial_parser.py`.
+  - Added `src/processing/table_structure.py` for XML table grid
+    reconstruction, merged-cell propagation, table text formatting, span
+    detection, row-label extraction, and table-object payload assembly.
+  - Existing table structure private methods remain compatibility wrappers for
+    tests and callers.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
@@ -72,9 +77,9 @@ role-separated multi-agent system using a task ledger and artifact store.
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
-- Next parser extraction candidates: XML/table-grid reconstruction,
-  section/block extraction, chunking, then reference resolution. Keep these as
-  no-behavior-change extractions unless a metadata snapshot test exposes drift.
+- Next parser extraction candidates: section/block extraction, chunking, then
+  reference resolution. Keep these as no-behavior-change extractions unless a
+  metadata snapshot test exposes drift.
 
 ### Latest PR 8 Requirements/Docs Cleanup
 

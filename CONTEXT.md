@@ -11,6 +11,28 @@
 
 ## 최신 상태
 
+- 2026-06-17 PR 5 parser extraction 두 번째 조각을 진행했다.
+  - `src/processing/table_structure.py`를 추가해 XML table grid
+    reconstruction, merged-cell propagation, table text formatting, span
+    detection, row-label extraction, table-object payload assembly를
+    `FinancialParser` facade 밖으로 분리했다.
+  - 기존 private method
+    `_cell_span_int`, `_normalize_table_grid`, `_format_table_grid`,
+    `_table_has_spans`, `_extract_table_row_labels_from_grid`,
+    `_build_table_object`, `_grid_row_to_text`는 compatibility wrapper로
+    남겼다.
+  - 검증:
+    - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
+      `28` OK
+    - `.venv/bin/python -m unittest tests.test_vector_store_fallback`:
+      `14` OK
+    - `python -m py_compile src/processing/financial_parser.py src/processing/table_records.py src/processing/table_structure.py`:
+      passed
+    - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
+      `Status: ready`
+  - 다음 PR 5 후보는 section/block extraction, chunking, reference resolution
+    순서의 no-behavior-change extraction이다.
+
 - 2026-06-17 PR 5 parser extraction 첫 조각을 진행했다.
   - `src/processing/table_records.py`를 추가해 parser-normalized table의
     row/value record construction을 `FinancialParser` facade 밖으로 분리했다.
