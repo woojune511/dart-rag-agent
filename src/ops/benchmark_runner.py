@@ -1040,6 +1040,8 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
     serialised: List[Dict[str, Any]] = []
     for result in results:
         runtime_projection = {
+            "answer": getattr(result, "answer", "") or "",
+            "compressed_answer": getattr(result, "answer", "") or "",
             "resolved_calculation_trace": getattr(result, "resolved_calculation_trace", {}) or {},
             "structured_result": getattr(result, "structured_result", {}) or {},
         }

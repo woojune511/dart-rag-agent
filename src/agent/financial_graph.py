@@ -12,6 +12,7 @@ then jump into the mixin that owns the phase you care about.
 
 import logging
 import os
+import re
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
@@ -32,7 +33,7 @@ from src.agent.financial_graph_models import (
     RuntimeCalculationTrace,
 )
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
-from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, SECTION_BIAS_BY_QUERY_TYPE
 from src.routing import QueryRouter
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
@@ -159,6 +160,30 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "resolved_calculation_trace": runtime_calculation_trace,
             "structured_result": structured_result,
         }
+
+    def _structured_result_answer_for_missing_public_answer(
+        self,
+        public_answer: str,
+        structured_result: Dict[str, Any],
+    ) -> str:
+        answer_text = _normalise_spaces(str(public_answer or ""))
+        structured_answer = _normalise_spaces(
+            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
+        )
+        if not structured_answer or structured_answer == answer_text or not re.search(r"\d", structured_answer):
+            return ""
+        missing_markers = tuple(
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
+            if str(item)
+        )
+        if not missing_markers:
+            return ""
+        if any(marker in answer_text for marker in missing_markers) and not any(
+            marker in structured_answer for marker in missing_markers
+        ):
+            return structured_answer
+        return ""
 
     def _project_review_trace(
         self,
@@ -714,6 +739,22 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 "calculation_result": final.get("calculation_result", {}),
             }
         )
+        structured_answer = self._structured_result_answer_for_missing_public_answer(public_answer, structured_result)
+        if structured_answer:
+            public_answer = structured_answer
+            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
+        structured_public_projection = self._structured_subtask_projection_for_public_answer(
+            {
+                **dict(final_for_evidence),
+                "answer": public_answer,
+                "compressed_answer": public_answer,
+                "structured_result": structured_result,
+                "resolved_calculation_trace": runtime_calculation_trace,
+            },
+            runtime_calculation_trace,
+        )
+        if structured_public_projection:
+            runtime_calculation_trace = structured_public_projection
         debug_traces = self._project_debug_traces(final)
         citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
         task_artifact_trace = _project_task_artifact_trace(

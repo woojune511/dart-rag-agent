@@ -11,6 +11,27 @@
 
 ## 최신 상태
 
+- 2026-06-17 `POS_T1_057` focused closure를 store-fixed `eval-only`로
+  재확인했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --company-run-id posco_2023_expanded_candidate --eval-only --question-id POS_T1_057 --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_pos_t1_057_after_evaluator_trace_sync_2026-06-17.jsonl`
+  - result:
+    - `numeric_final_judgement = PASS`
+    - faithfulness `1.000`
+    - completeness `0.700`
+    - final answer `3.5269배`
+    - exported `resolved_calculation_trace.calculation_plan.mode =
+      aggregate_subtasks`
+  - code changes are generic: interest-expense direct lookup now requires the
+    ontology `surface_contract`; requested-scope lookup recovery does not let
+    unknown-scope structured rows overwrite requested-scope evidence; public
+    answer / evaluator / benchmark export now re-align stale top-level traces
+    with structured subtask results when the structured numeric answer is the
+    public answer.
+  - This is a focused closure after the earlier 9-question expanded refresh;
+    the full expanded aggregate has not been rerun in this step.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+
 - 2026-06-17 expanded ablation store-fixed `eval-only` refresh를 실행했다.
   - 목적: aggregate public-answer projection fix 이후, 9문항 expanded
     structural full-system slice가 promotion rule을 회복하는지 확인하고,

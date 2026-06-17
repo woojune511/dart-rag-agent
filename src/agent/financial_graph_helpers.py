@@ -1803,6 +1803,9 @@ def _resolve_runtime_calculation_trace(
             calculation_plan=plan,
             calculation_result=calc_result,
         )
+        structured_projection = _structured_result_subtask_projection_if_public_aligned(result, normalised)
+        if structured_projection:
+            return structured_projection
         if normalised_operation and normalised_operation != "aggregate_subtasks":
             return normalised
         if normalised_operation == "aggregate_subtasks":
@@ -1864,6 +1867,46 @@ def _resolve_runtime_calculation_trace(
         return normalised
 
     return fallback_trace
+
+
+def _structured_result_subtask_projection_if_public_aligned(
+    result: Dict[str, Any],
+    current_trace: Dict[str, Any],
+) -> Dict[str, Any]:
+    structured_result = dict(result.get("structured_result") or {})
+    subtask_results = [
+        dict(row)
+        for row in list(structured_result.get("subtask_results") or [])
+        if isinstance(row, dict)
+    ]
+    if not subtask_results:
+        return {}
+    public_answer = _normalise_spaces(str(result.get("answer") or result.get("compressed_answer") or ""))
+    structured_answer = _normalise_spaces(
+        str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
+    )
+    if not public_answer or public_answer != structured_answer:
+        return {}
+    current_result = dict((current_trace or {}).get("calculation_result") or {})
+    current_primary = dict((current_result.get("answer_slots") or {}).get("primary_value") or {})
+    current_rendered = _normalise_spaces(
+        str(
+            current_result.get("formatted_result")
+            or current_result.get("rendered_value")
+            or current_primary.get("rendered_value")
+            or ""
+        )
+    )
+    if current_rendered and current_rendered == public_answer:
+        return {}
+    projection = _build_aggregate_calculation_projection(subtask_results, public_answer)
+    projection_result = dict(projection.get("calculation_result") or {})
+    if not projection_result.get("subtask_results"):
+        return {}
+    return _attach_runtime_projection_metadata(
+        projection,
+        source="structured_result_subtasks",
+    )
 
 
 def _resolve_runtime_structured_result(result: Dict[str, Any]) -> Dict[str, Any]:

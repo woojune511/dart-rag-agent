@@ -3484,6 +3484,20 @@ class RAGEvaluator:
             calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
             calculation_result = resolved_trace.get("calculation_result", {}) or {}
             structured_result = dict(result.get("structured_result") or calculation_result or {})
+            resolved_trace = _resolve_runtime_calculation_trace(
+                {
+                    "answer": answer,
+                    "compressed_answer": answer,
+                    "resolved_calculation_trace": resolved_calculation_trace,
+                    "structured_result": structured_result,
+                },
+                allow_legacy_top_level=False,
+            )
+            resolved_calculation_trace = dict(resolved_trace or {})
+            runtime_projection = dict(resolved_calculation_trace.get("runtime_projection") or {})
+            calculation_operands = resolved_trace.get("calculation_operands", []) or []
+            calculation_plan = resolved_trace.get("calculation_plan", {}) or {}
+            calculation_result = resolved_trace.get("calculation_result", {}) or {}
             calculation_operands = _resolve_evaluator_operands(
                 calculation_operands=calculation_operands,
                 calculation_result=calculation_result,

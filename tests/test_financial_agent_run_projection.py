@@ -11,6 +11,7 @@ from src.agent.financial_graph_models import (
     RetrievalState,
     RoutingState,
 )
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
 
@@ -208,6 +209,142 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
         self.assertNotIn("legacy_calculation_projection", result)
+
+    def test_run_reprojects_trace_after_structured_late_numeric_answer(self) -> None:
+        final_state = self._base_final_state()
+        final_state["answer"] = "target coverage is 3.5배."
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {"matched_operand_role": "numerator_1", "raw_value": "100", "raw_unit": "unit"},
+                {"matched_operand_role": "denominator_1", "raw_value": "20", "raw_unit": "unit"},
+            ],
+            "calculation_plan": {"operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "5배",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "primary_value": {"status": "ok", "rendered_value": "5배"},
+                },
+            },
+        }
+        final_state["structured_result"] = {
+            "formatted_result": "target coverage is 3.5배.",
+            "rendered_value": "target coverage is 3.5배.",
+            "subtask_results": [
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "target coverage",
+                    "operation_family": "ratio",
+                    "answer": "target coverage is 3.5배.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "3.5배",
+                        "formatted_result": "target coverage is 3.5배.",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "target coverage",
+                            "primary_value": {"status": "ok", "rendered_value": "3.5배"},
+                            "components_by_group": {
+                                "numerator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "numerator_1",
+                                        "label": "target numerator",
+                                        "raw_value": "350",
+                                        "raw_unit": "unit",
+                                        "normalized_value": 350.0,
+                                        "normalized_unit": "COUNT",
+                                        "rendered_value": "350unit",
+                                    }
+                                ],
+                                "denominator": [
+                                    {
+                                        "status": "ok",
+                                        "role": "denominator_1",
+                                        "label": "target denominator",
+                                        "raw_value": "100",
+                                        "raw_unit": "unit",
+                                        "normalized_value": 100.0,
+                                        "normalized_unit": "COUNT",
+                                        "rendered_value": "100unit",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                }
+            ],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["resolved_calculation_trace"]
+        self.assertEqual(result["answer"], "target coverage is 3.5배.")
+        self.assertEqual(trace["runtime_projection"]["source"], "structured_result_subtasks")
+        self.assertEqual(trace["calculation_plan"]["mode"], "aggregate_subtasks")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "target coverage is 3.5배.")
+        self.assertEqual(trace["calculation_result"]["subtask_results"][0]["calculation_result"]["rendered_value"], "3.5배")
+
+    def test_run_prefers_structured_numeric_answer_over_missing_public_answer(self) -> None:
+        final_state = self._base_final_state()
+        missing_marker = next(iter(CALCULATION_NARRATIVE_POLICY["missing_answer_markers"]))
+        final_state["answer"] = f"target denominator {missing_marker}."
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {"matched_operand_role": "numerator_1", "raw_value": "100", "raw_unit": "unit"},
+                {"matched_operand_role": "denominator_1", "raw_value": "20", "raw_unit": "unit"},
+            ],
+            "calculation_plan": {"operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "5배",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "primary_value": {"status": "ok", "rendered_value": "5배"},
+                },
+            },
+        }
+        final_state["structured_result"] = {
+            "formatted_result": "target coverage is 3.5배.",
+            "rendered_value": "target coverage is 3.5배.",
+            "subtask_results": [
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "target coverage",
+                    "operation_family": "ratio",
+                    "answer": "target coverage is 3.5배.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "3.5배",
+                        "formatted_result": "target coverage is 3.5배.",
+                        "answer_slots": {
+                            "operation_family": "ratio",
+                            "metric_label": "target coverage",
+                            "primary_value": {"status": "ok", "rendered_value": "3.5배"},
+                        },
+                    },
+                }
+            ],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["answer"], "target coverage is 3.5배.")
+        self.assertEqual(
+            result["resolved_calculation_trace"]["runtime_projection"]["source"],
+            "structured_result_subtasks",
+        )
 
     def test_run_refreshes_public_answer_from_resolved_ratio_trace(self) -> None:
         final_state = self._base_final_state()

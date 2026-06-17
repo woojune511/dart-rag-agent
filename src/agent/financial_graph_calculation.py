@@ -1874,6 +1874,27 @@ class FinancialAgentCalculationMixin:
             preferred_slot: Dict[str, Any],
             preferred_evidence: Optional[Dict[str, Any]],
         ) -> bool:
+            desired_scope = _desired_consolidation_scope(
+                str(state.get("query") or ""),
+                dict(state.get("report_scope") or {}),
+            )
+            current_evidence = self._evidence_item_for_operand_row(current_slot, evidence_by_id)
+            current_scope = _normalise_spaces(
+                str(
+                    current_slot.get("consolidation_scope")
+                    or dict((current_evidence or {}).get("metadata") or {}).get("consolidation_scope")
+                    or "unknown"
+                )
+            )
+            preferred_scope = _normalise_spaces(
+                str(
+                    preferred_slot.get("consolidation_scope")
+                    or dict((preferred_evidence or {}).get("metadata") or {}).get("consolidation_scope")
+                    or "unknown"
+                )
+            )
+            if desired_scope != "unknown" and current_scope == desired_scope and preferred_scope != desired_scope:
+                return False
             preferred_metadata = dict((preferred_evidence or {}).get("metadata") or {})
             has_structured_surface = any(
                 _normalise_spaces(str(value or ""))
@@ -8050,7 +8071,13 @@ class FinancialAgentCalculationMixin:
         source_slots = dict(source_slot_by_task_id or {})
         saw_source_slot = False
         saw_source_scope = False
-        for operand in self._aggregate_result_candidate_operands(row):
+        candidate_operands = self._aggregate_result_candidate_operands(row)
+        structured_realigned_operands = [
+            dict(operand)
+            for operand in candidate_operands
+            if isinstance(operand, dict) and operand.get("unit_realigned_from_structured_provenance")
+        ]
+        for operand in candidate_operands:
             source_task_ids = self._aggregate_source_task_ids_for_operand(operand, source_slots)
             source_task_id = source_task_ids[0] if source_task_ids else ""
             if source_task_id and source_slots:
@@ -8059,9 +8086,15 @@ class FinancialAgentCalculationMixin:
                     saw_source_slot = True
                     source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
                     operand_anchor = _normalise_spaces(str(operand.get("source_anchor") or ""))
+                    source_mismatch = bool(source_anchor and operand_anchor and source_anchor != operand_anchor)
+                    projection_mismatch = _dependency_projection_slot_differs_from_operand(source_slot, operand)
                     if (
-                        (source_anchor and operand_anchor and source_anchor != operand_anchor)
-                        or _dependency_projection_slot_differs_from_operand(source_slot, operand)
+                        (source_mismatch or projection_mismatch)
+                        and not self._structured_unit_realigned_operand_matches_source_slot(
+                            source_slot,
+                            operand,
+                            structured_realigned_operands=structured_realigned_operands,
+                        )
                     ):
                         return 0, 2 if saw_source_scope else 1
             if operation_family == "ratio" and source_slots and source_task_ids:
@@ -8079,6 +8112,54 @@ class FinancialAgentCalculationMixin:
                     if operand_scope and operand_scope != source_scope:
                         return 2 if saw_source_slot else 1, 0
         return 2 if saw_source_slot else 1, 2 if saw_source_scope else 1
+
+    def _structured_unit_realigned_operand_matches_source_slot(
+        self,
+        source_slot: Dict[str, Any],
+        operand: Dict[str, Any],
+        *,
+        structured_realigned_operands: Optional[List[Dict[str, Any]]] = None,
+    ) -> bool:
+        candidates = [dict(operand)] if operand.get("unit_realigned_from_structured_provenance") else []
+        if not candidates:
+            operand_role = _normalise_spaces(str(operand.get("role") or operand.get("matched_operand_role") or ""))
+            operand_raw = _normalise_spaces(str(operand.get("raw_value") or ""))
+            operand_ids = set(_clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")]))
+            for marked in structured_realigned_operands or []:
+                marked_role = _normalise_spaces(str(marked.get("role") or marked.get("matched_operand_role") or ""))
+                marked_raw = _normalise_spaces(str(marked.get("raw_value") or ""))
+                if operand_role and marked_role and operand_role != marked_role:
+                    continue
+                if operand_raw and marked_raw and operand_raw != marked_raw:
+                    continue
+                marked_ids = set(_clean_source_row_ids([marked.get("source_row_id"), marked.get("source_row_ids")]))
+                if operand_ids and marked_ids and not (operand_ids & marked_ids):
+                    continue
+                candidates.append(dict(marked))
+        if not candidates:
+            return False
+        source_ids = {
+            source_id
+            for source_id in _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
+            if source_id and not source_id.startswith("task_output:")
+        }
+        source_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
+        source_unit = _normalise_spaces(str(source_slot.get("normalized_unit") or "")).upper()
+        for candidate in candidates:
+            candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
+            if not source_raw or source_raw != candidate_raw:
+                continue
+            candidate_unit = _normalise_spaces(str(candidate.get("normalized_unit") or "")).upper()
+            if not source_unit or source_unit != candidate_unit:
+                continue
+            candidate_ids = {
+                source_id
+                for source_id in _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
+                if source_id and not source_id.startswith("task_output:")
+            }
+            if source_ids and candidate_ids and source_ids & candidate_ids:
+                return True
+        return False
 
     def _aggregate_dependency_slot_coherence_rank_for_operands(
         self,
@@ -12134,6 +12215,9 @@ class FinancialAgentCalculationMixin:
                 str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
             )
             answer_text = _normalise_spaces(str(final_answer or ""))
+            supported_answer = self._supported_aggregate_subtask_answer(nested_results)
+            if supported_answer and supported_answer == answer_text:
+                return ""
             if (
                 formatted_result
                 and formatted_result != answer_text
@@ -12166,7 +12250,6 @@ class FinancialAgentCalculationMixin:
                 and conflicting_answer != _normalise_spaces(str(final_answer or ""))
             ):
                 return conflicting_answer
-            supported_answer = self._supported_aggregate_subtask_answer(nested_results)
             if supported_answer and supported_answer != _normalise_spaces(str(final_answer or "")):
                 return supported_answer
             return ""

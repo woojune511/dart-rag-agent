@@ -103,6 +103,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 - Artifact hygiene: raw `benchmarks/results/**` bundles remain local unless
   explicitly published.
 
+#### Focused POS_T1_057 Closure After The Expanded Refresh
+
+- Run date: 2026-06-17
+- Scope: store-fixed structural full-system `eval-only` focused on
+  `POS_T1_057`.
+- Heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_pos_t1_057_after_evaluator_trace_sync_2026-06-17.jsonl`
+- Result:
+  - `numeric_final_judgement = PASS`
+  - faithfulness `1.000`
+  - completeness `0.700`
+  - final answer `3.5269배`
+  - exported `resolved_calculation_trace.calculation_plan.mode =
+    aggregate_subtasks`
+- Change summary:
+  - narrowed the `interest_expense` ontology surface contract so direct lookup
+    requires interest-cost wording instead of broad finance-cost surfaces
+  - preserved requested-scope evidence when a stronger-looking structured row
+    has unknown or mismatched scope
+  - aligned public answer, evaluator scoring, and benchmark export with
+    structured subtask results when the public numeric answer is produced by the
+    structured aggregate rather than the stale top-level trace
+- This does not update the earlier 9-question aggregate table above; rerun the
+  full expanded profile before changing the aggregate pass-rate claim.
+
 ### Latest Ablation Smoke Refresh
 
 - Run date: 2026-06-17

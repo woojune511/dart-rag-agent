@@ -275,6 +275,16 @@ class FinancialOntologyManagerTests(unittest.TestCase):
                 concept_keys = {spec["concept"] for spec in specs}
                 self.assertTrue(expected_concepts.issubset(concept_keys))
 
+    def test_v3_interest_expense_requires_direct_interest_cost_surface(self) -> None:
+        concept = self.ontology_v3.concepts["interest_expense"]
+
+        self.assertNotIn("금융비용", concept.get("aliases") or [])
+        self.assertNotIn("금융비용", concept.get("keywords") or [])
+        self.assertIn("이자비용", (concept.get("surface_contract") or {}).get("positive") or [])
+        self.assertIn("금융비용", (concept.get("surface_contract") or {}).get("negative") or [])
+        self.assertTrue((concept.get("binding_policy") or {}).get("require_surface_contract_for_direct_lookup"))
+        self.assertTrue((concept.get("binding_policy") or {}).get("require_surface_contract_for_direct_match"))
+
 
 if __name__ == "__main__":
     unittest.main()

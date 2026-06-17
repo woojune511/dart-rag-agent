@@ -1525,14 +1525,12 @@
       "display_name": "이자비용",
       "aliases": [
         "이자 비용",
-        "금융비용",
         "interest expense"
       ],
       "keywords": [
         "이자비용",
         "이자 비용",
-        "금융비용",
-        "이자율위험"
+        "interest expense"
       ],
       "unit_family": "KRW",
       "preferred_statement_types": [
@@ -1541,13 +1539,23 @@
         "summary_financials"
       ],
       "preferred_sections": [
-        "금융비용",
         "금융손익",
-        "이자율위험",
         "연결재무제표 주석",
         "재무제표 주석"
       ],
+      "surface_contract": {
+        "positive": [
+          "이자비용",
+          "이자 비용"
+        ],
+        "negative": [
+          "금융비용",
+          "이자율위험"
+        ]
+      },
       "binding_policy": {
+        "require_surface_contract_for_direct_lookup": true,
+        "require_surface_contract_for_direct_match": true,
         "ratio_denominator_sign": "magnitude"
       }
     },

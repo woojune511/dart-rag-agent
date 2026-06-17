@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from langchain_core.prompts import ChatPromptTemplate
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import (
+    _attach_runtime_projection_metadata,
     _extract_segment_labels_from_query,
     _infer_concept_ratio_result_unit,
     _report_cache_candidate_for_trace,
@@ -1902,6 +1903,46 @@ class FinancialAgentPlanningMixin:
             "calculation_result": aggregate_projection["calculation_result"],
             "evidence_items": aggregate_evidence,
         }
+
+    def _structured_subtask_projection_for_public_answer(
+        self,
+        state: FinancialAgentState,
+        trace: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        structured_result = dict(state.get("structured_result") or {})
+        public_answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
+        structured_answer = _normalise_spaces(
+            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
+        )
+        if not public_answer or public_answer != structured_answer:
+            return {}
+        subtask_results = [
+            dict(row)
+            for row in list(structured_result.get("subtask_results") or [])
+            if isinstance(row, dict)
+        ]
+        if not subtask_results:
+            return {}
+        current_result = dict((trace or {}).get("calculation_result") or {})
+        current_primary = dict((current_result.get("answer_slots") or {}).get("primary_value") or {})
+        current_rendered = _normalise_spaces(
+            str(
+                current_result.get("formatted_result")
+                or current_result.get("rendered_value")
+                or current_primary.get("rendered_value")
+                or ""
+            )
+        )
+        if current_rendered and current_rendered == public_answer:
+            return {}
+        projection = _build_aggregate_calculation_projection(subtask_results, public_answer)
+        projection_result = dict(projection.get("calculation_result") or {})
+        if not projection_result.get("subtask_results"):
+            return {}
+        return _attach_runtime_projection_metadata(
+            projection,
+            source="structured_result_subtasks",
+        )
 
     def _project_runtime_calculation_trace(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Project caller-facing calculation material into the canonical runtime trace."""

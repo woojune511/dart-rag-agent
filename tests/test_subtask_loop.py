@@ -3850,6 +3850,288 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(answer, "")
 
+    def test_late_runtime_numeric_answer_accepts_structured_unit_realigned_dependency_trace(self) -> None:
+        source_lookup = {
+            "task_id": "task_den",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target denominator",
+                        "raw_value": "100",
+                        "raw_unit": "천원",
+                        "normalized_value": 100000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "100천원",
+                        "source_row_id": "ev_den",
+                        "source_row_ids": ["ev_den"],
+                        "source_anchor": "stale source projection",
+                    }
+                },
+            },
+        }
+        state = {
+            "query": "target coverage ratio",
+            "subtask_results": [source_lookup],
+            "active_subtask": {"metric_label": "target coverage", "operation_family": "ratio"},
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {
+                        "operand_id": "num",
+                        "matched_operand_role": "numerator_1",
+                        "label": "target numerator",
+                        "raw_value": "200",
+                        "raw_unit": "백만원",
+                        "normalized_value": 200000000.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "den",
+                        "matched_operand_role": "denominator_1",
+                        "label": "target denominator",
+                        "raw_value": "100",
+                        "raw_unit": "백만원",
+                        "normalized_value": 100000000.0,
+                        "normalized_unit": "KRW",
+                        "source_task_id": "task_den",
+                        "source_row_id": "task_output:task_den",
+                        "source_row_ids": ["task_output:task_den", "ev_den", "graph_node_1"],
+                        "source_anchor": "structured graph provenance",
+                        "unit_realigned_from_structured_provenance": True,
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "ordered_operand_ids": ["num", "den"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "num"},
+                        {"variable": "B", "operand_id": "den"},
+                    ],
+                    "formula": "A / B",
+                    "result_unit": "배",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": 2.0,
+                    "result_unit": "배",
+                    "rendered_value": "2배",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "metric_label": "target coverage",
+                        "primary_value": {"status": "ok", "rendered_value": "2배", "normalized_value": 2.0},
+                        "components_by_group": {
+                            "numerator": [
+                                {
+                                    "status": "ok",
+                                    "role": "numerator_1",
+                                    "label": "target numerator",
+                                    "raw_value": "200",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 200000000.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "200백만원",
+                                }
+                            ],
+                            "denominator": [
+                                {
+                                    "status": "ok",
+                                    "role": "denominator_1",
+                                    "label": "target denominator",
+                                    "raw_value": "100",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 100000000.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "100백만원",
+                                    "source_task_id": "task_den",
+                                    "source_row_id": "task_output:task_den",
+                                    "source_row_ids": ["task_output:task_den", "ev_den", "graph_node_1"],
+                                    "source_anchor": "structured graph provenance",
+                                    "unit_realigned_from_structured_provenance": True,
+                                }
+                            ],
+                        },
+                    },
+                },
+            },
+        }
+
+        answer = self.agent._late_runtime_numeric_answer(state, "target coverage is 0.002배.")
+
+        self.assertIn("2배", answer)
+        self.assertIn("200백만원", answer)
+        self.assertIn("100백만원", answer)
+
+    def test_lookup_recovery_keeps_requested_scope_evidence_over_unknown_scope_structured_row(self) -> None:
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "metric_label": "target operating result",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "350백만원",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "numerator_1",
+                        "label": "target operating result",
+                        "concept": "operating_income",
+                        "raw_value": "350",
+                        "raw_unit": "백만원",
+                        "normalized_value": 350000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "350백만원",
+                        "source_row_id": "ev_current",
+                        "source_row_ids": ["ev_current"],
+                        "source_anchor": "consolidated note",
+                        "consolidation_scope": "consolidated",
+                    }
+                },
+            },
+        }
+        state = {
+            "query": "2023년 연결 기준 coverage ratio",
+            "report_scope": {"consolidation": "consolidated"},
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "operation_family": "lookup",
+                    "metric_family": "concept_lookup",
+                    "required_operands": [
+                        {
+                            "role": "numerator_1",
+                            "label": "target operating result",
+                            "concept": "operating_income",
+                            "required": True,
+                            "binding_policy": {"prefer_consolidation_scope": "consolidated"},
+                        }
+                    ],
+                }
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_current",
+                    "source_anchor": "consolidated note",
+                    "claim": "target operating result 350 백만원",
+                    "quote_span": "350 백만원",
+                    "metadata": {
+                        "consolidation_scope": "consolidated",
+                        "statement_type": "notes",
+                        "unit_hint": "백만원",
+                    },
+                },
+                {
+                    "evidence_id": "ev_unknown",
+                    "source_anchor": "management discussion",
+                    "claim": "target operating result 230 백만원",
+                    "quote_span": "target operating result 230 백만원",
+                    "metadata": {
+                        "consolidation_scope": "unknown",
+                        "statement_type": "mda",
+                        "unit_hint": "백만원",
+                        "table_source_id": "mda_table",
+                        "table_value_labels_text": "target operating result 230",
+                        "row_label": "target operating result",
+                        "semantic_label": "target operating result",
+                        "structured_cells": [{"value_text": "230", "unit_hint": "백만원"}],
+                    },
+                },
+            ],
+        }
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+
+        primary = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+        self.assertEqual(primary["raw_value"], "350")
+        self.assertEqual(primary["source_row_id"], "ev_current")
+
+    def test_structured_subtask_projection_matches_public_answer(self) -> None:
+        state = {
+            "answer": "target coverage is 3.5배.",
+            "resolved_calculation_trace": {
+                "calculation_operands": [
+                    {"matched_operand_role": "numerator_1", "raw_value": "100", "raw_unit": "unit"},
+                    {"matched_operand_role": "denominator_1", "raw_value": "20", "raw_unit": "unit"},
+                ],
+                "calculation_plan": {"operation": "ratio"},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "5배",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {"rendered_value": "5배"},
+                    },
+                },
+            },
+            "structured_result": {
+                "formatted_result": "target coverage is 3.5배.",
+                "subtask_results": [
+                    {
+                        "task_id": "task_ratio",
+                        "metric_family": "concept_ratio",
+                        "operation_family": "ratio",
+                        "answer": "target coverage is 3.5배.",
+                        "status": "ok",
+                        "calculation_result": {
+                            "status": "ok",
+                            "rendered_value": "3.5배",
+                            "formatted_result": "target coverage is 3.5배.",
+                            "answer_slots": {
+                                "operation_family": "ratio",
+                                "metric_label": "target coverage",
+                                "primary_value": {"status": "ok", "rendered_value": "3.5배"},
+                                "components_by_group": {
+                                    "numerator": [
+                                        {
+                                            "status": "ok",
+                                            "role": "numerator_1",
+                                            "label": "target numerator",
+                                            "raw_value": "350",
+                                            "raw_unit": "unit",
+                                            "normalized_value": 350.0,
+                                            "normalized_unit": "COUNT",
+                                            "rendered_value": "350unit",
+                                        }
+                                    ],
+                                    "denominator": [
+                                        {
+                                            "status": "ok",
+                                            "role": "denominator_1",
+                                            "label": "target denominator",
+                                            "raw_value": "100",
+                                            "raw_unit": "unit",
+                                            "normalized_value": 100.0,
+                                            "normalized_unit": "COUNT",
+                                            "rendered_value": "100unit",
+                                        }
+                                    ],
+                                },
+                            },
+                        },
+                    }
+                ],
+            },
+        }
+
+        trace = self.agent._structured_subtask_projection_for_public_answer(
+            state,
+            state["resolved_calculation_trace"],
+        )
+
+        self.assertEqual(trace["calculation_plan"]["mode"], "aggregate_subtasks")
+        self.assertEqual(trace["calculation_result"]["formatted_result"], "target coverage is 3.5배.")
+        self.assertEqual(
+            trace["calculation_result"]["subtask_results"][0]["calculation_result"]["rendered_value"],
+            "3.5배",
+        )
+
     def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
         original_execute = self.agent._execute_calculation
         calls = []
