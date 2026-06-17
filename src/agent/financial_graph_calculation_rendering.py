@@ -214,6 +214,33 @@ def scalar_result_series(
     return result_series
 
 
+def time_series_result_series(
+    *,
+    ordered_operands: List[Dict[str, Any]],
+    normalized_unit: str,
+) -> List[Dict[str, Any]]:
+    result_series: List[Dict[str, Any]] = []
+    for row in ordered_operands:
+        point_value = float(row.get("normalized_value"))
+        point_rendered = format_calculation_value(
+            point_value,
+            str(row.get("raw_unit") or row.get("result_unit") or ""),
+            normalized_unit,
+        )
+        result_series.append(
+            {
+                "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
+                "period": str(row.get("period") or ""),
+                "raw_value": str(row.get("raw_value") or ""),
+                "raw_unit": str(row.get("raw_unit") or ""),
+                "normalized_value": point_value,
+                "normalized_unit": normalized_unit,
+                "rendered_value": point_rendered,
+            }
+        )
+    return result_series
+
+
 def render_grounded_operand_display(row: Dict[str, Any]) -> str:
     raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
     raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))

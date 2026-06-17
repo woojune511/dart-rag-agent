@@ -16716,20 +16716,10 @@ class FinancialAgentCalculationMixin:
                 labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
                 metric_names = [re.sub(r"^\d{4}년\s*", "", label).strip() for label in labels]
                 metric_name = metric_names[0] if metric_names else "지표"
-                for row in ordered_operands:
-                    point_value = float(row.get("normalized_value"))
-                    point_rendered = self._format_calculation_value(point_value, str(row.get("raw_unit") or row.get("result_unit") or ""), normalized_unit)
-                    result_series.append(
-                        {
-                            "label": _display_operand_label(str(row.get("label") or row.get("evidence_id") or "")),
-                            "period": str(row.get("period") or ""),
-                            "raw_value": str(row.get("raw_value") or ""),
-                            "raw_unit": str(row.get("raw_unit") or ""),
-                            "normalized_value": point_value,
-                            "normalized_unit": normalized_unit,
-                            "rendered_value": point_rendered,
-                        }
-                    )
+                result_series = calculation_rendering.time_series_result_series(
+                    ordered_operands=ordered_operands,
+                    normalized_unit=normalized_unit,
+                )
                 yoy_growth_rates: List[Optional[float]] = [None]
                 if pairwise_formula:
                     for previous_row, current_row in zip(ordered_operands, ordered_operands[1:]):

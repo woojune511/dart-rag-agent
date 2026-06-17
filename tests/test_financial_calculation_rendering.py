@@ -5,6 +5,7 @@ from src.agent.financial_graph_calculation_rendering import (
     direction_hint_for_result,
     scalar_result_display,
     scalar_result_series,
+    time_series_result_series,
 )
 
 
@@ -127,6 +128,40 @@ class FinancialCalculationRenderingTests(unittest.TestCase):
         self.assertEqual(series[0]["rendered_value"], "10%")
         self.assertEqual(series[1]["label"], "전기")
         self.assertEqual(series[1]["rendered_value"], "100백만원")
+
+    def test_time_series_result_series_formats_rows_without_grounded_override(self) -> None:
+        series = time_series_result_series(
+            ordered_operands=[
+                {
+                    "label": "2022 Metric",
+                    "period": "2022",
+                    "raw_value": "100",
+                    "raw_unit": "",
+                    "normalized_value": 100.0,
+                    "normalized_unit": "COUNT",
+                    "rendered_value": "source display",
+                    "value_coercion": True,
+                },
+                {
+                    "label": "2023 Metric",
+                    "period": "2023",
+                    "raw_value": "115",
+                    "raw_unit": "",
+                    "normalized_value": 115.0,
+                    "normalized_unit": "COUNT",
+                },
+            ],
+            normalized_unit="COUNT",
+        )
+
+        self.assertEqual(series[0]["label"], "Metric")
+        self.assertEqual(series[0]["period"], "2022")
+        self.assertEqual(series[0]["raw_value"], "100")
+        self.assertEqual(series[0]["normalized_value"], 100.0)
+        self.assertEqual(series[0]["normalized_unit"], "COUNT")
+        self.assertEqual(series[0]["rendered_value"], "100")
+        self.assertEqual(series[1]["label"], "Metric")
+        self.assertEqual(series[1]["rendered_value"], "115")
 
 
 if __name__ == "__main__":
