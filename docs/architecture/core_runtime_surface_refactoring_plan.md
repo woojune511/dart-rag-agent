@@ -251,12 +251,16 @@ simplification, not helper extraction.
 - Removed 7 thin wrapper shims that only forwarded to
   `calculation_rendering` / `financial_answer_slots` and had no remaining
   agent runtime callers.
+- Removed `_replace_aggregate_final_answer` and `_replace_aggregate_results`
+  as middle wrappers used only by mutable aggregate state helpers.
 - Result:
-  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,347` lines.
-  - Latest runtime-only diff: `83` deletions.
+  - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,299` lines.
+  - Latest runtime-only diff: `83` deletions, `35` insertions.
 - Verification:
   - `python -m src.ops.audit_runtime_domain_terms`: passed
     (`215` reviewed literals).
+  - `.venv/bin/python -m unittest tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+    `507` OK.
   - `.venv/bin/python -m unittest tests.test_financial_answer_slots tests.test_financial_calculation_rendering tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution`:
     `464` OK.
   - `.venv/bin/python -m unittest tests.test_runtime_domain_term_audit tests.test_subtask_loop tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:

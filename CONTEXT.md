@@ -24,12 +24,17 @@
   - 삭제된 regex literal은 runtime domain-term audit baseline에서도 제거했다.
   - 이어서 `calculation_rendering` / `financial_answer_slots`로 이미 이동한 뒤
     agent runtime에서 호출하지 않는 7개 thin wrapper shim을 제거했다.
+  - mutable aggregate state에서만 쓰이던 `_replace_aggregate_final_answer`,
+    `_replace_aggregate_results` 중간 wrapper를 제거하고 mutable update 함수가
+    직접 state replacement를 수행하게 했다.
   - 결과:
-    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,347` lines
-    - latest diff: runtime-only `83` deletions
+    - `src/agent/financial_graph_calculation.py`: `18,623` -> `18,299` lines
+    - latest diff: runtime-only `83` deletions, `35` insertions
   - 검증:
     - `python -m src.ops.audit_runtime_domain_terms`: passed
       (`215` reviewed literals)
+    - `.venv/bin/python -m unittest tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
+      `507` OK
     - `.venv/bin/python -m unittest tests.test_financial_answer_slots tests.test_financial_calculation_rendering tests.test_operation_contracts tests.test_subtask_loop tests.test_financial_calculation_execution`:
       `464` OK
     - `.venv/bin/python -m unittest tests.test_runtime_domain_term_audit tests.test_subtask_loop tests.test_aggregate_subtask_projection tests.test_operation_contracts tests.test_financial_calculation_execution tests.test_financial_calculation_rendering`:
@@ -39,8 +44,8 @@
       `Status: ready`
     - `git diff --check`: passed
   - 다음 simplification 후보는 새 추출이 아니라, runtime 호출자가 없는 private
-    helper와 private-helper-only tests를 계속 audit하거나, aggregate mutable
-    wrapper 계층을 더 줄일 수 있는지 보는 것이다.
+    helper와 private-helper-only tests를 계속 audit하거나, 같은 state update를
+    반복하는 patch layer를 더 줄일 수 있는지 보는 것이다.
 
 - 2026-06-17 PR 8 docs cleanup 세 번째 조각을 진행했다.
   - `portfolio_one_pager.md`에서 README와 중복되는 긴 command block을 제거하고,

@@ -4943,43 +4943,6 @@ class FinancialAgentCalculationMixin:
             selected_claim_ids,
         )
 
-    def _replace_aggregate_final_answer(
-        self,
-        *,
-        aggregate_state: _AggregateSynthesisState,
-        evidence_items: List[Dict[str, Any]],
-        candidate_answer: str,
-        sync_rendered_for_aggregate: bool = True,
-        status_ok: bool = False,
-        force: bool = False,
-        refresh_operand_evidence: bool = False,
-    ) -> tuple[_AggregateSynthesisState, List[Dict[str, Any]], bool]:
-        candidate_answer = _normalise_spaces(candidate_answer)
-        if candidate_answer == aggregate_state.final_answer and not force:
-            return aggregate_state, evidence_items, False
-        aggregate_projection = self._sync_aggregate_projection_final_answer(
-            aggregate_state.aggregate_projection,
-            candidate_answer,
-            sync_rendered_for_aggregate=sync_rendered_for_aggregate,
-            status_ok=status_ok,
-        )
-        if refresh_operand_evidence:
-            evidence_items = self._append_operand_evidence_for_final_answer(
-                evidence_items,
-                operands=list(aggregate_projection.get("calculation_operands") or []),
-                final_answer=candidate_answer,
-            )
-        return (
-            _AggregateSynthesisState(
-                aggregate_state.ordered_results,
-                aggregate_projection,
-                candidate_answer,
-                aggregate_state.selected_claim_ids,
-            ),
-            evidence_items,
-            True,
-        )
-
     def _replace_mutable_aggregate_answer(
         self,
         mutable_state: _AggregateMutableState,
@@ -4990,16 +4953,29 @@ class FinancialAgentCalculationMixin:
         force: bool = False,
         refresh_operand_evidence: bool = False,
     ) -> tuple[_AggregateMutableState, bool]:
-        synthesis_state, evidence_items, changed = self._replace_aggregate_final_answer(
-            aggregate_state=mutable_state.synthesis_state,
-            evidence_items=mutable_state.evidence_items,
-            candidate_answer=candidate_answer,
+        candidate_answer = _normalise_spaces(candidate_answer)
+        if candidate_answer == mutable_state.final_answer and not force:
+            return mutable_state, False
+        aggregate_projection = self._sync_aggregate_projection_final_answer(
+            mutable_state.aggregate_projection,
+            candidate_answer,
             sync_rendered_for_aggregate=sync_rendered_for_aggregate,
             status_ok=status_ok,
-            force=force,
-            refresh_operand_evidence=refresh_operand_evidence,
         )
-        return _AggregateMutableState(synthesis_state, evidence_items), changed
+        evidence_items = mutable_state.evidence_items
+        if refresh_operand_evidence:
+            evidence_items = self._append_operand_evidence_for_final_answer(
+                evidence_items,
+                operands=list(aggregate_projection.get("calculation_operands") or []),
+                final_answer=candidate_answer,
+            )
+        synthesis_state = _AggregateSynthesisState(
+            mutable_state.ordered_results,
+            aggregate_projection,
+            candidate_answer,
+            mutable_state.selected_claim_ids,
+        )
+        return _AggregateMutableState(synthesis_state, evidence_items), True
 
     def _sync_mutable_aggregate_state(
         self,
@@ -5026,44 +5002,6 @@ class FinancialAgentCalculationMixin:
             mutable_state.evidence_items if evidence_items is None else evidence_items,
         )
 
-    def _replace_aggregate_results(
-        self,
-        aggregate_state: _AggregateSynthesisState,
-        state: FinancialAgentState,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: List[Dict[str, Any]],
-        *,
-        refresh_numeric_answer: bool = False,
-        sync_projection: bool = False,
-        rebuild_after_numeric_refresh: bool = True,
-        kept_evidence_ids: Optional[set[str]] = None,
-    ) -> _AggregateSynthesisState:
-        aggregate_state = aggregate_state._replace(
-            ordered_results=ordered_results,
-            aggregate_projection=self._rebuild_aggregate_projection(
-                ordered_results, aggregate_state.final_answer, kept_evidence_ids=kept_evidence_ids
-            ),
-        )
-        if not refresh_numeric_answer:
-            return aggregate_state
-        numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-        if not (numeric_answer and self._complete_numeric_answer_can_replace_final(numeric_answer, ordered_results)):
-            return aggregate_state
-        aggregate_state = self._apply_numeric_answer_to_aggregate_state(
-            aggregate_state=aggregate_state,
-            state=state,
-            numeric_answer=numeric_answer,
-            evidence_items=evidence_items,
-            sync_projection=sync_projection,
-        )
-        if rebuild_after_numeric_refresh:
-            aggregate_state = aggregate_state._replace(
-                aggregate_projection=self._rebuild_aggregate_projection(
-                    aggregate_state.ordered_results, aggregate_state.final_answer, kept_evidence_ids=kept_evidence_ids
-                )
-            )
-        return aggregate_state
-
     def _replace_mutable_aggregate_results(
         self,
         mutable_state: _AggregateMutableState,
@@ -5075,16 +5013,30 @@ class FinancialAgentCalculationMixin:
         rebuild_after_numeric_refresh: bool = True,
         kept_evidence_ids: Optional[set[str]] = None,
     ) -> _AggregateMutableState:
-        synthesis_state = self._replace_aggregate_results(
-            mutable_state.synthesis_state,
-            state,
-            ordered_results,
-            mutable_state.evidence_items,
-            refresh_numeric_answer=refresh_numeric_answer,
-            sync_projection=sync_projection,
-            rebuild_after_numeric_refresh=rebuild_after_numeric_refresh,
-            kept_evidence_ids=kept_evidence_ids,
+        synthesis_state = mutable_state.synthesis_state._replace(
+            ordered_results=ordered_results,
+            aggregate_projection=self._rebuild_aggregate_projection(
+                ordered_results, mutable_state.final_answer, kept_evidence_ids=kept_evidence_ids
+            ),
         )
+        if refresh_numeric_answer:
+            numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
+            if numeric_answer and self._complete_numeric_answer_can_replace_final(numeric_answer, ordered_results):
+                synthesis_state = self._apply_numeric_answer_to_aggregate_state(
+                    aggregate_state=synthesis_state,
+                    state=state,
+                    numeric_answer=numeric_answer,
+                    evidence_items=mutable_state.evidence_items,
+                    sync_projection=sync_projection,
+                )
+                if rebuild_after_numeric_refresh:
+                    synthesis_state = synthesis_state._replace(
+                        aggregate_projection=self._rebuild_aggregate_projection(
+                            synthesis_state.ordered_results,
+                            synthesis_state.final_answer,
+                            kept_evidence_ids=kept_evidence_ids,
+                        )
+                    )
         return mutable_state._replace(synthesis_state=synthesis_state)
 
     def _apply_final_narrative_repair_pipeline(
