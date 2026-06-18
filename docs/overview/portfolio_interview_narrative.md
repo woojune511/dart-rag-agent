@@ -27,11 +27,11 @@ the final answer followed the trace.
 
 The strongest current evidence is narrow and partly diagnostic. Reviewer gates
 are ready, and the latest store-fixed expanded ablation refresh reached
-structural full-system `8 / 9` numeric PASS versus plain retrieval `4 / 9`.
-The useful reproduced separators are `POS_T1_057`, `SAM_T3_028`,
-`CEL_T1_013`, and `SKH_T3_080`, where the structural path preserves
-interest-coverage, scale, denominator, or row binding that plain retrieval
-loses. The remaining structural failure identifies concrete residual work in
+structural full-system `8 / 9` numeric PASS versus plain retrieval `5 / 9`.
+The useful reproduced separators are `POS_T1_057`, `CEL_T1_013`, and
+`SKH_T3_080`, where the structural path preserves display/unit, denominator,
+or row binding that plain retrieval loses. The remaining structural failure
+identifies concrete residual work in
 debt/asset role binding.
 
 ## Problem Framing
@@ -83,8 +83,8 @@ Current expanded refresh:
 | Run | Result | Interpretation |
 | --- | ---: | --- |
 | Structural full-system refresh | `8 / 9` numeric PASS | Clears the expanded-slice promotion rule. |
-| Plain retrieval refresh | `4 / 9` numeric PASS | Same questions, weaker scale/denominator/row binding. |
-| Reproduced separators | `POS_T1_057`, `SAM_T3_028`, `CEL_T1_013`, `SKH_T3_080` | Structural binding keeps key numeric surfaces that plain retrieval loses. |
+| Plain retrieval refresh | `5 / 9` numeric PASS | Same questions, weaker display/unit, denominator, and row binding. |
+| Reproduced separators | `POS_T1_057`, `CEL_T1_013`, `SKH_T3_080` | Structural binding keeps key numeric surfaces that plain retrieval loses. |
 | Remaining structural residual | `SKH_T1_060` | Debt/asset role binding remains unstable. |
 
 Historical hard structural replay:

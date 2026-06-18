@@ -21,8 +21,8 @@ overfit.
   operand binding, arithmetic, unit handling, validation, and final rendering.
 - **Current evidence:** `portfolio_review_gates` reports `ready`. The latest
   store-fixed expanded ablation refresh is structural full-system `8 / 9`
-  numeric PASS vs plain retrieval `4 / 9`, with separating cases on
-  `POS_T1_057`, `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080`;
+  numeric PASS vs plain retrieval `5 / 9`, with separating cases on
+  `POS_T1_057`, `CEL_T1_013`, and `SKH_T3_080`;
   `SKH_T1_060` remains the structural residual case.
 - **Disabled by design:** cache serving, retrieval bypass, automatic cache
   writes, cache-ledger insertion, LLM critic as final acceptance authority, and
@@ -103,8 +103,8 @@ duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
 
 The structural ablation evidence is intentionally narrow. The latest expanded
 refresh compares structural full-system `8 / 9` against plain retrieval
-`4 / 9`. Structural separates on `POS_T1_057`, `SAM_T3_028`, `CEL_T1_013`,
-and `SKH_T3_080`;
+`5 / 9`. Structural separates on `POS_T1_057`, `CEL_T1_013`, and
+`SKH_T3_080`;
 the last case binds `573,884백만원` and `906,120백만원` and answers
 `-3,322억원`. `SKH_T1_060` remains the structural residual, so the claim is
 improved row/scale/denominator binding on the expanded slice, not a fully

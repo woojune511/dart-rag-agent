@@ -21,10 +21,10 @@ calculation traces, critic reports, and reproducible reviewer gates.
   unit handling, dedupe, validation, and final rendering.
 - Validated the design with trace-based gates and store-fixed benchmark
   refreshes; the latest expanded ablation slice reports structural
-  full-system `8 / 9` numeric PASS versus plain retrieval `4 / 9`.
-- Reproduced structural separators in `POS_T1_057`, `SAM_T3_028`,
-  `CEL_T1_013`, and `SKH_T3_080`, while keeping `SKH_T1_060` as the explicit
-  residual follow-up case.
+  full-system `8 / 9` numeric PASS versus plain retrieval `5 / 9`.
+- Reproduced structural separators in `POS_T1_057`, `CEL_T1_013`, and
+  `SKH_T3_080`, while keeping `SKH_T1_060` as the explicit residual follow-up
+  case.
 
 ## Technical Portfolio Version
 
@@ -85,4 +85,4 @@ Safer alternatives:
 - "Used trace-based numeric grounding gates for acceptance"
 - "Used store-fixed benchmark refreshes as promotion gates, including a latest
   expanded refresh that separates structural full-system `8 / 9` from plain
-  retrieval `4 / 9`, while leaving the remaining structural residual visible"
+  retrieval `5 / 9`, while leaving the remaining structural residual visible"

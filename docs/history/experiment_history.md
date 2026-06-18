@@ -53,6 +53,7 @@
 | [KBF Aggregate Public Answer Projection Closure (2026-06-17)](#kbf-aggregate-public-answer-projection-closure-2026-06-17) | KBF_T2_018 mixed numeric+narrative public answer projection | supported aggregate `formatted_result` survives public answer projection; focused eval-only numeric PASS |
 | [Expanded Ablation Refresh After KBF Projection Fix (2026-06-17)](#expanded-ablation-refresh-after-kbf-projection-fix-2026-06-17) | 9문항 structural-vs-plain ablation refresh | structural 7 / 9, plain 4 / 9; `SAM_T3_028`, `CEL_T1_013`, `SKH_T3_080` separate |
 | [Post-Refactor Expanded Structural Refresh (2026-06-18)](#post-refactor-expanded-structural-refresh-2026-06-18) | operand filtering cleanup 이후 9문항 structural full-system refresh | structural improved to 8 / 9; only `SKH_T1_060` remains numeric FAIL |
+| [Post-Refactor Expanded Plain Refresh (2026-06-18)](#post-refactor-expanded-plain-refresh-2026-06-18) | 같은 코드 상태의 9문항 plain retrieval refresh | plain improved to 5 / 9; current comparison is structural 8 / 9 vs plain 5 / 9 |
 | [Post-Refactor Operand Filtering Separator Smoke (2026-06-18)](#post-refactor-operand-filtering-separator-smoke-2026-06-18) | required-operand candidate/filtering cleanup 이후 focused separator smoke | `SAM_T3_028` and `CEL_T1_013` remained numeric PASS with source-scale answers |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
@@ -88,8 +89,8 @@
 - This rerun followed the operand-candidate filtering cleanup:
   `_required_operand_rows_from_candidates()` and
   `_merge_required_operand_fallback_rows()`.
-- The plain-retrieval counterpart was not rerun in this step; the comparison
-  baseline remains the 2026-06-17 plain `4 / 9` refresh.
+- The plain-retrieval counterpart was rerun later in the same code state; see
+  [Post-Refactor Expanded Plain Refresh (2026-06-18)](#post-refactor-expanded-plain-refresh-2026-06-18).
 
 ### Results
 
@@ -121,11 +122,69 @@
 
 - The structural expanded slice improved from `7 / 9` to `8 / 9`; the only
   remaining numeric failure is `SKH_T1_060`.
-- `POS_T1_057` is no longer a structural residual after the focused closure,
-  but the plain counterpart remains the older failing baseline until rerun.
+- `POS_T1_057` is no longer a structural residual after the focused closure.
+  The later plain refresh still fails this question through public-answer
+  display/unit drift.
 - `SKH_T1_060` should be treated as the next hard-case engineering target:
   the run recovered most debt and asset values, then failed the final
   role/denominator binding check.
+
+## Post-Refactor Expanded Plain Refresh (2026-06-18)
+
+참조:
+
+- plain local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
+- heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/heartbeat_plain_after_operand_filter_refactor_2026-06-18.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed `eval-only` over the nine-question expanded plain-retrieval
+  slice.
+- Profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
+- This rerun used the same post-refactor code state as the structural `8 / 9`
+  refresh.
+
+### Results
+
+| Metric | Plain retrieval |
+| --- | ---: |
+| Numeric PASS | `5 / 9` |
+| Avg numeric pass rate | `0.556` |
+| Avg faithfulness | `0.589` |
+| Avg completeness | `0.522` |
+| Avg context recall | `0.926` |
+| Avg Context P@5 | `0.800` |
+| LLM calls / tokens | `116` / `585,879` |
+| Query embedding calls | `63` |
+| Estimated runtime cost | `$0.6681` |
+| Heartbeat runtime | about `41.5m` |
+
+| Question | Result | Answer / observation |
+| --- | --- | --- |
+| `KAB_T1_066` | PASS | CIR `37.47%` |
+| `POS_T1_057` | FAIL | Internal ratio reached `3.5269배`, but public answer rendered as scale-broken `352687284.05%` |
+| `SAM_T3_028` | PASS | Runtime/operand fixes now recover `2.79%`; no longer a current structural-only separator |
+| `MIX_T1_021` | PASS | Debt ratio `25.36%`, current ratio `258.77%` |
+| `CEL_T1_013` | FAIL | Uses broader denominator and returns `49.74%` instead of structural `52.99%` |
+| `KBF_T2_018` | PASS | Numeric judge accepts `71.35%`; answer is noisier than structural but passes |
+| `KBF_T1_017` | PASS | NIM difference `0.1%` |
+| `SKH_T3_080` | FAIL | Misbinds FX gain/loss surfaces and returns `-1,351,498백만원` |
+| `SKH_T1_060` | FAIL | Shared debt/asset role-binding residual |
+
+### Interpretation
+
+- The current expanded comparison is structural `8 / 9` vs plain `5 / 9`.
+- Current structural-only separators are `POS_T1_057`, `CEL_T1_013`, and
+  `SKH_T3_080`.
+- `SAM_T3_028` moved from separator to shared PASS because the post-refactor
+  runtime/operand path also helps plain retrieval.
+- `SKH_T1_060` remains a shared hard residual, so it should be treated as a
+  runtime role-binding problem rather than a structural-vs-plain separator.
 
 ## Post-Refactor Operand Filtering Separator Smoke (2026-06-18)
 

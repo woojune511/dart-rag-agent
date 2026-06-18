@@ -11,6 +11,30 @@
 
 ## 최신 상태
 
+- 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded plain
+  retrieval 9-question store-fixed `eval-only` refresh를 완료했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json --output-dir benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/heartbeat_plain_after_operand_filter_refactor_2026-06-18.jsonl`
+  - result:
+    - plain retrieval numeric pass: `5/9`
+    - question-level avg faithfulness `0.589`, avg completeness `0.522`,
+      avg context recall `0.926`, avg Context P@5 `0.800`
+    - runtime usage: `116` LLM calls, `585,879` LLM tokens, `63` query
+      embedding calls, estimated runtime cost about `$0.6681`
+    - heartbeat runtime about `41.5m`
+  - per-question:
+    - PASS: `KAB_T1_066`, `SAM_T3_028`, `MIX_T1_021`, `KBF_T2_018`,
+      `KBF_T1_017`
+    - FAIL: `POS_T1_057`, `CEL_T1_013`, `SKH_T3_080`, `SKH_T1_060`
+  - 해석:
+    - 최신 current comparison은 structural `8/9` vs plain `5/9`다.
+    - `SAM_T3_028`는 더 이상 current structural-only separator가 아니다.
+      operand/runtime 개선이 plain에도 전파되어 `2.79%`로 PASS했다.
+    - current structural-only separators는 `POS_T1_057`, `CEL_T1_013`,
+      `SKH_T3_080`이다.
+    - `SKH_T1_060`은 structural/plain 모두 FAIL인 shared hard residual이다.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+
 - 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded structural
   9-question store-fixed `eval-only` refresh를 완료했다.
   - command:
@@ -32,8 +56,8 @@
     - 남은 hard residual은 `SKH_T1_060` 하나다. 로그상 숫자 후보는 대부분
       회수되지만 `distinct_ratio_roles` reflection 이후에도 denominator /
       role binding이 최종 numeric judge를 통과하지 못했다.
-    - plain retrieval counterpart는 이번 단계에서 재실행하지 않았다. 비교
-      baseline은 2026-06-17 plain `4/9` 결과를 유지한다.
+    - plain retrieval counterpart는 이후 같은 코드 상태로 재실행되어 `5/9`
+      결과로 갱신됐다.
   - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
 
 - 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded structural
@@ -105,8 +129,9 @@
   - 해석:
     - 당시 expanded slice는 더 이상 stop-line이 아니었고, 이후 2026-06-18
       post-refactor structural refresh에서 `POS_T1_057`까지 닫혀 최신
-      structural 결과는 `8/9`가 됐다. plain baseline은 아직 이 2026-06-17
-      `4/9` 결과를 사용한다.
+      structural 결과는 `8/9`가 됐다. 이후 같은 코드 상태로 plain도
+      재실행되어 최신 comparison은 structural `8/9` vs plain `5/9`가
+      됐다.
     - raw `benchmarks/results/**` 산출물과 heartbeat log는 local-only다.
 
 - 2026-06-17 PR 4 simplification 이후 store-fixed ablation smoke
