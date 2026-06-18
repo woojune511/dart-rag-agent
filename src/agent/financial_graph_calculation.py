@@ -197,6 +197,17 @@ class _AggregateMutableState(NamedTuple):
         )
 
 
+class _OperandPrecisionContext(NamedTuple):
+    row: Dict[str, Any]
+    evidence_item: Optional[Dict[str, Any]]
+    metadata: Dict[str, Any]
+    records: List[Dict[str, Any]]
+    operand_aliases: List[str]
+    operand_spec: Dict[str, Any]
+    raw_unit: str
+    surface: str
+
+
 def _inline_unit_match_has_right_boundary(
     text: str,
     match: re.Match[str],
@@ -10516,6 +10527,332 @@ class FinancialAgentCalculationMixin:
             return str(aliases.get(unit_text, unit_text))
         return ""
 
+    def _operand_precision_surface(self, evidence_item: Optional[Dict[str, Any]]) -> str:
+        return _normalise_spaces(
+            " ".join(
+                part
+                for part in [
+                    str((evidence_item or {}).get("claim") or ""),
+                    str((evidence_item or {}).get("quote_span") or ""),
+                    str((evidence_item or {}).get("raw_row_text") or ""),
+                    str((evidence_item or {}).get("source_context") or ""),
+                ]
+                if part
+            )
+        )
+
+    def _precision_cell_from_contextual_note_row(
+        self,
+        context: _OperandPrecisionContext,
+    ) -> Optional[Dict[str, Any]]:
+        row = context.row
+        metadata = context.metadata
+        records = context.records
+        operand_aliases = context.operand_aliases
+        operand_spec = context.operand_spec
+        row_labels = [
+            _normalise_spaces(line)
+            for line in str(metadata.get("table_row_labels_text") or "").splitlines()
+            if _normalise_spaces(line)
+        ]
+        if not row_labels:
+            return None
+        records_by_label: Dict[str, Dict[str, Any]] = {}
+        for record in records:
+            label = _normalise_spaces(str(record.get("row_label") or ""))
+            if not label:
+                continue
+            existing = records_by_label.get(label)
+            if existing is None or (not existing.get("cells") and record.get("cells")):
+                records_by_label[label] = record
+
+        def _select_period_aware_cell(record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            cells = [dict(cell or {}) for cell in list(record.get("cells") or []) if isinstance(cell, dict)]
+            if not cells:
+                return None
+            query_years: List[int] = []
+            for raw_year in (
+                row.get("period"),
+                metadata.get("year"),
+            ):
+                try:
+                    if raw_year not in (None, ""):
+                        year = int(raw_year)
+                        if year not in query_years:
+                            query_years.append(year)
+                except (TypeError, ValueError):
+                    continue
+            period_operand = dict(operand_spec)
+            role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
+            period_hint = _normalise_spaces(str(row.get("period") or ""))
+            if role:
+                period_operand["role"] = role
+            if period_hint:
+                period_operand["period_hint"] = period_hint
+            cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
+            row_value_role = _normalise_spaces(str(row.get("value_role") or "")).lower()
+            row_aggregation_stage = _normalise_spaces(str(row.get("aggregation_stage") or "")).lower()
+            if (
+                row_value_role == "aggregate"
+                or row_aggregation_stage in {"direct", "final", "subtotal"}
+                or _operand_prefers_aggregate_value_role(row)
+            ):
+                aggregate_selected = _select_aggregate_structured_cell(
+                    cells,
+                    operand=period_operand,
+                    query_years=query_years,
+                    period_focus=_operand_period_focus(period_operand, "unknown"),
+                )
+                if aggregate_selected:
+                    return dict(aggregate_selected)
+            selected = _select_structured_cell(
+                cells,
+                operand=period_operand,
+                query_years=query_years,
+                period_focus=_operand_period_focus(period_operand, "unknown"),
+            )
+            return dict(selected) if selected else None
+
+        def _is_krw_cell(cell_data: Dict[str, Any]) -> bool:
+            value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
+            unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
+            if not re.search(r"\d", value_text):
+                return False
+            cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+            return cell_value is not None and cell_unit == "KRW"
+
+        alias_variants = [
+            variant
+            for alias in operand_aliases
+            for variant in _surface_match_variants(alias)
+            if variant
+        ]
+
+        def _label_match_score(label_text: str) -> int:
+            label_variants = _surface_match_variants(label_text)
+            if not label_variants or not alias_variants:
+                return 0
+            best = 0
+            for label_variant in label_variants:
+                label_compact = re.sub(r"\s+", "", label_variant)
+                for alias_variant in alias_variants:
+                    alias_compact = re.sub(r"\s+", "", alias_variant)
+                    if not label_compact or not alias_compact:
+                        continue
+                    if label_variant == alias_variant or label_compact == alias_compact:
+                        best = max(best, 10000 + len(label_compact))
+                    elif label_variant in alias_variant or label_compact in alias_compact:
+                        best = max(best, 5000 + len(label_compact))
+                    elif alias_variant in label_variant or alias_compact in label_compact:
+                        best = max(best, 3000 + len(alias_compact))
+            if best:
+                return best
+            if _operand_text_match(label_text, operand_spec):
+                return max(len(re.sub(r"\s+", "", variant)) for variant in label_variants)
+            return 0
+
+        best_label_index = -1
+        best_label_score = 0
+        for index, label_text in enumerate(row_labels):
+            label_score = _label_match_score(label_text)
+            if label_score <= best_label_score:
+                continue
+            best_label_index = index
+            best_label_score = label_score
+
+        if best_label_index >= 0:
+            label_text = row_labels[best_label_index]
+            current_record = records_by_label.get(label_text)
+            if current_record:
+                cell_data = _select_period_aware_cell(current_record)
+                if cell_data and _is_krw_cell(cell_data):
+                    return cell_data
+            for previous_label in reversed(row_labels[:best_label_index]):
+                record = records_by_label.get(previous_label)
+                if not record:
+                    continue
+                cell_data = _select_period_aware_cell(record)
+                if cell_data and _is_krw_cell(cell_data):
+                    return cell_data
+        return None
+
+    def _precision_cell_from_flattened_table_surface(
+        self,
+        context: _OperandPrecisionContext,
+    ) -> Optional[Dict[str, Any]]:
+        row = context.row
+        metadata = context.metadata
+        operand_spec = context.operand_spec
+        raw_unit = context.raw_unit
+        surface_text = context.surface
+        if "|" not in surface_text:
+            return None
+        tokens = [_normalise_spaces(token) for token in surface_text.split("|")]
+        if not tokens:
+            return None
+        row_labels = [
+            _normalise_spaces(line)
+            for line in str(metadata.get("table_row_labels_text") or "").splitlines()
+            if _normalise_spaces(line)
+        ]
+        if not row_labels:
+            return None
+        numeric_pattern = r"^\(?-?\d[\d,]*(?:\.\d+)?\)?$"
+
+        def _label_position(token: str, label: str) -> int:
+            if not token or not label:
+                return -1
+            return token.find(label)
+
+        def _row_label_score(label: str) -> int:
+            if not label:
+                return 0
+            if _operand_text_match(label, operand_spec):
+                return 1000 + len(re.sub(r"\s+", "", label))
+            affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+            metric_terms = tuple(str(item) for item in (affinity_policy.get("metric_terms") or ()) if str(item))
+            operand_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        operand_spec.get("label"),
+                        " ".join(str(item) for item in (operand_spec.get("aliases") or [])),
+                    )
+                )
+            )
+            if metric_terms and any(term in label and term in operand_surface for term in metric_terms):
+                return 500 + len(re.sub(r"\s+", "", label))
+            return 0
+
+        ordered_row_labels = sorted(row_labels, key=_row_label_score, reverse=True)
+        segment_label = _normalise_spaces(str(_operand_segment_label(row) or ""))
+        segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
+        role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
+        aggregate_tokens = tuple(
+            str(item)
+            for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("aggregate_tokens") or ())
+            if str(item)
+        )
+
+        for row_label in ordered_row_labels:
+            if _row_label_score(row_label) <= 0:
+                continue
+            for start_index, token in enumerate(tokens):
+                position = _label_position(token, row_label)
+                if position < 0:
+                    continue
+                prefix = _normalise_spaces(token[:position])
+                row_cells: List[str] = []
+                for next_token in tokens[start_index + 1 :]:
+                    next_label_positions = [
+                        _label_position(next_token, other_label)
+                        for other_label in row_labels
+                        if _label_position(next_token, other_label) >= 0
+                    ]
+                    if next_label_positions:
+                        first_label_position = min(next_label_positions)
+                        prefix_value = _normalise_spaces(next_token[:first_label_position])
+                        if prefix_value:
+                            row_cells.append(prefix_value)
+                        break
+                    row_cells.append(next_token)
+                if not row_cells:
+                    continue
+                header_tokens = list(tokens[:start_index])
+                if prefix:
+                    header_tokens.append(prefix)
+                headers_for_cells = header_tokens[-len(row_cells) :] if header_tokens else []
+                if len(headers_for_cells) < len(row_cells):
+                    headers_for_cells = [""] * (len(row_cells) - len(headers_for_cells)) + headers_for_cells
+
+                candidate_indexes: List[int] = []
+                if segment_label:
+                    compact_segment = re.sub(r"\s+", "", segment_label)
+                    for index, header in enumerate(headers_for_cells):
+                        compact_header = re.sub(r"\s+", "", header)
+                        if segment_label in header or (compact_segment and compact_segment in compact_header):
+                            candidate_indexes.append(index)
+                elif role.startswith("denominator"):
+                    candidate_indexes = [
+                        index
+                        for index, header in enumerate(headers_for_cells)
+                        if any(token and token in header for token in aggregate_tokens)
+                    ]
+                    if not candidate_indexes:
+                        candidate_indexes = list(range(len(row_cells)))
+                    candidate_indexes = list(reversed(candidate_indexes))
+                else:
+                    candidate_indexes = list(range(len(row_cells)))
+
+                value_label_lines = [
+                    _normalise_spaces(line)
+                    for line in str(metadata.get("table_value_labels_text") or "").splitlines()
+                    if _normalise_spaces(line)
+                ]
+                row_values: List[str] = []
+                value_pattern = re.compile(r"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)\s*$")
+                for line in value_label_lines:
+                    if row_label not in line:
+                        continue
+                    match = value_pattern.search(line)
+                    if match:
+                        row_values.append(_normalise_spaces(match.group("value")))
+                numeric_header_pairs = [
+                    (header, cell)
+                    for header, cell in zip(headers_for_cells, row_cells)
+                    if re.fullmatch(numeric_pattern, _normalise_spaces(cell))
+                ]
+                if row_values and len(row_values) == len(numeric_header_pairs):
+                    header_value_pairs = [
+                        (header, value)
+                        for (header, _cell), value in zip(numeric_header_pairs, row_values)
+                    ]
+                    if segment_label:
+                        compact_segment = re.sub(r"\s+", "", segment_label)
+                        ordered_pairs = header_value_pairs
+                    elif role.startswith("denominator"):
+                        ordered_pairs = list(reversed(header_value_pairs))
+                    else:
+                        ordered_pairs = header_value_pairs
+                    for header, value_text in ordered_pairs:
+                        compact_header = re.sub(r"\s+", "", header)
+                        if segment_label and not (
+                            segment_label in header or (compact_segment and compact_segment in compact_header)
+                        ):
+                            continue
+                        if not segment_label and role.startswith("denominator") and aggregate_tokens:
+                            if not any(token and token in header for token in aggregate_tokens):
+                                continue
+                        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
+                        cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                        if cell_value is None or cell_unit != "KRW":
+                            continue
+                        return {
+                            "column_headers": [header] if header else [],
+                            "value_text": value_text,
+                            "unit_hint": unit_hint,
+                            "flattened_surface_row_label": row_label,
+                            "flattened_surface_value_label_fallback": True,
+                        }
+
+                for index in candidate_indexes:
+                    if index < 0 or index >= len(row_cells):
+                        continue
+                    value_text = _normalise_spaces(row_cells[index])
+                    if not re.fullmatch(numeric_pattern, value_text):
+                        continue
+                    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
+                    cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
+                    if cell_value is None or cell_unit != "KRW":
+                        continue
+                    return {
+                        "column_headers": [headers_for_cells[index]] if headers_for_cells[index] else [],
+                        "value_text": value_text,
+                        "unit_hint": unit_hint,
+                        "flattened_surface_row_label": row_label,
+                    }
+        return None
+
     def _refine_operand_precision_from_evidence_table(
         self,
         row: Dict[str, Any],
@@ -10582,325 +10919,16 @@ class FinancialAgentCalculationMixin:
             "label": str(row.get("matched_operand_label") or row.get("label") or "").strip(),
             "aliases": [item for item in dict.fromkeys(operand_aliases) if item],
         }
-        def _cell_from_contextual_note_row() -> Optional[Dict[str, Any]]:
-            row_labels = [
-                _normalise_spaces(line)
-                for line in str(metadata.get("table_row_labels_text") or "").splitlines()
-                if _normalise_spaces(line)
-            ]
-            if not row_labels:
-                return None
-            records_by_label: Dict[str, Dict[str, Any]] = {}
-            for record in records:
-                label = _normalise_spaces(str(record.get("row_label") or ""))
-                if not label:
-                    continue
-                existing = records_by_label.get(label)
-                if existing is None or (not existing.get("cells") and record.get("cells")):
-                    records_by_label[label] = record
-
-            def _select_period_aware_cell(record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-                cells = [dict(cell or {}) for cell in list(record.get("cells") or []) if isinstance(cell, dict)]
-                if not cells:
-                    return None
-                query_years: List[int] = []
-                for raw_year in (
-                    row.get("period"),
-                    metadata.get("year"),
-                ):
-                    try:
-                        if raw_year not in (None, ""):
-                            year = int(raw_year)
-                            if year not in query_years:
-                                query_years.append(year)
-                    except (TypeError, ValueError):
-                        continue
-                period_operand = dict(operand_spec)
-                role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
-                period_hint = _normalise_spaces(str(row.get("period") or ""))
-                if role:
-                    period_operand["role"] = role
-                if period_hint:
-                    period_operand["period_hint"] = period_hint
-                cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
-                row_value_role = _normalise_spaces(str(row.get("value_role") or "")).lower()
-                row_aggregation_stage = _normalise_spaces(str(row.get("aggregation_stage") or "")).lower()
-                if (
-                    row_value_role == "aggregate"
-                    or row_aggregation_stage in {"direct", "final", "subtotal"}
-                    or _operand_prefers_aggregate_value_role(row)
-                ):
-                    aggregate_selected = _select_aggregate_structured_cell(
-                        cells,
-                        operand=period_operand,
-                        query_years=query_years,
-                        period_focus=_operand_period_focus(period_operand, "unknown"),
-                    )
-                    if aggregate_selected:
-                        return dict(aggregate_selected)
-                selected = _select_structured_cell(
-                    cells,
-                    operand=period_operand,
-                    query_years=query_years,
-                    period_focus=_operand_period_focus(period_operand, "unknown"),
-                )
-                return dict(selected) if selected else None
-
-            def _is_krw_cell(cell_data: Dict[str, Any]) -> bool:
-                value_text = _normalise_spaces(str(cell_data.get("value_text") or ""))
-                unit_hint = _normalise_spaces(str(cell_data.get("unit_hint") or ""))
-                if not re.search(r"\d", value_text):
-                    return False
-                cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                return cell_value is not None and cell_unit == "KRW"
-
-            alias_variants = [
-                variant
-                for alias in operand_aliases
-                for variant in _surface_match_variants(alias)
-                if variant
-            ]
-
-            def _label_match_score(label_text: str) -> int:
-                label_variants = _surface_match_variants(label_text)
-                if not label_variants or not alias_variants:
-                    return 0
-                best = 0
-                for label_variant in label_variants:
-                    label_compact = re.sub(r"\s+", "", label_variant)
-                    for alias_variant in alias_variants:
-                        alias_compact = re.sub(r"\s+", "", alias_variant)
-                        if not label_compact or not alias_compact:
-                            continue
-                        if label_variant == alias_variant or label_compact == alias_compact:
-                            best = max(best, 10000 + len(label_compact))
-                        elif label_variant in alias_variant or label_compact in alias_compact:
-                            best = max(best, 5000 + len(label_compact))
-                        elif alias_variant in label_variant or alias_compact in label_compact:
-                            best = max(best, 3000 + len(alias_compact))
-                if best:
-                    return best
-                if _operand_text_match(label_text, operand_spec):
-                    return max(len(re.sub(r"\s+", "", variant)) for variant in label_variants)
-                return 0
-
-            best_label_index = -1
-            best_label_score = 0
-            for index, label_text in enumerate(row_labels):
-                label_score = _label_match_score(label_text)
-                if label_score <= best_label_score:
-                    continue
-                best_label_index = index
-                best_label_score = label_score
-
-            if best_label_index >= 0:
-                label_text = row_labels[best_label_index]
-                current_record = records_by_label.get(label_text)
-                if current_record:
-                    cell_data = _select_period_aware_cell(current_record)
-                    if cell_data and _is_krw_cell(cell_data):
-                        return cell_data
-                for previous_label in reversed(row_labels[:best_label_index]):
-                    record = records_by_label.get(previous_label)
-                    if not record:
-                        continue
-                    cell_data = _select_period_aware_cell(record)
-                    if cell_data and _is_krw_cell(cell_data):
-                        return cell_data
-            return None
-
-        def _cell_from_flattened_table_surface() -> Optional[Dict[str, Any]]:
-            surface_text = _normalise_spaces(
-                " ".join(
-                    part
-                    for part in [
-                        str((evidence_item or {}).get("claim") or ""),
-                        str((evidence_item or {}).get("quote_span") or ""),
-                        str((evidence_item or {}).get("raw_row_text") or ""),
-                        str((evidence_item or {}).get("source_context") or ""),
-                    ]
-                    if part
-                )
-            )
-            if "|" not in surface_text:
-                return None
-            tokens = [_normalise_spaces(token) for token in surface_text.split("|")]
-            if not tokens:
-                return None
-            row_labels = [
-                _normalise_spaces(line)
-                for line in str(metadata.get("table_row_labels_text") or "").splitlines()
-                if _normalise_spaces(line)
-            ]
-            if not row_labels:
-                return None
-            numeric_pattern = r"^\(?-?\d[\d,]*(?:\.\d+)?\)?$"
-
-            def _label_position(token: str, label: str) -> int:
-                if not token or not label:
-                    return -1
-                return token.find(label)
-
-            def _row_label_score(label: str) -> int:
-                if not label:
-                    return 0
-                if _operand_text_match(label, operand_spec):
-                    return 1000 + len(re.sub(r"\s+", "", label))
-                affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
-                metric_terms = tuple(str(item) for item in (affinity_policy.get("metric_terms") or ()) if str(item))
-                operand_surface = _normalise_spaces(
-                    " ".join(
-                        str(value or "")
-                        for value in (
-                            operand_spec.get("label"),
-                            " ".join(str(item) for item in (operand_spec.get("aliases") or [])),
-                        )
-                    )
-                )
-                if metric_terms and any(term in label and term in operand_surface for term in metric_terms):
-                    return 500 + len(re.sub(r"\s+", "", label))
-                return 0
-
-            ordered_row_labels = sorted(row_labels, key=_row_label_score, reverse=True)
-            segment_label = _normalise_spaces(str(_operand_segment_label(row) or ""))
-            segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
-            role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
-            aggregate_tokens = tuple(
-                str(item)
-                for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("aggregate_tokens") or ())
-                if str(item)
-            )
-
-            for row_label in ordered_row_labels:
-                if _row_label_score(row_label) <= 0:
-                    continue
-                for start_index, token in enumerate(tokens):
-                    position = _label_position(token, row_label)
-                    if position < 0:
-                        continue
-                    prefix = _normalise_spaces(token[:position])
-                    row_cells: List[str] = []
-                    for next_token in tokens[start_index + 1 :]:
-                        next_label_positions = [
-                            _label_position(next_token, other_label)
-                            for other_label in row_labels
-                            if _label_position(next_token, other_label) >= 0
-                        ]
-                        if next_label_positions:
-                            first_label_position = min(next_label_positions)
-                            prefix_value = _normalise_spaces(next_token[:first_label_position])
-                            if prefix_value:
-                                row_cells.append(prefix_value)
-                            break
-                        row_cells.append(next_token)
-                    if not row_cells:
-                        continue
-                    header_tokens = list(tokens[:start_index])
-                    if prefix:
-                        header_tokens.append(prefix)
-                    headers_for_cells = header_tokens[-len(row_cells) :] if header_tokens else []
-                    if len(headers_for_cells) < len(row_cells):
-                        headers_for_cells = [""] * (len(row_cells) - len(headers_for_cells)) + headers_for_cells
-
-                    candidate_indexes: List[int] = []
-                    if segment_label:
-                        compact_segment = re.sub(r"\s+", "", segment_label)
-                        for index, header in enumerate(headers_for_cells):
-                            compact_header = re.sub(r"\s+", "", header)
-                            if segment_label in header or (compact_segment and compact_segment in compact_header):
-                                candidate_indexes.append(index)
-                    elif role.startswith("denominator"):
-                        candidate_indexes = [
-                            index
-                            for index, header in enumerate(headers_for_cells)
-                            if any(token and token in header for token in aggregate_tokens)
-                        ]
-                        if not candidate_indexes:
-                            candidate_indexes = list(range(len(row_cells)))
-                        candidate_indexes = list(reversed(candidate_indexes))
-                    else:
-                        candidate_indexes = list(range(len(row_cells)))
-
-                    value_label_lines = [
-                        _normalise_spaces(line)
-                        for line in str(metadata.get("table_value_labels_text") or "").splitlines()
-                        if _normalise_spaces(line)
-                    ]
-                    row_values: List[str] = []
-                    value_pattern = re.compile(r"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)\s*$")
-                    for line in value_label_lines:
-                        if row_label not in line:
-                            continue
-                        match = value_pattern.search(line)
-                        if match:
-                            row_values.append(_normalise_spaces(match.group("value")))
-                    numeric_header_pairs = [
-                        (header, cell)
-                        for header, cell in zip(headers_for_cells, row_cells)
-                        if re.fullmatch(numeric_pattern, _normalise_spaces(cell))
-                    ]
-                    if row_values and len(row_values) == len(numeric_header_pairs):
-                        header_value_pairs = [
-                            (header, value)
-                            for (header, _cell), value in zip(numeric_header_pairs, row_values)
-                        ]
-                        if segment_label:
-                            compact_segment = re.sub(r"\s+", "", segment_label)
-                            ordered_pairs = header_value_pairs
-                        elif role.startswith("denominator"):
-                            ordered_pairs = list(reversed(header_value_pairs))
-                        else:
-                            ordered_pairs = header_value_pairs
-                        for header, value_text in ordered_pairs:
-                            compact_header = re.sub(r"\s+", "", header)
-                            if segment_label and not (
-                                segment_label in header or (compact_segment and compact_segment in compact_header)
-                            ):
-                                continue
-                            if not segment_label and role.startswith("denominator") and aggregate_tokens:
-                                if not any(token and token in header for token in aggregate_tokens):
-                                    continue
-                            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
-                            cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                            if cell_value is None or cell_unit != "KRW":
-                                continue
-                            return {
-                                "column_headers": [header] if header else [],
-                                "value_text": value_text,
-                                "unit_hint": unit_hint,
-                                "flattened_surface_row_label": row_label,
-                                "flattened_surface_value_label_fallback": True,
-                            }
-
-                    for index in candidate_indexes:
-                        if index < 0 or index >= len(row_cells):
-                            continue
-                        value_text = _normalise_spaces(row_cells[index])
-                        if not re.fullmatch(numeric_pattern, value_text):
-                            continue
-                        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or raw_unit or ""))
-                        cell_value, cell_unit = _normalise_operand_value(value_text, unit_hint)
-                        if cell_value is None or cell_unit != "KRW":
-                            continue
-                        return {
-                            "column_headers": [headers_for_cells[index]] if headers_for_cells[index] else [],
-                            "value_text": value_text,
-                            "unit_hint": unit_hint,
-                            "flattened_surface_row_label": row_label,
-                        }
-            return None
-
-        surface = _normalise_spaces(
-            " ".join(
-                part
-                for part in [
-                    str((evidence_item or {}).get("claim") or ""),
-                    str((evidence_item or {}).get("quote_span") or ""),
-                    str((evidence_item or {}).get("raw_row_text") or ""),
-                    str((evidence_item or {}).get("source_context") or ""),
-                ]
-                if part
-            )
+        surface = self._operand_precision_surface(evidence_item)
+        precision_context = _OperandPrecisionContext(
+            row=row,
+            evidence_item=evidence_item,
+            metadata=metadata,
+            records=records,
+            operand_aliases=operand_aliases,
+            operand_spec=operand_spec,
+            raw_unit=raw_unit,
+            surface=surface,
         )
         surface_value = _extract_numeric_value_after_operand_text(surface, operand_spec)
         if surface_value:
@@ -10908,8 +10936,8 @@ class FinancialAgentCalculationMixin:
             if surface_normalized is not None and surface_unit == "KRW":
                 target_values.append(float(surface_normalized))
 
-        contextual_cell = _cell_from_contextual_note_row()
-        flattened_cell = _cell_from_flattened_table_surface()
+        contextual_cell = self._precision_cell_from_contextual_note_row(precision_context)
+        flattened_cell = self._precision_cell_from_flattened_table_surface(precision_context)
         best_cell: Optional[Dict[str, Any]] = None
         best_normalized: Optional[float] = None
         best_diff: Optional[float] = None
