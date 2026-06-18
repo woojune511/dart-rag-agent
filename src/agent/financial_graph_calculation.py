@@ -14489,6 +14489,43 @@ class FinancialAgentCalculationMixin:
             )
         ]
 
+    def _merge_required_operand_fallback_rows(
+        self,
+        state: FinancialAgentState,
+        operand_rows: List[Dict[str, Any]],
+        candidate_items: List[Dict[str, Any]],
+        missing_required: List[Dict[str, Any]],
+        *,
+        required_operands: List[Dict[str, Any]],
+        query: str,
+        operation_family: str,
+        fallback_label: str,
+    ):
+        if not missing_required or not candidate_items:
+            return operand_rows, missing_required
+        fallback_rows = self._build_required_operands_from_candidates(
+            candidate_items,
+            required_operands=missing_required,
+            query=query,
+            topic=state.get("topic") or "",
+            report_scope=dict(state.get("report_scope") or {}),
+        )
+        fallback_rows = self._filter_operand_rows_by_required_surface_contract(
+            fallback_rows,
+            candidate_items,
+            missing_required,
+            require_direct_support=operation_family == "ratio",
+        )
+        if not fallback_rows:
+            return operand_rows, missing_required
+        logger.info("[calc_operands] %s operand fallback rows=%s", fallback_label, len(fallback_rows))
+        operand_rows = _merge_operand_rows(
+            operand_rows,
+            fallback_rows,
+            required_operands=required_operands,
+        )
+        return operand_rows, _missing_required_operands(required_operands, operand_rows) if required_operands else []
+
     def _lookup_task_requests_context_dependent_scope(
         self,
         state: FinancialAgentState,
@@ -15841,50 +15878,27 @@ class FinancialAgentCalculationMixin:
                 )
 
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
-            if missing_required and surface_contract_evidence:
-                surface_fallback_rows = self._build_required_operands_from_candidates(
-                    surface_contract_evidence,
-                    required_operands=missing_required,
-                    query=query,
-                    topic=state.get("topic") or "",
-                    report_scope=dict(state.get("report_scope") or {}),
-                )
-                surface_fallback_rows = self._filter_operand_rows_by_required_surface_contract(
-                    surface_fallback_rows,
-                    surface_contract_evidence,
-                    missing_required,
-                    require_direct_support=operation_family == "ratio",
-                )
-                if surface_fallback_rows:
-                    logger.info("[calc_operands] surface-contract operand fallback rows=%s", len(surface_fallback_rows))
-                    operand_rows = _merge_operand_rows(
-                        operand_rows,
-                        surface_fallback_rows,
-                        required_operands=required_operands,
-                    )
-                    missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
+            operand_rows, missing_required = self._merge_required_operand_fallback_rows(
+                state,
+                operand_rows,
+                surface_contract_evidence,
+                missing_required,
+                required_operands=required_operands,
+                query=query,
+                operation_family=operation_family,
+                fallback_label="surface-contract",
+            )
             if missing_required and not direct_numeric_grounding:
-                generic_fallback_rows = self._build_required_operands_from_candidates(
-                    evidence_items,
-                    required_operands=missing_required,
-                    query=query,
-                    topic=state.get("topic") or "",
-                    report_scope=dict(state.get("report_scope") or {}),
-                )
-                generic_fallback_rows = self._filter_operand_rows_by_required_surface_contract(
-                    generic_fallback_rows,
+                operand_rows, missing_required = self._merge_required_operand_fallback_rows(
+                    state,
+                    operand_rows,
                     evidence_items,
                     missing_required,
-                    require_direct_support=operation_family == "ratio",
+                    required_operands=required_operands,
+                    query=query,
+                    operation_family=operation_family,
+                    fallback_label="generic",
                 )
-                if generic_fallback_rows:
-                    logger.info("[calc_operands] generic operand fallback rows=%s", len(generic_fallback_rows))
-                    operand_rows = _merge_operand_rows(
-                        operand_rows,
-                        generic_fallback_rows,
-                        required_operands=required_operands,
-                    )
-            missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             if missing_required and not direct_numeric_grounding and _is_ratio_percent_query(query):
                 fallback_rows = self._build_ratio_operands_from_candidates(
                     [item for item in evidence_items if item.get("raw_row_text")],
