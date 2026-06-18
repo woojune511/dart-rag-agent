@@ -15,6 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
     _candidate_explicit_years,
@@ -2155,7 +2156,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_difference_source_display_unit_preserves_common_source_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        unit = agent._adjusted_difference_source_display_unit(
+        unit = calculation_rendering.adjusted_difference_source_display_unit(
             active_subtask={"operation_family": "difference", "metric_label": "net effect"},
             ordered_operands=[
                 {"raw_unit": "\ubc31\ub9cc\uc6d0", "normalized_unit": "KRW", "dependency_resolved": True},
@@ -2949,7 +2950,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_difference_answer_composer_preserves_slot_rendered_values(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        answer = agent._compose_slot_based_difference_answer(
+        answer = calculation_rendering.compose_slot_based_difference_answer(
             query="2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
             report_scope={"company": "LG에너지솔루션", "year": 2023},
             calculation_result={
@@ -2984,6 +2985,7 @@ class OperationContractTests(unittest.TestCase):
                     },
                 }
             },
+            answer_slot_has_material=agent._answer_slot_has_material,
         )
 
         self.assertIn("LG에너지솔루션", answer)
@@ -2994,7 +2996,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_difference_answer_composer_recovers_company_from_slot_anchor(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        answer = agent._compose_slot_based_difference_answer(
+        answer = calculation_rendering.compose_slot_based_difference_answer(
             query="2023년 연결기준 영업이익에서 AMPC 금액을 제외한 실질 영업이익을 계산해 줘.",
             report_scope={},
             calculation_result={
@@ -3030,6 +3032,7 @@ class OperationContractTests(unittest.TestCase):
                     },
                 }
             },
+            answer_slot_has_material=agent._answer_slot_has_material,
         )
 
         self.assertIn("LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원", answer)
@@ -6891,7 +6894,7 @@ class OperationContractTests(unittest.TestCase):
     def test_rendered_subtraction_answer_rewrites_negative_denominator_difference(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         answer = "네이버의 2023년 연결기준 영업활동현금흐름은 2조 22억원이며, 유형자산의 취득 금액은 -6,406억원입니다. 이를 바탕으로 계산된 2023년 잉여현금흐름은 1조 3,616억원입니다."
-        rewritten = agent._coerce_sign_aware_subtraction_answer(
+        rewritten = calculation_rendering.coerce_sign_aware_subtraction_answer(
             answer,
             calculation_result={
                 "status": "ok",

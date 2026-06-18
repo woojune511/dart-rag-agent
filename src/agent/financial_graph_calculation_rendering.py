@@ -67,6 +67,11 @@ def format_calculation_value(value: float, result_unit: str, normalized_unit: st
     return f"{value}"
 
 
+def format_ratio_percent_result(result_value: float) -> str:
+    rendered_value = format_calculation_value(result_value, "%", "PERCENT")
+    return rendered_value if "%" in rendered_value else f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
+
+
 def format_calculation_value_in_display_unit(value: float, display_unit: str) -> str:
     unit = _normalise_spaces(str(display_unit or ""))
     scale_by_unit = dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})

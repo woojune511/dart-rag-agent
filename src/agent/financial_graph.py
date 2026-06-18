@@ -32,6 +32,7 @@ from src.agent.financial_graph_models import (
     ReviewTrace,
     RuntimeCalculationTrace,
 )
+from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, SECTION_BIAS_BY_QUERY_TYPE
 from src.routing import QueryRouter
@@ -369,7 +370,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         """Preserve numeric provenance when a non-calculation path produced the final answer."""
         existing = [dict(item) for item in (final.get("evidence_items") or []) if isinstance(item, dict)]
         final_answer = _normalise_spaces(str(final.get("answer") or final.get("compressed_answer") or ""))
-        answer_candidates = self._answer_evidence_numeric_candidates(final_answer) if final_answer else []
+        answer_candidates = extract_numeric_surface_candidates(final_answer) if final_answer else []
         if answer_candidates:
             projection = self._project_runtime_calculation_trace(final)
             operands = list((projection or {}).get("calculation_operands") or [])

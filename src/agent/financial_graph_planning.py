@@ -892,9 +892,6 @@ def _apply_segment_labels_to_llm_resolved_specs(
     return specs
 
 class FinancialAgentPlanningMixin:
-    def _default_format_preference(self, intent: str) -> str:
-        return default_format_preference(intent)
-
     def _align_scope_hints(
         self,
         *,

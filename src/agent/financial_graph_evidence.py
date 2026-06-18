@@ -69,6 +69,7 @@ from src.config.retrieval_policy import (
     narrative_policy_slot_groups,
     narrative_policy_terms,
 )
+from src.routing import default_format_preference
 from src.storage.report_cache_index import ReportCacheIndex
 
 logger = logging.getLogger(__name__)
@@ -1233,7 +1234,7 @@ class FinancialAgentEvidenceMixin:
         format_preference = str(
             active_subtask.get("format_preference_override")
             or state.get("format_preference")
-            or self._default_format_preference(intent)
+            or default_format_preference(intent)
         )
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
@@ -2573,7 +2574,7 @@ class FinancialAgentEvidenceMixin:
         format_preference = str(
             active_subtask.get("format_preference_override")
             or state.get("format_preference")
-            or self._default_format_preference(intent)
+            or default_format_preference(intent)
         ).strip().lower()
         if operation_family == "narrative_summary":
             docs = self._select_narrative_summary_docs(reranked, state, effective_k)
