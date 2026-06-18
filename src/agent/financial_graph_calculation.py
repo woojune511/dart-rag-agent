@@ -333,6 +333,66 @@ def _operand_rows_conflict_by_required_role(
     return False
 
 
+def _required_operand_context_terms(required_operands: Sequence[Dict[str, Any]]) -> List[str]:
+    terms: List[str] = []
+    for operand in required_operands:
+        for needle in _operand_needles(dict(operand)):
+            normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
+            if not normalized:
+                continue
+            terms.append(normalized)
+            tokens = normalized.split()
+            if len(tokens) >= 2:
+                terms.append(" ".join(tokens[:-1]))
+    expanded: List[str] = []
+    for term in terms:
+        expanded.append(term)
+        if re.search(r"[가-힣]", term) and " " in term:
+            expanded.append(re.sub(r"\s+", "", term))
+    return list(dict.fromkeys(item for item in expanded if item))
+
+
+def _text_has_any_context_term(text: str, terms: Sequence[str]) -> bool:
+    normalized = _normalise_spaces(text)
+    compact = re.sub(r"\s+", "", normalized)
+    return any(
+        term in normalized or re.sub(r"\s+", "", term) in compact
+        for term in terms
+        if term
+    )
+
+
+def _synthesized_calculation_doc_item(
+    doc: Any,
+    *,
+    index: int,
+    evidence_id: str,
+    desired_consolidation_scope: str,
+    build_source_anchor: Callable[[Dict[str, Any]], str],
+) -> Optional[Dict[str, Any]]:
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    anchor = build_source_anchor(metadata)
+    text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
+    if not text:
+        return None
+    display_text = _strip_rerank_metadata(text) or text
+    provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
+    if _evidence_item_conflicts_requested_scope(provisional_item, desired_consolidation_scope):
+        return None
+    claim = display_text[:1200]
+    return {
+        "evidence_id": evidence_id,
+        "source_anchor": anchor,
+        "claim": claim,
+        "quote_span": claim[:240],
+        "support_level": "direct",
+        "question_relevance": "high",
+        "allowed_terms": [],
+        "metadata": metadata,
+        "_candidate_index": index,
+    }
+
+
 def _synthesis_source_ids_from_task_outputs(state: FinancialAgentState) -> List[str]:
     active_subtask = dict(state.get("active_subtask") or {})
     preferred_task_ids: List[str] = []
@@ -15500,71 +15560,19 @@ class FinancialAgentCalculationMixin:
             synthesized_items: List[Dict[str, Any]] = []
             synthesized_bullets: List[str] = []
             seen_anchors = {str(item.get("source_anchor") or "") for item in evidence_items}
-
-            def _required_operand_context_terms() -> List[str]:
-                terms: List[str] = []
-                for operand in required_operands:
-                    for needle in _operand_needles(operand):
-                        normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
-                        if not normalized:
-                            continue
-                        terms.append(normalized)
-                        tokens = normalized.split()
-                        if len(tokens) >= 2:
-                            terms.append(" ".join(tokens[:-1]))
-                expanded: List[str] = []
-                for term in terms:
-                    expanded.append(term)
-                    if re.search(r"[가-힣]", term) and " " in term:
-                        expanded.append(re.sub(r"\s+", "", term))
-                return list(dict.fromkeys(item for item in expanded if item))
-
-            def _text_has_any_context_term(text: str, terms: List[str]) -> bool:
-                normalized = _normalise_spaces(text)
-                compact = re.sub(r"\s+", "", normalized)
-                return any(
-                    term in normalized or re.sub(r"\s+", "", term) in compact
-                    for term in terms
-                    if term
-                )
-
-            def _synthesized_doc_item(
-                doc: Any,
-                *,
-                index: int,
-                evidence_id: str,
-            ) -> Optional[Dict[str, Any]]:
-                metadata = dict(getattr(doc, "metadata", {}) or {})
-                anchor = self._build_source_anchor(metadata)
-                text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-                if not text:
-                    return None
-                display_text = _strip_rerank_metadata(text) or text
-                provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
-                if _evidence_item_conflicts_requested_scope(provisional_item, desired_consolidation_scope):
-                    return None
-                claim = display_text[:1200]
-                return {
-                    "evidence_id": evidence_id,
-                    "source_anchor": anchor,
-                    "claim": claim,
-                    "quote_span": claim[:240],
-                    "support_level": "direct",
-                    "question_relevance": "high",
-                    "allowed_terms": [],
-                    "metadata": metadata,
-                    "_candidate_index": index,
-                }
+            required_context_terms = _required_operand_context_terms(required_operands)
 
             if required_operands:
                 operand_probe_items: List[Dict[str, Any]] = []
                 for candidate_index, (doc, _score) in enumerate(candidate_docs, start=1):
                     full_text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
                     full_text = _strip_rerank_metadata(full_text) or full_text
-                    item = _synthesized_doc_item(
+                    item = _synthesized_calculation_doc_item(
                         doc,
                         index=candidate_index,
                         evidence_id=f"ev_operand_doc_{candidate_index:03d}",
+                        desired_consolidation_scope=desired_consolidation_scope,
+                        build_source_anchor=self._build_source_anchor,
                     )
                     if item:
                         probe_item = dict(item)
@@ -15596,7 +15604,7 @@ class FinancialAgentCalculationMixin:
                             label = _normalise_spaces(str(binding.get("label") or ""))
                             if label:
                                 missing_terms.append(label)
-                        missing_terms.extend(_required_operand_context_terms())
+                        missing_terms.extend(required_context_terms)
                         missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
                         duplicate_anchor_has_missing_term = bool(
                             anchor in seen_anchors
@@ -15645,7 +15653,13 @@ class FinancialAgentCalculationMixin:
                     seen_anchors.update(str(item.get("source_anchor") or "") for item in component_candidates)
             doc_fallback_limit = 16 if missing_dependency_bindings else 8
             for index, (doc, _score) in enumerate(candidate_docs[: min(doc_fallback_limit, len(candidate_docs))], start=1):
-                item = _synthesized_doc_item(doc, index=index, evidence_id=f"ev_doc_{index:03d}")
+                item = _synthesized_calculation_doc_item(
+                    doc,
+                    index=index,
+                    evidence_id=f"ev_doc_{index:03d}",
+                    desired_consolidation_scope=desired_consolidation_scope,
+                    build_source_anchor=self._build_source_anchor,
+                )
                 if not item:
                     continue
                 metadata = dict(item.get("metadata") or {})
@@ -15657,7 +15671,7 @@ class FinancialAgentCalculationMixin:
                     label = _normalise_spaces(str(binding.get("label") or ""))
                     if label:
                         missing_terms.append(label)
-                missing_terms.extend(_required_operand_context_terms())
+                missing_terms.extend(required_context_terms)
                 missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
                 duplicate_anchor_has_missing_term = bool(
                     anchor in seen_anchors
