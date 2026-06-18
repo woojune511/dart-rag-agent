@@ -551,6 +551,54 @@ class FinancialAgentCalculationMixin:
             )
         return list(dict.fromkeys(refs))
 
+    def _operand_set_artifact_update(
+        self,
+        state: FinancialAgentState,
+        active_subtask: Dict[str, Any],
+        operand_rows: List[Dict[str, Any]],
+        *,
+        status: str,
+        summary: str,
+        payload: Dict[str, Any],
+        evidence_refs: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        artifacts = list(state.get("artifacts") or [])
+        tasks = list(state.get("tasks") or [])
+        task_id = str(active_subtask.get("task_id") or "calc")
+        artifacts = self._enrich_reconciliation_artifact_refs(
+            artifacts,
+            task_id=task_id,
+            operand_rows=operand_rows,
+        )
+        artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
+        artifacts = _append_artifact(
+            artifacts,
+            artifact_id=artifact_id,
+            task_id=task_id,
+            kind=ArtifactKind.OPERAND_SET,
+            status=status,
+            summary=summary,
+            payload=payload,
+            evidence_refs=evidence_refs
+            if evidence_refs is not None
+            else [
+                str(row.get("evidence_id") or "")
+                for row in operand_rows
+                if str(row.get("evidence_id") or "").strip()
+            ],
+        )
+        tasks = _upsert_task(
+            tasks,
+            task_id=task_id,
+            kind=TaskKind.CALCULATION,
+            label=str(active_subtask.get("metric_label") or task_id),
+            status=TaskStatus.IN_PROGRESS,
+            query=self._calc_query(state),
+            metric_family=self._calc_metric_family(state),
+            artifact_id=artifact_id,
+        )
+        return {"tasks": tasks, "artifacts": artifacts}
+
     def _evidence_items_with_runtime(
         self,
         evidence_items: List[Dict[str, Any]],
@@ -15431,34 +15479,16 @@ class FinancialAgentCalculationMixin:
             not required_operands or len(direct_structured_rows) >= len(required_operands)
         ):
             logger.info("[calc_operands] structured-row direct operands=%s", len(direct_structured_rows))
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str(active_subtask.get("task_id") or "calc")
-            artifacts = self._enrich_reconciliation_artifact_refs(
-                artifacts,
-                task_id=task_id,
-                operand_rows=direct_structured_rows,
-            )
-            artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.OPERAND_SET,
+            artifact_update = self._operand_set_artifact_update(
+                state,
+                active_subtask,
+                direct_structured_rows,
                 status="ok",
                 summary=f"{len(direct_structured_rows)} structured operand(s)",
-                payload={"calculation_operands": direct_structured_rows, "source": "structured_row_direct"},
-                evidence_refs=[str(row.get("evidence_id") or "") for row in direct_structured_rows if str(row.get("evidence_id") or "").strip()],
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.CALCULATION,
-                label=str(active_subtask.get("metric_label") or task_id),
-                status=TaskStatus.IN_PROGRESS,
-                query=self._calc_query(state),
-                metric_family=self._calc_metric_family(state),
-                artifact_id=artifact_id,
+                payload={
+                    "calculation_operands": direct_structured_rows,
+                    "source": "structured_row_direct",
+                },
             )
             return {
                 **_calculation_debug_state_update(
@@ -15473,8 +15503,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": "sufficient",
                 "active_subtask": active_subtask,
-                "tasks": tasks,
-                "artifacts": artifacts,
+                **artifact_update,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=direct_structured_rows,
@@ -15501,15 +15530,10 @@ class FinancialAgentCalculationMixin:
             )
             updates: Dict[str, Any] = {}
             if synthesis_operands:
-                artifacts = list(state.get("artifacts") or [])
-                tasks = list(state.get("tasks") or [])
-                task_id = str(active_subtask.get("task_id") or "calc")
-                artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
-                artifacts = _append_artifact(
-                    artifacts,
-                    artifact_id=artifact_id,
-                    task_id=task_id,
-                    kind=ArtifactKind.OPERAND_SET,
+                updates = self._operand_set_artifact_update(
+                    state,
+                    active_subtask,
+                    synthesis_operands,
                     status=coverage,
                     summary=f"{len(synthesis_operands)} synthesized task-output operand(s)",
                     payload={
@@ -15527,17 +15551,6 @@ class FinancialAgentCalculationMixin:
                         ]
                     ),
                 )
-                tasks = _upsert_task(
-                    tasks,
-                    task_id=task_id,
-                    kind=TaskKind.CALCULATION,
-                    label=str(active_subtask.get("metric_label") or task_id),
-                    status=TaskStatus.IN_PROGRESS,
-                    query=self._calc_query(state),
-                    metric_family=self._calc_metric_family(state),
-                    artifact_id=artifact_id,
-                )
-                updates = {"tasks": tasks, "artifacts": artifacts}
             return {
                 **_calculation_debug_state_update(
                     state,
@@ -15979,34 +15992,13 @@ class FinancialAgentCalculationMixin:
                     else "partial"
                 )
             logger.info("[calc_operands] coverage=%s operands=%s", merged_coverage, len(operand_rows))
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str(active_subtask.get("task_id") or "calc")
-            artifacts = self._enrich_reconciliation_artifact_refs(
-                artifacts,
-                task_id=task_id,
-                operand_rows=operand_rows,
-            )
-            artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.OPERAND_SET,
+            artifact_update = self._operand_set_artifact_update(
+                state,
+                active_subtask,
+                operand_rows,
                 status=str(merged_coverage),
                 summary=f"{len(operand_rows)} operand(s) from llm/fallback extraction",
                 payload={"calculation_operands": operand_rows, "coverage": merged_coverage},
-                evidence_refs=[str(row.get("evidence_id") or "") for row in operand_rows if str(row.get("evidence_id") or "").strip()],
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.CALCULATION,
-                label=str(active_subtask.get("metric_label") or task_id),
-                status=TaskStatus.IN_PROGRESS,
-                query=self._calc_query(state),
-                metric_family=self._calc_metric_family(state),
-                artifact_id=artifact_id,
             )
             return {
                 **_calculation_debug_state_update(
@@ -16018,8 +16010,7 @@ class FinancialAgentCalculationMixin:
                 "evidence_items": evidence_items,
                 "evidence_bullets": evidence_bullets,
                 "evidence_status": str(merged_coverage),
-                "tasks": tasks,
-                "artifacts": artifacts,
+                **artifact_update,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operand_rows,
