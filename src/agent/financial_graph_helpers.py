@@ -561,233 +561,252 @@ def _normalise_ledger_records(value: Any) -> List[Dict[str, Any]]:
     return [dict(item) for item in raw_items if isinstance(item, dict)]
 
 
+_REQUIRED_ARTIFACT_KINDS_BY_TASK_KIND = {
+    TaskKind.CALCULATION.value: {
+        ArtifactKind.OPERAND_SET.value,
+        ArtifactKind.CALCULATION_PLAN.value,
+        ArtifactKind.CALCULATION_RESULT.value,
+    },
+    TaskKind.RECONCILIATION.value: {
+        ArtifactKind.RECONCILIATION_RESULT.value,
+    },
+    TaskKind.REFLECTION.value: {
+        ArtifactKind.REFLECTION_REPORT.value,
+    },
+    TaskKind.RETRIEVAL.value: {
+        ArtifactKind.RETRIEVAL_BUNDLE.value,
+    },
+    TaskKind.SYNTHESIS.value: {
+        ArtifactKind.AGGREGATED_ANSWER.value,
+    },
+    TaskKind.CRITIC.value: {
+        ArtifactKind.CRITIC_REPORT.value,
+    },
+}
+
+_ARTIFACT_PROVENANCE_KEYS = {
+    "evidence_ref",
+    "evidence_refs",
+    "evidence_id",
+    "evidence_ids",
+    "source_evidence_id",
+    "source_evidence_ids",
+    "source_row_id",
+    "source_row_ids",
+    "row_id",
+    "row_ids",
+    "candidate_id",
+    "candidate_ids",
+    "chunk_id",
+    "chunk_ids",
+    "doc_id",
+    "doc_ids",
+    "source_anchor",
+    "source_anchors",
+    "source_artifact_id",
+    "source_artifact_ids",
+    "source_task_id",
+    "source_task_ids",
+    "target_artifact_id",
+    "target_artifact_ids",
+    "target_task_id",
+    "target_task_ids",
+    "checked_artifact_id",
+    "checked_artifact_ids",
+    "checked_task_id",
+    "checked_task_ids",
+}
+
+
+def _payload_missing_contract(artifact_kind: str, payload: Mapping[str, Any]) -> str:
+    if artifact_kind == ArtifactKind.OPERAND_SET.value:
+        operands = payload.get("calculation_operands")
+        if not isinstance(operands, list) or not operands:
+            return "calculation_operands"
+    elif artifact_kind == ArtifactKind.CALCULATION_PLAN.value:
+        plan = payload.get("calculation_plan")
+        if not isinstance(plan, Mapping):
+            return "calculation_plan"
+        if not str(plan.get("operation") or plan.get("mode") or "").strip():
+            return "calculation_plan.operation"
+    elif artifact_kind == ArtifactKind.CALCULATION_RESULT.value:
+        result = payload.get("calculation_result")
+        if not isinstance(result, Mapping):
+            return "calculation_result"
+        answer_slots = result.get("answer_slots")
+        has_answer_slots = isinstance(answer_slots, Mapping) and bool(answer_slots)
+        has_rendered = bool(str(result.get("rendered_value") or result.get("formatted_result") or "").strip())
+        if not has_rendered and not has_answer_slots:
+            return "calculation_result.rendered_value_or_answer_slots"
+    elif artifact_kind == ArtifactKind.RECONCILIATION_RESULT.value:
+        result = payload.get("reconciliation_result")
+        if not isinstance(result, Mapping):
+            return "reconciliation_result"
+        if not str(result.get("status") or "").strip():
+            return "reconciliation_result.status"
+    elif artifact_kind == ArtifactKind.REFLECTION_REPORT.value:
+        return _missing_reflection_report_payload_contract(payload)
+    elif artifact_kind == ArtifactKind.RETRIEVAL_BUNDLE.value:
+        return _missing_retrieval_bundle_payload_contract(payload)
+    elif artifact_kind == ArtifactKind.AGGREGATED_ANSWER.value:
+        return _missing_aggregated_answer_payload_contract(payload)
+    elif artifact_kind == ArtifactKind.CRITIC_REPORT.value:
+        return _missing_critic_report_payload_contract(payload)
+    return ""
+
+
+def _missing_reflection_report_payload_contract(payload: Mapping[str, Any]) -> str:
+    report = payload.get("reflection_report")
+    if not isinstance(report, Mapping):
+        return "reflection_report"
+    action_taken = str(report.get("action_taken") or "").strip()
+    if not str(report.get("outcome") or "").strip():
+        return "reflection_report.outcome"
+    if not action_taken:
+        return "reflection_report.action_taken"
+    if "budget_consumed" not in report:
+        return "reflection_report.budget_consumed"
+    action = payload.get("reflection_action")
+    if action_taken in {"retry_retrieval", "synthesize_from_task_outputs"}:
+        if not isinstance(action, Mapping):
+            return "reflection_action"
+        action_type = str(action.get("action_type") or "").strip()
+        if action_type != action_taken:
+            return "reflection_action.action_type"
+    if action_taken == "retry_retrieval":
+        retry_queries = action.get("retry_queries") if isinstance(action, Mapping) else []
+        if not isinstance(retry_queries, list) or not any(str(item).strip() for item in retry_queries):
+            return "reflection_action.retry_queries"
+    elif action_taken == "synthesize_from_task_outputs":
+        synthesis_source_ids = action.get("synthesis_source_ids") if isinstance(action, Mapping) else []
+        if not isinstance(synthesis_source_ids, list) or not any(str(item).strip() for item in synthesis_source_ids):
+            return "reflection_action.synthesis_source_ids"
+    return ""
+
+
+def _missing_retrieval_bundle_payload_contract(payload: Mapping[str, Any]) -> str:
+    bundle = payload.get("retrieval_bundle") if isinstance(payload.get("retrieval_bundle"), Mapping) else {}
+    candidate_lists = [
+        payload.get("retrieved_docs"),
+        payload.get("seed_retrieved_docs"),
+        payload.get("evidence_items"),
+        payload.get("documents"),
+        bundle.get("retrieved_docs"),
+        bundle.get("seed_retrieved_docs"),
+        bundle.get("evidence_items"),
+        bundle.get("documents"),
+    ]
+    if not any(isinstance(items, list) and bool(items) for items in candidate_lists):
+        return "retrieval_bundle.items"
+    return ""
+
+
+def _missing_aggregated_answer_payload_contract(payload: Mapping[str, Any]) -> str:
+    final_answer = str(payload.get("final_answer") or payload.get("answer") or "").strip()
+    if not final_answer:
+        return "aggregated_answer.final_answer"
+    source_lists = [
+        payload.get("subtask_results"),
+        payload.get("source_artifact_ids"),
+        payload.get("source_task_ids"),
+    ]
+    source_maps = [
+        payload.get("resolved_calculation_trace"),
+        payload.get("structured_result"),
+        payload.get("calculation_result"),
+    ]
+    has_source_list = any(isinstance(items, list) and bool(items) for items in source_lists)
+    has_source_map = any(isinstance(item, Mapping) and bool(item) for item in source_maps)
+    if not has_source_list and not has_source_map:
+        return "aggregated_answer.source_material"
+    return ""
+
+
+def _missing_critic_report_payload_contract(payload: Mapping[str, Any]) -> str:
+    report = payload.get("critic_report") if isinstance(payload.get("critic_report"), Mapping) else payload
+    acceptance_state = critic_report_runtime_acceptance_state(dict(report))
+    reasons = set(acceptance_state.get("reasons") or [])
+    if (
+        "missing_verdict" in reasons
+        or "unknown_verdict" in reasons
+        or "conflicting_verdict_signal" in reasons
+    ):
+        return "critic_report.verdict"
+    if "missing_target_refs" in reasons:
+        return "critic_report.target_refs"
+    if "missing_acceptance_reason" in reasons or "missing_blocking_issues" in reasons:
+        return "critic_report.acceptance_reason_or_issues"
+    return ""
+
+
+def _reconciliation_result_status(artifacts_for_task: Sequence[Mapping[str, Any]]) -> str:
+    for artifact in artifacts_for_task:
+        if str(artifact.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
+            continue
+        payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+        result = payload.get("reconciliation_result") if isinstance(payload, Mapping) else {}
+        if isinstance(result, Mapping):
+            return str(result.get("status") or "").strip().lower()
+    return ""
+
+
+def _payload_has_provenance(value: Any) -> bool:
+    if isinstance(value, Mapping):
+        for key, nested in value.items():
+            if str(key).strip() in _ARTIFACT_PROVENANCE_KEYS:
+                if isinstance(nested, list):
+                    if any(str(item).strip() for item in nested):
+                        return True
+                elif isinstance(nested, Mapping):
+                    if nested:
+                        return True
+                elif str(nested).strip():
+                    return True
+            if _payload_has_provenance(nested):
+                return True
+    elif isinstance(value, list):
+        for nested in value:
+            if _payload_has_provenance(nested):
+                return True
+    return False
+
+
+def _direct_string_refs(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _final_source_refs(artifact_records_value: Sequence[Mapping[str, Any]]) -> tuple[set[str], set[str]]:
+    source_artifact_ids: set[str] = set()
+    source_task_ids: set[str] = set()
+    for artifact in artifact_records_value:
+        if str(artifact.get("kind") or "").strip() != ArtifactKind.AGGREGATED_ANSWER.value:
+            continue
+        payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
+        nested = payload.get("aggregated_answer") if isinstance(payload.get("aggregated_answer"), Mapping) else {}
+        payloads = [payload, nested]
+        for item in payloads:
+            source_artifact_ids.update(_direct_string_refs(item.get("source_artifact_id")))
+            source_artifact_ids.update(_direct_string_refs(item.get("source_artifact_ids")))
+            source_task_ids.update(_direct_string_refs(item.get("source_task_id")))
+            source_task_ids.update(_direct_string_refs(item.get("source_task_ids")))
+            for result in item.get("subtask_results") or []:
+                if not isinstance(result, Mapping):
+                    continue
+                source_task_ids.update(_direct_string_refs(result.get("task_id")))
+                source_artifact_ids.update(_direct_string_refs(result.get("artifact_id")))
+                source_artifact_ids.update(_direct_string_refs(result.get("source_artifact_id")))
+    return source_artifact_ids, source_task_ids
+
+
 def _project_task_artifact_trace(
     tasks: Any,
     artifacts: Any,
 ) -> Dict[str, Any]:
     """Return a compact caller-facing projection of the task/artifact ledger."""
-
-    required_artifact_kinds_by_task_kind = {
-        TaskKind.CALCULATION.value: {
-            ArtifactKind.OPERAND_SET.value,
-            ArtifactKind.CALCULATION_PLAN.value,
-            ArtifactKind.CALCULATION_RESULT.value,
-        },
-        TaskKind.RECONCILIATION.value: {
-            ArtifactKind.RECONCILIATION_RESULT.value,
-        },
-        TaskKind.REFLECTION.value: {
-            ArtifactKind.REFLECTION_REPORT.value,
-        },
-        TaskKind.RETRIEVAL.value: {
-            ArtifactKind.RETRIEVAL_BUNDLE.value,
-        },
-        TaskKind.SYNTHESIS.value: {
-            ArtifactKind.AGGREGATED_ANSWER.value,
-        },
-        TaskKind.CRITIC.value: {
-            ArtifactKind.CRITIC_REPORT.value,
-        },
-    }
-    provenance_keys = {
-        "evidence_ref",
-        "evidence_refs",
-        "evidence_id",
-        "evidence_ids",
-        "source_evidence_id",
-        "source_evidence_ids",
-        "source_row_id",
-        "source_row_ids",
-        "row_id",
-        "row_ids",
-        "candidate_id",
-        "candidate_ids",
-        "chunk_id",
-        "chunk_ids",
-        "doc_id",
-        "doc_ids",
-        "source_anchor",
-        "source_anchors",
-        "source_artifact_id",
-        "source_artifact_ids",
-        "source_task_id",
-        "source_task_ids",
-        "target_artifact_id",
-        "target_artifact_ids",
-        "target_task_id",
-        "target_task_ids",
-        "checked_artifact_id",
-        "checked_artifact_ids",
-        "checked_task_id",
-        "checked_task_ids",
-    }
-
-    def _payload_missing_contract(artifact_kind: str, payload: Mapping[str, Any]) -> str:
-        if artifact_kind == ArtifactKind.OPERAND_SET.value:
-            operands = payload.get("calculation_operands")
-            if not isinstance(operands, list) or not operands:
-                return "calculation_operands"
-        elif artifact_kind == ArtifactKind.CALCULATION_PLAN.value:
-            plan = payload.get("calculation_plan")
-            if not isinstance(plan, Mapping):
-                return "calculation_plan"
-            if not str(plan.get("operation") or plan.get("mode") or "").strip():
-                return "calculation_plan.operation"
-        elif artifact_kind == ArtifactKind.CALCULATION_RESULT.value:
-            result = payload.get("calculation_result")
-            if not isinstance(result, Mapping):
-                return "calculation_result"
-            answer_slots = result.get("answer_slots")
-            has_answer_slots = isinstance(answer_slots, Mapping) and bool(answer_slots)
-            has_rendered = bool(
-                str(result.get("rendered_value") or result.get("formatted_result") or "").strip()
-            )
-            if not has_rendered and not has_answer_slots:
-                return "calculation_result.rendered_value_or_answer_slots"
-        elif artifact_kind == ArtifactKind.RECONCILIATION_RESULT.value:
-            result = payload.get("reconciliation_result")
-            if not isinstance(result, Mapping):
-                return "reconciliation_result"
-            if not str(result.get("status") or "").strip():
-                return "reconciliation_result.status"
-        elif artifact_kind == ArtifactKind.REFLECTION_REPORT.value:
-            report = payload.get("reflection_report")
-            if not isinstance(report, Mapping):
-                return "reflection_report"
-            action_taken = str(report.get("action_taken") or "").strip()
-            if not str(report.get("outcome") or "").strip():
-                return "reflection_report.outcome"
-            if not action_taken:
-                return "reflection_report.action_taken"
-            if "budget_consumed" not in report:
-                return "reflection_report.budget_consumed"
-            action = payload.get("reflection_action")
-            if action_taken in {"retry_retrieval", "synthesize_from_task_outputs"}:
-                if not isinstance(action, Mapping):
-                    return "reflection_action"
-                action_type = str(action.get("action_type") or "").strip()
-                if action_type != action_taken:
-                    return "reflection_action.action_type"
-            if action_taken == "retry_retrieval":
-                retry_queries = action.get("retry_queries") if isinstance(action, Mapping) else []
-                if not isinstance(retry_queries, list) or not any(
-                    str(item).strip() for item in retry_queries
-                ):
-                    return "reflection_action.retry_queries"
-            elif action_taken == "synthesize_from_task_outputs":
-                synthesis_source_ids = (
-                    action.get("synthesis_source_ids") if isinstance(action, Mapping) else []
-                )
-                if not isinstance(synthesis_source_ids, list) or not any(
-                    str(item).strip() for item in synthesis_source_ids
-                ):
-                    return "reflection_action.synthesis_source_ids"
-        elif artifact_kind == ArtifactKind.RETRIEVAL_BUNDLE.value:
-            bundle = payload.get("retrieval_bundle") if isinstance(payload.get("retrieval_bundle"), Mapping) else {}
-            candidate_lists = [
-                payload.get("retrieved_docs"),
-                payload.get("seed_retrieved_docs"),
-                payload.get("evidence_items"),
-                payload.get("documents"),
-                bundle.get("retrieved_docs"),
-                bundle.get("seed_retrieved_docs"),
-                bundle.get("evidence_items"),
-                bundle.get("documents"),
-            ]
-            if not any(isinstance(items, list) and bool(items) for items in candidate_lists):
-                return "retrieval_bundle.items"
-        elif artifact_kind == ArtifactKind.AGGREGATED_ANSWER.value:
-            final_answer = str(payload.get("final_answer") or payload.get("answer") or "").strip()
-            if not final_answer:
-                return "aggregated_answer.final_answer"
-            source_lists = [
-                payload.get("subtask_results"),
-                payload.get("source_artifact_ids"),
-                payload.get("source_task_ids"),
-            ]
-            source_maps = [
-                payload.get("resolved_calculation_trace"),
-                payload.get("structured_result"),
-                payload.get("calculation_result"),
-            ]
-            has_source_list = any(isinstance(items, list) and bool(items) for items in source_lists)
-            has_source_map = any(isinstance(item, Mapping) and bool(item) for item in source_maps)
-            if not has_source_list and not has_source_map:
-                return "aggregated_answer.source_material"
-        elif artifact_kind == ArtifactKind.CRITIC_REPORT.value:
-            report = payload.get("critic_report") if isinstance(payload.get("critic_report"), Mapping) else payload
-            acceptance_state = critic_report_runtime_acceptance_state(dict(report))
-            reasons = set(acceptance_state.get("reasons") or [])
-            if (
-                "missing_verdict" in reasons
-                or "unknown_verdict" in reasons
-                or "conflicting_verdict_signal" in reasons
-            ):
-                return "critic_report.verdict"
-            if "missing_target_refs" in reasons:
-                return "critic_report.target_refs"
-            if "missing_acceptance_reason" in reasons or "missing_blocking_issues" in reasons:
-                return "critic_report.acceptance_reason_or_issues"
-        return ""
-
-    def _reconciliation_result_status(artifacts_for_task: Sequence[Mapping[str, Any]]) -> str:
-        for artifact in artifacts_for_task:
-            if str(artifact.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
-                continue
-            payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
-            result = payload.get("reconciliation_result") if isinstance(payload, Mapping) else {}
-            if isinstance(result, Mapping):
-                return str(result.get("status") or "").strip().lower()
-        return ""
-
-    def _payload_has_provenance(value: Any) -> bool:
-        if isinstance(value, Mapping):
-            for key, nested in value.items():
-                if str(key).strip() in provenance_keys:
-                    if isinstance(nested, list):
-                        if any(str(item).strip() for item in nested):
-                            return True
-                    elif isinstance(nested, Mapping):
-                        if nested:
-                            return True
-                    elif str(nested).strip():
-                        return True
-                if _payload_has_provenance(nested):
-                    return True
-        elif isinstance(value, list):
-            for nested in value:
-                if _payload_has_provenance(nested):
-                    return True
-        return False
-
-    def _direct_string_refs(value: Any) -> List[str]:
-        if isinstance(value, list):
-            return [str(item).strip() for item in value if str(item).strip()]
-        if isinstance(value, str) and value.strip():
-            return [value.strip()]
-        return []
-
-    def _final_source_refs(artifact_records_value: Sequence[Mapping[str, Any]]) -> tuple[set[str], set[str]]:
-        source_artifact_ids: set[str] = set()
-        source_task_ids: set[str] = set()
-        for artifact in artifact_records_value:
-            if str(artifact.get("kind") or "").strip() != ArtifactKind.AGGREGATED_ANSWER.value:
-                continue
-            payload = artifact.get("payload") if isinstance(artifact.get("payload"), Mapping) else {}
-            nested = payload.get("aggregated_answer") if isinstance(payload.get("aggregated_answer"), Mapping) else {}
-            payloads = [payload, nested]
-            for item in payloads:
-                source_artifact_ids.update(_direct_string_refs(item.get("source_artifact_id")))
-                source_artifact_ids.update(_direct_string_refs(item.get("source_artifact_ids")))
-                source_task_ids.update(_direct_string_refs(item.get("source_task_id")))
-                source_task_ids.update(_direct_string_refs(item.get("source_task_ids")))
-                for result in item.get("subtask_results") or []:
-                    if not isinstance(result, Mapping):
-                        continue
-                    source_task_ids.update(_direct_string_refs(result.get("task_id")))
-                    source_artifact_ids.update(_direct_string_refs(result.get("artifact_id")))
-                    source_artifact_ids.update(_direct_string_refs(result.get("source_artifact_id")))
-        return source_artifact_ids, source_task_ids
 
     task_records = _normalise_ledger_records(tasks)
     artifact_records = _normalise_ledger_records(artifacts)
@@ -939,7 +958,7 @@ def _project_task_artifact_trace(
                     }
                 )
         required_kinds = sorted(
-            required_artifact_kinds_by_task_kind.get(str(task.get("kind") or "").strip(), set())
+            _REQUIRED_ARTIFACT_KINDS_BY_TASK_KIND.get(str(task.get("kind") or "").strip(), set())
         )
         if status == "completed" and required_kinds:
             task_kind = str(task.get("kind") or "").strip()
