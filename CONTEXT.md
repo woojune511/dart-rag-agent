@@ -11,6 +11,29 @@
 
 ## 최신 상태
 
+- 2026-06-18 structured operand evidence alignment 커밋
+  `f9f6183` 이후 broader focused regression을 store-fixed `eval-only`로
+  실행했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --company-run-id kakaobank_2023_expanded_candidate --company-run-id posco_2023_expanded_candidate --company-run-id samsung_2023_expanded_candidate --company-run-id celltrion_2023_expanded_candidate --company-run-id kbf_2023_expanded_candidate --company-run-id skh_2023_expanded_candidate --question-id KBF_T2_018 --question-id SKH_T3_080 --question-id CEL_T1_013 --question-id CEL_T3_040 --question-id POS_T1_057 --question-id KAB_T1_066 --question-id SAM_T3_028 --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_broader_focused_gate_2026-06-18.jsonl`
+  - result:
+    - `7/7` numeric PASS: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`,
+      `CEL_T1_013`, `CEL_T3_040`, `KBF_T2_018`, `SKH_T3_080`
+    - key answers: `37.47%`, `3.5269배`, `2.79%`, `52.99%`,
+      `70.28%`, `-3,322억원`
+    - wall-clock runtime about `32.2m`
+  - residuals:
+    - `SAM_T3_028` numeric PASS but completeness `0.5`.
+    - `CEL_T3_040` numeric PASS but completeness `0.0` and context recall
+      `0.333`.
+    - `CEL_T1_013`, `KBF_T2_018`, and `SKH_T3_080` still show intermediate
+      stale/noisy calculation traces before final answer recovery.
+  - 해석:
+    - This is a post-commit regression gate, not a new structural-vs-plain
+      aggregate comparison. Keep the latest aggregate claim as structural
+      `8/9` vs plain `5/9` until the full expanded profiles are rerun.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+
 - 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded plain
   retrieval 9-question store-fixed `eval-only` refresh를 완료했다.
   - command:

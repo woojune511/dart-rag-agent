@@ -495,3 +495,50 @@ Next action before full benchmark expansion:
 2. Keep `SKH_T1_060` as the debt-component aggregation diagnostic.
 3. Use this expanded comparison as the current portfolio ablation result while
    keeping raw `benchmarks/results/**` artifacts local.
+
+### Post-Commit Broader Focused Regression: 2026-06-18
+
+After the structured operand evidence alignment commit
+`f9f6183` (`Stabilize structured operand evidence alignment`), the structural
+full-system profile was replayed on the current seven-question hard/regression
+slice using store-fixed `--eval-only`.
+
+This is not a new structural-vs-plain aggregate comparison. It is a regression
+gate over the questions most likely to be affected by operand realignment,
+period-context recovery, source-visible unit preservation, and aggregate answer
+projection.
+
+Local artifact directory:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+
+Heartbeat log:
+
+- `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_broader_focused_gate_2026-06-18.jsonl`
+
+Question-level readout:
+
+| Question id | Result | Answer / read | Faithfulness | Completeness | Context recall |
+| --- | --- | --- | ---: | ---: | ---: |
+| `KAB_T1_066` | PASS | CIR `37.47%` | `1.000` | `1.000` | `1.000` |
+| `POS_T1_057` | PASS | Interest coverage `3.5269배` | `1.000` | `1.000` | `1.000` |
+| `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` | `1.000` | `0.500` | `1.000` |
+| `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` | `1.000` | `1.000` | `0.667` |
+| `CEL_T3_040` | PASS | Inventory loss/reversal/disposal summary | `1.000` | `0.000` | `0.333` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` | `1.000` | `1.000` | `0.333` |
+| `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` | `1.000` | `1.000` | `1.000` |
+
+Interpretation:
+
+- The focused regression cleared `7/7` numeric PASS in about `32.2m`.
+- The result supports the latest structured operand/evidence alignment changes:
+  the final answers survive broader hard-case replay without adding
+  company-specific or benchmark-id runtime branches.
+- Two rows remain trace-quality or evaluator-calibration watch items rather than
+  arithmetic failures:
+  - `SAM_T3_028`: numeric PASS with completeness `0.500`.
+  - `CEL_T3_040`: numeric PASS with completeness `0.000` and context recall
+    `0.333`.
+- Intermediate stale/noisy calculation traces were observed in `CEL_T1_013`,
+  `KBF_T2_018`, and `SKH_T3_080`, but final public answers and numeric judge
+  outcomes recovered correctly. Treat trace cleanup as the next polish task.

@@ -55,6 +55,7 @@
 | [Post-Refactor Expanded Structural Refresh (2026-06-18)](#post-refactor-expanded-structural-refresh-2026-06-18) | operand filtering cleanup 이후 9문항 structural full-system refresh | structural improved to 8 / 9; only `SKH_T1_060` remains numeric FAIL |
 | [Post-Refactor Expanded Plain Refresh (2026-06-18)](#post-refactor-expanded-plain-refresh-2026-06-18) | 같은 코드 상태의 9문항 plain retrieval refresh | plain improved to 5 / 9; current comparison is structural 8 / 9 vs plain 5 / 9 |
 | [Post-Refactor Operand Filtering Separator Smoke (2026-06-18)](#post-refactor-operand-filtering-separator-smoke-2026-06-18) | required-operand candidate/filtering cleanup 이후 focused separator smoke | `SAM_T3_028` and `CEL_T1_013` remained numeric PASS with source-scale answers |
+| [Structured Operand Evidence Alignment Regression (2026-06-18)](#structured-operand-evidence-alignment-regression-2026-06-18) | structured operand/evidence realignment commit 이후 7문항 broader focused regression | `KAB`, `POS`, `SAM`, `CEL`, `KBF`, `SKH` hard cases all stayed numeric PASS; residual is trace/completeness quality |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -68,6 +69,63 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Structured Operand Evidence Alignment Regression (2026-06-18)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_broader_focused_gate_2026-06-18.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed structural full-system `eval-only` regression after commit
+  `f9f6183` (`Stabilize structured operand evidence alignment`).
+- Profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Scope:
+  - company runs: KakaoBank, POSCO Holdings, Samsung Electronics, Celltrion,
+    KB Financial Group, SK hynix
+  - question ids: `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`,
+    `POS_T1_057`, `KAB_T1_066`, `SAM_T3_028`
+- Purpose: regression-check the recently fixed hard cases before expanding to a
+  full benchmark. This does not replace the current 9-question structural-vs-plain
+  aggregate comparison.
+
+### Results
+
+| Question | Result | Answer / observation | Faithfulness | Completeness | Context recall |
+| --- | --- | --- | ---: | ---: | ---: |
+| `KAB_T1_066` | PASS | CIR `37.47%` | `1.000` | `1.000` | `1.000` |
+| `POS_T1_057` | PASS | Interest coverage `3.5269배` | `1.000` | `1.000` | `1.000` |
+| `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` | `1.000` | `0.500` | `1.000` |
+| `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` | `1.000` | `1.000` | `0.667` |
+| `CEL_T3_040` | PASS | Inventory loss/reversal/disposal summary | `1.000` | `0.000` | `0.333` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` plus risk narrative | `1.000` | `1.000` | `0.333` |
+| `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` | `1.000` | `1.000` | `1.000` |
+
+Run-level readout:
+
+- Numeric PASS: `7 / 7`
+- Heartbeat wall-clock runtime: about `32.2m`
+- No source changes were produced by this run; raw benchmark outputs remain
+  local-only.
+
+### Interpretation
+
+- The structured operand/evidence alignment changes survived the broader
+  focused regression without benchmark-specific runtime branches.
+- `SAM_T3_028` and `CEL_T3_040` are still quality watch items because final
+  numeric judgement passes while completeness remains weak.
+- `CEL_T1_013`, `KBF_T2_018`, and `SKH_T3_080` still emit stale/intermediate
+  calculation traces before final answer recovery. The next polish task is
+  trace cleanup, not new arithmetic logic.
+- Keep the current aggregate ablation claim as structural `8 / 9` vs plain
+  `5 / 9` until both full expanded profiles are rerun.
 
 ## Post-Refactor Expanded Structural Refresh (2026-06-18)
 

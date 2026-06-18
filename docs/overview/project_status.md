@@ -160,6 +160,43 @@ role-separated multi-agent system using a task ledger and artifact store.
   Keep the 9-question aggregate table above unchanged until the full expanded
   eval-only profile is rerun.
 
+#### Post-Commit Broader Focused Regression
+
+- Run date: 2026-06-18
+- Scope: store-fixed structural full-system `eval-only` after commit
+  `f9f6183` (`Stabilize structured operand evidence alignment`).
+- Purpose: confirm that the structured operand/evidence realignment changes did
+  not regress the recently fixed hard cases before any full benchmark expansion.
+- Profile:
+  - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_broader_focused_gate_2026-06-18.jsonl`
+- Command shape:
+  - six company runs, seven question ids:
+    `KBF_T2_018`, `SKH_T3_080`, `CEL_T1_013`, `CEL_T3_040`,
+    `POS_T1_057`, `KAB_T1_066`, and `SAM_T3_028`.
+
+| Question id | Result | Answer / read | Faithfulness | Completeness | Context recall |
+| --- | --- | --- | ---: | ---: | ---: |
+| `KAB_T1_066` | PASS | CIR `37.47%` | `1.000` | `1.000` | `1.000` |
+| `POS_T1_057` | PASS | Interest coverage `3.5269배` | `1.000` | `1.000` | `1.000` |
+| `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` | `1.000` | `0.500` | `1.000` |
+| `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` | `1.000` | `1.000` | `0.667` |
+| `CEL_T3_040` | PASS | Inventory loss/reversal/disposal summary | `1.000` | `0.000` | `0.333` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` | `1.000` | `1.000` | `0.333` |
+| `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` | `1.000` | `1.000` | `1.000` |
+
+- Result: `7 / 7` numeric PASS, about `32.2m` heartbeat wall-clock runtime.
+- Residuals:
+  - `SAM_T3_028` and `CEL_T3_040` are numeric PASS rows but still have weak
+    completeness signals.
+  - `CEL_T1_013`, `KBF_T2_018`, and `SKH_T3_080` still emit stale/intermediate
+    calculation traces before final answer recovery. This is trace-quality debt,
+    not a final numeric failure.
+- This focused regression does not replace the 9-question expanded aggregate
+  comparison above. Keep the latest comparison as structural `8/9` vs plain
+  `5/9` until both full expanded profiles are rerun.
+
 ### Latest Ablation Smoke Refresh
 
 - Run date: 2026-06-17
