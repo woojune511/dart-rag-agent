@@ -931,6 +931,44 @@
     `benchmarks/results/hard_structural_current_smoke_2026-06-12/`는 benchmark
     output이라 commit 대상이 아니다.
 
+- 2026-06-18 calculation/runtime surface post-stop-line cleanup을 진행하고
+  `origin/main`에 push했다.
+  - 목적은 파일 줄 수 자체가 아니라, 최근 patch layer에서 생긴 중복 ledger
+    publication / mutable aggregate state sync / operand precision recovery
+    responsibility를 더 작은 runtime contract로 정리하는 것이다.
+  - 주요 커밋:
+    - `ff15826`: lookup recovery helpers를
+      `src/agent/financial_lookup_recovery.py`로 분리.
+    - `6b30e2a`: `_extract_calculation_operands`의 nested doc/source helper를
+      top-level helper로 정리.
+    - `025b088`: aggregate mutable state update 책임을
+      `_AggregateMutableState.with_updates()`로 이동.
+    - `ef90790`: task/artifact ledger payload contract helper를
+      `_project_task_artifact_trace()` 밖으로 분리.
+    - `01e047b`: operand precision cell recovery 전략을 contextual note row /
+      flattened table surface helper로 분리.
+    - `9de3c16`: operand-set artifact/task ledger publication 반복을
+      `_operand_set_artifact_update()`로 통합.
+  - 효과:
+    - `_project_task_artifact_trace()`: `501` lines / nested helper `5`개 ->
+      `279` lines / nested helper `0`개.
+    - `_refine_operand_precision_from_evidence_table()`: `567` lines /
+      nested helper `2`개 -> `258` lines / nested helper `0`개.
+    - `_extract_calculation_operands()`: `1196` lines -> `1139` lines.
+    - 현재 `src/agent/financial_graph_calculation.py`: `19,729` lines,
+      `src/agent/financial_graph_helpers.py`: `9,747` lines.
+  - 검증:
+    - 관련 targeted suites: `479` OK.
+    - `uv run --with langchain-google-genai==4.2.1 python -m unittest discover -s tests`:
+      `1248` OK.
+    - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+      passed with `215` reviewed literals.
+    - `git diff --check`: passed.
+  - 다음 리팩터링 후보는 `_extract_calculation_operands()`의 fallback assembly
+    블록이다. 계속 진행하더라도 benchmark-specific branch나 domain keyword를
+    추가하지 말고, 반복되는 generic assembly / artifact publication /
+    dependency guard contract만 줄인다.
+
 - 2026-06-16 `HYU_T1_034` source-slot ratio rebuild residual을 다시 닫았다.
   - 이전 refactor 이후 잘못된 incoherent ratio 후보(`44.1%`, `914.97%`
     계열)는 막았지만, aggregate answer가 이미 확보한 lookup source slots

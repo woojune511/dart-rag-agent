@@ -204,6 +204,41 @@ role-separated multi-agent system using a task ledger and artifact store.
   and private-helper-only tests, or reduce the aggregate mutable wrapper layer
   only when the call path gets simpler rather than merely moved.
 
+### Latest Calculation Post-Stop-Line Cleanup
+
+- Run date: 2026-06-18
+- Scope: continue calculation cleanup only where it reduced duplicated runtime
+  contracts or large nested patch layers. This was not a benchmark-specific
+  tuning pass and did not add domain vocabulary to runtime code.
+- Change:
+  - Moved lookup recovery helpers into `src/agent/financial_lookup_recovery.py`.
+  - Flattened `_extract_calculation_operands` nested doc/source helpers.
+  - Moved aggregate mutable-state update replacement into
+    `_AggregateMutableState.with_updates()`.
+  - Extracted task/artifact ledger payload-contract helpers out of
+    `_project_task_artifact_trace()`.
+  - Extracted operand precision recovery strategies for contextual note rows
+    and flattened table surfaces.
+  - Replaced repeated operand-set artifact/task ledger publication blocks with
+    `_operand_set_artifact_update()`.
+- Result:
+  - `_project_task_artifact_trace()`: `501` lines / `5` nested helpers ->
+    `279` lines / `0` nested helpers.
+  - `_refine_operand_precision_from_evidence_table()`: `567` lines /
+    `2` nested helpers -> `258` lines / `0` nested helpers.
+  - `_extract_calculation_operands()`: `1196` -> `1139` lines.
+  - Current file sizes: `financial_graph_calculation.py` `19,729` lines,
+    `financial_graph_helpers.py` `9,747` lines.
+- Verification:
+  - targeted operand/ledger/subtask suites: `479` OK.
+  - `uv run --with langchain-google-genai==4.2.1 python -m unittest discover -s tests`:
+    `1248` OK.
+  - `uv run --with langchain-google-genai==4.2.1 python -m src.ops.audit_runtime_domain_terms`:
+    passed with `215` reviewed literals.
+  - `git diff --check`: passed.
+- Current branch status after the cleanup commits: pushed to `origin/main`
+  through `9de3c16`.
+
 ### Latest PR 7 MAS Isolation
 
 - Run date: 2026-06-17

@@ -277,6 +277,40 @@ duplicated patch path only when runtime callers, private-helper-only tests, and
 review gates confirm the behavior is covered elsewhere. Do not count moving
 code to another file as simplification.
 
+#### PR 4 Post-Stop-Line Cleanup Addendum
+
+Status as of 2026-06-18: a follow-up cleanup pass was completed after the
+stop line, but only for duplicated runtime contracts and large nested patch
+layers. It did not add domain terms or benchmark-specific runtime branches.
+
+- Lookup recovery helpers moved into `src/agent/financial_lookup_recovery.py`.
+- `_project_task_artifact_trace()` no longer owns artifact payload-contract
+  validators as local nested helpers.
+- `_refine_operand_precision_from_evidence_table()` now delegates contextual
+  note-row and flattened-table-surface cell recovery to named helpers.
+- `_extract_calculation_operands()` now publishes operand-set artifacts through
+  `_operand_set_artifact_update()` instead of repeating task/artifact ledger
+  publication in three branches.
+
+Measured cleanup:
+
+- `_project_task_artifact_trace()`: `501` -> `279` lines, nested helpers
+  `5` -> `0`.
+- `_refine_operand_precision_from_evidence_table()`: `567` -> `258` lines,
+  nested helpers `2` -> `0`.
+- `_extract_calculation_operands()`: `1196` -> `1139` lines.
+
+Validation:
+
+- targeted operand/ledger/subtask suites: `479` OK
+- full unittest discovery: `1248` OK
+- runtime domain-term audit: passed with `215` reviewed literals
+- latest pushed commit for this cleanup sequence: `9de3c16`
+
+Continue from here only for similarly concrete duplication or contract seams,
+especially `_extract_calculation_operands()` fallback assembly. Do not reopen
+PR 4 for broad file-size reduction or cosmetic helper moves.
+
 ### PR 5: Parser Extraction
 
 Keep `FinancialParser.process_document()` as the public facade. Move XML loading,
