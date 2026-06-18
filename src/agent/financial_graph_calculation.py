@@ -12115,19 +12115,21 @@ class FinancialAgentCalculationMixin:
                 continue
             rows = _period_table_direct_operand_rows(group_items)
             if not rows:
-                rows = self._build_required_operands_from_candidates(
+                rows = self._required_operand_rows_from_candidates(
                     group_items,
                     required_operands=required_operands,
                     query=query,
                     topic=topic,
                     report_scope=report_scope,
+                    require_direct_support=True,
                 )
-            rows = self._filter_operand_rows_by_required_surface_contract(
-                rows,
-                group_items,
-                required_operands,
-                require_direct_support=True,
-            )
+            else:
+                rows = self._filter_operand_rows_by_required_surface_contract(
+                    rows,
+                    group_items,
+                    required_operands,
+                    require_direct_support=True,
+                )
             if _missing_required_operands(required_operands, rows):
                 continue
             if self._ratio_operand_rows_collapse_to_same_slot(rows):
@@ -14489,6 +14491,29 @@ class FinancialAgentCalculationMixin:
             )
         ]
 
+    def _required_operand_rows_from_candidates(
+        self,
+        candidate_items: List[Dict[str, Any]],
+        *,
+        required_operands: List[Dict[str, Any]],
+        query: str,
+        topic: str,
+        report_scope: Dict[str, Any],
+        require_direct_support: bool = False,
+    ) -> List[Dict[str, Any]]:
+        return self._filter_operand_rows_by_required_surface_contract(
+            self._build_required_operands_from_candidates(
+                candidate_items,
+                required_operands=required_operands,
+                query=query,
+                topic=topic,
+                report_scope=report_scope,
+            ),
+            candidate_items,
+            required_operands,
+            require_direct_support=require_direct_support,
+        )
+
     def _merge_required_operand_fallback_rows(
         self,
         state: FinancialAgentState,
@@ -14503,17 +14528,12 @@ class FinancialAgentCalculationMixin:
     ):
         if not missing_required or not candidate_items:
             return operand_rows, missing_required
-        fallback_rows = self._build_required_operands_from_candidates(
+        fallback_rows = self._required_operand_rows_from_candidates(
             candidate_items,
             required_operands=missing_required,
             query=query,
             topic=state.get("topic") or "",
             report_scope=dict(state.get("report_scope") or {}),
-        )
-        fallback_rows = self._filter_operand_rows_by_required_surface_contract(
-            fallback_rows,
-            candidate_items,
-            missing_required,
             require_direct_support=operation_family == "ratio",
         )
         if not fallback_rows:
@@ -15771,17 +15791,12 @@ class FinancialAgentCalculationMixin:
 
         deterministic_required_rows: List[Dict[str, Any]] = []
         if required_operands and not direct_numeric_grounding:
-            deterministic_required_rows = self._build_required_operands_from_candidates(
+            deterministic_required_rows = self._required_operand_rows_from_candidates(
                 evidence_items,
                 required_operands=required_operands,
                 query=query,
                 topic=topic,
                 report_scope=report_scope,
-            )
-            deterministic_required_rows = self._filter_operand_rows_by_required_surface_contract(
-                deterministic_required_rows,
-                evidence_items,
-                required_operands,
                 require_direct_support=operation_family == "ratio",
             )
             if missing_dependency_bindings and deterministic_required_rows:
@@ -15915,17 +15930,12 @@ class FinancialAgentCalculationMixin:
                     )
             complete_direct_context_blocks_dependency_remerge = False
             if operation_family == "ratio" and required_operands and operand_rows:
-                sibling_context_rows = self._build_required_operands_from_candidates(
+                sibling_context_rows = self._required_operand_rows_from_candidates(
                     evidence_items,
                     required_operands=required_operands,
                     query=query,
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
-                )
-                sibling_context_rows = self._filter_operand_rows_by_required_surface_contract(
-                    sibling_context_rows,
-                    evidence_items,
-                    required_operands,
                     require_direct_support=True,
                 )
                 coherent_context_rows = self._build_complete_ratio_operands_from_coherent_context(
