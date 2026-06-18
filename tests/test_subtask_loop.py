@@ -11032,6 +11032,158 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["tasks"][0]["status"], "superseded")
         self.assertEqual(trace["tasks"][0]["superseded_by_artifact_id"], "aggregate:002")
 
+    def test_aggregate_ledger_supersedes_conflicting_completed_task_summary(self) -> None:
+        tasks = [
+            {
+                "task_id": "task_1",
+                "kind": "calculation",
+                "label": "target metric",
+                "status": "completed",
+                "metric_family": "concept_ratio",
+                "artifact_ids": ["result:task_1:001"],
+            }
+        ]
+        artifacts = [
+            {
+                "artifact_id": "result:task_1:001",
+                "task_id": "task_1",
+                "kind": "calculation_result",
+                "status": "ok",
+                "summary": "target metric 70.24%",
+                "payload": {"calculation_result": {"rendered_value": "70.24%"}},
+            }
+        ]
+        ordered_results = [
+            {
+                "task_id": "task_1",
+                "metric_family": "concept_ratio",
+                "metric_label": "target metric",
+                "operation_family": "ratio",
+                "answer": "target metric 70.24%",
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "target metric 70.24%",
+                    "rendered_value": "70.24%",
+                },
+            }
+        ]
+        final_answer = "target metric 70.28%. supporting ratio moved by 0.31%p to 1.01%."
+        aggregate_projection = {
+            "calculation_operands": [],
+            "calculation_plan": {"mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": final_answer,
+                "formatted_result": final_answer,
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target metric",
+                        "normalized_value": 70.28,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "70.28%",
+                    },
+                    "subtask_results": [],
+                },
+            },
+        }
+
+        updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
+            tasks,
+            artifacts,
+            ordered_results=ordered_results,
+            aggregate_projection=aggregate_projection,
+            aggregate_artifact_id="aggregate:002",
+            final_answer=final_answer,
+        )
+        trace = _project_task_artifact_trace(updated_tasks, updated_artifacts)
+
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["tasks"][0]["status"], "superseded")
+        self.assertEqual(
+            trace["tasks"][0]["resolution_status"],
+            "superseded_by_aggregate_result",
+        )
+        self.assertEqual(trace["tasks"][0]["latest_artifact_status"], "superseded_by_aggregate_result")
+        self.assertEqual(trace["tasks"][0]["latest_artifact_summary"], final_answer)
+        self.assertEqual(len(updated_artifacts), 2)
+
+    def test_aggregate_ledger_keeps_non_conflicting_completed_task_summary(self) -> None:
+        tasks = [
+            {
+                "task_id": "task_1",
+                "kind": "calculation",
+                "label": "target metric",
+                "status": "completed",
+                "metric_family": "concept_ratio",
+                "artifact_ids": ["operands:task_1:001", "plan:task_1:002", "result:task_1:003"],
+            }
+        ]
+        artifacts = [
+            {
+                "artifact_id": "operands:task_1:001",
+                "task_id": "task_1",
+                "kind": "operand_set",
+                "status": "sufficient",
+                "summary": "target metric operands",
+                "payload": {"calculation_operands": [{"operand_id": "op_1"}]},
+                "evidence_refs": ["ev_1"],
+            },
+            {
+                "artifact_id": "plan:task_1:002",
+                "task_id": "task_1",
+                "kind": "calculation_plan",
+                "status": "ok",
+                "summary": "target metric plan",
+                "payload": {"calculation_plan": {"operation": "ratio"}},
+                "evidence_refs": ["ev_1"],
+            },
+            {
+                "artifact_id": "result:task_1:003",
+                "task_id": "task_1",
+                "kind": "calculation_result",
+                "status": "ok",
+                "summary": "target metric 52.99%",
+                "payload": {"calculation_result": {"rendered_value": "52.99%"}},
+                "evidence_refs": ["ev_1"],
+            }
+        ]
+        aggregate_projection = {
+            "calculation_operands": [],
+            "calculation_plan": {"mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "target metric 52.99%",
+                "formatted_result": "target metric 52.99%",
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "target metric",
+                        "normalized_value": 52.99,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "52.99%",
+                    },
+                },
+            },
+        }
+
+        updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
+            tasks,
+            artifacts,
+            ordered_results=[],
+            aggregate_projection=aggregate_projection,
+            aggregate_artifact_id="aggregate:002",
+            final_answer="target metric 52.99%",
+        )
+        trace = _project_task_artifact_trace(updated_tasks, updated_artifacts)
+
+        self.assertEqual(trace["integrity_status"], "ok")
+        self.assertEqual(trace["tasks"][0]["status"], "completed")
+        self.assertEqual(trace["tasks"][0]["latest_artifact_summary"], "target metric 52.99%")
+        self.assertEqual(len(updated_artifacts), 3)
+
     def test_verify_calculation_skip_does_not_rewrite_compatibility_mirrors(self) -> None:
         state = {
             "answer": "insufficient evidence",

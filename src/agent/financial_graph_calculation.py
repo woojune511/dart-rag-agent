@@ -1062,14 +1062,14 @@ class FinancialAgentCalculationMixin:
                     period_keys.add(period_key)
         return period_keys
 
-    def _task_target_matches_resolved_slot(
+    def _matching_resolved_slot_for_task(
         self,
         task: Dict[str, Any],
         resolved_slots: List[Dict[str, Any]],
-    ) -> bool:
+    ) -> Dict[str, Any]:
         target_keys = self._task_target_metric_keys(task)
         if not target_keys:
-            return False
+            return {}
         target_periods = self._task_target_period_keys(task)
         for slot in resolved_slots:
             slot_keys = self._slot_metric_keys(slot)
@@ -1081,14 +1081,135 @@ class FinancialAgentCalculationMixin:
             if target_periods and not slot_period:
                 continue
             if target_keys & slot_keys:
-                return True
+                return dict(slot)
             if any(
                 target_key and slot_key and (target_key in slot_key or slot_key in target_key)
                 for target_key in target_keys
                 for slot_key in slot_keys
             ):
-                return True
-        return False
+                return dict(slot)
+        return {}
+
+    def _task_target_matches_resolved_slot(
+        self,
+        task: Dict[str, Any],
+        resolved_slots: List[Dict[str, Any]],
+    ) -> bool:
+        return bool(self._matching_resolved_slot_for_task(task, resolved_slots))
+
+    def _resolved_slot_summary_for_task(
+        self,
+        task: Dict[str, Any],
+        resolved_slots: List[Dict[str, Any]],
+    ) -> str:
+        slot = self._matching_resolved_slot_for_task(task, resolved_slots)
+        if not slot:
+            return ""
+        rendered_value = _normalise_spaces(
+            str(
+                slot.get("rendered_value")
+                or slot.get("raw_value")
+                or slot.get("normalized_value")
+                or ""
+            )
+        )
+        if not rendered_value:
+            return ""
+        label = _normalise_spaces(
+            str(slot.get("label") or slot.get("concept") or task.get("label") or "")
+        )
+        return _normalise_spaces(f"{label} {rendered_value}" if label else rendered_value)
+
+    def _aggregate_projection_row_for_task(
+        self,
+        task_id: str,
+        ordered_results: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        target_task_id = _normalise_spaces(str(task_id or ""))
+        if not target_task_id:
+            return {}
+        calculation_result = dict(aggregate_projection.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        candidate_groups = [
+            calculation_result.get("subtask_results"),
+            answer_slots.get("subtask_results"),
+            ordered_results,
+        ]
+        for rows in candidate_groups:
+            for row in list(rows or []):
+                if not isinstance(row, dict):
+                    continue
+                if _normalise_spaces(str(row.get("task_id") or "")) == target_task_id:
+                    return dict(row)
+        return {}
+
+    def _latest_task_artifact(
+        self,
+        task: Dict[str, Any],
+        artifacts: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        artifact_by_id = {
+            _normalise_spaces(str(item.get("artifact_id") or "")): dict(item)
+            for item in artifacts
+            if _normalise_spaces(str(item.get("artifact_id") or ""))
+        }
+        latest: Dict[str, Any] = {}
+        for artifact_id in list(task.get("artifact_ids") or []):
+            artifact = artifact_by_id.get(_normalise_spaces(str(artifact_id or "")))
+            if artifact:
+                latest = artifact
+        return latest
+
+    def _answer_preserves_task_numeric_surface(
+        self,
+        answer: str,
+        task_summary: str,
+    ) -> bool:
+        if not self._answer_covers_numeric_answer(answer, task_summary):
+            return False
+        summary_candidates = extract_numeric_surface_candidates(task_summary)
+        percent_surfaces = [
+            _normalise_spaces(str(candidate.get("text") or ""))
+            for candidate in summary_candidates
+            if "%" in str(candidate.get("text") or "")
+        ]
+        if not percent_surfaces:
+            return True
+        normalized_answer = _normalise_spaces(answer)
+        return all(surface and surface in normalized_answer for surface in percent_surfaces)
+
+    def _task_aggregate_replacement_summary(
+        self,
+        task: Dict[str, Any],
+        resolved_slots: List[Dict[str, Any]],
+        *,
+        ordered_results: List[Dict[str, Any]],
+        aggregate_projection: Dict[str, Any],
+        final_answer: str,
+    ) -> str:
+        task_id = _normalise_spaces(str(task.get("task_id") or ""))
+        row = self._aggregate_projection_row_for_task(task_id, ordered_results, aggregate_projection)
+        if row:
+            sentence = self._answer_sentence_for_projection_subtask_row(final_answer, row)
+            if sentence:
+                return sentence
+            row_result = dict(row.get("calculation_result") or {})
+            row_summary = _normalise_spaces(
+                str(
+                    row.get("answer")
+                    or row_result.get("formatted_result")
+                    or row_result.get("rendered_value")
+                    or row.get("rendered_value")
+                    or ""
+                )
+            )
+            if row_summary:
+                return row_summary
+        slot_summary = self._resolved_slot_summary_for_task(task, resolved_slots)
+        if slot_summary:
+            return slot_summary
+        return _normalise_spaces(final_answer)
 
     def _finalize_aggregate_task_ledger(
         self,
@@ -1098,20 +1219,100 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         aggregate_projection: Dict[str, Any],
         aggregate_artifact_id: str,
+        final_answer: str = "",
     ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         resolved_slots = self._final_aggregate_resolved_slots(aggregate_projection, ordered_results)
         updated_tasks = [dict(item) for item in tasks]
         updated_artifacts = [dict(item) for item in artifacts]
+        aggregate_answer = _normalise_spaces(
+            final_answer
+            or str(
+                (aggregate_projection.get("calculation_result") or {}).get("formatted_result")
+                or (aggregate_projection.get("calculation_result") or {}).get("rendered_value")
+                or ""
+            )
+        )
 
         for task in list(updated_tasks):
             task_id = str(task.get("task_id") or "").strip()
             if not task_id or task_id == "aggregate":
                 continue
             status = _normalise_spaces(str(task.get("status") or "")).lower()
-            if status not in {TaskStatus.PENDING.value, TaskStatus.PARTIAL.value}:
+            if status not in {
+                TaskStatus.PENDING.value,
+                TaskStatus.PARTIAL.value,
+                TaskStatus.COMPLETED.value,
+            }:
                 continue
             if not self._task_target_matches_resolved_slot(task, resolved_slots):
                 continue
+            replacement_summary = ""
+            supersession_artifact_id: Optional[str] = None
+            if status == TaskStatus.COMPLETED.value:
+                latest_artifact = self._latest_task_artifact(task, updated_artifacts)
+                latest_summary = _normalise_spaces(str(latest_artifact.get("summary") or ""))
+                if not latest_summary or self._answer_preserves_task_numeric_surface(
+                    aggregate_answer,
+                    latest_summary,
+                ):
+                    continue
+                replacement_summary = self._task_aggregate_replacement_summary(
+                    task,
+                    resolved_slots,
+                    ordered_results=ordered_results,
+                    aggregate_projection=aggregate_projection,
+                    final_answer=aggregate_answer,
+                )
+                if not replacement_summary or not self._answer_preserves_task_numeric_surface(
+                    replacement_summary,
+                    aggregate_answer,
+                ):
+                    replacement_summary = aggregate_answer
+                if not replacement_summary:
+                    continue
+                replacement_conflicts = self._subtask_numeric_answers_conflict(
+                    {"answer": replacement_summary},
+                    {"answer": latest_summary},
+                ) or not self._answer_preserves_task_numeric_surface(
+                    replacement_summary,
+                    latest_summary,
+                )
+                if not replacement_conflicts:
+                    continue
+                base_artifact_id = f"supersession:{task_id}"
+                supersession_artifact_id = f"{base_artifact_id}:{len(updated_artifacts) + 1:03d}"
+                existing_artifact_ids = {
+                    _normalise_spaces(str(item.get("artifact_id") or ""))
+                    for item in updated_artifacts
+                }
+                suffix = len(updated_artifacts) + 1
+                while supersession_artifact_id in existing_artifact_ids:
+                    suffix += 1
+                    supersession_artifact_id = f"{base_artifact_id}:{suffix:03d}"
+                row = self._aggregate_projection_row_for_task(
+                    task_id,
+                    ordered_results,
+                    aggregate_projection,
+                )
+                replacement_payload: Dict[str, Any] = {
+                    "resolution_status": "superseded_by_aggregate_result",
+                    "superseded_artifact_id": str(latest_artifact.get("artifact_id") or ""),
+                    "superseded_by_artifact_id": aggregate_artifact_id,
+                    "replacement_summary": replacement_summary,
+                }
+                if row:
+                    replacement_payload["calculation_result"] = dict(
+                        row.get("calculation_result") or {"formatted_result": replacement_summary}
+                    )
+                updated_artifacts = _append_artifact(
+                    updated_artifacts,
+                    artifact_id=supersession_artifact_id,
+                    task_id=task_id,
+                    kind=ArtifactKind.CALCULATION_RESULT,
+                    status="superseded_by_aggregate_result",
+                    summary=replacement_summary[:200],
+                    payload=replacement_payload,
+                )
             try:
                 task_kind = TaskKind(str(task.get("kind") or TaskKind.CALCULATION.value))
             except ValueError:
@@ -1134,6 +1335,7 @@ class FinancialAgentCalculationMixin:
                 query=str(task.get("query") or ""),
                 metric_family=str(task.get("metric_family") or ""),
                 constraints=constraints,
+                artifact_id=supersession_artifact_id,
                 notes=notes,
             )
         return updated_tasks, updated_artifacts
@@ -19217,6 +19419,7 @@ class FinancialAgentCalculationMixin:
             ordered_results=ordered_results,
             aggregate_projection=aggregate_projection,
             aggregate_artifact_id=artifact_id,
+            final_answer=final_answer,
         )
         aggregate_projection, final_answer, artifacts = self._apply_ratio_projection_answer_if_rendered_missing(
             state,
