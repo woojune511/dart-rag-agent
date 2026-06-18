@@ -52,6 +52,7 @@
 | [SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)](#ski-source-stated-growth-repair-and-narrative-pruning-2026-06-16) | SKI_T2_069 aggregate period-comparison repair and boilerplate context pruning | source-stated `84.3%` display is preserved; focused eval-only numeric PASS and irrelevant forward-looking boilerplate removed |
 | [KBF Aggregate Public Answer Projection Closure (2026-06-17)](#kbf-aggregate-public-answer-projection-closure-2026-06-17) | KBF_T2_018 mixed numeric+narrative public answer projection | supported aggregate `formatted_result` survives public answer projection; focused eval-only numeric PASS |
 | [Expanded Ablation Refresh After KBF Projection Fix (2026-06-17)](#expanded-ablation-refresh-after-kbf-projection-fix-2026-06-17) | 9문항 structural-vs-plain ablation refresh | structural 7 / 9, plain 4 / 9; `SAM_T3_028`, `CEL_T1_013`, `SKH_T3_080` separate |
+| [Post-Refactor Operand Filtering Separator Smoke (2026-06-18)](#post-refactor-operand-filtering-separator-smoke-2026-06-18) | required-operand candidate/filtering cleanup 이후 focused separator smoke | `SAM_T3_028` and `CEL_T1_013` remained numeric PASS with source-scale answers |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -65,6 +66,44 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Post-Refactor Operand Filtering Separator Smoke (2026-06-18)
+
+참조:
+
+- structural local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- heartbeat logs:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_sam_t3_028_after_operand_filter_refactor_2026-06-18.jsonl`
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_cel_t1_013_after_operand_filter_refactor_2026-06-18.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed focused `eval-only` after the calculation-runtime refactor that
+  centralized required-operand candidate generation and surface-contract
+  filtering.
+- Profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Scope:
+  - `SAM_T3_028` on `samsung_2023_expanded_candidate`
+  - `CEL_T1_013` on `celltrion_2023_expanded_candidate`
+
+### Results
+
+| Question | Numeric judgement | Answer | Faithfulness | Completeness | Avg score |
+| --- | --- | --- | ---: | ---: | ---: |
+| `SAM_T3_028` | PASS | `2.79%` | `1.000` | `0.700` | `0.945` |
+| `CEL_T1_013` | PASS | `52.99%` | `1.000` | `1.000` | `0.923` |
+
+### Interpretation
+
+- This smoke confirms that the operand-filtering refactor did not break two
+  strong structural-vs-plain separator cases.
+- The result should not replace the existing nine-question aggregate claim.
+  Rerun the full expanded store-fixed eval-only profile before changing the
+  aggregate pass-rate table.
 
 ## Expanded Ablation Refresh After KBF Projection Fix (2026-06-17)
 

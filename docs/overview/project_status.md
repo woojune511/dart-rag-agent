@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
 ## Positioning
 
@@ -127,6 +127,32 @@ role-separated multi-agent system using a task ledger and artifact store.
     structured aggregate rather than the stale top-level trace
 - This does not update the earlier 9-question aggregate table above; rerun the
   full expanded profile before changing the aggregate pass-rate claim.
+
+#### Post-Refactor Focused Separator Smoke
+
+- Run date: 2026-06-18
+- Scope: store-fixed structural full-system `eval-only` after operand candidate
+  filtering cleanup in `financial_graph_calculation`.
+- Purpose: confirm that centralizing required-operand candidate generation and
+  surface-contract filtering did not regress the strongest structural-vs-plain
+  separator cases.
+- Heartbeat logs:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_sam_t3_028_after_operand_filter_refactor_2026-06-18.jsonl`
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_cel_t1_013_after_operand_filter_refactor_2026-06-18.jsonl`
+
+| Question id | Result | Answer | Read |
+| --- | --- | --- | --- |
+| `SAM_T3_028` | PASS | `2.79%` | Cost-of-sales denominator and scale stayed stable. |
+| `CEL_T1_013` | PASS | `52.99%` | R&D denominator and capitalized-development numerator stayed stable. |
+
+- Metrics:
+  - `SAM_T3_028`: faithfulness `1.000`, completeness `0.700`, avg score
+    `0.945`.
+  - `CEL_T1_013`: faithfulness `1.000`, completeness `1.000`, avg score
+    `0.923`.
+- This is a focused post-refactor smoke, not a new aggregate expanded refresh.
+  Keep the 9-question aggregate table above unchanged until the full expanded
+  eval-only profile is rerun.
 
 ### Latest Ablation Smoke Refresh
 

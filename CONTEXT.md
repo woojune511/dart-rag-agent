@@ -11,6 +11,28 @@
 
 ## 최신 상태
 
+- 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded structural
+  hard-case smoke를 store-fixed `eval-only`로 재확인했다.
+  - 목적: `_required_operand_rows_from_candidates()` /
+    `_merge_required_operand_fallback_rows()` 추출 이후, structural
+    ablation의 강한 separator가 regression 없이 유지되는지 확인했다.
+  - commands:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --company-run-id samsung_2023_expanded_candidate --eval-only --question-id SAM_T3_028 --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_sam_t3_028_after_operand_filter_refactor_2026-06-18.jsonl`
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --company-run-id celltrion_2023_expanded_candidate --eval-only --question-id CEL_T1_013 --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_cel_t1_013_after_operand_filter_refactor_2026-06-18.jsonl`
+  - results:
+    - `SAM_T3_028`: `numeric_final_judgement = PASS`, answer `2.79%`,
+      faithfulness `1.000`, completeness `0.700`, avg score `0.945`.
+    - `CEL_T1_013`: `numeric_final_judgement = PASS`, answer `52.99%`,
+      faithfulness `1.000`, completeness `1.000`, avg score `0.923`.
+  - 해석:
+    - 이번 리팩터링은 benchmark/domain-specific rule 추가 없이 required
+      operand candidate 생성과 surface-contract filtering의 공통 계약만
+      중앙화했다.
+    - 두 separator smoke가 유지됐으므로, 다음 단계는 더 많은 리팩터링보다
+      필요 시 expanded 9-question store-fixed eval-only를 한 번 더 돌려
+      aggregate claim을 갱신하는 것이다.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+
 - 2026-06-17 `POS_T1_057` focused closure를 store-fixed `eval-only`로
   재확인했다.
   - command:
