@@ -26,6 +26,7 @@ from src.agent.financial_graph_helpers import (
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
     _build_table_row_reconciliation_candidates,
+    _candidate_conflicts_with_operand_concept,
     _candidate_direct_match_strength,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
@@ -2094,6 +2095,35 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(normalized_unit, "KRW")
         self.assertEqual(coerced, 573_884_000_000.0)
 
+    def test_reconciliation_operand_row_infers_note_statement_type_for_magnitude_coercion(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = agent._build_operand_row_from_candidate_cell(
+            candidate={
+                "candidate_id": "recon::gain",
+                "source_anchor": "[Example | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+                "metadata": {
+                    "year": 2023,
+                    "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                    "row_label": "외화환산이익",
+                    "semantic_label": "외화환산이익",
+                    "unit_hint": "백만원",
+                },
+            },
+            selected_cell={"value_text": "(573,884)", "unit_hint": "백만원", "column_headers": ["공시금액"]},
+            operand={
+                "label": "외화환산이익",
+                "concept": "foreign_currency_translation_gain",
+                "role": "primary_value",
+            },
+            index=1,
+            period_focus="current",
+            query_years=[2023],
+        )
+
+        self.assertEqual(row["statement_type"], "notes")
+        self.assertEqual(row["normalized_value"], 573_884_000_000.0)
+        self.assertEqual(row["normalized_unit"], "KRW")
+
     def test_dependency_operand_rows_apply_lookup_magnitude_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {
@@ -2153,6 +2183,81 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["raw_value"], "(573,884)")
         self.assertEqual(rows[0]["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")
         self.assertEqual(rows[0]["value_coercion"], "lookup_magnitude_from_source_surface")
+
+    def test_dependency_operand_rows_prefer_parenthesized_retrieval_slot_with_sibling_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "recon::gain",
+            "source_anchor": "[Example | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+            "claim": "외화환산이익 | 공시금액 (573,884) 백만원",
+            "quote_span": "외화환산이익 | 공시금액 (573,884) 백만원",
+            "raw_row_text": "외화환산이익 | 공시금액 (573,884) 백만원",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "notes",
+                "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+                "row_label": "외화환산이익",
+                "semantic_label": "외화환산이익",
+                "unit_hint": "백만원",
+                "table_source_id": "notes::cash_flow",
+                "table_value_labels_text": "외화환산손실 906,120\n외화환산이익 (573,884)",
+                "table_row_labels_text": "외화환산손실\n외화환산이익",
+                "structured_cells": [{"value_text": "(573,884)", "unit_hint": "백만원"}],
+            },
+        }
+        state = {
+            "query": "외화환산이익과 외화환산손실의 순효과를 계산해 줘.",
+            "report_scope": {"year": 2023},
+            "active_subtask": {
+                "operation_family": "difference",
+                "inputs": [
+                    {
+                        "label": "외화환산이익",
+                        "concept": "foreign_currency_translation_gain",
+                        "role": "minuend",
+                        "source_preference": ["task_output", "retrieval"],
+                        "preferred_task_id": "task_gain",
+                        "source_slot": "primary_value",
+                    },
+                    {
+                        "label": "외화환산손실",
+                        "concept": "foreign_currency_translation_loss",
+                        "role": "subtrahend",
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_gain",
+                    "metric_label": "외화환산이익",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "외화환산이익",
+                                "concept": "foreign_currency_translation_gain",
+                                "raw_value": "0",
+                                "raw_unit": "백만원",
+                                "normalized_value": 0.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "0백만원",
+                                "source_row_id": "stale",
+                                "source_row_ids": ["stale"],
+                            }
+                        }
+                    },
+                }
+            ],
+            "evidence_items": [evidence],
+            "runtime_evidence": [evidence],
+        }
+
+        rows = agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(rows[0]["raw_value"], "(573,884)")
+        self.assertEqual(rows[0]["normalized_value"], 573_884_000_000.0)
+        self.assertEqual(rows[0]["rendered_value"], "573,884백만원")
 
     def test_difference_source_display_unit_preserves_common_source_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -4344,6 +4449,27 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("단기차입금", operand["aliases"])
         self.assertIn("notes", operand["preferred_statement_types"])
 
+    def test_required_operand_completion_infers_concept_from_label(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            operand = agent._complete_required_operand_from_ontology(
+                {
+                    "label": "2023년 단기차입금",
+                    "role": "current_period",
+                    "period": "2023",
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(operand["concept"], "short_term_borrowings")
+        self.assertEqual(operand["binding_policy"]["prefer_value_roles"][:1], ["aggregate"])
+        self.assertEqual(operand["binding_policy"]["prefer_aggregation_stages"][:1], ["final"])
+
     def test_direct_lookup_row_uses_aggregate_cell_when_operand_policy_prefers_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         row = agent._lookup_row_from_direct_structured_evidence(
@@ -4434,6 +4560,325 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(row["value_role"], "aggregate")
         self.assertEqual(row["aggregation_stage"], "direct")
         self.assertEqual(row["aggregate_label"], "selected borrowing total")
+
+    def test_direct_target_lookup_completes_metric_operand_policy(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        completed_operands = []
+
+        def complete_operand(operand):
+            completed_operands.append(dict(operand))
+            return {
+                **operand,
+                "concept": "selected_metric",
+                "binding_policy": {
+                    "prefer_value_roles": ["aggregate"],
+                    "prefer_aggregation_stages": ["direct"],
+                },
+            }
+
+        agent._complete_required_operand_from_ontology = complete_operand
+        row, operand = agent._direct_target_metric_operand_from_evidence(
+            {
+                "query": "Find selected metric for 2023.",
+                "years": [2023],
+                "report_scope": {"year": "2023"},
+                "active_subtask": {
+                    "task_id": "task_lookup",
+                    "operation_family": "lookup",
+                    "metric_label": "selected metric",
+                    "constraints": {"period_focus": "current"},
+                },
+            },
+            [
+                {
+                    "evidence_id": "context_001",
+                    "source_anchor": "[example]",
+                    "claim": "selected metric 100 selected metric total 300",
+                    "quote_span": "selected metric 100 selected metric total 300",
+                    "raw_row_text": "selected metric 100 selected metric total 300",
+                    "metadata": {
+                        "year": 2023,
+                        "row_label": "selected metric",
+                        "semantic_label": "selected metric",
+                        "table_source_id": "table_1",
+                        "unit_hint": "million",
+                        "structured_cells": [
+                            {
+                                "column_headers": ["selected metric"],
+                                "value_text": "100",
+                                "unit_hint": "million",
+                                "value_role": "detail",
+                                "aggregation_stage": "none",
+                            },
+                            {
+                                "column_headers": ["selected metric total"],
+                                "value_text": "300",
+                                "unit_hint": "million",
+                                "value_role": "aggregate",
+                                "aggregation_stage": "direct",
+                                "aggregate_label": "selected metric total",
+                            },
+                        ],
+                    },
+                }
+            ],
+        )
+
+        self.assertEqual(completed_operands[0]["label"], "selected metric")
+        self.assertEqual(operand["concept"], "selected_metric")
+        self.assertEqual(row["raw_value"], "300")
+        self.assertEqual(row["value_role"], "aggregate")
+
+    def test_ratio_context_rows_keep_table_unit_when_local_unit_family_conflicts(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        metadata = {
+            "chunk_uid": "chunk_context",
+            "company": "ExampleCo",
+            "year": 2023,
+            "block_type": "table",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_context",
+            "unit_hint": "백만원",
+            "table_value_labels_text": "selected metric 9,490,410",
+            "table_row_labels_text": "selected metric",
+        }
+
+        with patch("src.agent.financial_graph_calculation._resolve_candidate_local_unit_hint", return_value="사"):
+            items = agent._ratio_operand_context_evidence_from_docs(
+                [(Document(page_content="", metadata=metadata), 1.0)],
+                max_docs=1,
+            )
+
+        row_item = next(item for item in items if str(item.get("evidence_id") or "").endswith("::row:1"))
+        row_metadata = row_item["metadata"]
+        self.assertEqual(row_metadata["unit_hint"], "백만원")
+        self.assertEqual(row_metadata["structured_cells"][0]["unit_hint"], "백만원")
+
+    def test_direct_target_lookup_does_not_replace_existing_row_with_conflicting_unit_family(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        self.assertTrue(
+            agent._direct_target_metric_row_conflicts_existing_units(
+                {
+                    "label": "selected metric",
+                    "normalized_unit": "COUNT",
+                    "matched_operand_label": "selected metric",
+                },
+                [
+                    {
+                        "label": "selected metric",
+                        "matched_operand_label": "selected metric",
+                        "normalized_unit": "KRW",
+                    }
+                ],
+                [{"label": "selected metric", "required": True}],
+            )
+        )
+        self.assertFalse(
+            agent._direct_target_metric_row_conflicts_existing_units(
+                {
+                    "label": "selected metric",
+                    "normalized_unit": "KRW",
+                    "matched_operand_label": "selected metric",
+                },
+                [
+                    {
+                        "label": "selected metric",
+                        "matched_operand_label": "selected metric",
+                        "normalized_unit": "KRW",
+                    }
+                ],
+                [{"label": "selected metric", "required": True}],
+            )
+        )
+
+    def test_direct_target_lookup_does_not_replace_structured_detail_row_with_aggregate_fallback(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        self.assertTrue(
+            agent._direct_target_metric_row_conflicts_existing_units(
+                {
+                    "label": "selected metric",
+                    "matched_operand_label": "selected metric",
+                    "matched_operand_role": "primary_value",
+                    "raw_value": "300",
+                    "normalized_value": 300.0,
+                    "normalized_unit": "KRW",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "direct_target_metric_lookup": True,
+                },
+                [
+                    {
+                        "label": "selected metric",
+                        "matched_operand_label": "selected metric",
+                        "matched_operand_role": "primary_value",
+                        "raw_value": "100",
+                        "normalized_value": 100.0,
+                        "normalized_unit": "KRW",
+                        "source_row_id": "recon::table::value:1",
+                        "source_row_ids": ["recon::table::value:1"],
+                        "table_source_id": "table_1",
+                    }
+                ],
+                [
+                    {
+                        "label": "selected metric",
+                        "role": "primary_value",
+                        "required": True,
+                    }
+                ],
+            )
+        )
+
+    def test_direct_target_lookup_can_replace_structured_row_when_operand_prefers_aggregate(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        self.assertFalse(
+            agent._direct_target_metric_row_conflicts_existing_units(
+                {
+                    "label": "selected metric",
+                    "matched_operand_label": "selected metric",
+                    "matched_operand_role": "primary_value",
+                    "raw_value": "300",
+                    "normalized_value": 300.0,
+                    "normalized_unit": "KRW",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "final",
+                    "direct_target_metric_lookup": True,
+                },
+                [
+                    {
+                        "label": "selected metric",
+                        "matched_operand_label": "selected metric",
+                        "matched_operand_role": "primary_value",
+                        "raw_value": "100",
+                        "normalized_value": 100.0,
+                        "normalized_unit": "KRW",
+                        "source_row_id": "recon::table::value:1",
+                        "source_row_ids": ["recon::table::value:1"],
+                        "table_source_id": "table_1",
+                    }
+                ],
+                [
+                    {
+                        "label": "selected metric",
+                        "role": "primary_value",
+                        "required": True,
+                        "binding_policy": {"prefer_value_roles": ["aggregate"]},
+                    }
+                ],
+            )
+        )
+
+    def test_operand_coerce_realigns_value_to_direct_structured_evidence_period_cell(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        row = {
+            "label": "selected metric",
+            "matched_operand_label": "selected metric",
+            "matched_operand_role": "primary_value",
+            "period": "2023",
+            "raw_value": "300",
+            "raw_unit": "천원",
+            "normalized_value": 300000.0,
+            "normalized_unit": "KRW",
+            "source_row_id": "ev_metric",
+        }
+        evidence_item = {
+            "evidence_id": "ev_metric",
+            "claim": "selected metric | 제33기 100 천원 | 제32기 200 천원 | 제31기 300 천원",
+            "quote_span": "selected metric | 제33기 100 천원 | 제32기 200 천원 | 제31기 300 천원",
+            "metadata": {
+                "year": 2023,
+                "row_label": "selected metric",
+                "semantic_label": "selected metric",
+                "unit_hint": "천원",
+                "structured_cells": [
+                    {"column_headers": ["제33기"], "value_text": "100", "unit_hint": "천원"},
+                    {"column_headers": ["제32기"], "value_text": "200", "unit_hint": "천원"},
+                    {"column_headers": ["제31기"], "value_text": "300", "unit_hint": "천원"},
+                ],
+            },
+        }
+
+        coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
+
+        self.assertEqual(coerced["raw_value"], "100")
+        self.assertEqual(coerced["normalized_value"], 100000.0)
+        self.assertTrue(coerced["structured_evidence_cell_realigned"])
+
+    def test_research_development_total_concept_rejects_component_expense_surface(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operand = agent._complete_required_operand_from_ontology(
+            {
+                "label": "2023년 연구개발비용",
+                "concept": "research_and_development_expense",
+                "role": "primary_value",
+                "period": "2023",
+            }
+        )
+        candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {
+                "row_label": "경상연구개발비",
+                "semantic_label": "경상연구개발비",
+                "unit_hint": "천원",
+                "structured_cells": [
+                    {"column_headers": ["공시금액"], "value_text": "100", "unit_hint": "천원"}
+                ],
+            },
+        }
+
+        self.assertTrue(_candidate_conflicts_with_operand_concept(candidate, operand))
+        self.assertLess(
+            _score_operand_candidate(
+                candidate,
+                operand=operand,
+                preferred_statement_types=[],
+                constraints={},
+                query_years=[2023],
+                report_scope={"year": 2023},
+            ),
+            0,
+        )
+
+    def test_krw_unit_repair_uses_alternate_table_surface_for_count_like_operand(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        repaired = agent._repair_krw_operand_units_from_table_metadata(
+            [
+                {
+                    "operand_id": "op_001",
+                    "label": "selected metric",
+                    "matched_operand_label": "selected metric",
+                    "raw_value": "9,490,410",
+                    "raw_unit": "사",
+                    "normalized_value": 9490410.0,
+                    "normalized_unit": "COUNT",
+                    "source_row_id": "context_row",
+                }
+            ],
+            [
+                {
+                    "evidence_id": "alternate_row",
+                    "source_anchor": "[example]",
+                    "raw_row_text": "selected metric 공시금액 9,490,410 백만원",
+                    "metadata": {
+                        "block_type": "table",
+                        "table_source_id": "table_1",
+                        "row_label": "selected metric",
+                        "semantic_label": "selected metric",
+                        "unit_hint": "백만원",
+                    },
+                }
+            ],
+        )
+
+        self.assertEqual(repaired[0]["raw_unit"], "백만원")
+        self.assertEqual(repaired[0]["normalized_unit"], "KRW")
+        self.assertEqual(repaired[0]["normalized_value"], 9490410000000.0)
+        self.assertEqual(repaired[0]["unit_normalization_repair_source"], "alternate_table_krw_surface")
 
     def test_table_label_lookup_requires_structured_context_for_aggregate_policy(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

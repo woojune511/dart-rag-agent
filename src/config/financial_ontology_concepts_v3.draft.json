@@ -751,6 +751,31 @@
         "연구개발비",
         "연구개발비용 계"
       ],
+      "binding_policy": {
+        "prefer_value_roles": [
+          "aggregate",
+          "detail"
+        ],
+        "prefer_aggregation_stages": [
+          "final",
+          "direct",
+          "subtotal",
+          "none"
+        ],
+        "avoid_value_roles": [
+          "adjustment"
+        ]
+      },
+      "surface_contract": {
+        "positive": [
+          "연구개발비용",
+          "연구개발비용 계",
+          "연구개발비 계"
+        ],
+        "negative": [
+          "경상연구개발비"
+        ]
+      },
       "unit_family": "KRW",
       "preferred_statement_types": [
         "notes",

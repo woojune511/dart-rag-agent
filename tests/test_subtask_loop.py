@@ -2989,8 +2989,10 @@ class SubtaskLoopTests(unittest.TestCase):
         prepared = self.agent._prepare_initial_aggregate_state(state)
 
         self.assertIn("37.47%", prepared.complete_numeric_answer)
+        self.assertIn("37.47%", prepared.fallback_answer)
         self.assertIn("4,355억원", prepared.complete_numeric_answer)
         self.assertNotIn("435,542천원", prepared.complete_numeric_answer)
+        self.assertNotIn("435,542천원", prepared.fallback_answer)
         projection = self.agent._rebuild_aggregate_projection(
             prepared.ordered_results,
             prepared.complete_numeric_answer,
@@ -3723,6 +3725,51 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertTrue(peer_slot.get("unit_aligned_from_peer_source_slot"))
         self.assertEqual(trace["calculation_result"]["formatted_result"], updated["answer"])
 
+    def test_uncovered_lookup_preservation_skips_label_already_reanswered_in_final(self) -> None:
+        lookup_row = self._lookup_result_row(
+            task_id="task_gain",
+            metric_label="translation gain",
+            label="translation gain",
+            concept="translation_gain",
+            raw_value="0",
+            raw_unit="백만원",
+            normalized_value=0.0,
+            rendered_value="0백만원",
+            source_row_id="ev_stale_gain",
+            answer="translation gain 0백만원",
+        )
+        difference_row = {
+            "task_id": "task_net",
+            "metric_family": "concept_difference",
+            "metric_label": "translation net effect",
+            "operation_family": "difference",
+            "answer": "translation gain was 5,739억원 and net effect was -3,322억원.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-3,322억원",
+                "result_value": -332_200_000_000.0,
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "translation net effect",
+                        "rendered_value": "-3,322억원",
+                        "normalized_value": -332_200_000_000.0,
+                        "normalized_unit": "KRW",
+                    },
+                },
+            },
+        }
+
+        answer = self.agent._append_uncovered_lookup_numeric_items(
+            "translation gain was 5,739억원 and net effect was -3,322억원.",
+            [lookup_row, difference_row],
+        )
+
+        self.assertNotIn("0백만원", answer)
+        self.assertIn("5,739억원", answer)
+
     def test_aggregate_trace_sync_replaces_stale_single_ratio_subtask_surface(self) -> None:
         stale_ratio_row = {
             "task_id": "task_ratio",
@@ -3796,6 +3843,97 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projected_ratio_row["calculation_result"]["rendered_value"], "80.00%")
         self.assertEqual(slot_ratio_row["rendered_value"], "80.00%")
         self.assertNotIn("400.00%", projected_ratio_row["answer"])
+
+    def test_aggregate_trace_sync_updates_difference_scalar_from_final_answer(self) -> None:
+        stale_difference_row = {
+            "task_id": "task_net",
+            "metric_family": "concept_difference",
+            "metric_label": "translation net effect",
+            "operation_family": "difference",
+            "answer": "-906,120백만원",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "result_value": -906_120_000_000.0,
+                "result_unit": "백만원",
+                "rendered_value": "-906,120백만원",
+                "formatted_result": "-906,120백만원",
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "status": "ok",
+                                "role": "minuend",
+                                "label": "translation gain",
+                                "raw_value": "0",
+                                "raw_unit": "백만원",
+                                "normalized_value": 0.0,
+                                "normalized_unit": "KRW",
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "status": "ok",
+                                "role": "subtrahend",
+                                "label": "translation loss",
+                                "raw_value": "906,120",
+                                "raw_unit": "백만원",
+                                "normalized_value": 906_120_000_000.0,
+                                "normalized_unit": "KRW",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        final_answer = (
+            "translation gain was 5,739억원, translation loss was 9,061억원, "
+            "and translation net effect was -3,322억원."
+        )
+        projection = {
+            "calculation_plan": {
+                "mode": "aggregate_subtasks",
+                "subtasks": [{"task_id": "task_net", "calculation_plan": {"operation": "subtract"}}],
+            },
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": final_answer,
+                "rendered_value": final_answer,
+                "subtask_results": [stale_difference_row],
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [
+                        {
+                            "task_id": "task_net",
+                            "operation_family": "difference",
+                            "answer": "-906,120백만원",
+                            "rendered_value": "-906,120백만원",
+                        }
+                    ],
+                },
+            },
+        }
+
+        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            [stale_difference_row],
+            projection,
+            final_answer,
+        )
+
+        synced_row = next(row for row in ordered_results if row["task_id"] == "task_net")
+        projected_row = next(
+            row
+            for row in synced_projection["calculation_result"]["subtask_results"]
+            if row["task_id"] == "task_net"
+        )
+        self.assertEqual(synced_row["calculation_result"]["rendered_value"], "-3,322억원")
+        self.assertEqual(synced_row["calculation_result"]["result_value"], -332_200_000_000.0)
+        self.assertEqual(
+            synced_row["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "-3,322억원",
+        )
+        self.assertEqual(projected_row["calculation_result"]["result_value"], -332_200_000_000.0)
 
     def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
         source_lookup = {

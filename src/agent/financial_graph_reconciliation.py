@@ -25,6 +25,7 @@ from src.agent.financial_graph_models import (
 )
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
+    FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_MARKER_POLICY,
@@ -41,6 +42,44 @@ ALLOWED_REFLECTION_RETRY_STRATEGIES = {
 }
 
 DEFAULT_REFLECTION_RETRY_BUDGET = 1
+
+
+def _candidate_statement_type(candidate: Dict[str, Any], metadata: Dict[str, Any]) -> str:
+    explicit_statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
+    if explicit_statement_type:
+        return explicit_statement_type
+    surface = _normalise_spaces(
+        " ".join(
+            str(value or "")
+            for value in (
+                metadata.get("section_path"),
+                metadata.get("section_title"),
+                metadata.get("local_heading"),
+                metadata.get("table_context"),
+                candidate.get("source_anchor"),
+                candidate.get("source_context"),
+            )
+            if str(value or "").strip()
+        )
+    )
+    if not surface:
+        return ""
+    for policy in FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES:
+        markers = [
+            _normalise_spaces(str(marker))
+            for marker in (policy.get("markers") or [])
+            if _normalise_spaces(str(marker))
+        ]
+        if not any(marker in surface for marker in markers):
+            continue
+        statement_types = [
+            _normalise_spaces(str(statement_type))
+            for statement_type in (policy.get("statement_types") or [])
+            if _normalise_spaces(str(statement_type))
+        ]
+        if statement_types:
+            return statement_types[0]
+    return ""
 
 
 def _normalise_reflection_plan_record(
@@ -509,7 +548,7 @@ class FinancialAgentReconciliationMixin:
             normalized_unit=normalized_unit,
             raw_value=raw_value,
             concept=str(operand.get("concept") or ""),
-            statement_type=str(metadata.get("statement_type") or ""),
+            statement_type=_candidate_statement_type(candidate, metadata),
             row_label=str(metadata.get("row_label") or ""),
             semantic_label=str(metadata.get("semantic_label") or ""),
         )
@@ -533,7 +572,7 @@ class FinancialAgentReconciliationMixin:
             "normalized_unit": normalized_unit,
             "period": period,
             "table_source_id": metadata.get("table_source_id"),
-            "statement_type": metadata.get("statement_type"),
+            "statement_type": _candidate_statement_type(candidate, metadata),
             "consolidation_scope": metadata.get("consolidation_scope"),
             "value_role": _normalise_spaces(str(selected_cell.get("value_role") or metadata.get("value_role") or "")),
             "aggregation_stage": _normalise_spaces(

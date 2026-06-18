@@ -2606,10 +2606,13 @@ def _dependency_operand_can_use_source_slot(
     )
     source_slot_ids = _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
     role = _normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or ""))
+    match_score = _dependency_lookup_slot_match_score(source_slot, operand, role)
     strong_source_slot_match = bool(
         source_slot_ids
-        and _dependency_lookup_slot_match_score(source_slot, operand, role) >= 8
+        and match_score >= 8
     )
+    if operand_role_group and source_role_group != operand_role_group and match_score <= 0:
+        return False
     return bool(
         dependency_backed_operand
         or _dependency_source_slot_structurally_stronger(source_slot)

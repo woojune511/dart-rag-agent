@@ -3,7 +3,10 @@ from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import _evidence_item_conflicts_requested_scope
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.agent.financial_graph_helpers import (
+    _dependency_operand_can_use_source_slot,
+    _resolve_runtime_calculation_trace,
+)
 from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
 
 
@@ -592,6 +595,336 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(repaired_plan, plan)
         self.assertEqual(repaired_result["result_value"], 750.0)
         self.assertTrue(repaired_result["stale_result_repaired_from_operands"])
+
+    def test_dependency_alignment_keeps_complete_direct_difference_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        ordered_results = [
+            {
+                "task_id": "task_gain",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "translation gain",
+                            "concept": "translation_gain",
+                            "raw_value": "0",
+                            "raw_unit": "million",
+                            "normalized_value": 0.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_stale_gain",
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_loss",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "translation loss",
+                            "concept": "translation_loss",
+                            "raw_value": "906,120",
+                            "raw_unit": "million",
+                            "normalized_value": 906_120_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_loss",
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_net",
+                "metric_family": "concept_difference",
+                "metric_label": "translation net effect",
+                "operation_family": "difference",
+                "status": "ok",
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_gain",
+                        "label": "translation gain",
+                        "matched_operand_label": "translation gain",
+                        "matched_operand_concept": "translation_gain",
+                        "matched_operand_role": "minuend",
+                        "raw_value": "573,884",
+                        "raw_unit": "million",
+                        "normalized_value": 573_884_000_000.0,
+                        "normalized_unit": "KRW",
+                        "table_source_id": "notes::table:1",
+                        "source_row_id": "ev_gain",
+                        "source_row_ids": ["ev_gain"],
+                    },
+                    {
+                        "operand_id": "op_loss",
+                        "label": "translation loss",
+                        "matched_operand_label": "translation loss",
+                        "matched_operand_concept": "translation_loss",
+                        "matched_operand_role": "subtrahend",
+                        "raw_value": "906,120",
+                        "raw_unit": "million",
+                        "normalized_value": 906_120_000_000.0,
+                        "normalized_unit": "KRW",
+                        "table_source_id": "notes::table:1",
+                        "source_row_id": "ev_loss",
+                        "source_row_ids": ["ev_loss"],
+                    },
+                ],
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "subtract",
+                    "ordered_operand_ids": ["op_gain", "op_loss"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "op_gain"},
+                        {"variable": "B", "operand_id": "op_loss"},
+                    ],
+                    "formula": "A - B",
+                    "result_unit": "",
+                },
+                "calculation_result": {
+                    "status": "ok",
+                    "result_value": -332_236_000_000.0,
+                    "result_unit": "million",
+                    "rendered_value": "-332,236 million",
+                },
+            },
+        ]
+        state = {
+            "query": "calculate translation net effect",
+            "calc_subtasks": [
+                {"task_id": "task_gain", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_loss", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {
+                    "task_id": "task_net",
+                    "metric_family": "concept_difference",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {
+                            "label": "translation gain",
+                            "concept": "translation_gain",
+                            "role": "minuend",
+                            "required": True,
+                        },
+                        {
+                            "label": "translation loss",
+                            "concept": "translation_loss",
+                            "role": "subtrahend",
+                            "required": True,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            ordered_results,
+            state,
+            {"calculation_operands": []},
+        )
+
+        net_row = next(row for row in aligned if row["task_id"] == "task_net")
+        self.assertNotIn("aligned_from_source_task_slots", net_row)
+        self.assertEqual(net_row["calculation_result"]["result_value"], -332_236_000_000.0)
+        self.assertEqual(net_row["calculation_operands"][0]["raw_value"], "573,884")
+
+    def test_aggregate_realigns_stale_difference_row_from_table_context(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = None
+        state = {
+            "query": "calculate translation net effect",
+            "calc_subtasks": [
+                {"task_id": "task_gain", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_loss", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {
+                    "task_id": "task_net",
+                    "metric_family": "concept_difference",
+                    "metric_label": "translation net effect",
+                    "operation_family": "difference",
+                    "required_operands": [
+                        {
+                            "label": "translation gain",
+                            "concept": "translation_gain",
+                            "role": "minuend",
+                            "required": True,
+                        },
+                        {
+                            "label": "translation loss",
+                            "concept": "translation_loss",
+                            "role": "subtrahend",
+                            "required": True,
+                        },
+                    ],
+                },
+            ],
+            "active_subtask": {
+                "task_id": "task_net",
+                "metric_family": "concept_difference",
+                "metric_label": "translation net effect",
+                "operation_family": "difference",
+                "required_operands": [
+                    {
+                        "label": "translation gain",
+                        "concept": "translation_gain",
+                        "role": "minuend",
+                        "required": True,
+                    },
+                    {
+                        "label": "translation loss",
+                        "concept": "translation_loss",
+                        "role": "subtrahend",
+                        "required": True,
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_gain",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "translation gain",
+                    "operation_family": "lookup",
+                    "answer": "translation gain is 0백만원.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "0백만원",
+                        "result_value": 0.0,
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "translation gain",
+                                "concept": "translation_gain",
+                                "raw_value": "0",
+                                "raw_unit": "백만원",
+                                "normalized_value": 0.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "0백만원",
+                                "source_row_id": "ev_stale_gain",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_loss",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "translation loss",
+                    "operation_family": "lookup",
+                    "answer": "translation loss is 906,120백만원.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "906,120백만원",
+                        "result_value": 906_120_000_000.0,
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "translation loss",
+                                "concept": "translation_loss",
+                                "raw_value": "906,120",
+                                "raw_unit": "백만원",
+                                "normalized_value": 906_120_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "906,120백만원",
+                                "source_row_id": "ev_loss",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_net",
+                    "metric_family": "concept_difference",
+                    "metric_label": "translation net effect",
+                    "operation_family": "difference",
+                    "answer": "-906,120백만원",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": -906_120_000_000.0,
+                        "result_unit": "백만원",
+                        "rendered_value": "-906,120백만원",
+                        "answer_slots": {
+                            "operation_family": "difference",
+                            "components_by_role": {
+                                "minuend": [
+                                    {
+                                        "status": "ok",
+                                        "role": "minuend",
+                                        "label": "translation gain",
+                                        "concept": "translation_gain",
+                                        "raw_value": "0",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 0.0,
+                                        "normalized_unit": "KRW",
+                                        "source_row_id": "task_output:task_gain",
+                                    }
+                                ],
+                                "subtrahend": [
+                                    {
+                                        "status": "ok",
+                                        "role": "subtrahend",
+                                        "label": "translation loss",
+                                        "concept": "translation_loss",
+                                        "raw_value": "906,120",
+                                        "raw_unit": "백만원",
+                                        "normalized_value": 906_120_000_000.0,
+                                        "normalized_unit": "KRW",
+                                        "source_row_id": "task_output:task_loss",
+                                    }
+                                ],
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_translation_table",
+                    "claim": "translation gain 573,884백만원; translation loss 906,120백만원",
+                    "raw_row_text": "translation gain 573,884백만원; translation loss 906,120백만원",
+                    "metadata": {
+                        "unit_hint": "백만원",
+                        "table_source_id": "notes::table:1",
+                        "table_row_labels_text": "translation gain\ntranslation loss",
+                        "table_value_labels_text": "translation gain 573,884\ntranslation loss 906,120",
+                        "year": 2023,
+                    },
+                }
+            ],
+            "tasks": [],
+            "artifacts": [],
+            "plan_loop_count": 2,
+            "selected_claim_ids": [],
+        }
+
+        realigned = agent._realign_period_comparison_results_from_table_label_context(
+            state["subtask_results"],
+            state,
+            state["evidence_items"],
+        )
+        aggregate_projection = agent._rebuild_aggregate_projection(realigned, "-332,236백만원")
+        aligned = agent._align_lookup_results_with_dependency_projection(
+            realigned,
+            state,
+            aggregate_projection,
+        )
+
+        net_row = next(row for row in aligned if row["task_id"] == "task_net")
+        self.assertTrue(net_row.get("period_comparison_recovered_from_table_label_context"))
+        self.assertEqual(net_row["calculation_result"]["result_value"], -332_236_000_000.0)
+        self.assertEqual(net_row["calculation_operands"][0]["raw_value"], "573,884")
+        self.assertEqual(
+            net_row["calculation_result"]["answer_slots"]["components_by_role"]["minuend"][0]["raw_value"],
+            "573,884",
+        )
 
     def test_dependency_output_preserves_consistent_krw_unit_over_table_hint(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -2026,6 +2359,29 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIsNotNone(guarded_plan)
         self.assertIn("distinct_ratio_roles", guarded_plan["missing_info"])
 
+    def test_ratio_dependency_source_slot_requires_role_target_match(self) -> None:
+        operand = {
+            "matched_operand_role": "denominator_1",
+            "matched_operand_label": "target asset",
+            "matched_operand_concept": "target_asset",
+            "source_task_id": "task_borrowing",
+        }
+        source_slot = {
+            "role": "primary_value",
+            "label": "source borrowing",
+            "concept": "source_borrowing",
+            "raw_value": "10,121,033",
+            "raw_unit": "million",
+            "normalized_value": 10_121_033_000_000.0,
+            "normalized_unit": "KRW",
+            "value_role": "aggregate",
+            "aggregation_stage": "final",
+            "source_row_id": "row_borrowing",
+            "source_row_ids": ["row_borrowing"],
+        }
+
+        self.assertFalse(_dependency_operand_can_use_source_slot(operand, source_slot))
+
     def test_dependency_projection_replaces_collapsed_ratio_role_from_sibling_lookup(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ordered_results = [
@@ -3116,6 +3472,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "normalized_unit": "KRW",
                     "period": "2023",
                     "source_anchor": "lookup output",
+                    "source_row_id": "task_output:current_lookup",
+                    "source_task_id": "current_lookup",
+                    "dependency_resolved": True,
                 },
                 {
                     "operand_id": "prior_period",
@@ -3127,6 +3486,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "normalized_unit": "KRW",
                     "period": "2022",
                     "source_anchor": "lookup output",
+                    "source_row_id": "task_output:prior_lookup",
+                    "source_task_id": "prior_lookup",
+                    "dependency_resolved": True,
                 },
             ],
             "bindings": [],
