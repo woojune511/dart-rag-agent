@@ -52,9 +52,12 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Latest Expanded Ablation Refresh
 
-- Run date: 2026-06-17
+- Run dates:
+  - structural full-system refresh: 2026-06-18
+  - plain retrieval comparison baseline: 2026-06-17
 - Scope: store-fixed `eval-only` comparison on the nine-question expanded
-  ablation candidate after the aggregate public-answer projection fix.
+  ablation candidate after the aggregate public-answer projection fix and
+  operand-candidate filtering cleanup.
 - Profiles:
   - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
   - `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
@@ -62,28 +65,29 @@ role-separated multi-agent system using a task ledger and artifact store.
   - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
   - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10`
 - Heartbeat logs:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_operand_filter_refactor_2026-06-18.jsonl`
   - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_evalonly_after_kbf_projection_fix_2026-06-17.jsonl`
   - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/heartbeat_evalonly_after_fullsystem_7of9_2026-06-17.jsonl`
 - Run-level readout:
 
 | Metric | Structural full-system | Plain retrieval |
 | --- | ---: | ---: |
-| Numeric PASS | `7/9` | `4/9` |
-| Avg numeric pass rate | `0.778` | `0.444` |
-| Avg completeness | `0.578` | `0.389` |
-| Avg faithfulness | `0.833` | `0.678` |
-| Avg context recall | `0.867` | `0.904` |
+| Numeric PASS | `8/9` | `4/9` |
+| Avg numeric pass rate | `0.917` | `0.444` |
+| Avg completeness | `0.850` | `0.389` |
+| Avg faithfulness | `0.942` | `0.678` |
+| Avg context recall | `0.889` | `0.904` |
 | Avg Context P@5 | `0.867` | `0.778` |
-| LLM calls | `133` | `120` |
-| LLM tokens | `732,650` | `687,109` |
-| Query embedding calls | `54` | `62` |
-| Estimated runtime cost | about `$0.6156` | about `$0.8348` |
-| Heartbeat wall-clock runtime | about `28.5m` | about `32.1m` |
+| LLM calls | `135` | `120` |
+| LLM tokens | `722,298` | `687,109` |
+| Query embedding calls | `63` | `62` |
+| Estimated runtime cost | about `$0.6334` | about `$0.8348` |
+| Heartbeat wall-clock runtime | about `42.5m` | about `32.1m` |
 
 | Question id | Structural | Plain | Observation |
 | --- | --- | --- | --- |
 | `KAB_T1_066` | PASS | PASS | Both variants answer the CIR control; plain has lower Context P@5. |
-| `POS_T1_057` | FAIL | FAIL | Both still expose interest-cost sign/display and unit binding instability. |
+| `POS_T1_057` | PASS | FAIL | Focused closure now holds in the full structural refresh; plain remains the older failing baseline. |
 | `SAM_T3_028` | PASS | FAIL | Structural preserves the cost-of-sales denominator and returns `2.79%`; plain drifts to a scale-broken `2792.63%`. |
 | `MIX_T1_021` | PASS | PASS | Both compute the balance-sheet ratios, with partial completeness. |
 | `CEL_T1_013` | PASS | FAIL | Structural recovers the R&D denominator and returns `52.99%`; plain selects a broader denominator and returns `49.74%`. |
@@ -93,13 +97,16 @@ role-separated multi-agent system using a task ledger and artifact store.
 | `SKH_T1_060` | FAIL | FAIL | Debt-component numerator/asset denominator aggregation remains the hard residual. |
 
 - Interpretation:
-  - The expanded slice now clears the full-system promotion rule (`>= 7/9`)
-    and restores a current structural-vs-plain comparison.
-  - The strongest separating cases are `SAM_T3_028`, `CEL_T1_013`, and
-    `SKH_T3_080`, where plain retrieval finds nearby evidence but loses scale,
-    denominator, or row-binding semantics.
-  - `POS_T1_057` and `SKH_T1_060` remain shared residuals. They should be
-    treated as follow-up engineering work, not hidden from the portfolio story.
+  - The expanded structural slice now clears the full-system promotion rule
+    with margin (`8/9`) after the post-refactor refresh.
+  - The separating cases are `POS_T1_057`, `SAM_T3_028`, `CEL_T1_013`, and
+    `SKH_T3_080`, where plain retrieval finds nearby evidence but loses
+    interest-coverage, scale, denominator, or row-binding semantics.
+  - `POS_T1_057` moved from shared residual to structural-only PASS after the
+    focused closure, but the plain counterpart was not rerun in this step.
+  - `SKH_T1_060` remains the only numeric residual in the structural expanded
+    slice. Logs show the runtime recovers most source values, then fails final
+    role/denominator binding after `distinct_ratio_roles` reflection.
 - Artifact hygiene: raw `benchmarks/results/**` bundles remain local unless
   explicitly published.
 

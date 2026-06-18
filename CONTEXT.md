@@ -12,6 +12,31 @@
 ## 최신 상태
 
 - 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded structural
+  9-question store-fixed `eval-only` refresh를 완료했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_operand_filter_refactor_2026-06-18.jsonl`
+  - result:
+    - structural full-system numeric pass: `8/9`
+    - avg faithfulness `0.942`, avg completeness `0.850`, avg context recall
+      `0.889`
+    - runtime usage: `135` LLM calls, `722,298` LLM tokens, `63` query
+      embedding calls, estimated runtime cost about `$0.6334`
+    - heartbeat runtime about `42.5m`
+  - per-question:
+    - PASS: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`, `MIX_T1_021`,
+      `CEL_T1_013`, `KBF_T2_018`, `KBF_T1_017`, `SKH_T3_080`
+    - FAIL: `SKH_T1_060`
+  - 해석:
+    - 이전 expanded structural refresh의 shared residual이던 `POS_T1_057`는
+      focused closure 이후 full structural refresh에서도 PASS로 유지됐다.
+    - 남은 hard residual은 `SKH_T1_060` 하나다. 로그상 숫자 후보는 대부분
+      회수되지만 `distinct_ratio_roles` reflection 이후에도 denominator /
+      role binding이 최종 numeric judge를 통과하지 못했다.
+    - plain retrieval counterpart는 이번 단계에서 재실행하지 않았다. 비교
+      baseline은 2026-06-17 plain `4/9` 결과를 유지한다.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+
+- 2026-06-18 operand-candidate filtering 리팩터링 이후 expanded structural
   hard-case smoke를 store-fixed `eval-only`로 재확인했다.
   - 목적: `_required_operand_rows_from_candidates()` /
     `_merge_required_operand_fallback_rows()` 추출 이후, structural
@@ -74,12 +99,14 @@
     - `CEL_T1_013`: structural `52.99%`; plain broader denominator `49.74%`.
     - `SKH_T3_080`: structural `-3,322억원`; plain misbound loss surface
       `-1,351,498백만원`.
-  - shared residuals:
+  - 당시 shared residuals:
     - `POS_T1_057`: interest-cost sign/display and unit binding instability.
     - `SKH_T1_060`: debt-component numerator / asset denominator aggregation.
   - 해석:
-    - expanded slice는 더 이상 stop-line이 아니며, current portfolio
-      ablation result는 structural `7/9` vs plain `4/9`다.
+    - 당시 expanded slice는 더 이상 stop-line이 아니었고, 이후 2026-06-18
+      post-refactor structural refresh에서 `POS_T1_057`까지 닫혀 최신
+      structural 결과는 `8/9`가 됐다. plain baseline은 아직 이 2026-06-17
+      `4/9` 결과를 사용한다.
     - raw `benchmarks/results/**` 산출물과 heartbeat log는 local-only다.
 
 - 2026-06-17 PR 4 simplification 이후 store-fixed ablation smoke

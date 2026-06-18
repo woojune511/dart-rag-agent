@@ -94,9 +94,9 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Latest expanded ablation refresh | structural full-system `7 / 9` numeric PASS vs plain retrieval `4 / 9` |
-| Reproduced structural separators | `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080` pass structurally but fail under plain retrieval |
-| Shared residual cases | `POS_T1_057` and `SKH_T1_060` expose remaining sign/display and debt aggregation issues |
+| Latest expanded ablation refresh | structural full-system `8 / 9` numeric PASS vs plain retrieval `4 / 9` |
+| Reproduced structural separators | `POS_T1_057`, `SAM_T3_028`, `CEL_T1_013`, and `SKH_T3_080` pass structurally while the plain baseline fails |
+| Remaining structural residual | `SKH_T1_060` exposes debt/asset role binding instability |
 
 Representative KAB answer:
 
@@ -117,18 +117,18 @@ portfolio review.
 
 | Metric | Structural full-system | Plain retrieval |
 | --- | ---: | ---: |
-| Numeric PASS | `7 / 9` | `4 / 9` |
-| Avg numeric pass rate | `0.778` | `0.444` |
-| Avg faithfulness | `0.833` | `0.678` |
-| Avg completeness | `0.578` | `0.389` |
-| Avg context recall | `0.867` | `0.904` |
-| Estimated runtime cost | `$0.6156` | `$0.8348` |
-| Heartbeat runtime | `28.5m` | `32.1m` |
+| Numeric PASS | `8 / 9` | `4 / 9` |
+| Avg numeric pass rate | `0.917` | `0.444` |
+| Avg faithfulness | `0.942` | `0.678` |
+| Avg completeness | `0.850` | `0.389` |
+| Avg context recall | `0.889` | `0.904` |
+| Estimated runtime cost | `$0.6334` | `$0.8348` |
+| Heartbeat runtime | `42.5m` | `32.1m` |
 
 | Question | Structural | Plain | Diagnostic read |
 | --- | --- | --- | --- |
 | `KAB_T1_066` | PASS | PASS | CIR positive control remains stable. |
-| `POS_T1_057` | FAIL | FAIL | Interest-cost sign/display and unit binding remain unstable. |
+| `POS_T1_057` | PASS | FAIL | Focused interest-coverage closure now holds in the full structural refresh; plain remains the older failing baseline. |
 | `SAM_T3_028` | PASS | FAIL | Structural returns `2.79%`; plain drifts to scale-broken `2792.63%`. |
 | `MIX_T1_021` | PASS | PASS | Both compute the balance-sheet ratios with partial completeness. |
 | `CEL_T1_013` | PASS | FAIL | Structural returns `52.99%`; plain selects a broader denominator and returns `49.74%`. |
@@ -138,8 +138,8 @@ portfolio review.
 | `SKH_T1_060` | FAIL | FAIL | Debt-component numerator aggregation remains unstable. |
 
 The result supports a narrow structural-representation claim: it improves
-scale, denominator, and row-binding behavior on several hard cases, while two
-cases remain shared runtime/evidence-contract residuals.
+scale, denominator, and row-binding behavior on several hard cases, while
+`SKH_T1_060` remains a visible debt/asset role-binding residual.
 
 ### Historical Expanded Structural Ablation
 
@@ -166,7 +166,7 @@ Separating numeric cases:
 
 This historical run remains useful as a diagnostic trace source, especially for
 `SKH_T3_080`. It is no longer the active portfolio-facing result because the
-latest store-fixed expanded comparison supersedes it with structural `7 / 9`
+latest store-fixed expanded comparison supersedes it with structural `8 / 9`
 versus plain `4 / 9`.
 
 ### Historical Hard Structural-vs-Plain Replay
@@ -263,8 +263,9 @@ ratio (`-791.7%`).
 Fix layer: cost-like operand sign/display handling and source-unit preservation
 in ratio composition.
 
-Current status: shared residual in the latest expanded comparison; both
-structural and plain variants still fail this case.
+Current status: the focused interest-coverage closure now holds in the latest
+full structural refresh. `POS_T1_057` is a structural PASS in the refreshed
+expanded slice; the plain baseline remains the older failing counterpart.
 
 ### `SKH_T1_060`: wrong numerator or subtotal row
 

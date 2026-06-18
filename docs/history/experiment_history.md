@@ -52,6 +52,7 @@
 | [SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)](#ski-source-stated-growth-repair-and-narrative-pruning-2026-06-16) | SKI_T2_069 aggregate period-comparison repair and boilerplate context pruning | source-stated `84.3%` display is preserved; focused eval-only numeric PASS and irrelevant forward-looking boilerplate removed |
 | [KBF Aggregate Public Answer Projection Closure (2026-06-17)](#kbf-aggregate-public-answer-projection-closure-2026-06-17) | KBF_T2_018 mixed numeric+narrative public answer projection | supported aggregate `formatted_result` survives public answer projection; focused eval-only numeric PASS |
 | [Expanded Ablation Refresh After KBF Projection Fix (2026-06-17)](#expanded-ablation-refresh-after-kbf-projection-fix-2026-06-17) | 9문항 structural-vs-plain ablation refresh | structural 7 / 9, plain 4 / 9; `SAM_T3_028`, `CEL_T1_013`, `SKH_T3_080` separate |
+| [Post-Refactor Expanded Structural Refresh (2026-06-18)](#post-refactor-expanded-structural-refresh-2026-06-18) | operand filtering cleanup 이후 9문항 structural full-system refresh | structural improved to 8 / 9; only `SKH_T1_060` remains numeric FAIL |
 | [Post-Refactor Operand Filtering Separator Smoke (2026-06-18)](#post-refactor-operand-filtering-separator-smoke-2026-06-18) | required-operand candidate/filtering cleanup 이후 focused separator smoke | `SAM_T3_028` and `CEL_T1_013` remained numeric PASS with source-scale answers |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
@@ -66,6 +67,65 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Post-Refactor Expanded Structural Refresh (2026-06-18)
+
+참조:
+
+- structural local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_operand_filter_refactor_2026-06-18.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed `eval-only` over the nine-question expanded structural
+  full-system slice.
+- Profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- This rerun followed the operand-candidate filtering cleanup:
+  `_required_operand_rows_from_candidates()` and
+  `_merge_required_operand_fallback_rows()`.
+- The plain-retrieval counterpart was not rerun in this step; the comparison
+  baseline remains the 2026-06-17 plain `4 / 9` refresh.
+
+### Results
+
+| Metric | Structural full-system |
+| --- | ---: |
+| Numeric PASS | `8 / 9` |
+| Avg numeric pass rate | `0.917` |
+| Avg faithfulness | `0.942` |
+| Avg completeness | `0.850` |
+| Avg context recall | `0.889` |
+| LLM calls / tokens | `135` / `722,298` |
+| Query embedding calls | `63` |
+| Estimated runtime cost | `$0.6334` |
+| Heartbeat runtime | about `42.5m` |
+
+| Question | Result | Answer / observation |
+| --- | --- | --- |
+| `KAB_T1_066` | PASS | CIR `37.47%` |
+| `POS_T1_057` | PASS | Interest coverage `3.5269배`; the focused closure now holds in the full structural refresh |
+| `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` |
+| `MIX_T1_021` | PASS | Debt ratio `25.36%`, current ratio `258.77%` |
+| `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` plus risk narrative |
+| `KBF_T1_017` | PASS | NIM difference `0.1%` |
+| `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` |
+| `SKH_T1_060` | FAIL | Remaining role/denominator binding residual after `distinct_ratio_roles` reflection |
+
+### Interpretation
+
+- The structural expanded slice improved from `7 / 9` to `8 / 9`; the only
+  remaining numeric failure is `SKH_T1_060`.
+- `POS_T1_057` is no longer a structural residual after the focused closure,
+  but the plain counterpart remains the older failing baseline until rerun.
+- `SKH_T1_060` should be treated as the next hard-case engineering target:
+  the run recovered most debt and asset values, then failed the final
+  role/denominator binding check.
 
 ## Post-Refactor Operand Filtering Separator Smoke (2026-06-18)
 
@@ -153,8 +213,9 @@ Shared residuals:
 
 ### Interpretation
 
-- The expanded slice is no longer a stop-line: structural cleared the
-  documented `7 / 9` rule and the plain rerun provides a current baseline.
+- At the time, the expanded slice was no longer a stop-line: structural cleared
+  the documented `7 / 9` rule and the plain rerun established the `4 / 9`
+  baseline that later structural refreshes still compare against.
 - The result supports a narrow structural-representation claim around scale,
   denominator, and row-binding preservation. It does not support a claim that
   the benchmark is fully solved.
@@ -214,9 +275,10 @@ Shared residuals:
 
 ### Interpretation
 
-- This closes the focused `KBF_T2_018` public projection bug. The follow-up
-  expanded ablation refresh confirmed that the structural full-system slice
-  now reaches `7 / 9` and justifies the plain baseline comparison.
+- This closed the focused `KBF_T2_018` public projection bug. The immediate
+  follow-up expanded ablation refresh confirmed that the structural
+  full-system slice reached `7 / 9` and justified the plain baseline
+  comparison. A later 2026-06-18 structural refresh improved this to `8 / 9`.
 
 ## SKI Source-Stated Growth Repair and Narrative Pruning (2026-06-16)
 
