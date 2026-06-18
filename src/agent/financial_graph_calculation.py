@@ -176,6 +176,26 @@ class _AggregateMutableState(NamedTuple):
     def selected_claim_ids(self) -> List[str]:
         return self.synthesis_state.selected_claim_ids
 
+    def with_updates(
+        self,
+        *,
+        ordered_results: Optional[List[Dict[str, Any]]] = None,
+        aggregate_projection: Optional[Dict[str, Any]] = None,
+        final_answer: Optional[str] = None,
+        selected_claim_ids: Optional[List[str]] = None,
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> "_AggregateMutableState":
+        synthesis_state = self.synthesis_state._replace(
+            ordered_results=self.ordered_results if ordered_results is None else ordered_results,
+            aggregate_projection=self.aggregate_projection if aggregate_projection is None else aggregate_projection,
+            final_answer=self.final_answer if final_answer is None else final_answer,
+            selected_claim_ids=self.selected_claim_ids if selected_claim_ids is None else selected_claim_ids,
+        )
+        return _AggregateMutableState(
+            synthesis_state,
+            self.evidence_items if evidence_items is None else evidence_items,
+        )
+
 
 def _inline_unit_match_has_right_boundary(
     text: str,
@@ -5329,31 +5349,6 @@ class FinancialAgentCalculationMixin:
         )
         return _AggregateMutableState(synthesis_state, evidence_items), True
 
-    def _sync_mutable_aggregate_state(
-        self,
-        mutable_state: _AggregateMutableState,
-        *,
-        ordered_results: Optional[List[Dict[str, Any]]] = None,
-        aggregate_projection: Optional[Dict[str, Any]] = None,
-        final_answer: Optional[str] = None,
-        selected_claim_ids: Optional[List[str]] = None,
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> _AggregateMutableState:
-        synthesis_state = mutable_state.synthesis_state._replace(
-            ordered_results=mutable_state.ordered_results if ordered_results is None else ordered_results,
-            aggregate_projection=mutable_state.aggregate_projection
-            if aggregate_projection is None
-            else aggregate_projection,
-            final_answer=mutable_state.final_answer if final_answer is None else final_answer,
-            selected_claim_ids=mutable_state.selected_claim_ids
-            if selected_claim_ids is None
-            else selected_claim_ids,
-        )
-        return _AggregateMutableState(
-            synthesis_state,
-            mutable_state.evidence_items if evidence_items is None else evidence_items,
-        )
-
     def _replace_mutable_aggregate_results(
         self,
         mutable_state: _AggregateMutableState,
@@ -5411,7 +5406,7 @@ class FinancialAgentCalculationMixin:
 
         def _sync_state(**updates: Any) -> None:
             nonlocal mutable_state
-            mutable_state = self._sync_mutable_aggregate_state(mutable_state, **updates)
+            mutable_state = mutable_state.with_updates(**updates)
             _sync_locals()
 
         def _apply_candidate(candidate_answer: str, **kwargs: Any) -> None:
@@ -18966,7 +18961,7 @@ class FinancialAgentCalculationMixin:
 
         def _sync_state(**updates: Any) -> None:
             nonlocal mutable_state
-            mutable_state = self._sync_mutable_aggregate_state(mutable_state, **updates)
+            mutable_state = mutable_state.with_updates(**updates)
             _sync_aggregate_locals()
 
         aligned_ordered_results = self._align_lookup_results_with_dependency_projection(
