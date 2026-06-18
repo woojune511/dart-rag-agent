@@ -5416,7 +5416,11 @@ class FinancialAgentCalculationMixin:
             complete_numeric_answer = slot_based_difference_answer
             planner_feedback = ""
             deterministic_feedback = ""
-        if has_narrative_summary and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
+        if (
+            has_narrative_summary
+            and not supported_aggregate_answer
+            and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+        ):
             final_answer = self._ensure_complete_growth_numeric_answer(
                 final_answer,
                 ordered_results,
@@ -5523,7 +5527,7 @@ class FinancialAgentCalculationMixin:
                         query=str(state.get("query") or ""),
                     ),
                 )
-        if not self._answer_satisfies_growth_narrative_intent(
+        if not supported_aggregate_answer and not self._answer_satisfies_growth_narrative_intent(
             query=str(state.get("query") or ""),
             answer=composition_state.final_answer,
             ordered_results=ordered_results,
@@ -6117,6 +6121,24 @@ class FinancialAgentCalculationMixin:
                 or repaired_answer
                 or aggregate_state.final_answer
             )
+            if self._answer_covers_numeric_projection(
+                aggregate_state.final_answer,
+                aggregate_state.ordered_results,
+            ) and (
+                not self._answer_covers_numeric_projection(
+                    repaired_answer,
+                    aggregate_state.ordered_results,
+                )
+                or not self._answer_has_numeric_material_outside_reference(
+                    aggregate_state.final_answer,
+                    repaired_answer,
+                )
+            ):
+                aggregate_projection["calculation_result"] = {
+                    **repaired_result,
+                    "formatted_result": aggregate_state.final_answer,
+                }
+                return aggregate_state._replace(aggregate_projection=aggregate_projection)
             replacement_answer = self._complete_numeric_projection_replacement_answer(
                 final_answer=repaired_answer,
                 ordered_results=aggregate_state.ordered_results,
@@ -6224,6 +6246,8 @@ class FinancialAgentCalculationMixin:
         )
         if not runtime_answer:
             return aggregate_projection, final_answer
+        if self._answer_covers_numeric_projection(final_answer, ordered_results):
+            return aggregate_projection, final_answer
         final_answer = runtime_answer
         aggregate_projection["calculation_operands"] = runtime_operands
         aggregate_projection["calculation_plan"] = runtime_plan
@@ -6292,6 +6316,23 @@ class FinancialAgentCalculationMixin:
                 for answer_candidate in answer_candidates
             )
             for numeric_candidate in numeric_candidates
+        )
+
+    def _answer_has_numeric_material_outside_reference(
+        self,
+        answer: str,
+        reference_answer: str,
+    ) -> bool:
+        answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+        reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference_answer or "")))
+        if not answer_candidates or not reference_candidates:
+            return False
+        return any(
+            not any(
+                numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
+                for reference_candidate in reference_candidates
+            )
+            for answer_candidate in answer_candidates
         )
 
     def _evidence_supports_final_answer_numeric_material(
@@ -8249,6 +8290,23 @@ class FinancialAgentCalculationMixin:
             metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
             if metric_family.startswith("concept_"):
                 operation_family = metric_family.removeprefix("concept_")
+            elif metric_family.endswith("_ratio"):
+                operation_family = "ratio"
+            elif metric_family.endswith("_growth_rate"):
+                operation_family = "growth_rate"
+            elif metric_family.endswith("_difference"):
+                operation_family = "difference"
+            elif metric_family.endswith("_sum"):
+                operation_family = "sum"
+        operation_aliases = {
+            "divide": "ratio",
+            "division": "ratio",
+            "subtract": "difference",
+            "subtraction": "difference",
+            "add": "sum",
+            "addition": "sum",
+        }
+        operation_family = operation_aliases.get(operation_family, operation_family)
         return operation_family
 
     def _aggregate_result_signature(self, row: Dict[str, Any]) -> str:
@@ -10853,17 +10911,54 @@ class FinancialAgentCalculationMixin:
             except (TypeError, ValueError):
                 continue
 
-        enriched_cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
+        enriched_cells = [
+            {
+                **cell,
+                "_report_year": metadata.get("year"),
+                "_sibling_cells": [dict(item) for item in cells],
+            }
+            for cell in cells
+        ]
         value_role = _normalise_spaces(str(row.get("value_role") or metadata.get("value_role") or "")).lower()
         aggregation_stage = _normalise_spaces(
             str(row.get("aggregation_stage") or metadata.get("aggregation_stage") or "")
         ).lower()
-        selected_cell: Optional[Dict[str, Any]] = None
-        if (
+        current_raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+        current_value = row.get("normalized_value")
+        prefers_aggregate_cell = bool(
             value_role == "aggregate"
             or aggregation_stage in {"direct", "final", "subtotal"}
             or _operand_prefers_aggregate_value_role(row)
+        )
+        period_specific_cell_selection_required = bool(
+            operand_spec.get("period")
+            and len(enriched_cells) > 1
+            and any(
+                re.search(
+                    r"(?:19|20)\d{2}|current|prior",
+                    _structured_cell_period_text(
+                        cell,
+                        query_years,
+                        _operand_period_focus(operand_spec, "unknown"),
+                    ),
+                    flags=re.IGNORECASE,
+                )
+                for cell in enriched_cells
+            )
+        )
+        if (
+            current_raw_value
+            and current_value is not None
+            and not prefers_aggregate_cell
+            and not period_specific_cell_selection_required
         ):
+            current_compact = re.sub(r"[\s,()]", "", current_raw_value)
+            for cell in enriched_cells:
+                cell_value = _normalise_spaces(str(cell.get("value_text") or ""))
+                if current_compact and current_compact == re.sub(r"[\s,()]", "", cell_value):
+                    return row
+        selected_cell: Optional[Dict[str, Any]] = None
+        if prefers_aggregate_cell:
             selected_cell = _select_aggregate_structured_cell(
                 enriched_cells,
                 operand=operand_spec,
@@ -10885,7 +10980,6 @@ class FinancialAgentCalculationMixin:
         normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
         if normalized_value is None:
             return row
-        current_value = row.get("normalized_value")
         try:
             if current_value is not None and abs(float(current_value) - float(normalized_value)) <= 1e-6:
                 return row
@@ -15794,18 +15888,17 @@ class FinancialAgentCalculationMixin:
                 direct_structured_rows,
             )
         )
-        period_direct_context_should_override_dependency = bool(
+        period_dependency_should_block_direct_context = bool(
             operation_family in {"difference", "growth_rate"}
-            and direct_rows_cover_required_operands
-            and direct_rows_have_coherent_context
+            and dependency_rows_cover_required_operands
             and direct_period_context_conflicts_with_dependency
         )
         prefer_direct_rows_over_dependency = bool(
             operation_family in {"ratio", "difference", "growth_rate"}
             and direct_rows_cover_required_operands
+            and not period_dependency_should_block_direct_context
             and (
                 reconciliation_evidence
-                or period_direct_context_should_override_dependency
                 or (
                     operation_family in {"difference", "growth_rate"}
                     and direct_rows_have_coherent_context
@@ -18554,9 +18647,23 @@ class FinancialAgentCalculationMixin:
         supported_aggregate_answer = self._supported_aggregate_subtask_answer(ordered_results)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
-        if complete_numeric_answer and self._complete_numeric_answer_can_replace_final(
-            complete_numeric_answer,
-            ordered_results,
+        if (
+            complete_numeric_answer
+            and not supported_aggregate_answer
+            and (
+                not self._answer_covers_numeric_projection(fallback_answer, ordered_results)
+                or (
+                    self._answer_covers_numeric_projection(complete_numeric_answer, ordered_results)
+                    and self._answer_has_numeric_material_outside_reference(
+                        fallback_answer,
+                        complete_numeric_answer,
+                    )
+                )
+            )
+            and self._complete_numeric_answer_can_replace_final(
+                complete_numeric_answer,
+                ordered_results,
+            )
         ):
             fallback_answer = complete_numeric_answer
         lookup_list_answer = self._compose_lookup_list_numeric_answer(ordered_results)
@@ -20099,7 +20206,7 @@ class FinancialAgentCalculationMixin:
                 query=str(state.get("query") or ""),
                 evidence_items=aggregate_evidence_items,
             )
-            if final_ratio_answer:
+            if final_ratio_answer and not self._answer_covers_numeric_projection(final_answer, ordered_results):
                 final_answer = final_ratio_answer
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
             _sync_state(ordered_results=ordered_results, aggregate_projection=aggregate_projection, final_answer=final_answer)
