@@ -4284,6 +4284,63 @@ class OperationContractTests(unittest.TestCase):
             )
         )
 
+    def test_lookup_producer_task_keeps_noncanonical_aggregate_concept_policy(self) -> None:
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            task = _build_lookup_producer_task_from_binding(
+                binding={
+                    "role": "numerator_1",
+                    "concept": "short_term_borrowings",
+                    "period": "2023",
+                    "label": "단기차입금",
+                },
+                consumer_task={
+                    "query": "2023년 차입금 구성요소 합계를 계산해 줘.",
+                    "metric_label": "차입금 구성요소 합계",
+                    "operation_family": "sum",
+                    "required_operands": [
+                        {"label": "단기차입금", "role": "numerator_1", "concept": "short_term_borrowings"}
+                    ],
+                    "constraints": {"consolidation_scope": "consolidated", "period_focus": "current"},
+                },
+                next_task_id="task_2",
+                report_scope={"company": "example", "year": 2023, "report_type": "사업보고서"},
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        operand = task["required_operands"][0]
+        self.assertEqual(task["metric_family"], "concept_lookup")
+        self.assertEqual(operand["concept"], "short_term_borrowings")
+        self.assertEqual(operand["binding_policy"]["prefer_value_roles"][:1], ["aggregate"])
+        self.assertEqual(operand["binding_policy"]["prefer_aggregation_stages"][:1], ["final"])
+
+    def test_required_operand_completion_fills_missing_concept_policy(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        original_singleton = ontology_module._ONTOLOGY_SINGLETON
+        try:
+            ontology_module._ONTOLOGY_SINGLETON = FinancialOntologyManager(
+                Path("src/config/financial_ontology_concepts_v3.draft.json")
+            )
+            operand = agent._complete_required_operand_from_ontology(
+                {
+                    "label": "2023년 단기차입금",
+                    "concept": "short_term_borrowings",
+                    "role": "numerator_1",
+                    "period": "2023",
+                }
+            )
+        finally:
+            ontology_module._ONTOLOGY_SINGLETON = original_singleton
+
+        self.assertEqual(operand["binding_policy"]["prefer_value_roles"][:1], ["aggregate"])
+        self.assertEqual(operand["binding_policy"]["prefer_aggregation_stages"][:1], ["final"])
+        self.assertIn("단기차입금", operand["aliases"])
+        self.assertIn("notes", operand["preferred_statement_types"])
+
     def test_direct_lookup_row_uses_aggregate_cell_when_operand_policy_prefers_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         row = agent._lookup_row_from_direct_structured_evidence(
@@ -4328,6 +4385,52 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(row["raw_value"], "300")
         self.assertEqual(row["aggregate_label"], "제품과 용역 합계")
+
+    def test_direct_lookup_row_uses_aggregate_cell_when_evidence_row_is_aggregate(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        row = agent._lookup_row_from_direct_structured_evidence(
+            {
+                "label": "selected borrowing",
+                "concept": "selected_borrowing",
+                "role": "primary_value",
+            },
+            {
+                "evidence_id": "table::value:0",
+                "source_anchor": "[example]",
+                "metadata": {
+                    "year": 2023,
+                    "unit_hint": "백만원",
+                    "row_label": "selected borrowing total",
+                    "semantic_label": "selected borrowing total",
+                    "value_role": "aggregate",
+                    "aggregation_stage": "direct",
+                    "aggregate_label": "selected borrowing total",
+                    "structured_cells": [
+                        {
+                            "value_text": "100",
+                            "unit_hint": "백만원",
+                            "column_headers": ["item", "selected borrowing", "detail A"],
+                            "value_role": "detail",
+                            "aggregation_stage": "none",
+                        },
+                        {
+                            "value_text": "300",
+                            "unit_hint": "백만원",
+                            "column_headers": ["item", "selected borrowing", "selected borrowing total"],
+                            "value_role": "aggregate",
+                            "aggregation_stage": "direct",
+                            "aggregate_label": "selected borrowing total",
+                        },
+                    ],
+                },
+            },
+            index=1,
+        )
+
+        self.assertEqual(row["raw_value"], "300")
+        self.assertEqual(row["value_role"], "aggregate")
+        self.assertEqual(row["aggregation_stage"], "direct")
+        self.assertEqual(row["aggregate_label"], "selected borrowing total")
 
     def test_table_label_lookup_requires_structured_context_for_aggregate_policy(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -4392,6 +4495,62 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(structured["raw_value"], "300")
         self.assertEqual(structured["value_role"], "aggregate")
         self.assertEqual(structured["aggregation_stage"], "final")
+
+    def test_table_label_lookup_scores_final_aggregate_above_detail(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        evidence = {
+            "evidence_id": "ev_structured",
+            "source_anchor": "[example]",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "백만원",
+                "row_label": "selected borrowing",
+                "semantic_label": "selected borrowing",
+                "table_source_id": "table_1",
+                "table_value_labels_text": "\n".join(
+                    [
+                        "selected borrowing 100",
+                        "selected borrowing total 300",
+                    ]
+                ),
+                "structured_cells": [
+                    {
+                        "value_text": "100",
+                        "unit_hint": "백만원",
+                        "column_headers": ["selected borrowing", "detail A"],
+                        "value_role": "detail",
+                        "aggregation_stage": "none",
+                    },
+                    {
+                        "value_text": "300",
+                        "unit_hint": "백만원",
+                        "column_headers": ["selected borrowing", "selected borrowing total"],
+                        "value_role": "aggregate",
+                        "aggregation_stage": "final",
+                        "aggregate_label": "selected borrowing total",
+                    },
+                ],
+            },
+        }
+
+        slot = agent._lookup_value_from_table_label_metadata(
+            {
+                "label": "selected borrowing",
+                "concept": "selected_borrowing",
+                "role": "primary_value",
+                "binding_policy": {
+                    "prefer_value_roles": ["aggregate"],
+                    "prefer_aggregation_stages": ["final", "direct", "subtotal"],
+                },
+            },
+            evidence,
+        )
+        score = agent._table_label_metadata_lookup_score(slot, evidence)
+
+        self.assertEqual(slot["raw_value"], "300")
+        self.assertEqual(slot["value_role"], "aggregate")
+        self.assertEqual(slot["aggregation_stage"], "final")
+        self.assertGreater(score, 10.0)
 
     def test_required_operand_assembly_prefers_aggregate_table_label_value_with_structured_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -4753,6 +4912,109 @@ class OperationContractTests(unittest.TestCase):
         self.assertFalse(_candidate_matches_operand_target_year(prior_candidate, current_operand, [2023]))
         self.assertTrue(_candidate_matches_operand_target_year(current_candidate, current_operand, [2023]))
         self.assertTrue(_candidate_matches_operand_target_year(prior_candidate, prior_operand, [2023]))
+
+    def test_candidate_score_respects_operand_aggregate_stage_order(self) -> None:
+        operand = {
+            "label": "selected borrowing",
+            "concept": "selected_borrowing",
+            "role": "primary_value",
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+            },
+        }
+
+        def candidate(stage: str, value_role: str = "aggregate") -> dict:
+            return {
+                "candidate_kind": "structured_value",
+                "text": f"selected borrowing total | {stage}",
+                "metadata": {
+                    "row_label": "selected borrowing total",
+                    "semantic_label": "selected borrowing total",
+                    "statement_type": "notes",
+                    "consolidation_scope": "consolidated",
+                    "period_focus": "current",
+                    "year": 2023,
+                    "value_role": value_role,
+                    "aggregation_stage": stage,
+                    "aggregate_label": "selected borrowing total" if value_role == "aggregate" else "",
+                    "structured_cells": [
+                        {
+                            "column_headers": ["selected borrowing total"],
+                            "value_text": "100",
+                            "unit_hint": "백만원",
+                            "value_role": value_role,
+                            "aggregation_stage": stage,
+                        }
+                    ],
+                },
+            }
+
+        final_score = _score_operand_candidate(
+            candidate("final"),
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+        subtotal_score = _score_operand_candidate(
+            candidate("subtotal"),
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+        detail_score = _score_operand_candidate(
+            candidate("none", value_role="detail"),
+            operand=operand,
+            preferred_statement_types=["notes"],
+            constraints={"consolidation_scope": "consolidated", "period_focus": "current"},
+            query_years=[2023],
+        )
+
+        self.assertGreater(final_score, subtotal_score)
+        self.assertGreater(subtotal_score, detail_score)
+
+    def test_candidate_score_prefers_direct_label_value_row_over_multicell_detail(self) -> None:
+        operand = {"label": "target metric", "role": "primary_value", "period": "2023"}
+        score_kwargs = {
+            "operand": operand,
+            "preferred_statement_types": [],
+            "constraints": {"period_focus": "current"},
+            "query_years": [2023],
+            "report_scope": {},
+        }
+        direct_row = {
+            "candidate_kind": "evidence_row",
+            "metadata": {
+                "year": 2023,
+                "row_label": "target metric",
+                "semantic_label": "target metric",
+                "period_focus": "current",
+                "direct_row_from_table_value_labels": True,
+                "structured_cells": [
+                    {"value_text": "100", "unit_hint": "million", "column_headers": ["value_1"]}
+                ],
+            },
+        }
+        multicell_row = {
+            "candidate_kind": "evidence_row",
+            "metadata": {
+                "year": 2023,
+                "row_label": "target metric",
+                "semantic_label": "target metric",
+                "period_focus": "current",
+                "structured_cells": [
+                    {"value_text": "25", "unit_hint": "million", "column_headers": ["detail A"]},
+                    {"value_text": "75", "unit_hint": "million", "column_headers": ["detail B"]},
+                ],
+            },
+        }
+
+        direct_score = _score_operand_candidate(direct_row, **score_kwargs)
+        multicell_score = _score_operand_candidate(multicell_row, **score_kwargs)
+
+        self.assertGreater(direct_score, multicell_score)
 
     def test_unknown_separate_note_candidate_is_rejected_for_consolidated_lookup(self) -> None:
         operand = {

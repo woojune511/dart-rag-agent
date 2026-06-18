@@ -535,6 +535,13 @@ class FinancialAgentReconciliationMixin:
             "table_source_id": metadata.get("table_source_id"),
             "statement_type": metadata.get("statement_type"),
             "consolidation_scope": metadata.get("consolidation_scope"),
+            "value_role": _normalise_spaces(str(selected_cell.get("value_role") or metadata.get("value_role") or "")),
+            "aggregation_stage": _normalise_spaces(
+                str(selected_cell.get("aggregation_stage") or metadata.get("aggregation_stage") or "")
+            ),
+            "aggregate_label": _normalise_spaces(
+                str(selected_cell.get("aggregate_label") or metadata.get("aggregate_label") or "")
+            ),
             "matched_operand_label": str(operand.get("label") or "").strip(),
             "matched_operand_concept": str(operand.get("concept") or "").strip(),
             "matched_operand_role": str(operand.get("role") or "").strip(),
@@ -1172,6 +1179,8 @@ class FinancialAgentReconciliationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
+        if hasattr(self, "_complete_required_operand_from_ontology"):
+            required_operands = [self._complete_required_operand_from_ontology(item) for item in required_operands]
         operand_map = {
             (
                 str(item.get("label") or "").strip(),
@@ -1310,6 +1319,8 @@ class FinancialAgentReconciliationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
+        if hasattr(self, "_complete_required_operand_from_ontology"):
+            required_operands = [self._complete_required_operand_from_ontology(item) for item in required_operands]
         if not required_operands:
             return []
 
@@ -1423,12 +1434,29 @@ class FinancialAgentReconciliationMixin:
                     if not cells:
                         continue
                     cells = [{**cell, "_report_year": current_metadata.get("year")} for cell in cells]
-                    current_cell = _select_structured_cell(
-                        cells,
-                        operand=operand,
-                        query_years=query_years,
-                        period_focus=_operand_period_focus(operand, period_focus),
-                    )
+                    current_cell = None
+                    current_value_role = _normalise_spaces(str(current_metadata.get("value_role") or "")).lower()
+                    current_aggregation_stage = _normalise_spaces(
+                        str(current_metadata.get("aggregation_stage") or "")
+                    ).lower()
+                    if (
+                        current_value_role == "aggregate"
+                        or current_aggregation_stage in {"direct", "final", "subtotal"}
+                        or _operand_prefers_aggregate_value_role(operand)
+                    ):
+                        current_cell = _select_aggregate_structured_cell(
+                            cells,
+                            operand=operand,
+                            query_years=query_years,
+                            period_focus=_operand_period_focus(operand, period_focus),
+                        )
+                    if not current_cell:
+                        current_cell = _select_structured_cell(
+                            cells,
+                            operand=operand,
+                            query_years=query_years,
+                            period_focus=_operand_period_focus(operand, period_focus),
+                        )
                     if not current_cell:
                         continue
                     if not _candidate_satisfies_direct_acceptance_contract(
@@ -1524,12 +1552,29 @@ class FinancialAgentReconciliationMixin:
                         if not cells:
                             continue
                         cells = [{**cell, "_report_year": current_metadata.get("year")} for cell in cells]
-                        current_cell = _select_structured_cell(
-                            cells,
-                            operand=operand,
-                            query_years=query_years,
-                            period_focus=_operand_period_focus(operand, period_focus),
-                        )
+                        current_cell = None
+                        current_value_role = _normalise_spaces(str(current_metadata.get("value_role") or "")).lower()
+                        current_aggregation_stage = _normalise_spaces(
+                            str(current_metadata.get("aggregation_stage") or "")
+                        ).lower()
+                        if (
+                            current_value_role == "aggregate"
+                            or current_aggregation_stage in {"direct", "final", "subtotal"}
+                            or _operand_prefers_aggregate_value_role(operand)
+                        ):
+                            current_cell = _select_aggregate_structured_cell(
+                                cells,
+                                operand=operand,
+                                query_years=query_years,
+                                period_focus=_operand_period_focus(operand, period_focus),
+                            )
+                        if not current_cell:
+                            current_cell = _select_structured_cell(
+                                cells,
+                                operand=operand,
+                                query_years=query_years,
+                                period_focus=_operand_period_focus(operand, period_focus),
+                            )
                         if not current_cell:
                             continue
                         direct_accept = _candidate_satisfies_direct_acceptance_contract(

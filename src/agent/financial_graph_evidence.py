@@ -42,6 +42,7 @@ from src.agent.financial_graph_retrieval_budget import (
 from src.config import get_financial_ontology
 from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
+    CALCULATION_SLOT_POLICY,
     KOREAN_COUNT_UNIT_RE_FRAGMENT,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
@@ -4037,8 +4038,18 @@ class FinancialAgentEvidenceMixin:
                                 if line_value:
                                     matched_context_values.append(line_value)
                         if matched_context_values:
-                            raw_value = matched_context_values[-1] if prefers_aggregate else matched_context_values[0]
-                            if prefers_aggregate and len(matched_context_values) > 1:
+                            period_presence_pattern = str(
+                                CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT
+                            )
+                            table_has_period_columns = bool(
+                                _normalise_spaces(str(metadata.get("period_labels") or ""))
+                                or re.search(
+                                    period_presence_pattern,
+                                    _normalise_spaces(str(metadata.get("table_header_context") or "")),
+                                )
+                            )
+                            raw_value = matched_context_values[-1] if prefers_aggregate and not table_has_period_columns else matched_context_values[0]
+                            if prefers_aggregate and not table_has_period_columns and len(matched_context_values) > 1:
                                 inferred_value_role = "aggregate"
                                 inferred_aggregation_stage = "final"
                         if table_value_context_match and not raw_value:

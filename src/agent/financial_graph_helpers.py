@@ -160,6 +160,8 @@ __all__ = [
     '_query_years_from_state',
     '_structured_cell_period_text',
     '_select_structured_cell',
+    '_select_aggregate_structured_cell',
+    '_operand_prefers_aggregate_value_role',
     '_operand_target_years',
     '_operand_period_focus',
     '_score_structured_cell',
@@ -5497,11 +5499,9 @@ def _build_lookup_producer_task_from_binding(
     binding_policy = dict(operand.get("binding_policy") or {})
     if explicit_binding_policy:
         binding_policy.update(explicit_binding_policy)
-    else:
-        # Producer lookups should be free to bind to canonical statement rows
-        # when only concept-default aggregate preferences are present. If the
-        # consumer dependency binding explicitly carries aggregate policy, keep
-        # it because that is part of the downstream operand contract.
+    elif _lookup_prefers_canonical_statement_rows(operand):
+        # Canonical statement-row lookups should be free to bind to the statement
+        # row itself when only concept-default aggregate preferences are present.
         binding_policy.pop("prefer_value_roles", None)
         binding_policy.pop("prefer_aggregation_stages", None)
     binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
@@ -6308,6 +6308,106 @@ def _select_structured_cell(
         reverse=True,
     )
     return ranked_cells[0] if ranked_cells else None
+
+
+def _operand_prefers_aggregate_value_role(operand: Dict[str, Any]) -> bool:
+    binding_policy = dict(operand.get("binding_policy") or {})
+    preferred_value_roles = [
+        _normalise_spaces(str(item)).lower()
+        for item in (binding_policy.get("prefer_value_roles") or [])
+        if _normalise_spaces(str(item))
+    ]
+    if not preferred_value_roles:
+        return False
+    return preferred_value_roles[0] == "aggregate" or (
+        "aggregate" in preferred_value_roles and "detail" not in preferred_value_roles
+    )
+
+
+def _select_aggregate_structured_cell(
+    cells: List[Dict[str, Any]],
+    *,
+    operand: Dict[str, Any],
+    query_years: List[int],
+    period_focus: str,
+) -> Optional[Dict[str, Any]]:
+    if not cells:
+        return None
+
+    aggregate_tokens = tuple(
+        str(item)
+        for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("aggregate_tokens") or ())
+        if str(item)
+    )
+
+    def _cell_aggregate_rank(cell: Dict[str, Any]) -> Optional[float]:
+        raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
+        raw_unit = _normalise_spaces(str(cell.get("unit_hint") or ""))
+        normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+        if normalized_value is None:
+            return None
+
+        headers = [
+            _normalise_spaces(str(item))
+            for item in (cell.get("column_headers") or [])
+            if _normalise_spaces(str(item))
+        ]
+        header_text = _normalise_spaces(" ".join(headers))
+        value_role = _normalise_spaces(str(cell.get("value_role") or "")).lower()
+        aggregation_stage = _normalise_spaces(str(cell.get("aggregation_stage") or "")).lower()
+        aggregate_role = _normalise_spaces(str(cell.get("aggregate_role") or "")).lower()
+        aggregate_label = _normalise_spaces(str(cell.get("aggregate_label") or ""))
+        aggregate_surface = _normalise_spaces(" ".join([header_text, aggregate_label, aggregate_role]))
+        aggregate_like = (
+            value_role == "aggregate"
+            or aggregation_stage in {"final", "direct", "subtotal"}
+            or aggregate_role in {"direct_total", "subtotal", "final_total"}
+            or bool(aggregate_label)
+            or any(token in aggregate_surface for token in aggregate_tokens)
+        )
+        if not aggregate_like:
+            return None
+
+        score = _score_structured_cell(
+            cell,
+            query_years=_operand_target_years(operand, query_years),
+            period_focus=period_focus,
+            operand=operand,
+        )
+        if value_role == "aggregate":
+            score += 6.0
+        if aggregation_stage == "final":
+            score += 5.0
+        elif aggregation_stage == "direct":
+            score += 4.5
+        elif aggregation_stage == "subtotal":
+            score += 3.0
+        if aggregate_role in {"final_total", "direct_total"}:
+            score += 2.0
+        elif aggregate_role == "subtotal":
+            score += 1.0
+        if aggregate_label:
+            score += 1.5
+        if _operand_text_match(aggregate_surface, operand):
+            score += 4.0
+        try:
+            score += min(float(cell.get("column_index") or 0), 100.0) / 1000.0
+        except (TypeError, ValueError):
+            pass
+        return score
+
+    ranked_cells: List[tuple[float, Dict[str, Any]]] = []
+    for cell in cells:
+        enriched = dict(cell)
+        enriched["_sibling_cells"] = [dict(item) for item in cells]
+        rank = _cell_aggregate_rank(enriched)
+        if rank is None:
+            continue
+        ranked_cells.append((rank, enriched))
+    if not ranked_cells:
+        return None
+    ranked_cells.sort(key=lambda item: item[0], reverse=True)
+    return ranked_cells[0][1]
 
 
 def _operand_target_years(operand: Dict[str, Any], query_years: List[int]) -> List[int]:
@@ -8776,6 +8876,21 @@ def _score_operand_candidate(
         elif direct_match_strength >= 1.5:
             score += 0.5
 
+    structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
+    numeric_cell_count = 0
+    for cell in structured_cells:
+        raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
+        raw_unit = _normalise_spaces(str(cell.get("unit_hint") or metadata.get("unit_hint") or ""))
+        normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
+        if normalized_value is not None:
+            numeric_cell_count += 1
+    if (
+        bool(metadata.get("direct_row_from_table_value_labels"))
+        and numeric_cell_count == 1
+        and _operand_text_match(" ".join(part for part in (row_label, semantic_label) if part), operand)
+    ):
+        score += 4.0
+
     value_role = _candidate_value_role(candidate)
     aggregation_stage = _candidate_aggregation_stage(candidate)
     if aggregation_stage == "final":
@@ -8801,6 +8916,28 @@ def _score_operand_candidate(
         score += 2.0
     elif value_role == "aggregate" and aggregation_stage == "subtotal" and _operand_text_match(aggregate_signal, operand):
         score += 0.75
+    preferred_value_roles = [
+        _normalise_spaces(str(item)).lower()
+        for item in (operand_binding_policy.get("prefer_value_roles") or [])
+        if _normalise_spaces(str(item))
+    ]
+    preferred_aggregation_stages = [
+        _normalise_spaces(str(item)).lower()
+        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
+        if _normalise_spaces(str(item))
+    ]
+    if value_role and value_role in preferred_value_roles:
+        try:
+            score += max(3.0 - (0.75 * preferred_value_roles.index(value_role)), 0.5)
+        except ValueError:
+            pass
+    if aggregation_stage and aggregation_stage in preferred_aggregation_stages:
+        try:
+            score += max(4.0 - (0.75 * preferred_aggregation_stages.index(aggregation_stage)), 0.5)
+        except ValueError:
+            pass
+    if value_role == "detail" and _operand_prefers_aggregate_value_role(operand):
+        score -= 1.5
 
     if _candidate_has_numeric_value_signal(candidate):
         score += 1.0

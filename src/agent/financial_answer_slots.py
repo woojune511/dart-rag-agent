@@ -103,6 +103,11 @@ def build_operand_value_slot(
         "source_row_ids": source_row_ids,
         "source_anchor": str(row.get("source_anchor") or ""),
         "consolidation_scope": str(row.get("consolidation_scope") or ""),
+        "statement_type": str(row.get("statement_type") or ""),
+        "table_source_id": str(row.get("table_source_id") or ""),
+        "value_role": str(row.get("value_role") or ""),
+        "aggregation_stage": str(row.get("aggregation_stage") or ""),
+        "aggregate_label": str(row.get("aggregate_label") or ""),
         "stated_change_raw_value": str(row.get("stated_change_raw_value") or ""),
         "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
     }

@@ -46,6 +46,7 @@ from src.agent import financial_graph_calculation_rendering as calculation_rende
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import (
     _collect_nested_result_evidence,
+    _concept_spec_for_key,
     _operand_row_has_material_numeric_payload,
     _operand_segment_label,
     _surface_match_variants,
@@ -1076,6 +1077,47 @@ class FinancialAgentCalculationMixin:
         )
         if not has_aggregate_numeric:
             return answer_text
+        ratio_component_slots: List[Dict[str, Any]] = []
+        for result_row in ordered_results:
+            if not isinstance(result_row, dict) or self._aggregate_result_operation_family(result_row) != "ratio":
+                continue
+            calculation_result = dict(result_row.get("calculation_result") or {})
+            answer_slots = dict(calculation_result.get("answer_slots") or {})
+            components_by_group = dict(answer_slots.get("components_by_group") or {})
+            for slots in components_by_group.values():
+                ratio_component_slots.extend(dict(slot) for slot in list(slots or []) if isinstance(slot, dict))
+
+        def _lookup_conflicts_with_ratio_component(result_row: Dict[str, Any]) -> bool:
+            if not ratio_component_slots:
+                return False
+            lookup_slot = self._aggregate_row_primary_answer_slot(result_row)
+            lookup_label = _normalise_spaces(str(lookup_slot.get("label") or result_row.get("metric_label") or ""))
+            if not lookup_label:
+                return False
+            lookup_unit = _normalise_spaces(str(lookup_slot.get("normalized_unit") or "")).upper()
+            lookup_value = lookup_slot.get("normalized_value")
+            try:
+                lookup_float = float(lookup_value)
+            except (TypeError, ValueError):
+                return False
+            for component in ratio_component_slots:
+                component_label = _normalise_spaces(str(component.get("label") or ""))
+                if not component_label:
+                    continue
+                if not _operand_text_match(component_label, {"label": lookup_label, "concept": ""}):
+                    continue
+                component_unit = _normalise_spaces(str(component.get("normalized_unit") or "")).upper()
+                if lookup_unit and component_unit and lookup_unit != component_unit:
+                    continue
+                try:
+                    component_float = float(component.get("normalized_value"))
+                except (TypeError, ValueError):
+                    continue
+                tolerance = max(abs(component_float), abs(lookup_float), 1.0) * 5e-4
+                if abs(component_float - lookup_float) > tolerance:
+                    return True
+            return False
+
         missing_items: List[str] = []
         for row in ordered_results:
             if not isinstance(row, dict) or self._row_is_narrative_summary(row):
@@ -1086,6 +1128,8 @@ class FinancialAgentCalculationMixin:
                 str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
             ).lower()
             if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
+                continue
+            if _lookup_conflicts_with_ratio_component(row):
                 continue
             item_answer = self._lookup_numeric_item_answer(
                 row,
@@ -1113,6 +1157,7 @@ class FinancialAgentCalculationMixin:
         if not value_labels_text:
             return {}
         binding_policy = dict(operand.get("binding_policy") or {})
+        structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
         prefers_aggregate = bool(
             "aggregate"
             in {
@@ -1126,7 +1171,6 @@ class FinancialAgentCalculationMixin:
                 if _normalise_spaces(str(item))
             }
         )
-        structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
         if prefers_aggregate and not structured_cells:
             return {}
         surface_contract = dict(operand.get("surface_contract") or {})
@@ -1177,12 +1221,14 @@ class FinancialAgentCalculationMixin:
                     continue
                 if normalized_surface == normalized_label:
                     return True
+                if _operand_text_match(normalized_label, {"label": normalized_surface}):
+                    return True
                 if re.search(rf"(?<!\w){re.escape(normalized_label)}(?!\w)", normalized_surface):
                     return True
             return False
 
         matches: List[Dict[str, Any]] = []
-        for line in str(metadata.get("table_value_labels_text") or "").splitlines():
+        for line_index, line in enumerate(str(metadata.get("table_value_labels_text") or "").splitlines()):
             normalized_line = _normalise_spaces(line)
             if not normalized_line:
                 continue
@@ -1239,6 +1285,7 @@ class FinancialAgentCalculationMixin:
                     "_semantic_label": normalized_line,
                     "_matched_surface": matched_surface,
                     "_matched_line_label": matched_line_label,
+                    "_matched_line_index": line_index,
                 })
         if not matches:
             return {}
@@ -1284,7 +1331,74 @@ class FinancialAgentCalculationMixin:
             ),
             operand,
         )
-        if prefers_aggregate and len(candidate_pool) > 1 and not row_label_matches_operand:
+        if not row_label_matches_operand:
+            slot_policy = dict(CALCULATION_SLOT_POLICY)
+            leading_period_strip_pattern = str(slot_policy.get("leading_period_strip_pattern") or "")
+            periodless_operand = dict(operand)
+            for key in ("label", "name"):
+                value = _normalise_spaces(str(periodless_operand.get(key) or ""))
+                if value and leading_period_strip_pattern:
+                    periodless_operand[key] = _normalise_spaces(re.sub(leading_period_strip_pattern, " ", value))
+            aliases = []
+            for alias in list(periodless_operand.get("aliases") or []):
+                alias_text = _normalise_spaces(str(alias or ""))
+                if alias_text and leading_period_strip_pattern:
+                    alias_text = _normalise_spaces(re.sub(leading_period_strip_pattern, " ", alias_text))
+                if alias_text:
+                    aliases.append(alias_text)
+            if aliases:
+                periodless_operand["aliases"] = aliases
+            row_label_matches_operand = _operand_text_match(
+                _normalise_spaces(
+                    " ".join(
+                        str(value or "")
+                        for value in (
+                            metadata.get("row_label"),
+                            metadata.get("semantic_label"),
+                            metadata.get("aggregate_label"),
+                        )
+                    )
+                ),
+                periodless_operand,
+            )
+        if not row_label_matches_operand:
+            selected_line_label = _normalise_spaces(
+                str(selected.get("_matched_line_label") or selected.get("_matched_surface") or "")
+            )
+            if selected_line_label:
+                row_label_matches_operand = _operand_text_match(selected_line_label, operand)
+                if not row_label_matches_operand:
+                    periodless_selected_line_label = selected_line_label
+                    slot_policy = dict(CALCULATION_SLOT_POLICY)
+                    leading_period_strip_pattern = str(slot_policy.get("leading_period_strip_pattern") or "")
+                    if leading_period_strip_pattern:
+                        periodless_selected_line_label = _normalise_spaces(
+                            re.sub(leading_period_strip_pattern, " ", selected_line_label)
+                        )
+                    row_label_matches_operand = _operand_text_match(
+                        periodless_selected_line_label,
+                        periodless_operand if "periodless_operand" in locals() else operand,
+                    )
+        candidate_pool_from_single_line = len(
+            {
+                match.get("_matched_line_index")
+                for match in candidate_pool
+                if match.get("_matched_line_index") is not None
+            }
+        ) == 1
+        table_has_period_columns = bool(
+            len(metadata.get("period_labels") or []) > 1
+            or re.search(
+                str(CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT),
+                _normalise_spaces(str(metadata.get("table_header_context") or "")),
+            )
+        )
+        if (
+            prefers_aggregate
+            and len(candidate_pool) > 1
+            and not table_has_period_columns
+            and not (row_label_matches_operand and candidate_pool_from_single_line)
+        ):
             selected = candidate_pool[-1]
             selected["value_role"] = selected.get("value_role") or "aggregate"
             selected["aggregation_stage"] = selected.get("aggregation_stage") or "final"
@@ -1339,6 +1453,14 @@ class FinancialAgentCalculationMixin:
             score += 0.5
         if _normalise_spaces(str(slot.get("source_anchor") or evidence_item.get("source_anchor") or "")):
             score += 0.25
+        value_role = _normalise_spaces(str(slot.get("value_role") or "")).lower()
+        aggregation_stage = _normalise_spaces(str(slot.get("aggregation_stage") or "")).lower()
+        if value_role == "aggregate":
+            score += 2.0
+        if aggregation_stage == "final":
+            score += 2.5
+        elif aggregation_stage in {"direct", "subtotal"}:
+            score += 1.25
         if normalized_unit in {"", "UNKNOWN"}:
             score -= 1.5
         else:
@@ -1432,8 +1554,30 @@ class FinancialAgentCalculationMixin:
 
         value_role = _normalise_spaces(str(metadata.get("value_role") or ""))
         aggregation_stage = _normalise_spaces(str(metadata.get("aggregation_stage") or ""))
+        aggregate_label = _normalise_spaces(str(metadata.get("aggregate_label") or ""))
+        preferred_value_roles = {
+            _normalise_spaces(str(item)).lower()
+            for item in (binding_policy.get("prefer_value_roles") or [])
+            if _normalise_spaces(str(item))
+        }
+        preferred_aggregation_stages = {
+            _normalise_spaces(str(item)).lower()
+            for item in (binding_policy.get("prefer_aggregation_stages") or [])
+            if _normalise_spaces(str(item))
+        }
         if value_role == "adjustment":
             score -= 4.0
+        aggregate_like = bool(
+            value_role == "aggregate"
+            or aggregation_stage in {"direct", "final", "subtotal"}
+            or aggregate_label
+        )
+        if aggregate_like and "aggregate" in preferred_value_roles:
+            score += 4.0
+        if aggregate_like and preferred_aggregation_stages and aggregation_stage in preferred_aggregation_stages:
+            score += 2.0
+        if value_role == "detail" and _operand_prefers_aggregate_value_role(operand):
+            score -= 1.5
         if aggregation_stage in {"direct", "final", "subtotal"}:
             score += 0.75
         return score
@@ -1455,6 +1599,28 @@ class FinancialAgentCalculationMixin:
             query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
             period_focus=_operand_period_focus(operand, "current"),
         )
+        metadata_value_role = _normalise_spaces(str(metadata.get("value_role") or "")).lower()
+        metadata_aggregation_stage = _normalise_spaces(str(metadata.get("aggregation_stage") or "")).lower()
+        if (
+            metadata_value_role == "aggregate"
+            or metadata_aggregation_stage in {"direct", "final", "subtotal"}
+            or _operand_prefers_aggregate_value_role(operand)
+        ):
+            aggregate_cells = [
+                cell
+                for cell in cells
+                if _normalise_spaces(str(cell.get("value_role") or "")).lower() == "aggregate"
+                or _normalise_spaces(str(cell.get("aggregation_stage") or "")).lower() in {"direct", "final", "subtotal"}
+                or _normalise_spaces(str(cell.get("aggregate_label") or ""))
+            ]
+            aggregate_selected_cell = _select_aggregate_structured_cell(
+                [{**cell, "_report_year": metadata.get("year")} for cell in aggregate_cells],
+                operand=operand,
+                query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
+                period_focus=_operand_period_focus(operand, "current"),
+            )
+            if aggregate_selected_cell:
+                selected_cell = aggregate_selected_cell
         if not selected_cell:
             return {}
         raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
@@ -1520,6 +1686,41 @@ class FinancialAgentCalculationMixin:
             candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
             current_unit = _normalise_spaces(str(current.get("raw_unit") or ""))
             return bool(candidate_unit in preferred_units and current_unit not in preferred_units)
+
+        def _aggregate_candidate_preferred_in_same_table(candidate: Dict[str, Any], current: Dict[str, Any]) -> bool:
+            if not candidate or not current:
+                return False
+            candidate_table = _normalise_spaces(str(candidate.get("table_source_id") or ""))
+            current_table = _normalise_spaces(str(current.get("table_source_id") or ""))
+            if not candidate_table or candidate_table != current_table:
+                return False
+            candidate_value_role = _normalise_spaces(str(candidate.get("value_role") or "")).lower()
+            current_value_role = _normalise_spaces(str(current.get("value_role") or "")).lower()
+            candidate_stage = _normalise_spaces(str(candidate.get("aggregation_stage") or "")).lower()
+            current_stage = _normalise_spaces(str(current.get("aggregation_stage") or "")).lower()
+            candidate_is_aggregate = bool(
+                candidate_value_role == "aggregate"
+                or candidate_stage in {"direct", "final", "subtotal"}
+                or _normalise_spaces(str(candidate.get("aggregate_label") or ""))
+            )
+            current_is_aggregate = bool(
+                current_value_role == "aggregate"
+                or current_stage in {"direct", "final", "subtotal"}
+                or _normalise_spaces(str(current.get("aggregate_label") or ""))
+            )
+            if not candidate_is_aggregate or current_is_aggregate:
+                return False
+            candidate_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        candidate.get("label"),
+                        candidate.get("aggregate_label"),
+                        candidate.get("semantic_label"),
+                    )
+                )
+            )
+            return _operand_text_match(candidate_surface, operand)
 
         def _context_scope_score(evidence: Dict[str, Any]) -> float:
             if state is None:
@@ -1614,19 +1815,30 @@ class FinancialAgentCalculationMixin:
 
         for evidence_item in evidence_pool:
             evidence = dict(evidence_item or {})
+            metadata = dict(evidence.get("metadata") or {})
+            structured_slot_selected_for_evidence = False
             score = self._direct_structured_lookup_evidence_score(operand, evidence)
             if score > 0:
                 score += _context_scope_score(evidence)
             should_consider_structured = score > best_score
+            candidate_row: Dict[str, Any] = {}
             if score == best_score and best_slot:
-                row = self._lookup_row_from_direct_structured_evidence(
+                candidate_row = self._lookup_row_from_direct_structured_evidence(
                     operand,
                     evidence,
                     index=1,
                 )
-                should_consider_structured = _candidate_preferred_on_tie(row, best_slot)
+                should_consider_structured = _candidate_preferred_on_tie(candidate_row, best_slot)
+            elif score > 0 and best_slot:
+                candidate_row = self._lookup_row_from_direct_structured_evidence(
+                    operand,
+                    evidence,
+                    index=1,
+                )
+                if _aggregate_candidate_preferred_in_same_table(candidate_row, best_slot):
+                    should_consider_structured = True
             if should_consider_structured:
-                row = self._lookup_row_from_direct_structured_evidence(
+                row = candidate_row or self._lookup_row_from_direct_structured_evidence(
                     operand,
                     evidence,
                     index=1,
@@ -1649,9 +1861,20 @@ class FinancialAgentCalculationMixin:
                         preserve_source_display=True,
                     )
                     best_score = adjusted_score
+                    structured_slot_selected_for_evidence = True
 
             table_label_slot = self._lookup_value_from_table_label_metadata(operand, evidence)
             table_label_score = self._table_label_metadata_lookup_score(table_label_slot, evidence)
+            table_has_period_columns = bool(
+                _normalise_spaces(str(metadata.get("period_labels") or ""))
+                or re.search(
+                    str(CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT),
+                    _normalise_spaces(str(metadata.get("table_header_context") or "")),
+                )
+            )
+            if structured_slot_selected_for_evidence and table_has_period_columns:
+                table_label_slot = {}
+                table_label_score = 0.0
             if table_label_score > 0:
                 table_label_score += _context_scope_score(evidence)
             if state is not None and self._lookup_direct_row_is_ambiguous_context_table(
@@ -1869,6 +2092,55 @@ class FinancialAgentCalculationMixin:
         def _digit_count(value: Any) -> int:
             return len(re.findall(r"\d", str(value or "")))
 
+        def _compact_cell_value(value: Any) -> str:
+            return re.sub(r"[,\s()]", "", str(value or ""))
+
+        def _preferred_slot_value_matches_selected_evidence(
+            preferred_slot: Dict[str, Any],
+            preferred_evidence: Optional[Dict[str, Any]],
+        ) -> Optional[bool]:
+            raw_value = _compact_cell_value(preferred_slot.get("raw_value") or preferred_slot.get("rendered_value"))
+            if not raw_value or not preferred_evidence:
+                return None
+            metadata = dict(preferred_evidence.get("metadata") or {})
+            selected_headers = {
+                _normalise_spaces(str(header)).lower()
+                for header in (metadata.get("column_headers_chain") or [])
+                if _normalise_spaces(str(header))
+            }
+            matching_cells: List[Dict[str, Any]] = []
+            for cell in list(metadata.get("structured_cells") or []):
+                cell_data = dict(cell or {})
+                if _compact_cell_value(cell_data.get("value_text")) == raw_value:
+                    matching_cells.append(cell_data)
+            if matching_cells:
+                if not selected_headers:
+                    return True
+                for cell_data in matching_cells:
+                    cell_headers = {
+                        _normalise_spaces(str(header)).lower()
+                        for header in (cell_data.get("column_headers") or [])
+                        if _normalise_spaces(str(header))
+                    }
+                    if not cell_headers or selected_headers.intersection(cell_headers):
+                        return True
+                return False
+            local_surface = _normalise_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        preferred_evidence.get("claim"),
+                        preferred_evidence.get("quote_span"),
+                        preferred_evidence.get("raw_row_text"),
+                        preferred_evidence.get("source_context"),
+                        metadata.get("row_text"),
+                    )
+                )
+            )
+            if local_surface:
+                return raw_value in _compact_cell_value(local_surface)
+            return None
+
         def _value_refinement_allowed(
             current_slot: Dict[str, Any],
             preferred_slot: Dict[str, Any],
@@ -1896,6 +2168,13 @@ class FinancialAgentCalculationMixin:
             if desired_scope != "unknown" and current_scope == desired_scope and preferred_scope != desired_scope:
                 return False
             preferred_metadata = dict((preferred_evidence or {}).get("metadata") or {})
+            if self._operand_row_values_materially_conflict(current_slot, preferred_slot):
+                selected_value_match = _preferred_slot_value_matches_selected_evidence(
+                    preferred_slot,
+                    preferred_evidence,
+                )
+                if selected_value_match is False:
+                    return False
             has_structured_surface = any(
                 _normalise_spaces(str(value or ""))
                 for value in (
@@ -1913,6 +2192,23 @@ class FinancialAgentCalculationMixin:
                 current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
                 preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
                 if preferred_raw_unit and (not current_raw_unit or preferred_raw_unit == current_raw_unit):
+                    try:
+                        current_float = float(current_slot.get("normalized_value"))
+                        preferred_float = float(preferred_slot.get("normalized_value"))
+                    except (TypeError, ValueError):
+                        current_float = None
+                        preferred_float = None
+                    if current_float is not None and preferred_float is not None:
+                        relative_delta = abs(preferred_float - current_float) / max(
+                            abs(current_float),
+                            abs(preferred_float),
+                            1.0,
+                        )
+                        if (
+                            relative_delta > 0.005
+                            and _digit_count(preferred_slot.get("raw_value")) < _digit_count(current_slot.get("raw_value"))
+                        ):
+                            return False
                     return True
             current_unit = _normalise_spaces(str(current_slot.get("normalized_unit") or "")).upper()
             preferred_unit = _normalise_spaces(str(preferred_slot.get("normalized_unit") or "")).upper()
@@ -1933,6 +2229,14 @@ class FinancialAgentCalculationMixin:
                 return False
             relative_delta = abs(preferred_float - current_float) / max(abs(current_float), abs(preferred_float), 1.0)
             if relative_delta > 0.005:
+                current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+                preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+                if (
+                    preferred_raw_unit
+                    and current_raw_unit == preferred_raw_unit
+                    and _digit_count(preferred_slot.get("raw_value")) < _digit_count(current_slot.get("raw_value"))
+                ):
+                    return False
                 evidence_score = (
                     self._direct_structured_lookup_evidence_score(operand, preferred_evidence)
                     if preferred_evidence
@@ -2016,6 +2320,17 @@ class FinancialAgentCalculationMixin:
                 },
                 "explanation": source_note,
             }
+
+        def _preferred_slot_has_evidence_surface_match(
+            preferred_slot: Dict[str, Any],
+            preferred_evidence: Optional[Dict[str, Any]],
+        ) -> bool:
+            return self._operand_slot_has_evidence_surface_match(
+                preferred_slot,
+                preferred_evidence,
+                operand,
+                metric_label=str(row.get("metric_label") or ""),
+            )
 
         recovered_results: List[Dict[str, Any]] = []
         for row in ordered_results:
@@ -2114,6 +2429,10 @@ class FinancialAgentCalculationMixin:
                 if not preferred_slot or preferred_score <= current_score:
                     recovered_results.append(unit_aligned_row or row)
                     continue
+                preferred_evidence = self._evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+                if not _preferred_slot_has_evidence_surface_match(preferred_slot, preferred_evidence):
+                    recovered_results.append(unit_aligned_row or row)
+                    continue
                 preferred_slot = _normalize_lookup_slot_unit(preferred_slot)
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
@@ -2129,7 +2448,6 @@ class FinancialAgentCalculationMixin:
                 except (TypeError, ValueError):
                     normalized_differs = preferred_normalized != current_normalized
                 if normalized_differs:
-                    preferred_evidence = self._evidence_item_for_operand_row(preferred_slot, evidence_by_id)
                     if not _value_refinement_allowed(current_slot, preferred_slot, preferred_evidence):
                         recovered_results.append(unit_aligned_row or row)
                         continue
@@ -2360,6 +2678,8 @@ class FinancialAgentCalculationMixin:
             operation_family = self._aggregate_result_operation_family(row)
             if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
                 return row
+            if row.get("recovered_from_retrieved_ratio_context"):
+                return row
             calculation_plan = dict(row.get("calculation_plan") or {})
             operands = [dict(item) for item in list(row.get("calculation_operands") or []) if isinstance(item, dict)]
             task_id = _normalise_spaces(str(row.get("task_id") or ""))
@@ -2456,6 +2776,14 @@ class FinancialAgentCalculationMixin:
                     recalculated_result,
                     format_calculation_value=self._format_calculation_value,
                 )
+            if operation_family == "ratio":
+                artifact_row = self._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                    state,
+                    active_subtask,
+                    recalculated_result,
+                )
+                if artifact_row:
+                    return artifact_row
             if operation_family == "ratio":
                 formatted_answer = self._compact_ratio_answer(recalculation_state, recalculated_result)
             else:
@@ -2582,13 +2910,36 @@ class FinancialAgentCalculationMixin:
                 continue
             if status != "ok" or self._material_gap_feedback_for_subtask_result(row):
                 continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
+                components_by_group = dict((calculation_result.get("answer_slots") or {}).get("components_by_group") or {})
+                has_multi_component_side = any(
+                    len([item for item in list(components_by_group.get(group) or []) if isinstance(item, dict)]) > 1
+                    for group in ("numerator", "denominator")
+                )
+                if has_multi_component_side or row.get("recovered_from_retrieved_ratio_context"):
+                    answer = self._compact_ratio_answer(
+                        {
+                            "active_subtask": {
+                                "metric_label": row.get("metric_label") or calculation_result.get("metric_label") or "",
+                            },
+                            "resolved_calculation_trace": {
+                                "calculation_operands": list(row.get("calculation_operands") or []),
+                                "calculation_plan": dict(row.get("calculation_plan") or {}),
+                                "calculation_result": calculation_result,
+                            },
+                        },
+                        calculation_result,
+                    )
+                    if answer:
+                        _append_ranked_answer(row, answer)
+                        continue
             if self._aggregate_result_dependency_coherence_ranks(row, source_slot_by_task_id)[0] == 0:
                 if operation_family == "ratio":
                     answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
                     if answer:
                         _append_ranked_answer(row, answer)
                 continue
-            calculation_result = dict(row.get("calculation_result") or {})
             if operation_family == "growth_rate":
                 if self._growth_row_has_conflicting_periods(row):
                     continue
@@ -2634,6 +2985,62 @@ class FinancialAgentCalculationMixin:
         ordered_answers = [answer for _score, _label_len, answer in answer_parts]
         return _normalise_spaces(" ".join(dict.fromkeys(part for part in ordered_answers if part)))
 
+    def _sync_ratio_result_displays_in_ordered_results(
+        self,
+        ordered_results: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        updated_results: List[Dict[str, Any]] = []
+        changed_any = False
+        for row in list(ordered_results or []):
+            row_copy = dict(row)
+            if self._aggregate_result_operation_family(row_copy) != "ratio":
+                updated_results.append(row_copy)
+                continue
+            calculation_result = dict(row_copy.get("calculation_result") or {})
+            if not calculation_result:
+                updated_results.append(row_copy)
+                continue
+            before_rendered = _normalise_spaces(
+                str(
+                    calculation_result.get("rendered_value")
+                    or (dict(calculation_result.get("answer_slots") or {}).get("primary_value") or {}).get("rendered_value")
+                    or ""
+                )
+            )
+            synced_result = self._sync_ratio_display_from_result_value(calculation_result)
+            after_rendered = _normalise_spaces(
+                str(
+                    synced_result.get("rendered_value")
+                    or (dict(synced_result.get("answer_slots") or {}).get("primary_value") or {}).get("rendered_value")
+                    or ""
+                )
+            )
+            if after_rendered and after_rendered != before_rendered:
+                synced_answer = self._compact_ratio_answer(
+                    {
+                        "active_subtask": {
+                            "metric_label": row_copy.get("metric_label")
+                            or synced_result.get("metric_label")
+                            or (synced_result.get("answer_slots") or {}).get("metric_label")
+                            or "",
+                        },
+                        "resolved_calculation_trace": {
+                            "calculation_operands": list(row_copy.get("calculation_operands") or []),
+                            "calculation_plan": dict(row_copy.get("calculation_plan") or {}),
+                            "calculation_result": synced_result,
+                        },
+                    },
+                    synced_result,
+                )
+                row_copy["calculation_result"] = synced_result
+                row_copy["rendered_value"] = after_rendered
+                if synced_answer:
+                    row_copy["answer"] = synced_answer
+                    synced_result["formatted_result"] = synced_answer
+                changed_any = True
+            updated_results.append(row_copy)
+        return updated_results if changed_any else ordered_results
+
     def _complete_numeric_answer_can_replace_final(
         self,
         numeric_answer: str,
@@ -2644,6 +3051,47 @@ class FinancialAgentCalculationMixin:
         if not self._unresolved_structured_numeric_gap(ordered_results):
             return True
         return self._answer_matches_supported_aggregate_subtask(numeric_answer, ordered_results)
+
+    def _complete_numeric_projection_replacement_answer(
+        self,
+        *,
+        final_answer: str,
+        ordered_results: List[Dict[str, Any]],
+        query: str = "",
+        evidence_items: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        operation_families = {
+            self._aggregate_result_operation_family(row)
+            for row in ordered_results
+            if isinstance(row, dict)
+        }
+        if "growth_rate" in operation_families:
+            return ""
+        if "ratio" not in operation_families:
+            return ""
+        numeric_answer = self._preferred_complete_numeric_answer(
+            ordered_results,
+            query=query,
+            evidence_items=evidence_items,
+        )
+        if not numeric_answer:
+            return ""
+        if _normalise_spaces(numeric_answer) == _normalise_spaces(final_answer):
+            return ""
+        if self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results):
+            return ""
+        if self._answer_satisfies_growth_narrative_intent(
+            query=query,
+            answer=final_answer,
+            ordered_results=ordered_results,
+            evidence_items=evidence_items or [],
+        ):
+            return ""
+        if not self._complete_numeric_answer_can_replace_final(numeric_answer, ordered_results):
+            return ""
+        if self._answer_covers_numeric_projection(final_answer, ordered_results):
+            return ""
+        return numeric_answer
 
     def _numeric_projection_coverage_targets(
         self,
@@ -4485,10 +4933,41 @@ class FinancialAgentCalculationMixin:
         *,
         kept_evidence_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        projection = self._build_aggregate_calculation_projection(ordered_results, final_answer)
+        projection_rows = self._projection_rows_for_final_answer(
+            ordered_results,
+            final_answer,
+        )
+        projection = self._build_aggregate_calculation_projection(projection_rows, final_answer)
         if kept_evidence_ids is not None:
             projection = self._filter_aggregate_projection_provenance(projection, kept_evidence_ids)
         return projection
+
+    def _projection_rows_for_final_answer(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        final_answer: str,
+    ) -> List[Dict[str, Any]]:
+        answer_text = _normalise_spaces(str(final_answer or ""))
+        if not answer_text:
+            return ordered_results
+        for row in ordered_results:
+            if not isinstance(row, dict) or not row.get("recovered_from_retrieved_ratio_context"):
+                continue
+            if self._aggregate_result_operation_family(row) != "ratio":
+                continue
+            if self._answer_covers_numeric_projection(answer_text, [row]):
+                return [dict(row)]
+            row_answer = _normalise_spaces(
+                str(
+                    row.get("answer")
+                    or (dict(row.get("calculation_result") or {}).get("formatted_result"))
+                    or (dict(row.get("calculation_result") or {}).get("rendered_value"))
+                    or ""
+                )
+            )
+            if row_answer and self._answer_covers_numeric_answer(answer_text, row_answer):
+                return [dict(row)]
+        return ordered_results
 
     def _compact_ratio_answer_from_projection(
         self,
@@ -5457,6 +5936,20 @@ class FinancialAgentCalculationMixin:
                 or repaired_answer
                 or aggregate_state.final_answer
             )
+            replacement_answer = self._complete_numeric_projection_replacement_answer(
+                final_answer=repaired_answer,
+                ordered_results=aggregate_state.ordered_results,
+                query=str(state.get("query") or ""),
+                evidence_items=evidence_items,
+            )
+            if replacement_answer:
+                return self._apply_numeric_answer_to_aggregate_state(
+                    aggregate_state=aggregate_state,
+                    state=state,
+                    numeric_answer=replacement_answer,
+                    evidence_items=evidence_items,
+                    sync_projection=True,
+                )
             aggregate_projection["calculation_result"] = {
                 **repaired_result,
                 "formatted_result": repaired_answer,
@@ -6781,6 +7274,7 @@ class FinancialAgentCalculationMixin:
                     preferred_slot = {}
                     preferred_score = 0.0
             if preferred_slot and preferred_score > current_score:
+                preferred_evidence = self._evidence_item_for_operand_row(preferred_slot, evidence_by_id)
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
                 preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
@@ -6800,7 +7294,14 @@ class FinancialAgentCalculationMixin:
                     or preferred_unit != current_unit
                     or normalized_differs
                 ):
-                    source_slot = preferred_slot
+                    preferred_surface_matches = self._operand_slot_has_evidence_surface_match(
+                        preferred_slot,
+                        preferred_evidence,
+                        binding,
+                        metric_label=str(sibling_row.get("metric_label") or binding.get("label") or ""),
+                    )
+                    if preferred_surface_matches:
+                        source_slot = preferred_slot
             raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
             normalized_value = source_slot.get("normalized_value")
             if normalized_value is None:
@@ -7836,6 +8337,78 @@ class FinancialAgentCalculationMixin:
     def _format_ratio_percent_result(self, result_value: float) -> str:
         rendered_value = self._format_calculation_value(result_value, "%", "PERCENT")
         return rendered_value if "%" in rendered_value else f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
+
+    def _sync_ratio_display_from_result_value(
+        self,
+        calculation_result: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        if _normalise_spaces(str(calculation_result.get("status") or "")).lower() != "ok":
+            return calculation_result
+        if _normalise_spaces(str(calculation_result.get("operation_family") or "")).lower() not in {"", "ratio"}:
+            return calculation_result
+        derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+        if derived_metrics.get("source_stated_result_used"):
+            return calculation_result
+        result_value = calculation_result.get("result_value")
+        try:
+            result_float = float(result_value)
+        except (TypeError, ValueError):
+            return calculation_result
+        result_unit = _normalise_spaces(str(calculation_result.get("result_unit") or ""))
+        percent_units = {
+            _normalise_spaces(str(unit))
+            for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())
+            if _normalise_spaces(str(unit))
+        }
+        if result_unit not in percent_units:
+            return calculation_result
+        target_rendered = self._format_ratio_percent_result(result_float)
+        target_candidates = extract_numeric_surface_candidates(target_rendered)
+        target_candidate = next(
+            (candidate for candidate in target_candidates if str(candidate.get("kind") or "") == "percent"),
+            {},
+        )
+        if not target_candidate:
+            return calculation_result
+        current_surface = _normalise_spaces(
+            str(
+                (dict(calculation_result.get("answer_slots") or {}).get("primary_value") or {}).get("rendered_value")
+                or calculation_result.get("rendered_value")
+                or calculation_result.get("formatted_result")
+                or ""
+            )
+        )
+        current_candidates = [
+            candidate
+            for candidate in extract_numeric_surface_candidates(current_surface)
+            if str(candidate.get("kind") or "") == "percent"
+        ]
+        if current_candidates and any(
+            numeric_surface_candidates_equivalent(candidate, target_candidate)
+            for candidate in current_candidates
+        ):
+            return calculation_result
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        primary_value = dict(answer_slots.get("primary_value") or {})
+        primary_value.update(
+            {
+                "status": primary_value.get("status") or "ok",
+                "raw_value": target_rendered,
+                "raw_unit": "%",
+                "normalized_value": result_float,
+                "normalized_unit": "PERCENT",
+                "rendered_value": target_rendered,
+            }
+        )
+        answer_slots["primary_value"] = primary_value
+        calculation_result.update(
+            {
+                "rendered_value": target_rendered,
+                "answer_slots": answer_slots,
+                "ratio_display_synced_from_result_value": True,
+            }
+        )
+        return calculation_result
 
     def _rebuilt_ratio_result_from_dependency_slots(
         self,
@@ -10226,6 +10799,21 @@ class FinancialAgentCalculationMixin:
                 if period_hint:
                     period_operand["period_hint"] = period_hint
                 cells = [{**cell, "_report_year": metadata.get("year")} for cell in cells]
+                row_value_role = _normalise_spaces(str(row.get("value_role") or "")).lower()
+                row_aggregation_stage = _normalise_spaces(str(row.get("aggregation_stage") or "")).lower()
+                if (
+                    row_value_role == "aggregate"
+                    or row_aggregation_stage in {"direct", "final", "subtotal"}
+                    or _operand_prefers_aggregate_value_role(row)
+                ):
+                    aggregate_selected = _select_aggregate_structured_cell(
+                        cells,
+                        operand=period_operand,
+                        query_years=query_years,
+                        period_focus=_operand_period_focus(period_operand, "unknown"),
+                    )
+                    if aggregate_selected:
+                        return dict(aggregate_selected)
                 selected = _select_structured_cell(
                     cells,
                     operand=period_operand,
@@ -11195,6 +11783,61 @@ class FinancialAgentCalculationMixin:
             updated["source_row_ids"] = list(dict.fromkeys(canonical_source_ids))
         return updated
 
+    def _operand_slot_has_evidence_surface_match(
+        self,
+        slot: Dict[str, Any],
+        evidence_item: Optional[Dict[str, Any]],
+        operand: Dict[str, Any],
+        *,
+        metric_label: str = "",
+    ) -> bool:
+        matched_line_label = _normalise_spaces(str(slot.get("_matched_line_label") or ""))
+        if matched_line_label:
+            operand_surfaces = [
+                _normalise_spaces(str(value or ""))
+                for value in (
+                    operand.get("label"),
+                    metric_label,
+                    *list(operand.get("aliases") or []),
+                )
+                if _normalise_spaces(str(value or ""))
+            ]
+            matched_compact = re.sub(r"\s+", "", matched_line_label)
+            if _operand_text_match(matched_line_label, operand) or any(
+                matched_line_label in surface
+                or (matched_compact and matched_compact in re.sub(r"\s+", "", surface))
+                for surface in operand_surfaces
+            ):
+                return True
+        if not evidence_item:
+            return False
+        metadata = dict(evidence_item.get("metadata") or {})
+        surface_parts: List[str] = [
+            str(evidence_item.get(key) or "")
+            for key in ("claim", "quote_span", "raw_row_text", "source_context")
+        ]
+        surface_parts.extend(
+            str(metadata.get(key) or "")
+            for key in (
+                "row_label",
+                "semantic_label",
+                "aggregate_label",
+                "table_value_labels_text",
+                "row_text",
+                "table_row_labels_text",
+            )
+        )
+        for key in ("semantic_aliases", "row_headers"):
+            surface_parts.extend(str(item or "") for item in (metadata.get(key) or []))
+        for cell in list(metadata.get("structured_cells") or []):
+            cell_data = dict(cell or {})
+            surface_parts.append(str(cell_data.get("aggregate_label") or ""))
+            surface_parts.extend(str(item or "") for item in (cell_data.get("column_headers") or []))
+        evidence_surface = _normalise_spaces(" ".join(part for part in surface_parts if str(part).strip()))
+        if not evidence_surface:
+            return False
+        return _operand_text_match(evidence_surface, operand) or _text_has_positive_surface(evidence_surface, operand)
+
     def _task_output_operand_row_should_keep_value(
         self,
         row: Dict[str, Any],
@@ -11262,6 +11905,58 @@ class FinancialAgentCalculationMixin:
                     return True
         return False
 
+    def _complete_ratio_context_can_override_task_output(
+        self,
+        row: Dict[str, Any],
+        replacement: Dict[str, Any],
+        *,
+        direct_has_coherent_context: bool,
+    ) -> bool:
+        if not direct_has_coherent_context:
+            return False
+        row_source_ids = self._operand_row_source_id_set(row)
+        if not (
+            row.get("dependency_resolved")
+            or _normalise_spaces(str(row.get("source_task_id") or ""))
+            or any(source_id.startswith("task_output:") for source_id in row_source_ids)
+        ):
+            return False
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        krw_unit = _normalise_spaces(str(render_policy.get("krw_normalized_unit") or "")).upper()
+        if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() != krw_unit:
+            return False
+        if _normalise_spaces(str(replacement.get("normalized_unit") or "")).upper() != krw_unit:
+            return False
+        row_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
+        replacement_unit = _normalise_spaces(str(replacement.get("raw_unit") or ""))
+        if not row_unit or not replacement_unit or row_unit == replacement_unit:
+            return False
+        krw_unit_scales = {
+            _normalise_spaces(str(unit or "")): float(scale)
+            for unit, scale in dict(render_policy.get("krw_display_unit_scales") or {}).items()
+            if _normalise_spaces(str(unit or ""))
+        }
+        row_scale = krw_unit_scales.get(row_unit)
+        replacement_scale = krw_unit_scales.get(replacement_unit)
+        if not row_scale or not replacement_scale:
+            return False
+        scale_distortion = max(row_scale, replacement_scale) / min(row_scale, replacement_scale)
+        if scale_distortion < 100.0:
+            return False
+        row_raw = re.sub(r"[,\s()]", "", str(row.get("raw_value") or ""))
+        replacement_raw = re.sub(r"[,\s()]", "", str(replacement.get("raw_value") or ""))
+        if row_raw and replacement_raw and row_raw == replacement_raw:
+            return True
+        try:
+            row_value = abs(float(row.get("normalized_value")))
+            replacement_value = abs(float(replacement.get("normalized_value")))
+        except (TypeError, ValueError):
+            return False
+        if min(row_value, replacement_value) <= 0:
+            return False
+        value_distortion = max(row_value, replacement_value) / min(row_value, replacement_value)
+        return value_distortion >= scale_distortion * 0.95
+
     def _align_dependency_rows_with_sibling_direct_context(
         self,
         dependency_rows: List[Dict[str, Any]],
@@ -11310,7 +12005,15 @@ class FinancialAgentCalculationMixin:
             if not self._operand_row_value_differs(dependency_row, candidate):
                 aligned.append(dependency_row)
                 continue
-            if self._task_output_operand_row_should_keep_value(dependency_row, candidate):
+            direct_has_coherent_context = bool(len(context_roles.get(_context_key(candidate), set())) >= 2)
+            if (
+                self._task_output_operand_row_should_keep_value(dependency_row, candidate)
+                and not self._complete_ratio_context_can_override_task_output(
+                    dependency_row,
+                    candidate,
+                    direct_has_coherent_context=direct_has_coherent_context,
+                )
+            ):
                 aligned.append(
                     {
                         **dependency_row,
@@ -11393,7 +12096,15 @@ class FinancialAgentCalculationMixin:
         for row in operand_rows:
             row_key = _row_key(row)
             replacement = direct_by_key.get(row_key)
-            if replacement and self._task_output_operand_row_should_keep_value(row, replacement):
+            if (
+                replacement
+                and self._task_output_operand_row_should_keep_value(row, replacement)
+                and not self._complete_ratio_context_can_override_task_output(
+                    row,
+                    replacement,
+                    direct_has_coherent_context=direct_has_coherent_context,
+                )
+            ):
                 preferred.append(
                     {
                         **row,
@@ -11455,16 +12166,62 @@ class FinancialAgentCalculationMixin:
 
         best_rows: List[Dict[str, Any]] = []
         best_score = -1
+
+        def _period_table_direct_operand_rows(group_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            direct_rows: List[Dict[str, Any]] = []
+            for operand_index, operand in enumerate(required_operands, start=1):
+                best_row: Dict[str, Any] = {}
+                best_row_score = -1.0
+                for item in group_items:
+                    evidence = dict(item or {})
+                    metadata = dict(evidence.get("metadata") or {})
+                    if not list(metadata.get("structured_cells") or []):
+                        continue
+                    table_has_period_columns = bool(
+                        _normalise_spaces(str(metadata.get("period_labels") or ""))
+                        or re.search(
+                            str(CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT),
+                            _normalise_spaces(str(metadata.get("table_header_context") or "")),
+                        )
+                    )
+                    if not table_has_period_columns:
+                        continue
+                    row = self._lookup_row_from_direct_structured_evidence(
+                        operand,
+                        evidence,
+                        index=operand_index,
+                    )
+                    if not row:
+                        continue
+                    score = self._direct_structured_lookup_evidence_score(operand, evidence)
+                    if score > best_row_score:
+                        best_row = row
+                        best_row_score = score
+                if not best_row:
+                    return []
+                direct_rows.append(best_row)
+            if _missing_required_operands(required_operands, direct_rows):
+                return []
+            if self._ratio_operand_rows_collapse_to_same_slot(direct_rows):
+                return []
+            return _merge_operand_rows(
+                direct_rows,
+                [],
+                required_operands=required_operands,
+            )
+
         for group_key, group_items in grouped_items.items():
             if len(group_items) < 2 and group_key[0] != "table":
                 continue
-            rows = self._build_required_operands_from_candidates(
-                group_items,
-                required_operands=required_operands,
-                query=query,
-                topic=topic,
-                report_scope=report_scope,
-            )
+            rows = _period_table_direct_operand_rows(group_items)
+            if not rows:
+                rows = self._build_required_operands_from_candidates(
+                    group_items,
+                    required_operands=required_operands,
+                    query=query,
+                    topic=topic,
+                    report_scope=report_scope,
+                )
             rows = self._filter_operand_rows_by_required_surface_contract(
                 rows,
                 group_items,
@@ -11870,13 +12627,27 @@ class FinancialAgentCalculationMixin:
             except (TypeError, ValueError):
                 report_year = None
             period_headers: List[List[str]] = []
-            if report_year is not None:
+            period_presence_pattern = str(CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT)
+            for header_line in str(metadata.get("table_header_context") or "").splitlines():
+                header_cells = [
+                    _normalise_spaces(cell)
+                    for cell in header_line.split("|")
+                    if _normalise_spaces(cell)
+                ]
+                if len(header_cells) <= 1:
+                    continue
+                candidate_headers = header_cells[1:]
+                if not any(re.search(period_presence_pattern, header) for header in candidate_headers):
+                    continue
+                period_headers = [[header] for header in candidate_headers]
+                break
+            if not period_headers and report_year is not None:
                 period_headers = [
                     [str(report_year), "current"],
                     [str(report_year - 1), "prior"],
                     [KOREAN_TABLE_CHANGE_HEADER_LABEL, "change"],
                 ]
-            else:
+            elif not period_headers:
                 period_headers = [["current"], ["prior"], ["change"]]
 
             row_items: List[Dict[str, Any]] = []
@@ -11889,6 +12660,7 @@ class FinancialAgentCalculationMixin:
                     flags=re.IGNORECASE,
                 )
                 cells: List[Dict[str, Any]] = []
+                row_unit_hint = ""
                 for value_index, match in enumerate(pattern.finditer(value_labels)):
                     raw_value = _normalise_spaces(match.group("value"))
                     if not raw_value:
@@ -11897,6 +12669,14 @@ class FinancialAgentCalculationMixin:
                     value_is_percent = "%" in raw_value
                     if value_is_percent:
                         raw_unit = "%"
+                    else:
+                        local_unit_hint = _resolve_candidate_local_unit_hint(
+                            {"metadata": {**metadata, "row_label": row_label}},
+                            raw_value,
+                        )
+                        if local_unit_hint:
+                            raw_unit = local_unit_hint
+                            row_unit_hint = row_unit_hint or local_unit_hint
                     normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
                     if normalized_value is None:
                         continue
@@ -11913,6 +12693,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 row_metadata = {
                     **metadata,
+                    "unit_hint": row_unit_hint or unit_hint,
                     "row_label": row_label,
                     "semantic_label": row_label,
                     "structured_cells": cells,
@@ -12959,6 +13740,7 @@ class FinancialAgentCalculationMixin:
         state: FinancialAgentState,
         calculation_result: Dict[str, Any],
     ) -> str:
+        calculation_result = self._sync_ratio_display_from_result_value(calculation_result)
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         metric_label = _normalise_spaces(
             str(
@@ -13250,6 +14032,187 @@ class FinancialAgentCalculationMixin:
             _slot_has_value(slot) for slot in denominator_slots
         )
 
+    def _ratio_result_numeric_value(self, row: Dict[str, Any]) -> Optional[float]:
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        primary_value = dict(answer_slots.get("primary_value") or {})
+        for value in (
+            calculation_result.get("result_value"),
+            primary_value.get("normalized_value"),
+            primary_value.get("raw_value"),
+            row.get("result_value"),
+        ):
+            numeric_value = self._coerce_slot_numeric(value)
+            if numeric_value is not None:
+                return numeric_value
+        return None
+
+    def _ratio_context_has_metric_surface(
+        self,
+        context_evidence: List[Dict[str, Any]],
+        task: Dict[str, Any],
+    ) -> bool:
+        metric_labels = [
+            _normalise_spaces(str(value or ""))
+            for value in (
+                task.get("metric_label"),
+                task.get("target_metric"),
+                task.get("label"),
+                task.get("name"),
+                *list(task.get("aliases") or []),
+            )
+            if _normalise_spaces(str(value or ""))
+        ]
+        if not metric_labels:
+            return False
+        metric_operands = [{"label": label, "aliases": []} for label in dict.fromkeys(metric_labels)]
+        surfaces: List[str] = []
+        for evidence in context_evidence:
+            evidence_data = dict(evidence or {})
+            metadata = dict(evidence_data.get("metadata") or {})
+            surfaces.extend(
+                str(evidence_data.get(key) or "")
+                for key in ("claim", "quote_span", "raw_row_text", "source_context")
+            )
+            surfaces.extend(
+                str(metadata.get(key) or "")
+                for key in (
+                    "row_label",
+                    "semantic_label",
+                    "aggregate_label",
+                    "table_summary_text",
+                    "table_title",
+                    "table_context",
+                    "table_row_labels_text",
+                    "table_value_labels_text",
+                    "row_text",
+                )
+            )
+            for key in ("semantic_aliases", "row_headers"):
+                surfaces.extend(str(item or "") for item in list(metadata.get(key) or []))
+        for surface in surfaces:
+            normalized_surface = _normalise_spaces(surface)
+            if not normalized_surface:
+                continue
+            if any(_operand_text_match(normalized_surface, operand) for operand in metric_operands):
+                return True
+        return False
+
+    def _retrieved_ratio_projection_conflicts_with_existing_complete_result(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        task: Dict[str, Any],
+        *,
+        result_value: float,
+        context_evidence: List[Dict[str, Any]],
+    ) -> bool:
+        task_id = _normalise_spaces(str(task.get("task_id") or ""))
+        metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
+        candidate_signature = self._aggregate_result_signature(
+            {
+                "task_id": task_id,
+                "metric_label": metric_label,
+                "operation_family": "ratio",
+            }
+        )
+        for row in ordered_results:
+            if not isinstance(row, dict):
+                continue
+            if self._aggregate_result_operation_family(row) != "ratio":
+                continue
+            row_task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            row_signature = self._aggregate_result_signature(row)
+            if task_id and row_task_id and row_task_id != task_id:
+                if not candidate_signature or row_signature != candidate_signature:
+                    continue
+            elif candidate_signature and row_signature != candidate_signature:
+                continue
+            calculation_result = dict(row.get("calculation_result") or {})
+            status = _normalise_spaces(str(row.get("status") or calculation_result.get("status") or "")).lower()
+            artifact_backed_complete_result = bool(row.get("artifact_backed_complete_result"))
+            if status != "ok":
+                continue
+            existing_value = self._ratio_result_numeric_value(row)
+            if existing_value is None:
+                continue
+            if not artifact_backed_complete_result and not self._ratio_components_are_complete(calculation_result):
+                continue
+            tolerance = max(max(abs(float(existing_value)), abs(float(result_value)), 1.0) * 5e-4, 1e-6)
+            if abs(float(existing_value) - float(result_value)) <= tolerance:
+                continue
+            return not self._ratio_context_has_metric_surface(context_evidence, task)
+        return False
+
+    def _ratio_result_rows_from_task_artifacts(
+        self,
+        state: FinancialAgentState,
+        task: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        task_id = _normalise_spaces(str(task.get("task_id") or ""))
+        if not task_id:
+            return []
+        rows: List[Dict[str, Any]] = []
+        for artifact in list(state.get("artifacts") or []):
+            artifact_data = dict(artifact or {})
+            if _normalise_spaces(str(artifact_data.get("task_id") or "")) != task_id:
+                continue
+            if _normalise_spaces(str(artifact_data.get("kind") or "")) != ArtifactKind.CALCULATION_RESULT.value:
+                continue
+            payload = dict(artifact_data.get("payload") or {})
+            calculation_result = dict(payload.get("calculation_result") or {})
+            if not calculation_result:
+                continue
+            answer = _normalise_spaces(
+                str(
+                    calculation_result.get("formatted_result")
+                    or calculation_result.get("rendered_value")
+                    or artifact_data.get("summary")
+                    or ""
+                )
+            )
+            rows.append(
+                {
+                    "task_id": task_id,
+                    "metric_family": task.get("metric_family") or "concept_ratio",
+                    "metric_label": task.get("metric_label") or task.get("target_metric") or "",
+                    "operation_family": "ratio",
+                    "status": calculation_result.get("status") or artifact_data.get("status") or "",
+                    "answer": answer,
+                    "calculation_result": calculation_result,
+                    "calculation_operands": payload.get("calculation_operands") or [],
+                    "source_row_ids": calculation_result.get("source_row_ids") or artifact_data.get("evidence_refs") or [],
+                    "source_evidence_ids": calculation_result.get("source_evidence_ids") or artifact_data.get("evidence_refs") or [],
+                    "artifact_backed_complete_result": True,
+                }
+            )
+        return rows
+
+    def _preferred_ratio_artifact_row_for_conflicting_recalculation(
+        self,
+        state: FinancialAgentState,
+        task: Dict[str, Any],
+        recalculated_result: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        recalculated_value = self._coerce_slot_numeric(recalculated_result.get("result_value"))
+        if recalculated_value is None:
+            return {}
+        for artifact_row in self._ratio_result_rows_from_task_artifacts(state, task):
+            calculation_result = dict(artifact_row.get("calculation_result") or {})
+            status = _normalise_spaces(str(artifact_row.get("status") or calculation_result.get("status") or "")).lower()
+            if status != "ok":
+                continue
+            artifact_value = self._ratio_result_numeric_value(artifact_row)
+            if artifact_value is None:
+                continue
+            tolerance = max(max(abs(float(artifact_value)), abs(float(recalculated_value)), 1.0) * 5e-4, 1e-6)
+            if abs(float(artifact_value) - float(recalculated_value)) <= tolerance:
+                continue
+            return {
+                **artifact_row,
+                "artifact_ratio_result_preserved_over_alignment": True,
+            }
+        return {}
+
     def _build_deterministic_lookup_plan(
         self,
         state: FinancialAgentState,
@@ -13265,6 +14228,7 @@ class FinancialAgentCalculationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
+        required_operands = [self._complete_required_operand_from_ontology(item) for item in required_operands]
         if required_operands:
             matched_rows = [
                 row
@@ -14336,6 +15300,34 @@ class FinancialAgentCalculationMixin:
             and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
             and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
+
+        def _display_unit_set(rows: List[Dict[str, Any]]) -> set[str]:
+            return {
+                _normalise_spaces(str(row.get("raw_unit") or ""))
+                for row in rows
+                if _normalise_spaces(str(row.get("raw_unit") or ""))
+            }
+
+        def _rows_conflict_by_required_role(
+            left_rows: List[Dict[str, Any]],
+            right_rows: List[Dict[str, Any]],
+        ) -> bool:
+            right_by_role: Dict[str, List[Dict[str, Any]]] = {}
+            for row in right_rows:
+                role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+                if role:
+                    right_by_role.setdefault(role, []).append(row)
+            for left_row in left_rows:
+                role = _normalise_spaces(str(left_row.get("matched_operand_role") or left_row.get("role") or "")).lower()
+                if not role:
+                    continue
+                for right_row in right_by_role.get(role, []):
+                    if self._operand_row_value_differs(left_row, right_row):
+                        return True
+            return False
+
+        ratio_direct_context_should_override_dependency = False
+        retrieved_ratio_context_recovered = False
         if operation_family in {"difference", "growth_rate"} and required_operands:
             period_context_evidence = list(evidence_items)
             if retrieved_docs or seed_retrieved_docs:
@@ -14409,9 +15401,10 @@ class FinancialAgentCalculationMixin:
                 report_scope=report_scope,
             )
             if coherent_ratio_rows:
+                retrieved_ratio_context_recovered = True
                 direct_structured_rows = _merge_operand_rows(
                     coherent_ratio_rows,
-                    direct_structured_rows,
+                    [],
                     required_operands=required_operands,
                 )
                 used_context_evidence_ids = {
@@ -14435,6 +15428,35 @@ class FinancialAgentCalculationMixin:
                     required_operands,
                     direct_structured_rows,
                 )
+                direct_rows_have_coherent_context = bool(
+                    direct_rows_cover_required_operands
+                    and _rows_have_single_table_context(direct_structured_rows)
+                    and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                    and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                )
+                direct_dependency_conflicts = _rows_conflict_by_required_role(
+                    dependency_rows,
+                    direct_structured_rows,
+                )
+                dependency_display_units = _display_unit_set(dependency_rows)
+                direct_display_units = _display_unit_set(direct_structured_rows)
+                ratio_direct_context_should_override_dependency = bool(
+                    direct_rows_have_coherent_context
+                    and (
+                        not dependency_rows_cover_required_operands
+                        or not direct_dependency_conflicts
+                        or (
+                            len(dependency_display_units) > 1
+                            and len(direct_display_units) <= 1
+                        )
+                    )
+                )
+                if direct_rows_have_coherent_context and ratio_direct_context_should_override_dependency:
+                    dependency_rows = []
+                    dependency_bindings = []
+                    missing_dependency_bindings = []
+                    dependency_resolved_keys = set()
+                    dependency_rows_cover_required_operands = False
         direct_period_context_conflicts_with_dependency = bool(
             operation_family in {"difference", "growth_rate"}
             and dependency_rows_cover_required_operands
@@ -14454,6 +15476,12 @@ class FinancialAgentCalculationMixin:
                 or (
                     operation_family in {"difference", "growth_rate"}
                     and direct_rows_have_coherent_context
+                )
+                or (
+                    operation_family == "ratio"
+                    and direct_rows_have_coherent_context
+                    and retrieved_ratio_context_recovered
+                    and ratio_direct_context_should_override_dependency
                 )
             )
             and not (
@@ -15094,6 +16122,7 @@ class FinancialAgentCalculationMixin:
                         fallback_rows,
                         required_operands=required_operands,
                     )
+            complete_direct_context_blocks_dependency_remerge = False
             if operation_family == "ratio" and required_operands and operand_rows:
                 sibling_context_rows = self._build_required_operands_from_candidates(
                     evidence_items,
@@ -15131,6 +16160,27 @@ class FinancialAgentCalculationMixin:
                         direct_rows=sibling_context_rows,
                         required_operands=required_operands,
                     )
+                    direct_contexts = {
+                        _normalise_spaces(
+                            str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
+                        )
+                        for row in sibling_context_rows
+                        if _normalise_spaces(
+                            str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
+                        )
+                    }
+                    complete_direct_context_blocks_dependency_remerge = bool(
+                        len(direct_contexts) == 1
+                        and not _missing_required_operands(required_operands, sibling_context_rows)
+                        and not self._ratio_operand_rows_collapse_to_same_slot(sibling_context_rows)
+                        and not self._period_comparison_operand_rows_collapse_to_same_slot(sibling_context_rows)
+                    )
+            if dependency_rows and not prefer_direct_rows_over_dependency and not complete_direct_context_blocks_dependency_remerge:
+                operand_rows = _merge_operand_rows(
+                    dependency_rows,
+                    operand_rows,
+                    required_operands=required_operands,
+                )
             if _is_percent_point_difference_query(query):
                 operand_rows = [
                     row for row in operand_rows
@@ -15878,6 +16928,36 @@ class FinancialAgentCalculationMixin:
             calculation_result=calculation_result,
             answer_slot_has_material=self._answer_slot_has_material,
         )
+
+    def _complete_required_operand_from_ontology(self, operand: Dict[str, Any]) -> Dict[str, Any]:
+        updated = dict(operand or {})
+        concept_key = _normalise_spaces(str(updated.get("concept") or ""))
+        if not concept_key:
+            return updated
+        concept_spec = _concept_spec_for_key(get_financial_ontology(), concept_key)
+        if not concept_spec:
+            return updated
+
+        for key in ("unit_family",):
+            if not _normalise_spaces(str(updated.get(key) or "")):
+                updated[key] = concept_spec.get(key)
+        for key in ("aliases", "keywords", "preferred_sections", "preferred_statement_types"):
+            updated[key] = list(
+                dict.fromkeys(
+                    [
+                        *[str(item).strip() for item in (updated.get(key) or []) if str(item).strip()],
+                        *[str(item).strip() for item in (concept_spec.get(key) or []) if str(item).strip()],
+                    ]
+                )
+            )
+        for key in ("binding_policy", "surface_contract"):
+            concept_payload = dict(concept_spec.get(key) or {})
+            explicit_payload = dict(updated.get(key) or {})
+            merged = dict(concept_payload)
+            merged.update(explicit_payload)
+            if merged:
+                updated[key] = merged
+        return updated
 
     def _coerce_slot_numeric(self, value: Any) -> Optional[float]:
         return financial_answer_slots.coerce_slot_numeric(value)
@@ -17148,6 +18228,16 @@ class FinancialAgentCalculationMixin:
         ordered_results = self._promote_stronger_nested_aggregate_results(ordered_results)
         ordered_results = self._align_lookup_result_units_from_peer_source_slots(ordered_results)
         ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        ordered_results = self._append_ratio_result_from_retrieved_context(
+            ordered_results,
+            state,
+        )
+        ordered_results = self._append_ratio_result_from_task_outputs(
+            ordered_results,
+            state,
+        )
+        ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        ordered_results = self._sync_ratio_result_displays_in_ordered_results(ordered_results)
         has_growth_rate_result = any(
             self._aggregate_result_operation_family(row) == "growth_rate"
             for row in ordered_results
@@ -17194,6 +18284,537 @@ class FinancialAgentCalculationMixin:
             has_growth_rate_result=has_growth_rate_result,
             numeric_answer_locked=numeric_answer_locked,
         )
+
+    def _append_ratio_result_from_task_outputs(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        state: FinancialAgentState,
+    ) -> List[Dict[str, Any]]:
+        if any(
+            self._aggregate_result_operation_family(row) == "ratio"
+            and row.get("recovered_from_retrieved_ratio_context")
+            and _normalise_spaces(str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")).lower()
+            == "ok"
+            for row in ordered_results
+            if isinstance(row, dict)
+        ):
+            return ordered_results
+        result_by_task_id = {
+            _normalise_spaces(str(row.get("task_id") or "")): dict(row)
+            for row in ordered_results
+            if isinstance(row, dict) and _normalise_spaces(str(row.get("task_id") or ""))
+        }
+        appended: List[Dict[str, Any]] = []
+        for task in list(state.get("calc_subtasks") or []):
+            task_data = dict(task or {})
+            operation_family = _normalise_spaces(
+                str(task_data.get("operation_family") or task_data.get("operation") or "")
+            ).lower()
+            if operation_family != "ratio":
+                continue
+            bindings = [dict(item) for item in list(task_data.get("inputs") or []) if isinstance(item, dict)]
+            if not bindings:
+                continue
+            dependency_rows: List[Dict[str, Any]] = []
+            for index, binding in enumerate(bindings, start=1):
+                source_preference = {
+                    _normalise_spaces(str(item or "")).lower()
+                    for item in list(binding.get("source_preference") or [])
+                    if _normalise_spaces(str(item or ""))
+                }
+                if "task_output" not in source_preference:
+                    continue
+                preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+                sibling_row = result_by_task_id.get(preferred_task_id)
+                if not sibling_row:
+                    continue
+                sibling_result = dict(sibling_row.get("calculation_result") or {})
+                answer_slots = dict(sibling_result.get("answer_slots") or {})
+                source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
+                source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
+                if not self._answer_slot_has_material(source_slot):
+                    continue
+                slot_matches_binding = self._dependency_slot_matches_input(
+                    binding,
+                    source_slot,
+                    sibling_row=sibling_row,
+                    state=state,
+                )
+                if not slot_matches_binding:
+                    slot_surface = _normalise_spaces(
+                        " ".join(
+                            str(value or "")
+                            for value in (
+                                source_slot.get("label"),
+                                sibling_row.get("metric_label"),
+                                sibling_row.get("answer"),
+                            )
+                        )
+                    )
+                    slot_matches_binding = _operand_text_match(slot_surface, binding)
+                if not slot_matches_binding:
+                    continue
+                raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+                dependency_rows.append(
+                    self._repair_operand_normalization_from_rendered_unit(
+                        {
+                            "operand_id": f"aggregate_task_output_{preferred_task_id}_{index:03d}",
+                            "evidence_id": f"task_output:{preferred_task_id}",
+                            "source_row_id": f"task_output:{preferred_task_id}",
+                            "source_row_ids": _clean_source_row_ids(
+                                [
+                                    f"task_output:{preferred_task_id}",
+                                    source_slot.get("source_row_id"),
+                                    source_slot.get("source_row_ids"),
+                                    sibling_result.get("source_row_ids"),
+                                ]
+                            ),
+                            "source_anchor": _normalise_spaces(
+                                str(source_slot.get("source_anchor") or sibling_result.get("source_anchor") or "")
+                            ),
+                            "label": _normalise_spaces(str(binding.get("label") or source_slot.get("label") or "")),
+                            "raw_value": _normalise_spaces(
+                                str(source_slot.get("raw_value") or source_slot.get("rendered_value") or "")
+                            ),
+                            "raw_unit": raw_unit,
+                            "normalized_value": source_slot.get("normalized_value") or sibling_result.get("result_value"),
+                            "normalized_unit": normalized_unit,
+                            "period": _normalise_spaces(str(source_slot.get("period") or binding.get("period") or "")),
+                            "matched_operand_label": _normalise_spaces(str(binding.get("label") or "")),
+                            "matched_operand_concept": _normalise_spaces(str(binding.get("concept") or "")),
+                            "matched_operand_role": _normalise_spaces(str(binding.get("role") or "")),
+                            "source_task_id": preferred_task_id,
+                            "dependency_resolved": True,
+                        }
+                    )
+                )
+            if _missing_required_operands(bindings, dependency_rows):
+                continue
+            if self._ratio_operand_rows_collapse_to_same_slot(dependency_rows):
+                continue
+            numerator_rows = [
+                dict(row)
+                for row in dependency_rows
+                if _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower().startswith("numerator")
+            ]
+            denominator_rows = [
+                dict(row)
+                for row in dependency_rows
+                if _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower().startswith("denominator")
+            ]
+            if not numerator_rows or not denominator_rows:
+                continue
+            numerator_values = [self._coerce_slot_numeric(row.get("normalized_value")) for row in numerator_rows]
+            denominator_values = [self._coerce_slot_numeric(row.get("normalized_value")) for row in denominator_rows]
+            if any(value is None for value in numerator_values + denominator_values):
+                continue
+            denominator_value = sum(float(value) for value in denominator_values if value is not None)
+            if denominator_value == 0:
+                continue
+            numerator_value = sum(float(value) for value in numerator_values if value is not None)
+            result_value = numerator_value / denominator_value * 100.0
+            rendered_value = self._format_ratio_percent_result(result_value)
+            metric_label = _normalise_spaces(str(task_data.get("metric_label") or task_data.get("target_metric") or ""))
+            source_row_ids = _clean_source_row_ids(
+                [row.get("source_row_id") or row.get("source_row_ids") for row in dependency_rows]
+            )
+            numerator_slots = [
+                {
+                    **self._build_operand_value_slot(row, default_role=str(row.get("matched_operand_role") or "numerator")),
+                    "role": str(row.get("matched_operand_role") or "numerator"),
+                }
+                for row in numerator_rows
+            ]
+            denominator_slots = [
+                {
+                    **self._build_operand_value_slot(row, default_role=str(row.get("matched_operand_role") or "denominator")),
+                    "role": str(row.get("matched_operand_role") or "denominator"),
+                }
+                for row in denominator_rows
+            ]
+            components_by_role = {
+                str(slot.get("role") or f"component_{index + 1}"): [slot]
+                for index, slot in enumerate(numerator_slots + denominator_slots)
+            }
+            calculation_result = {
+                "status": "ok",
+                "operation_family": "ratio",
+                "result_value": result_value,
+                "result_unit": "%",
+                "rendered_value": rendered_value,
+                "formatted_result": "",
+                "source_row_ids": source_row_ids,
+                "source_evidence_ids": source_row_ids,
+                "answer_slots": {
+                    "metric_label": metric_label,
+                    "operation_family": "ratio",
+                    "source_row_ids": source_row_ids,
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": metric_label,
+                        "concept": "",
+                        "period": "",
+                        "raw_value": rendered_value,
+                        "raw_unit": "%",
+                        "normalized_value": result_value,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": rendered_value,
+                        "source_row_id": source_row_ids[0] if source_row_ids else "",
+                        "source_row_ids": source_row_ids,
+                        "source_anchor": "",
+                    },
+                    "components_by_group": {
+                        "numerator": numerator_slots,
+                        "denominator": denominator_slots,
+                    },
+                    "components_by_role": components_by_role,
+                },
+                "derived_metrics": {
+                    "operation_family": "ratio",
+                    "formula_result_value": result_value,
+                    "task_output_ratio_projection": True,
+                },
+            }
+            answer = self._compact_ratio_answer(
+                {
+                    "active_subtask": {"metric_label": metric_label},
+                    "resolved_calculation_trace": {
+                        "calculation_operands": dependency_rows,
+                        "calculation_plan": {"status": "ok", "operation": "ratio", "result_unit": "%"},
+                        "calculation_result": calculation_result,
+                    },
+                },
+                calculation_result,
+            )
+            calculation_result["formatted_result"] = answer
+            appended.append(
+                {
+                    "task_id": str(task_data.get("task_id") or f"ratio_task_output_{len(appended) + 1}"),
+                    "metric_family": str(task_data.get("metric_family") or "concept_ratio"),
+                    "metric_label": metric_label,
+                    "operation_family": "ratio",
+                    "answer": answer,
+                    "status": "ok",
+                    "calculation_result": calculation_result,
+                    "calculation_operands": dependency_rows,
+                    "source_row_ids": source_row_ids,
+                    "source_evidence_ids": source_row_ids,
+                    "recovered_from_task_outputs": True,
+                }
+            )
+        if not appended:
+            return ordered_results
+        by_task_id = {str(row.get("task_id") or ""): dict(row) for row in ordered_results if isinstance(row, dict)}
+        for row in appended:
+            task_id = str(row.get("task_id") or "")
+            if task_id:
+                by_task_id[task_id] = row
+        return [by_task_id.get(str(row.get("task_id") or ""), row) for row in ordered_results if isinstance(row, dict)] + [
+            row for row in appended if str(row.get("task_id") or "") not in by_task_id
+        ]
+
+    def _append_ratio_result_from_retrieved_context(
+        self,
+        ordered_results: List[Dict[str, Any]],
+        state: FinancialAgentState,
+    ) -> List[Dict[str, Any]]:
+        if any(
+            self._aggregate_result_operation_family(row) == "ratio"
+            and row.get("recovered_from_retrieved_ratio_context")
+            and _normalise_spaces(str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")).lower()
+            == "ok"
+            and self._ratio_components_are_complete(dict((row.get("calculation_result") or {})))
+            for row in ordered_results
+            if isinstance(row, dict)
+        ):
+            return ordered_results
+        ratio_tasks = [
+            dict(task)
+            for task in list(state.get("calc_subtasks") or [])
+            if _normalise_spaces(str(task.get("operation_family") or task.get("operation") or "")).lower() == "ratio"
+            and list(task.get("required_operands") or [])
+        ]
+        if not ratio_tasks:
+            return ordered_results
+        context_docs = self._retrieval_context_docs(
+            list(state.get("retrieved_docs") or []),
+            list(state.get("seed_retrieved_docs") or []),
+            seed_limit=32,
+        )
+        context_evidence = self._ratio_operand_context_evidence_from_docs(
+            context_docs,
+            max_docs=64,
+        )
+        if not context_evidence:
+            return ordered_results
+
+        appended: List[Dict[str, Any]] = []
+        for task in ratio_tasks:
+            required_operands = [dict(item) for item in list(task.get("required_operands") or []) if isinstance(item, dict)]
+            context_required_operands: List[Dict[str, Any]] = []
+            slot_policy = dict(CALCULATION_SLOT_POLICY)
+            leading_period_strip_pattern = str(slot_policy.get("leading_period_strip_pattern") or "")
+            for operand in required_operands:
+                context_operand = dict(operand)
+                label = _normalise_spaces(str(context_operand.get("label") or ""))
+                if label and leading_period_strip_pattern:
+                    periodless_label = _normalise_spaces(re.sub(leading_period_strip_pattern, " ", label))
+                    if periodless_label:
+                        context_operand["label"] = periodless_label
+                context_required_operands.append(context_operand)
+            context_rows = self._build_complete_ratio_operands_from_coherent_context(
+                context_evidence,
+                required_operands=context_required_operands,
+                query=str(state.get("query") or ""),
+                topic=str(state.get("topic") or ""),
+                report_scope=dict(state.get("report_scope") or {}),
+            )
+            if _missing_required_operands(context_required_operands, context_rows):
+                continue
+            if self._ratio_operand_rows_collapse_to_same_slot(context_rows):
+                continue
+            dependency_rows: List[Dict[str, Any]] = []
+            result_by_task_id = {
+                _normalise_spaces(str(row.get("task_id") or "")): dict(row)
+                for row in ordered_results
+                if isinstance(row, dict) and _normalise_spaces(str(row.get("task_id") or ""))
+            }
+            for binding in list(task.get("inputs") or []):
+                binding_data = dict(binding or {})
+                source_preference = {
+                    _normalise_spaces(str(item or "")).lower()
+                    for item in list(binding_data.get("source_preference") or [])
+                    if _normalise_spaces(str(item or ""))
+                }
+                if "task_output" not in source_preference:
+                    continue
+                preferred_task_id = _normalise_spaces(str(binding_data.get("preferred_task_id") or ""))
+                sibling_row = result_by_task_id.get(preferred_task_id)
+                if not sibling_row:
+                    continue
+                sibling_result = dict(sibling_row.get("calculation_result") or {})
+                answer_slots = dict(sibling_result.get("answer_slots") or {})
+                source_slot_name = _normalise_spaces(str(binding_data.get("source_slot") or "primary_value")) or "primary_value"
+                source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
+                if not self._answer_slot_has_material(source_slot):
+                    continue
+                raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+                dependency_rows.append(
+                    self._repair_operand_normalization_from_rendered_unit(
+                        {
+                            "operand_id": f"aggregate_dep_{preferred_task_id}",
+                            "evidence_id": f"task_output:{preferred_task_id}",
+                            "source_row_id": f"task_output:{preferred_task_id}",
+                            "source_row_ids": _clean_source_row_ids([
+                                f"task_output:{preferred_task_id}",
+                                source_slot.get("source_row_id"),
+                                source_slot.get("source_row_ids"),
+                                sibling_result.get("source_row_ids"),
+                            ]),
+                            "source_anchor": _normalise_spaces(
+                                str(source_slot.get("source_anchor") or sibling_result.get("source_anchor") or "")
+                            ),
+                            "label": _normalise_spaces(str(binding_data.get("label") or source_slot.get("label") or "")),
+                            "raw_value": _normalise_spaces(
+                                str(source_slot.get("raw_value") or source_slot.get("rendered_value") or "")
+                            ),
+                            "raw_unit": raw_unit,
+                            "normalized_value": source_slot.get("normalized_value") or sibling_result.get("result_value"),
+                            "normalized_unit": normalized_unit,
+                            "period": _normalise_spaces(str(source_slot.get("period") or binding_data.get("period") or "")),
+                            "matched_operand_label": _normalise_spaces(str(binding_data.get("label") or "")),
+                            "matched_operand_role": _normalise_spaces(str(binding_data.get("role") or "")),
+                            "source_task_id": preferred_task_id,
+                            "dependency_resolved": True,
+                        }
+                    )
+                )
+            dependency_rows_cover_required = bool(
+                dependency_rows
+                and not _missing_required_operands(context_required_operands, dependency_rows)
+            )
+            if dependency_rows_cover_required:
+                context_by_role: Dict[str, List[Dict[str, Any]]] = {}
+                for row in context_rows:
+                    role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+                    if role:
+                        context_by_role.setdefault(role, []).append(row)
+                dependency_context_conflicts = False
+                for dependency_row in dependency_rows:
+                    role = _normalise_spaces(
+                        str(dependency_row.get("matched_operand_role") or dependency_row.get("role") or "")
+                    ).lower()
+                    if not role:
+                        continue
+                    for context_row in context_by_role.get(role, []):
+                        if self._operand_row_value_differs(dependency_row, context_row):
+                            dependency_context_conflicts = True
+                            break
+                    if dependency_context_conflicts:
+                        break
+                dependency_units = {
+                    _normalise_spaces(str(row.get("raw_unit") or ""))
+                    for row in dependency_rows
+                    if _normalise_spaces(str(row.get("raw_unit") or ""))
+                }
+                context_units = {
+                    _normalise_spaces(str(row.get("raw_unit") or ""))
+                    for row in context_rows
+                    if _normalise_spaces(str(row.get("raw_unit") or ""))
+                }
+                if dependency_context_conflicts and not (
+                    len(dependency_units) > 1
+                    and len(context_units) <= 1
+                ):
+                    continue
+            numerator_rows = [
+                dict(row)
+                for row in context_rows
+                if _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower().startswith("numerator")
+            ]
+            denominator_rows = [
+                dict(row)
+                for row in context_rows
+                if _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower().startswith("denominator")
+            ]
+            if not numerator_rows or not denominator_rows:
+                continue
+            numerator_values = [self._coerce_slot_numeric(row.get("normalized_value")) for row in numerator_rows]
+            denominator_values = [self._coerce_slot_numeric(row.get("normalized_value")) for row in denominator_rows]
+            if any(value is None for value in numerator_values + denominator_values):
+                continue
+            denominator_value = sum(float(value) for value in denominator_values if value is not None)
+            if denominator_value == 0:
+                continue
+            numerator_value = sum(float(value) for value in numerator_values if value is not None)
+            result_value = numerator_value / denominator_value * 100.0
+            source_row_ids = _clean_source_row_ids([
+                row.get("source_row_id") or row.get("evidence_id") or row.get("source_row_ids")
+                for row in context_rows
+            ])
+            used_source_ids = set(source_row_ids)
+            projection_evidence = [
+                dict(item)
+                for item in context_evidence
+                if _normalise_spaces(str(item.get("evidence_id") or "")) in used_source_ids
+            ]
+            existing_result_rows = [
+                *ordered_results,
+                *self._ratio_result_rows_from_task_artifacts(state, task),
+            ]
+            if self._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                existing_result_rows,
+                task,
+                result_value=result_value,
+                context_evidence=projection_evidence or context_evidence,
+            ):
+                continue
+            rendered_value = self._format_ratio_percent_result(result_value)
+            numerator_slots = [
+                {**self._build_operand_value_slot(row, default_role=str(row.get("matched_operand_role") or "numerator")), "role": str(row.get("matched_operand_role") or "numerator")}
+                for row in numerator_rows
+            ]
+            denominator_slots = [
+                {**self._build_operand_value_slot(row, default_role=str(row.get("matched_operand_role") or "denominator")), "role": str(row.get("matched_operand_role") or "denominator")}
+                for row in denominator_rows
+            ]
+            components_by_role = {
+                str(slot.get("role") or f"component_{index + 1}"): [slot]
+                for index, slot in enumerate(numerator_slots + denominator_slots)
+            }
+            metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
+            calculation_result = {
+                "status": "ok",
+                "operation_family": "ratio",
+                "result_value": result_value,
+                "result_unit": "%",
+                "rendered_value": rendered_value,
+                "formatted_result": "",
+                "source_row_ids": source_row_ids,
+                "source_evidence_ids": source_row_ids,
+                "answer_slots": {
+                    "metric_label": metric_label,
+                    "operation_family": "ratio",
+                    "source_row_ids": source_row_ids,
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": metric_label,
+                        "concept": "",
+                        "period": "",
+                        "raw_value": rendered_value,
+                        "raw_unit": "%",
+                        "normalized_value": result_value,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": rendered_value,
+                        "source_row_id": source_row_ids[0] if source_row_ids else "",
+                        "source_row_ids": source_row_ids,
+                        "source_anchor": "",
+                    },
+                    "components_by_group": {
+                        "numerator": numerator_slots,
+                        "denominator": denominator_slots,
+                    },
+                    "components_by_role": components_by_role,
+                },
+                "derived_metrics": {
+                    "operation_family": "ratio",
+                    "formula_result_value": result_value,
+                    "retrieved_context_ratio_projection": True,
+                },
+            }
+            answer = self._compact_ratio_answer(
+                {
+                    "active_subtask": {"metric_label": metric_label},
+                    "resolved_calculation_trace": {
+                        "calculation_operands": context_rows,
+                        "calculation_plan": {
+                            "status": "ok",
+                            "operation": "ratio",
+                            "result_unit": "%",
+                        },
+                        "calculation_result": calculation_result,
+                    },
+                },
+                calculation_result,
+            )
+            if answer:
+                calculation_result["formatted_result"] = answer
+            runtime_evidence = [
+                dict(item)
+                for item in context_evidence
+                if _normalise_spaces(str(item.get("evidence_id") or "")) in used_source_ids
+            ]
+            appended.append(
+                {
+                    "task_id": str(task.get("task_id") or f"retrieved_context_ratio_{len(appended) + 1}"),
+                    "metric_family": task.get("metric_family") or "concept_ratio",
+                    "metric_label": metric_label,
+                    "operation_family": "ratio",
+                    "answer": answer or rendered_value,
+                    "status": "ok",
+                    "calculation_result": calculation_result,
+                    "calculation_operands": context_rows,
+                    "source_row_ids": source_row_ids,
+                    "source_evidence_ids": source_row_ids,
+                    "runtime_evidence": runtime_evidence,
+                    "recovered_from_retrieved_ratio_context": True,
+                }
+            )
+        if not appended:
+            return ordered_results
+        appended_signatures = {
+            self._aggregate_result_signature(row)
+            for row in appended
+            if self._aggregate_result_signature(row)
+        }
+        preserved_rows = [
+            row
+            for row in list(ordered_results)
+            if self._aggregate_result_signature(row) not in appended_signatures
+        ]
+        return [*preserved_rows, *appended]
 
     def _collect_initial_aggregate_evidence_state(
         self,
@@ -17951,6 +19572,27 @@ class FinancialAgentCalculationMixin:
         )
         mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
         ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+        complete_projection_answer = self._complete_numeric_projection_replacement_answer(
+            final_answer=final_answer,
+            ordered_results=ordered_results,
+            query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        if complete_projection_answer:
+            aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
+                aggregate_projection,
+                selected_claim_ids,
+                self._aggregate_answer_candidate(
+                    complete_projection_answer,
+                    selected_claim_ids=[],
+                    status_ok=True,
+                ),
+            )
+            _sync_state(
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
+            )
         late_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
             query=str(state.get("query") or ""),
             ordered_results=ordered_results,
@@ -18088,6 +19730,33 @@ class FinancialAgentCalculationMixin:
             final_answer,
         )
         _sync_state(ordered_results=ordered_results, aggregate_projection=aggregate_projection)
+        final_ratio_synced_results = self._sync_ratio_result_displays_in_ordered_results(ordered_results)
+        if final_ratio_synced_results is not ordered_results:
+            ordered_results = final_ratio_synced_results
+            final_ratio_answer = self._complete_numeric_projection_replacement_answer(
+                final_answer=final_answer,
+                ordered_results=ordered_results,
+                query=str(state.get("query") or ""),
+                evidence_items=aggregate_evidence_items,
+            ) or self._preferred_complete_numeric_answer(
+                ordered_results,
+                query=str(state.get("query") or ""),
+                evidence_items=aggregate_evidence_items,
+            )
+            if final_ratio_answer:
+                final_answer = final_ratio_answer
+            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            _sync_state(ordered_results=ordered_results, aggregate_projection=aggregate_projection, final_answer=final_answer)
+        final_complete_projection_answer = self._complete_numeric_projection_replacement_answer(
+            final_answer=final_answer,
+            ordered_results=ordered_results,
+            query=str(state.get("query") or ""),
+            evidence_items=aggregate_evidence_items,
+        )
+        if final_complete_projection_answer:
+            final_answer = final_complete_projection_answer
+            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         return self._build_aggregate_completion_update(
             state,
             ordered_results=ordered_results,

@@ -2867,6 +2867,460 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("37.47%", trace_ratio_row["answer"])
         self.assertNotIn("0.04%", trace_ratio_row["answer"])
 
+    def test_aggregate_recovers_ratio_from_retrieved_same_table_context(self) -> None:
+        stale_lookup_rows = [
+            {
+                "task_id": "task_numerator",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 판매비와관리비",
+                "operation_family": "lookup",
+                "answer": "2023년 판매비와관리비는 435,542천원입니다.",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "lookup",
+                    "rendered_value": "435,542천원",
+                    "formatted_result": "2023년 판매비와관리비는 435,542천원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "2023년 판매비와관리비",
+                            "concept": "selling_general_administrative_expense",
+                            "period": "2023",
+                            "raw_value": "435,542",
+                            "raw_unit": "천원",
+                            "normalized_value": 435_542_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "435,542천원",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_denominator",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 경비차감전영업이익",
+                "operation_family": "lookup",
+                "answer": "2023년 경비차감전영업이익은 11,623백만원입니다.",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "lookup",
+                    "rendered_value": "11,623백만원",
+                    "formatted_result": "2023년 경비차감전영업이익은 11,623백만원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "2023년 경비차감전영업이익",
+                            "concept": "pre_expense_operating_profit",
+                            "period": "2023",
+                            "raw_value": "11,623",
+                            "raw_unit": "백만원",
+                            "normalized_value": 11_623_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "11,623백만원",
+                        },
+                    },
+                },
+            },
+        ]
+        retrieved_doc = Document(
+            page_content=(
+                "구분 | 2023년 | 2022년\n"
+                "경비차감전영업이익 (A=B+C+D) | 11,623 | 9,199\n"
+                "판매비와관리비 (E) | 4,355 | 3,935"
+            ),
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "report_type": "사업보고서",
+                "section_path": "MDA",
+                "table_source_id": "mda::profitability",
+                "table_context": "profitability",
+                "table_header_context": "구분 | 2023년 | 2022년",
+                "table_row_labels_text": "경비차감전영업이익 (A=B+C+D)\n판매비와관리비 (E)",
+                "table_value_labels_text": (
+                    "경비차감전영업이익 (A=B+C+D) 11,623\n"
+                    "경비차감전영업이익 (A=B+C+D) 9,199\n"
+                    "판매비와관리비 (E) 4,355\n"
+                    "판매비와관리비 (E) 3,935"
+                ),
+                "unit_hint": "억원",
+                "block_type": "table",
+            },
+        )
+        state = {
+            "query": "2023년 CIR을 계산해 줘. 여기서 CIR은 A 대비 E 비율을 의미한다.",
+            "topic": "CIR",
+            "report_scope": {"year": 2023},
+            "calc_subtasks": [
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "CIR",
+                    "operation_family": "ratio",
+                    "required_operands": [
+                        {
+                            "role": "numerator_1",
+                            "label": "2023년 판매비와관리비",
+                            "concept": "selling_general_administrative_expense",
+                            "period": "2023",
+                        },
+                        {
+                            "role": "denominator_1",
+                            "label": "2023년 경비차감전영업이익",
+                            "concept": "pre_expense_operating_profit",
+                            "period": "2023",
+                        },
+                    ],
+                },
+                {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+            ],
+            "subtask_results": stale_lookup_rows,
+            "retrieved_docs": [(retrieved_doc, 0.1)],
+            "seed_retrieved_docs": [],
+        }
+
+        prepared = self.agent._prepare_initial_aggregate_state(state)
+
+        self.assertIn("37.47%", prepared.complete_numeric_answer)
+        self.assertIn("4,355억원", prepared.complete_numeric_answer)
+        self.assertNotIn("435,542천원", prepared.complete_numeric_answer)
+        projection = self.agent._rebuild_aggregate_projection(
+            prepared.ordered_results,
+            prepared.complete_numeric_answer,
+        )
+        projection_operands = projection["calculation_operands"]
+        self.assertEqual(
+            {(row["matched_operand_role"], row["raw_value"], row["raw_unit"]) for row in projection_operands},
+            {("numerator_1", "4,355", "억원"), ("denominator_1", "11,623", "억원")},
+        )
+
+    def test_aggregate_keeps_complete_dependency_rows_when_retrieved_context_conflicts_same_unit(self) -> None:
+        dependency_rows = [
+            {
+                "task_id": "task_numerator",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 자본화된 개발비",
+                "operation_family": "lookup",
+                "answer": "2023년 자본화된 개발비는 181,624,107천원입니다.",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "lookup",
+                    "rendered_value": "181,624,107천원",
+                    "formatted_result": "2023년 자본화된 개발비는 181,624,107천원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "2023년 자본화된 개발비",
+                            "period": "2023",
+                            "raw_value": "181,624,107",
+                            "raw_unit": "천원",
+                            "normalized_value": 181_624_107_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "181,624,107천원",
+                        },
+                    },
+                },
+            },
+            {
+                "task_id": "task_denominator",
+                "metric_family": "concept_lookup",
+                "metric_label": "2023년 연구개발비용",
+                "operation_family": "lookup",
+                "answer": "2023년 연구개발비용은 342,736,271천원입니다.",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "lookup",
+                    "rendered_value": "342,736,271천원",
+                    "formatted_result": "2023년 연구개발비용은 342,736,271천원입니다.",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "2023년 연구개발비용",
+                            "period": "2023",
+                            "raw_value": "342,736,271",
+                            "raw_unit": "천원",
+                            "normalized_value": 342_736_271_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "342,736,271천원",
+                        },
+                    },
+                },
+            },
+        ]
+        conflicting_doc = Document(
+            page_content=(
+                "구분 | 2023년 | 2022년\n"
+                "연구개발비용 | 12,966,955 | 10,000,000\n"
+                "자본화된 개발비 | 259,611 | 200,000"
+            ),
+            metadata={
+                "company": "Example",
+                "year": 2023,
+                "report_type": "사업보고서",
+                "section_path": "R&D",
+                "table_source_id": "rd::detail",
+                "table_context": "research and development detail",
+                "table_header_context": "구분 | 2023년 | 2022년",
+                "table_row_labels_text": "연구개발비용\n자본화된 개발비",
+                "table_value_labels_text": (
+                    "연구개발비용 12,966,955\n"
+                    "연구개발비용 10,000,000\n"
+                    "자본화된 개발비 259,611\n"
+                    "자본화된 개발비 200,000"
+                ),
+                "unit_hint": "천원",
+                "block_type": "table",
+            },
+        )
+        state = {
+            "query": "2023년 전체 연구개발비용 중 자본화된 개발비 비율을 계산해 줘.",
+            "topic": "capitalized development cost ratio",
+            "report_scope": {"year": 2023},
+            "calc_subtasks": [
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "capitalized development cost ratio",
+                    "operation_family": "ratio",
+                    "depends_on": ["task_numerator", "task_denominator"],
+                    "inputs": [
+                        {
+                            "role": "numerator_1",
+                            "label": "2023년 자본화된 개발비",
+                            "period": "2023",
+                            "source_slot": "primary_value",
+                            "source_preference": ["task_output", "retrieval"],
+                            "preferred_task_id": "task_numerator",
+                        },
+                        {
+                            "role": "denominator_1",
+                            "label": "2023년 연구개발비용",
+                            "period": "2023",
+                            "source_slot": "primary_value",
+                            "source_preference": ["task_output", "retrieval"],
+                            "preferred_task_id": "task_denominator",
+                        },
+                    ],
+                    "required_operands": [
+                        {
+                            "role": "numerator_1",
+                            "label": "2023년 자본화된 개발비",
+                            "period": "2023",
+                        },
+                        {
+                            "role": "denominator_1",
+                            "label": "2023년 연구개발비용",
+                            "period": "2023",
+                        },
+                    ],
+                },
+                {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+            ],
+            "subtask_results": dependency_rows,
+            "retrieved_docs": [(conflicting_doc, 0.1)],
+            "seed_retrieved_docs": [],
+        }
+
+        prepared = self.agent._prepare_initial_aggregate_state(state)
+
+        self.assertNotIn("2%", prepared.complete_numeric_answer)
+        self.assertFalse(
+            any(row.get("recovered_from_retrieved_ratio_context") for row in prepared.ordered_results)
+        )
+        self.assertNotIn("259,611천원", prepared.complete_numeric_answer)
+
+    def test_retrieved_ratio_projection_preserves_complete_existing_result_without_metric_surface(self) -> None:
+        metric_label = "목표값 대비 기준값 비율"
+        existing_row = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "metric_label": metric_label,
+            "answer": "목표값 대비 기준값 비율은 25.00%입니다.",
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "ratio",
+                "result_value": 25.0,
+                "result_unit": "%",
+                "rendered_value": "25.00%",
+                "answer_slots": {
+                    "metric_label": metric_label,
+                    "operation_family": "ratio",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": metric_label,
+                        "raw_value": "25.00%",
+                        "raw_unit": "%",
+                        "normalized_value": 25.0,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "25.00%",
+                    },
+                    "components_by_group": {
+                        "numerator": [
+                            self._ratio_component(
+                                role="numerator_1",
+                                label="목표값",
+                                raw_value="250",
+                                normalized_value=250.0,
+                                source_row_id="ev_existing_num",
+                            )
+                        ],
+                        "denominator": [
+                            self._ratio_component(
+                                role="denominator_1",
+                                label="기준값",
+                                raw_value="1,000",
+                                normalized_value=1000.0,
+                                source_row_id="ev_existing_den",
+                            )
+                        ],
+                    },
+                },
+            },
+        }
+        context_rows = [
+            {
+                "operand_id": "ctx_num",
+                "evidence_id": "ev_ctx_num",
+                "source_row_id": "ev_ctx_num",
+                "label": "목표값",
+                "matched_operand_label": "목표값",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "100",
+                "raw_unit": "백만원",
+                "normalized_value": 100.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "operand_id": "ctx_den",
+                "evidence_id": "ev_ctx_den",
+                "source_row_id": "ev_ctx_den",
+                "label": "기준값",
+                "matched_operand_label": "기준값",
+                "matched_operand_role": "denominator_1",
+                "raw_value": "1,000",
+                "raw_unit": "백만원",
+                "normalized_value": 1000.0,
+                "normalized_unit": "KRW",
+            },
+        ]
+        context_evidence = [
+            {
+                "evidence_id": "ev_ctx_num",
+                "claim": "목표값 100",
+                "metadata": {"table_value_labels_text": "목표값 100\n기준값 1,000"},
+            },
+            {
+                "evidence_id": "ev_ctx_den",
+                "claim": "기준값 1,000",
+                "metadata": {"table_value_labels_text": "목표값 100\n기준값 1,000"},
+            },
+        ]
+        original_context_docs = self.agent._retrieval_context_docs
+        original_context_evidence = self.agent._ratio_operand_context_evidence_from_docs
+        original_build_context = self.agent._build_complete_ratio_operands_from_coherent_context
+        self.agent._retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
+        self.agent._ratio_operand_context_evidence_from_docs = lambda *_args, **_kwargs: context_evidence
+        self.agent._build_complete_ratio_operands_from_coherent_context = lambda *_args, **_kwargs: context_rows
+        try:
+            base_state = {
+                    "query": "목표값 대비 기준값 비율을 계산해 줘.",
+                    "topic": metric_label,
+                    "calc_subtasks": [
+                        {
+                            "task_id": "task_ratio",
+                            "metric_family": "concept_ratio",
+                            "metric_label": metric_label,
+                            "operation_family": "ratio",
+                            "required_operands": [
+                                {"role": "numerator_1", "label": "목표값"},
+                                {"role": "denominator_1", "label": "기준값"},
+                            ],
+                        }
+                    ],
+                    "retrieved_docs": [],
+                    "seed_retrieved_docs": [],
+            }
+            updated = self.agent._append_ratio_result_from_retrieved_context(
+                [existing_row],
+                base_state,
+            )
+            artifact_updated = self.agent._append_ratio_result_from_retrieved_context(
+                [],
+                {
+                    **base_state,
+                    "artifacts": [
+                        {
+                            "artifact_id": "result:task_ratio:001",
+                            "task_id": "task_ratio",
+                            "kind": "calculation_result",
+                            "status": "ok",
+                            "payload": {
+                                "calculation_result": {
+                                    "status": "ok",
+                                    "operation_family": "ratio",
+                                    "result_value": 25.0,
+                                    "result_unit": "%",
+                                    "rendered_value": "25.00%",
+                                }
+                            },
+                            "evidence_refs": ["ev_existing_num", "ev_existing_den"],
+                        }
+                    ],
+                },
+            )
+        finally:
+            self.agent._retrieval_context_docs = original_context_docs
+            self.agent._ratio_operand_context_evidence_from_docs = original_context_evidence
+            self.agent._build_complete_ratio_operands_from_coherent_context = original_build_context
+
+        self.assertEqual(len(updated), 1)
+        self.assertFalse(updated[0].get("recovered_from_retrieved_ratio_context"))
+        self.assertEqual(updated[0]["calculation_result"]["result_value"], 25.0)
+        self.assertEqual(artifact_updated, [])
+        preferred_artifact_row = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+            {
+                "artifacts": [
+                    {
+                        "artifact_id": "result:task_ratio:001",
+                        "task_id": "task_ratio",
+                        "kind": "calculation_result",
+                        "status": "ok",
+                        "summary": "25.00%",
+                        "payload": {
+                            "calculation_result": {
+                                "status": "ok",
+                                "operation_family": "ratio",
+                                "result_value": 25.0,
+                                "result_unit": "%",
+                                "rendered_value": "25.00%",
+                            }
+                        },
+                    }
+                ]
+            },
+            {"task_id": "task_ratio", "metric_family": "concept_ratio", "metric_label": metric_label},
+            {"status": "ok", "operation_family": "ratio", "result_value": 10.0},
+        )
+        self.assertTrue(preferred_artifact_row.get("artifact_ratio_result_preserved_over_alignment"))
+        self.assertEqual(preferred_artifact_row["calculation_result"]["result_value"], 25.0)
+
     def test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment(self) -> None:
         state = {
             "query": "Calculate the margin drag from a numerator over revenue.",
@@ -3738,6 +4192,165 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(repaired.final_answer, "target share is 80%.")
         self.assertEqual(repaired.aggregate_projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+    def test_stale_projection_repair_preserves_complete_multi_operand_ratio_answer(self) -> None:
+        ratio_result = {
+            "status": "ok",
+            "result_value": 42.02,
+            "result_unit": "%",
+            "rendered_value": "42.02%",
+            "formatted_result": "target share is 42.02%.",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target share",
+                "primary_value": {
+                    "status": "ok",
+                    "rendered_value": "42.02%",
+                    "normalized_value": 42.02,
+                    "normalized_unit": "PERCENT",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "short component",
+                            "raw_value": "4,146",
+                            "raw_unit": "백만원",
+                            "normalized_value": 4146000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "4,146백만원",
+                            "source_row_id": "ev_short",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_2",
+                            "label": "long component",
+                            "raw_value": "10,121",
+                            "raw_unit": "백만원",
+                            "normalized_value": 10121000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "10,121백만원",
+                            "source_row_id": "ev_long",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_3",
+                            "label": "bond component",
+                            "raw_value": "9,490",
+                            "raw_unit": "백만원",
+                            "normalized_value": 9490000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "9,490백만원",
+                            "source_row_id": "ev_bond",
+                        },
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "tangible base",
+                            "raw_value": "52,705",
+                            "raw_unit": "백만원",
+                            "normalized_value": 52705000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "52,705백만원",
+                            "source_row_id": "ev_tangible",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "denominator_2",
+                            "label": "intangible base",
+                            "raw_value": "3,835",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3835000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,835백만원",
+                            "source_row_id": "ev_intangible",
+                        },
+                    ],
+                },
+            },
+        }
+        ratio_row = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 42.02%.",
+            "status": "ok",
+            "calculation_result": ratio_result,
+            "calculation_operands": [
+                slot
+                for slots in ratio_result["answer_slots"]["components_by_group"].values()
+                for slot in slots
+            ],
+        }
+        stale_projection = {
+            "calculation_operands": [
+                {
+                    "operand_id": "num",
+                    "matched_operand_role": "numerator_1",
+                    "label": "short component",
+                    "raw_value": "4,146",
+                    "raw_unit": "백만원",
+                    "normalized_value": 4146000000.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_short",
+                },
+                {
+                    "operand_id": "den",
+                    "matched_operand_role": "denominator_1",
+                    "label": "tangible base",
+                    "raw_value": "52,705",
+                    "raw_unit": "백만원",
+                    "normalized_value": 52705000000.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_tangible",
+                },
+            ],
+            "calculation_plan": {
+                "status": "ok",
+                "mode": "single_value",
+                "operation": "ratio",
+                "ordered_operand_ids": ["num", "den"],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "num"},
+                    {"variable": "B", "operand_id": "den"},
+                ],
+                "formula": "(A / B) * 100",
+                "result_unit": "%",
+            },
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 42.02,
+                "result_unit": "%",
+                "rendered_value": "42.02%",
+                "formatted_result": "target share is 42.02%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "42.02%", "normalized_value": 42.02},
+                },
+            },
+        }
+        aggregate_state = _AggregateSynthesisState(
+            [ratio_row],
+            stale_projection,
+            "target share is 42.02%.",
+            [],
+        )
+
+        repaired = self.agent._apply_stale_projection_repair_to_aggregate_state(
+            state={"query": "calculate target borrowing share"},
+            aggregate_state=aggregate_state,
+            evidence_items=[],
+            prefer_compact_ratio_answer=True,
+        )
+
+        self.assertIn("42.02%", repaired.final_answer)
+        self.assertNotIn("7.87%", repaired.final_answer)
+        self.assertIn("42.02%", repaired.aggregate_projection["calculation_result"]["formatted_result"])
 
     def test_late_runtime_numeric_answer_rejects_dependency_incoherent_trace(self) -> None:
         source_lookup = {
@@ -7042,7 +7655,6 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
-
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
@@ -7187,10 +7799,180 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(extracted["evidence_status"], "sufficient")
+        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+
+    def test_ratio_complete_retrieved_context_replaces_complete_dependency_operands(self) -> None:
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "target ratio",
+                "operation_family": "ratio",
+                "required_operands": [
+                    {
+                        "label": "expense input",
+                        "concept": "expense_input",
+                        "role": "numerator_1",
+                        "period": "2023",
+                    },
+                    {
+                        "label": "profit base",
+                        "concept": "profit_base",
+                        "role": "denominator_1",
+                        "period": "2023",
+                    },
+                ],
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense_input",
+                        "period": "2023",
+                        "label": "expense input",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "profit_base",
+                        "period": "2023",
+                        "label": "profit base",
+                        "preferred_task_id": "task_profit",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_expense",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "expense input",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "expense input",
+                                "concept": "expense_input",
+                                "period": "2023",
+                                "raw_value": "435,542",
+                                "raw_unit": "백만원",
+                                "normalized_value": 435542000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "435,542백만원",
+                                "source_row_id": "task_output:task_expense",
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_profit",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "profit base",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "operation_family": "lookup",
+                            "primary_value": {
+                                "status": "ok",
+                                "role": "primary_value",
+                                "label": "profit base",
+                                "concept": "profit_base",
+                                "period": "2023",
+                                "raw_value": "11,623",
+                                "raw_unit": "백만원",
+                                "normalized_value": 11623000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "11,623백만원",
+                                "source_row_id": "task_output:task_profit",
+                            },
+                        },
+                    },
+                },
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=(
+                            "expense input | 2023 4,355 억원\n"
+                            "profit base | 2023 11,623 억원"
+                        ),
+                        metadata={
+                            "block_type": "table",
+                            "table_source_id": "ratio-table",
+                            "unit_hint": "억원",
+                            "year": 2023,
+                        },
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+        }
+        fallback_rows = [
+            {
+                "operand_id": "fallback_numerator",
+                "evidence_id": "ev_doc_001",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "expense input",
+                "concept": "expense_input",
+                "raw_value": "4,355",
+                "raw_unit": "억원",
+                "normalized_value": 435500000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "expense input",
+                "matched_operand_concept": "expense_input",
+                "matched_operand_role": "numerator_1",
+                "table_source_id": "ratio-table",
+            },
+            {
+                "operand_id": "fallback_denominator",
+                "evidence_id": "ev_doc_001",
+                "source_anchor": "[Example | 2023 | table]",
+                "label": "profit base",
+                "concept": "profit_base",
+                "raw_value": "11,623",
+                "raw_unit": "억원",
+                "normalized_value": 1162300000000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "profit base",
+                "matched_operand_concept": "profit_base",
+                "matched_operand_role": "denominator_1",
+                "table_source_id": "ratio-table",
+            },
+        ]
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+
+        extracted = self.agent._extract_calculation_operands(state)
+        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual(rows_by_role["numerator_1"]["raw_unit"], "억원")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_unit"], "억원")
 
     def test_ratio_coherent_table_context_overrides_mixed_table_operands(self) -> None:
         required_operands = [
@@ -7754,6 +8536,259 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(captured["task_id"], "task_2")
         self.assertEqual(captured["calculation_result"], {})
         self.assertEqual(captured["calculation_operands"], [])
+
+    def test_complete_numeric_projection_replaces_stale_lookup_prefixed_ratio_answer(self) -> None:
+        lookup_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "answer": "long component 10,121백만원",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "long component",
+                        "raw_value": "10,121",
+                        "raw_unit": "백만원",
+                        "normalized_value": 10121000000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "10,121백만원",
+                        "source_row_id": "ev_long",
+                    }
+                },
+            },
+        }
+        ratio_result = {
+            "status": "ok",
+            "result_value": 42.02,
+            "result_unit": "%",
+            "rendered_value": "42.02%",
+            "formatted_result": "target share is 42.02%.",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target share",
+                "primary_value": {
+                    "status": "ok",
+                    "rendered_value": "42.02%",
+                    "normalized_value": 42.02,
+                    "normalized_unit": "PERCENT",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "short component",
+                            "raw_value": "4,146",
+                            "raw_unit": "백만원",
+                            "normalized_value": 4146000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "4,146백만원",
+                            "source_row_id": "ev_short",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_2",
+                            "label": "long component",
+                            "raw_value": "10,121",
+                            "raw_unit": "백만원",
+                            "normalized_value": 10121000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "10,121백만원",
+                            "source_row_id": "ev_long",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_3",
+                            "label": "bond component",
+                            "raw_value": "9,490",
+                            "raw_unit": "백만원",
+                            "normalized_value": 9490000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "9,490백만원",
+                            "source_row_id": "ev_bond",
+                        },
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "tangible base",
+                            "raw_value": "52,705",
+                            "raw_unit": "백만원",
+                            "normalized_value": 52705000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "52,705백만원",
+                            "source_row_id": "ev_tangible",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "denominator_2",
+                            "label": "intangible base",
+                            "raw_value": "3,835",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3835000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,835백만원",
+                            "source_row_id": "ev_intangible",
+                        },
+                    ],
+                },
+            },
+        }
+        ratio_row = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 42.02%.",
+            "status": "ok",
+            "calculation_result": ratio_result,
+            "calculation_operands": [
+                slot
+                for slots in ratio_result["answer_slots"]["components_by_group"].values()
+                for slot in slots
+            ],
+        }
+
+        replacement = self.agent._complete_numeric_projection_replacement_answer(
+            final_answer=(
+                "long component 10,121백만원. bond component 9,490백만원. "
+                "target share is 7.87%. 계산: short component / tangible base."
+            ),
+            ordered_results=[lookup_row, ratio_row],
+            query="calculate target borrowing share",
+            evidence_items=[],
+        )
+
+        self.assertIn("42.02%", replacement)
+        self.assertNotIn("7.87%", replacement)
+
+    def test_compact_ratio_answer_syncs_stale_display_from_result_value(self) -> None:
+        calculation_result = {
+            "status": "ok",
+            "result_value": 42.01863054131083,
+            "result_unit": "%",
+            "rendered_value": "7.87%",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target share",
+                "primary_value": {
+                    "status": "ok",
+                    "normalized_value": 42.01863054131083,
+                    "normalized_unit": "PERCENT",
+                    "rendered_value": "7.87%",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "short component",
+                            "rendered_value": "4,146백만원",
+                            "normalized_value": 4146000000.0,
+                            "normalized_unit": "KRW",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_2",
+                            "label": "long component",
+                            "rendered_value": "10,121백만원",
+                            "normalized_value": 10121000000.0,
+                            "normalized_unit": "KRW",
+                        },
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "tangible base",
+                            "rendered_value": "52,705백만원",
+                            "normalized_value": 52705000000.0,
+                            "normalized_unit": "KRW",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "denominator_2",
+                            "label": "intangible base",
+                            "rendered_value": "3,835백만원",
+                            "normalized_value": 3835000000.0,
+                            "normalized_unit": "KRW",
+                        },
+                    ],
+                },
+            },
+        }
+
+        answer = self.agent._compact_ratio_answer(
+            {"active_subtask": {"metric_label": "target share"}},
+            calculation_result,
+        )
+
+        self.assertIn("42.02%", answer)
+        self.assertNotIn("7.87%", answer)
+        self.assertEqual(calculation_result["rendered_value"], "42.02%")
+        self.assertEqual(
+            calculation_result["answer_slots"]["primary_value"]["rendered_value"],
+            "42.02%",
+        )
+
+    def test_ordered_ratio_result_display_sync_updates_subtask_answer(self) -> None:
+        ratio_row = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "target share",
+            "operation_family": "ratio",
+            "answer": "target share is 7.87%.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 42.01863054131083,
+                "result_unit": "%",
+                "rendered_value": "7.87%",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {
+                        "status": "ok",
+                        "normalized_value": 42.01863054131083,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "7.87%",
+                    },
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "status": "ok",
+                                "role": "numerator_1",
+                                "label": "short component",
+                                "rendered_value": "4,146백만원",
+                                "normalized_value": 4146000000.0,
+                                "normalized_unit": "KRW",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "status": "ok",
+                                "role": "denominator_1",
+                                "label": "tangible base",
+                                "rendered_value": "52,705백만원",
+                                "normalized_value": 52705000000.0,
+                                "normalized_unit": "KRW",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+
+        updated = self.agent._sync_ratio_result_displays_in_ordered_results([ratio_row])
+
+        self.assertIn("42.02%", updated[0]["answer"])
+        self.assertNotIn("7.87%", updated[0]["answer"])
+        self.assertEqual(updated[0]["calculation_result"]["rendered_value"], "42.02%")
+        self.assertEqual(updated[0]["calculation_result"]["formatted_result"], updated[0]["answer"])
 
     def test_aggregate_subtasks_joins_answers_in_task_order(self) -> None:
         state = {
@@ -14150,6 +15185,273 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(slot["raw_unit"], "원")
         self.assertEqual(slot["normalized_value"], 2546649.0)
         self.assertEqual(slot["rendered_value"], "2,546,649원")
+
+    def test_lookup_recovery_rejects_preferred_slot_without_operand_surface(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "property plant equipment",
+                            "concept": "property_plant_equipment",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_asset",
+                    "claim": "property plant equipment 52,704,853 million",
+                    "raw_row_text": "property plant equipment | 52,704,853 million",
+                    "metadata": {
+                        "row_label": "property plant equipment",
+                        "semantic_label": "property plant equipment",
+                        "unit_hint": "million",
+                    },
+                },
+                {
+                    "evidence_id": "ev_other_aggregate",
+                    "claim": "borrowing total 10,121,033 million",
+                    "raw_row_text": "borrowing total | 10,121,033 million",
+                    "metadata": {
+                        "row_label": "borrowing total",
+                        "semantic_label": "borrowing total",
+                        "aggregate_label": "borrowing total",
+                        "value_role": "aggregate",
+                        "aggregation_stage": "final",
+                        "unit_hint": "million",
+                    },
+                },
+            ],
+        }
+        current_slot = {
+            "status": "ok",
+            "label": "property plant equipment",
+            "concept": "property_plant_equipment",
+            "period": "2023",
+            "raw_value": "52,704,853",
+            "raw_unit": "million",
+            "normalized_value": 52704853000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "52,704,853million",
+            "source_row_id": "ev_asset",
+            "source_row_ids": ["ev_asset"],
+        }
+        preferred_slot = {
+            **current_slot,
+            "raw_value": "10,121,033",
+            "normalized_value": 10121033000000.0,
+            "rendered_value": "10,121,033million",
+            "source_row_id": "ev_other_aggregate",
+            "source_row_ids": ["ev_other_aggregate"],
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": current_slot},
+            },
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertEqual(slot["source_row_id"], "ev_asset")
+        self.assertEqual(slot["raw_value"], "52,704,853")
+
+    def test_lookup_recovery_preserves_value_when_preferred_slot_is_different_column(self) -> None:
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task_lookup",
+                    "metric_family": "concept_lookup",
+                    "operation_family": "lookup",
+                    "required_operands": [
+                        {
+                            "label": "capitalized development cost",
+                            "concept": "capitalized_development_cost",
+                            "role": "primary_value",
+                            "required": True,
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_cost_row",
+                    "claim": "capitalized development cost | current 100 | prior 200",
+                    "quote_span": "capitalized development cost | current 100 | prior 200",
+                    "raw_row_text": "capitalized development cost | current 100 | prior 200",
+                    "metadata": {
+                        "row_label": "capitalized development cost",
+                        "semantic_label": "capitalized development cost",
+                        "table_value_labels_text": "capitalized development cost 100\ncapitalized development cost 200",
+                        "column_headers_chain": ["current"],
+                        "structured_cells": [
+                            {
+                                "column_headers": ["current"],
+                                "value_text": "100",
+                                "unit_hint": "KRW",
+                            },
+                            {
+                                "column_headers": ["prior"],
+                                "value_text": "200",
+                                "unit_hint": "KRW",
+                            },
+                        ],
+                    },
+                }
+            ],
+        }
+        current_slot = {
+            "status": "ok",
+            "label": "capitalized development cost",
+            "concept": "capitalized_development_cost",
+            "period": "current",
+            "raw_value": "100",
+            "raw_unit": "KRW",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "100KRW",
+            "source_row_id": "ev_cost_row",
+            "source_row_ids": ["ev_cost_row"],
+        }
+        preferred_slot = {
+            **current_slot,
+            "raw_value": "200",
+            "normalized_value": 200.0,
+            "rendered_value": "200KRW",
+        }
+        current_row = {
+            "task_id": "task_lookup",
+            "metric_family": "concept_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": current_slot},
+            },
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
+
+        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
+
+        self.assertEqual(slot["raw_value"], "100")
+        self.assertEqual(slot["normalized_value"], 100.0)
+
+    def test_dependency_output_rejects_retrieval_replacement_without_operand_surface(self) -> None:
+        current_slot = {
+            "status": "ok",
+            "label": "property plant equipment",
+            "concept": "property_plant_equipment",
+            "period": "2023",
+            "raw_value": "52,704,853",
+            "raw_unit": "million",
+            "normalized_value": 52704853000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "52,704,853million",
+            "source_row_id": "ev_asset",
+            "source_row_ids": ["ev_asset"],
+        }
+        preferred_slot = {
+            "status": "ok",
+            "label": "borrowing total",
+            "period": "2023",
+            "raw_value": "10,121,033",
+            "raw_unit": "million",
+            "normalized_value": 10121033000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "10,121,033million",
+            "source_row_id": "ev_other_aggregate",
+            "source_row_ids": ["ev_other_aggregate"],
+        }
+        state = {
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "operation_family": "ratio",
+                "inputs": [
+                    {
+                        "label": "property plant equipment",
+                        "concept": "property_plant_equipment",
+                        "role": "denominator_1",
+                        "required": True,
+                        "preferred_task_id": "task_asset",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "label": "borrowing total",
+                        "concept": "total_borrowings",
+                        "role": "numerator",
+                        "required": True,
+                        "preferred_task_id": "task_borrowings",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_asset",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "property plant equipment",
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"primary_value": current_slot},
+                    },
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_asset",
+                            "claim": "property plant equipment 52,704,853 million",
+                            "raw_row_text": "property plant equipment | 52,704,853 million",
+                            "metadata": {
+                                "row_label": "property plant equipment",
+                                "semantic_label": "property plant equipment",
+                                "unit_hint": "million",
+                            },
+                        }
+                    ],
+                }
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_other_aggregate",
+                    "claim": "borrowing total 10,121,033 million",
+                    "raw_row_text": "borrowing total | 10,121,033 million",
+                    "metadata": {
+                        "row_label": "borrowing total",
+                        "semantic_label": "borrowing total",
+                        "aggregate_label": "borrowing total",
+                        "unit_hint": "million",
+                    },
+                }
+            ],
+        }
+        self.agent._best_direct_lookup_slot_from_evidence_pool_compat = lambda _operand, _pool, state=None: (
+            preferred_slot,
+            10.0,
+        )
+        self.agent._lookup_value_from_table_label_metadata = lambda _operand, _evidence: {}
+        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
+        self.agent._structured_graph_provenance_for_dependency_operand = lambda *_args, **_kwargs: {}
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["matched_operand_role"], "denominator_1")
+        self.assertEqual(rows[0]["source_row_id"], "task_output:task_asset")
+        self.assertEqual(rows[0]["raw_value"], "52,704,853")
 
     def test_lookup_recovery_aligns_current_slot_unit_without_preferred_replacement(self) -> None:
         state = {

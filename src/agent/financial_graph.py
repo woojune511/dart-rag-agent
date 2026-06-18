@@ -42,7 +42,11 @@ logger = logging.getLogger(__name__)
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_structured_result
+from src.agent.financial_graph_helpers import (
+    _attach_runtime_projection_metadata,
+    _project_task_artifact_trace,
+    _resolve_runtime_structured_result,
+)
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 
@@ -184,6 +188,88 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         ):
             return structured_answer
         return ""
+
+    def _structured_result_projection_for_stale_public_numeric_answer(
+        self,
+        final: Dict[str, Any],
+        *,
+        public_answer: str,
+        structured_result: Dict[str, Any],
+        evidence_items: list[Dict[str, Any]],
+    ) -> tuple[str, RuntimeCalculationTrace]:
+        subtask_results = [
+            dict(row)
+            for row in list(structured_result.get("subtask_results") or [])
+            if isinstance(row, dict)
+        ]
+        if not subtask_results:
+            return "", {}
+        replacement_answer = self._complete_numeric_projection_replacement_answer(
+            final_answer=public_answer,
+            ordered_results=subtask_results,
+            query=str(final.get("query") or ""),
+            evidence_items=evidence_items,
+        )
+        if not replacement_answer:
+            return "", {}
+        if self._answer_covers_numeric_answer(public_answer, replacement_answer) and self._answer_covers_numeric_answer(
+            replacement_answer,
+            public_answer,
+        ):
+            return "", {}
+        projection = _build_aggregate_calculation_projection(subtask_results, replacement_answer)
+        projection_result = dict(projection.get("calculation_result") or {})
+        if not projection_result.get("subtask_results"):
+            return "", {}
+        projection = _attach_runtime_projection_metadata(
+            projection,
+            source="structured_result_subtasks",
+        )
+        projection["runtime_projection"] = {
+            **dict(projection.get("runtime_projection") or {}),
+            "public_answer_repaired": True,
+        }
+        return replacement_answer, projection
+
+    def _retrieved_ratio_context_projection_for_public_answer(
+        self,
+        final: Dict[str, Any],
+        *,
+        public_answer: str,
+    ) -> RuntimeCalculationTrace:
+        answer_text = _normalise_spaces(str(public_answer or ""))
+        if not answer_text:
+            return {}
+        recovered_rows = self._append_ratio_result_from_retrieved_context(
+            [],
+            final,
+        )
+        ratio_rows = [
+            dict(row)
+            for row in recovered_rows
+            if isinstance(row, dict)
+            and row.get("recovered_from_retrieved_ratio_context")
+            and self._aggregate_result_operation_family(row) == "ratio"
+        ]
+        for row in ratio_rows:
+            if not self._answer_covers_numeric_projection(answer_text, [row]):
+                row_answer = _normalise_spaces(
+                    str(
+                        row.get("answer")
+                        or (dict(row.get("calculation_result") or {}).get("formatted_result"))
+                        or (dict(row.get("calculation_result") or {}).get("rendered_value"))
+                        or ""
+                    )
+                )
+                if not row_answer or not self._answer_covers_numeric_answer(answer_text, row_answer):
+                    continue
+            projection = self._rebuild_aggregate_projection([row], answer_text)
+            projection = _attach_runtime_projection_metadata(
+                projection,
+                source="retrieved_ratio_context",
+            )
+            return projection
+        return {}
 
     def _project_review_trace(
         self,
@@ -743,6 +829,18 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         if structured_answer:
             public_answer = structured_answer
             final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
+        structured_numeric_answer, structured_numeric_projection = (
+            self._structured_result_projection_for_stale_public_numeric_answer(
+                final_for_evidence,
+                public_answer=public_answer,
+                structured_result=structured_result,
+                evidence_items=runtime_evidence,
+            )
+        )
+        if structured_numeric_answer:
+            public_answer = structured_numeric_answer
+            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
+            runtime_calculation_trace = structured_numeric_projection
         structured_public_projection = self._structured_subtask_projection_for_public_answer(
             {
                 **dict(final_for_evidence),
@@ -755,6 +853,24 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         )
         if structured_public_projection:
             runtime_calculation_trace = structured_public_projection
+            runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
+                {
+                    **dict(final_for_evidence),
+                    "evidence_items": [
+                        *list(final_for_evidence.get("evidence_items") or []),
+                        *list(runtime_evidence or []),
+                    ],
+                    "runtime_evidence": runtime_evidence,
+                    "resolved_calculation_trace": runtime_calculation_trace,
+                },
+                runtime_calculation_trace,
+            )
+        retrieved_ratio_projection = self._retrieved_ratio_context_projection_for_public_answer(
+            final_for_evidence,
+            public_answer=public_answer,
+        )
+        if retrieved_ratio_projection:
+            runtime_calculation_trace = retrieved_ratio_projection
         debug_traces = self._project_debug_traces(final)
         citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
         task_artifact_trace = _project_task_artifact_trace(

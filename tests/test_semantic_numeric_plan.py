@@ -588,7 +588,10 @@ class SemanticNumericPlanTests(unittest.TestCase):
             [(task["metric_label"], task["required_operands"][0]["role"]) for task in tasks[:2]],
             [("2023년 종업원급여", "numerator_1"), ("2023년 영업비용", "denominator_1")],
         )
-        self.assertNotIn("prefer_value_roles", tasks[0]["required_operands"][0].get("binding_policy") or {})
+        self.assertEqual(
+            dict(tasks[0]["required_operands"][0].get("binding_policy") or {}).get("prefer_value_roles"),
+            ["detail", "aggregate"],
+        )
         self.assertNotIn("prefer_aggregation_stages", tasks[1]["required_operands"][0].get("binding_policy") or {})
         self.assertEqual(tasks[1]["preferred_statement_types"][:2], ["income_statement", "summary_financials"])
         self.assertEqual(tasks[1]["preferred_sections"][:4], ["연결 손익계산서", "손익계산서", "요약재무정보", "영업비용"])

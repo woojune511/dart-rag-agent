@@ -346,6 +346,141 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "structured_result_subtasks",
         )
 
+    def test_run_prefers_complete_structured_ratio_over_stale_public_ratio(self) -> None:
+        final_state = self._base_final_state()
+        final_state["query"] = "calculate target borrowing share"
+        final_state["answer"] = "target share is 7.87%. 계산: short component / tangible base."
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [
+                {"matched_operand_role": "numerator_1", "raw_value": "4,146", "raw_unit": "백만원"},
+                {"matched_operand_role": "denominator_1", "raw_value": "52,705", "raw_unit": "백만원"},
+            ],
+            "calculation_plan": {"status": "ok", "operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "result_value": 7.87,
+                "result_unit": "%",
+                "rendered_value": "7.87%",
+                "formatted_result": "target share is 7.87%.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "target share",
+                    "primary_value": {"status": "ok", "rendered_value": "7.87%"},
+                },
+            },
+        }
+        ratio_result = {
+            "status": "ok",
+            "result_value": 42.02,
+            "result_unit": "%",
+            "rendered_value": "42.02%",
+            "formatted_result": "target share is 42.02%.",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "metric_label": "target share",
+                "primary_value": {
+                    "status": "ok",
+                    "rendered_value": "42.02%",
+                    "normalized_value": 42.02,
+                    "normalized_unit": "PERCENT",
+                },
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "short component",
+                            "raw_value": "4,146",
+                            "raw_unit": "백만원",
+                            "normalized_value": 4146000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "4,146백만원",
+                            "source_row_id": "ev_short",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_2",
+                            "label": "long component",
+                            "raw_value": "10,121",
+                            "raw_unit": "백만원",
+                            "normalized_value": 10121000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "10,121백만원",
+                            "source_row_id": "ev_long",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "numerator_3",
+                            "label": "bond component",
+                            "raw_value": "9,490",
+                            "raw_unit": "백만원",
+                            "normalized_value": 9490000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "9,490백만원",
+                            "source_row_id": "ev_bond",
+                        },
+                    ],
+                    "denominator": [
+                        {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "tangible base",
+                            "raw_value": "52,705",
+                            "raw_unit": "백만원",
+                            "normalized_value": 52705000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "52,705백만원",
+                            "source_row_id": "ev_tangible",
+                        },
+                        {
+                            "status": "ok",
+                            "role": "denominator_2",
+                            "label": "intangible base",
+                            "raw_value": "3,835",
+                            "raw_unit": "백만원",
+                            "normalized_value": 3835000000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "3,835백만원",
+                            "source_row_id": "ev_intangible",
+                        },
+                    ],
+                },
+            },
+        }
+        final_state["structured_result"] = {
+            "subtask_results": [
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "target share",
+                    "operation_family": "ratio",
+                    "answer": "target share is 42.02%.",
+                    "status": "ok",
+                    "calculation_result": ratio_result,
+                    "calculation_operands": [
+                        slot
+                        for slots in ratio_result["answer_slots"]["components_by_group"].values()
+                        for slot in slots
+                    ],
+                }
+            ],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertIn("42.02%", result["answer"])
+        self.assertNotIn("7.87%", result["answer"])
+        self.assertEqual(
+            result["resolved_calculation_trace"]["runtime_projection"]["source"],
+            "structured_result_subtasks",
+        )
+        self.assertTrue(
+            result["resolved_calculation_trace"]["runtime_projection"]["public_answer_repaired"]
+        )
+
     def test_run_refreshes_public_answer_from_resolved_ratio_trace(self) -> None:
         final_state = self._base_final_state()
         final_state["answer"] = "segment revenue ratio is 100%."
