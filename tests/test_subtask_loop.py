@@ -734,6 +734,76 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("driver context 때문입니다", updated["answer"])
         self.assertNotIn("70.24%", updated["answer"])
 
+    def test_final_growth_answer_drops_numeric_sentence_outside_trace(self) -> None:
+        growth_answer = "2023년 metric은 3,146,409백만원이며, 2022년 1,847,775백만원 대비 70.28% 증가했습니다."
+        growth_row = {
+            "task_id": "task_growth",
+            "metric_family": "concept_growth_rate",
+            "metric_label": "metric growth",
+            "operation_family": "growth_rate",
+            "answer": growth_answer,
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "growth_rate",
+                "rendered_value": "70.28%",
+                "formatted_result": growth_answer,
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "primary_value": {
+                        "status": "ok",
+                        "label": "metric growth",
+                        "period": "2023",
+                        "rendered_value": "70.28%",
+                        "raw_value": "70.28",
+                        "raw_unit": "%",
+                        "normalized_value": 70.28,
+                        "normalized_unit": "PERCENT",
+                    },
+                    "current_value": {
+                        "status": "ok",
+                        "label": "metric",
+                        "period": "2023",
+                        "rendered_value": "3,146,409백만원",
+                        "raw_value": "3,146,409",
+                        "raw_unit": "백만원",
+                        "normalized_value": 3_146_409_000_000.0,
+                        "normalized_unit": "KRW",
+                        "source_row_id": "ev_current",
+                        "source_row_ids": ["ev_current"],
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "metric",
+                        "period": "2022",
+                        "rendered_value": "1,847,775백만원",
+                        "raw_value": "1,847,775",
+                        "raw_unit": "백만원",
+                        "normalized_value": 1_847_775_000_000.0,
+                        "normalized_unit": "KRW",
+                        "source_row_id": "ev_prior",
+                        "source_row_ids": ["ev_prior"],
+                    },
+                },
+            },
+        }
+        noisy_answer = (
+            "2022년 metric은 2,800만원이며, 2021년 4억원 대비 -93.69% 감소했습니다. "
+            f"{growth_answer}"
+        )
+
+        cleaned = self.agent._final_growth_answer_without_untraced_numeric_sentences(
+            query="2023년 metric 증가율을 계산하고 원인을 설명해 줘.",
+            answer=noisy_answer,
+            ordered_results=[growth_row, {"operation_family": "narrative_summary", "answer": "driver context 때문입니다."}],
+            evidence_items=[],
+        )
+
+        self.assertEqual(cleaned, growth_answer)
+        self.assertNotIn("-93.69%", cleaned)
+        self.assertNotIn("2,800만원", cleaned)
+        self.assertIn("70.28%", cleaned)
+
     def test_ratio_definition_phrase_does_not_request_explanatory_context(self) -> None:
         self.assertFalse(
             self.agent._query_requests_explanatory_context(
@@ -3934,6 +4004,202 @@ class SubtaskLoopTests(unittest.TestCase):
             "-3,322억원",
         )
         self.assertEqual(projected_row["calculation_result"]["result_value"], -332_200_000_000.0)
+
+    def test_aggregate_trace_sync_updates_stale_lookup_but_preserves_rounded_source_lookup(self) -> None:
+        stale_lookup_row = self._lookup_result_row(
+            task_id="task_gain",
+            metric_label="2023년 translation gain",
+            label="translation gain",
+            concept="translation_gain",
+            raw_value="0",
+            raw_unit="백만원",
+            normalized_value=0.0,
+            rendered_value="0백만원",
+            source_row_id="ev_stale_gain",
+            answer="2023년 translation gain is 0백만원.",
+        )
+        stale_slot = stale_lookup_row["calculation_result"]["answer_slots"]["primary_value"]
+        stale_lookup_row["calculation_result"]["series"] = [dict(stale_slot)]
+        stale_lookup_row["calculation_result"]["current_value"] = 0.0
+        stale_lookup_row["calculation_result"]["answer_slots"]["components_by_role"] = {"primary_value": [dict(stale_slot)]}
+        stale_lookup_row["calculation_result"]["answer_slots"]["components_by_group"] = {"primary": [dict(stale_slot)]}
+        precise_lookup_row = self._lookup_result_row(
+            task_id="task_loss",
+            metric_label="2023년 translation loss",
+            label="translation loss",
+            concept="translation_loss",
+            raw_value="906,120",
+            raw_unit="백만원",
+            normalized_value=906_120_000_000.0,
+            rendered_value="906,120백만원",
+            source_row_id="ev_loss",
+            answer="2023년 translation loss is 906,120백만원.",
+        )
+        net_row = {
+            "task_id": "task_net",
+            "metric_family": "concept_difference",
+            "metric_label": "translation net effect",
+            "operation_family": "difference",
+            "answer": "translation loss was 9,061억원 and net effect was -3,322억원.",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "-3,322억원",
+                "formatted_result": "translation loss was 9,061억원 and net effect was -3,322억원.",
+                "series": [
+                    {
+                        "label": "translation gain",
+                        "raw_value": "0",
+                        "raw_unit": "백만원",
+                        "normalized_value": 0.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "0백만원",
+                    },
+                    {
+                        "label": "translation loss",
+                        "raw_value": "906,120",
+                        "raw_unit": "백만원",
+                        "normalized_value": 906_120_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "906,120백만원",
+                    },
+                ],
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": "translation net effect",
+                        "raw_value": "-3,322",
+                        "raw_unit": "억원",
+                        "normalized_value": -332_200_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "-3,322억원",
+                    },
+                    "delta_value": {
+                        "status": "ok",
+                        "role": "delta_value",
+                        "label": "translation net effect",
+                        "raw_value": "-906,120",
+                        "raw_unit": "백만원",
+                        "normalized_value": -906_120_000_000.0,
+                        "normalized_unit": "KRW",
+                        "rendered_value": "-906,120백만원",
+                    },
+                    "components_by_role": {
+                        "minuend": [
+                            {
+                                "label": "translation gain",
+                                "raw_value": "0",
+                                "raw_unit": "백만원",
+                                "normalized_value": 0.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "0백만원",
+                            }
+                        ],
+                        "subtrahend": [
+                            {
+                                "label": "translation loss",
+                                "raw_value": "906,120",
+                                "raw_unit": "백만원",
+                                "normalized_value": 906_120_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "906,120백만원",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        final_answer = (
+            "ExampleCo 2023 consolidated translation gain was 5,739억원. "
+            "translation loss was 9,061억원 and net effect was -3,322억원."
+        )
+        projection = {
+            "calculation_plan": {
+                "mode": "aggregate_subtasks",
+                "subtasks": [{"task_id": "task_net", "calculation_plan": {"operation": "subtract"}}],
+            },
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": final_answer,
+                "rendered_value": final_answer,
+                "subtask_results": [stale_lookup_row, precise_lookup_row, net_row],
+                "answer_slots": {
+                    "operation_family": "aggregate_subtasks",
+                    "subtask_results": [
+                        {
+                            "task_id": "task_gain",
+                            "operation_family": "lookup",
+                            "answer": "2023년 translation gain is 0백만원.",
+                            "rendered_value": "0백만원",
+                        },
+                        {
+                            "task_id": "task_loss",
+                            "operation_family": "lookup",
+                            "answer": "2023년 translation loss is 906,120백만원.",
+                            "rendered_value": "906,120백만원",
+                        },
+                        {
+                            "task_id": "task_net",
+                            "operation_family": "difference",
+                            "answer": "translation loss was 9,061억원 and net effect was -3,322억원.",
+                            "rendered_value": "-3,322억원",
+                        },
+                    ],
+                },
+            },
+        }
+
+        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            [stale_lookup_row, precise_lookup_row, net_row],
+            projection,
+            final_answer,
+        )
+
+        gain_row = next(row for row in ordered_results if row["task_id"] == "task_gain")
+        loss_row = next(row for row in ordered_results if row["task_id"] == "task_loss")
+        projected_gain = next(
+            row
+            for row in synced_projection["calculation_result"]["subtask_results"]
+            if row["task_id"] == "task_gain"
+        )
+        projected_loss = next(
+            row
+            for row in synced_projection["calculation_result"]["subtask_results"]
+            if row["task_id"] == "task_loss"
+        )
+        projected_net = next(
+            row
+            for row in synced_projection["calculation_result"]["subtask_results"]
+            if row["task_id"] == "task_net"
+        )
+
+        self.assertIn("5,739억원", gain_row["answer"])
+        self.assertEqual(gain_row["calculation_result"]["rendered_value"], "5,739억원")
+        self.assertEqual(gain_row["calculation_result"]["series"][0]["rendered_value"], "5,739억원")
+        self.assertEqual(
+            gain_row["calculation_result"]["answer_slots"]["components_by_role"]["primary_value"][0]["rendered_value"],
+            "5,739억원",
+        )
+        self.assertEqual(projected_gain["calculation_result"]["rendered_value"], "5,739억원")
+        self.assertEqual(
+            loss_row["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "906,120백만원",
+        )
+        self.assertEqual(
+            projected_loss["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "906,120백만원",
+        )
+        self.assertEqual(projected_net["calculation_result"]["series"][0]["rendered_value"], "5,739억원")
+        self.assertEqual(
+            projected_net["calculation_result"]["answer_slots"]["components_by_role"]["minuend"][0]["rendered_value"],
+            "5,739억원",
+        )
+        self.assertEqual(
+            projected_net["calculation_result"]["answer_slots"]["delta_value"]["rendered_value"],
+            "-3,322억원",
+        )
 
     def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
         source_lookup = {
