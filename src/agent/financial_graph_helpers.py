@@ -386,6 +386,10 @@ def _answer_mentions_numeric_slot(final_answer: str, slot: Mapping[str, Any]) ->
     except (TypeError, ValueError):
         return False
     normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+    if normalized_unit == "KRW":
+        compact_surface = _format_korean_won_compact(target_value)
+        if _answer_mentions_any_surface(final_answer, [compact_surface]):
+            return True
     try:
         from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
     except Exception:
@@ -1918,12 +1922,35 @@ def _structured_result_subtask_projection_if_public_aligned(
             or ""
         )
     )
-    if current_rendered and current_rendered == public_answer:
-        return {}
     projection = _build_aggregate_calculation_projection(subtask_results, public_answer)
+    projection_operands = [
+        dict(item)
+        for item in list(projection.get("calculation_operands") or [])
+        if isinstance(item, Mapping)
+    ]
     projection_result = dict(projection.get("calculation_result") or {})
     if not projection_result.get("subtask_results"):
         return {}
+    if current_rendered and current_rendered == public_answer:
+        current_status = _normalise_spaces(str(current_result.get("status") or "")).lower()
+        projection_status = _normalise_spaces(str(projection_result.get("status") or "")).lower()
+        if not projection_operands:
+            return {}
+        if current_status == "ok" and projection_status != "ok":
+            return {}
+        current_operands = [
+            dict(item)
+            for item in list((current_trace or {}).get("calculation_operands") or [])
+            if isinstance(item, Mapping)
+        ]
+        stale_current_operands = [
+            operand
+            for operand in current_operands
+            if operand.get("normalized_value") is not None
+            and not _answer_mentions_numeric_slot(public_answer, operand)
+        ]
+        if current_operands and not stale_current_operands:
+            return {}
     return _attach_runtime_projection_metadata(
         projection,
         source="structured_result_subtasks",

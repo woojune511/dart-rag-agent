@@ -13357,6 +13357,112 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("보수적인 충당금적립", updated["answer"])
         self.assertIn("ev_risk_driver", updated["selected_claim_ids"])
 
+    def test_aggregate_subtasks_prefers_supported_aggregate_when_growth_trace_is_spurious(self) -> None:
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": (
+                        "2023년 비용은 100만원이며, 2022년 5,400만원 대비 98.15% 감소했습니다. "
+                        "시장 환경 악화가 비용 관리에 영향을 주었습니다."
+                    ),
+                    "planner_feedback": "",
+                }
+            )
+        )
+        correct_aggregate_answer = (
+            "2023년 비용은 3,146,409백만원으로, 2022년 1,847,775백만원 대비 70.28% 증가했습니다. "
+            "시장 환경 악화와 보수적인 정책 대응이 비용 증가의 배경입니다."
+        )
+        state = {
+            "query": "2023년 비용의 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_growth"},
+                {"task_id": "task_summary"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "비용 증가율",
+                    "operation_family": "growth_rate",
+                    "answer": "2023년 비용은 2022년 5,400만원에서 2023년 100만원으로 98.15% 감소했습니다.",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "-98.15%",
+                        "formatted_result": (
+                            "2023년 비용은 2022년 5,400만원에서 2023년 100만원으로 98.15% 감소했습니다."
+                        ),
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "비용 증가율",
+                                "period": "2023",
+                                "normalized_value": -98.15,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "-98.15%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "비용",
+                                "period": "2023",
+                                "normalized_value": 1_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "100만원",
+                                "source_row_ids": ["row_fragment"],
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "비용",
+                                "period": "2022",
+                                "normalized_value": 54_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "5,400만원",
+                                "source_row_ids": ["row_fragment"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_summary",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "질문 관련 배경/영향 설명",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": correct_aggregate_answer,
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": correct_aggregate_answer,
+                        "rendered_value": correct_aggregate_answer,
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                },
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_table",
+                    "claim": "비용 | 2023년 3,146,409백만원 | 2022년 1,847,775백만원",
+                },
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "시장 환경 악화와 보수적인 정책 대응이 비용 증가의 배경입니다.",
+                },
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("70.28%", updated["answer"])
+        self.assertIn("3,146,409백만원", updated["answer"])
+        self.assertIn("1,847,775백만원", updated["answer"])
+        self.assertNotIn("98.15%", updated["answer"])
+        self.assertNotIn("5,400만원", updated["answer"])
+
     def test_nested_growth_promotion_prefers_sign_consistent_operand_pair(self) -> None:
         sign_mixed_growth = {
             "task_id": "task_1",

@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 ## Positioning
 
@@ -49,6 +49,134 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest Supported Aggregate Growth-Narrative Fix
+
+- Run date: 2026-06-19
+- Scope: store-fixed structural full-system `eval-only` over the full expanded
+  9-question profile after the SKH projection fix, followed by a focused
+  `KBF_T2_018` repair check.
+- Profile:
+  - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Local-only artifact directory:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- Heartbeat logs:
+  - full run:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_projection_fix_2026-06-19.jsonl`
+  - focused KBF repair:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t2_018_supported_aggregate_fix_2026-06-19.jsonl`
+
+| Run | Scope | Result | Notes |
+| --- | --- | --- | --- |
+| Full structural refresh | 9 expanded questions | `8 / 9` PASS | `KBF_T2_018` failed; all other rows passed, including `SKH_T1_060 = PASS`. |
+| Focused repair check | `KBF_T2_018` | PASS | Answer preserved `3,146,409백만원`, `1,847,775백만원`, and `70.28%`; faithfulness/completeness `1.000 / 1.000`. |
+
+- Readout:
+  - `KBF_T2_018` was not missing the correct aggregate material entirely. The
+    trace already contained a supported `aggregate_subtasks` narrative answer
+    with the correct growth calculation and risk-management explanation.
+  - The failure was a final-answer precedence bug: a weaker growth trace could
+    reattach spurious numeric surfaces (`100만원`, `5,400만원`, `98.15% 감소`)
+    after the supported aggregate answer had been produced.
+  - Runtime now compares numeric surfaces generically and lets a supported
+    `aggregate_subtasks` narrative answer replace the current final answer when
+    the current final answer is numerically incompatible with that supported
+    aggregate.
+  - No company name, benchmark ID, report-specific phrase, or metric-specific
+    runtime branch was added.
+- Validation:
+  - focused growth/projection regression set: `6` tests OK
+  - `python -m src.ops.audit_runtime_domain_terms`: passed with `215` reviewed
+    literals
+  - `python -m unittest discover -s tests`: `1271` tests OK
+- Caveat:
+  - Treat the current evidence as completed full `8 / 9` plus focused closure of
+    the only failing row. Rerun the full 9-question structural profile before
+    publishing a fresh full `9 / 9` aggregate claim.
+- Artifact hygiene: raw `benchmarks/results/**` bundles and heartbeat logs
+  remain local unless explicitly published.
+
+### Latest Structured Subtask Projection Fix
+
+- Run date: 2026-06-19
+- Scope: store-fixed structural full-system `eval-only` focused on
+  `SKH_T1_060` after the expanded structural run exposed a trace/answer
+  consistency problem.
+- Profile:
+  - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Local-only artifact directory:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- Heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_skh_t1_060_trace_projection_fix_2026-06-19.jsonl`
+
+| Question id | Result | Answer | Faithfulness | Completeness | Context recall | Context P@5 | Latency |
+| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `SKH_T1_060` | PASS | `42.02%` | `1.000` | `1.000` | `1.000` | `1.000` | `353.7s` |
+
+- Readout:
+  - The preceding 2026-06-19 expanded structural refresh reached
+    `8 / 9` PASS, with only `SKH_T1_060 = UNCERTAIN`.
+  - Pre-fix 9-question heartbeat log:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_trace_hygiene_2026-06-19.jsonl`.
+  - The final public answer and `structured_result` already contained the
+    source-supported `42.02%`, but `resolved_calculation_trace` could keep a
+    stale intermediate operand (`9,857,189백만원`) from an aggregate lookup and
+    therefore confuse the evaluator.
+  - Runtime projection now rebuilds the resolved trace from structured subtask
+    outputs when the public answer matches the structured subtask result.
+  - KRW display normalization now treats compact answer surfaces such as
+    `4조 1,456억원` as the same canonical KRW slot as `4,145,647백만원`.
+  - This is a generic projection/display-normalization fix, not a benchmark- or
+    company-specific runtime branch.
+- Validation:
+  - `python -m src.ops.audit_runtime_domain_terms`
+  - `python -m unittest tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_serialise_eval_results_reprojects_structured_subtasks_when_operands_are_stale tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_serialise_eval_results_keeps_structured_runtime_contract`
+  - `python -m unittest tests.test_benchmark_runner_runtime_projection tests.test_financial_agent_run_projection tests.test_aggregate_subtask_projection`
+- Caveat:
+  - Treat this as focused residual closure. Rerun the full 9-question structural
+    `eval-only` profile before changing the aggregate expanded structural claim
+    from `8 / 9` to `9 / 9`.
+- Artifact hygiene: raw `benchmarks/results/**` bundles and heartbeat logs
+  remain local unless explicitly published.
+
+### Latest Trace-Hygiene Hard Set
+
+- Run date: 2026-06-19
+- Commit: `e3a1eb1` (`Harden aggregate numeric trace hygiene`)
+- Scope: store-fixed structural full-system `eval-only` over the five hard
+  numeric questions most likely to regress after aggregate trace synchronization
+  and final-answer numeric hygiene changes.
+- Profile:
+  - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Local-only artifact directory:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- Heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_hard_set_after_growth_filter_2026-06-19.jsonl`
+
+| Question id | Result | Avg score | Faithfulness | Completeness | Context recall | Context P@5 | Latency |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `POS_T1_057` | PASS | `0.961` | `1.000` | `1.000` | `1.000` | `1.000` | `254.0s` |
+| `SAM_T3_028` | PASS | `0.945` | `1.000` | `0.700` | `1.000` | `1.000` | `206.6s` |
+| `CEL_T3_040` | PASS | `0.848` | `1.000` | `1.000` | `0.333` | `0.667` | `255.8s` |
+| `KBF_T2_018` | PASS | `0.880` | `1.000` | `1.000` | `0.667` | `1.000` | `267.2s` |
+| `SKH_T3_080` | PASS | `0.942` | `1.000` | `1.000` | `1.000` | `1.000` | `257.3s` |
+
+- Readout:
+  - `5 / 5` numeric PASS.
+  - `KBF_T2_018` no longer leaks the unsupported `-93.69%` /
+    `2,800만원` sentence into the final answer.
+  - `SKH_T3_080` no longer leaks stale `0백만원` lookup display into the final
+    answer; final answer preserves `5,739억원`, `9,061억원`, and `-3,322억원`.
+  - This is a focused regression gate, not a replacement for the expanded
+    structural-vs-plain aggregate comparison. Keep the current expanded claim
+    as structural `8 / 9` vs plain `5 / 9` until both expanded profiles are
+    rerun.
+- Validation before commit:
+  - `python -m src.ops.audit_runtime_domain_terms`
+  - `python -m unittest tests.test_subtask_loop`
+  - `python -m unittest discover -s tests`
+- Artifact hygiene: raw `benchmarks/results/**` bundles and heartbeat logs
+  remain local unless explicitly published.
 
 ### Latest Expanded Ablation Refresh
 
@@ -103,9 +231,14 @@ role-separated multi-agent system using a task ledger and artifact store.
     display/unit, denominator, or row-binding semantics.
   - `SAM_T3_028` is no longer a current structural-only separator: the latest
     plain refresh also returns `2.79%`.
-  - `SKH_T1_060` remains the only numeric residual in the structural expanded
-    slice. Logs show the runtime recovers most source values, then fails final
-    role/denominator binding after `distinct_ratio_roles` reflection.
+  - Follow-up focused rerun on 2026-06-19 closed `SKH_T1_060` as PASS after a
+    structured subtask projection fix.
+  - A later 2026-06-19 full structural rerun under that SKH fix still reported
+    `8 / 9`, but the remaining failure moved to `KBF_T2_018`; focused
+    `KBF_T2_018` then passed after the supported aggregate narrative repair.
+  - Keep this table at the last completed structural-vs-plain comparison
+    (`8 / 9` vs `5 / 9`) until both expanded profiles, or at least the full
+    structural profile, are rerun under the latest code.
 - Artifact hygiene: raw `benchmarks/results/**` bundles remain local unless
   explicitly published.
 

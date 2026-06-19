@@ -4409,6 +4409,21 @@ class FinancialAgentCalculationMixin:
             }
         return {}
 
+    def _numeric_surface_conflicts_with_reference(self, answer: str, reference: str) -> bool:
+        answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+        reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference or "")))
+        return bool(
+            answer_candidates
+            and reference_candidates
+            and any(
+                not any(
+                    numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
+                    for reference_candidate in reference_candidates
+                )
+                for answer_candidate in answer_candidates
+            )
+        )
+
     def _aggregate_results_include_source_task_slot_realignment(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -20359,17 +20374,27 @@ class FinancialAgentCalculationMixin:
                 and conflicting_answer in final_answer_surface
                 and final_numeric_tokens - conflicting_numeric_tokens
             )
+            final_numeric_conflicts_with_supported_aggregate = bool(
+                str(late_conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks"
+                and self._numeric_surface_conflicts_with_reference(final_answer_surface, conflicting_answer)
+            )
             if conflicting_answer and (
-                not final_answer_satisfies_growth_narrative
-                and not final_answer_preserves_numeric_trace
-                and (
-                    final_contains_conflicting_answer_with_extra_numbers
-                    or self._growth_narrative_numeric_incompatible_with_trace(
-                        narrative_answer=conflicting_answer,
-                        numeric_answer=final_answer,
-                        ordered_results=ordered_results,
-                        evidence_items=aggregate_evidence_items,
+                (
+                    not final_answer_satisfies_growth_narrative
+                    and not final_answer_preserves_numeric_trace
+                    and (
+                        final_contains_conflicting_answer_with_extra_numbers
+                        or self._growth_narrative_numeric_incompatible_with_trace(
+                            narrative_answer=conflicting_answer,
+                            numeric_answer=final_answer,
+                            ordered_results=ordered_results,
+                            evidence_items=aggregate_evidence_items,
+                        )
                     )
+                )
+                or (
+                    final_numeric_conflicts_with_supported_aggregate
+                    and not _narrative_sentence_looks_table_noisy(conflicting_answer)
                 )
             ):
                 aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
@@ -20528,6 +20553,29 @@ class FinancialAgentCalculationMixin:
                 final_answer = trace_clean_growth_answer
                 aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
                 _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
+        final_conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
+            query=str(state.get("query") or ""),
+            ordered_results=ordered_results,
+            evidence_items=aggregate_evidence_items,
+        )
+        final_conflicting_answer = _normalise_spaces(str(final_conflicting_narrative.get("answer") or ""))
+        if (
+            final_conflicting_answer
+            and str(final_conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks"
+            and not _narrative_sentence_looks_table_noisy(final_conflicting_answer)
+            and self._numeric_surface_conflicts_with_reference(final_answer, final_conflicting_answer)
+        ):
+            aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
+                aggregate_projection,
+                selected_claim_ids,
+                self._aggregate_answer_candidate(
+                    final_conflicting_answer,
+                    selected_claim_ids=final_conflicting_narrative.get("selected_claim_ids") or [],
+                    sync_projection=False,
+                ),
+            )
+            aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
+            _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         return self._build_aggregate_completion_update(
             state,
             ordered_results=ordered_results,

@@ -678,6 +678,134 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_plan", rows[0])
         self.assertNotIn("calculation_result", rows[0])
 
+    def test_serialise_eval_results_reprojects_structured_subtasks_when_operands_are_stale(self) -> None:
+        result = SimpleNamespace(
+            id="Q1",
+            question="ratio question",
+            answer="Ratio is 42.02%. Calculation uses current debt 4조 1,456억원 and assets 56조 5,394억원.",
+            ground_truth="Ratio is 42.02%.",
+            answer_key="Ratio is 42.02%.",
+            expected_sections=[],
+            evidence=[],
+            raw_faithfulness=1.0,
+            faithfulness=1.0,
+            faithfulness_override_reason=None,
+            answer_relevancy=1.0,
+            context_recall=1.0,
+            retrieval_hit_at_k=1.0,
+            ndcg_at_3=1.0,
+            ndcg_at_5=1.0,
+            context_precision_at_3=1.0,
+            context_precision_at_5=1.0,
+            section_match_rate=1.0,
+            citation_coverage=1.0,
+            entity_coverage=1.0,
+            completeness=1.0,
+            completeness_reason="ok",
+            refusal_accuracy=1.0,
+            numeric_equivalence=1.0,
+            raw_numeric_grounding=0.5,
+            numeric_grounding=1.0,
+            numeric_retrieval_support=1.0,
+            raw_numeric_final_judgement="UNCERTAIN",
+            numeric_final_judgement="UNCERTAIN",
+            raw_numeric_confidence=0.6,
+            numeric_confidence=0.6,
+            numeric_debug={},
+            absolute_error_rate=0.0,
+            raw_operand_selection_correctness=0.5,
+            operand_selection_correctness=0.5,
+            unit_consistency_pass=1.0,
+            numeric_result_correctness=1.0,
+            trend_interpretation_correctness=None,
+            grounded_rendering_correctness=1.0,
+            calculation_correctness=1.0,
+            missing_info_compliance=None,
+            retrieved_count=1,
+            query_type="numeric_fact",
+            intent="numeric_fact",
+            format_preference="sentence",
+            routing_source="router",
+            routing_confidence=1.0,
+            routing_scores={"numeric_fact": 1.0},
+            latency_sec=0.1,
+            citations=[],
+            retrieved_metadata=[],
+            retrieved_previews=[],
+            retrieval_debug_trace={},
+            retrieval_debug_trace_history=[],
+            runtime_evidence=[],
+            selected_claim_ids=[],
+            draft_points=[],
+            kept_claim_ids=[],
+            dropped_claim_ids=[],
+            unsupported_sentences=[],
+            sentence_checks=[],
+            resolved_calculation_trace={
+                "calculation_operands": [
+                    {
+                        "operand_id": "debt",
+                        "label": "current debt",
+                        "raw_value": "9,857,189",
+                        "raw_unit": "백만원",
+                        "normalized_value": 9_857_189_000_000.0,
+                    }
+                ],
+                "calculation_plan": {"operation": "ratio", "ordered_operand_ids": ["debt"]},
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "Ratio is 42.02%. Calculation uses current debt 4조 1,456억원 and assets 56조 5,394억원.",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {"status": "ok", "rendered_value": "42.02%"},
+                    },
+                },
+            },
+            structured_result={
+                "status": "ok",
+                "formatted_result": "Ratio is 42.02%. Calculation uses current debt 4조 1,456억원 and assets 56조 5,394억원.",
+                "rendered_value": "Ratio is 42.02%. Calculation uses current debt 4조 1,456억원 and assets 56조 5,394억원.",
+                "subtask_results": [
+                    {
+                        "task_id": "task_debt",
+                        "metric_family": "concept_lookup",
+                        "metric_label": "current debt",
+                        "operation_family": "lookup",
+                        "answer": "current debt 4,145,647백만원",
+                        "status": "ok",
+                        "calculation_result": {
+                            "status": "ok",
+                            "rendered_value": "4,145,647백만원",
+                            "answer_slots": {
+                                "operation_family": "lookup",
+                                "primary_value": {
+                                    "status": "ok",
+                                    "role": "primary_value",
+                                    "label": "current debt",
+                                    "raw_value": "4,145,647",
+                                    "raw_unit": "백만원",
+                                    "normalized_value": 4_145_647_000_000.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "4,145,647백만원",
+                                    "source_row_ids": ["row_current_debt"],
+                                },
+                            },
+                        },
+                    }
+                ],
+            },
+            task_artifact_trace={},
+            missing_info_policy=None,
+            error=None,
+        )
+
+        rows = _serialise_eval_results([result])
+
+        resolved_trace = rows[0]["resolved_calculation_trace"]
+        self.assertEqual(resolved_trace["runtime_projection"]["source"], "structured_result_subtasks")
+        self.assertIn("4,145,647", json.dumps(resolved_trace, ensure_ascii=False))
+        self.assertNotIn("9,857,189", json.dumps(resolved_trace, ensure_ascii=False))
+
     def test_summary_markdown_includes_task_artifact_integrity_counts(self) -> None:
         markdown = _render_summary_markdown(
             [

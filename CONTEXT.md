@@ -11,6 +11,123 @@
 
 ## 최신 상태
 
+- 2026-06-19 full structural `eval-only` refresh after the SKH projection fix
+  completed with `8/9` numeric PASS:
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_projection_fix_2026-06-19.jsonl`
+  - result:
+    - PASS: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`, `MIX_T1_021`,
+      `CEL_T1_013`, `KBF_T1_017`, `SKH_T3_080`, `SKH_T1_060`
+    - FAIL: `KBF_T2_018`
+    - failure answer leaked a spurious period-comparison fragment:
+      `100만원 / 5,400만원 / 98.15% 감소`
+    - the same trace already contained a supported aggregate narrative subtask
+      with the correct numeric material:
+      `3,146,409백만원 / 1,847,775백만원 / 70.28% 증가`
+  - code/result read:
+    - This was not a retrieval miss in the final artifact: a supported
+      `aggregate_subtasks` narrative answer existed, but later final answer
+      refresh could reattach the weaker growth trace.
+    - Runtime now treats a supported `aggregate_subtasks` narrative answer as a
+      final replacement candidate when the current final answer has numeric
+      surfaces incompatible with that supported aggregate.
+    - The check is generic numeric-surface compatibility. No company name,
+      benchmark ID, report phrase, or metric-specific runtime branch was added.
+  - focused verification after the fix:
+    - command:
+      - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --company-run-id kbf_2023_expanded_candidate --question-id KBF_T2_018 --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t2_018_supported_aggregate_fix_2026-06-19.jsonl`
+    - `KBF_T2_018`: `numeric_final_judgement = PASS`
+    - answer preserves `3,146,409백만원`, `1,847,775백만원`, `70.28%`
+    - faithfulness/completeness/context recall/Context P@5:
+      `1.000 / 1.000 / 0.667 / 1.000`
+    - latency: `306.3s`
+  - validation:
+    - `python -m unittest` focused growth/projection regression set: `6` OK
+    - `python -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+    - `python -m unittest discover -s tests`: `1271` OK
+  - important caveat:
+    - The full structural aggregate is still a completed `8/9` run plus focused
+      closure for the only failing row. Rerun the full 9-question structural
+      profile once more before reporting a fresh completed `9/9` aggregate.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+  - 다음 natural step:
+    - rerun the 9-question structural `eval-only` profile under the new fix if
+      the portfolio needs a single fresh aggregate number. Plain retrieval stays
+      at the latest completed `5/9` refresh unless comparing variants again.
+
+- 2026-06-19 structured subtask projection fix 이후 `SKH_T1_060` focused
+  store-fixed structural full-system `eval-only`를 재실행했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --company-run-id skh_2023_expanded_candidate --question-id SKH_T1_060 --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_skh_t1_060_trace_projection_fix_2026-06-19.jsonl`
+  - result:
+    - `SKH_T1_060`: `numeric_final_judgement = PASS`
+    - answer: `42.02%`
+    - faithfulness/completeness/context recall/Context P@5:
+      `1.000 / 1.000 / 1.000 / 1.000`
+    - latency: `353.7s`
+  - code/result read:
+    - Before this fix, the same 2026-06-19 session ran the 9-question expanded
+      structural profile with heartbeat
+      `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_trace_hygiene_2026-06-19.jsonl`.
+      That run produced `8/9` numeric PASS and `SKH_T1_060 = UNCERTAIN`.
+    - The live calculation can still emit an intermediate stale aggregate
+      ratio (`70.33%`), but the public answer and `structured_result`
+      are aligned on the source-supported `42.02%`.
+    - Runtime/evaluator projection now rebuilds the resolved trace from
+      structured subtask outputs when the public answer matches the structured
+      subtask result. Compact KRW answer surfaces such as `4조 1,456억원` are
+      matched back to canonical KRW slots such as `4,145,647백만원`.
+    - This is a generic runtime projection / display-normalization fix. No
+      company name, benchmark ID, or metric-specific runtime branch was added.
+  - validation:
+    - `python -m src.ops.audit_runtime_domain_terms`
+    - `python -m unittest tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_serialise_eval_results_reprojects_structured_subtasks_when_operands_are_stale tests.test_benchmark_runner_runtime_projection.BenchmarkRunnerRuntimeProjectionTests.test_serialise_eval_results_keeps_structured_runtime_contract`
+    - `python -m unittest tests.test_benchmark_runner_runtime_projection tests.test_financial_agent_run_projection tests.test_aggregate_subtask_projection`
+  - important caveat:
+    - The preceding 9-question structural eval-only run on 2026-06-19 produced
+      `8/9` PASS plus `SKH_T1_060 = UNCERTAIN`; the focused residual rerun
+      passed after the fix. Rerun the full 9-question structural profile before
+      changing the aggregate structural claim from `8/9`.
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+  - 다음 natural step:
+    - run `python -m unittest discover -s tests`, then rerun the 9-question
+      structural `eval-only` profile to refresh the aggregate claim. Plain
+      `5/9` does not need rerun unless source code changes could affect plain
+      projection/scoring.
+
+- 2026-06-19 aggregate numeric trace hygiene 커밋 `e3a1eb1`
+  (`Harden aggregate numeric trace hygiene`) 이후 5-case hard set을
+  store-fixed structural full-system `eval-only`로 재실행했다.
+  - command:
+    - `.venv/bin/python -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --company-run-id kbf_2023_expanded_candidate --question-id KBF_T2_018 --company-run-id posco_2023_expanded_candidate --question-id POS_T1_057 --company-run-id skh_2023_expanded_candidate --question-id SKH_T3_080 --company-run-id samsung_2023_expanded_candidate --question-id SAM_T3_028 --company-run-id celltrion_2023_expanded_candidate --question-id CEL_T3_040 --progress-heartbeat-sec 30 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_hard_set_after_growth_filter_2026-06-19.jsonl`
+  - result:
+    - `5/5` numeric PASS:
+      `POS_T1_057`, `SAM_T3_028`, `CEL_T3_040`, `KBF_T2_018`,
+      `SKH_T3_080`
+    - scores:
+      - `POS_T1_057`: avg `0.961`, faithfulness/completeness `1.000 / 1.000`
+      - `SAM_T3_028`: avg `0.945`, faithfulness/completeness `1.000 / 0.700`
+      - `CEL_T3_040`: avg `0.848`, faithfulness/completeness `1.000 / 1.000`
+      - `KBF_T2_018`: avg `0.880`, faithfulness/completeness `1.000 / 1.000`
+      - `SKH_T3_080`: avg `0.942`, faithfulness/completeness `1.000 / 1.000`
+  - code/result read:
+    - KBF final answer no longer leaks unsupported `-93.69%` /
+      `2,800만원`; it keeps the trace-supported `70.28%` growth answer.
+    - SKH final answer no longer leaks stale `0백만원`; it preserves
+      `5,739억원`, `9,061억원`, and `-3,322억원`.
+    - The change is generic trace/evidence hygiene. No company name,
+      benchmark ID, or metric-specific runtime branch was added.
+  - validation before commit:
+    - `python -m src.ops.audit_runtime_domain_terms`
+    - `python -m unittest tests.test_subtask_loop`
+    - `python -m unittest discover -s tests`
+  - raw `benchmarks/results/**` outputs and heartbeat logs remain local-only.
+  - 다음 natural step:
+    - source docs are now updated for this state.
+    - Next benchmark expansion should be store-fixed `eval-only`, not fresh
+      ingest, unless parser/ingest/cache-signature changes are introduced.
+
 - 2026-06-18 structured operand evidence alignment 커밋
   `f9f6183` 이후 broader focused regression을 store-fixed `eval-only`로
   실행했다.
