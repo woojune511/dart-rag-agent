@@ -525,7 +525,7 @@ Question-level readout:
 | `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` | `1.000` | `0.500` | `1.000` |
 | `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` | `1.000` | `1.000` | `0.667` |
 | `CEL_T3_040` | PASS | Inventory loss/reversal/disposal summary | `1.000` | `0.000` | `0.333` |
-| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` | `1.000` | `1.000` | `0.333` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` | `1.000` | `1.000` | `0.667` |
 | `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` | `1.000` | `1.000` | `1.000` |
 
 Interpretation:

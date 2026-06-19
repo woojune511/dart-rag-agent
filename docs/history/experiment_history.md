@@ -105,7 +105,7 @@
 | `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` | `1.000` | `0.500` | `1.000` |
 | `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` | `1.000` | `1.000` | `0.667` |
 | `CEL_T3_040` | PASS | Inventory loss/reversal/disposal summary | `1.000` | `0.000` | `0.333` |
-| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` plus risk narrative | `1.000` | `1.000` | `0.333` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` plus risk narrative | `1.000` | `1.000` | `0.667` |
 | `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` | `1.000` | `1.000` | `1.000` |
 
 Run-level readout:
@@ -119,6 +119,10 @@ Run-level readout:
 
 - The structured operand/evidence alignment changes survived the broader
   focused regression without benchmark-specific runtime branches.
+- Follow-up focused eval-only on 2026-06-19 added a declarative credit-loss
+  scenario narrative retrieval policy. `KBF_T2_018` stayed numeric PASS and
+  context recall improved from `0.333` to `0.667`; context precision@5 and
+  section match both improved to `1.000`.
 - `SAM_T3_028` and `CEL_T3_040` are still quality watch items because final
   numeric judgement passes while completeness remains weak.
 - `CEL_T1_013`, `KBF_T2_018`, and `SKH_T3_080` still emit stale/intermediate

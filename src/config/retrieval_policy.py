@@ -1629,6 +1629,29 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         ),
     },
     {
+        "name": "credit_loss_scenario_context",
+        "trigger_terms": ("신용손실충당금", "손실충당금", "기대신용손실", "대손상각비"),
+        "retrieval_query_suffixes": (
+            "기대신용손실 신용위험 미래경기 불확실성 시나리오 손실충당금",
+            "보수적 충당금 적립 경기악화 위기상황 worse crisis 시나리오",
+        ),
+        "preferred_sections": (
+            "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "연결재무제표 주석",
+            "신용위험",
+            "금융상품",
+            "IV. 이사의 경영진단 및 분석의견",
+        ),
+        "paragraph_priority_sections": (
+            "IV. 이사의 경영진단 및 분석의견",
+            "연결재무제표 주석",
+            "신용위험",
+        ),
+        "focus_terms": ("신용손실충당금", "손실충당금", "기대신용손실", "신용위험"),
+        "causal_terms": ("미래경기", "불확실성", "보수적", "충당금", "시나리오", "경기악화", "위기상황"),
+        "realized_terms": ("신용손실충당금", "전년대비", "기대신용손실", "시나리오"),
+    },
+    {
         "name": "wealth_management_aum",
         "trigger_terms": ("자산관리", "WM", "wealth management"),
         "retrieval_query_suffixes": (

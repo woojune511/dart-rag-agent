@@ -8459,6 +8459,19 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("1,216.7조원", claims)
         self.assertIn("70.0조원", claims)
 
+    def test_credit_loss_narrative_policy_extends_hybrid_retrieval_plan(self) -> None:
+        subtask = _build_hybrid_narrative_subtask(
+            query="신용손실충당금전입액 전년 대비 증가율을 계산하고 원인을 요약해 줘.",
+            intent="trend",
+            report_scope={"company": "ExampleCo", "year": 2023},
+            next_task_id="task_narrative",
+        )
+
+        retrieval_blob = " ".join(subtask["retrieval_queries"])
+        self.assertIn("기대신용손실", retrieval_blob)
+        self.assertIn("시나리오", retrieval_blob)
+        self.assertIn("연결재무제표 주석", subtask["preferred_sections"])
+
     def test_narrative_policy_supplement_requires_policy_realized_terms(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         evidence_items = [

@@ -183,11 +183,14 @@ role-separated multi-agent system using a task ledger and artifact store.
 | `SAM_T3_028` | PASS | Inventory valuation impact `2.79%` | `1.000` | `0.500` | `1.000` |
 | `CEL_T1_013` | PASS | Capitalized-development ratio `52.99%` | `1.000` | `1.000` | `0.667` |
 | `CEL_T3_040` | PASS | Inventory loss/reversal/disposal summary | `1.000` | `0.000` | `0.333` |
-| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` | `1.000` | `1.000` | `0.333` |
+| `KBF_T2_018` | PASS | Credit-loss provision increase `70.28%` | `1.000` | `1.000` | `0.667` |
 | `SKH_T3_080` | PASS | FX translation net effect `-3,322억원` | `1.000` | `1.000` | `1.000` |
 
 - Result: `7 / 7` numeric PASS, about `32.2m` heartbeat wall-clock runtime.
 - Residuals:
+  - `KBF_T2_018` context recall is now `0.667` after adding a declarative
+    credit-loss scenario narrative retrieval policy; numeric PASS and
+    faithfulness/completeness stayed at `1.000`.
   - `SAM_T3_028` and `CEL_T3_040` are numeric PASS rows but still have weak
     completeness signals.
   - `CEL_T1_013`, `KBF_T2_018`, and `SKH_T3_080` still emit stale/intermediate
