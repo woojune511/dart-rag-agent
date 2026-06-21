@@ -11,6 +11,122 @@
 
 ## 최신 상태
 
+- 2026-06-22 numeric-surface conflict fix 이후 maintenance refactor를 진행했다.
+  - `src/agent/financial_answer_projection.py`를 추가해 aggregate/narrative
+    answer projection 선택 로직을 graph helper bulk에서 분리했다.
+  - `financial_graph_helpers.py`는 기존 `_preferred_complete_aggregate_subtask_answer`
+    name을 re-export해서 caller-facing helper surface를 유지한다.
+  - behavior target: no-behavior-change extraction only; benchmark score claim은
+    아래 `9/9` closure 기준을 그대로 사용한다.
+  - validation:
+    - `python3 -m unittest tests.test_financial_agent_run_projection tests.test_benchmark_runner_runtime_projection`:
+      `69` OK
+    - `python3 -m unittest discover -s tests`: `1275` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+
+- 2026-06-22 `KBF_T2_018` mixed growth+narrative projection gap을 일반
+  runtime projection 문제로 고쳤고, expanded structural full-system
+  9-question `eval-only`가 최종 `9/9` numeric PASS로 닫혔다.
+  - change:
+    - `structured_result.subtask_results` 안의 aggregate/narrative subtask가
+      현재 numeric public answer를 포함하고 뒤쪽에 숫자 없는 설명 문장을 더
+      갖고 있으면, 그 설명을 public answer와 resolved trace projection에
+      보존한다.
+    - evaluator/runtime resolver가 현재 trace와 public answer가 이미 같더라도
+      structured subtask가 더 완성된 aggregate answer를 제공하면 재투영하도록
+      했다.
+    - complete aggregate answer가 이미 선택된 경우 stale numeric projection이
+      noisy nested numeric lead로 다시 덮어쓰지 않게 했다.
+    - clean aggregate/narrative candidate가 현재 public answer와 충분한 numeric
+      surface overlap을 갖고, public answer 쪽에 candidate가 설명하지 않는
+      충돌 숫자 claim이 더 많으면 clean candidate를 선택한다. 이 기준은 숫자
+      surface consistency만 사용하며 회사/질문/계정명 runtime branch를 추가하지
+      않는다.
+  - focused verification:
+    - command:
+      `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --company-run-id kbf_2023_expanded_candidate --question-id KBF_T2_018 --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t2_018_numeric_surface_conflict_guard_2026-06-22.jsonl`
+    - result: `KBF_T2_018` numeric final judgement `PASS`,
+      faithfulness `1.000`, completeness `1.000`, numeric equivalence
+      `1.000`, numeric grounding `1.000`, numeric retrieval support `1.000`.
+    - answer no longer includes the conflicting `3,146억원 / 1,299억원 /
+      142.19%` prefix and preserves `3,146,409백만원 / 1,847,775백만원 /
+      70.28%`.
+  - ablation readout:
+    - live focused commit comparison used temporary copies under
+      `/tmp/dart-rag-agent-ablation-20260622`: `HEAD=6557f50` and
+      `HEAD~1=66b8cc2` both produced numeric final judgement `PASS` for
+      `KBF_T2_018`, so the live score delta is not a stable discriminator.
+    - deterministic projection ablation with the same synthetic aggregate state
+      isolates the runtime change: `HEAD~1` leaves the conflicting `142.19%`
+      numeric prefix in the public answer and exits non-zero, while `HEAD`
+      replaces it with the clean aggregate answer and exits `0`.
+  - full verification:
+    - command:
+      `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_numeric_surface_conflict_guard_2026-06-22.jsonl`
+    - result: `9/9` numeric final judgement `PASS`
+    - PASS: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`, `MIX_T1_021`,
+      `CEL_T1_013`, `KBF_T2_018`, `KBF_T1_017`, `SKH_T3_080`, `SKH_T1_060`
+    - elapsed heartbeat: about `1199.2s`
+  - unit/audit verification:
+    - `python3 -m unittest tests.test_financial_agent_run_projection tests.test_benchmark_runner_runtime_projection tests.test_subtask_loop`:
+      `300` OK
+    - `python3 -m unittest discover -s tests`: `1275` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+  - artifact hygiene:
+    - focused/full eval updated ignored files under `benchmarks/results/**`; do
+      not stage benchmark artifacts unless explicitly requested.
+
+- 2026-06-22 takeout benchmark store/cache 복구 후 최신 코드로 expanded
+  structural full-system 9-question `eval-only`를 재실행했다.
+  - setup:
+    - takeout artifact path:
+      `../dart-rag-agent_takeout_important_20260619/dart-rag-agent/`
+    - restored local-only artifacts:
+      `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`,
+      `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`,
+      `.env`
+    - takeout result JSON absolute paths from
+      `/storage/geonju511/dart-rag-agent` were rewritten to
+      `/home/geonju/dart-rag-agent` so store-fixed eval-only could reuse the
+      restored Chroma/context-cache artifacts.
+  - command:
+    - `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_latest_2026-06-22.jsonl`
+  - result:
+    - numeric final judgement: `8/9` PASS, `1/9` UNCERTAIN
+    - PASS: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`, `MIX_T1_021`,
+      `CEL_T1_013`, `KBF_T1_017`, `SKH_T3_080`, `SKH_T1_060`
+    - UNCERTAIN: `KBF_T2_018`
+    - run-level winner summary: avg numeric `0.917`, avg completeness `0.892`,
+      avg faithfulness `0.917`, avg recall `0.917`
+    - heartbeat elapsed: about `1274.6s`
+  - `KBF_T2_018` read:
+    - public answer preserved the correct numeric surfaces:
+      `3,146,409 백만원`, `1,847,775 백만원`, `70.28%`
+    - numeric equivalence/grounding were healthy, but final judgement remained
+      `UNCERTAIN` because faithfulness was `0.0`, completeness `0.5`, and
+      numeric retrieval support `0.5`.
+    - This is no longer the earlier spurious `100만원 / 5,400만원 /
+      98.15% 감소` final-answer leak; the remaining issue is evaluator/runtime
+      evidence-support projection for the mixed growth+narrative answer.
+  - validation before run:
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+    - `python3 -m unittest tests.test_benchmark_runner_runtime_projection tests.test_subtask_loop`:
+      `246` OK
+  - environment note:
+    - no `.venv` existed on this machine; `python3` is Python `3.14.4`.
+      Full dependencies were installed into user site-packages with
+      `python3 -m pip install --user --break-system-packages -r requirements.txt`
+      because `python3 -m venv` failed without `python3.14-venv`.
+  - artifact hygiene:
+    - `.env`, `benchmarks/results/**`, `mlflow.db`, `mlruns/`, and
+      `__pycache__` outputs are local-only and should not be staged.
+  - next natural step:
+    - Diagnose `KBF_T2_018` as a generic evidence-support/projection issue.
+      Do not add company/question-specific runtime branches.
+
 - 2026-06-19 full structural `eval-only` refresh after the SKH projection fix
   completed with `8/9` numeric PASS:
   - command:

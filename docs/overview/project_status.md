@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-19
+Last updated: 2026-06-22
 
 ## Positioning
 
@@ -49,6 +49,47 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
+
+### Latest Expanded Structural Closure
+
+- Run date: 2026-06-22
+- Scope: takeout-restored, store-fixed structural full-system `eval-only` over
+  the expanded 9-question profile after numeric-surface conflict projection
+  hardening.
+- Profile:
+  - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Local-only artifact directory:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10`
+- Heartbeat logs:
+  - focused KBF guard:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t2_018_numeric_surface_conflict_guard_2026-06-22.jsonl`
+  - full structural closure:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_numeric_surface_conflict_guard_2026-06-22.jsonl`
+
+| Run | Scope | Result | Notes |
+| --- | --- | --- | --- |
+| Focused KBF conflict guard | `KBF_T2_018` | PASS | Same unstable path still produced intermediate `142.19%`, but final answer preserved `3,146,409백만원 / 1,847,775백만원 / 70.28%`. |
+| Live commit comparison | `HEAD` vs `HEAD~1`, focused `KBF_T2_018` | both PASS | Live LLM route/retrieval variance made this score comparison non-discriminating; use the deterministic projection ablation below for the isolated fix. |
+| Deterministic projection ablation | same synthetic aggregate state on `HEAD` vs `HEAD~1` | `HEAD` PASS, `HEAD~1` FAIL | `HEAD~1` keeps the conflicting `142.19%` numeric prefix; `HEAD` selects the clean aggregate answer. |
+| Full structural refresh | 9 expanded questions | `9 / 9` PASS | All expanded structural numeric final judgements passed. |
+
+- Passing rows: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`, `MIX_T1_021`,
+  `CEL_T1_013`, `KBF_T2_018`, `KBF_T1_017`, `SKH_T3_080`, `SKH_T1_060`.
+- Readout:
+  - `KBF_T2_018` can still produce weaker intermediate growth traces when a
+    sibling lookup is missing, but the final projection now prefers a clean
+    aggregate/narrative answer when it has sufficient numeric-surface overlap
+    and removes more conflicting numeric claims than it introduces.
+  - The check is generic numeric-surface consistency. No company name,
+    benchmark ID, report phrase, or metric-specific runtime branch was added.
+- Validation:
+  - `python3 -m unittest tests.test_financial_agent_run_projection tests.test_benchmark_runner_runtime_projection tests.test_subtask_loop`:
+    `300` tests OK
+  - `python3 -m unittest discover -s tests`: `1275` tests OK
+  - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+    reviewed literals
+- Artifact hygiene: raw `benchmarks/results/**` bundles and heartbeat logs
+  remain local unless explicitly published.
 
 ### Latest Supported Aggregate Growth-Narrative Fix
 

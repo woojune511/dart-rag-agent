@@ -59,6 +59,7 @@
 | [Aggregate Numeric Trace Hygiene Hard Set (2026-06-19)](#aggregate-numeric-trace-hygiene-hard-set-2026-06-19) | aggregate trace sync and final-answer numeric hygiene 이후 5문항 hard replay | `POS`, `SAM`, `CEL`, `KBF`, `SKH` all PASS; KBF unsupported numeric sentence and SKH stale lookup display removed |
 | [SKH_T1_060 Structured Subtask Projection Closure (2026-06-19)](#skh_t1_060-structured-subtask-projection-closure-2026-06-19) | expanded structural residual의 trace/answer consistency fix | focused rerun passes `42.02%`; full 9-question structural refresh still pending before changing aggregate claim |
 | [KBF_T2_018 Supported Aggregate Narrative Repair (2026-06-19)](#kbf_t2_018-supported-aggregate-narrative-repair-2026-06-19) | full structural refresh after SKH fix exposed a supported aggregate final-answer precedence bug | full run is `8 / 9`; focused KBF repair passes with `70.28%`; rerun full structural before claiming fresh `9 / 9` |
+| [Expanded Structural Numeric-Surface Conflict Closure (2026-06-22)](#expanded-structural-numeric-surface-conflict-closure-2026-06-22) | takeout-restored structural full-system eval-only after aggregate projection hardening | focused KBF guard and full 9-question structural refresh both pass; structural is now `9 / 9` numeric PASS |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -72,6 +73,80 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Expanded Structural Numeric-Surface Conflict Closure (2026-06-22)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- heartbeat logs:
+  - focused KBF guard:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t2_018_numeric_surface_conflict_guard_2026-06-22.jsonl`
+  - full structural closure:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_numeric_surface_conflict_guard_2026-06-22.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed structural full-system `eval-only` over the expanded 9-question
+  profile restored from the 2026-06-19 takeout artifacts.
+- Profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- The triggering failure was `KBF_T2_018`: a public answer could contain both a
+  conflicting weak numeric prefix (`3,146억원 / 1,299억원 / 142.19%`) and the
+  supported aggregate narrative (`3,146,409백만원 / 1,847,775백만원 / 70.28%`).
+
+### Results
+
+| Run | Scope | Result | Key detail |
+| --- | --- | --- | --- |
+| Focused conflict guard | `KBF_T2_018` | PASS | Same unstable path produced intermediate `142.19%`, but final answer kept the clean aggregate `70.28%` answer. |
+| Live commit comparison | `HEAD=6557f50` vs `HEAD~1=66b8cc2`, focused `KBF_T2_018` | both PASS | Non-deterministic planning/retrieval meant this live score comparison did not isolate the fix. |
+| Deterministic projection ablation | same synthetic aggregate state on both commits | `HEAD` PASS, `HEAD~1` FAIL | The old runtime left the conflicting `142.19%` numeric prefix in the public answer; the new runtime selected the clean aggregate answer. |
+| Full structural refresh | 9 expanded questions | `9 / 9` PASS | All expanded structural numeric final judgements passed. |
+
+Passing rows:
+
+- `KAB_T1_066`
+- `POS_T1_057`
+- `SAM_T3_028`
+- `MIX_T1_021`
+- `CEL_T1_013`
+- `KBF_T2_018`
+- `KBF_T1_017`
+- `SKH_T3_080`
+- `SKH_T1_060`
+
+### Code / Contract Change
+
+- Failure layer: final-answer projection for mixed growth+narrative aggregate
+  answers, not retrieval or evaluator normalization.
+- Runtime now lets a clean aggregate/narrative candidate replace the current
+  public answer when:
+  - it shares enough numeric surfaces with the current public answer, and
+  - the current public answer contains more conflicting numeric claims than the
+    candidate introduces.
+- This is a generic numeric-surface consistency guard. No company name,
+  benchmark ID, report phrase, or metric-specific runtime branch was added.
+
+### Validation
+
+- `python3 -m unittest tests.test_financial_agent_run_projection tests.test_benchmark_runner_runtime_projection tests.test_subtask_loop`:
+  `300` tests OK.
+- `python3 -m unittest discover -s tests`: `1275` tests OK.
+- `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215` reviewed
+  literals.
+
+### Interpretation
+
+- The earlier `8 / 9 + focused KBF closure` caveat is now resolved for this
+  structural profile: the latest full structural replay is `9 / 9` numeric
+  PASS.
+- Remaining work should shift from patching this row to code ownership cleanup:
+  isolate aggregate answer projection / runtime trace projection from the
+  larger graph helper surface.
 
 ## KBF_T2_018 Supported Aggregate Narrative Repair (2026-06-19)
 

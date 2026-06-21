@@ -81,6 +81,7 @@ from src.config.retrieval_policy import (
     numeric_section_policy_statement_types,
 )
 from src.agent.mas_types import critic_report_runtime_acceptance_state
+from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_models import RuntimeCalculationTrace, validate_answer_slots_payload
 from src.schema import ArtifactKind, ArtifactRecord, TaskKind, TaskRecord, TaskStatus
 
@@ -100,6 +101,7 @@ __all__ = [
     '_project_task_trace_from_runtime',
     '_project_task_trace_from_state',
     '_build_aggregate_calculation_projection',
+    '_preferred_complete_aggregate_subtask_answer',
     '_resolve_runtime_calculation_trace',
     '_build_runtime_calculation_trace',
     '_runtime_trace_state_update',
@@ -1912,6 +1914,10 @@ def _structured_result_subtask_projection_if_public_aligned(
     )
     if not public_answer or public_answer != structured_answer:
         return {}
+    projection_answer = _preferred_complete_aggregate_subtask_answer(
+        subtask_results,
+        public_answer,
+    ) or public_answer
     current_result = dict((current_trace or {}).get("calculation_result") or {})
     current_primary = dict((current_result.get("answer_slots") or {}).get("primary_value") or {})
     current_rendered = _normalise_spaces(
@@ -1922,7 +1928,7 @@ def _structured_result_subtask_projection_if_public_aligned(
             or ""
         )
     )
-    projection = _build_aggregate_calculation_projection(subtask_results, public_answer)
+    projection = _build_aggregate_calculation_projection(subtask_results, projection_answer)
     projection_operands = [
         dict(item)
         for item in list(projection.get("calculation_operands") or [])
@@ -1931,7 +1937,8 @@ def _structured_result_subtask_projection_if_public_aligned(
     projection_result = dict(projection.get("calculation_result") or {})
     if not projection_result.get("subtask_results"):
         return {}
-    if current_rendered and current_rendered == public_answer:
+    projection_extends_public_answer = projection_answer != public_answer
+    if current_rendered and current_rendered == public_answer and not projection_extends_public_answer:
         current_status = _normalise_spaces(str(current_result.get("status") or "")).lower()
         projection_status = _normalise_spaces(str(projection_result.get("status") or "")).lower()
         if not projection_operands:
