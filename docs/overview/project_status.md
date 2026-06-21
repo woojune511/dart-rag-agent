@@ -69,6 +69,8 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Run | Scope | Result | Notes |
 | --- | --- | --- | --- |
 | Focused KBF conflict guard | `KBF_T2_018` | PASS | Same unstable path still produced intermediate `142.19%`, but final answer preserved `3,146,409백만원 / 1,847,775백만원 / 70.28%`. |
+| Live commit comparison | `HEAD` vs `HEAD~1`, focused `KBF_T2_018` | both PASS | Live LLM route/retrieval variance made this score comparison non-discriminating; use the deterministic projection ablation below for the isolated fix. |
+| Deterministic projection ablation | same synthetic aggregate state on `HEAD` vs `HEAD~1` | `HEAD` PASS, `HEAD~1` FAIL | `HEAD~1` keeps the conflicting `142.19%` numeric prefix; `HEAD` selects the clean aggregate answer. |
 | Full structural refresh | 9 expanded questions | `9 / 9` PASS | All expanded structural numeric final judgements passed. |
 
 - Passing rows: `KAB_T1_066`, `POS_T1_057`, `SAM_T3_028`, `MIX_T1_021`,

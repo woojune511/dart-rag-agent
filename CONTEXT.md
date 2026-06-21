@@ -38,6 +38,15 @@
     - answer no longer includes the conflicting `3,146억원 / 1,299억원 /
       142.19%` prefix and preserves `3,146,409백만원 / 1,847,775백만원 /
       70.28%`.
+  - ablation readout:
+    - live focused commit comparison used temporary copies under
+      `/tmp/dart-rag-agent-ablation-20260622`: `HEAD=6557f50` and
+      `HEAD~1=66b8cc2` both produced numeric final judgement `PASS` for
+      `KBF_T2_018`, so the live score delta is not a stable discriminator.
+    - deterministic projection ablation with the same synthetic aggregate state
+      isolates the runtime change: `HEAD~1` leaves the conflicting `142.19%`
+      numeric prefix in the public answer and exits non-zero, while `HEAD`
+      replaces it with the clean aggregate answer and exits `0`.
   - full verification:
     - command:
       `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_structural_after_numeric_surface_conflict_guard_2026-06-22.jsonl`

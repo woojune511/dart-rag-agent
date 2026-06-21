@@ -103,6 +103,8 @@
 | Run | Scope | Result | Key detail |
 | --- | --- | --- | --- |
 | Focused conflict guard | `KBF_T2_018` | PASS | Same unstable path produced intermediate `142.19%`, but final answer kept the clean aggregate `70.28%` answer. |
+| Live commit comparison | `HEAD=6557f50` vs `HEAD~1=66b8cc2`, focused `KBF_T2_018` | both PASS | Non-deterministic planning/retrieval meant this live score comparison did not isolate the fix. |
+| Deterministic projection ablation | same synthetic aggregate state on both commits | `HEAD` PASS, `HEAD~1` FAIL | The old runtime left the conflicting `142.19%` numeric prefix in the public answer; the new runtime selected the clean aggregate answer. |
 | Full structural refresh | 9 expanded questions | `9 / 9` PASS | All expanded structural numeric final judgements passed. |
 
 Passing rows:
