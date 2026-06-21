@@ -205,6 +205,15 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         ]
         if not subtask_results:
             return "", {}
+        structured_answer = _normalise_spaces(
+            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
+        )
+        preferred_complete_answer = _preferred_complete_aggregate_subtask_answer(
+            subtask_results,
+            structured_answer or public_answer,
+        )
+        if preferred_complete_answer and _normalise_spaces(public_answer) == preferred_complete_answer:
+            return "", {}
         replacement_answer = self._complete_numeric_projection_replacement_answer(
             final_answer=public_answer,
             ordered_results=subtask_results,
@@ -826,6 +835,36 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 "calculation_result": final.get("calculation_result", {}),
             }
         )
+        structured_subtask_results = [
+            dict(row)
+            for row in list(structured_result.get("subtask_results") or [])
+            if isinstance(row, dict)
+        ]
+        structured_base_answer = _normalise_spaces(
+            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
+        )
+        complete_aggregate_answer = _preferred_complete_aggregate_subtask_answer(
+            structured_subtask_results,
+            structured_base_answer or public_answer,
+        )
+        if complete_aggregate_answer:
+            public_answer = complete_aggregate_answer
+            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
+            complete_projection = _build_aggregate_calculation_projection(
+                structured_subtask_results,
+                public_answer,
+            )
+            complete_projection_result = dict(complete_projection.get("calculation_result") or {})
+            if complete_projection_result.get("subtask_results"):
+                runtime_calculation_trace = _attach_runtime_projection_metadata(
+                    complete_projection,
+                    source="structured_result_subtasks",
+                )
+                runtime_calculation_trace["runtime_projection"] = {
+                    **dict(runtime_calculation_trace.get("runtime_projection") or {}),
+                    "public_answer_repaired": True,
+                    "complete_aggregate_answer_selected": True,
+                }
         structured_answer = self._structured_result_answer_for_missing_public_answer(public_answer, structured_result)
         if structured_answer:
             public_answer = structured_answer

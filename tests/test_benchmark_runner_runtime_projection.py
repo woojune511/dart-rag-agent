@@ -806,6 +806,132 @@ class BenchmarkRunnerRuntimeProjectionTests(unittest.TestCase):
         self.assertIn("4,145,647", json.dumps(resolved_trace, ensure_ascii=False))
         self.assertNotIn("9,857,189", json.dumps(resolved_trace, ensure_ascii=False))
 
+    def test_serialise_eval_results_reprojects_complete_aggregate_answer_when_public_is_partial(self) -> None:
+        public_answer = "Segment expense was 300, up 50% from 200."
+        complete_answer = (
+            "Segment expense was 300, up 50% from 200. "
+            "The increase reflected conservative risk actions under a stressed scenario."
+        )
+        result = SimpleNamespace(
+            id="Q1",
+            question="growth and explain question",
+            answer=public_answer,
+            ground_truth=complete_answer,
+            answer_key=complete_answer,
+            expected_sections=[],
+            evidence=[],
+            raw_faithfulness=1.0,
+            faithfulness=1.0,
+            faithfulness_override_reason=None,
+            answer_relevancy=1.0,
+            context_recall=1.0,
+            retrieval_hit_at_k=1.0,
+            ndcg_at_3=1.0,
+            ndcg_at_5=1.0,
+            context_precision_at_3=1.0,
+            context_precision_at_5=1.0,
+            section_match_rate=1.0,
+            citation_coverage=1.0,
+            entity_coverage=1.0,
+            completeness=1.0,
+            completeness_reason="ok",
+            refusal_accuracy=1.0,
+            numeric_equivalence=1.0,
+            raw_numeric_grounding=1.0,
+            numeric_grounding=1.0,
+            numeric_retrieval_support=1.0,
+            raw_numeric_final_judgement="PASS",
+            numeric_final_judgement="PASS",
+            raw_numeric_confidence=1.0,
+            numeric_confidence=1.0,
+            numeric_debug={},
+            absolute_error_rate=0.0,
+            raw_operand_selection_correctness=1.0,
+            operand_selection_correctness=1.0,
+            unit_consistency_pass=1.0,
+            numeric_result_correctness=1.0,
+            trend_interpretation_correctness=None,
+            grounded_rendering_correctness=1.0,
+            calculation_correctness=1.0,
+            missing_info_compliance=None,
+            retrieved_count=1,
+            query_type="risk",
+            intent="risk",
+            format_preference="mixed",
+            routing_source="router",
+            routing_confidence=1.0,
+            routing_scores={"risk": 1.0},
+            latency_sec=0.1,
+            citations=[],
+            retrieved_metadata=[],
+            retrieved_previews=[],
+            retrieval_debug_trace={},
+            retrieval_debug_trace_history=[],
+            runtime_evidence=[],
+            selected_claim_ids=[],
+            draft_points=[public_answer],
+            kept_claim_ids=[],
+            dropped_claim_ids=[],
+            unsupported_sentences=[],
+            sentence_checks=[],
+            resolved_calculation_trace={
+                "calculation_operands": [{"label": "segment expense", "normalized_value": 300.0}],
+                "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": public_answer,
+                    "rendered_value": public_answer,
+                    "answer_slots": {"operation_family": "aggregate_subtasks"},
+                },
+            },
+            structured_result={
+                "status": "ok",
+                "formatted_result": public_answer,
+                "rendered_value": public_answer,
+                "subtask_results": [
+                    {
+                        "task_id": "task_growth",
+                        "metric_family": "concept_growth_rate",
+                        "operation_family": "growth_rate",
+                        "answer": public_answer,
+                        "status": "ok",
+                        "calculation_result": {
+                            "status": "ok",
+                            "formatted_result": public_answer,
+                            "answer_slots": {"operation_family": "growth_rate"},
+                        },
+                    },
+                    {
+                        "task_id": "task_summary",
+                        "metric_family": "narrative_summary",
+                        "operation_family": "aggregate_subtasks",
+                        "answer": complete_answer,
+                        "status": "ok",
+                        "calculation_result": {
+                            "status": "ok",
+                            "formatted_result": complete_answer,
+                            "answer_slots": {"operation_family": "aggregate_subtasks"},
+                        },
+                    },
+                ],
+            },
+            task_artifact_trace={},
+            missing_info_policy=None,
+            error=None,
+        )
+
+        rows = _serialise_eval_results([result])
+
+        resolved_trace = rows[0]["resolved_calculation_trace"]
+        self.assertEqual(
+            resolved_trace["calculation_result"]["formatted_result"],
+            complete_answer,
+        )
+        self.assertEqual(
+            resolved_trace["runtime_projection"]["source"],
+            "structured_result_subtasks",
+        )
+
     def test_summary_markdown_includes_task_artifact_integrity_counts(self) -> None:
         markdown = _render_summary_markdown(
             [

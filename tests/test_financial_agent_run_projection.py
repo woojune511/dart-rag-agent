@@ -346,6 +346,206 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             "structured_result_subtasks",
         )
 
+    def test_run_promotes_complete_nested_aggregate_answer_over_numeric_only_public_answer(self) -> None:
+        final_state = self._base_final_state()
+        numeric_answer = "2023 segment expense was 300, up 50% from 200 in 2022."
+        complete_answer = (
+            "2023 segment expense was 300, up 50% from 200 in 2022. "
+            "The increase reflected conservative risk actions under a stressed scenario."
+        )
+        noisy_nested_answer = (
+            "2023 segment expense was 300, up 150% from 120 in 2022. "
+            f"{numeric_answer} "
+            "The increase reflected conservative risk actions under a stressed scenario. "
+            "A separate risk indicator moved by 0.31%p to 1.01%."
+        )
+        final_state["answer"] = numeric_answer
+        final_state["compressed_answer"] = numeric_answer
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": numeric_answer,
+                "rendered_value": numeric_answer,
+                "answer_slots": {"operation_family": "aggregate_subtasks"},
+            },
+        }
+        growth_result = {
+            "status": "ok",
+            "rendered_value": "50%",
+            "formatted_result": numeric_answer,
+            "answer_slots": {
+                "operation_family": "growth_rate",
+                "primary_value": {"status": "ok", "rendered_value": "50%"},
+                "current_value": {"status": "ok", "rendered_value": "300"},
+                "prior_value": {"status": "ok", "rendered_value": "200"},
+            },
+        }
+        final_state["structured_result"] = {
+            "status": "ok",
+            "formatted_result": numeric_answer,
+            "rendered_value": numeric_answer,
+            "subtask_results": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "segment expense growth",
+                    "operation_family": "growth_rate",
+                    "answer": numeric_answer,
+                    "status": "ok",
+                    "calculation_result": growth_result,
+                },
+                {
+                    "task_id": "task_summary",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "driver summary",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": noisy_nested_answer,
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": noisy_nested_answer,
+                        "rendered_value": noisy_nested_answer,
+                        "subtask_results": [],
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                },
+            ],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        trace = result["resolved_calculation_trace"]
+        self.assertEqual(result["answer"], complete_answer)
+        self.assertNotIn("150%", result["answer"])
+        self.assertNotIn("0.31%p", result["answer"])
+        self.assertEqual(trace["calculation_result"]["formatted_result"], complete_answer)
+        self.assertEqual(trace["runtime_projection"]["source"], "structured_result_subtasks")
+        self.assertTrue(trace["runtime_projection"]["complete_aggregate_answer_selected"])
+
+    def test_run_drops_noisy_numeric_prefix_when_clean_aggregate_answer_is_nested(self) -> None:
+        final_state = self._base_final_state()
+        clean_answer = (
+            "2023 segment expense was 300, up 50% from 200 in 2022. "
+            "The increase reflected conservative risk actions under a stressed scenario."
+        )
+        noisy_answer = "2022 segment expense was 900, up 800% from 100 in 2021. " + clean_answer
+        final_state["answer"] = noisy_answer
+        final_state["compressed_answer"] = noisy_answer
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": noisy_answer,
+                "rendered_value": noisy_answer,
+                "answer_slots": {"operation_family": "aggregate_subtasks"},
+            },
+        }
+        final_state["structured_result"] = {
+            "status": "ok",
+            "formatted_result": noisy_answer,
+            "rendered_value": noisy_answer,
+            "subtask_results": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "operation_family": "growth_rate",
+                    "answer": "50%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": "50%",
+                        "answer_slots": {"operation_family": "growth_rate"},
+                    },
+                },
+                {
+                    "task_id": "task_summary",
+                    "metric_family": "narrative_summary",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": clean_answer,
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": clean_answer,
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                },
+            ],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["answer"], clean_answer)
+        self.assertNotIn("800%", result["answer"])
+        self.assertEqual(
+            result["resolved_calculation_trace"]["calculation_result"]["formatted_result"],
+            clean_answer,
+        )
+
+    def test_run_prefers_numeric_consistent_aggregate_when_public_has_conflicting_prefix(self) -> None:
+        final_state = self._base_final_state()
+        clean_answer = (
+            "2023 segment expense was 3,146,409백만원, up 70.28% from 1,847,775백만원 in 2022. "
+            "The increase reflected conservative risk actions under a stressed scenario."
+        )
+        noisy_answer = (
+            "2023 segment expense was 3,146억원, up 142.19% from 1,299억원 in 2022. "
+            "2023 segment expense was 3,146,409백만원, up 70.28% from 1,847,775백만원 in 2022. "
+            "The increase reflected conservative risk actions."
+        )
+        final_state["answer"] = noisy_answer
+        final_state["compressed_answer"] = noisy_answer
+        final_state["resolved_calculation_trace"] = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks"},
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": noisy_answer,
+                "rendered_value": noisy_answer,
+                "answer_slots": {"operation_family": "aggregate_subtasks"},
+            },
+        }
+        final_state["structured_result"] = {
+            "status": "ok",
+            "formatted_result": noisy_answer,
+            "rendered_value": noisy_answer,
+            "subtask_results": [
+                {
+                    "task_id": "task_summary",
+                    "metric_family": "narrative_summary",
+                    "operation_family": "aggregate_subtasks",
+                    "answer": clean_answer,
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "formatted_result": clean_answer,
+                        "answer_slots": {"operation_family": "aggregate_subtasks"},
+                    },
+                }
+            ],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.graph = _FakeGraph(final_state)
+        agent.vsm = object()
+
+        result = agent.run("test question")
+
+        self.assertEqual(result["answer"], clean_answer)
+        self.assertNotIn("142.19%", result["answer"])
+        self.assertNotIn("1,299억원", result["answer"])
+        self.assertEqual(
+            result["resolved_calculation_trace"]["calculation_result"]["formatted_result"],
+            clean_answer,
+        )
+
     def test_run_prefers_complete_structured_ratio_over_stale_public_ratio(self) -> None:
         final_state = self._base_final_state()
         final_state["query"] = "calculate target borrowing share"

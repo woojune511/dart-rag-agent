@@ -100,6 +100,7 @@ __all__ = [
     '_project_task_trace_from_runtime',
     '_project_task_trace_from_state',
     '_build_aggregate_calculation_projection',
+    '_preferred_complete_aggregate_subtask_answer',
     '_resolve_runtime_calculation_trace',
     '_build_runtime_calculation_trace',
     '_runtime_trace_state_update',
@@ -1469,6 +1470,123 @@ def _build_aggregate_calculation_projection(
     }
 
 
+def _numeric_surface_candidates_for_projection(text: str) -> List[Dict[str, Any]]:
+    try:
+        from src.agent.financial_numeric_surface import (
+            extract_numeric_surface_candidates,
+        )
+    except Exception:
+        return []
+    return [
+        dict(candidate)
+        for candidate in extract_numeric_surface_candidates(str(text or ""))
+        if str(candidate.get("kind") or "") in {"currency", "percent", "generic"}
+    ]
+
+
+def _numeric_surface_has_equivalent(
+    candidate: Mapping[str, Any],
+    candidates: Sequence[Mapping[str, Any]],
+) -> bool:
+    try:
+        from src.agent.financial_numeric_surface import numeric_surface_candidates_equivalent
+    except Exception:
+        return False
+    return any(numeric_surface_candidates_equivalent(dict(candidate), dict(other)) for other in candidates)
+
+
+def _candidate_reduces_conflicting_numeric_surfaces(answer_text: str, candidate: str) -> bool:
+    answer_numbers = _numeric_surface_candidates_for_projection(answer_text)
+    candidate_numbers = _numeric_surface_candidates_for_projection(candidate)
+    if len(answer_numbers) < 2 or len(candidate_numbers) < 2:
+        return False
+    shared_candidate_numbers = [
+        item
+        for item in candidate_numbers
+        if _numeric_surface_has_equivalent(item, answer_numbers)
+    ]
+    if len(shared_candidate_numbers) < 2:
+        return False
+    answer_only_numbers = [
+        item
+        for item in answer_numbers
+        if not _numeric_surface_has_equivalent(item, candidate_numbers)
+    ]
+    candidate_only_numbers = [
+        item
+        for item in candidate_numbers
+        if not _numeric_surface_has_equivalent(item, answer_numbers)
+    ]
+    if not answer_only_numbers or len(answer_only_numbers) <= len(candidate_only_numbers):
+        return False
+    return len(candidate) >= max(40, int(len(answer_text) * 0.35))
+
+
+def _preferred_complete_aggregate_subtask_answer(
+    subtask_results: List[Dict[str, Any]],
+    final_answer: str,
+) -> str:
+    answer_text = _normalise_spaces(str(final_answer or ""))
+    if not answer_text:
+        return ""
+    best_answer = ""
+    for row in list(subtask_results or []):
+        if not isinstance(row, Mapping):
+            continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        operation_family = _trace_operation_family(
+            calculation_plan=dict(row.get("calculation_plan") or {}),
+            calculation_result=calculation_result,
+        ) or str(answer_slots.get("operation_family") or row.get("operation_family") or "").strip().lower()
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if operation_family not in {"aggregate_subtasks", "narrative_summary"} and metric_family != "narrative_summary":
+            continue
+        status = _normalise_spaces(
+            str(row.get("status") or calculation_result.get("status") or "")
+        ).lower()
+        if status and status not in {"ok", "ready"}:
+            continue
+        candidate = _normalise_spaces(
+            str(
+                row.get("answer")
+                or calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or ""
+            )
+        )
+        if not candidate or candidate == answer_text or answer_text not in candidate:
+            if candidate and candidate != answer_text and candidate in answer_text and re.search(r"\d", candidate):
+                prefix = answer_text.split(candidate, 1)[0]
+                if prefix and re.search(r"\d", prefix):
+                    if not best_answer or len(candidate) > len(best_answer):
+                        best_answer = candidate
+                continue
+            if (
+                candidate
+                and candidate != answer_text
+                and re.search(r"\d", candidate)
+                and _candidate_reduces_conflicting_numeric_surfaces(answer_text, candidate)
+            ):
+                if not best_answer or len(candidate) > len(best_answer):
+                    best_answer = candidate
+                continue
+            continue
+        suffix = candidate.split(answer_text, 1)[1]
+        narrative_parts: List[str] = []
+        for sentence in _split_sentences(suffix):
+            cleaned_sentence = re.sub(r"^[\s,;:\-.]+", "", _normalise_spaces(sentence))
+            if not cleaned_sentence or re.search(r"\d", cleaned_sentence):
+                continue
+            narrative_parts.append(cleaned_sentence)
+        if not narrative_parts:
+            continue
+        completed_answer = _normalise_spaces(" ".join([answer_text, *narrative_parts]))
+        if not best_answer or len(completed_answer) > len(best_answer):
+            best_answer = completed_answer
+    return best_answer
+
+
 def _trace_has_material(trace: Mapping[str, Any]) -> bool:
     return bool(
         trace.get("calculation_operands")
@@ -1912,6 +2030,10 @@ def _structured_result_subtask_projection_if_public_aligned(
     )
     if not public_answer or public_answer != structured_answer:
         return {}
+    projection_answer = _preferred_complete_aggregate_subtask_answer(
+        subtask_results,
+        public_answer,
+    ) or public_answer
     current_result = dict((current_trace or {}).get("calculation_result") or {})
     current_primary = dict((current_result.get("answer_slots") or {}).get("primary_value") or {})
     current_rendered = _normalise_spaces(
@@ -1922,7 +2044,7 @@ def _structured_result_subtask_projection_if_public_aligned(
             or ""
         )
     )
-    projection = _build_aggregate_calculation_projection(subtask_results, public_answer)
+    projection = _build_aggregate_calculation_projection(subtask_results, projection_answer)
     projection_operands = [
         dict(item)
         for item in list(projection.get("calculation_operands") or [])
@@ -1931,7 +2053,8 @@ def _structured_result_subtask_projection_if_public_aligned(
     projection_result = dict(projection.get("calculation_result") or {})
     if not projection_result.get("subtask_results"):
         return {}
-    if current_rendered and current_rendered == public_answer:
+    projection_extends_public_answer = projection_answer != public_answer
+    if current_rendered and current_rendered == public_answer and not projection_extends_public_answer:
         current_status = _normalise_spaces(str(current_result.get("status") or "")).lower()
         projection_status = _normalise_spaces(str(projection_result.get("status") or "")).lower()
         if not projection_operands:

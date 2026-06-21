@@ -1930,9 +1930,13 @@ class FinancialAgentPlanningMixin:
                 or ""
             )
         )
-        if current_rendered and current_rendered == public_answer:
+        projection_answer = _preferred_complete_aggregate_subtask_answer(
+            subtask_results,
+            public_answer,
+        ) or public_answer
+        if current_rendered and current_rendered == public_answer and projection_answer == public_answer:
             return {}
-        projection = _build_aggregate_calculation_projection(subtask_results, public_answer)
+        projection = _build_aggregate_calculation_projection(subtask_results, projection_answer)
         projection_result = dict(projection.get("calculation_result") or {})
         if not projection_result.get("subtask_results"):
             return {}
