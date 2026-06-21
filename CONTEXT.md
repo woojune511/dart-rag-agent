@@ -11,6 +11,20 @@
 
 ## 최신 상태
 
+- 2026-06-22 numeric-surface conflict fix 이후 maintenance refactor를 진행했다.
+  - `src/agent/financial_answer_projection.py`를 추가해 aggregate/narrative
+    answer projection 선택 로직을 graph helper bulk에서 분리했다.
+  - `financial_graph_helpers.py`는 기존 `_preferred_complete_aggregate_subtask_answer`
+    name을 re-export해서 caller-facing helper surface를 유지한다.
+  - behavior target: no-behavior-change extraction only; benchmark score claim은
+    아래 `9/9` closure 기준을 그대로 사용한다.
+  - validation:
+    - `python3 -m unittest tests.test_financial_agent_run_projection tests.test_benchmark_runner_runtime_projection`:
+      `69` OK
+    - `python3 -m unittest discover -s tests`: `1275` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+
 - 2026-06-22 `KBF_T2_018` mixed growth+narrative projection gap을 일반
   runtime projection 문제로 고쳤고, expanded structural full-system
   9-question `eval-only`가 최종 `9/9` numeric PASS로 닫혔다.
