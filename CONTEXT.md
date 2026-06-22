@@ -11,6 +11,17 @@
 
 ## 최신 상태
 
+- 2026-06-22 PR #77이 merge되어 현재 runtime/code baseline은
+  `main@6d98d67`이다.
+  - PR: `https://github.com/woojune511/dart-rag-agent/pull/77`
+  - merge commit: `6d98d67 Merge pull request #77 from
+    woojune511/codex/numeric-projection-closure`
+  - included commits: `6557f50` numeric projection conflict fix, `77b68bf`
+    ablation documentation, `c3a75be` aggregate answer projection helper
+    extraction
+  - current gate claim remains the expanded structural `9/9` numeric PASS
+    described below.
+
 - 2026-06-22 numeric-surface conflict fix 이후 maintenance refactor를 진행했다.
   - `src/agent/financial_answer_projection.py`를 추가해 aggregate/narrative
     answer projection 선택 로직을 graph helper bulk에서 분리했다.

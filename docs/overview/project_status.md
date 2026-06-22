@@ -50,6 +50,18 @@ role-separated multi-agent system using a task ledger and artifact store.
 | REFERENCE_NOTE capability gate | Researcher graph-expansion boundary | READY, context-only |
 | Portfolio review gates | reviewer-facing capability bundle | READY |
 
+### Current Baseline
+
+- Current runtime/code baseline from PR #77: `main@6d98d67`.
+- PR #77 merged on 2026-06-22:
+  `https://github.com/woojune511/dart-rag-agent/pull/77`
+- The merge contains:
+  - `6557f50` numeric projection conflict fix
+  - `77b68bf` deterministic ablation documentation
+  - `c3a75be` no-behavior-change aggregate answer projection helper extraction
+- Gate status remains the expanded structural closure below: `9 / 9` numeric
+  final judgement PASS.
+
 ### Latest Expanded Structural Closure
 
 - Run date: 2026-06-22
