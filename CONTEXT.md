@@ -11,6 +11,15 @@
 
 ## 최신 상태
 
+- 2026-06-22 `FinancialAgent` 파악용 문서를 최신 runtime 구조에 맞게 갱신했다.
+  - `docs/overview/question_trace_walkthrough.md`: PR #77 이후 graph wiring,
+    `run()` output projection map, named projection(`agent_answer`,
+    `review_trace`, `debug_bundle`), `financial_answer_projection.py` helper
+    boundary를 반영했다.
+  - `docs/overview/runtime_flow_roles.md`: `FinancialAgent` facade 책임,
+    narrative/calculation graph path, projection/helper modules 지도를 갱신했다.
+  - 목적은 코드 변경 전 독해 경로 정리이며, runtime behavior 변경은 없다.
+
 - 2026-06-22 PR #77이 merge되어 현재 runtime/code baseline은
   `main@6d98d67`이다.
   - PR: `https://github.com/woojune511/dart-rag-agent/pull/77`
