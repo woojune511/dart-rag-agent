@@ -18,8 +18,8 @@ walkthrough다. 기준은 2026-06-22 PR #77 merge 이후의 single-agent runtime
 1. [src/agent/financial_graph.py](../../src/agent/financial_graph.py)의
    `_build_graph()`
 2. 같은 파일의 `run()`
-3. [src/agent/financial_graph_models.py](../../src/agent/financial_graph_models.py)의
-   state/schema
+3. [src/agent/financial_graph_state.py](../../src/agent/financial_graph_state.py)의
+   graph state contract
 4. 각 graph node의 mixin 구현
 5. helper/module 내부
 
@@ -127,6 +127,54 @@ mixin 파일들로 내려간다.
 | narrative | `validate` | `FinancialAgentEvidenceMixin._validate_answer()` |
 | finish | `cite` | `FinancialAgentCalculationMixin._format_citations()` |
 
+현재 LangGraph edge는 아래처럼 읽으면 된다.
+
+```mermaid
+flowchart TD
+    classify --> extract
+    extract --> pre_calc_planner
+    pre_calc_planner --> retrieve
+    retrieve --> expand
+
+    expand -->|lookup, single_value, numeric_fact| numeric_extractor
+    expand -->|narrative, calculation, QA| evidence
+
+    numeric_extractor -->|missing lookup support| reconcile_plan
+    numeric_extractor -->|subtask done| advance_subtask
+    numeric_extractor -->|standalone numeric fact| cite
+
+    evidence -->|calculation, comparison, trend| reconcile_plan
+    evidence -->|narrative answer| compress
+
+    reconcile_plan -->|ready| operand_extractor
+    reconcile_plan -->|retry_retrieval| retrieve
+    reconcile_plan -->|cannot continue| advance_subtask
+
+    operand_extractor --> formula_planner
+    formula_planner -->|ready| calculator
+    formula_planner -->|needs retry| reflection_replan
+    reflection_replan --> prepare_retry
+    prepare_retry -->|use task outputs| operand_extractor
+    prepare_retry -->|search again| retrieve
+
+    calculator -->|ok| calc_render
+    calculator -->|needs retry| reflection_replan
+    calc_render --> calc_verify
+    calc_verify --> advance_subtask
+
+    advance_subtask -->|next lookup, single_value, narrative| retrieve
+    advance_subtask -->|next calculation| reconcile_plan
+    advance_subtask -->|loop complete| aggregate_subtasks
+
+    aggregate_subtasks -->|needs replanning| pre_calc_planner
+    aggregate_subtasks -->|finalize| cite
+
+    compress --> validate
+    validate -->|subtask loop| advance_subtask
+    validate -->|finalize| cite
+    cite --> graph_end([END])
+```
+
 중요한 edge:
 
 - `expand` 이후 현재 active subtask에 따라 `numeric_extractor` 또는 `evidence`로
@@ -185,7 +233,8 @@ graph node가 만든 raw runtime state이고, 그대로 API에 내보내는 payl
 3. `_late_runtime_numeric_answer()`가 trace 기준 public answer를 보강할 수 있다.
 4. `_runtime_evidence_from_retrieved_docs()`가 retrieved docs를 runtime evidence
    fallback으로 투영한다.
-5. `_resolve_runtime_structured_result()`가 `structured_result`를 정규화한다.
+5. public `run()` bridge에서 `_resolve_runtime_structured_result()`가
+   caller-facing `structured_result`를 정규화한다.
 6. `_preferred_complete_aggregate_subtask_answer()`가 aggregate/narrative subtask
    결과에서 더 완성된 public answer를 고른다.
 7. `_structured_result_projection_for_stale_public_numeric_answer()`가 stale public
@@ -287,7 +336,8 @@ validation 결과를 먼저 봐야 한다.
 | 파일 | 읽을 때의 역할 |
 | --- | --- |
 | [financial_graph.py](../../src/agent/financial_graph.py) | facade, graph wiring, output projection |
-| [financial_graph_models.py](../../src/agent/financial_graph_models.py) | state/schema contract |
+| [financial_graph_state.py](../../src/agent/financial_graph_state.py) | lightweight graph state contract |
+| [financial_graph_models.py](../../src/agent/financial_graph_models.py) | Pydantic structured-output schema and compatibility exports |
 | [financial_graph_planning.py](../../src/agent/financial_graph_planning.py) | routing, entity extraction, semantic numeric tasks, reflection planning |
 | [financial_graph_evidence.py](../../src/agent/financial_graph_evidence.py) | retrieval, expansion, numeric extraction, evidence/compress/validate |
 | [financial_graph_reconciliation.py](../../src/agent/financial_graph_reconciliation.py) | retrieved candidates와 required operands 매칭 |
@@ -307,7 +357,7 @@ validation 결과를 먼저 봐야 한다.
 
 1. `financial_graph.py::_build_graph()`
 2. `financial_graph.py::run()`
-3. `financial_graph_models.py::FinancialAgentState`
+3. `financial_graph_state.py::FinancialAgentState`
 4. `financial_graph_planning.py::_plan_semantic_numeric_tasks()`
 5. `financial_graph_evidence.py::_retrieve()`
 6. `financial_graph_reconciliation.py::_reconcile_retrieved_evidence()`

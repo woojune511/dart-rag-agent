@@ -213,14 +213,14 @@ signals block acceptance. Accepted reports need a normalized passed verdict,
 target refs, an acceptance reason, and no blocking issues; rejected reports stay
 blocked even when their diagnostic score is high. Final close/replan integrity
 checks should consume
-`critic_report_runtime_acceptance_state()` so a structurally complete rejected
-critic report still blocks final close. Planner feedback and smoke/review
-handoff summaries should surface the normalized runtime acceptance status,
-reasons, and target refs so the retry path can explain why the critic blocked
-the close. Rejected critic integrity issues should also project target task and
-artifact ids separately from raw target refs, so replan carry-forward can fail
-the rejected worker task rather than only failing the critic task that reported
-the rejection.
+`financial_artifact_contracts.critic_report_runtime_acceptance_state()` so a
+structurally complete rejected critic report still blocks final close. Planner
+feedback and smoke/review handoff summaries should surface the normalized
+runtime acceptance status, reasons, and target refs so the retry path can
+explain why the critic blocked the close. Rejected critic integrity issues
+should also project target task and artifact ids separately from raw target
+refs, so replan carry-forward can fail the rejected worker task rather than only
+failing the critic task that reported the rejection.
 
 Final synthesis must treat `integrity_status = "error"` as a blocking
 acceptance condition. If the replan budget remains, the aggregate step should
@@ -615,10 +615,10 @@ must be combined with `structured_result`, the projection remains
 Evaluator and benchmark review exports should surface projection source,
 legacy-fallback status, and calculation-result source as first-class audit
 fields alongside the full `resolved_calculation_trace`.
-New readers that do not need external compatibility may call
-`_resolve_runtime_calculation_trace(..., allow_legacy_top_level = false)`.
-Strict mode rejects top-level `calculation_*` fallback while still allowing
-non-legacy `structured_result` projection.
+`_resolve_runtime_calculation_trace()` is strict by default. Readers that need
+external compatibility must opt in with `allow_legacy_top_level = true`. Strict
+mode rejects top-level `calculation_*` fallback while still allowing non-legacy
+`structured_result` projection.
 Evaluator result export, benchmark serialized/review export, eligible
 analyst/MAS artifact handoff consumers, current-runtime debug readers,
 reflection retry planning, formula planning input resolution, calculation
@@ -640,11 +640,12 @@ for the target request/plan/action/report boundary and allowed retry
 strategies.
 
 Helper-level adapters may preserve legacy fallback only when their surface is
-explicitly compatibility-oriented: `_resolve_runtime_structured_result()` is for
-export/review adapters that may read older payloads, and
-`_runtime_trace_state_update()` may carry omitted trace parts from older state
-surfaces. Migrated live graph nodes should pass updated trace parts explicitly
-instead of relying on that carry-forward.
+explicitly compatibility-oriented: `_resolve_runtime_structured_result()` is now
+limited to the public `FinancialAgent.run()` projection bridge and direct
+compatibility tests. Current export/review, MAS handoff, and debug readers read
+`structured_result` or canonical `resolved_calculation_trace` directly.
+`_runtime_trace_state_update()` is now a strict canonical state-update helper:
+callers must pass operands, plan, and result explicitly.
 
 The remaining cleanup scope for internal top-level `calculation_*` mirrors is
 tracked in
@@ -684,7 +685,9 @@ Current-run debug helpers, including `debug_math_workflow.py` and
 `debug_reference_note_workflow.py`, follow the same strict policy. Their JSON
 debug output must be based on canonical `resolved_calculation_trace` and must
 not use top-level `calculation_result` fallback to populate structured result
-display fields.
+display fields. Calculation diagnostics should be exposed under
+`debug_traces.calculation`, not as a fresh ops-level top-level
+`calculation_debug_trace` bridge.
 
 `mas_analyst_smoke.py` is a mixed migration smoke reader. Direct
 `FinancialAgent.run()` outputs remain compatibility-oriented because they
@@ -717,9 +720,9 @@ MAS critic nodes should publish `CriticReport` entries through
 refs, acceptance reason, blocking issues, deterministic score, and feedback, and
 the `critic_report` artifact payload should mirror the typed report.
 Consumers that need an acceptance decision should use
-`critic_report_runtime_acceptance_state()` so runtime close/retry decisions stay
-tied to verdict, target refs, reasons, and blocking issues instead of offline
-evaluator-style numeric thresholds.
+`financial_artifact_contracts.critic_report_runtime_acceptance_state()` so
+runtime close/retry decisions stay tied to verdict, target refs, reasons, and
+blocking issues instead of offline evaluator-style numeric thresholds.
 MAS nodes that write artifacts should publish `Artifact` entries through
 `build_artifact()`. The helper owns artifact id defaults, kind/status/summary
 normalization, payload projection, evidence link/ref mirroring, producer task id,
@@ -730,10 +733,9 @@ calculation status from `payload`, evidence from `evidence_refs`, and only then
 fall back to compatibility `content`/`evidence_links` for older callers.
 
 When a node updates the runtime trace through `_runtime_trace_state_update()`,
-the helper defaults to `include_compatibility_mirrors = false`. Branches that
-still need top-level `calculation_*` compatibility mirrors must opt in
-explicitly and explain the external reader that still requires those mirrors.
-Current converted branches include calculation verification skip, formula
+the helper publishes only `resolved_calculation_trace` and `structured_result`;
+it no longer has an opt-in path for top-level `calculation_*` compatibility
+mirrors. Current converted branches include calculation verification skip, formula
 planning no-operands, formula planning missing-required-operands, and
 calculation execution failure paths, plus deterministic incomplete-plan
 branches for lookup plans and operation guard failures. Formula planning
@@ -756,7 +758,7 @@ also read through strict current-state resolution. The
 non-formula reset/no-op branches in
 the calculation node also omit compatibility mirrors, and all
 `financial_graph_calculation.py` call sites now rely on the helper's mirror-free
-default. Active-task artifact projection uses strict current-state resolution as
+contract. Active-task artifact projection uses strict current-state resolution as
 well: empty `resolved_calculation_trace` must not resurrect legacy top-level
 `calculation_*` fields, except for the explicit stale-aggregate to live
 non-aggregate override. Downstream readers must use `resolved_calculation_trace`.

@@ -272,28 +272,32 @@ runtime contract를 고정하는 선행 작업으로 본다.
 - `RuntimeCalculationTrace` and `TaskResultRecord` typed contracts now describe
   the preferred graph-state projection; remaining cleanup should reduce writes
   to top-level `calculation_*` mirrors.
-- `_runtime_trace_state_update(include_compatibility_mirrors = false)` is now
-  available and applied to calculation verification skip, formula no-operands,
-  formula missing-required-operands, calculation execution failure, incomplete
-  deterministic lookup, deterministic operation guard, LLM formula-plan guard,
-  operand/formula planning structured-output failure, render fallback,
-  verification structured-output failure, and aggregate synthesis fallback
-  branches. Render, verification, and aggregate success branches are now
-  converted as well. `_execute_calculation` success and operand extraction
-  direct/guard/synthesis/LLM success branches are now converted too. Formula
-  planning deterministic lookup/operation/ontology success and LLM success
-  branches are converted as well, and the remaining formula planning
+- `_runtime_trace_state_update()` now emits only canonical
+  `resolved_calculation_trace` / `structured_result` state. The earlier
+  `include_compatibility_mirrors = false` transition is complete, and the
+  helper no longer has a compatibility mirror opt-in. Calculation verification
+  skip, formula no-operands, formula missing-required-operands, calculation
+  execution failure, incomplete deterministic lookup, deterministic operation
+  guard, LLM formula-plan guard, operand/formula planning structured-output
+  failure, render fallback, verification structured-output failure, and
+  aggregate synthesis fallback branches are converted. Render, verification,
+  and aggregate success branches are converted as well. `_execute_calculation`
+  success and operand extraction direct/guard/synthesis/LLM success branches are
+  converted too. Formula planning deterministic lookup/operation/ontology
+  success and LLM success branches are converted as well, and the remaining
+  formula planning
   guard/incomplete branches now follow the same canonical trace contract.
   Non-formula calculation-node reset/no-op branches are converted too, and
-  `_runtime_trace_state_update()` now defaults to omitting top-level
-  compatibility mirrors. Compatibility mirrors are explicit opt-in for older
-  external readers. A no-LLM replay audit over
+  `_runtime_trace_state_update()` now omits top-level compatibility mirrors
+  unconditionally. The helper-level compatibility mirror opt-in has been
+  removed; older external readers must use the public runtime/export
+  compatibility boundary instead. A no-LLM replay audit over
   `runtime_projection_audit_2026-06-05` found all 7 copied concept-gate
   full-eval rows already on `resolved_calculation_trace` and no
-  `legacy_top_level` rows. `_resolve_runtime_calculation_trace(...,
-  allow_legacy_top_level = false)` now provides a strict mode for new readers:
-  it rejects legacy top-level fallback while preserving non-legacy
-  `structured_result` projection. Evaluator result export, benchmark
+  `legacy_top_level` rows. `_resolve_runtime_calculation_trace()` is now strict
+  by default: it rejects legacy top-level fallback while preserving non-legacy
+  `structured_result` projection. Compatibility readers must opt in with
+  `allow_legacy_top_level = true`. Evaluator result export, benchmark
   serialized/review export, eligible analyst/MAS artifact handoff consumers, and
   current-runtime debug readers, reflection retry planning, route-decision
   readers after formula planning/calculation, and render/verification/retry
@@ -314,11 +318,11 @@ runtime contract를 고정하는 선행 작업으로 본다.
   Historical replay, retrospective readers, and the public runtime projection
   bridge explicitly opt into legacy compatibility. The public bridge is now
   documented and tested as a `FinancialAgent.run()`/export boundary, not an
-  internal current-state reader. Helper-level compatibility readers are now
-  documented and tested: `_resolve_runtime_structured_result()` preserves legacy
-  top-level fallback for export/review adapters, and
-  `_runtime_trace_state_update()` may carry omitted trace parts from older
-  state surfaces while migrated live graph nodes pass updated trace parts
+  internal current-state reader. `_resolve_runtime_structured_result()` is now
+  limited to that public bridge and direct compatibility tests; current
+  benchmark export, MAS handoff, and debug readers read `structured_result` or
+  canonical `resolved_calculation_trace` directly. `_runtime_trace_state_update()`
+  is now strict and requires callers to pass operands, plan, and result
   explicitly. Benchmark runner serialized results, smoke summaries, and review
   exports are now classified as strict current-contract projection surfaces;
   they expose projection metadata without promoting legacy top-level mirrors
@@ -936,9 +940,10 @@ docs show retrieval bypass, writes, serving, and ledger insertion as disabled.
   이 baseline을 기본값으로 사용하고, focused contract test가 live smoke
   구조와 value canary를 함께 검증한다
 - 2026-06-07 runtime critic / offline evaluator boundary follow-up은 helper
-  level까지 닫았다. `critic_report_runtime_acceptance_state()`는 `passed` /
-  `verdict` / `status` verdict signal을 normalize하고, conflicting verdict
-  signal은 block하며, rejected report는 diagnostic score가 높아도 blocked로
+  level까지 닫았다. 현재 owner는 `financial_artifact_contracts.py`다.
+  `critic_report_runtime_acceptance_state()`는 `passed` / `verdict` /
+  `status` verdict signal을 normalize하고, conflicting verdict signal은
+  block하며, rejected report는 diagnostic score가 높아도 blocked로
   유지한다. `deterministic_score_used_for_acceptance = false`가 scorecard와
   runtime acceptance 경계를 고정한다
 

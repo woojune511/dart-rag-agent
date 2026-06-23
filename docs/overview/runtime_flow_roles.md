@@ -122,14 +122,20 @@ calculation aggregate path는 `aggregate_subtasks -> cite` 또는 추가 plannin
 
 ## 4. Agent State And Schemas
 
-### `src/agent/financial_graph_models.py`
+### `src/agent/financial_graph_state.py`
 
-이 파일은 graph node 사이의 계약이다. 코드가 길어 보여도 먼저 state/schema를
-읽으면 실행 흐름이 잡힌다.
+이 파일은 graph node 사이의 lightweight state 계약이다. 먼저 이 파일을 읽으면
+노드 사이에 어떤 값이 오가는지 잡힌다.
 
 - `FinancialAgentState`: single-agent graph 전체 state. query, routing,
   retrieved docs, evidence, operands, calculation trace, subtasks, retry state를
   모두 담는다.
+
+### `src/agent/financial_graph_models.py`
+
+이 파일은 LLM structured-output과 answer slot 검증용 Pydantic schema를 담는다.
+호환성을 위해 state 타입도 re-export하지만, runtime graph schema는
+`financial_graph_state.py`를 source of truth로 본다.
 - `EntityExtraction`: 회사/연도/topic 추출 결과.
 - `EvidenceItem`, `EvidenceExtraction`: source-grounded evidence payload.
 - `NumericExtraction`: lookup/single numeric fact extraction 결과.
@@ -166,7 +172,6 @@ calculation aggregate path는 `aggregate_subtasks -> cite` 또는 추가 plannin
   저장한다.
 - `_upsert_subtask_result(...)`: subtask result를 품질 rank 기준으로 갱신한다.
 - `_project_runtime_calculation_trace(state)`: canonical calculation trace를 만든다.
-- `_project_legacy_calculation_fields(state)`: 하위 호환 필드를 projection한다.
 
 이 파일의 top-level helper들은 대부분 slot 추출, task dedupe, plan shape 보존,
 hybrid narrative subtask 삽입을 담당한다.
@@ -495,7 +500,7 @@ profile 기반 실험 orchestrator다.
 2. `src/api/financial_router.py`
 3. `src/agent/financial_graph.py::_build_graph`
 4. `src/agent/financial_graph.py::run`
-5. `src/agent/financial_graph_models.py::FinancialAgentState`
+5. `src/agent/financial_graph_state.py::FinancialAgentState`
 6. `src/agent/financial_graph_planning.py::FinancialAgentPlanningMixin`
 7. `src/agent/financial_graph_evidence.py::FinancialAgentEvidenceMixin`
 8. `src/agent/financial_graph_reconciliation.py::FinancialAgentReconciliationMixin`

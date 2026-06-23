@@ -11,6 +11,57 @@
 
 ## 최신 상태
 
+- 2026-06-23 PR #77 이후 local runtime cleanup이 source/docs split 직전 상태까지
+  정리됐다.
+  - 현재 변경은 아직 uncommitted이며, index에 staged된 파일은 없다.
+  - source/test split path set:
+    - `122` paths
+    - `main.py`, `src/**`, `tests/**`
+    - exclude: `tests/fixtures/runtime_domain_terms_baseline.json`
+  - docs/audit split path set:
+    - `12` paths
+    - `README.md`, `CONTEXT.md`, `docs/**`,
+      `tests/fixtures/runtime_domain_terms_baseline.json`
+  - latest dry-run staging checks:
+    - source/test:
+      `git add --dry-run main.py src tests ':!tests/fixtures/runtime_domain_terms_baseline.json'`
+      selects `122` paths
+    - docs/audit:
+      `git add --dry-run README.md CONTEXT.md docs tests/fixtures/runtime_domain_terms_baseline.json`
+      selects `12` paths
+    - overlap `0`, uncovered changed paths `0`
+  - split manifest:
+    `docs/architecture/current_runtime_cleanup_split_manifest.md`
+    covers `134` changed source/docs/test paths with `missing=0`.
+  - owner-foundation import gate:
+    `owner_foundation_imports_ok=23`, `heavy_modules_loaded=<none>`.
+  - latest source-bucket union gate:
+    - runtime projection focused gate: `169` OK
+    - task trace focused gate: `317` OK
+    - primitive owner focused gate: `428` OK
+    - portfolio review gates: `Status: ready`
+    - runtime domain-term audit: passed with `215` reviewed literals
+    - full unittest discovery: `1324` OK, `full_elapsed=15.033`
+  - latest full cleanup validation after storage/contextual/answer/dependency
+    helper splits:
+    - `python3 -m unittest discover -s tests`: `1324` OK
+    - latest measured full elapsed in manifest source-bucket union gate:
+      `15.033s`
+    - source-wide import smoke: `modules=123`, `failures=0`,
+      `slow_ge_0_05=0`
+    - artifact hygiene checks showed no `benchmarks/results/**`, temp benchmark
+      files, local stores, or `mlruns` artifacts in the cleanup split.
+  - recommended next action:
+    - If committing, stage source/test first:
+      `git add main.py src tests ':!tests/fixtures/runtime_domain_terms_baseline.json'`
+      and commit as `refactor runtime surfaces and import boundaries`.
+    - Then stage docs/audit:
+      `git add README.md CONTEXT.md docs tests/fixtures/runtime_domain_terms_baseline.json`
+      and commit as `document runtime cleanup split and audit baseline`.
+    - Do not continue reducing large graph/evidence/calculation functions unless
+      there is a concrete owner-boundary seam or bug; the current local cleanup
+      has reached the split/commit stage.
+
 - 2026-06-22 `FinancialAgent` 파악용 문서를 최신 runtime 구조에 맞게 갱신했다.
   - `docs/overview/question_trace_walkthrough.md`: PR #77 이후 graph wiring,
     `run()` output projection map, named projection(`agent_answer`,

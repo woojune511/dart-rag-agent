@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-22
+Last updated: 2026-06-23
 
 ## Positioning
 
@@ -61,6 +61,1023 @@ role-separated multi-agent system using a task ledger and artifact store.
   - `c3a75be` no-behavior-change aggregate answer projection helper extraction
 - Gate status remains the expanded structural closure below: `9 / 9` numeric
   final judgement PASS.
+
+### Latest Local Runtime Surface Cleanup
+
+- Run date: 2026-06-23
+- Scope: local uncommitted cleanup after PR #77, focused on removing stale
+  calculation mirror compatibility, narrowing public projection bridges, and
+  deleting clearly unused runtime imports and stale direct-run demo surfaces.
+- Cleanup notes:
+  - current runtime state no longer carries top-level `calculation_*` mirrors;
+  - debug calculation diagnostics live under `debug_traces.calculation`;
+  - current-run ops/eval/MAS/debug consumers read canonical
+    `resolved_calculation_trace` or typed projections directly;
+  - historical replay and public `FinancialAgent.run()` projection remain the
+    explicit compatibility boundaries;
+  - `benchmark_runner.py` now imports context defaults from
+    `financial_graph_contextual.py`, the owner module, instead of relying on a
+    `financial_graph.py` re-export; `contextual_ingest()` and
+    `benchmark_contextual_ingest()` now share contextual batch generation,
+    response/fallback handling, index-payload construction, and usage metric
+    collection helpers in that owner, and `benchmark_contextual_ingest()` is
+    down from `115` to `80` lines;
+  - artifact payload and provenance integrity rules now live in
+    `src/agent/financial_artifact_contracts.py`, and critic runtime acceptance
+    contract evaluation moved there from `mas_types.py`; current reviewer and
+    researcher smoke ops import that contract owner directly instead of routing
+    through the experimental MAS type facade;
+  - task/artifact ledger write helpers and caller-facing ledger projections now
+    live in `src/agent/financial_task_artifacts.py`;
+  - current runtime, benchmark, MAS bridge, and focused ledger tests import the
+    ledger helpers from that owner module directly; `financial_graph_helpers.py`
+    keeps only the task-trace state projection aliases it still uses internally,
+    and no longer star-exports ledger helpers or preserves unused ledger
+    compatibility aliases; `project_task_artifact_trace()` now delegates
+    task/artifact view projection and integrity issue assembly to private
+    owner-internal helpers and is down from `279` to `78` lines;
+  - MAS analyst smoke direct-output readers now use strict runtime trace
+    resolution by default; legacy top-level payload reads require an explicit
+    helper opt-in and are covered only as compatibility fixtures;
+  - `financial_graph.py` dropped the helper wildcard import and no longer
+    re-exports private planning/reconciliation/math helper functions for tests
+    or shadow ops scripts; those callers now import helper functions from
+    `financial_graph_helpers.py`, the owner module;
+  - `financial_graph_evidence.py`, `financial_graph_planning.py`,
+    `financial_graph_reconciliation.py`, and `financial_graph_calculation.py`
+    now list their `financial_graph_helpers.py` dependency surfaces explicitly
+    instead of importing the whole helper module through a wildcard;
+  - aggregate answer projection callers now import
+    `_preferred_complete_aggregate_subtask_answer()` from
+    `financial_answer_projection.py`, the owner module, instead of indirectly
+    through `financial_graph_helpers.py`;
+  - shared runtime normalization/display primitives now live in
+    `src/agent/financial_runtime_normalization.py`; extracted runtime modules
+    import `_normalise_spaces()`, source-row-id cleanup, numeric parsing/unit
+    normalization, compact KRW formatting, and display-label cleanup from that
+    owner instead of depending on the broad helper module;
+  - restricted arithmetic formula evaluation now lives in
+    `src/agent/financial_formula_eval.py`; calculation execution paths import
+    `_safe_eval_formula()` from that owner instead of the broad helper module;
+  - lazy LangChain prompt/parser construction helpers now live in
+    `src/agent/financial_langchain_loaders.py`; calculation, evidence,
+    planning, reconciliation, RAG, orchestrator, and researcher modules import
+    the loader owner instead of repeating identical `ChatPromptTemplate`,
+    `StrOutputParser`, and `RunnablePassthrough` loader helpers, while
+    import-time `langchain_core` loading remains guarded; agent-runtime
+    `Document` construction now also routes through that owner, leaving only
+    `TYPE_CHECKING` direct `langchain_core.documents` imports outside it;
+  - lazy structured-output model loaders now live in
+    `src/agent/financial_graph_model_loaders.py`; calculation, evidence,
+    planning, reconciliation, runtime-trace, and answer-slot modules import
+    that owner instead of repeating one-line `financial_graph_models` loaders,
+    while import-time Pydantic loading remains guarded; model resolution is
+    cached after first use inside the loader owner;
+  - answer-slot operation assembly in
+    `src/agent/financial_answer_slots.py` now keeps component grouping, lookup
+    primary slot construction, and current/prior period slot construction in
+    private owner-internal helpers; `build_answer_slots()` stays the public
+    contract and is down from `210` to `96` lines; period-comparison detection,
+    current/prior/delta slot assembly, and difference direction projection also
+    live in private owner-internal helpers;
+  - runtime trace construction/update, report-cache candidate projection,
+    aggregate-subtask trace projection, structured-result compatibility
+    projection, and `_resolve_runtime_calculation_trace()` now live in
+    `src/agent/financial_runtime_trace.py`; runtime, ops, MAS, and focused
+    tests import that owner directly instead of routing trace resolution
+    through `financial_graph_helpers.py`; aggregate-subtask calculation
+    projection now delegates per-subtask row projection, source id rollup, and
+    nested answer-slot subtask payload construction to private owner-internal
+    helpers and `_build_aggregate_calculation_projection()` is down from `159`
+    to `59` lines;
+  - retrieval/statement hint helpers now live in
+    `src/agent/financial_retrieval_hints.py`; evidence, reconciliation,
+    planning, and focused hint tests import the hint owner directly instead of
+    keeping section/retrieval policy resolution inside
+    `financial_graph_helpers.py`;
+  - operand surface-contract helpers now live in
+    `src/agent/financial_surface_contracts.py`; calculation and evidence
+    import positive/negative surface checks from that owner directly instead of
+    depending on `financial_graph_helpers.py`;
+  - structured cell period/fiscal helpers now live in
+    `src/agent/financial_structured_cells.py`; calculation, evidence,
+    reconciliation, and focused contract tests import the period helper from
+    that owner directly while the heavier structured-cell selector/scorer stays
+    in `financial_graph_helpers.py`;
+  - row/table text-surface helpers now live in
+    `src/agent/financial_row_surfaces.py`; calculation, evidence,
+    reconciliation, planning, and focused tests import operand needles,
+    operand text matching, numeric-after-operand extraction, period-label
+    stripping, surface-match variants, unstructured row parsing, and row-label
+    extraction from the narrow owners instead of routing those utilities through
+    `financial_graph_helpers.py`; numeric-after-operand extraction now
+    delegates parenthetical exact-value/unit handling and nearest prefix/suffix
+    candidate collection to private owner-internal helpers, and
+    `_extract_numeric_value_after_operand_text()` is down from `107` to `16`
+    lines;
+  - dependency projection slot-diff, lookup-slot scoring, source-task id,
+    ratio-role grouping, source-slot acceptance, and source-value dedupe
+    helpers now live in `src/agent/financial_dependency_projection.py`;
+    calculation and focused projection tests import the dependency owner
+    directly instead of routing those repair predicates through
+    `financial_graph_helpers.py`; dependency lookup-slot collection now
+    delegates operation normalization, producer-task synthesis,
+    answer-numeric context filling, and per-result slot selection to private
+    owner-internal helpers, and `build_dependency_lookup_slots_by_task()` is
+    down from `100` to `32` lines; lookup row realignment now delegates
+    required operand selection, projection candidate/source validation, and
+    updated slot/result construction to private owner-internal helpers, and
+    `realign_lookup_row_from_dependency_projection()` is down from `138` to
+    `66` lines; ratio dependency fill now delegates present-group detection,
+    inferred denominator requirement synthesis, operand seed construction,
+    source-slot recovery, table-evidence recovery, and source-value dedupe to
+    private owner-internal helpers, and
+    `fill_missing_ratio_dependency_operands()` is down from `129` to `52`
+    lines;
+  - lookup magnitude coercion and ontology lookup-hint resolution now live in
+    `src/agent/financial_lookup_recovery.py`; planning, reconciliation,
+    calculation, and focused operation tests import the lookup recovery owner
+    directly instead of routing those lookup normalization helpers through
+    `financial_graph_helpers.py`; lookup value-refinement acceptance now
+    delegates scope gating, structured-surface checks, table-label precision
+    acceptance, and same-unit refinement checks to private owner-internal
+    helpers, and `lookup_recovery_value_refinement_allowed()` is down from
+    `120` to `47` lines;
+  - evidence candidate prioritization now lives locally in
+    `src/agent/financial_graph_evidence.py`, and section-hint alias cleanup
+    now lives in `src/agent/financial_retrieval_hints.py`; evidence,
+    reconciliation, and focused operation tests use those owners directly
+    instead of routing retrieval/evidence shaping helpers through
+    `financial_graph_helpers.py`;
+  - operation-family percent-point policy helpers now live in
+    `src/agent/financial_operation_policies.py`; evidence, reconciliation,
+    calculation, and focused tests import the policy owner directly instead of
+    depending on the broad helper module;
+  - percent-metric label classification now also lives in
+    `src/agent/financial_operation_policies.py`; reconciliation and focused
+    operation tests import that owner directly instead of routing the unit
+    family hint through `financial_graph_helpers.py`;
+  - operation/query policy helpers for ratio-percent intent, narrative-context
+    detection, single-metric period comparison, and direct numeric grounding
+    now also live in `src/agent/financial_operation_policies.py`; planning,
+    evidence, reconciliation, calculation, and focused tests import that owner
+    directly;
+  - report-scope and consolidation policy helpers now live in
+    `src/agent/financial_scope_policies.py`; evidence, planning, calculation,
+    rendering, and focused scope tests import the policy owner directly while
+    broader reconciliation candidate binding remains in
+    `financial_graph_helpers.py`;
+  - slot-based difference answer rendering in
+    `src/agent/financial_graph_calculation_rendering.py` now delegates nested
+    aggregate-subtask difference lookup, prefix construction, and template
+    rendering to private owner-internal helpers; `compose_slot_based_difference_answer()`
+    is down from `103` to `69` lines;
+  - period/scope utilities for metadata period-match strength, period sort
+    keys, and report-scope year extraction now also live in
+    `src/agent/financial_scope_policies.py`; evidence and calculation import
+    that owner directly, and the runtime domain-term audit baseline was updated
+    for the regex/literal path move only;
+  - shared text-surface utilities for tokenization, sentence splitting, anchor
+    cleanup, and rerank-metadata stripping now live in
+    `src/agent/financial_text_surface.py`; evidence and calculation import the
+    text owner directly, and the runtime domain-term audit baseline was updated
+    for the regex path move only;
+  - shared numeric-surface extraction in
+    `src/agent/financial_numeric_surface.py` now delegates mixed-currency
+    extraction, numeric pattern construction, and per-match candidate
+    classification to private owner-internal helpers; `extract_numeric_surface_candidates()`
+    is down from `101` to `28` lines;
+  - evidence-only metric-term extraction and nearby-value extraction helpers now
+    live locally in `src/agent/financial_graph_evidence.py`, removing another
+    evidence-specific dependency from `financial_graph_helpers.py`;
+  - `financial_graph_helpers.py` no longer maintains a large `__all__` private
+    helper star-export list now that repo callers use explicit imports.
+  - `financial_task_artifacts.py` limits `__all__` to caller-facing ledger
+    mutation/projection functions; runtime-trace helpers are direct imports,
+    not star-exported API.
+  - heavyweight provider, routing, LangGraph, prompt, parser, vector-store,
+    API component, and evaluator helper imports are now lazy at their runtime
+    construction/use sites instead of loading during module import; this keeps
+    simple tooling, tests, app import, and owner-module import checks from
+    paying for LangChain provider, Transformers, Torch, parser, vector-store,
+    fetcher, or agent startup unless a graph/router, parser, store, DART
+    fetcher, or LLM path is actually instantiated.
+  - stale `if __name__ == "__main__"` demo surfaces were removed from
+    `src/agent/financial_graph.py`, `src/agent/rag_chain.py`,
+    `src/storage/vector_store.py`, `src/processing/financial_parser.py`, and
+    `src/processing/pdf_parser.py`; the same deletion-only rule was then
+    applied to `src/ingestion/dart_fetcher.py`, and its import-time
+    `logging.basicConfig()` side effect was removed. README and ops commands
+    are the maintained review/execution entry points.
+  - `src/api/financial_router.py` no longer mutates `sys.path` at import time;
+    component construction still lazy-loads parser/store/fetcher/agent at
+    FastAPI lifespan initialization using package-qualified `src.*` imports.
+  - A bounded ops bootstrap cleanup converted selected diagnostic/eval/smoke
+    scripts to package-qualified `src.*` imports and conditional project-root
+    bootstrap only for direct file execution, so package imports no longer
+    mutate `sys.path` for those touched scripts.
+  - The last legacy internal imports found in source were removed from
+    `src/agent/financial_graph_contextual.py`; `tests/test_import_side_effects.py`
+    now includes an AST guard requiring internal imports to use package-qualified
+    `src.*` paths, and a guard requiring every source `sys.path` mutation to be
+    protected by the direct-file execution bootstrap condition.
+- Current local size readout after this pass:
+  - `src/agent/financial_graph.py`: `1,023` lines
+  - `src/agent/financial_graph_calculation.py`: `20,901` lines
+  - `src/agent/financial_graph_helpers.py`: `6,502` lines
+  - `src/agent/financial_graph_evidence.py`: `7,220` lines
+  - `src/agent/financial_graph_planning.py`: `2,422` lines
+  - `src/agent/financial_graph_reconciliation.py`: `2,459` lines
+  - `src/agent/financial_operation_policies.py`: `129` lines
+  - `src/agent/financial_dependency_projection.py`: `1,318` lines
+  - `src/agent/financial_lookup_recovery.py`: `527` lines
+  - `src/agent/financial_retrieval_hints.py`: `167` lines
+  - `src/agent/financial_surface_contracts.py`: `64` lines
+  - `src/agent/financial_structured_cells.py`: `73` lines
+  - `src/agent/financial_row_surfaces.py`: `267` lines
+  - `src/agent/financial_runtime_trace.py`: `1,053` lines
+  - `src/agent/rag_chain.py`: `94` lines
+  - `src/storage/vector_store.py`: `803` lines
+  - `src/processing/financial_parser.py`: `1,206` lines
+  - `src/processing/pdf_parser.py`: `82` lines
+  - `src/ingestion/dart_fetcher.py`: `328` lines
+- Validation:
+  - `python3 -m py_compile src/storage/vector_store.py src/agent/financial_graph.py`:
+    passed
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_resumable_ingest tests.test_financial_agent_run_projection`:
+    `92` tests OK
+  - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+    reviewed literals
+  - direct import smoke after direct-run demo deletion:
+    `src.agent.rag_chain import_elapsed=0.026`,
+    `src.processing.financial_parser import_elapsed=0.063`,
+    `src.processing.pdf_parser import_elapsed=0.000`,
+    `src.storage.vector_store import_elapsed=0.016`,
+    `src.agent.financial_graph import_elapsed=0.041`,
+    `src.ingestion.dart_fetcher import_elapsed=0.126`,
+    `root_logging_level_changed=False`
+  - API import side-effect check:
+    `src.api.financial_router import_elapsed=0.211/0.245/0.210`,
+    `syspath_changed=False`
+  - combined agent/ops/routing/storage/processing import smoke:
+    `modules=101`, `failures=0`, `slow_ge_0_20=0`
+  - combined agent/api/ingestion/ops/routing/storage/processing import smoke:
+    `modules=103`, `failures=0`, `slow_ge_0_20=0`,
+    `logging_level_changes=0`; after completing the bounded ops bootstrap
+    cleanup, latest combined package import smoke reports `modules=111`,
+    `failures=0`,
+    `slow_ge_0_20=0`, `logging_level_changes=0`, and `syspath_changes=0`.
+  - `rg -n "if __name__ == ['\"]__main__['\"]" src/agent src/api src/ingestion src/processing src/routing src/storage -g '*.py'`:
+    no remaining non-ops direct-run demo surfaces
+  - `python3 -m unittest discover -s tests`: `1284` tests OK,
+    `full_elapsed=6.178`
+  - focused ingest/router/draft suite:
+    `python3 -m unittest tests.test_resumable_ingest tests.test_generate_grounded_answer_drafts tests.test_financial_router_response`:
+    `28` tests OK
+  - focused ops/bootstrap suite:
+    `python3 -m unittest tests.test_mas_direct_worker_probe tests.test_ops_runtime_projection_modes tests.test_run_eval_only tests.test_benchmark_runner_runtime_projection tests.test_benchmark_fanout_cost_audit tests.test_report_cache_index_smoke_contract`:
+    `45` tests OK
+  - focused final ops/bootstrap repeat:
+    `python3 -m unittest tests.test_run_eval_only tests.test_benchmark_runner_runtime_projection tests.test_ops_runtime_projection_modes`:
+    `34` tests OK
+  - final full unittest repeat after completing ops direct-run bootstrap
+    cleanup: `python3 -m unittest discover -s tests`: `1284` tests OK,
+    `full_elapsed=6.716`
+  - follow-up direct-run entrypoint bootstrap pass:
+    `src/ops/evaluator.py` now supports direct-file import context with
+    package-qualified `src.*` imports, and direct `--help` smoke passes for
+    `calibrate_query_router.py`, `check_mas_e2e_smoke_contract.py`,
+    `check_routing_confusions.py`, `portfolio_demo.py`,
+    `portfolio_review_gates.py`, `reference_note_capability_gate.py`,
+    `report_cache_promotion_evidence_gate.py`, and
+    `review_report_cache_index_contract.py`.
+  - follow-up focused ops gate:
+    `python3 -m unittest tests.test_query_router tests.test_query_router_low_api tests.test_portfolio_demo tests.test_portfolio_review_gates tests.test_reference_note_capability_gate tests.test_report_cache_promotion_evidence_gate tests.test_review_report_cache_index_contract tests.test_ops_runtime_projection_modes`:
+    `39` tests OK.
+  - follow-up evaluator/ops gate:
+    `python3 -m unittest tests.test_evaluator_runtime_projection tests.test_evaluator_progress tests.test_ops_runtime_projection_modes`:
+    `82` tests OK.
+  - follow-up combined package import smoke: `modules=111`, `failures=0`,
+    `slow_ge_0_20=0`, `logging_level_changes=0`, `syspath_changes=0`.
+  - follow-up full unittest repeat: `python3 -m unittest discover -s tests`:
+    `1284` tests OK, `full_elapsed=8.775`.
+  - full argparse ops entrypoint direct-run help smoke:
+    `checked=41`, `failures=0`.
+  - import-state side-effect check after the full ops direct-run smoke:
+    combined package import over agent/api/ingestion/ops/routing/storage/
+    processing reports `modules=111`, `failures=0`, `environ_changes=0`.
+  - current key import latency sample:
+    `src.agent.financial_graph=0.133s`, `src.api.financial_router=0.099s`,
+    `src.ops.benchmark_runner=0.003s`, `src.ops.evaluator=0.047s`,
+    `src.ops.run_eval_only=0.000s`, `src.ops.portfolio_review_gates=0.002s`,
+    `src.storage.vector_store=0.002s`,
+    `src.processing.financial_parser=0.021s`, and
+    `src.processing.pdf_parser=0.000s`.
+  - source parse gate:
+    `python3 -m compileall -q src/ops src/agent src/storage src/processing src/routing src/api src/ingestion`
+    passed.
+  - follow-up dotenv/import-state cleanup:
+    `main.py` no longer mutates `sys.path` or configures root logging during
+    import; API `.env` loading moved to component initialization; `FinancialAgent`,
+    RAG/MAS node, DART fetcher, and selected retrospective/routing ops dotenv
+    loading moved to constructor or CLI execution points. `embedding_config.py`
+    now reads `.env` through `dotenv_values()` for default provider/model
+    calculation without mutating `os.environ`.
+  - follow-up fresh-process import-state smoke:
+    `main`, `src.api.financial_router`, `src.agent.financial_graph`,
+    `src.agent.rag_chain`, `src.agent.nodes.researcher_node`,
+    `src.agent.nodes.orchestrator_node`, `src.storage.embedding_config`,
+    `src.ingestion.dart_fetcher`, `src.ops.check_routing_confusions`,
+    `src.ops.retrospective_math_architecture_eval`, and
+    `src.ops.retrospective_ontology_retrieval_eval` all report
+    `env=False`, `path=False`, `logging=False`.
+  - follow-up combined package import smoke:
+    `modules=111`, `failures=0`, `slow_ge_0_20=0`,
+    `logging_level_changes=0`, `syspath_changes=0`, `environ_changes=0`.
+  - follow-up focused gates:
+    embedding/storage/eval-only suite `58` tests OK; runtime/API/MAS/router
+    suite `90` tests OK; earlier agent operation/subtask suite `527` tests OK.
+  - follow-up full gates:
+    `python3 -m src.ops.audit_runtime_domain_terms` passed with `215`
+    reviewed literals; `python3 -m unittest discover -s tests`: `1284` tests
+    OK, `full_elapsed=7.292`; source `compileall` passed.
+  - follow-up import side-effect contract test:
+    `python3 -m unittest tests.test_import_side_effects`: `2` tests OK.
+  - latest full unittest repeat after adding the import side-effect contract:
+    `python3 -m unittest discover -s tests`: `1286` tests OK,
+    `full_elapsed=9.199`.
+  - follow-up package-wide import side-effect contract:
+    `tests/test_import_side_effects.py` now walks all `src.agent`, `src.api`,
+    `src.experimental`, `src.ingestion`, `src.ops`, `src.routing`,
+    `src.schema`, `src.storage`, `src.processing`, and `src.utils` modules and
+    asserts package imports do not mutate `sys.path`, `os.environ`, or the root
+    logging level.
+  - package-wide import contract was tightened to check package `__init__`
+    imports before module discovery, so side effects from re-export packages
+    such as `src.routing` are covered directly.
+  - latest full unittest repeat after the package-wide import contract:
+    `python3 -m unittest discover -s tests`: `1287` tests OK,
+    latest repeat `full_elapsed=8.538`; runtime domain-term audit passed with
+    `215` reviewed literals.
+  - follow-up import dependency check:
+    `FinancialAgent` now imports `GeminiUsageCallbackHandler` only when an
+    agent instance is constructed, not while importing `src.agent.financial_graph`.
+    Remaining `langchain_core` import-time warning comes from `Document`
+    surfaces used by evidence/reconciliation/storage contracts, so it was left
+    in place instead of moving broad document types in this pass.
+  - latest full unittest repeat after the callback lazy-import cleanup:
+    `python3 -m unittest discover -s tests`: `1286` tests OK,
+    `full_elapsed=9.128`; runtime domain-term audit passed with `215`
+    reviewed literals; combined package import smoke stayed at `modules=111`,
+    `failures=0`, `slow_ge_0_20=0`, `logging_level_changes=0`,
+    `syspath_changes=0`, `environ_changes=0`.
+  - latest legacy internal import cleanup gate:
+    `python3 -m unittest tests.test_import_side_effects`: `5` tests OK;
+    package import performance/state smoke over agent/api/ingestion/ops/routing/
+    storage/processing reports `modules=111`, `failures=0`,
+    `slow_ge_0_20=0`, `state_changes=0`; runtime domain-term audit passed with
+    `215` reviewed literals;
+    `python3 -m unittest discover -s tests`: `1289` tests OK,
+    `full_elapsed=10.689`.
+  - follow-up LangChain `Document` import boundary cleanup:
+    `financial_graph_evidence.py` and `financial_graph_reconciliation.py` now
+    keep `Document` imports type-only or local to actual document construction,
+    so `src.agent.financial_graph` no longer inherits that dependency from the
+    evidence/reconciliation mixins. Current smoke:
+    `src.agent.financial_graph_evidence import_elapsed=0.133`,
+    `src.agent.financial_graph_reconciliation import_elapsed=0.001`,
+    `src.agent.financial_graph import_elapsed=0.025`; package import
+    performance/state smoke remains `modules=111`, `failures=0`,
+    `slow_ge_0_20=0`, `state_changes=0`. The remaining Python 3.14
+    Pydantic warning is from `financial_graph_models` schema import, not the
+    `Document` surfaces moved in this pass.
+  - latest full gate after the `Document` import boundary cleanup:
+    focused import/evidence/reconciliation/planning suite `408` tests OK;
+    runtime domain-term audit passed with `215` reviewed literals;
+    `python3 -m unittest discover -s tests`: `1289` tests OK,
+    `full_elapsed=10.532`.
+  - follow-up Gemini usage accounting split:
+    pure usage/cost helpers now live in `src.utils.gemini_usage_counts`; the
+    existing `src.utils.gemini_usage` module remains the LangChain callback
+    adapter for compatibility. Contextual ingest, benchmark runner, fanout
+    audit, and evaluator usage totals now use the pure module, so those imports
+    no longer pull in the callback adapter. `tests/test_import_side_effects.py`
+    now includes a fresh-process guard that imports the pure usage module and
+    contextual ingest without loading `langchain_core`. Current import smoke:
+    `src.utils.gemini_usage_counts=0.006`,
+    `src.agent.financial_graph_contextual=0.025`,
+    `src.agent.financial_graph=0.156`, `src.ops.benchmark_runner=0.133`,
+    `src.ops.audit_benchmark_fanout_cost=0.014`, `src.ops.evaluator=0.110`;
+    these pure-path imports report `langchain_core_loaded=False`, while callback
+    adapter import remains isolated at `src.utils.gemini_usage=0.072`.
+  - latest full gate after the Gemini usage accounting split:
+    focused Gemini/import/benchmark/evaluator/ingest suite `115` tests OK;
+    package import smoke including `src.utils` reports `modules=115`,
+    `failures=0`, `slow_ge_0_20=0`, `state_changes=0`; runtime domain-term
+    audit passed with `215` reviewed literals; full unittest discovery:
+    `1290` tests OK, `full_elapsed=11.608`.
+  - follow-up benchmark runner projection import boundary:
+    `benchmark_runner.py` now lazy-loads runtime trace and task-artifact
+    projection helpers only when result projection executes, so importing the
+    benchmark runner no longer pulls in Pydantic/schema runtime surfaces.
+    Current smoke: `src.ops.benchmark_runner import_elapsed=0.039`,
+    `pydantic_loaded=False`, `langchain_core_loaded=False`; related
+    run/evaluator smoke also stays clean
+    (`src.ops.run_eval_only=0.030`, `src.ops.evaluator=0.117`).
+  - latest full gate after the benchmark runner projection import boundary:
+    focused import/benchmark/evaluator/ingest suite `133` tests OK; package
+    import smoke including `src.utils` reports `modules=115`, `failures=0`,
+    `slow_ge_0_20=0`, `state_changes=0`; runtime domain-term audit passed with
+    `215` reviewed literals; full unittest discovery: `1290` tests OK,
+    `full_elapsed=11.144`.
+  - follow-up storage `Document` import boundary:
+    `src.storage.search_merge` now treats `Document` as type-only, while
+    `src.storage.bm25_index` and `src.storage.structure_graph` import
+    `Document` only at actual document construction points. Current smoke:
+    `src.storage.vector_store import_elapsed=0.032`,
+    `langchain_core_loaded=False`, `pydantic_loaded=False`; BM25 and structure
+    graph document-construction smoke still returns `Document` instances.
+  - latest focused gate after the storage `Document` import boundary:
+    `py_compile` passed for the touched storage modules;
+    `python3 -m unittest tests.test_import_side_effects`: `6` tests OK;
+    focused vector-store/ingest/embedding suite: `56` tests OK; combined
+    package import smoke over agent/api/ingestion/ops/routing/storage/
+    processing/utils reports `modules=110`, `failures=0`, `slow_ge_0_20=0`,
+    `state_changes=0`; runtime domain-term audit passed with `215` reviewed
+    literals; full unittest discovery: `1290` tests OK,
+    `full_elapsed=9.990`; `git diff --check` passed.
+  - follow-up schema enum and MAS node import boundary:
+    `src.schema.runtime_enums` now owns lightweight ledger/document enums, while
+    `src.schema` lazy-loads Pydantic record models only when requested.
+    `financial_artifact_contracts.py` and MAS node modules consume enum-only
+    imports where they do not need record models. `src.agent.nodes` now keeps
+    compatibility exports lazy, and analyst/researcher nodes no longer import
+    LangChain `Document` or `FinancialAgent` at module import time. Current
+    smoke: `src.agent.financial_answer_slots import_elapsed=0.010`,
+    `pydantic_loaded=False`; `src.agent.financial_artifact_contracts`
+    `import_elapsed=0.006`, `pydantic_loaded=False`; `src.agent.nodes`
+    `import_elapsed=0.000`, `pydantic_loaded=False`; individual MAS nodes
+    import in `0.009` to `0.025` seconds without Pydantic or LangChain Core.
+  - latest full gate after the schema enum and MAS node import boundary:
+    combined package import smoke over agent/api/ingestion/ops/routing/storage/
+    processing/utils/schema reports `modules=113`, `failures=0`,
+    `slow_ge_0_05=4`, `state_changes=0`; runtime domain-term audit passed with
+    `215` reviewed literals; full unittest discovery: `1290` tests OK,
+    `full_elapsed=9.374`; `git diff --check` passed.
+  - follow-up FinancialAgent/mixin import boundary:
+    runtime trace, calculation execution, planning, calculation, evidence,
+    reconciliation, and `financial_graph.py` now keep Pydantic structured-output
+    models and task-artifact Pydantic record helpers behind phase execution
+    wrappers. `src.routing.format_policy` owns lightweight format preference
+    helpers, and `src.routing` keeps compatibility exports lazy so
+    `default_format_preference` no longer imports routing Pydantic models.
+    Current smoke: `src.agent.financial_runtime_trace=0.017`,
+    `src.agent.financial_calculation_execution=0.013`,
+    `src.agent.financial_graph_planning=0.030`,
+    `src.agent.financial_graph_evidence=0.079`,
+    `src.agent.financial_graph_reconciliation=0.026`, and
+    `src.agent.financial_graph=0.044`; each reports
+    `pydantic_loaded=False`, `langchain_core_loaded=False`.
+  - latest full gate after the FinancialAgent/mixin import boundary:
+    combined package import smoke over agent/api/ingestion/ops/routing/storage/
+    processing/utils/schema reports `modules=114`, `failures=0`,
+    `slow_ge_0_05=4`, `state_changes=0`; runtime domain-term audit passed with
+    `215` reviewed literals; full unittest discovery: `1290` tests OK,
+    `full_elapsed=8.382`; `git diff --check` passed.
+  - follow-up split readiness pass:
+    `current_runtime_cleanup_split_manifest.md` now treats the schema/routing/
+    storage/utils import-boundary helper modules plus the aggregate
+    state/projection owner modules as part of the additive foundation commit.
+    The foundation import gate reports `owner_foundation_imports_ok=23`,
+    `heavy_modules_loaded=<none>`.
+    Follow-up lightweight schema/processing/ingestion/MAS diagnostic and
+    evaluator/replay CLI import cleanup keeps Pydantic record/schema, LangChain
+    document, evaluator, runtime-trace, NumPy, and draft-generation structured
+    output schema imports behind the execution paths that need them.
+    `tests/test_import_side_effects.py` now has a fresh-process regression
+    guard for these heavy-dependency boundaries, including Pydantic, LangChain
+    Core, NumPy, BM25, and requests where those packages are not needed at
+    module import time.
+    Dead import cleanup removed unused import edges from RAG/API/routing/ops
+    helper/vector-store modules while preserving compatibility imports that
+    tests and public callers still use. Follow-up dead-wrapper pruning removed
+    unused pass-through helpers from the parser/reference-resolution and
+    vector-store/search boundaries after static `src`/`tests` reference checks
+    showed no callers.
+    Earlier `src.agent.financial_graph` import smoke reports
+    `financial_graph_import_elapsed=0.038689`, `pydantic_loaded=False`,
+    `langchain_core_loaded=False`. Earlier combined import smoke over
+    agent/experimental MAS/api/ingestion/ops/routing/storage/processing/schema/
+    utils reports `modules=114`, `failures=0`, `slow_ge_0_05=0`,
+    `state_changes=0`. Follow-up graph state/schema split moves the
+    `FinancialAgentState` and runtime calculation trace TypedDict contracts to
+    `src.agent.financial_graph_state`; fresh imports of `financial_graph_state`
+    and `financial_runtime_trace` report `pydantic_loaded=False` and
+    `langchain_core_loaded=False`, while `financial_graph_models.py` remains the
+    Pydantic structured-output schema and compatibility export surface.
+    State-only imports in runtime mixins and state shape tests now point at
+    `financial_graph_state.py` instead of the Pydantic schema module;
+    `tests/test_import_side_effects.py` now guards that boundary plus the graph
+    facade and planning/evidence/calculation/reconciliation mixin imports
+    against accidental Pydantic/LangChain loads. Answer-slot payload validation
+    keeps its Pydantic `TypeAdapter` lazy so the adapter is built only when
+    validation runs, not at schema module import time. Structured-output
+    Pydantic models use `defer_build=True`, reducing
+    `src.agent.financial_graph_models` fresh import to roughly `0.058-0.064s`.
+    The same deferred-build base is now used by `src.schema.dart_schema` and
+    `src.routing.types`; `src.routing.query_router` still imports without
+    Pydantic. Follow-up structured-output surface cleanup removed the unused
+    `financial_graph_state` compatibility re-export from
+    `src.agent.financial_graph_models`; direct import now reports
+    `financial_graph_state_loaded=False`, `has_agent_answer=False`. The
+    aggregate subtask state carriers now live in lightweight
+    `src.agent.financial_aggregate_state`; direct import reports
+    `pydantic_loaded=False` and `langchain_core_loaded=False`, and tests import
+    `_AggregateSynthesisState` from that owner instead of the large calculation
+    mixin. Pure aggregate selected-claim-id, ordered source-ref, source-task-id,
+    integrity projection selection, integrity extra-ref projection,
+    period-context evidence merge projection, completion base payload
+    projection, aggregate artifact payload projection, calculation projection
+    override application, aggregate task status selection, and selected-claim-id
+    extension now live in lightweight
+    `src.agent.financial_aggregate_projection`; focused tests cover order
+    preservation, de-duplication, nested source-ref collection, ledger integrity
+    input assembly, period-context evidence de-duplication, non-trace completion
+    payload assembly, aggregate artifact payload assembly, non-empty override
+    field application, feedback-driven task status selection, and selected claim
+    id extension without importing the calculation mixin. The aggregate
+    orchestration also dropped an unused `task_artifact_trace` local after
+    static use analysis and routes the remaining projection/answer updates
+    through the existing `_sync_state()` helper where possible instead of direct
+    tuple replacement. `_AggregateMutableState.with_synthesis_state()` now
+    centralizes whole synthesis-state replacement so the calculation mixin no
+    longer reaches into the NamedTuple representation directly.
+    `_AggregateSynthesisState.with_updates()` now owns field-wise synthesis
+    updates as well, removing the remaining direct synthesis-state `_replace()`
+    calls from the calculation mixin. The import side-effect test suite now
+    also validates that the owner-foundation manifest import list, staging
+    command, and staged-review command stay in sync, that review bucket file
+    lists match their staging commands, and that heavyweight Pydantic/LangChain
+    imports stay out of the additive owner foundation.
+    Combined package import smoke reports `modules=116`, `failures=0`,
+    `slow_ge_0_05=0`, `state_changes=0`. `src.api.financial_router` now keeps
+    FastAPI router construction and API Pydantic schema creation behind
+    `get_router()`/compatibility attribute access; direct import reports
+    `financial_router_import_elapsed=0.021619`, `fastapi_loaded=False`,
+    `pydantic_loaded=False`, while `main` still registers `/api/health`,
+    `/api/companies`, `/api/ingest`, and `/api/query`. Follow-up calculation
+    surface cleanup replaced duplicate lazy task-artifact/reflection projection
+    wrappers in the planning, reconciliation, calculation mixins, runtime trace,
+    calculation execution helper, and graph facade with direct lightweight alias
+    imports; the touched runtime modules still import with `pydantic_loaded=False`
+    and `langchain_core_loaded=False`. Operand-set artifact/task publication
+    assembly now lives in `src.agent.financial_task_artifacts` as
+    `operand_set_artifact_update()`; the calculation mixin keeps only
+    reconciliation-reference enrichment and state-specific parameters.
+    Calculation-plan artifact/task publication assembly now follows the same
+    owner boundary through `calculation_plan_artifact_update()`, replacing the
+    repeated deterministic/LLM formula-planner ledger blocks in the calculation
+    mixin without changing plan construction or guards. Aggregate-answer and
+    reflection-report publication assembly also moved behind
+    `aggregate_answer_artifact_update()` and `reflection_report_artifact_update()`;
+    aggregate supersession remains in the calculation mixin because it includes
+    task-specific conflict checks and replacement-summary construction. The
+    import side-effect test suite now explicitly guards
+    `src.agent.financial_task_artifacts` against import-time Pydantic/LangChain
+    loading so schema-backed record construction stays lazy.
+    `financial_task_artifacts` caches its lazy `ArtifactRecord` and
+    `TaskRecord` model resolution after first use, reducing repeated ledger-write
+    overhead without moving schema imports back to module import time.
+    Calculation-result artifact/task publication now also uses
+    `calculation_result_artifact_update()`, removing direct ledger enum/upsert
+    dependencies from `financial_calculation_execution.py`. Semantic-plan and
+    reconciliation-result publication now also use
+    `semantic_plan_artifact_update()` and `reconciliation_result_artifact_update()`,
+    so planning and reconciliation no longer own direct ledger append/upsert or
+    enum construction. Aggregate supersession conflict detection remains in the
+    calculation mixin, but the final supersession artifact/task record write now
+    uses `supersede_task_with_aggregate_result()`, leaving direct
+    `append_artifact()`/`upsert_task()` writes centralized in
+    `financial_task_artifacts`. The import side-effect suite now has a static
+    regression guard that rejects direct public or private ledger primitive
+    imports/calls from other `src.agent` modules.
+    The calculation-task ledger helpers now share a private artifact/task
+    publication helper inside `financial_task_artifacts`, keeping
+    operand-set, calculation-plan, and calculation-result record assembly in
+    one owner without changing the public helper contracts. The low-level
+    `_append_artifact()` and `_upsert_task()` primitives are no longer exported
+    through `__all__`. Runtime-trace-only task lookup/artifact value helpers in
+    `financial_task_artifacts` now also use private names, with
+    `financial_runtime_trace.py` as the only direct caller. The remaining
+    ledger normalization and artifact-payload extraction helpers are private,
+    so `financial_task_artifacts.py` has no public-looking top-level function
+    outside its caller-facing `__all__` surface; the import side-effect suite
+    now checks that top-level public functions exactly match `__all__`.
+    Runtime `financial_graph_models` imports are now guarded so only
+    `financial_graph_model_loaders.py` may load them outside TYPE_CHECKING
+    blocks. Runtime LangChain prompt/parser/runnable/document imports are
+    similarly guarded so only `financial_langchain_loaders.py` owns those direct
+    runtime imports.
+    Runtime domain-term audit passed with `215` reviewed literals; latest full
+    unittest discovery: `1324` tests OK, `full_elapsed=13.522`; latest runtime
+    trace/calculation execution focused gate reports `417` tests OK; latest
+    graph/reconciliation/planning/import focused gate reports `730` tests OK; latest
+    import/operand/aggregate focused gate reports `583` tests OK; latest
+    graph/model focused gate reports `411` tests OK; latest API/import focused
+    gate reports `63` tests OK; latest answer-slot/projection focused gate
+    reports `216` tests OK; latest task-artifact/projection focused gate reports
+    `456` tests OK; latest aggregate runtime-trace focused gate reports `423`
+    tests OK; latest dependency/projection focused gate reports `550` tests OK;
+    latest broader dependency projection focused gate reports `238` tests OK;
+    latest rendering/operation focused gate reports `254` tests OK; latest
+    broader rendering projection focused gate reports `384` tests OK; latest
+    lookup/operation focused gate reports `260` tests OK; latest broader
+    lookup/projection focused gate reports `400` tests OK; latest numeric-surface
+    focused gate reports `550` tests OK; latest broader numeric projection focused
+    gate reports `238` tests OK; latest row-surface focused gate reports
+    `324` tests OK; latest broader row-surface projection/subtask gate reports
+    `464` tests OK; latest dependency realignment focused gate reports `550`
+    tests OK; latest broader dependency realignment projection gate reports
+    `238` tests OK; latest ratio dependency focused gate reports `550` tests
+    OK; latest broader ratio dependency projection gate reports `238` tests OK;
+    latest answer-slot period focused gate reports `493` tests OK; latest
+    broader answer-slot projection gate reports `238` tests OK;
+    latest contextual ingest focused gate reports `86` tests OK; latest broader
+    contextual ingest projection gate reports `169` tests OK; latest storage
+    add-document focused gate reports `46` tests OK; latest broader storage
+    ingest/eval gate reports `52` tests OK;
+    manifest
+    coverage over changed source/docs reports `changed=134`, `missing=0`;
+    `git diff --check` passed.
+    Latest split-readiness measurement keeps numbered review buckets
+    non-overlapping in the current changed set: runtime projection `21/21`,
+    task trace `13/13`, primitive owner `34/34`, and docs/audit `12/12`
+    touched files, with `0` changed-file overlap between numbered buckets.
+    The lowest-risk commit split is source/test first and docs/audit second:
+    source/test currently covers `122` paths under `main.py`, `src/**`, and
+    `tests/**` excluding `tests/fixtures/runtime_domain_terms_baseline.json`;
+    docs/audit covers `12` paths under `README.md`, `CONTEXT.md`, `docs/**`,
+    and that runtime domain-term baseline fixture. Latest `git add --dry-run`
+    checks select source `122` and docs/audit `12` paths, with overlap `0`
+    and uncovered changed paths `0`.
+    The owner-foundation import gate reports `owner_foundation_imports_ok=23`,
+    `heavy_modules_loaded=<none>`.
+    Latest source-bucket union gate passes runtime projection focused `169` OK,
+    task trace focused `317` OK, primitive owner focused `428` OK, portfolio
+    review gates `Status: ready`, runtime domain-term audit with `215` reviewed
+    literals, and full unittest discovery `1324` OK with `full_elapsed=15.033`.
+    Current package import smoke reports `modules=64`, `failures=0`,
+    `slow_ge_0_05=0`; source-wide file import smoke over the current
+    `src/**/*.py` set reports `modules=123`, `failures=0`, `slow_ge_0_05=0`.
+    Further lazy shims should be justified by a measured hot-path caller, not by
+    import cleanup alone.
+  - focused operation/reconciliation/planning suite: `428` tests OK,
+    `focused_elapsed=4.46`
+  - focused trace projection suite: `459` tests OK,
+    `trace_projection_elapsed=5.81`
+  - import-time performance smoke:
+    - before lazy provider imports:
+      `src.agent.financial_graph import_elapsed=3.807`
+    - after lazy provider imports only:
+      `src.agent.financial_graph import_elapsed=2.702`
+    - after lazy router/prompt/parser imports:
+      `src.agent.financial_graph import_elapsed=0.450`, repeat
+      `import_elapsed=0.165`; `src.routing import_elapsed=0.090`
+    - after extending the lazy-import boundary to MAS/RAG/storage:
+      `src.agent.nodes.researcher_node import_elapsed=0.161`,
+      `src.agent.nodes.orchestrator_node import_elapsed=0.176`,
+      `src.agent.rag_chain import_elapsed=0.036`,
+      `src.storage.embedding_config import_elapsed=0.038`,
+      `src.storage.vector_store import_elapsed=0.442`
+    - after extending provider lazy-imports to ops/evaluator:
+      `src.ops.evaluator import_elapsed=1.070`,
+      `src.ops.check_routing_confusions import_elapsed=0.400`,
+      `src.ops.compare_concept_planner_shadow import_elapsed=0.165`,
+      `src.ops.retrospective_math_architecture_eval import_elapsed=1.017`,
+      `src.ops.generate_grounded_answer_drafts import_elapsed=3.771`
+    - after moving MAS/debug/retrospective graph/default-node/parser/store/
+      evaluator helper imports to execution points:
+      `src.agent.mas_graph import_elapsed=0.379 -> 0.080`,
+      `src.ops.debug_math_workflow import_elapsed=0.378 -> 0.114`,
+      `src.ops.debug_reference_note_workflow import_elapsed=3.179 -> 0.099`,
+      `src.ops.retrospective_ontology_retrieval_eval import_elapsed=0.871 -> 0.110`
+    - after moving API parser/store/agent/fetcher imports to FastAPI lifespan
+      initialization:
+      `main import_elapsed=4.844 -> 0.286`,
+      `src.api.financial_router import_elapsed=0.158`
+    - after keeping store-fixed eval/benchmark/draft-generation CLI path/JSON/
+      merge helpers local and loading parser/vector-store/runtime only at
+      execution points:
+      `src.ops.benchmark_runner import_elapsed=4.354 -> 0.196`,
+      `src.ops.run_eval_only import_elapsed=3.314 -> 0.029`,
+      `src.ops.eval_single_question import_elapsed=4.030 -> 0.019`,
+      `src.ops.generate_grounded_answer_drafts import_elapsed=2.819 -> 0.126`
+    - after moving evaluator MLflow and vector-store embedding imports to
+      evaluation execution points:
+      `src.ops.evaluator import_elapsed=0.853 -> 0.158`
+    - after moving routing-confusion vector-store embeddings to execution and
+      fixing retrospective operand-grounding package import bootstrap:
+      `src.ops.check_routing_confusions import_elapsed=0.326 -> 0.075`,
+      `src.ops.retrospective_operand_grounding_eval` package import fixed
+      with current `import_elapsed=0.171`
+    - after moving remaining ops CLI/MAS smoke parser/vector-store/MAS runtime
+      imports to execution points:
+      `src.ops.compare_ontology_shadow import_elapsed=2.676 -> 0.021`,
+      `src.ops.dump_report_structure import_elapsed=2.640 -> 0.008`,
+      `src.ops.render_dart_preview import_elapsed=3.000 -> 0.009`,
+      `src.ops.calibrate_query_router import_elapsed=0.486 -> 0.072`,
+      `src.ops.mas_analyst_smoke import_elapsed=0.287 -> 0.092`,
+      `src.ops.mas_direct_worker_probe import_elapsed=0.277 -> 0.134`,
+      `src.ops.mas_e2e_smoke import_elapsed=0.272 -> 0.144`,
+      `src.ops.mas_researcher_smoke import_elapsed=0.207 -> 0.010`,
+      `src.ops.rebuild_vector_store import_elapsed=0.228 -> 0.031`;
+      full `src.ops` import smoke now reports `modules=42`, `failures=0`,
+      `slow_ge_0_20=0`.
+    - after moving Chroma backend creation and evaluator trace/numeric-surface
+      helper imports to execution points:
+      `src.storage.vector_store import_elapsed=0.429 -> 0.093`,
+      `src.ops.evaluator import_elapsed=0.188 -> 0.129`; combined
+      agent/ops/routing/storage import smoke reports `modules=88`,
+      `failures=0`, `slow_ge_0_20=0`.
+    - after moving processing parser text splitter and PDF extraction backends
+      to construction/extraction points:
+      `src.processing.financial_parser import_elapsed=3.290 -> 0.099`,
+      `src.processing.pdf_parser import_elapsed=3.589 -> 0.093`,
+      `src.processing.chunking import_elapsed=0.006`; combined
+      agent/ops/routing/storage/processing import smoke reports `modules=96`,
+      `failures=0`, `slow_ge_0_20=0`.
+    - `src.ops.evaluator` now imports through `src.storage.vector_store`, so
+      package import no longer fails on `storage.vector_store` path resolution.
+    - final importtime no longer shows top-level LangChain provider,
+      Transformers, or Torch loading through `src.agent.financial_graph`
+  - focused lazy-import gate: `597` tests OK,
+    `focused_lazy_import_elapsed=7.09`
+  - focused MAS/RAG/storage import cleanup gate: `329` tests OK,
+    `focused_import_cleanup_elapsed=2.98`
+  - focused MAS node/contract gate: `41` tests OK,
+    `focused_mas_node_elapsed=2.00`
+  - focused ops import gate: `81` tests OK,
+    `focused_ops_import_elapsed=1.20`
+  - focused MAS/debug/retrospective import boundary gate: `42` tests OK,
+    `focused_debug_import_elapsed=0.14`
+  - focused API entrypoint import boundary gate: `3` tests OK,
+    `focused_api_import_elapsed=0.00`
+  - focused store-fixed eval CLI import boundary gate: `65` tests OK,
+    `focused_eval_cli_import_elapsed=0.01`
+  - focused benchmark runner import boundary gate: `38` tests OK,
+    `focused_benchmark_import_elapsed=3.23`
+  - focused grounded draft CLI import boundary gate: `6` tests OK,
+    `focused_grounded_draft_import_elapsed=0.00`
+  - focused combined ops import boundary gate after grounded draft lazy parser:
+    `40` tests OK, `focused_ops_boundary_elapsed=0.01`
+  - focused evaluator lazy MLflow/vector-store gate: `65` tests OK,
+    `focused_evaluator_boundary_elapsed=0.01`
+  - focused routing/retrospective ops import gate: `20` tests OK,
+    `focused_routing_ops_boundary_elapsed=0.01`
+  - `python3 -m unittest discover -s tests`: `1273` tests OK,
+    `full_elapsed=8.25`
+  - repeat after MAS/debug/retrospective import boundary pass:
+    `1273` tests OK, `full_elapsed=3.39`
+  - repeat after MAS graph default-node import boundary pass:
+    `1273` tests OK, `full_elapsed=4.39`
+  - repeat after API entrypoint import boundary pass:
+    `1273` tests OK, `full_elapsed=3.57`
+  - repeat after store-fixed eval CLI import boundary pass:
+    `1273` tests OK, `full_elapsed=4.43`
+  - repeat after benchmark runner import boundary pass:
+    `1273` tests OK, `full_elapsed=3.48`
+  - repeat after grounded draft generator import boundary pass:
+    `1273` tests OK, `full_elapsed=3.41`
+  - repeat after evaluator lazy MLflow/vector-store boundary pass:
+    `1273` tests OK, `full_elapsed=3.33`
+  - repeat after routing-confusion vector-store lazy boundary and retrospective
+    operand bootstrap fix: `1273` tests OK, `full_elapsed=3.32`
+  - `python3 -m src.ops.portfolio_review_gates`: `Status: ready`,
+    `portfolio_gates_elapsed=0.12`
+  - `git diff --check`: passed
+- Artifact hygiene: no `benchmarks/results/**`, local store, or temporary
+  profile artifact is part of this cleanup.
+  - Current stop line:
+  - Do not continue extracting semantic numeric planning or reconciliation
+    scorer internals in this local diff.
+  - Split the current cleanup before further structure work. The current file
+    buckets are review-topic buckets, not a buildable file-only commit order:
+    runtime projection call sites already depend on new trace/task-artifact and
+    primitive owners, task-trace owners depend on primitive normalization, and
+    primitive call sites depend on task-artifact owners.
+  - Buildable split guidance: either land `runtime_projection`, `task_trace`,
+    and `primitive_owner` together as one source cleanup change followed by
+    `docs_audit`, or partial-stage a new owner-foundation commit before caller
+    rewrites/removals. The exact guidance is recorded in
+    `docs/architecture/current_runtime_cleanup_split_manifest.md`.
+  - Owner-foundation import gate: `11` new owner modules import successfully
+    with `PYTHONDONTWRITEBYTECODE=1`, `owner_foundation_import_elapsed=0.12`.
+  - Current changed-file split bucket dry-run:
+    `runtime_projection=19`, `task_trace=13`, `primitive_owner=30`,
+    `docs_audit=11`, `import_time_perf_overlay=60`,
+    `direct_run_surface=6`, `ambiguous=0`.
+  - Exact file buckets and minimum gates are recorded in
+    `docs/architecture/current_runtime_cleanup_split_manifest.md`.
+  - Import-time performance overlay gate:
+    - files: `main.py`, `src/agent/financial_graph.py`,
+      `src/agent/financial_graph_calculation.py`,
+      `src/agent/financial_graph_evidence.py`,
+      `src/agent/financial_graph_planning.py`,
+      `src/agent/financial_graph_reconciliation.py`,
+      `src/agent/mas_graph.py`,
+      `src/agent/nodes/orchestrator_node.py`,
+      `src/agent/nodes/researcher_node.py`, `src/agent/rag_chain.py`,
+      `src/api/financial_router.py`,
+      `src/ops/benchmark_runner.py`, `src/ops/calibrate_query_router.py`,
+      `src/ops/check_routing_confusions.py`,
+      `src/ops/portfolio_demo.py`, `src/ops/portfolio_review_gates.py`,
+      `src/ops/reference_note_capability_gate.py`,
+      `src/ops/report_cache_promotion_evidence_gate.py`,
+      `src/ops/review_report_cache_index_contract.py`,
+      `src/ops/compare_concept_planner_shadow.py`,
+      `src/ops/compare_ontology_shadow.py`,
+      `src/ops/debug_math_workflow.py`,
+      `src/ops/debug_reference_note_workflow.py`,
+      `src/ops/dump_report_structure.py`, `src/ops/evaluator.py`,
+      `src/ops/eval_single_question.py`,
+      `src/ops/generate_grounded_answer_drafts.py`,
+      `src/ops/mas_analyst_smoke.py`,
+      `src/ops/mas_direct_worker_probe.py`,
+      `src/ops/mas_e2e_smoke.py`, `src/ops/mas_researcher_smoke.py`,
+      `src/ops/rebuild_vector_store.py`, `src/ops/render_dart_preview.py`,
+      `src/ops/run_eval_only.py`,
+      `src/ops/retrospective_ontology_retrieval_eval.py`,
+      `src/ops/retrospective_math_architecture_eval.py`,
+      `src/processing/chunking.py`, `src/processing/financial_parser.py`,
+      `src/processing/pdf_parser.py`,
+      `src/routing/query_router.py`, `src/storage/embedding_config.py`,
+      `src/storage/vector_store.py`, `tests/test_embedding_runtime_config.py`,
+      `tests/test_financial_parser.py`, `tests/test_import_side_effects.py`,
+      `tests/test_vector_store_fallback.py`
+    - focused gate: `597` tests OK, `focused_lazy_import_elapsed=7.09`
+    - focused MAS/RAG/storage gate: `329` tests OK,
+      `focused_import_cleanup_elapsed=2.98`
+    - focused MAS node/contract gate: `41` tests OK,
+      `focused_mas_node_elapsed=2.00`
+    - focused ops import gate: `81` tests OK,
+      `focused_ops_import_elapsed=1.20`
+    - focused MAS/debug/retrospective import boundary gate: `42` tests OK,
+      `focused_debug_import_elapsed=0.14`
+    - focused API entrypoint import boundary gate: `3` tests OK,
+      `focused_api_import_elapsed=0.00`
+    - focused store-fixed eval CLI import boundary gate: `65` tests OK,
+      `focused_eval_cli_import_elapsed=0.01`
+    - focused benchmark runner import boundary gate: `38` tests OK,
+      `focused_benchmark_import_elapsed=3.23`
+    - runtime domain-term audit: passed with `215` reviewed literals,
+      `audit_elapsed=0.58`
+    - full unittest gate: `1273` tests OK, `full_elapsed=8.25`
+    - repeat full unittest after MAS/debug/retrospective import boundary pass:
+      `1273` tests OK, `full_elapsed=3.39`
+    - repeat full unittest after MAS graph default-node import boundary pass:
+      `1273` tests OK, `full_elapsed=4.39`
+    - repeat full unittest after API entrypoint import boundary pass:
+      `1273` tests OK, `full_elapsed=3.57`
+    - repeat full unittest after store-fixed eval CLI import boundary pass:
+      `1273` tests OK, `full_elapsed=4.43`
+    - repeat after ops CLI/MAS smoke import boundary pass:
+      `1273` tests OK, `full_elapsed=3.03`; `python3 -m
+      src.ops.audit_runtime_domain_terms` passed with `215` reviewed
+      literals; full `src.ops` import smoke reports `modules=42`,
+      `failures=0`, `slow_ge_0_20=0`.
+    - repeat after storage/evaluator import boundary pass:
+      focused storage gate `51` tests OK,
+      `focused_storage_boundary_elapsed=3.33`; focused evaluator gate `82`
+      tests OK, `focused_evaluator_boundary_elapsed=0.16`; combined
+      import smoke reports `modules=88`, `failures=0`, `slow_ge_0_20=0`;
+      runtime domain-term audit passed with `215` reviewed literals; full
+      unittest `1277` tests OK, `full_elapsed=5.57`.
+    - repeat after processing parser import boundary pass:
+      `python3 -m unittest tests.test_financial_parser` `30` tests OK,
+      `focused_processing_boundary_elapsed=3.67`; combined
+      agent/ops/routing/storage/processing import smoke reports `modules=96`,
+      `failures=0`, `slow_ge_0_20=0`.
+    - repeat after removing `src.processing.pdf_parser` import-time logging
+      side effect:
+      `python3 -m py_compile src/processing/pdf_parser.py` passed;
+      `python3 -m unittest tests.test_financial_parser` `30` tests OK,
+      `focused_processing_boundary_elapsed=2.99`;
+      `src.processing.pdf_parser import_elapsed=0.054`,
+      `root_logging_level changed=False`;
+      runtime domain-term audit passed with `215` reviewed literals; full
+      unittest `1277` tests OK, `full_elapsed=5.686`.
+    - repeat after extracting Chroma backend/probe wrappers into
+      `src.storage.chroma_backend`:
+      `python3 -m py_compile src/storage/chroma_backend.py src/storage/vector_store.py`
+      passed; storage focused gate `44` tests OK,
+      `focused_storage_boundary_elapsed=0.151`;
+      `src.storage.chroma_backend import_elapsed=0.004`,
+      `src.storage.vector_store import_elapsed=0.090`, Chroma backend loaded
+      `False`; combined agent/ops/routing/storage/processing import smoke
+      reports `modules=97`, `failures=0`, `slow_ge_0_20=0`; runtime
+      domain-term audit passed with `215` reviewed literals; full unittest
+      `1278` tests OK, `full_elapsed=5.617`.
+    - repeat after extracting search identity/cache-key/RRF merge helpers into
+      `src.storage.search_merge`:
+      `python3 -m py_compile src/storage/search_merge.py src/storage/vector_store.py`
+      passed; storage focused gate `46` tests OK,
+      `focused_storage_boundary_elapsed=0.147`;
+      `src.storage.search_merge import_elapsed=0.084`,
+      `src.storage.vector_store import_elapsed=0.005`, Chroma backend loaded
+      `False`; combined agent/ops/routing/storage/processing import smoke
+      reports `modules=98`, `failures=0`, `slow_ge_0_20=0`; runtime
+      domain-term audit passed with `215` reviewed literals; full unittest
+      `1280` tests OK, `full_elapsed=5.763`.
+    - repeat after extracting add-document preparation/batching helpers into
+      `src.storage.document_batches`:
+      `python3 -m py_compile src/storage/document_batches.py src/storage/vector_store.py`
+      passed; storage focused gate `48` tests OK,
+      `focused_storage_boundary_elapsed=0.152`;
+      `src.storage.document_batches import_elapsed=0.028`,
+      `src.storage.vector_store import_elapsed=0.005`, Chroma backend loaded
+      `False`; combined agent/ops/routing/storage/processing import smoke
+      reports `modules=99`, `failures=0`, `slow_ge_0_20=0`; runtime
+      domain-term audit passed with `215` reviewed literals; full unittest
+      `1282` tests OK, `full_elapsed=6.901`.
+    - repeat after splitting the remaining `add_documents()` runtime path:
+      `python3 -m py_compile src/storage/document_batches.py src/storage/vector_store.py`
+      passed; storage focused gate `46` tests OK; broader storage ingest/eval
+      gate `52` tests OK; source-wide import smoke reports `modules=112`,
+      `failures=0`, `slow_ge_0_05=1`; runtime domain-term audit passed with
+      `215` reviewed literals; full unittest `1324` tests OK,
+      `full_elapsed=13.522`.
+    - repeat after extracting parent persistence helpers into
+      `src.storage.parent_store`:
+      `python3 -m py_compile src/storage/parent_store.py src/storage/vector_store.py`
+      passed; storage focused gate `49` tests OK,
+      `focused_storage_boundary_elapsed=0.180`;
+      `src.storage.parent_store import_elapsed=0.013`,
+      `src.storage.vector_store import_elapsed=0.006`, Chroma backend loaded
+      `False`; combined agent/ops/routing/storage/processing import smoke
+      reports `modules=100`, `failures=0`, `slow_ge_0_20=0`; runtime
+      domain-term audit passed with `215` reviewed literals; full unittest
+      `1283` tests OK, `full_elapsed=7.111`.
+    - repeat after extracting structure graph persistence helpers into
+      `src.storage.graph_persistence`:
+      `python3 -m py_compile src/storage/graph_persistence.py src/storage/vector_store.py`
+      passed; storage focused gate `50` tests OK,
+      `focused_storage_boundary_elapsed=0.155`;
+      `src.storage.graph_persistence import_elapsed=0.094`,
+      `src.storage.vector_store import_elapsed=0.004`, Chroma backend loaded
+      `False`; combined agent/ops/routing/storage/processing import smoke
+      reports `modules=101`, `failures=0`, `slow_ge_0_20=0`; runtime
+      domain-term audit passed with `215` reviewed literals; full unittest
+      `1284` tests OK, `full_elapsed=6.774`.
+    - Interpretation: this is a design-level performance patch, not a
+      benchmark-specific behavior patch; it moves heavyweight imports to the
+      provider/router/prompt/parser/embedding creation sites and preserves
+      focused/full test behavior.
+  - Runtime-projection split dry-run gate:
+    - file-set `git diff --check`: passed
+    - file-set stat: `19 files changed, 294 insertions(+), 275 deletions(-)`
+    - focused gate: `165` tests OK, `runtime_projection_elapsed=6.38`
+    - full unittest gate: `1273` tests OK, `full_elapsed=17.39`; repeat
+      `1273` tests OK, `full_elapsed_repeat=17.62`
+    - Interpretation: the repeated wall-time increase is recorded as a test
+      harness/environment timing signal, not a code patch trigger, because no
+      runtime code changed after the previous green code validation and both
+      runs passed with stable in-test runtime.
+  - Task-trace split dry-run gate:
+    - file-set `git diff --check`: passed
+    - file-set stat: `13` files in bucket, tracked diff shows
+      `10 files changed, 239 insertions(+), 264 deletions(-)` because the new
+      owner modules are still untracked
+    - focused gate: `294` tests OK, `task_trace_elapsed=4.60`
+    - portfolio gate: `Status: ready`, `portfolio_gates_elapsed=0.12`
+    - full unittest gate: `1273` tests OK, `full_elapsed=17.56`
+    - Interpretation: full-suite wall time remains in the same elevated range
+      observed during the runtime-projection split dry-run, so it is still
+      treated as test harness/environment timing rather than a patch trigger.
+  - Primitive-owner split dry-run gate:
+    - file-set `git diff --check`: passed
+    - file-set stat: `30` files in bucket, tracked diff shows
+      `22 files changed, 776 insertions(+), 3557 deletions(-)` because the new
+      owner modules are still untracked
+    - runtime domain-term audit: passed with `215` reviewed literals,
+      `audit_elapsed=0.68`
+    - focused gate: `428` tests OK, `primitive_owner_elapsed=4.56`
+    - full unittest gate: `1273` tests OK, `full_elapsed=15.94`
+    - Interpretation: full-suite wall time is below the earlier split dry-run
+      repeats and all owner-specific checks passed, so there is no current
+      performance patch trigger for the primitive-owner extraction bucket.
+  - Docs-audit split dry-run gate:
+    - file-set `git diff --check`: passed
+    - runtime domain-term audit: passed with `215` reviewed literals,
+      `audit_elapsed=0.55`
+    - artifact hygiene: `git status --short` shows only source, tests, docs,
+      reviewed audit baseline, and new owner/manifest files; no
+      `benchmarks/results/**`, local store/cache, temporary profile, or
+      one-off dataset artifacts are present in the cleanup diff.
+  - Keep benchmark artifacts out of the split. Stage only source, tests, docs,
+    and reviewed config/baseline files.
+  - Re-run at least runtime domain-term audit, focused owner-specific tests,
+    full unittest, portfolio review gates, and `git diff --check` for the
+    final split.
 
 ### Latest Expanded Structural Closure
 
@@ -479,6 +1496,25 @@ role-separated multi-agent system using a task ledger and artifact store.
     and flattened table surfaces.
   - Replaced repeated operand-set artifact/task ledger publication blocks with
     `_operand_set_artifact_update()`.
+  - Moved the generic operand-set artifact/task ledger assembly behind
+    `financial_task_artifacts.operand_set_artifact_update()` so the calculation
+    mixin only adapts active-subtask state and reconciliation evidence refs.
+  - Moved the generic calculation-plan artifact/task ledger assembly behind
+    `financial_task_artifacts.calculation_plan_artifact_update()` so formula
+    planning branches no longer repeat artifact id/status/summary/task-upsert
+    construction.
+  - Moved aggregate-answer and reflection-report artifact/task ledger assembly
+    behind `financial_task_artifacts` helpers while leaving aggregate
+    supersession in the calculation mixin because it still owns conflict
+    detection and replacement-summary selection.
+  - Moved calculation-result, semantic-plan, and reconciliation-result
+    artifact/task ledger assembly behind `financial_task_artifacts` helpers so
+    planning/reconciliation/execution callers no longer construct ledger records
+    directly.
+  - Moved aggregate supersession artifact/task writes behind
+    `financial_task_artifacts.supersede_task_with_aggregate_result()` while
+    keeping conflict detection and replacement-summary selection in the
+    calculation mixin.
 - Result:
   - `_project_task_artifact_trace()`: `501` lines / `5` nested helpers ->
     `279` lines / `0` nested helpers.
@@ -629,8 +1665,10 @@ role-separated multi-agent system using a task ledger and artifact store.
   - Added `src/processing/reference_resolution.py` for quoted intra-filing
     reference hint canonicalization, reference index construction, and section
     path resolution.
-  - Existing reference-resolution private helpers remain compatibility wrappers
-    for tests and callers.
+  - `_build_reference_index()` and `_extract_reference_section_paths()` remain
+    local wrappers for parser assembly/tests. Obsolete pass-through wrappers for
+    reference text canonicalization and direct path resolution were removed once
+    no runtime or contract test callers remained.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
@@ -647,6 +1685,31 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Latest PR 8 Requirements/Docs Cleanup
 
+- Run date: 2026-06-23
+- Scope: reviewer-facing link/claim duplication cleanup.
+- Change:
+  - Aligned README quick review path with `docs/README.md` by keeping the core
+    reviewer path focused on commands plus the 4 core project docs.
+  - Removed duplicate executable `requirements-review.txt` command strings from
+    the README quick review table; the Representative Checks block remains the
+    single executable command list.
+  - Replaced the stale exact full unittest count in
+    `docs/overview/portfolio_one_pager.md` with links to `project_status.md`
+    and `current_runtime_cleanup_split_manifest.md`, where latest gate counts
+    are maintained.
+- Verification:
+  - reviewer-facing doc local link check: `49` links checked, `0` missing
+  - stale reviewer-facing test-count search for `1223` and
+    `latest full unittest discovery passed`: no matches
+  - `requirements.txt` and `requirements-review.txt` parsed via
+    `packaging.requirements.Requirement`: `193` and `1` entries
+  - `python3 -m src.ops.portfolio_review_gates`: `Status: ready`
+  - `python3 -m src.ops.portfolio_demo --format json`: readiness `ready`
+- Next PR 8 candidate: close PR 8 with a docs-only stop-line before final
+  portfolio review, unless a command actually needs a new dependency profile.
+
+Historical PR 8 reviewer path cleanup:
+
 - Run date: 2026-06-17
 - Scope: reviewer-facing document path cleanup.
 - Change:
@@ -661,9 +1724,6 @@ role-separated multi-agent system using a task ledger and artifact store.
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
     `Status: ready`
   - `git diff --check`: passed
-- Next PR 8 candidate: run a link/claim duplication check across
-  reviewer-facing docs, or close PR 8 with a stop-line before final portfolio
-  review.
 
 Historical PR 8 profile cleanup:
 
@@ -2471,10 +3531,10 @@ Current next decisions:
   and 0 `legacy_top_level` rows. The live eval-only diagnostic was stopped after
   heartbeat-confirmed progress because the first question exceeded the audit's
   cost/time budget.
-- `_resolve_runtime_calculation_trace(..., allow_legacy_top_level = false)` now
-  provides a strict resolver mode for new readers. Strict mode rejects legacy
-  top-level `calculation_*` fallback but still keeps standalone
-  `structured_result` as a non-legacy projection.
+- `_resolve_runtime_calculation_trace()` is now strict by default. It rejects
+  legacy top-level `calculation_*` fallback but still keeps standalone
+  `structured_result` as a non-legacy projection. Compatibility readers must
+  opt in with `allow_legacy_top_level = true`.
 - Evaluator result export, benchmark serialized/review export, eligible
   analyst/MAS artifact handoff consumers, current-runtime debug readers,
   reflection retry planning, route-decision readers after formula
@@ -2487,21 +3547,29 @@ Current next decisions:
   is covered as a `FinancialAgent.run()`/export boundary and must not be used by
   new internal current-state readers.
 - `FinancialAgentState` now types `resolved_calculation_trace` as
-  `RuntimeCalculationTrace` and `subtask_results` as `TaskResultRecord`; the old
-  `_project_legacy_calculation_fields()` name remains only as a compatibility
-  alias for `_project_runtime_calculation_trace()`.
-- `FinancialAgentState` now marks top-level `calculation_operands`,
-  `calculation_plan`, and `calculation_result` as optional compatibility
-  mirrors. `calculation_debug_trace` is also optional; `FinancialAgent.run()`
-  no longer seeds these optional compatibility fields in the initial live state.
+  `RuntimeCalculationTrace` and `subtask_results` as `TaskResultRecord`.
+  `_project_runtime_calculation_trace()` is the only live calculation
+  projection helper; the old `_project_legacy_calculation_fields()` alias has
+  been removed.
+- `FinancialAgentState` no longer includes top-level `calculation_operands`,
+  `calculation_plan`, or `calculation_result` mirror keys. The optional
+  `calculation_debug_trace` scratch key remains internal, and
+  `FinancialAgent.run()` no longer seeds optional compatibility fields in the
+  initial live state.
 - Calculation-node diagnostic writes are now routed through explicit scratch
-  helpers, while the public `FinancialAgent.run()` compatibility bridge uses
-  the runtime-contract field constant. This keeps internal diagnostics available
-  without making top-level debug state required again.
-- `_runtime_trace_state_update()` can now omit top-level `calculation_*`
-  compatibility mirrors. The first applied branch is calculation verification
-  skip for non-ok calculation results, which keeps `resolved_calculation_trace`
-  current without rewriting mirror fields.
+  helpers, while public `FinancialAgent.run()` output exposes calculation
+  diagnostics through `debug_traces.calculation`. This keeps internal
+  diagnostics available without reintroducing a top-level debug output bridge.
+- `_runtime_trace_state_update()` now publishes only the canonical
+  `resolved_calculation_trace` / `structured_result` projection and no longer
+  exposes an opt-in path for top-level `calculation_*` compatibility mirrors.
+- `_project_task_trace_from_state()` no longer reads flat live-state
+  `calculation_*` mirrors. Direct aggregate-node tests now provide current
+  active-task material through canonical `resolved_calculation_trace` or task
+  artifacts, and stale flat fields remain regression fixtures that live capture
+  ignores.
+  The public `FinancialAgent.run()` bridge remains the only intentional public
+  compatibility projection boundary.
 - The no-operands formula plan, missing-required-operands formula plan, and
   calculation execution failure paths now also omit top-level compatibility
   mirrors; focused tests read these results through `_resolve_runtime_calculation_trace()`.
@@ -2560,13 +3628,16 @@ Current next decisions:
   from canonical aggregate projection material, ordered subtask source refs, and
   selected claims; focused tests cover both canonical source-ref preservation
   and stale top-level source-ref rejection.
-- `_runtime_trace_state_update()` now defaults to omitting top-level
-  compatibility mirrors. Compatibility mirrors remain available only as an
-  explicit opt-in for older external readers.
-- Helper-level compatibility fallbacks are now explicitly documented and tested:
-  `_resolve_runtime_structured_result()` may read older top-level calculation
-  results for export/review adapters, and `_runtime_trace_state_update()` may
-  carry omitted trace parts from older state surfaces.
+- `_runtime_trace_state_update()` now omits top-level compatibility mirrors
+  unconditionally; the earlier explicit opt-in path has been removed. Older
+  external readers must use the public runtime/export compatibility boundary
+  instead of this state-update helper.
+- Helper-level compatibility fallback is now limited to the public
+  `FinancialAgent.run()` projection bridge: `_resolve_runtime_structured_result()`
+  may read older top-level calculation results there, while current benchmark
+  export, MAS handoff, and debug readers consume `structured_result` or
+  canonical `resolved_calculation_trace` directly. `_runtime_trace_state_update()`
+  is strict and requires explicit operands, plan, and result inputs.
 - Benchmark runner exports are now explicitly strict projection consumers:
   serialized eval rows, smoke summaries, and review CSV/Markdown rows ignore
   stale top-level calculation mirrors while exposing runtime projection and task

@@ -112,23 +112,27 @@ solved benchmark.
 
 ## Quick Review Path
 
-For a fast review, run the first two commands and then read the compact
-narrative/snippet documents. The longer experiment and technical documents are
-appendix material unless deeper validation is needed.
+For a fast review, run the first two commands and then read the core project
+documents. Interview talk tracks and resume wording are optional deliverables;
+the longer architecture/evaluation logs are appendix material unless deeper
+validation is needed.
 
 | Step | Document / command | Purpose |
 | --- | --- | --- |
-| 1 | `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates` | aggregate ready/not-ready reviewer gate |
-| 2 | `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo` | compact answer/evidence/trace/integrity demo |
-| 3 | [docs/overview/portfolio_interview_narrative.md](docs/overview/portfolio_interview_narrative.md) | compact interview talk track and claim boundary |
-| 4 | [docs/overview/portfolio_resume_snippets.md](docs/overview/portfolio_resume_snippets.md) | resume and portfolio-ready wording |
-| 5 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
-| 6 | [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | problem, method, results, failure analysis |
-| 7 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | core technical claims |
-| 8 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | fixture-backed demo details |
+| 1 | `portfolio_review_gates` | aggregate ready/not-ready reviewer gate; command below |
+| 2 | `portfolio_demo` | compact answer/evidence/trace/integrity demo; command below |
+| 3 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
+| 4 | [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | problem, method, results, failure analysis |
+| 5 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | core technical claims |
+| 6 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | fixture-backed demo details |
 
 Everything else is appendix or internal log. Start with
 [docs/README.md](docs/README.md) for the full document map.
+
+Optional presentation/interview deliverables:
+[docs/overview/portfolio_interview_narrative.md](docs/overview/portfolio_interview_narrative.md),
+[docs/overview/portfolio_resume_snippets.md](docs/overview/portfolio_resume_snippets.md), and
+[docs/overview/portfolio_presentation_outline.md](docs/overview/portfolio_presentation_outline.md).
 
 ## Representative Checks
 

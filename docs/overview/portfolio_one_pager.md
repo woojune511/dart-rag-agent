@@ -121,7 +121,7 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
 | Review gate bundle | `portfolio_review_gates` aggregates demo, cache, reflection, trace materiality, and REFERENCE_NOTE boundary proof into one ready/not-ready command |
-| Test coverage | latest full unittest discovery passed `1223` tests after PR4 simplification; runtime domain-term audit passed |
+| Test coverage | full unittest discovery and runtime domain-term audit are maintained as gates; latest counts live in [project_status.md](project_status.md) and [current_runtime_cleanup_split_manifest.md](../architecture/current_runtime_cleanup_split_manifest.md) |
 
 ## Review Commands
 

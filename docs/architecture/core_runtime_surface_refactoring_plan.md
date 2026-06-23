@@ -284,28 +284,425 @@ stop line, but only for duplicated runtime contracts and large nested patch
 layers. It did not add domain terms or benchmark-specific runtime branches.
 
 - Lookup recovery helpers moved into `src/agent/financial_lookup_recovery.py`.
-- `_project_task_artifact_trace()` no longer owns artifact payload-contract
-  validators as local nested helpers.
+- Artifact payload/provenance contract validators now live in
+  `src/agent/financial_artifact_contracts.py`; `_project_task_artifact_trace()`
+  consumes them as a ledger projection rule instead of owning the contract. The
+  critic runtime acceptance contract also moved there, so contract code no
+  longer depends on the MAS state/type module. Current reviewer/researcher ops
+  import the contract owner directly; the experimental MAS type facade remains
+  only as a compatibility export.
+- Task/artifact ledger write helpers and caller-facing ledger projection helpers
+  now live in `src/agent/financial_task_artifacts.py`; `financial_graph_helpers.py`
+  keeps only the task-trace state projection aliases it still uses internally,
+  while runtime, benchmark, MAS bridge, and focused ledger tests import the
+  owner module directly. Ledger helpers are no longer part of the helper
+  star-export surface, and unused ledger compatibility aliases were removed.
+  `project_task_artifact_trace()` now delegates task/artifact view projection
+  and integrity issue assembly to private owner-internal helpers.
+- `financial_graph.py` now imports only its runtime projection helpers from
+  `financial_graph_helpers.py`; contract tests and shadow ops scripts import
+  private helper functions from the helper owner module directly instead of
+  relying on the facade to re-export them.
+- `financial_graph_evidence.py`, `financial_graph_planning.py`,
+  `financial_graph_reconciliation.py`, and `financial_graph_calculation.py`
+  now import their `financial_graph_helpers.py` dependencies explicitly instead
+  of through the helper wildcard import.
+- Aggregate answer projection callers now import
+  `_preferred_complete_aggregate_subtask_answer()` from
+  `financial_answer_projection.py`, the owner module, instead of indirectly
+  through `financial_graph_helpers.py`.
+- Shared runtime normalization/display primitives now live in
+  `src/agent/financial_runtime_normalization.py`; extracted modules import
+  text normalization, source-row-id cleanup, numeric parsing/unit
+  normalization, compact KRW formatting, and display-label cleanup from that
+  owner instead of the broad helper module.
+- Restricted arithmetic formula evaluation now lives in
+  `src/agent/financial_formula_eval.py`; calculation execution paths import
+  `_safe_eval_formula()` from that owner instead of the broad helper module.
+- Lazy LangChain prompt/parser construction helpers now live in
+  `src/agent/financial_langchain_loaders.py`; calculation, evidence, planning,
+  reconciliation, RAG, orchestrator, and researcher modules import that owner
+  instead of repeating identical `ChatPromptTemplate`, `StrOutputParser`, and
+  `RunnablePassthrough` loader helpers while preserving the import-time
+  `langchain_core` boundary. Agent-runtime `Document` construction is also
+  routed through the same loader owner, with `TYPE_CHECKING` annotations left
+  as the only direct `langchain_core.documents` imports outside the owner.
+- Lazy structured-output model loaders now live in
+  `src/agent/financial_graph_model_loaders.py`; calculation, evidence,
+  planning, reconciliation, runtime-trace, and answer-slot modules import that
+  owner instead of repeating one-line `financial_graph_models` loaders while
+  preserving the import-time Pydantic boundary; model resolution is cached after
+  first use.
+- Answer-slot operation assembly in `src/agent/financial_answer_slots.py` now
+  keeps component grouping, lookup primary slot construction, and current/prior
+  period slot construction in private owner-internal helpers. This leaves the
+  public `build_answer_slots()` contract intact while making the projection
+  owner easier to audit.
+- Runtime trace construction/update, report-cache candidate projection,
+  aggregate-subtask trace projection, structured-result compatibility
+  projection, and `_resolve_runtime_calculation_trace()` now live in
+  `src/agent/financial_runtime_trace.py`; runtime, ops, MAS, and focused tests
+  import that owner directly instead of routing trace resolution through
+  `financial_graph_helpers.py`. Aggregate-subtask calculation projection now
+  delegates per-subtask row projection, source id rollup, and nested answer-slot
+  subtask payload construction to private owner-internal helpers.
+- Retrieval/statement hint helpers now live in
+  `src/agent/financial_retrieval_hints.py`; evidence, reconciliation,
+  planning, and focused hint tests import the hint owner directly instead of
+  keeping section/retrieval policy resolution inside
+  `financial_graph_helpers.py`.
+- Operand surface-contract helpers now live in
+  `src/agent/financial_surface_contracts.py`; calculation and evidence import
+  positive/negative surface checks from that owner directly.
+- Structured cell period/fiscal helpers now live in
+  `src/agent/financial_structured_cells.py`; calculation, evidence,
+  reconciliation, and focused contract tests import the period helper from that
+  owner directly while the heavier structured-cell selector/scorer stays in
+  `financial_graph_helpers.py`.
+- Row/table text-surface helpers now live in
+  `src/agent/financial_row_surfaces.py`; calculation, evidence,
+  reconciliation, planning, and focused tests import operand needles,
+  operand text matching, numeric-after-operand extraction, period-label
+  stripping, surface-match variants, unstructured row parsing, and row-label
+  extraction from narrow owners. Numeric-after-operand extraction now delegates
+  parenthetical exact-value/unit handling and nearest prefix/suffix candidate
+  collection to private owner-internal helpers. Broader reconciliation candidate
+  scoring and binding still stays in `financial_graph_helpers.py`.
+- Dependency projection slot-diff, lookup-slot scoring, source-task id,
+  ratio-role grouping, source-slot acceptance, and source-value dedupe helpers
+  now live in `src/agent/financial_dependency_projection.py`; calculation and
+  focused projection tests import the dependency owner directly instead of
+  routing those repair predicates through `financial_graph_helpers.py`.
+  Dependency lookup-slot collection now delegates operation normalization,
+  producer-task synthesis, answer-numeric context filling, and per-result slot
+  selection to private owner-internal helpers.
+- Lookup magnitude coercion and ontology lookup-hint resolution now live in
+  `src/agent/financial_lookup_recovery.py`; planning, reconciliation,
+  calculation, and focused operation tests import the lookup recovery owner
+  directly instead of routing lookup normalization helpers through
+  `financial_graph_helpers.py`. Lookup value-refinement acceptance now delegates
+  scope gating, structured-surface checks, table-label precision acceptance, and
+  same-unit refinement checks to private owner-internal helpers.
+- Evidence candidate prioritization now lives locally in
+  `src/agent/financial_graph_evidence.py`, and section-hint alias cleanup lives
+  in `src/agent/financial_retrieval_hints.py`; evidence, reconciliation, and
+  focused operation tests use those owners directly instead of routing
+  retrieval/evidence shaping helpers through `financial_graph_helpers.py`.
+- Operation-family percent-point policy helpers now live in
+  `src/agent/financial_operation_policies.py`; evidence, reconciliation,
+  calculation, and focused tests import that policy owner directly instead of
+  depending on the broad helper module.
+- Percent-metric label classification now also lives in
+  `src/agent/financial_operation_policies.py`; reconciliation and focused
+  operation tests import that owner directly instead of routing unit-family
+  hints through `financial_graph_helpers.py`.
+- Operation/query policy helpers for ratio-percent intent, narrative-context
+  detection, single-metric period comparison, and direct numeric grounding now
+  also live in `src/agent/financial_operation_policies.py`; planning,
+  evidence, reconciliation, calculation, and focused tests import that owner
+  directly.
+- Report-scope and consolidation policy helpers now live in
+  `src/agent/financial_scope_policies.py`; evidence, planning, calculation,
+  rendering, and focused scope tests import that policy owner directly while
+  broader reconciliation candidate binding stays in `financial_graph_helpers.py`.
+- Slot-based difference answer rendering in
+  `src/agent/financial_graph_calculation_rendering.py` now delegates nested
+  aggregate-subtask difference lookup, prefix construction, and template
+  rendering to private owner-internal helpers.
+- Period/scope utilities for metadata period-match strength, period sort keys,
+  and report-scope year extraction now also live in
+  `src/agent/financial_scope_policies.py`; evidence and calculation import
+  that owner directly, with the runtime domain-term audit baseline updated only
+  for the regex/literal path move.
+- Shared text-surface utilities for tokenization, sentence splitting, anchor
+  cleanup, and rerank-metadata stripping now live in
+  `src/agent/financial_text_surface.py`; evidence and calculation import the
+  text owner directly, with the runtime domain-term audit baseline updated only
+  for the regex path move.
+- Shared numeric-surface extraction in `src/agent/financial_numeric_surface.py`
+  now delegates mixed-currency extraction, numeric pattern construction, and
+  per-match candidate classification to private owner-internal helpers.
+- Evidence-only metric-term extraction and nearby-value extraction helpers now
+  live locally in `src/agent/financial_graph_evidence.py`, removing another
+  evidence-specific dependency from `financial_graph_helpers.py`.
+- `financial_graph_helpers.py` also dropped unused owner-module imports left
+  behind by the extraction pass, so imported primitives now reflect helpers
+  used directly by the remaining planning/reconciliation code.
+- `financial_task_artifacts.py` now keeps `__all__` limited to caller-facing
+  ledger mutation/projection functions; runtime-trace internals still import
+  the narrower helpers directly without making them star-exported API.
+
+#### Current Local Split Plan
+
+The current local cleanup diff is large enough that more extraction should stop
+until it is split into reviewable units. The exact current file buckets,
+minimum gates, and buildable split guidance are captured in
+`docs/architecture/current_runtime_cleanup_split_manifest.md`.
+
+The numbered buckets below are review-topic buckets, not an automatically
+buildable file-only commit order. The current source diff has cross-bucket
+imports: runtime projection call sites use new runtime trace/task-artifact and
+primitive owner modules, task-trace owners use primitive normalization helpers,
+and primitive call sites use task-artifact owners. For a buildable patch series,
+either land `runtime_projection`, `task_trace`, and `primitive_owner` together
+as one source cleanup change followed by a docs/audit change, or first partial
+stage an owner-foundation commit containing only the new owner modules before
+landing caller rewrites/removals by review topic.
+The manifest includes the exact owner-foundation import gate and staging
+command for that granular route.
+The same manifest also records the import-time performance overlay: heavyweight
+provider/router/LangGraph/prompt/parser/embedding dependencies are lazy-loaded
+at runtime construction or LLM-chain/provider creation sites. The recorded
+smoke reduced `src.agent.financial_graph` import from `3.807s` to `0.450s`,
+kept MAS/RAG/storage imports mostly below `0.5s`, fixed `src.ops.evaluator`
+package import path resolution, moved ops provider imports to execution
+points, and preserved focused plus full unittest gates.
+The follow-up import boundary pass also moved MAS graph construction,
+debug-workflow parser/store imports, and retrospective ontology evaluator
+helper imports to execution points; the recorded smoke keeps those debug/ops
+module imports around `0.10s` while preserving their existing patch/test
+surfaces.
+The API entrypoint now follows the same boundary: `main.py` can import and
+construct the FastAPI app without loading parser/vector-store/agent/fetcher
+runtime components until lifespan initialization.
+`src/api/financial_router.py` also no longer mutates `sys.path` at import time;
+component construction still lazy-loads parser/store/fetcher/agent at FastAPI
+lifespan initialization using package-qualified `src.*` imports.
+A bounded ops bootstrap cleanup converted selected diagnostic/eval/smoke scripts
+to package-qualified `src.*` imports and conditional project-root bootstrap only
+for direct file execution; package imports for those touched scripts no longer
+mutate `sys.path`.
+A later deletion-only cleanup removed stale direct-run demo surfaces from
+`src/agent/financial_graph.py`, `src/agent/rag_chain.py`,
+`src/storage/vector_store.py`, `src/processing/financial_parser.py`, and
+`src/processing/pdf_parser.py`. The same deletion-only rule was then applied to
+`src/ingestion/dart_fetcher.py`, and its import-time `logging.basicConfig()`
+side effect was removed. These were not default runtime, parser, search,
+ingest, reviewer-gate, or README quick-review entry points; maintained
+execution surfaces remain the documented `src.ops` commands and API/runtime
+facades.
+
+1. Runtime projection and legacy mirror cleanup.
+   - Scope: remove stale top-level `calculation_*` mirror reads/writes from
+     current runtime paths; keep public `FinancialAgent.run()` and historical
+     replay compatibility at explicit projection boundaries.
+   - Include the runtime trace projection tests and docs that describe the
+     canonical `resolved_calculation_trace` contract.
+   - Gate: focused runtime projection tests, then full unittest.
+
+2. Task/artifact and trace owner extraction.
+   - Scope: `financial_artifact_contracts.py`,
+     `financial_task_artifacts.py`, `financial_runtime_trace.py`, and caller
+     import rewrites in MAS/ops/tests.
+   - Keep behavior unchanged; this is a boundary extraction for task ledger,
+     critic acceptance, and trace projection contracts.
+   - Gate: task artifact projection tests, MAS smoke tests that are already
+     covered by unittest, portfolio review gates.
+
+3. Shared primitive owner extraction.
+   - Scope: runtime normalization/display, formula evaluation, text surface,
+     numeric/row surface helpers, structured-cell period helpers, surface
+     contracts, scope policies, operation policies, lookup recovery, dependency
+     projection helpers, retrieval hints, and evidence-local prioritization.
+   - Keep broader semantic planning and reconciliation scorer functions in
+     `financial_graph_helpers.py` until they can be moved as coherent owner
+     modules.
+   - Gate: runtime domain-term audit, focused operation/reconciliation/evidence
+     suites, full unittest.
+
+4. Documentation and audit baseline reconciliation.
+   - Scope: architecture/status/walkthrough docs and
+     `runtime_domain_terms_baseline.json` moves that correspond only to file
+     ownership changes.
+   - Do not stage benchmark outputs, local stores, temporary profiles, or
+     `benchmarks/results/**`.
+   - Gate: `git diff --check`, runtime domain-term audit, artifact hygiene
+     check via `git status --short`.
+
+Stop line for the current local cleanup:
+
+- Do not continue extracting semantic numeric planning or reconciliation scorer
+  internals in this diff.
+- Do not move functions only to reduce line count if the owner boundary is not
+  clearer after the move.
+- Do not introduce domain vocabulary in runtime code to compensate for any
+  regression. Use ontology, retrieval policy, parser structure, or evidence
+  schema instead.
+- `financial_graph_helpers.py` no longer maintains a large private-helper
+  `__all__` star-export list now that repo callers use explicit imports.
 - `_refine_operand_precision_from_evidence_table()` now delegates contextual
   note-row and flattened-table-surface cell recovery to named helpers.
 - `_extract_calculation_operands()` now publishes operand-set artifacts through
   `_operand_set_artifact_update()` instead of repeating task/artifact ledger
   publication in three branches.
+- `_extract_numeric_value_after_operand_text()` now delegates parenthetical
+  exact-value/unit handling and nearest prefix/suffix candidate collection to
+  owner-internal helpers in `financial_row_surfaces.py`.
+- `realign_lookup_row_from_dependency_projection()` now delegates required
+  operand selection, projection candidate/source validation, and updated
+  slot/result construction to owner-internal helpers in
+  `financial_dependency_projection.py`.
+- `fill_missing_ratio_dependency_operands()` now delegates present-group
+  detection, inferred denominator requirement synthesis, operand seed
+  construction, source-slot recovery, table-evidence recovery, and source-value
+  dedupe to owner-internal helpers in `financial_dependency_projection.py`.
+- `build_answer_slots()` now delegates period-comparison detection,
+  current/prior/delta slot assembly, and difference direction projection to
+  owner-internal helpers in `financial_answer_slots.py`.
+- `benchmark_contextual_ingest()` and `contextual_ingest()` now share
+  contextual batch generation, response/fallback handling, index-payload
+  construction, and usage metric collection helpers in
+  `financial_graph_contextual.py`.
 
 Measured cleanup:
 
-- `_project_task_artifact_trace()`: `501` -> `279` lines, nested helpers
-  `5` -> `0`.
+- `_project_task_artifact_trace()`: `501` -> `78` lines, nested helpers
+  `5` -> `0`, with task/artifact view projection and integrity issue assembly
+  moved to private helpers inside `financial_task_artifacts.py`.
 - `_refine_operand_precision_from_evidence_table()`: `567` -> `258` lines,
   nested helpers `2` -> `0`.
 - `_extract_calculation_operands()`: `1196` -> `1139` lines.
+- `_build_aggregate_calculation_projection()`: `159` -> `59` lines, with
+  per-subtask projection, aggregate source id rollup, and answer-slot subtask
+  payload construction moved to private helpers inside `financial_runtime_trace.py`.
+- `build_dependency_lookup_slots_by_task()`: `100` -> `32` lines, with
+  operation normalization, producer-task synthesis, answer-numeric context, and
+  per-result lookup-slot selection moved to private helpers inside
+  `financial_dependency_projection.py`.
+- `compose_slot_based_difference_answer()`: `103` -> `69` lines, with nested
+  difference-result lookup, prefix construction, and template rendering moved
+  to private helpers inside `financial_graph_calculation_rendering.py`.
+- `lookup_recovery_value_refinement_allowed()`: `120` -> `47` lines, with
+  scope gating, structured-surface checks, table-label precision acceptance, and
+  same-unit refinement checks moved to private helpers inside
+  `financial_lookup_recovery.py`.
+- `extract_numeric_surface_candidates()`: `101` -> `28` lines, with
+  mixed-currency extraction, numeric pattern construction, and per-match
+  candidate classification moved to private helpers inside
+  `financial_numeric_surface.py`.
+- `_extract_numeric_value_after_operand_text()`: `107` -> `16` lines, with
+  parenthetical exact-value/unit handling and nearest prefix/suffix candidate
+  collection moved to private helpers inside `financial_row_surfaces.py`.
+- `realign_lookup_row_from_dependency_projection()`: `138` -> `66` lines,
+  with required operand selection, projection candidate/source validation, and
+  updated slot/result construction moved to private helpers inside
+  `financial_dependency_projection.py`.
+- `fill_missing_ratio_dependency_operands()`: `129` -> `52` lines, with
+  present-group detection, inferred denominator requirement synthesis, operand
+  seed construction, source-slot recovery, table-evidence recovery, and
+  source-value dedupe moved to private helpers inside
+  `financial_dependency_projection.py`.
+- `build_answer_slots()`: `210` -> `96` lines, with component grouping, lookup
+  primary, period-value slot assembly, period-comparison detection,
+  current/prior/delta slot assembly, and difference direction projection moved
+  to private helpers inside the same owner module.
+- `benchmark_contextual_ingest()`: `115` -> `80` lines, with contextual batch
+  generation, response/fallback handling, index-payload construction, and usage
+  metric collection shared with `contextual_ingest()` through private helpers in
+  `financial_graph_contextual.py`.
+- stale direct-run demos: removed from `src/agent/financial_graph.py`,
+  `src/agent/rag_chain.py`, `src/storage/vector_store.py`,
+  `src/processing/financial_parser.py`, `src/processing/pdf_parser.py`, and
+  `src/ingestion/dart_fetcher.py`; `dart_fetcher.py` also no longer configures
+  root logging during import.
 
 Validation:
 
 - targeted operand/ledger/subtask suites: `479` OK
 - full unittest discovery: `1248` OK
 - runtime domain-term audit: passed with `215` reviewed literals
+- latest row-surface helper extraction validation:
+  - focused operation/semantic numeric suite: `324` OK
+  - broader projection/subtask/aggregate suite: `464` OK
+  - full unittest discovery: `1324` OK, `full_elapsed=13.985`
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - source-wide import smoke: `modules=112`, `failures=0`,
+    `slow_ge_0_05=1`
+- latest dependency realignment helper extraction validation:
+  - focused operation/subtask/aggregate suite: `550` OK
+  - broader projection/evaluator suite: `238` OK
+  - full unittest discovery: `1324` OK, `full_elapsed=14.240`
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - source-wide import smoke: `modules=112`, `failures=0`,
+    `slow_ge_0_05=1`
+- latest ratio dependency helper extraction validation:
+  - focused operation/subtask/aggregate suite: `550` OK
+  - broader projection/evaluator suite: `238` OK
+  - full unittest discovery: `1324` OK, `full_elapsed=13.960`
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - source-wide import smoke: `modules=112`, `failures=0`,
+    `slow_ge_0_05=1`
+- latest answer-slot period helper extraction validation:
+  - focused answer-slot/calculation suite: `493` OK
+  - broader projection/evaluator suite: `238` OK
+  - full unittest discovery: `1324` OK, `full_elapsed=14.440`
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - source-wide import smoke: `modules=112`, `failures=0`,
+    `slow_ge_0_05=1`
+- latest contextual ingest helper extraction validation:
+  - direct contextual ingest smoke: passed
+  - focused benchmark/import/agent projection suite: `86` OK
+  - broader evaluator/structured/semantic projection suite: `169` OK
+  - full unittest discovery: `1324` OK, `full_elapsed=13.898`
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - source-wide import smoke: `modules=112`, `failures=0`,
+    `slow_ge_0_05=1`
 - latest pushed commit for this cleanup sequence: `9de3c16`
+- latest local trace-owner cleanup validation:
+  - focused evidence/retrieval/structured extraction suite: `382` OK
+  - focused trace projection suite: `346` OK
+  - full unittest discovery: `1273` OK
+  - runtime domain-term audit: passed with `215` reviewed literals
+  - portfolio review gates: `Status: ready`
+- latest direct-run demo deletion validation:
+  - `python3 -m py_compile src/storage/vector_store.py src/agent/financial_graph.py src/agent/rag_chain.py src/ingestion/dart_fetcher.py src/processing/financial_parser.py src/processing/pdf_parser.py`:
+    passed across the touched direct-run cleanup files
+  - `python3 -m unittest tests.test_financial_parser tests.test_vector_store_fallback tests.test_financial_agent_run_projection`:
+    `103` OK
+  - `python3 -m unittest tests.test_resumable_ingest tests.test_generate_grounded_answer_drafts tests.test_financial_router_response`:
+    `28` OK
+  - direct import smoke:
+    `src.agent.rag_chain import_elapsed=0.026`,
+    `src.processing.financial_parser import_elapsed=0.063`,
+    `src.processing.pdf_parser import_elapsed=0.000`,
+    `src.storage.vector_store import_elapsed=0.016`,
+    `src.agent.financial_graph import_elapsed=0.041`,
+    `src.ingestion.dart_fetcher import_elapsed=0.126`,
+    `root_logging_level_changed=False`
+  - non-ops direct-run scan: no `if __name__ == "__main__"` demo surfaces
+    remain under `src/agent`, `src/api`, `src/ingestion`, `src/storage`,
+    `src/processing`, or `src/routing`
+  - combined agent/ops/routing/storage/processing import smoke: `modules=101`,
+    `failures=0`, `slow_ge_0_20=0`
+  - combined agent/api/ingestion/ops/routing/storage/processing import smoke:
+    `modules=103`, `failures=0`, `slow_ge_0_20=0`,
+    `logging_level_changes=0`; after completing the bounded ops bootstrap
+    cleanup, latest combined package import smoke reports `modules=111`,
+    `failures=0`, `slow_ge_0_20=0`, `logging_level_changes=0`, and
+    `syspath_changes=0`
+  - API import side-effect check:
+    `src.api.financial_router import_elapsed=0.211/0.245/0.210`,
+    `syspath_changed=False`
+  - `python3 -m unittest tests.test_financial_router_response`: `3` OK
+  - touched ops direct `--help` smoke: passed across the diagnostic, eval,
+    smoke, rebuild, retrospective, and replay CLI files changed in the bounded
+    bootstrap pass
+  - focused ops/bootstrap suite:
+    `python3 -m unittest tests.test_mas_direct_worker_probe tests.test_ops_runtime_projection_modes tests.test_run_eval_only tests.test_benchmark_runner_runtime_projection tests.test_benchmark_fanout_cost_audit tests.test_report_cache_index_smoke_contract`:
+    `45` OK
+  - focused final ops/bootstrap repeat:
+    `python3 -m unittest tests.test_run_eval_only tests.test_benchmark_runner_runtime_projection tests.test_ops_runtime_projection_modes`:
+    `34` OK
+  - full unittest discovery: `1284` OK, `full_elapsed=6.178`
+  - final full unittest repeat after completing ops direct-run bootstrap
+    cleanup: `python3 -m unittest discover -s tests`: `1284` OK,
+    `full_elapsed=6.716`
+  - runtime domain-term audit: passed with `215` reviewed literals
+- current local split/import cleanup also keeps API and store-fixed eval entry
+  points lazy, including `src.ops.benchmark_runner` and
+  `src.ops.generate_grounded_answer_drafts`; `src.ops.evaluator` now keeps
+  MLflow and vector-store embedding imports at evaluation execution points.
+  Latest full unittest discovery: `1284` OK.
 
 Continue from here only for similarly concrete duplication or contract seams,
 especially `_extract_calculation_operands()` fallback assembly. Do not reopen
@@ -360,9 +757,10 @@ largest parser responsibilities now sit behind focused modules.
 - Added `src/processing/reference_resolution.py` for quoted intra-filing
   reference hint canonicalization, reference index construction, and section
   path resolution.
-- `FinancialParser._canonicalize_reference_text()`,
-  `_build_reference_index()`, `_resolve_reference_path()`, and
-  `_extract_reference_section_paths()` remain compatibility wrappers.
+- `_build_reference_index()` and `_extract_reference_section_paths()` remain
+  local wrappers for parser assembly/tests. Obsolete pass-through wrappers for
+  reference text canonicalization and direct path resolution were removed once
+  no runtime or contract test callers remained.
 - Verification:
   - `uv run --with-requirements requirements-review.txt python -m unittest tests.test_financial_parser`:
     `28` OK
@@ -421,12 +819,66 @@ behind the `VectorStoreManager` facade.
   document creation.
 - Preserved the existing structure graph helper/accessor surface in
   `src.storage.vector_store` through compatibility wrappers.
+- Added `src/storage/chroma_backend.py` for lazy Chroma class access, vector
+  index probing, and Chroma/vector exception classification.
+- Preserved the existing `src.storage.vector_store` Chroma/error helper surface
+  through compatibility wrappers.
+- Added `src/storage/search_merge.py` for search result identity, stable search
+  cache keys, and RRF result merging.
+- Preserved the existing `src.storage.vector_store` search identity/cache helper
+  surface through compatibility wrappers.
+- Added `src/storage/document_batches.py` for add-document input preparation,
+  resume lookup scoping, pending filtering, and batch slicing helpers.
+- `VectorStoreManager.add_documents()` now delegates empty/no-pending result
+  projection, BM25-only vector-skip updates, retrying vector batch writes, and
+  per-batch graph/progress accounting to private owner-internal helpers.
+- Added `src/storage/parent_store.py` for parent chunk JSON load/save, lookup,
+  merge, and receipt-scoped deletion helpers without changing `parents.json`
+  artifacts.
+- Added `src/storage/graph_persistence.py` for structure graph JSON load/save
+  and table payload sidecar persistence without changing
+  `document_structure_graph.json` or `table_payloads.json` artifacts.
 - `VectorStoreManager.search()` behavior and telemetry keys are unchanged.
 - Verification:
   - `.venv/bin/python -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config`:
     `18` OK
   - `python -m py_compile src/storage/vector_store.py src/storage/embedding_config.py src/storage/metadata_payloads.py src/storage/bm25_index.py src/storage/structure_graph.py`:
     passed
+  - `python3 -m py_compile src/storage/chroma_backend.py src/storage/vector_store.py`:
+    passed
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config tests.test_resumable_ingest tests.test_rebuild_vector_store`:
+    `44` OK
+  - `python3 -m py_compile src/storage/search_merge.py src/storage/vector_store.py`:
+    passed
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config tests.test_resumable_ingest tests.test_rebuild_vector_store`:
+    `46` OK
+  - `python3 -m py_compile src/storage/document_batches.py src/storage/vector_store.py`:
+    passed
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config tests.test_resumable_ingest tests.test_rebuild_vector_store`:
+    `48` OK
+  - `python3 -m py_compile src/storage/parent_store.py src/storage/vector_store.py`:
+    passed
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config tests.test_resumable_ingest tests.test_rebuild_vector_store`:
+    `49` OK
+  - `python3 -m py_compile src/storage/graph_persistence.py src/storage/vector_store.py`:
+    passed
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_embedding_runtime_config tests.test_resumable_ingest tests.test_rebuild_vector_store`:
+    `50` OK
+  - latest add-document runtime-path split:
+    `python3 -m py_compile src/storage/document_batches.py src/storage/vector_store.py`:
+    passed
+  - latest focused storage gate:
+    `python3 -m unittest tests.test_vector_store_fallback tests.test_resumable_ingest tests.test_rebuild_vector_store`:
+    `46` OK
+  - latest broader ingest/eval gate:
+    `python3 -m unittest tests.test_benchmark_runner_runtime_projection tests.test_run_eval_only tests.test_embedding_runtime_config tests.test_financial_parser`:
+    `52` OK
+  - latest full unittest discovery: `1324` OK, `full_elapsed=13.522`
+  - latest runtime domain-term audit: passed with `215` reviewed literals
+  - latest source-wide import smoke: `modules=112`, `failures=0`,
+    `slow_ge_0_05=1`
+  - combined agent/ops/routing/storage/processing import smoke:
+    `modules=97`, `failures=0`, `slow_ge_0_20=0`
   - `git diff --check`: passed
 
 Stop line: do not continue splitting `vector_store.py` merely to reduce file
@@ -473,6 +925,15 @@ boundary.
   `src.agent.nodes.researcher_node` private-helper imports.
 - Diagnostic helpers are not re-exported by top-level `src.experimental.mas`;
   callers must opt into the diagnostic module explicitly.
+- Extended the no-behavior-change import boundary across ops CLI/MAS smoke
+  scripts so parser/vector-store/MAS runtime construction happens at execution
+  points, not during module import.
+- Extended the same boundary to storage/evaluator imports: Chroma backend
+  construction and evaluator trace/numeric-surface helpers now load at runtime
+  use sites.
+- Extended the boundary to processing parsers: text splitter and PDF extraction
+  backends now load when parser instances split/extract content, not during
+  parser module import.
 - Full caller import scan result:
   - New public/ops/test callers use `src.experimental.mas`.
   - `src.experimental.mas.*` modules intentionally bridge to the current
@@ -498,6 +959,25 @@ boundary.
     passed
   - `python -m py_compile src/ops/portfolio_demo.py src/ops/mas_analyst_smoke.py src/ops/mas_researcher_smoke.py src/ops/mas_e2e_smoke.py src/ops/mas_direct_worker_probe.py`:
     passed
+  - full `src.ops` package import smoke:
+    `modules=42`, `failures=0`, `slow_ge_0_20=0`
+  - combined agent/ops/routing/storage import smoke:
+    `modules=88`, `failures=0`, `slow_ge_0_20=0`
+  - combined agent/ops/routing/storage/processing import smoke:
+    `modules=96`, `failures=0`, `slow_ge_0_20=0`; latest repeat after
+    structure graph persistence extraction: `modules=101`, `failures=0`,
+    `slow_ge_0_20=0`
+  - `python3 -m unittest tests.test_mas_researcher_smoke_contract tests.test_mas_e2e_smoke tests.test_mas_e2e_smoke_contract tests.test_mas_direct_worker_probe`:
+    `24` OK
+  - `python3 -m unittest tests.test_vector_store_fallback tests.test_resumable_ingest tests.test_rebuild_vector_store tests.test_embedding_runtime_config tests.test_embedding_usage tests.test_run_eval_only`:
+    `51` OK
+  - `python3 -m unittest tests.test_evaluator_runtime_projection tests.test_evaluator_progress tests.test_ops_runtime_projection_modes`:
+    `82` OK
+  - `python3 -m unittest tests.test_financial_parser`:
+    `30` OK
+  - `python3 -m unittest discover -s tests`:
+    `1277` OK; latest repeat after structure graph persistence extraction:
+    `1284` OK, `full_elapsed=6.774`
   - `python -m py_compile tests/test_analyst_node.py tests/test_researcher_node.py tests/test_critic_node.py tests/test_orchestrator_node.py tests/test_multi_agent_graph.py`:
     passed
   - `uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates`:
@@ -529,9 +1009,14 @@ development profile.
   benchmark / app dependency lock.
 - README representative checks are split into lightweight reviewer commands,
   capability-specific gates, and full development commands.
+- README quick review path now references command names and keeps executable
+  reviewer command strings in the representative-checks block only.
 - `docs/README.md` documents the dependency profile boundary.
 - `docs/overview/portfolio_one_pager.md` now links to README for reviewer
   commands instead of duplicating the command block.
+- `docs/overview/portfolio_one_pager.md` no longer carries a stale exact full
+  unittest count; latest counts live in `project_status.md` and the current
+  cleanup manifest.
 - `docs/README.md` separates the core 5-document reviewer path from optional
   interview/resume deliverables.
 - Verification:
@@ -542,11 +1027,13 @@ development profile.
   - `requirements.txt` and `requirements-review.txt` parsed via
     `packaging.requirements.Requirement`
   - reviewer-facing doc local link check:
-    passed
+    passed; latest repeat checked `49` local markdown links with `0` missing
+  - reviewer-facing stale test-count search:
+    no matches for `1223` or `latest full unittest discovery passed`
   - `git diff --check`: passed
 - Next PR 8 seam should stay docs-only unless a command actually needs a new
-  dependency profile. Run a link/claim duplication check across reviewer-facing
-  docs, or close PR 8 with a stop-line before final portfolio review.
+  dependency profile. Prefer closing PR 8 with a stop-line before final
+  portfolio review.
 
 ## Deletion Criteria
 

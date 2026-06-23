@@ -358,13 +358,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_scope_policies.py",
       "text": "(20\\d{2})년",
       "category": "regex_or_pattern",
       "fingerprint": "3aa50a1e3dd9f9bb",
       "count": 1,
       "first_lines": [
-        2972
+        100
       ]
     },
     {
@@ -388,23 +388,23 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "(?:조|억|백만|천)\\s*원?|원",
       "category": "regex_or_pattern",
       "fingerprint": "8d15177a51f8ea8a",
       "count": 1,
       "first_lines": [
-        6293
+        79
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_text_surface.py",
       "text": "(?<=[.!?])\\s+|(?<=다)\\s+",
       "category": "regex_or_pattern",
       "fingerprint": "3f041c51b081a96d",
       "count": 1,
       "first_lines": [
-        300
+        19
       ]
     },
     {
@@ -418,23 +418,23 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_runtime_normalization.py",
       "text": "(?P<jo>[\\d,]+(?:\\.\\d+)?)\\s*조\\s*(?P<eok>[\\d,]+(?:\\.\\d+)?)\\s*억",
       "category": "regex_or_pattern",
-      "fingerprint": "579e64c9085b58f1",
+      "fingerprint": "45c6bc684192cb3a",
       "count": 1,
       "first_lines": [
-        1877
+        62
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_runtime_normalization.py",
       "text": "(?P<jo>[\\d,]+(?:\\.\\d+)?)\\s*조\\s*원?",
       "category": "regex_or_pattern",
-      "fingerprint": "fb88d9b6042a4ab8",
+      "fingerprint": "338c2286acccd0e6",
       "count": 1,
       "first_lines": [
-        1884
+        69
       ]
     },
     {
@@ -448,33 +448,33 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "[\\d,]+(?:\\.\\d+)?\\s*(?:조|억)(?:\\s*[\\d,]+(?:\\.\\d+)?\\s*억)?\\s*원?\\s*\\(\\s*(?P<value>[\\d,]+(?:\\.\\d+)?)\\s*(?P<unit>백\\s*만\\s*원|천\\s*원|원)\\s*\\)",
       "category": "prompt_or_template",
       "fingerprint": "5eba65865611eed0",
       "count": 1,
       "first_lines": [
-        6321
+        107
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "[\\d,]+(?:\\.\\d+)?\\s*조(?:\\s*[\\d,]+(?:\\.\\d+)?\\s*억(?:원)?)?|[\\d,]+(?:\\.\\d+)?\\s*(?:조|억|백만|천)\\s*원?|[\\d,]+(?:\\.\\d+)?\\s*원|[\\d,]+(?:\\.\\d+)?",
       "category": "prompt_or_template",
       "fingerprint": "76ace638702d5adb",
       "count": 1,
       "first_lines": [
-        6272
+        57
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_text_surface.py",
       "text": "[가-힣A-Za-z0-9]+",
       "category": "regex_or_pattern",
       "fingerprint": "f2804fadf9da1dbe",
       "count": 1,
       "first_lines": [
-        199
+        11
       ]
     },
     {
@@ -489,13 +489,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "\\((?:주\\s*\\d+[^\\)]*|\\*)\\)",
       "category": "regex_or_pattern",
       "fingerprint": "c5b5314c80a4a20a",
       "count": 1,
       "first_lines": [
-        6233
+        19
       ]
     },
     {
@@ -509,53 +509,53 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "\\s*\\(\\s*(?P<unit>조\\s*원|억\\s*원|백\\s*만\\s*원|천\\s*원|원)\\s*\\)",
       "category": "regex_or_pattern",
       "fingerprint": "508662ee99ee39e5",
       "count": 1,
       "first_lines": [
-        6297
+        83
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "\\s*\\(\\s*(?P<value>[\\d,]+(?:\\.\\d+)?)\\s*(?P<unit>백\\s*만\\s*원|천\\s*원|원)\\s*\\)",
       "category": "regex_or_pattern",
       "fingerprint": "892b7fc8fe5550be",
       "count": 1,
       "first_lines": [
-        6284
+        70
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "^(?:(?:20\\d{2}\\s*년?)|(?:제\\s*\\d+\\s*기)|(?:당기|전기|현재|이전|직전|이번|금년)(?:\\s*연도)?)(?:\\s+|$)",
       "category": "regex_or_pattern",
       "fingerprint": "04e17ed82b398fc3",
       "count": 1,
       "first_lines": [
-        6243
+        29
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "^(?P<label>.*?)(?P<value>[\\(\\)\\-]?\\d[\\d,]*(?:\\.\\d+)?)\\s*(?P<unit>백만원|천원|억원|원|%|퍼센트)?$",
       "category": "regex_or_pattern",
       "fingerprint": "a06423b14a7b545a",
       "count": 1,
       "first_lines": [
-        6527
+        200
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_runtime_normalization.py",
       "text": "^\\d{4}년\\s*",
       "category": "regex_or_pattern",
-      "fingerprint": "9d38cab54d22f5c5",
+      "fingerprint": "88ba4e660638e5d2",
       "count": 1,
       "first_lines": [
-        2107
+        160
       ]
     },
     {
@@ -580,13 +580,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_scope_policies.py",
       "text": "당기",
       "category": "runtime_literal",
       "fingerprint": "f22c656be12d3f6d",
       "count": 1,
       "first_lines": [
-        2064
+        91
       ]
     },
     {
@@ -614,43 +614,43 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "억",
       "category": "runtime_literal",
       "fingerprint": "25f17ac6aad50c38",
       "count": 1,
       "first_lines": [
-        6280
+        66
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_scope_policies.py",
       "text": "전기",
       "category": "runtime_literal",
       "fingerprint": "3b842ac261c59c9e",
       "count": 1,
       "first_lines": [
-        2066
+        93
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_structured_cells.py",
       "text": "제\\s*(\\d+)\\s*기",
       "category": "regex_or_pattern",
       "fingerprint": "d65f8e3db10c2030",
       "count": 1,
       "first_lines": [
-        5787
+        14
       ]
     },
     {
-      "path": "src/agent/financial_graph_helpers.py",
+      "path": "src/agent/financial_row_surfaces.py",
       "text": "조",
       "category": "runtime_literal",
       "fingerprint": "29c0f2198b3be826",
       "count": 1,
       "first_lines": [
-        6280
+        66
       ]
     },
     {
