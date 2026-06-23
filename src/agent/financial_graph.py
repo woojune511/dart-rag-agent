@@ -20,12 +20,12 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from dotenv import load_dotenv
 from src.agent.financial_graph_contextual import FinancialAgentContextualMixin
+from src.agent.financial_graph_state import FinancialAgentState
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import (
         AgentAnswer,
         DebugBundle,
         DebugTraceBundle,
-        FinancialAgentState,
         ReviewTrace,
         RuntimeCalculationTrace,
     )

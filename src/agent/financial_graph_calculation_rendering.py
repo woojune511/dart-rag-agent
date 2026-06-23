@@ -14,7 +14,7 @@ from src.agent.financial_runtime_normalization import (
     _format_korean_won_compact,
     _normalise_spaces,
 )
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, CONCEPT_RATIO_RESULT_UNIT_POLICY
 
 
 def direction_hint_for_result(
@@ -70,6 +70,15 @@ def format_calculation_value(value: float, result_unit: str, normalized_unit: st
 def format_ratio_percent_result(result_value: float) -> str:
     rendered_value = format_calculation_value(result_value, "%", "PERCENT")
     return rendered_value if "%" in rendered_value else f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
+
+
+def format_ratio_result(result_value: float, result_unit: str) -> str:
+    unit = _normalise_spaces(str(result_unit or ""))
+    multiplier_unit = _normalise_spaces(str(CONCEPT_RATIO_RESULT_UNIT_POLICY.get("multiplier_unit") or ""))
+    if unit and unit == multiplier_unit:
+        rendered_value = format_calculation_value(result_value, unit, "COUNT")
+        return f"{rendered_value}{unit}"
+    return format_ratio_percent_result(result_value)
 
 
 def format_calculation_value_in_display_unit(value: float, display_unit: str) -> str:

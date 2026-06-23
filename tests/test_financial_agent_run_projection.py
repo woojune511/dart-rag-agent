@@ -59,6 +59,13 @@ class _PhaseUsageGraph:
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
+    def test_build_graph_resolves_state_type_hints_for_langgraph_routes(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        graph = FinancialAgent._build_graph(agent)
+
+        self.assertIsNotNone(graph)
+
     def test_state_typing_keeps_debug_surface_optional_without_flat_calculation_mirrors(self) -> None:
         self.assertIn("answer", AgentAnswer.__optional_keys__)
         self.assertIn("task_artifact_trace", ReviewTrace.__optional_keys__)

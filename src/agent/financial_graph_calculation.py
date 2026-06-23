@@ -72,6 +72,7 @@ from src.agent.financial_dependency_projection import (
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
+    _infer_concept_ratio_result_unit,
     _merge_operand_rows,
     _missing_required_operands,
     _operand_period_focus,
@@ -90,6 +91,7 @@ from src.agent.financial_graph_model_loaders import (
     _calculation_verification_output_model,
     _operand_extraction_model,
 )
+from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
 from src.agent.financial_formula_eval import _safe_eval_formula
 from src.agent.financial_operation_policies import (
@@ -154,8 +156,6 @@ from src.agent.financial_task_artifacts import (
     reflection_report_artifact_update as _build_reflection_report_artifact_update,
     supersede_task_with_aggregate_result as _supersede_task_with_aggregate_result,
 )
-if TYPE_CHECKING:
-    from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_lookup_recovery import (
     align_or_replace_successful_lookup_row,
@@ -172,6 +172,7 @@ from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     CALCULATION_RENDER_POLICY,
     CALCULATION_SLOT_POLICY,
+    CONCEPT_RATIO_RESULT_UNIT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     KOREAN_TABLE_CHANGE_HEADER_LABEL,
@@ -3014,7 +3015,7 @@ class FinancialAgentCalculationMixin:
                 str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
             ).lower()
             if operation_family == "ratio" and status != "ok":
-                answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
+                answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id, query=query)
                 if answer:
                     _append_ranked_answer(row, answer)
                 continue
@@ -3046,7 +3047,7 @@ class FinancialAgentCalculationMixin:
                         continue
             if self._aggregate_result_dependency_coherence_ranks(row, source_slot_by_task_id)[0] == 0:
                 if operation_family == "ratio":
-                    answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id)
+                    answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id, query=query)
                     if answer:
                         _append_ranked_answer(row, answer)
                 continue
@@ -4468,6 +4469,20 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
+    def _answer_reuses_numeric_narrative_summary_text(
+        self,
+        answer: str,
+        ordered_results: List[Dict[str, Any]],
+    ) -> bool:
+        if not self._answer_reuses_narrative_summary_text(answer, ordered_results):
+            return False
+        non_percent_candidates = [
+            candidate
+            for candidate in extract_numeric_surface_candidates(answer)
+            if str(candidate.get("kind") or "") != "percent"
+        ]
+        return len(non_percent_candidates) >= 2
+
     def _uncovered_supported_growth_narrative_candidate(
         self,
         *,
@@ -4556,6 +4571,14 @@ class FinancialAgentCalculationMixin:
         def _has_explanatory_signal(sentence: str) -> bool:
             sentence_text = _normalise_spaces(str(sentence or ""))
             return bool(sentence_text) and any(marker in sentence_text for marker in explanatory_markers)
+
+        if (
+            self._query_requests_explanatory_context(query_text)
+            and self._answer_reuses_numeric_narrative_summary_text(current_answer_text, ordered_results)
+            and _has_explanatory_signal(current_answer_text)
+            and re.search(str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"$^"), current_answer_text)
+        ):
+            return {"answer": current_answer_text, "selected_claim_ids": []}
 
         conflicting_narrative = self._preferred_conflicting_growth_narrative_answer(
             query=query_text,
@@ -5668,6 +5691,10 @@ class FinancialAgentCalculationMixin:
             has_narrative_summary
             and not supported_aggregate_answer
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            and not (
+                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+            )
         ):
             final_answer = self._ensure_complete_growth_numeric_answer(
                 final_answer,
@@ -6108,6 +6135,10 @@ class FinancialAgentCalculationMixin:
             and has_narrative_summary
             and has_growth_rate_result
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            and not (
+                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+            )
         ):
             numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
                 final_answer,
@@ -8881,6 +8912,30 @@ class FinancialAgentCalculationMixin:
         )
         return calculation_result
 
+    def _ratio_result_projection(
+        self,
+        *,
+        numerator_value: float,
+        denominator_value: float,
+        query: str,
+        metric_label: str,
+    ) -> Dict[str, Any]:
+        result_unit = _infer_concept_ratio_result_unit(query, metric_label, "ratio") or "%"
+        multiplier_unit = str(CONCEPT_RATIO_RESULT_UNIT_POLICY.get("multiplier_unit") or "")
+        if result_unit == multiplier_unit:
+            result_value = numerator_value / denominator_value
+            normalized_unit = "COUNT"
+        else:
+            result_unit = "%"
+            result_value = numerator_value / denominator_value * 100.0
+            normalized_unit = "PERCENT"
+        return {
+            "result_value": result_value,
+            "result_unit": result_unit,
+            "normalized_unit": normalized_unit,
+            "rendered_value": calculation_rendering.format_ratio_result(result_value, result_unit),
+        }
+
     def _rebuilt_ratio_result_from_dependency_slots(
         self,
         *,
@@ -8890,6 +8945,8 @@ class FinancialAgentCalculationMixin:
         numerator_slot: Dict[str, Any],
         denominator_slot: Dict[str, Any],
         result_value: float,
+        result_unit: str,
+        normalized_unit: str,
         rendered_value: str,
         source_row_ids: List[str],
     ) -> Dict[str, Any]:
@@ -8898,7 +8955,7 @@ class FinancialAgentCalculationMixin:
             "status": "ok",
             "operation_family": "ratio",
             "result_value": result_value,
-            "result_unit": "%",
+            "result_unit": result_unit,
             "rendered_value": rendered_value,
             "formatted_result": "",
             "source_row_ids": source_row_ids,
@@ -8915,9 +8972,9 @@ class FinancialAgentCalculationMixin:
                     "concept": "",
                     "period": "",
                     "raw_value": rendered_value,
-                    "raw_unit": "%",
+                    "raw_unit": result_unit,
                     "normalized_value": result_value,
-                    "normalized_unit": "PERCENT",
+                    "normalized_unit": normalized_unit,
                     "rendered_value": rendered_value,
                     "source_row_id": source_row_ids[0] if source_row_ids else "",
                     "source_row_ids": source_row_ids,
@@ -8938,6 +8995,8 @@ class FinancialAgentCalculationMixin:
         self,
         row: Dict[str, Any],
         source_slot_by_task_id: Dict[str, Dict[str, Any]],
+        *,
+        query: str = "",
     ) -> str:
         source_slots = {
             task_id: dict(slot)
@@ -9032,8 +9091,16 @@ class FinancialAgentCalculationMixin:
         denominator_value = financial_answer_slots.coerce_slot_numeric(denominator_slot.get("normalized_value"))
         if numerator_value is None or denominator_value in {None, 0}:
             return ""
-        result_value = float(numerator_value) / float(denominator_value) * 100.0
-        rendered_value = calculation_rendering.format_ratio_percent_result(result_value)
+        projection = self._ratio_result_projection(
+            numerator_value=float(numerator_value),
+            denominator_value=float(denominator_value),
+            query=query,
+            metric_label=metric_label,
+        )
+        result_value = float(projection["result_value"])
+        result_unit = str(projection["result_unit"])
+        normalized_unit = str(projection["normalized_unit"])
+        rendered_value = str(projection["rendered_value"])
         source_row_ids = _clean_source_row_ids([
             numerator_slot.get("source_row_id"),
             numerator_slot.get("source_row_ids"),
@@ -9047,6 +9114,8 @@ class FinancialAgentCalculationMixin:
             numerator_slot=numerator_slot,
             denominator_slot=denominator_slot,
             result_value=result_value,
+            result_unit=result_unit,
+            normalized_unit=normalized_unit,
             rendered_value=rendered_value,
             source_row_ids=source_row_ids,
         )
@@ -9058,7 +9127,7 @@ class FinancialAgentCalculationMixin:
                     "calculation_plan": {
                         "status": "ok",
                         "operation": "ratio",
-                        "result_unit": "%",
+                        "result_unit": result_unit,
                     },
                     "calculation_result": rebuilt_result,
                 },
@@ -18955,9 +19024,17 @@ class FinancialAgentCalculationMixin:
             if denominator_value == 0:
                 continue
             numerator_value = sum(float(value) for value in numerator_values if value is not None)
-            result_value = numerator_value / denominator_value * 100.0
-            rendered_value = calculation_rendering.format_ratio_percent_result(result_value)
             metric_label = _normalise_spaces(str(task_data.get("metric_label") or task_data.get("target_metric") or ""))
+            projection = self._ratio_result_projection(
+                numerator_value=numerator_value,
+                denominator_value=denominator_value,
+                query=str(state.get("query") or ""),
+                metric_label=metric_label,
+            )
+            result_value = float(projection["result_value"])
+            result_unit = str(projection["result_unit"])
+            normalized_unit = str(projection["normalized_unit"])
+            rendered_value = str(projection["rendered_value"])
             source_row_ids = _clean_source_row_ids(
                 [row.get("source_row_id") or row.get("source_row_ids") for row in dependency_rows]
             )
@@ -18983,7 +19060,7 @@ class FinancialAgentCalculationMixin:
                 "status": "ok",
                 "operation_family": "ratio",
                 "result_value": result_value,
-                "result_unit": "%",
+                "result_unit": result_unit,
                 "rendered_value": rendered_value,
                 "formatted_result": "",
                 "source_row_ids": source_row_ids,
@@ -18999,9 +19076,9 @@ class FinancialAgentCalculationMixin:
                         "concept": "",
                         "period": "",
                         "raw_value": rendered_value,
-                        "raw_unit": "%",
+                        "raw_unit": result_unit,
                         "normalized_value": result_value,
-                        "normalized_unit": "PERCENT",
+                        "normalized_unit": normalized_unit,
                         "rendered_value": rendered_value,
                         "source_row_id": source_row_ids[0] if source_row_ids else "",
                         "source_row_ids": source_row_ids,
@@ -19024,7 +19101,7 @@ class FinancialAgentCalculationMixin:
                     "active_subtask": {"metric_label": metric_label},
                     "resolved_calculation_trace": {
                         "calculation_operands": dependency_rows,
-                        "calculation_plan": {"status": "ok", "operation": "ratio", "result_unit": "%"},
+                        "calculation_plan": {"status": "ok", "operation": "ratio", "result_unit": result_unit},
                         "calculation_result": calculation_result,
                     },
                 },
@@ -19231,7 +19308,17 @@ class FinancialAgentCalculationMixin:
             if denominator_value == 0:
                 continue
             numerator_value = sum(float(value) for value in numerator_values if value is not None)
-            result_value = numerator_value / denominator_value * 100.0
+            metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
+            projection = self._ratio_result_projection(
+                numerator_value=numerator_value,
+                denominator_value=denominator_value,
+                query=str(state.get("query") or ""),
+                metric_label=metric_label,
+            )
+            result_value = float(projection["result_value"])
+            result_unit = str(projection["result_unit"])
+            normalized_unit = str(projection["normalized_unit"])
+            rendered_value = str(projection["rendered_value"])
             source_row_ids = _clean_source_row_ids([
                 row.get("source_row_id") or row.get("evidence_id") or row.get("source_row_ids")
                 for row in context_rows
@@ -19250,10 +19337,9 @@ class FinancialAgentCalculationMixin:
                 existing_result_rows,
                 task,
                 result_value=result_value,
-                context_evidence=projection_evidence or context_evidence,
-            ):
-                continue
-            rendered_value = calculation_rendering.format_ratio_percent_result(result_value)
+                    context_evidence=projection_evidence or context_evidence,
+                ):
+                    continue
             numerator_slots = [
                 {**financial_answer_slots.build_operand_value_slot(row, default_role=str(row.get("matched_operand_role") or "numerator")), "role": str(row.get("matched_operand_role") or "numerator")}
                 for row in numerator_rows
@@ -19266,12 +19352,11 @@ class FinancialAgentCalculationMixin:
                 str(slot.get("role") or f"component_{index + 1}"): [slot]
                 for index, slot in enumerate(numerator_slots + denominator_slots)
             }
-            metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
             calculation_result = {
                 "status": "ok",
                 "operation_family": "ratio",
                 "result_value": result_value,
-                "result_unit": "%",
+                "result_unit": result_unit,
                 "rendered_value": rendered_value,
                 "formatted_result": "",
                 "source_row_ids": source_row_ids,
@@ -19287,9 +19372,9 @@ class FinancialAgentCalculationMixin:
                         "concept": "",
                         "period": "",
                         "raw_value": rendered_value,
-                        "raw_unit": "%",
+                        "raw_unit": result_unit,
                         "normalized_value": result_value,
-                        "normalized_unit": "PERCENT",
+                        "normalized_unit": normalized_unit,
                         "rendered_value": rendered_value,
                         "source_row_id": source_row_ids[0] if source_row_ids else "",
                         "source_row_ids": source_row_ids,
@@ -19315,7 +19400,7 @@ class FinancialAgentCalculationMixin:
                         "calculation_plan": {
                             "status": "ok",
                             "operation": "ratio",
-                            "result_unit": "%",
+                            "result_unit": result_unit,
                         },
                         "calculation_result": calculation_result,
                     },
@@ -19885,6 +19970,10 @@ class FinancialAgentCalculationMixin:
         if (
             has_narrative_summary
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            and not (
+                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+            )
         ):
             final_answer = self._ensure_complete_growth_numeric_answer(
                 final_answer,
@@ -20002,10 +20091,23 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             evidence_items=aggregate_evidence_items,
         )
+        final_answer_satisfies_requested_growth_narrative = bool(
+            self._query_requests_explanatory_context(str(state.get("query") or ""))
+            and (
+                self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                or self._answer_satisfies_growth_narrative_intent(
+                    query=str(state.get("query") or ""),
+                    answer=final_answer,
+                    ordered_results=ordered_results,
+                    evidence_items=aggregate_evidence_items,
+                )
+            )
+        )
         if (
             consistent_numeric_answer
             and _normalise_spaces(consistent_numeric_answer) != _normalise_spaces(final_answer)
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            and not final_answer_satisfies_requested_growth_narrative
             and self._complete_numeric_answer_can_replace_final(consistent_numeric_answer, ordered_results)
             and (
                 not self._answer_covers_numeric_projection(final_answer, ordered_results)
@@ -20218,6 +20320,18 @@ class FinancialAgentCalculationMixin:
             and has_growth_rate_result
             and self._has_strong_growth_trace_for_answer_refresh(ordered_results)
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
+            and not (
+                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                and (
+                    self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                    or self._answer_satisfies_growth_narrative_intent(
+                        query=str(state.get("query") or ""),
+                        answer=final_answer,
+                        ordered_results=ordered_results,
+                        evidence_items=aggregate_evidence_items,
+                    )
+                )
+            )
         ):
             numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
                 final_answer,
@@ -20284,7 +20398,10 @@ class FinancialAgentCalculationMixin:
             final_answer = final_complete_projection_answer
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
             _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
-        if self._has_strong_growth_trace_for_answer_refresh(ordered_results):
+        if self._has_strong_growth_trace_for_answer_refresh(ordered_results) and not (
+            self._query_requests_explanatory_context(str(state.get("query") or ""))
+            and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+        ):
             trace_clean_growth_answer = self._final_growth_answer_without_untraced_numeric_sentences(
                 query=str(state.get("query") or ""),
                 answer=final_answer,

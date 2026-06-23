@@ -5455,6 +5455,19 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(denominator["raw_value"], "1,001,290")
         self.assertIn("task_output:task_denominator", denominator["source_row_ids"])
 
+    def test_task_output_ratio_projection_uses_multiplier_unit_for_ratio_marker(self) -> None:
+        projection = self.agent._ratio_result_projection(
+            numerator_value=350_000_000.0,
+            denominator_value=100_000_000.0,
+            query="2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+            metric_label="이자보상배율",
+        )
+
+        self.assertEqual(projection["result_unit"], "배")
+        self.assertEqual(projection["normalized_unit"], "COUNT")
+        self.assertEqual(projection["result_value"], 3.5)
+        self.assertEqual(projection["rendered_value"], "3.5배")
+
     def test_nested_aggregate_promotes_stronger_same_task_rows(self) -> None:
         weak_current = {
             "task_id": "task_current",
@@ -13486,6 +13499,105 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("1,847,775백만원", updated["answer"])
         self.assertNotIn("98.15%", updated["answer"])
         self.assertNotIn("5,400만원", updated["answer"])
+
+    def test_aggregate_subtasks_keeps_explanatory_growth_answer_over_conflicting_numeric_trace(self) -> None:
+        expected_answer = (
+            "2023년 비용은 3,146,409백만원으로, 2022년 1,847,775백만원 대비 70.28% 증가했습니다. "
+            "보수적인 충당금 적립이 비용 증가의 배경입니다."
+        )
+        self.agent.llm = _StubLLM(
+            AggregateSynthesisOutput.model_validate(
+                {
+                    "final_answer": expected_answer,
+                    "planner_feedback": "",
+                }
+            )
+        )
+        self.agent._compose_growth_narrative_answer = lambda **_kwargs: None
+        state = {
+            "query": "2023년 비용의 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+            "calc_subtasks": [
+                {"task_id": "task_growth"},
+                {"task_id": "task_summary"},
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_growth",
+                    "metric_family": "concept_growth_rate",
+                    "metric_label": "비용 증가율",
+                    "operation_family": "growth_rate",
+                    "answer": "165.49%",
+                    "status": "ok",
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "165.49%",
+                        "formatted_result": "165.49%",
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "비용 증가율",
+                                "period": "2023",
+                                "normalized_value": 165.49,
+                                "normalized_unit": "PERCENT",
+                                "rendered_value": "165.49%",
+                            },
+                            "current_value": {
+                                "status": "ok",
+                                "label": "비용",
+                                "period": "2023",
+                                "normalized_value": 3_146_409_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "3,146,409백만원",
+                                "source_row_ids": ["ev_current"],
+                            },
+                            "prior_value": {
+                                "status": "ok",
+                                "label": "비용",
+                                "period": "2022",
+                                "normalized_value": 1_185_133_000_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "1,185,133백만원",
+                                "source_row_ids": ["ev_wrong_prior"],
+                            },
+                        },
+                    },
+                },
+                {
+                    "task_id": "task_summary",
+                    "metric_family": "narrative_summary",
+                    "metric_label": "리스크 관리 측면 원인",
+                    "operation_family": "narrative_summary",
+                    "answer": expected_answer,
+                    "status": "ok",
+                    "selected_claim_ids": ["ev_driver"],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {"operation_family": "narrative_summary"},
+                    },
+                },
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_driver",
+                    "claim": "보수적인 충당금 적립이 비용 증가의 배경입니다.",
+                    "quote_span": "보수적인 충당금 적립이 비용 증가의 배경입니다.",
+                    "support_level": "direct",
+                    "question_relevance": "high",
+                }
+            ],
+            "plan_loop_count": 2,
+            "artifacts": [],
+            "selected_claim_ids": [],
+        }
+
+        updated = self.agent._aggregate_calculation_subtasks(state)
+
+        self.assertIn("70.28%", updated["answer"])
+        self.assertIn("1,847,775백만원", updated["answer"])
+        self.assertIn("보수적인 충당금 적립", updated["answer"])
+        self.assertNotIn("165.49%", updated["answer"])
+        self.assertNotIn("1,185,133백만원", updated["answer"])
 
     def test_nested_growth_promotion_prefers_sign_consistent_operand_pair(self) -> None:
         sign_mixed_growth = {
