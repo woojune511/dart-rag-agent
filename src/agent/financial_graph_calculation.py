@@ -1760,12 +1760,13 @@ class FinancialAgentCalculationMixin:
                 if match.get("_matched_line_index") is not None
             }
         ) == 1
+        period_header_text = _normalise_spaces(str(metadata.get("table_header_context") or ""))
+        period_presence_pattern = str(CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT)
+        fiscal_period_presence_pattern = str(CALCULATION_SLOT_POLICY.get("fiscal_period_presence_pattern") or "")
         table_has_period_columns = bool(
             len(metadata.get("period_labels") or []) > 1
-            or re.search(
-                str(CALCULATION_SLOT_POLICY.get("period_presence_pattern") or KOREAN_PERIOD_PREFIX_RE_FRAGMENT),
-                _normalise_spaces(str(metadata.get("table_header_context") or "")),
-            )
+            or re.search(period_presence_pattern, period_header_text)
+            or (fiscal_period_presence_pattern and re.search(fiscal_period_presence_pattern, period_header_text))
         )
         if (
             prefers_aggregate
@@ -7736,16 +7737,72 @@ class FinancialAgentCalculationMixin:
                 if candidate_slot:
                     preferred_raw_number = _parse_number_text(str(candidate_slot.get("raw_value") or ""))
                 candidate_has_sibling_context = bool(candidate_slot) and _candidate_slot_has_sibling_input_context(candidate_slot)
+                candidate_value_matches_task_output = bool(
+                    preferred_raw_number is not None
+                    and source_raw_number is not None
+                    and abs(float(source_raw_number) - float(preferred_raw_number)) <= 1e-6
+                )
+                candidate_value_compatible_with_task_output = bool(
+                    candidate_slot and not self._operand_row_values_materially_conflict(source_slot, candidate_slot)
+                )
+
+                def _sibling_candidate_can_repair_task_output(slot: Dict[str, Any]) -> bool:
+                    if not slot or not candidate_has_sibling_context:
+                        return False
+                    try:
+                        source_normalized = source_slot.get("normalized_value")
+                        candidate_normalized = slot.get("normalized_value")
+                        source_is_zero = (
+                            source_raw_number is not None
+                            and abs(float(source_raw_number)) <= 1e-12
+                        ) or (
+                            source_normalized is not None
+                            and abs(float(source_normalized)) <= 1e-12
+                        )
+                        candidate_is_nonzero = (
+                            preferred_raw_number is not None
+                            and abs(float(preferred_raw_number)) > 1e-12
+                        ) or (
+                            candidate_normalized is not None
+                            and abs(float(candidate_normalized)) > 1e-12
+                        )
+                    except (TypeError, ValueError):
+                        source_is_zero = False
+                        candidate_is_nonzero = False
+                    if source_is_zero and candidate_is_nonzero:
+                        return True
+                    render_policy = dict(CALCULATION_RENDER_POLICY)
+                    krw_normalized_unit = _normalise_spaces(
+                        str(render_policy.get("krw_normalized_unit") or "KRW")
+                    ).upper()
+                    source_normalized_unit = _normalise_spaces(
+                        str(source_slot.get("normalized_unit") or "")
+                    ).upper()
+                    candidate_normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+                    if source_normalized_unit != krw_normalized_unit or candidate_normalized_unit != krw_normalized_unit:
+                        return False
+                    krw_display_units = {
+                        _normalise_spaces(str(unit or ""))
+                        for unit in dict(render_policy.get("krw_display_unit_scales") or {})
+                        if _normalise_spaces(str(unit or ""))
+                    }
+                    source_unit = _normalise_spaces(str(source_slot.get("raw_unit") or ""))
+                    candidate_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+                    return bool(
+                        source_unit
+                        and candidate_unit
+                        and source_unit != candidate_unit
+                        and source_unit in krw_display_units
+                        and candidate_unit in krw_display_units
+                    )
                 allow_preferred_slot_lookup = (
                     bool(candidate_slot)
                     and source_raw_number is not None
                     and (preferred_raw_number is not None or candidate_has_sibling_context)
                     and (
-                        (
-                            preferred_raw_number is not None
-                            and abs(float(source_raw_number) - float(preferred_raw_number)) <= 1e-6
-                        )
-                        or candidate_has_sibling_context
+                        candidate_value_matches_task_output
+                        or (candidate_has_sibling_context and candidate_value_compatible_with_task_output)
+                        or _sibling_candidate_can_repair_task_output(candidate_slot)
                     )
                 )
                 if allow_preferred_slot_lookup:
@@ -12550,6 +12607,11 @@ class FinancialAgentCalculationMixin:
         if not self._operand_row_value_differs(row, replacement):
             return False
         if not self._operand_row_values_materially_conflict(row, replacement):
+            return False
+        repair_source = _normalise_spaces(str(row.get("unit_normalization_repair_source") or ""))
+        source_raw_unit = _normalise_spaces(str(row.get("source_raw_unit") or ""))
+        replacement_raw_unit = _normalise_spaces(str(replacement.get("raw_unit") or ""))
+        if repair_source == "alternate_table_krw_surface" and not source_raw_unit and replacement_raw_unit:
             return False
         row_source_ids = self._operand_row_source_id_set(row)
         task_output_backed = any(source_id.startswith("task_output:") for source_id in row_source_ids)
@@ -18902,6 +18964,41 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         state: FinancialAgentState,
     ) -> List[Dict[str, Any]]:
+        def _task_output_bindings(task_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+            bindings = [dict(item) for item in list(task_data.get("inputs") or []) if isinstance(item, dict)]
+            if bindings:
+                return bindings
+            dependency_ids = [
+                _normalise_spaces(str(item or ""))
+                for item in list(task_data.get("depends_on") or [])
+                if _normalise_spaces(str(item or ""))
+            ]
+            required_operands = [
+                dict(item)
+                for item in list(task_data.get("required_operands") or [])
+                if isinstance(item, dict)
+            ]
+            if not dependency_ids or len(dependency_ids) != len(required_operands):
+                return []
+            synthesized: List[Dict[str, Any]] = []
+            for required_operand, dependency_id in zip(required_operands, dependency_ids):
+                synthesized.append(
+                    {
+                        **required_operand,
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                        "preferred_task_id": dependency_id,
+                    }
+                )
+            return synthesized
+
+        has_task_output_ratio_bindings = any(
+            _normalise_spaces(str((task or {}).get("operation_family") or (task or {}).get("operation") or "")).lower()
+            == "ratio"
+            and bool(_task_output_bindings(dict(task or {})))
+            for task in list(state.get("calc_subtasks") or [])
+            if isinstance(task, dict)
+        )
         if any(
             self._aggregate_result_operation_family(row) == "ratio"
             and row.get("recovered_from_retrieved_ratio_context")
@@ -18909,13 +19006,29 @@ class FinancialAgentCalculationMixin:
             == "ok"
             for row in ordered_results
             if isinstance(row, dict)
-        ):
+        ) and not has_task_output_ratio_bindings:
             return ordered_results
         result_by_task_id = {
             _normalise_spaces(str(row.get("task_id") or "")): dict(row)
             for row in ordered_results
             if isinstance(row, dict) and _normalise_spaces(str(row.get("task_id") or ""))
         }
+        artifact_operands_by_task_id: Dict[str, List[Dict[str, Any]]] = {}
+        for artifact in list(state.get("artifacts") or []):
+            artifact_data = dict(artifact or {})
+            if _normalise_spaces(str(artifact_data.get("kind") or "")) != ArtifactKind.OPERAND_SET.value:
+                continue
+            artifact_task_id = _normalise_spaces(str(artifact_data.get("task_id") or ""))
+            if not artifact_task_id:
+                continue
+            payload = dict(artifact_data.get("payload") or {})
+            artifact_operands = [
+                dict(row)
+                for row in list(payload.get("calculation_operands") or [])
+                if isinstance(row, dict)
+            ]
+            if artifact_operands:
+                artifact_operands_by_task_id.setdefault(artifact_task_id, []).extend(artifact_operands)
         appended: List[Dict[str, Any]] = []
         for task in list(state.get("calc_subtasks") or []):
             task_data = dict(task or {})
@@ -18924,7 +19037,7 @@ class FinancialAgentCalculationMixin:
             ).lower()
             if operation_family != "ratio":
                 continue
-            bindings = [dict(item) for item in list(task_data.get("inputs") or []) if isinstance(item, dict)]
+            bindings = _task_output_bindings(task_data)
             if not bindings:
                 continue
             dependency_rows: List[Dict[str, Any]] = []
@@ -18966,6 +19079,71 @@ class FinancialAgentCalculationMixin:
                     slot_matches_binding = _operand_text_match(slot_surface, binding)
                 if not slot_matches_binding:
                     continue
+                matched_operand_candidate: Dict[str, Any] = {}
+                sibling_operand_rows = [
+                    *list(sibling_row.get("calculation_operands") or []),
+                    *artifact_operands_by_task_id.get(preferred_task_id, []),
+                ]
+                for operand_row in sibling_operand_rows:
+                    operand_candidate = dict(operand_row or {})
+                    if not _operand_row_matches_requirement(operand_candidate, binding):
+                        continue
+                    if operand_candidate.get("normalized_value") is None:
+                        continue
+                    matched_operand_candidate = operand_candidate
+                    break
+                if matched_operand_candidate and self._operand_row_values_materially_conflict(
+                    source_slot,
+                    matched_operand_candidate,
+                ):
+                    source_slot = {
+                        **source_slot,
+                        "raw_value": _normalise_spaces(str(matched_operand_candidate.get("raw_value") or "")),
+                        "raw_unit": _normalise_spaces(str(matched_operand_candidate.get("raw_unit") or "")),
+                        "normalized_value": matched_operand_candidate.get("normalized_value"),
+                        "normalized_unit": _normalise_spaces(
+                            str(matched_operand_candidate.get("normalized_unit") or "")
+                        ),
+                        "rendered_value": _normalise_spaces(
+                            str(
+                                matched_operand_candidate.get("rendered_value")
+                                or f"{matched_operand_candidate.get('raw_value') or ''}{matched_operand_candidate.get('raw_unit') or ''}"
+                            )
+                        ),
+                        "source_row_id": matched_operand_candidate.get("source_row_id") or source_slot.get("source_row_id"),
+                        "source_row_ids": matched_operand_candidate.get("source_row_ids")
+                        or source_slot.get("source_row_ids"),
+                        "source_anchor": matched_operand_candidate.get("source_anchor") or source_slot.get("source_anchor"),
+                    }
+                slot_raw_unit = _normalise_spaces(str(source_slot.get("raw_unit") or ""))
+                result_unit_hint = _normalise_spaces(str(sibling_result.get("result_unit") or ""))
+                render_policy = dict(CALCULATION_RENDER_POLICY)
+                count_units = {
+                    _normalise_spaces(str(unit or ""))
+                    for unit in (render_policy.get("count_display_units") or ())
+                    if _normalise_spaces(str(unit or ""))
+                }
+                krw_units = {
+                    _normalise_spaces(str(unit or ""))
+                    for unit in (render_policy.get("krw_display_units") or ())
+                    if _normalise_spaces(str(unit or ""))
+                }
+                if slot_raw_unit in count_units and result_unit_hint in krw_units:
+                    repaired_value, repaired_unit = _normalise_operand_value(
+                        str(source_slot.get("raw_value") or ""),
+                        result_unit_hint,
+                    )
+                    if repaired_value is not None and repaired_unit:
+                        source_slot = {
+                            **source_slot,
+                            "raw_unit": result_unit_hint,
+                            "normalized_value": repaired_value,
+                            "normalized_unit": repaired_unit,
+                            "rendered_value": _normalise_spaces(
+                                f"{source_slot.get('raw_value') or ''}{result_unit_hint}"
+                            ),
+                            "unit_realigned_from_result_unit": True,
+                        }
                 raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
                 dependency_rows.append(
                     self._repair_operand_normalization_from_rendered_unit(

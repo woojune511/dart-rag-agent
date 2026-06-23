@@ -62,6 +62,7 @@
 | [Expanded Structural Numeric-Surface Conflict Closure (2026-06-22)](#expanded-structural-numeric-surface-conflict-closure-2026-06-22) | takeout-restored structural full-system eval-only after aggregate projection hardening | focused KBF guard and full 9-question structural refresh both pass; structural is now `9 / 9` numeric PASS |
 | [Post-Cleanup Runtime Numeric Projection Refresh (2026-06-24)](#post-cleanup-runtime-numeric-projection-refresh-2026-06-24) | post-PR #77 cleanup and `1d78b31` numeric projection regression fix after store-fixed full replay | expanded structural remains `9 / 9` numeric PASS; KB completeness residual keeps cross-company full-eval fail count at `1` |
 | [KB Period-Difference Rendering Closure (2026-06-24)](#kb-period-difference-rendering-closure-2026-06-24) | focused follow-up for the KB completeness residual from the post-cleanup replay | KB 2-question eval-only now has numeric `2 / 2` PASS and completeness `1.000` |
+| [Focused Numeric Projection Closure Follow-up (2026-06-24)](#focused-numeric-projection-closure-follow-up-2026-06-24) | CEL/KAB/KBF focused regressions after ratio/dependency repairs | CEL and KAB focused rows PASS; KB focused pair is `2 / 2` numeric PASS after weak unit-repaired task output no longer blocks coherent direct period rows |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -75,6 +76,76 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Focused Numeric Projection Closure Follow-up (2026-06-24)
+
+### Context
+
+- After the period-difference rendering closure, focused probes exposed two
+  numeric projection regressions:
+  - complete task-output ratio values could lose to conflicting direct detail
+    rows from a retrieved same-table context;
+  - a period-comparison prior operand whose original unit was missing could be
+    KRW-repaired from alternate table surface text and then block the coherent
+    direct row from the actual multi-period table.
+- A separate lookup gap came from fiscal ordinal headers such as `제16기` /
+  `제15기` not being classified as period columns in table-label metadata
+  lookup.
+
+### Code / Contract Change
+
+- Added fiscal-period header detection to `CALCULATION_SLOT_POLICY` and made
+  table-label lookup consume it generically.
+- Narrowed dependency retrieval override:
+  - same-value or materially compatible sibling-context candidates can still
+    replace task output;
+  - stale `0` task output and KRW display-unit mismatch can be repaired by
+    sibling table context;
+  - same-unit conflicting task outputs remain protected.
+- Task-output ratio append now:
+  - synthesizes bindings from `depends_on + required_operands` when explicit
+    `inputs` are absent;
+  - uses operand-set artifacts to repair answer-slot value/unit conflicts;
+  - realigns count-like task-output slots from the sibling result unit when the
+    source display unit is KRW.
+- Period-comparison conflict blocking no longer treats an
+  `alternate_table_krw_surface` repair with no original source unit as stronger
+  than coherent direct period rows.
+
+### Results
+
+- Focused `CEL_T1_013` eval-only:
+  - numeric final judgement `PASS`
+  - faithfulness `1.000`
+  - completeness `1.000`
+  - numeric pass rate `1.000`
+- Focused `KAB_T1_066` eval-only:
+  - numeric final judgement `PASS`
+  - numeric pass rate `1.000`
+- Focused KB금융 2-question eval-only:
+  - `KBF_T2_018`: numeric final judgement `PASS`
+  - `KBF_T1_017`: numeric final judgement `PASS`
+  - combined numeric pass rate `1.000`
+  - faithfulness `1.000`
+  - completeness `0.850`
+  - error rate `0.0%`
+
+### Validation
+
+- `python3 -m unittest discover -s tests`: `1332` tests OK.
+- `python3 -m unittest tests.test_subtask_loop tests.test_operation_contracts tests.test_lookup_recovery_policy`:
+  `497` tests OK.
+- `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+  reviewed literals.
+- `git diff --check`: passed.
+
+### Interpretation
+
+- The focused regressions are closed without adding company names, benchmark
+  IDs, or metric-specific runtime branches.
+- Full six-company `9Q` was not rerun after this focused closure. The latest
+  full aggregate claim remains the earlier 2026-06-24 `9 / 9` numeric PASS
+  refresh, plus the focused closures recorded here.
 
 ## KB Period-Difference Rendering Closure (2026-06-24)
 

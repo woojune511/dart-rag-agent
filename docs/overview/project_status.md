@@ -76,6 +76,44 @@ role-separated multi-agent system using a task ledger and artifact store.
   completeness `1.000`, faithfulness `1.000`, and error rate `0.0%`. The last
   full six-company aggregate remains the earlier 2026-06-24 `9 / 9` numeric
   refresh unless a fresh cross-company rerun is needed.
+- Follow-up focused numeric projection closure after the ratio/dependency
+  regressions reports:
+  - `CEL_T1_013`: numeric `PASS`, completeness `1.000`
+  - `KAB_T1_066`: numeric `PASS`
+  - `KBF_T2_018` + `KBF_T1_017`: numeric `2 / 2` PASS, completeness `0.850`,
+    faithfulness `1.000`, error rate `0.0%`
+  Full six-company `9Q` was not rerun after these final focused fixes.
+
+### Latest Focused Numeric Projection Closure
+
+- Run date: 2026-06-24
+- Scope:
+  - fixed a ratio projection path where a complete task-output ratio could be
+    overwritten by conflicting same-table detail rows;
+  - restored sibling-context table repair for stale task outputs without
+    allowing same-unit conflicting detail rows to override strong task output
+    values;
+  - treated fiscal ordinal table headers as period columns via retrieval
+    policy data;
+  - allowed coherent period-comparison direct rows to override a task output
+    whose unit had only been inferred from alternate table surface text.
+- Contract change:
+  - no company names, benchmark IDs, or metric-specific keyword branches were
+    added to runtime code;
+  - fiscal-period detection is declared in `CALCULATION_SLOT_POLICY`;
+  - weak task-output repairs are identified by provenance fields such as
+    `unit_normalization_repair_source` and missing original source unit.
+- Validation:
+  - `python3 -m unittest discover -s tests`: `1332` OK
+  - `python3 -m unittest tests.test_subtask_loop tests.test_operation_contracts tests.test_lookup_recovery_policy`:
+    `497` OK
+  - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+    reviewed literals
+  - `git diff --check`: passed
+  - focused `CEL_T1_013`: numeric `PASS`, completeness `1.000`
+  - focused `KAB_T1_066`: numeric `PASS`
+  - focused `KBF_T2_018` + `KBF_T1_017`: numeric `2 / 2` PASS,
+    completeness `0.850`, faithfulness `1.000`, error rate `0.0%`
 
 ### Latest Period-Difference Rendering Fix
 

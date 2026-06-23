@@ -3220,6 +3220,250 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertNotIn("259,611천원", prepared.complete_numeric_answer)
 
+    def test_dependency_rows_keep_task_output_when_sibling_context_candidate_conflicts(self) -> None:
+        state = {
+            "active_subtask": {
+                "operation_family": "ratio",
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "label": "2023년 자본화된 개발비",
+                        "period": "2023",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                        "preferred_task_id": "task_numerator",
+                    },
+                    {
+                        "role": "denominator_1",
+                        "label": "2023년 연구개발비용",
+                        "period": "2023",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                        "preferred_task_id": "task_denominator",
+                    },
+                ],
+            },
+            "subtask_results": [
+                self._lookup_result_row(
+                    task_id="task_numerator",
+                    metric_label="2023년 자본화된 개발비",
+                    label="2023년 자본화된 개발비",
+                    raw_value="181,624,107",
+                    raw_unit="천원",
+                    normalized_value=181_624_107_000.0,
+                    rendered_value="181,624,107천원",
+                ),
+                self._lookup_result_row(
+                    task_id="task_denominator",
+                    metric_label="2023년 연구개발비용",
+                    label="2023년 연구개발비용",
+                    raw_value="342,736,271",
+                    raw_unit="천원",
+                    normalized_value=342_736_271_000.0,
+                    rendered_value="342,736,271천원",
+                ),
+            ],
+            "evidence_items": [
+                {
+                    "evidence_id": "ratio_doc_context_003::row:10",
+                    "claim": "연구개발비용 12,966,955 / 자본화된 개발비 259,611",
+                    "metadata": {
+                        "year": 2023,
+                        "unit_hint": "천원",
+                        "table_source_id": "rd::detail",
+                        "table_header_context": "구분 | 2023년 | 2022년",
+                        "table_row_labels_text": "연구개발비용\n자본화된 개발비",
+                        "table_value_labels_text": (
+                            "연구개발비용 12,966,955\n"
+                            "연구개발비용 10,000,000\n"
+                            "자본화된 개발비 259,611\n"
+                            "자본화된 개발비 200,000"
+                        ),
+                    },
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(by_role["numerator_1"]["raw_value"], "181,624,107")
+        self.assertEqual(by_role["denominator_1"]["raw_value"], "342,736,271")
+        self.assertNotEqual(by_role["numerator_1"]["raw_value"], "259,611")
+        self.assertNotEqual(by_role["denominator_1"]["raw_value"], "12,966,955")
+
+    def test_period_comparison_allows_direct_rows_over_weak_unit_repaired_task_output(self) -> None:
+        dependency_rows = [
+            {
+                "matched_operand_role": "current_period",
+                "label": "selected metric",
+                "raw_value": "3,146,409",
+                "raw_unit": "백만원",
+                "normalized_value": 3_146_409_000_000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "task_output:current",
+                "source_row_ids": ["task_output:current", "current_cell"],
+                "source_task_id": "current",
+                "dependency_resolved": True,
+            },
+            {
+                "matched_operand_role": "prior_period",
+                "label": "selected metric",
+                "raw_value": "54",
+                "raw_unit": "백만원",
+                "normalized_value": 54_000_000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "task_output:prior",
+                "source_row_ids": ["task_output:prior", "weak_cell"],
+                "source_task_id": "prior",
+                "dependency_resolved": True,
+                "source_raw_unit": "",
+                "source_normalized_value": 54.0,
+                "unit_normalization_repair_source": "alternate_table_krw_surface",
+            },
+        ]
+        direct_rows = [
+            {
+                "matched_operand_role": "current_period",
+                "label": "selected metric",
+                "raw_value": "3,146,409",
+                "raw_unit": "백만원",
+                "normalized_value": 3_146_409_000_000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "table_current",
+                "table_source_id": "period_table",
+            },
+            {
+                "matched_operand_role": "prior_period",
+                "label": "selected metric",
+                "raw_value": "1,847,775",
+                "raw_unit": "백만원",
+                "normalized_value": 1_847_775_000_000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "table_prior",
+                "table_source_id": "period_table",
+            },
+        ]
+
+        conflicts = self.agent._period_comparison_direct_rows_conflict_with_dependency_outputs(
+            dependency_rows,
+            direct_rows,
+        )
+
+        self.assertFalse(conflicts)
+
+    def test_task_output_ratio_can_replace_conflicting_retrieved_context_without_inputs(self) -> None:
+        numerator_row = self._lookup_result_row(
+            task_id="task_numerator",
+            metric_label="2023년 자본화된 개발비",
+            label="2023년 자본화된 개발비",
+            raw_value="181,624,107",
+            raw_unit="천원",
+            normalized_value=181_624_107_000.0,
+            rendered_value="181,624,107천원",
+        )
+        numerator_row["calculation_result"]["answer_slots"]["primary_value"].update(
+            {
+                "raw_unit": "개",
+                "normalized_value": 181_624_107.0,
+                "normalized_unit": "COUNT",
+                "rendered_value": "181,624,107개",
+            }
+        )
+        numerator_row["calculation_result"]["result_unit"] = "천원"
+        numerator_row["calculation_result"]["result_value"] = 181_624_107.0
+        ordered_results = [
+            numerator_row,
+            self._lookup_result_row(
+                task_id="task_denominator",
+                metric_label="2023년 연구개발비용",
+                label="2023년 연구개발비용",
+                raw_value="342,736,271",
+                raw_unit="천원",
+                normalized_value=342_736_271_000.0,
+                rendered_value="342,736,271천원",
+            ),
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "자본화된 개발비 비율",
+                "operation_family": "ratio",
+                "status": "ok",
+                "answer": "자본화된 개발비 비율은 2%입니다.",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "ratio",
+                    "result_value": 2.0,
+                    "result_unit": "%",
+                    "rendered_value": "2%",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "primary_value": {
+                            "status": "ok",
+                            "raw_value": "2%",
+                            "raw_unit": "%",
+                            "normalized_value": 2.0,
+                            "normalized_unit": "PERCENT",
+                            "rendered_value": "2%",
+                        },
+                    },
+                },
+                "recovered_from_retrieved_ratio_context": True,
+            },
+        ]
+        state = {
+            "query": "2023년 전체 연구개발비용 중 자본화된 개발비 비율을 계산해 줘.",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "metric_label": "자본화된 개발비 비율",
+                    "operation_family": "ratio",
+                    "depends_on": ["task_numerator", "task_denominator"],
+                    "required_operands": [
+                        {
+                            "role": "numerator_1",
+                            "label": "2023년 자본화된 개발비",
+                            "period": "2023",
+                        },
+                        {
+                            "role": "denominator_1",
+                            "label": "2023년 연구개발비용",
+                            "period": "2023",
+                        },
+                    ],
+                }
+            ],
+            "artifacts": [
+                {
+                    "task_id": "task_numerator",
+                    "kind": "operand_set",
+                    "payload": {
+                        "calculation_operands": [
+                            {
+                                "matched_operand_label": "2023년 자본화된 개발비",
+                                "matched_operand_role": "numerator_1",
+                                "raw_value": "181,624,107",
+                                "raw_unit": "천원",
+                                "normalized_value": 181_624_107_000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "181,624,107천원",
+                                "source_row_id": "ev_numerator",
+                                "source_row_ids": ["ev_numerator"],
+                            }
+                        ]
+                    },
+                }
+            ],
+        }
+
+        updated = self.agent._append_ratio_result_from_task_outputs(ordered_results, state)
+
+        ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
+        self.assertTrue(ratio_row.get("recovered_from_task_outputs"))
+        self.assertIn("52.99%", ratio_row["answer"])
+        self.assertNotIn("2%", ratio_row["answer"])
+
     def test_retrieved_ratio_projection_preserves_complete_existing_result_without_metric_surface(self) -> None:
         metric_label = "목표값 대비 기준값 비율"
         existing_row = {
@@ -16157,6 +16401,43 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(slot["raw_value"], "100")
         self.assertEqual(slot["normalized_value"], 100.0)
+
+    def test_table_label_lookup_uses_fiscal_period_columns_for_year_offset(self) -> None:
+        evidence = {
+            "evidence_id": "ev_period_row",
+            "source_anchor": "[Example | 2023 | section]",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "백만원",
+                "row_label": "목표항목",
+                "semantic_label": "목표항목",
+                "table_header_context": "과 목 | 제16기 | 제15기 | 제14기",
+                "table_value_labels_text": "목표항목 (3,000)\n목표항목 (2,000)\n목표항목 (1,000)",
+                "period_labels": ["당기"],
+                "structured_cells": [
+                    {"column_headers": ["제16기"], "value_text": "(3,000)", "unit_hint": "백만원"},
+                    {"column_headers": ["제15기"], "value_text": "(2,000)", "unit_hint": "백만원"},
+                    {"column_headers": ["제14기"], "value_text": "(1,000)", "unit_hint": "백만원"},
+                ],
+            },
+        }
+        operand = {
+            "label": "2022년 목표항목",
+            "aliases": ["목표항목"],
+            "concept": "target_metric",
+            "role": "prior_period",
+            "period_hint": "2022",
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate"],
+                "prefer_aggregation_stages": ["final"],
+            },
+        }
+
+        slot = self.agent._lookup_value_from_table_label_metadata(operand, evidence)
+
+        self.assertEqual(slot["period"], "2022")
+        self.assertEqual(slot["raw_value"], "(2,000)")
+        self.assertEqual(slot["rendered_value"], "(2,000)백만원")
 
     def test_dependency_output_rejects_retrieval_replacement_without_operand_surface(self) -> None:
         current_slot = {

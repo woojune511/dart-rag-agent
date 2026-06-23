@@ -729,6 +729,7 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
 
 CALCULATION_SLOT_POLICY: Dict[str, Any] = {
     "period_pattern": r"20\d{2}\s*년?",
+    "fiscal_period_presence_pattern": r"제\s*\d+\s*기",
     "label_drop_terms": ("총액", "증감률", "증감액", "증가율", "비중", "비율"),
     "label_drop_patterns": (r"(^|\s)부문(?=\s|$)",),
     "parenthetical_alias_pattern": r"\(([^)]{2,80})\)",

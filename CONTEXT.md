@@ -11,6 +11,45 @@
 
 ## 최신 상태
 
+- 2026-06-24 focused numeric projection 후속 회귀를 닫았다.
+  - failure layers:
+    - `CEL_T1_013`: retrieved direct ratio context가 complete task-output
+      ratio보다 앞서 `2%` detail-row 비율을 선택했다.
+    - `KBF_T2_018`: prior-period task output이 원 단위 없는 `54`를
+      alternate table surface로 KRW 보정한 뒤, 같은 다기간 표의
+      `1,847,775백만원` direct row를 막았다.
+    - fiscal ordinal column headers such as `제16기/제15기` were not recognized
+      as period columns in table-label lookup, so prior-period offset could
+      choose the wrong column.
+  - change:
+    - fiscal-period presence pattern is policy data in
+      `CALCULATION_SLOT_POLICY`.
+    - dependency retrieval override now permits sibling table context only when
+      it matches, is compatible, or repairs a weak/stale task output
+      (`0` placeholder or KRW display-unit mismatch); same-unit conflicting
+      task outputs remain protected.
+    - task-output ratio append can synthesize bindings from
+      `depends_on + required_operands`, consult operand-set artifacts, and
+      realign count-like slots from the sibling result unit.
+    - period comparisons no longer treat an alternate-table unit-repaired
+      task output with no original unit as stronger than a coherent direct
+      period table row.
+  - validation:
+    - `python3 -m unittest discover -s tests`: `1332` OK
+    - `python3 -m unittest tests.test_subtask_loop tests.test_operation_contracts tests.test_lookup_recovery_policy`:
+      `497` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+    - `git diff --check`: passed
+    - focused `CEL_T1_013`: numeric `PASS`, completeness `1.000`
+    - focused `KAB_T1_066`: numeric `PASS`
+    - focused `KBF_T2_018` and `KBF_T1_017`: numeric `2/2 PASS`,
+      completeness `0.850`, faithfulness `1.000`, error rate `0.0%`
+  - current caveat:
+    - This is a focused closure after the earlier full 9Q pass and KB
+      completeness follow-up. Full six-company 9Q was not rerun after these
+      final focused fixes.
+
 - 2026-06-24 KB금융 completeness residual을 period-comparison difference
   rendering 문제로 좁혀 고쳤다.
   - failure layer: retrieval/calculation이 아니라 aggregate answer rendering.
