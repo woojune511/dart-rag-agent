@@ -44,7 +44,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Hard structural numeric gate | 5 curated hard numeric questions | PASS, 5 / 5 |
 | Concept runtime gap gate | 7 ontology-driven concept questions | PASS, 7 / 7 |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
-| Expanded structural numeric gate | 9 expanded structural questions | PASS, 9 / 9 numeric; KB completeness residual |
+| Expanded structural numeric gate | 9 expanded structural questions | PASS, 9 / 9 numeric; KB focused completeness residual closed |
 | Reflection promotion gate | base fixture, store-fixed candidate surface, two reviewed trace summaries | READY |
 | Report-cache promotion evidence | candidate-only cache producer/fallback contract | READY, disabled |
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
@@ -71,6 +71,39 @@ role-separated multi-agent system using a task ledger and artifact store.
   `9 / 9` numeric final judgement PASS. Cross-company `full_eval_fail_count=1`
   remains because KB금융 completeness is `0.750`; numeric pass rate and
   faithfulness are both `1.000`.
+- Follow-up focused KB금융 2-question eval-only refresh after the
+  period-difference rendering fix reports numeric `2 / 2` PASS,
+  completeness `1.000`, faithfulness `1.000`, and error rate `0.0%`. The last
+  full six-company aggregate remains the earlier 2026-06-24 `9 / 9` numeric
+  refresh unless a fresh cross-company rerun is needed.
+
+### Latest Period-Difference Rendering Fix
+
+- Run date: 2026-06-24
+- Scope:
+  - fixed the KB금융 completeness residual in `KBF_T1_017`;
+  - root cause was aggregate answer rendering, not retrieval or calculation;
+  - deterministic difference rows already carried `current_value`,
+    `prior_value`, `delta_value`, and `direction`, but the generic subtraction
+    template rendered a period comparison as an exclusion-style sentence.
+- Contract change:
+  - period-comparison difference slots now use a dedicated rendering policy
+    when `current_value`, `prior_value`, `delta_value`, and `direction` are
+    available;
+  - direction words and sentence fragments are declared in
+    `CALCULATION_RENDER_POLICY`, keeping runtime code free of new domain
+    language literals.
+- Validation:
+  - `python3 -m unittest tests.test_operation_contracts tests.test_subtask_loop`:
+    `477` OK
+  - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+    reviewed literals
+  - `git diff --check`: passed
+  - focused `KBF_T1_017` eval-only:
+    numeric `PASS`, completeness `1.000`
+  - focused KB금융 2-question eval-only:
+    numeric `2 / 2` PASS, completeness `1.000`, faithfulness `1.000`,
+    error rate `0.0%`
 
 ### Latest Runtime Numeric Projection Regression Fix
 

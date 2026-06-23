@@ -61,6 +61,7 @@
 | [KBF_T2_018 Supported Aggregate Narrative Repair (2026-06-19)](#kbf_t2_018-supported-aggregate-narrative-repair-2026-06-19) | full structural refresh after SKH fix exposed a supported aggregate final-answer precedence bug | full run is `8 / 9`; focused KBF repair passes with `70.28%`; rerun full structural before claiming fresh `9 / 9` |
 | [Expanded Structural Numeric-Surface Conflict Closure (2026-06-22)](#expanded-structural-numeric-surface-conflict-closure-2026-06-22) | takeout-restored structural full-system eval-only after aggregate projection hardening | focused KBF guard and full 9-question structural refresh both pass; structural is now `9 / 9` numeric PASS |
 | [Post-Cleanup Runtime Numeric Projection Refresh (2026-06-24)](#post-cleanup-runtime-numeric-projection-refresh-2026-06-24) | post-PR #77 cleanup and `1d78b31` numeric projection regression fix after store-fixed full replay | expanded structural remains `9 / 9` numeric PASS; KB completeness residual keeps cross-company full-eval fail count at `1` |
+| [KB Period-Difference Rendering Closure (2026-06-24)](#kb-period-difference-rendering-closure-2026-06-24) | focused follow-up for the KB completeness residual from the post-cleanup replay | KB 2-question eval-only now has numeric `2 / 2` PASS and completeness `1.000` |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -74,6 +75,65 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## KB Period-Difference Rendering Closure (2026-06-24)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/kb금융-2023/`
+- heartbeat logs:
+  - focused NIM check:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t1_017_period_difference_rendering_2026-06-24.jsonl`
+  - focused KB two-question check:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_after_period_difference_rendering_2026-06-24.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Focused follow-up after the 2026-06-24 post-cleanup full replay left a
+  KB금융 completeness residual.
+- The residual question was `KBF_T1_017`: numeric judgement was PASS, but the
+  public answer omitted explicit `2022년` wording, omitted direction, and used
+  an exclusion-style phrase for a period comparison.
+
+### Results
+
+| Run | Scope | Result | Key detail |
+| --- | --- | --- | --- |
+| Focused NIM check | `KBF_T1_017` | PASS | Completeness improved to `1.000`; answer renders `2022년 ... 대비 ... 상승`. |
+| Focused KB company check | `KBF_T2_018`, `KBF_T1_017` | numeric `2 / 2` PASS | Completeness `1.000`, faithfulness `1.000`, error rate `0.0%`. |
+
+Representative fixed answer:
+
+- `KB금융 2023년 순이자마진은 1.83%입니다. 2022년 순이자마진 1.73% 대비 순이자마진(NIM) 증감폭은 0.1% 상승했습니다.`
+
+### Code / Contract Change
+
+- Failure layer: aggregate answer rendering.
+- Deterministic difference rows already carried structured period-comparison
+  slots: `current_value`, `prior_value`, `delta_value`, and `direction`.
+- Runtime now renders that slot shape through a dedicated
+  period-comparison-difference policy template instead of the generic
+  exclusion/subtraction template.
+- Direction words and sentence fragments live in `CALCULATION_RENDER_POLICY`,
+  not in runtime control-flow literals.
+
+### Validation
+
+- `python3 -m unittest tests.test_operation_contracts tests.test_subtask_loop`:
+  `477` OK.
+- `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215` reviewed
+  literals.
+- `git diff --check`: passed.
+
+### Interpretation
+
+- The KB residual from the post-cleanup full replay is closed in focused
+  company validation.
+- A fresh six-company 9-question replay is only needed if the project needs a
+  new cross-company aggregate table after this focused rendering fix.
 
 ## Post-Cleanup Runtime Numeric Projection Refresh (2026-06-24)
 

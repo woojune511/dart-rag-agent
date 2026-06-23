@@ -477,6 +477,17 @@ def _difference_answer_prefix(
     return " ".join(dict.fromkeys(prefix_parts))
 
 
+def _period_text(period: str) -> str:
+    period_value = _normalise_spaces(str(period or ""))
+    period_prefix_template = str(CALCULATION_RENDER_POLICY.get("ratio_period_prefix_template") or "{period} ")
+    period_suffix = period_prefix_template.replace("{period}", "").strip()
+    return (
+        period_prefix_template.format(period=period_value).strip()
+        if period_value and period_suffix and not period_value.endswith(period_suffix)
+        else period_value
+    )
+
+
 def _render_difference_answer(
     *,
     prefix: str,
@@ -507,6 +518,56 @@ def _render_difference_answer(
             subtrahend_value=subtrahend_value,
             result_label=result_label,
             result_value=result_value,
+        )
+    )
+
+
+def _render_period_difference_answer(
+    *,
+    prefix: str,
+    current_label: str,
+    current_value: str,
+    prior_label: str,
+    prior_value: str,
+    prior_period: str,
+    result_label: str,
+    result_value: str,
+    direction: str,
+) -> str:
+    prior_period_text = _period_text(prior_period)
+    if not prior_period_text:
+        return ""
+    direction_words = dict(CALCULATION_RENDER_POLICY.get("period_difference_direction_words") or {})
+    direction_word = _normalise_spaces(str(direction_words.get(direction) or ""))
+    direction_phrase = (
+        str(CALCULATION_RENDER_POLICY.get("period_difference_direction_phrase_template") or "").format(
+            direction_word=direction_word
+        )
+        if direction_word
+        else str(CALCULATION_RENDER_POLICY.get("period_difference_neutral_direction_phrase") or "")
+    )
+    if prefix:
+        first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence_with_prefix") or "")
+        first_sentence = first_sentence_template.format(
+            prefix=prefix,
+            minuend_label=current_label,
+            minuend_value=current_value,
+        )
+    else:
+        first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence") or "")
+        first_sentence = first_sentence_template.format(
+            minuend_label=current_label,
+            minuend_value=current_value,
+        )
+    return _normalise_spaces(
+        str(CALCULATION_RENDER_POLICY.get("period_difference_answer_template") or "").format(
+            first_sentence=first_sentence,
+            prior_period=prior_period_text,
+            prior_label=prior_label,
+            prior_value=prior_value,
+            result_label=result_label,
+            result_value=result_value,
+            direction_phrase=direction_phrase,
         )
     )
 
@@ -570,6 +631,23 @@ def compose_slot_based_difference_answer(
     result_label = _normalise_spaces(
         str(result_slot.get("label") or calculation_result.get("metric_label") or default_labels.get("result") or "")
     )
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+    delta_slot = dict(answer_slots.get("delta_value") or {})
+    if all(answer_slot_has_material(slot) for slot in (current_slot, prior_slot, delta_slot)):
+        period_answer = _render_period_difference_answer(
+            prefix=prefix,
+            current_label=_normalise_spaces(str(current_slot.get("label") or minuend_label)),
+            current_value=_normalise_spaces(str(current_slot.get("rendered_value") or minuend_value)),
+            prior_label=_normalise_spaces(str(prior_slot.get("label") or subtrahend_label)),
+            prior_value=_normalise_spaces(str(prior_slot.get("rendered_value") or subtrahend_value)),
+            prior_period=_normalise_spaces(str(prior_slot.get("period") or "")),
+            result_label=result_label,
+            result_value=_normalise_spaces(str(delta_slot.get("rendered_value") or result_value)),
+            direction=_normalise_spaces(str(answer_slots.get("direction") or "")).lower(),
+        )
+        if period_answer:
+            return period_answer
 
     return _render_difference_answer(
         prefix=prefix,

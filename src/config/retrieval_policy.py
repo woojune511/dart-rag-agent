@@ -603,6 +603,13 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
         "{first_sentence} {subtrahend_label} 금액은 {subtrahend_value}이며, "
         "이를 제외한 {result_label}은 {result_value}입니다."
     ),
+    "period_difference_direction_words": {"increase": "상승", "decrease": "하락", "flat": "변동 없음"},
+    "period_difference_direction_phrase_template": " {direction_word}했습니다",
+    "period_difference_neutral_direction_phrase": "입니다",
+    "period_difference_answer_template": (
+        "{first_sentence} {prior_period} {prior_label} {prior_value} 대비 "
+        "{result_label}은 {result_value}{direction_phrase}."
+    ),
     "adjusted_difference_query_terms": ("제외", "실질", "조정"),
     "adjusted_difference_exclusion_pattern": r"차감(?!전)",
     "source_display_units": ("천원", "백만원"),

@@ -3100,6 +3100,48 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("실질 영업이익은 1조 4,863억원", answer)
         self.assertNotIn("676,900백만원", answer)
 
+    def test_difference_answer_composer_renders_period_comparison_slots(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer = calculation_rendering.compose_slot_based_difference_answer(
+            query="2023년 지표 수치를 찾고, 전년 대비 증감폭을 계산해 줘.",
+            report_scope={"company": "ExampleCo", "year": 2023},
+            calculation_result={
+                "answer_slots": {
+                    "operation_family": "difference",
+                    "metric_label": "지표 증감폭",
+                    "components_by_role": {},
+                    "current_value": {
+                        "status": "ok",
+                        "label": "지표",
+                        "period": "2023",
+                        "rendered_value": "1.83%",
+                        "normalized_value": 1.83,
+                    },
+                    "prior_value": {
+                        "status": "ok",
+                        "label": "지표",
+                        "period": "2022년",
+                        "rendered_value": "1.73%",
+                        "normalized_value": 1.73,
+                    },
+                    "delta_value": {
+                        "status": "ok",
+                        "label": "지표 증감폭",
+                        "period": "2023",
+                        "rendered_value": "0.10%p",
+                        "normalized_value": 0.10,
+                    },
+                    "direction": "increase",
+                }
+            },
+            answer_slot_has_material=agent._answer_slot_has_material,
+        )
+
+        self.assertIn("ExampleCo 2023년 지표은 1.83%입니다.", answer)
+        self.assertIn("2022년 지표 1.73% 대비 지표 증감폭은 0.10%p 상승했습니다.", answer)
+        self.assertNotIn("금액", answer)
+        self.assertNotIn("이를 제외한", answer)
+
     def test_difference_answer_composer_recovers_company_from_slot_anchor(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         answer = calculation_rendering.compose_slot_based_difference_answer(

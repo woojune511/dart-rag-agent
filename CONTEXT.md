@@ -11,6 +11,34 @@
 
 ## 최신 상태
 
+- 2026-06-24 KB금융 completeness residual을 period-comparison difference
+  rendering 문제로 좁혀 고쳤다.
+  - failure layer: retrieval/calculation이 아니라 aggregate answer rendering.
+    하위 difference task는 이미 `2023년 값`, `2022년 값`, `증감폭`을
+    구조화했지만, generic subtraction template이 period comparison에도
+    적용되어 `금액`, `이를 제외한` 같은 부적절한 문장이 public answer에
+    남았다.
+  - change:
+    - period-comparison difference slots(`current_value`, `prior_value`,
+      `delta_value`, `direction`)이 있으면 전용 policy template으로 렌더링한다.
+    - direction words and sentence fragments live in
+      `CALCULATION_RENDER_POLICY`, not runtime literals.
+  - validation:
+    - `python3 -m unittest tests.test_operation_contracts tests.test_subtask_loop`:
+      `477` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+    - `git diff --check`: passed
+    - focused `KBF_T1_017` eval-only:
+      numeric `PASS`, completeness `1.000`
+    - focused KB금융 2-question eval-only:
+      numeric `2/2 PASS`, completeness `1.000`, faithfulness `1.000`,
+      error rate `0.0%`
+  - current caveat:
+    - This closes the KB residual in a focused company run. The last full
+      six-company 9-question refresh remains the earlier `9/9` numeric PASS
+      run; rerun full 9Q only if a fresh cross-company aggregate is needed.
+
 - 2026-06-24 runtime numeric projection regression fix가 커밋되어
   `origin/main`에 push됐고, 그 상태에서 expanded structural 9-question
   store-fixed `eval-only` refresh를 다시 돌렸다.
