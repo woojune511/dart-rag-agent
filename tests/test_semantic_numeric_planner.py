@@ -9,7 +9,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_graph import _build_semantic_numeric_plan
+from src.agent.financial_graph_helpers import _build_semantic_numeric_plan
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin, _non_numeric_operation_intent_override
 
 

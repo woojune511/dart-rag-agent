@@ -1,8 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
-from src.utils.gemini_usage import (
-    GeminiUsageCallbackHandler,
+from src.utils.gemini_usage_counts import (
     estimate_gemini_cost_usd,
     extract_gemini_usage_counts,
 )
@@ -70,6 +69,8 @@ class GeminiUsageTests(unittest.TestCase):
         self.assertEqual(usage["total_tokens"], 15)
 
     def test_callback_accumulates_thread_local_llm_usage(self) -> None:
+        from src.utils.gemini_usage import GeminiUsageCallbackHandler
+
         callback = GeminiUsageCallbackHandler()
         callback.reset_current_thread()
         response = SimpleNamespace(
@@ -98,6 +99,8 @@ class GeminiUsageTests(unittest.TestCase):
         self.assertEqual(snapshot["thoughts_tokens"], 5)
 
     def test_callback_accumulates_usage_by_phase(self) -> None:
+        from src.utils.gemini_usage import GeminiUsageCallbackHandler
+
         callback = GeminiUsageCallbackHandler()
         callback.reset_current_thread()
         response = SimpleNamespace(

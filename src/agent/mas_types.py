@@ -8,6 +8,10 @@ import operator
 from enum import Enum
 from typing import Annotated, Any, Dict, List, NotRequired, Optional, TypedDict
 
+from src.agent.financial_artifact_contracts import (
+    CriticRuntimeAcceptance,
+    critic_report_runtime_acceptance_state,
+)
 from src.schema import ArtifactKind, TaskKind
 
 
@@ -80,15 +84,6 @@ class CriticReport(TypedDict):
     target_artifact_ids: NotRequired[List[str]]
     acceptance_reason: NotRequired[str]
     blocking_issues: NotRequired[List[str]]
-
-
-class CriticRuntimeAcceptance(TypedDict):
-    accepted: bool
-    runtime_acceptance_status: str
-    reasons: List[str]
-    target_refs: List[str]
-    deterministic_score: float
-    deterministic_score_used_for_acceptance: bool
 
 
 class FinalReport(TypedDict, total=False):
@@ -348,81 +343,6 @@ def _list_strings(value: Any) -> List[str]:
     return []
 
 
-def _critic_verdict_signal(report: Dict[str, Any]) -> tuple[str, bool]:
-    has_passed_value = isinstance(report.get("passed"), bool)
-    bool_signal = "passed" if bool(report.get("passed")) else "rejected" if has_passed_value else ""
-    text_signal = str(report.get("verdict") or report.get("status") or "").strip().lower()
-    if text_signal in {"passed", "accepted", "ok", "success"}:
-        text_signal = "passed"
-    elif text_signal in {"rejected", "blocked", "failed", "error"}:
-        text_signal = "rejected"
-    elif text_signal:
-        text_signal = "unknown"
-    if bool_signal and text_signal and bool_signal != text_signal:
-        return bool_signal, True
-    return bool_signal or text_signal, False
-
-
-def critic_report_runtime_acceptance_state(report: Dict[str, Any]) -> CriticRuntimeAcceptance:
-    verdict, conflicting_verdict_signal = _critic_verdict_signal(report)
-    passed = verdict == "passed"
-    target_refs = _dedupe_strings(
-        [
-            str(report.get("target_task_id") or "").strip(),
-            str(report.get("target_artifact_id") or "").strip(),
-            *_list_strings(report.get("target_task_ids")),
-            *_list_strings(report.get("target_artifact_ids")),
-            *_list_strings(report.get("checked_task_ids")),
-            *_list_strings(report.get("checked_artifact_ids")),
-            *_list_strings(report.get("source_task_ids")),
-            *_list_strings(report.get("source_artifact_ids")),
-        ]
-    )
-    acceptance_reason = str(
-        report.get("acceptance_reason")
-        or report.get("rationale")
-        or report.get("feedback")
-        or report.get("llm_feedback")
-        or ""
-    ).strip()
-    blocking_issues = _dedupe_strings(
-        [
-            *_list_strings(report.get("blocking_issues")),
-            *_list_strings(report.get("issues")),
-            *_list_strings(report.get("findings")),
-        ]
-    )
-    reasons: List[str] = []
-    if not verdict:
-        reasons.append("missing_verdict")
-    elif verdict == "unknown":
-        reasons.append("unknown_verdict")
-    if conflicting_verdict_signal:
-        reasons.append("conflicting_verdict_signal")
-    if not target_refs:
-        reasons.append("missing_target_refs")
-    if passed:
-        if not acceptance_reason:
-            reasons.append("missing_acceptance_reason")
-        if blocking_issues:
-            reasons.append("passed_report_has_blocking_issues")
-    else:
-        if verdict == "rejected":
-            reasons.append("critic_rejected")
-        if verdict == "rejected" and not blocking_issues:
-            reasons.append("missing_blocking_issues")
-
-    accepted = passed and not reasons
-    return {
-        "accepted": accepted,
-        "runtime_acceptance_status": "accepted" if accepted else "blocked",
-        "reasons": _dedupe_strings(reasons),
-        "target_refs": target_refs,
-        "deterministic_score": float(report.get("deterministic_score") or 0.0),
-        "deterministic_score_used_for_acceptance": False,
-    }
-
-
 def build_final_report_record(
     *,
     final_answer: str,
@@ -560,9 +480,9 @@ def _normalise_mas_artifacts(artifacts: Dict[str, Artifact]) -> List[Dict[str, A
 
 
 def project_mas_task_artifact_trace(state: Dict[str, Any]) -> Dict[str, Any]:
-    from src.agent.financial_graph_helpers import _project_task_artifact_trace
+    from src.agent.financial_task_artifacts import project_task_artifact_trace
 
-    return _project_task_artifact_trace(
+    return project_task_artifact_trace(
         _normalise_mas_tasks(dict(state.get("tasks") or {})),
         _normalise_mas_artifacts(dict(state.get("artifacts") or {})),
     )

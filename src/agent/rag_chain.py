@@ -1,27 +1,27 @@
-import os
 import logging
-import sys
+import os
+from typing import Any
+
 from dotenv import load_dotenv
 
-# Load variables from .env file
-load_dotenv()
-from typing import List, Dict, Any
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-
-# Dynamic import to support local execution
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-try:
-    from storage.vector_store import VectorStoreManager
-except ImportError:
-    pass
+from src.agent.financial_langchain_loaders import (
+    _chat_prompt_template_from_template,
+    _runnable_passthrough,
+    _str_output_parser,
+)
 
 logger = logging.getLogger(__name__)
 
+
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
+
+
 class RAGAgent:
     def __init__(self, vector_store_manager): # Assumes VectorStoreManager
+        load_dotenv()
         self.vector_store_manager = vector_store_manager
         
         # Fallback for API key
@@ -30,9 +30,9 @@ class RAGAgent:
             logger.warning("GOOGLE_API_KEY is not set. The LLM will operate in mock mode for testing.")
             self.llm = None
         else:
-            self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+            self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
             
-        self.prompt = ChatPromptTemplate.from_template(
+        self.prompt = _chat_prompt_template_from_template(
             """You are an advanced AI research assistant. Synthesize a comprehensive and highly detailed answer based ONLY on the provided context chunks.
 When making claims, explicitly cite the source paper using the [Source: arxiv_id] provided in the context. 
 If the context contains conflicting information across papers, point it out.
@@ -72,22 +72,10 @@ Answer:"""
             return f"[MOCK LLM RESPONSE]\nRetrieved Context:\n{context_str}\n\n(To get a real AI generated answer, set GOOGLE_API_KEY environment variable)"
             
         chain = (
-            {"context": lambda x: context_str, "question": RunnablePassthrough()}
+            {"context": lambda x: context_str, "question": _runnable_passthrough()}
             | self.prompt
             | self.llm
-            | StrOutputParser()
+            | _str_output_parser()
         )
         
         return chain.invoke(question)
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    from storage.vector_store import VectorStoreManager
-    
-    manager = VectorStoreManager()
-    agent = RAGAgent(manager)
-    
-    print("\n--- RAG Testing ---")
-    query = "What is RAG?"
-    answer = agent.answer_question(query)
-    print(f"\nQ: {query}\nA: {answer}")

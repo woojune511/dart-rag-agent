@@ -5,8 +5,6 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
 
 WIDE_TABLE_COLUMN_THRESHOLD = 24
 WIDE_TABLE_WINDOW_SIZE = 24
@@ -14,6 +12,12 @@ WIDE_TABLE_WINDOW_OVERLAP = 2
 TABLE_NARRATIVE_BREAK_RE = re.compile(r"(?=(\(\d+\)|[①②③④⑤⑥⑦⑧⑨⑩]))")
 NUMERIC_HEADING_RE = re.compile(r"^\d+\.\s")
 KOREAN_ALPHA_HEADING_RE = re.compile(r"^[가-하]\.\s")
+
+
+def _recursive_character_text_splitter(**kwargs):
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    return RecursiveCharacterTextSplitter(**kwargs)
 
 
 def looks_like_table_header_row(row_text: str, *, chunk_size: int) -> bool:
@@ -52,7 +56,7 @@ def split_table_text_fragment(
                 segments.append(segment)
 
     if not segments:
-        splitter = RecursiveCharacterTextSplitter(
+        splitter = _recursive_character_text_splitter(
             chunk_size=max_len,
             chunk_overlap=0,
             separators=["\n\n", ". ", "다. ", "; ", " ", ""],
@@ -67,7 +71,7 @@ def split_table_text_fragment(
             if current:
                 result.append(current)
                 current = ""
-            splitter = RecursiveCharacterTextSplitter(
+            splitter = _recursive_character_text_splitter(
                 chunk_size=max_len,
                 chunk_overlap=0,
                 separators=["\n\n", ". ", "다. ", "; ", " ", ""],

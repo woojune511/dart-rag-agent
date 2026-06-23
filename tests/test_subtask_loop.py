@@ -16,8 +16,8 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_calculation import _AggregateSynthesisState
-from src.agent.financial_graph_helpers import _project_task_artifact_trace, _resolve_runtime_calculation_trace
+from src.agent.financial_aggregate_state import _AggregateSynthesisState
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
     AggregateSynthesisOutput,
     CalculationOperand,
@@ -25,6 +25,7 @@ from src.agent.financial_graph_models import (
     EvidenceItem,
     OperandExtraction,
 )
+from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
 from src.config.report_scoped_cache import (
     CACHE_ENTRY_SOURCE_LOCAL_INDEX,
     REPORT_CACHE_ENTRY_VERSION,
@@ -1156,8 +1157,8 @@ class SubtaskLoopTests(unittest.TestCase):
             "consolidation_scope": "separate",
         }
         self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
-        self.agent._best_direct_lookup_slot_from_evidence_pool_compat = (
-            lambda binding, _pool, state=None: (dict(separate_slot), 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda binding, _pool, state=None, preferred_raw_units=None: (dict(separate_slot), 10.0)
             if binding.get("label") == "target metric"
             else ({}, 0.0)
         )
@@ -2145,7 +2146,7 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_lookup_rejects_context_dependent_table_without_required_operands(self) -> None:
@@ -2202,7 +2203,7 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_lookup_allows_context_dependent_table_when_scope_requested(self) -> None:
@@ -2461,7 +2462,7 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_ratio_rejects_dependency_rows_when_consolidation_scope_conflicts(self) -> None:
@@ -2540,7 +2541,7 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_ratio_rejects_resolved_dependency_row_outside_producer_scope(self) -> None:
@@ -2619,7 +2620,7 @@ class SubtaskLoopTests(unittest.TestCase):
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
     def test_compact_ratio_answer_preserves_common_consolidation_scope(self) -> None:
@@ -2737,7 +2738,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 },
             }
         ]
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (dict(direct_slot), 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _operand, _pool, state=None, preferred_raw_units=None: (dict(direct_slot), 10.0)
+        )
 
         aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, evidence_items)
 
@@ -2862,38 +2865,40 @@ class SubtaskLoopTests(unittest.TestCase):
             },
             "active_subtask_index": 0,
             "answer": "CIR is 37.47%.",
-            "calculation_result": ratio_result,
-            "calculation_plan": {
-                "status": "ok",
-                "mode": "single_value",
-                "operation": "ratio",
-                "formula": "((A) / (B)) * 100",
-                "result_unit": "%",
+            "resolved_calculation_trace": {
+                "calculation_result": ratio_result,
+                "calculation_plan": {
+                    "status": "ok",
+                    "mode": "single_value",
+                    "operation": "ratio",
+                    "formula": "((A) / (B)) * 100",
+                    "result_unit": "%",
+                },
+                "calculation_operands": [
+                    {
+                        "operand_id": "op_001",
+                        "evidence_id": "ev_ratio",
+                        "source_row_id": "ev_ratio",
+                        "label": "selling expense",
+                        "raw_value": "4,355",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 435_500_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "numerator_1",
+                    },
+                    {
+                        "operand_id": "op_002",
+                        "evidence_id": "ev_ratio",
+                        "source_row_id": "ev_ratio",
+                        "label": "pre-expense profit",
+                        "raw_value": "11,623",
+                        "raw_unit": "hundred million",
+                        "normalized_value": 1_162_300_000_000.0,
+                        "normalized_unit": "KRW",
+                        "matched_operand_role": "denominator_1",
+                    },
+                ],
             },
-            "calculation_operands": [
-                {
-                    "operand_id": "op_001",
-                    "evidence_id": "ev_ratio",
-                    "source_row_id": "ev_ratio",
-                    "label": "selling expense",
-                    "raw_value": "4,355",
-                    "raw_unit": "hundred million",
-                    "normalized_value": 435_500_000_000.0,
-                    "normalized_unit": "KRW",
-                    "matched_operand_role": "numerator_1",
-                },
-                {
-                    "operand_id": "op_002",
-                    "evidence_id": "ev_ratio",
-                    "source_row_id": "ev_ratio",
-                    "label": "pre-expense profit",
-                    "raw_value": "11,623",
-                    "raw_unit": "hundred million",
-                    "normalized_value": 1_162_300_000_000.0,
-                    "normalized_unit": "KRW",
-                    "matched_operand_role": "denominator_1",
-                },
-            ],
             "subtask_results": [
                 {
                     "task_id": "task_1",
@@ -5155,9 +5160,10 @@ class SubtaskLoopTests(unittest.TestCase):
 
         def _legacy_only_execute(state):
             calls.append(state)
+            runtime_trace = dict(state.get("resolved_calculation_trace") or {})
             return {
-                "calculation_operands": list(state.get("calculation_operands") or []),
-                "calculation_plan": dict(state.get("calculation_plan") or {}),
+                "calculation_operands": list(runtime_trace.get("calculation_operands") or []),
+                "calculation_plan": dict(runtime_trace.get("calculation_plan") or {}),
                 "calculation_result": {
                     "status": "ok",
                     "rendered_value": "999%",
@@ -9988,21 +9994,25 @@ class SubtaskLoopTests(unittest.TestCase):
                     "calculation_result": {},
                 },
             ],
-            "calculation_result": {
-                "status": "ok",
-                "rendered_value": "25,163,510천원",
-                "formatted_result": "재고자산폐기손실 25,163,510천원",
-                "answer_slots": {
-                    "operation_family": "lookup",
-                    "primary_value": {
-                        "status": "ok",
-                        "label": "재고자산폐기손실",
-                        "concept": "inventory_disposal_loss",
-                        "raw_value": "25,163,510",
-                        "raw_unit": "천원",
-                        "normalized_value": 25163510000.0,
-                        "normalized_unit": "KRW",
-                        "rendered_value": "25,163,510천원",
+            "resolved_calculation_trace": {
+                "calculation_operands": [],
+                "calculation_plan": {},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "25,163,510천원",
+                    "formatted_result": "재고자산폐기손실 25,163,510천원",
+                    "answer_slots": {
+                        "operation_family": "lookup",
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "재고자산폐기손실",
+                            "concept": "inventory_disposal_loss",
+                            "raw_value": "25,163,510",
+                            "raw_unit": "천원",
+                            "normalized_value": 25163510000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "25,163,510천원",
+                        },
                     },
                 },
             },
@@ -10539,7 +10549,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projected["calculation_result"]["rendered_value"], "25.4%")
         self.assertEqual(projected["runtime_projection"]["source"], "task_artifact_ledger")
 
-    def test_capture_current_subtask_result_ignores_stale_aggregate_resolved_trace(self) -> None:
+    def test_capture_current_subtask_result_uses_active_artifact_over_stale_aggregate_trace(self) -> None:
         state = {
             "query": "2023년 시설투자(CAPEX) 총액을 찾아 줘.",
             "answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
@@ -10559,39 +10569,68 @@ class SubtaskLoopTests(unittest.TestCase):
                     "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
                 },
             },
-            "calculation_operands": [
+            "tasks": [
                 {
-                    "operand_id": "capex_2023",
-                    "label": "2023 시설투자(CAPEX)",
-                    "raw_value": "531,139",
-                    "raw_unit": "억원",
-                    "normalized_value": 53113900000000.0,
-                    "normalized_unit": "KRW",
-                    "matched_operand_role": "current_period",
-                    "matched_operand_concept": "capital_expenditure_total",
+                    "task_id": "task_1",
+                    "kind": "calculation",
+                    "status": "completed",
+                    "artifact_ids": ["artifact:op", "artifact:plan", "artifact:result"],
                 }
             ],
-            "calculation_plan": {"status": "ok", "operation": "lookup", "mode": "single_value"},
-            "calculation_result": {
-                "status": "ok",
-                "rendered_value": "53조 1,139억원",
-                "answer_slots": {
-                    "operation_family": "lookup",
-                    "primary_value": {
-                        "status": "ok",
-                        "label": "2023 시설투자(CAPEX)",
-                        "concept": "capital_expenditure_total",
-                        "period": "2023년",
-                        "raw_value": "531,139",
-                        "raw_unit": "억원",
-                        "normalized_value": 53113900000000.0,
-                        "normalized_unit": "KRW",
-                        "rendered_value": "53조 1,139억원",
-                    }
+            "artifacts": [
+                {
+                    "artifact_id": "artifact:op",
+                    "task_id": "task_1",
+                    "kind": "operand_set",
+                    "payload": {
+                        "calculation_operands": [
+                            {
+                                "operand_id": "capex_2023",
+                                "label": "2023 시설투자(CAPEX)",
+                                "raw_value": "531,139",
+                                "raw_unit": "억원",
+                                "normalized_value": 53113900000000.0,
+                                "normalized_unit": "KRW",
+                                "matched_operand_role": "current_period",
+                                "matched_operand_concept": "capital_expenditure_total",
+                            }
+                        ]
+                    },
                 },
-            },
-            "tasks": [],
-            "artifacts": [],
+                {
+                    "artifact_id": "artifact:plan",
+                    "task_id": "task_1",
+                    "kind": "calculation_plan",
+                    "payload": {
+                        "calculation_plan": {"status": "ok", "operation": "lookup", "mode": "single_value"}
+                    },
+                },
+                {
+                    "artifact_id": "artifact:result",
+                    "task_id": "task_1",
+                    "kind": "calculation_result",
+                    "payload": {
+                        "calculation_result": {
+                            "status": "ok",
+                            "rendered_value": "53조 1,139억원",
+                            "answer_slots": {
+                                "operation_family": "lookup",
+                                "primary_value": {
+                                    "status": "ok",
+                                    "label": "2023 시설투자(CAPEX)",
+                                    "concept": "capital_expenditure_total",
+                                    "period": "2023년",
+                                    "raw_value": "531,139",
+                                    "raw_unit": "억원",
+                                    "normalized_value": 53113900000000.0,
+                                    "normalized_unit": "KRW",
+                                    "rendered_value": "53조 1,139억원",
+                                },
+                            },
+                        }
+                    },
+                },
+            ],
         }
 
         current = self.agent._capture_current_subtask_result(state)
@@ -10642,21 +10681,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projected["calculation_plan"]["operation"], "lookup")
         self.assertEqual(projected["calculation_result"]["rendered_value"], "53조 1,139억원")
         self.assertEqual(projected["calculation_operands"][0]["operand_id"], "capex_2023")
-
-    def test_project_legacy_calculation_fields_aliases_runtime_trace_projection(self) -> None:
-        state = {
-            "calculation_operands": [{"row_id": "legacy"}],
-            "calculation_plan": {"operation": "lookup"},
-            "calculation_result": {"status": "ok", "rendered_value": "123"},
-            "tasks": [],
-            "artifacts": [],
-            "subtask_results": [],
-        }
-
-        self.assertEqual(
-            self.agent._project_legacy_calculation_fields(state),
-            self.agent._project_runtime_calculation_trace(state),
-        )
 
     def test_reflection_retry_ignores_legacy_top_level_runtime_projection(self) -> None:
         self.agent._llm_for_phase = lambda _phase: _FailingStructuredLLM()
@@ -14946,7 +14970,9 @@ class SubtaskLoopTests(unittest.TestCase):
             "rendered_value": "3,589,061 thousand",
             "source_row_id": "ev_direct",
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _binding, _pool: (preferred_slot, 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _binding, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
+        )
         self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
 
         rows = self.agent._build_dependency_operand_rows(state)
@@ -15779,7 +15805,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": {**preferred_slot, "source_row_id": "ev_weak"}},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
+        )
         self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
 
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
@@ -15838,7 +15866,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": {**preferred_slot, "source_row_id": "ev_weak"}},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
+        )
         self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
 
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
@@ -15922,7 +15952,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": current_slot},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
+        )
 
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
@@ -16003,7 +16035,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": current_slot},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: (preferred_slot, 10.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
+        )
         self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
 
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
@@ -16100,7 +16134,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 }
             ],
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool_compat = lambda _operand, _pool, state=None: (
+        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool, state=None, preferred_raw_units=None: (
             preferred_slot,
             10.0,
         )
@@ -16163,7 +16197,9 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": current_slot},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = lambda _operand, _pool: ({}, 0.0)
+        self.agent._best_direct_lookup_slot_from_evidence_pool = (
+            lambda _operand, _pool, state=None, preferred_raw_units=None: ({}, 0.0)
+        )
         self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 10.0
 
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)

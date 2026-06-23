@@ -18,19 +18,28 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from storage.vector_store import (  # noqa: E402
-    DEFAULT_COLLECTION_NAME,
+from src.storage.embedding_config import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_PROVIDER,
-    VectorStoreManager,
 )
 
 logger = logging.getLogger(__name__)
+DEFAULT_COLLECTION_NAME = "dart_reports_v2"
 TABLE_PAYLOAD_ID_KEY = "table_payload_id"
+
+VectorStoreManager = None
+
+
+def _vector_store_manager_cls():
+    global VectorStoreManager
+    if VectorStoreManager is None:
+        from src.storage.vector_store import VectorStoreManager as impl
+
+        VectorStoreManager = impl
+    return VectorStoreManager
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -165,8 +174,8 @@ def validate_vector_store_external(
 import json
 import os
 import sys
-sys.path.insert(0, os.environ["DART_SRC_ROOT"])
-from storage.vector_store import VectorStoreManager
+sys.path.insert(0, os.environ["DART_PROJECT_ROOT"])
+from src.storage.vector_store import VectorStoreManager
 vsm = VectorStoreManager(
     persist_directory=os.environ["DART_HEALTH_STORE"],
     collection_name=os.environ["DART_HEALTH_COLLECTION"],
@@ -179,7 +188,7 @@ print(json.dumps(vsm.validate_vector_index(), ensure_ascii=False))
     env = dict(os.environ)
     env.update(
         {
-            "DART_SRC_ROOT": str(SRC_ROOT),
+            "DART_PROJECT_ROOT": str(PROJECT_ROOT),
             "DART_HEALTH_STORE": str(store),
             "DART_HEALTH_COLLECTION": collection_name,
             "DART_HEALTH_EMBEDDING_PROVIDER": embedding_provider,
@@ -239,7 +248,8 @@ def rebuild_vector_store(
     try:
         prepare_output_store(source_store, output_store, force=force, in_place=in_place, resume=resume)
 
-        manager = VectorStoreManager(
+        vector_store_manager_cls = _vector_store_manager_cls()
+        manager = vector_store_manager_cls(
             persist_directory=str(output_store),
             collection_name=collection_name,
             embedding_provider=embedding_provider,
@@ -258,7 +268,7 @@ def rebuild_vector_store(
                 embedding_model_name=embedding_model_name,
             )
         else:
-            reopened = VectorStoreManager(
+            reopened = vector_store_manager_cls(
                 persist_directory=str(output_store),
                 collection_name=collection_name,
                 embedding_provider=embedding_provider,

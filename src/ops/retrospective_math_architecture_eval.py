@@ -8,21 +8,33 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from ops.evaluator import (
-    EvalExample,
-    _compute_numeric_equivalence,
-    _compute_numeric_grounding,
-    load_eval_examples_from_path,
-)
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
 
-load_dotenv()
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
+
+
+def _compute_numeric_equivalence(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_numeric_equivalence as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_numeric_grounding(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_numeric_grounding as impl
+
+    return impl(*args, **kwargs)
+
+
+def load_eval_examples_from_path(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import load_eval_examples_from_path as impl
+
+    return impl(*args, **kwargs)
 
 
 @dataclass(frozen=True)
@@ -315,6 +327,7 @@ def _render_markdown(
 
 
 def main() -> None:
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Retrospective experiment 1: Direct Calc vs Formula Planner + AST"
     )
@@ -349,7 +362,7 @@ def main() -> None:
     numeric_rows = _numeric_slice(rows, examples_by_id)
     active_ids = [str(row.get("id") or "") for row in numeric_rows]
 
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.0)
+    llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0.0)
 
     detailed_rows: List[Dict[str, Any]] = []
     direct_scored_rows: List[ScoredAnswer] = []

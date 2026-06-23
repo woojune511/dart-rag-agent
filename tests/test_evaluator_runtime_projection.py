@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -40,7 +41,8 @@ from src.ops.evaluator import (
     _should_override_numeric_grounding_from_runtime_evidence,
     _should_override_structured_summary_faithfulness,
 )
-from src.agent.financial_graph_helpers import _resolve_runtime_structured_result, _runtime_trace_state_update
+from src.agent.financial_runtime_trace import _resolve_runtime_structured_result
+from src.agent.financial_runtime_trace import _runtime_trace_state_update
 
 
 class _DummyDoc:
@@ -75,6 +77,22 @@ class _RecordingJudgeLLM:
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_evaluator_import_does_not_load_runtime_trace_owner(self) -> None:
+        code = (
+            "import sys\n"
+            "import src.ops.evaluator\n"
+            "print('src.agent.financial_runtime_trace' in sys.modules)\n"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertEqual(completed.stdout.strip(), "False")
+
     def test_contains_section_accepts_parent_section_path(self) -> None:
         metadata = {
             "section": "경영진단",
@@ -1288,7 +1306,10 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             ],
         }
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = _resolve_runtime_calculation_trace(
+            result,
+            allow_legacy_top_level=True,
+        )
 
         self.assertEqual(len(trace["calculation_operands"]), 4)
         self.assertEqual(trace["calculation_plan"]["mode"], "aggregate_subtasks")
@@ -1372,7 +1393,10 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             "structured_result": {"status": "ok", "rendered_value": "123"},
         }
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = _resolve_runtime_calculation_trace(
+            result,
+            allow_legacy_top_level=True,
+        )
 
         self.assertEqual(trace["calculation_operands"], [{"label": "fresh", "value": "123"}])
         self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
@@ -1389,7 +1413,10 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             "structured_result": {},
         }
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = _resolve_runtime_calculation_trace(
+            result,
+            allow_legacy_top_level=True,
+        )
 
         self.assertEqual(trace["calculation_operands"], [{"label": "legacy", "value": "999"}])
         self.assertEqual(trace["calculation_result"]["rendered_value"], "999")
@@ -1438,7 +1465,10 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
             "structured_result": {"status": "ok", "rendered_value": "123"},
         }
 
-        trace = _resolve_runtime_calculation_trace(result)
+        trace = _resolve_runtime_calculation_trace(
+            result,
+            allow_legacy_top_level=True,
+        )
 
         self.assertEqual(trace["calculation_operands"], [{"label": "legacy", "value": "123"}])
         self.assertEqual(trace["calculation_plan"]["operation"], "lookup")
@@ -1508,45 +1538,6 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertNotIn("calculation_operands", update)
         self.assertNotIn("calculation_plan", update)
         self.assertNotIn("calculation_result", update)
-
-    def test_runtime_trace_state_update_omitted_inputs_preserve_legacy_for_compatibility(self) -> None:
-        update = _runtime_trace_state_update(
-            {
-                "resolved_calculation_trace": {},
-                "structured_result": {},
-                "calculation_operands": [{"row_id": "legacy"}],
-                "calculation_plan": {"status": "legacy"},
-                "calculation_result": {"status": "ok", "rendered_value": "123"},
-            },
-        )
-
-        trace = update["resolved_calculation_trace"]
-        self.assertEqual(trace["calculation_operands"], [{"row_id": "legacy"}])
-        self.assertEqual(trace["calculation_plan"]["status"], "legacy")
-        self.assertEqual(trace["calculation_result"]["rendered_value"], "123")
-        self.assertNotIn("calculation_operands", update)
-        self.assertNotIn("calculation_plan", update)
-        self.assertNotIn("calculation_result", update)
-
-    def test_runtime_trace_state_update_can_opt_into_compatibility_mirrors(self) -> None:
-        update = _runtime_trace_state_update(
-            {
-                "resolved_calculation_trace": {},
-                "structured_result": {},
-            },
-            calculation_operands=[{"row_id": "fresh"}],
-            calculation_plan={"operation": "lookup"},
-            calculation_result={"status": "ok", "rendered_value": "123"},
-            include_compatibility_mirrors=True,
-        )
-
-        self.assertEqual(update["calculation_operands"], [{"row_id": "fresh"}])
-        self.assertEqual(update["calculation_plan"], {"operation": "lookup"})
-        self.assertEqual(update["calculation_result"]["rendered_value"], "123")
-        self.assertEqual(
-            update["resolved_calculation_trace"]["runtime_projection"]["source"],
-            "runtime_trace_state_update",
-        )
 
     def test_evaluate_one_rejects_legacy_top_level_runtime_projection(self) -> None:
         evaluator = RAGEvaluator(

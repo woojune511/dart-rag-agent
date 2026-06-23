@@ -7,9 +7,9 @@ module holds the behavior-neutral rendering logic behind those methods.
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from src.agent.financial_graph_helpers import (
+from src.agent.financial_scope_policies import _desired_consolidation_scope
+from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
-    _desired_consolidation_scope,
     _display_operand_label,
     _format_korean_won_compact,
     _normalise_spaces,
@@ -418,6 +418,90 @@ def infer_company_from_answer_slots(answer_slots: Dict[str, Any]) -> str:
     return ""
 
 
+def _nested_difference_calculation_result(
+    answer_slots: Dict[str, Any],
+    calculation_result: Dict[str, Any],
+) -> Dict[str, Any]:
+    subtask_rows = list(answer_slots.get("subtask_results") or calculation_result.get("subtask_results") or [])
+    for row in subtask_rows:
+        row_payload = dict(row or {})
+        row_result = dict(row_payload.get("calculation_result") or {})
+        row_slots = dict(row_result.get("answer_slots") or row_payload.get("answer_slots") or {})
+        row_family = _normalise_spaces(
+            str(row_slots.get("operation_family") or row_payload.get("operation_family") or "")
+        ).lower()
+        if row_family != "difference":
+            continue
+        candidate = dict(row_result)
+        candidate["answer_slots"] = row_slots
+        if not candidate.get("rendered_value"):
+            candidate["rendered_value"] = row_payload.get("rendered_value") or row_payload.get("answer")
+        return candidate
+    return {}
+
+
+def _difference_answer_prefix(
+    *,
+    query: str,
+    report_scope: Dict[str, Any],
+    answer_slots: Dict[str, Any],
+    result_slot: Dict[str, Any],
+    minuend: Dict[str, Any],
+    subtrahend: Dict[str, Any],
+) -> str:
+    company = _normalise_spaces(str((report_scope or {}).get("company") or ""))
+    if not company:
+        company = infer_company_from_answer_slots(answer_slots)
+    period = _normalise_spaces(
+        str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
+    )
+    scope = _desired_consolidation_scope(query, report_scope or {})
+    scope_text = dict(CALCULATION_RENDER_POLICY.get("scope_labels") or {}).get(scope, "")
+    period_prefix_template = str(CALCULATION_RENDER_POLICY.get("ratio_period_prefix_template") or "{period} ")
+    period_suffix = period_prefix_template.replace("{period}", "").strip()
+    period_text = (
+        period_prefix_template.format(period=period).strip()
+        if period and period_suffix and not period.endswith(period_suffix)
+        else period
+    )
+    prefix_parts = [part for part in (company, period_text, scope_text) if part]
+    return " ".join(dict.fromkeys(prefix_parts))
+
+
+def _render_difference_answer(
+    *,
+    prefix: str,
+    minuend_label: str,
+    minuend_value: str,
+    subtrahend_label: str,
+    subtrahend_value: str,
+    result_label: str,
+    result_value: str,
+) -> str:
+    if prefix:
+        first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence_with_prefix") or "")
+        first_sentence = first_sentence_template.format(
+            prefix=prefix,
+            minuend_label=minuend_label,
+            minuend_value=minuend_value,
+        )
+    else:
+        first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence") or "")
+        first_sentence = first_sentence_template.format(
+            minuend_label=minuend_label,
+            minuend_value=minuend_value,
+        )
+    return _normalise_spaces(
+        str(CALCULATION_RENDER_POLICY.get("difference_answer_template") or "").format(
+            first_sentence=first_sentence,
+            subtrahend_label=subtrahend_label,
+            subtrahend_value=subtrahend_value,
+            result_label=result_label,
+            result_value=result_value,
+        )
+    )
+
+
 def compose_slot_based_difference_answer(
     *,
     query: str,
@@ -430,20 +514,8 @@ def compose_slot_based_difference_answer(
         str(answer_slots.get("operation_family") or calculation_result.get("operation_family") or "")
     ).lower()
     if operation_family != "difference":
-        subtask_rows = list(answer_slots.get("subtask_results") or calculation_result.get("subtask_results") or [])
-        for row in subtask_rows:
-            row_payload = dict(row or {})
-            row_result = dict(row_payload.get("calculation_result") or {})
-            row_slots = dict(row_result.get("answer_slots") or row_payload.get("answer_slots") or {})
-            row_family = _normalise_spaces(
-                str(row_slots.get("operation_family") or row_payload.get("operation_family") or "")
-            ).lower()
-            if row_family != "difference":
-                continue
-            candidate = dict(row_result)
-            candidate["answer_slots"] = row_slots
-            if not candidate.get("rendered_value"):
-                candidate["rendered_value"] = row_payload.get("rendered_value") or row_payload.get("answer")
+        candidate = _nested_difference_calculation_result(answer_slots, calculation_result)
+        if candidate:
             answer = compose_slot_based_difference_answer(
                 query=query,
                 report_scope=report_scope,
@@ -474,23 +546,14 @@ def compose_slot_based_difference_answer(
     if not (minuend_value and subtrahend_value and result_value):
         return ""
 
-    company = _normalise_spaces(str((report_scope or {}).get("company") or ""))
-    if not company:
-        company = infer_company_from_answer_slots(answer_slots)
-    period = _normalise_spaces(
-        str(result_slot.get("period") or minuend.get("period") or subtrahend.get("period") or "")
+    prefix = _difference_answer_prefix(
+        query=query,
+        report_scope=report_scope,
+        answer_slots=answer_slots,
+        result_slot=result_slot,
+        minuend=minuend,
+        subtrahend=subtrahend,
     )
-    scope = _desired_consolidation_scope(query, report_scope or {})
-    scope_text = dict(CALCULATION_RENDER_POLICY.get("scope_labels") or {}).get(scope, "")
-    period_prefix_template = str(CALCULATION_RENDER_POLICY.get("ratio_period_prefix_template") or "{period} ")
-    period_suffix = period_prefix_template.replace("{period}", "").strip()
-    period_text = (
-        period_prefix_template.format(period=period).strip()
-        if period and period_suffix and not period.endswith(period_suffix)
-        else period
-    )
-    prefix_parts = [part for part in (company, period_text, scope_text) if part]
-    prefix = " ".join(dict.fromkeys(prefix_parts))
 
     default_labels = dict(CALCULATION_RENDER_POLICY.get("difference_default_labels") or {})
     minuend_label = _normalise_spaces(str(minuend.get("label") or default_labels.get("minuend") or ""))
@@ -499,25 +562,12 @@ def compose_slot_based_difference_answer(
         str(result_slot.get("label") or calculation_result.get("metric_label") or default_labels.get("result") or "")
     )
 
-    if prefix:
-        first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence_with_prefix") or "")
-        first_sentence = first_sentence_template.format(
-            prefix=prefix,
-            minuend_label=minuend_label,
-            minuend_value=minuend_value,
-        )
-    else:
-        first_sentence_template = str(CALCULATION_RENDER_POLICY.get("difference_first_sentence") or "")
-        first_sentence = first_sentence_template.format(
-            minuend_label=minuend_label,
-            minuend_value=minuend_value,
-        )
-    return _normalise_spaces(
-        str(CALCULATION_RENDER_POLICY.get("difference_answer_template") or "").format(
-            first_sentence=first_sentence,
-            subtrahend_label=subtrahend_label,
-            subtrahend_value=subtrahend_value,
-            result_label=result_label,
-            result_value=result_value,
-        )
+    return _render_difference_answer(
+        prefix=prefix,
+        minuend_label=minuend_label,
+        minuend_value=minuend_value,
+        subtrahend_label=subtrahend_label,
+        subtrahend_value=subtrahend_value,
+        result_label=result_label,
+        result_value=result_value,
     )

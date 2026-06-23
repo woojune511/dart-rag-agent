@@ -15,38 +15,47 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Sequence
 
-from langchain_core.documents import Document
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import (
-    _resolve_runtime_calculation_trace,
-    _resolve_runtime_structured_result,
-)
-from src.experimental.mas.graph import build_initial_state
-from src.experimental.mas.nodes import (
-    NarrativeResearcherCore,
-    build_financial_orchestrator_plan_node,
-)
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.experimental.mas.diagnostics import (
     build_researcher_probe_query,
     build_researcher_probe_where_filter,
     select_researcher_probe_docs,
 )
-from src.ops.mas_e2e_smoke import DEFAULT_COLLECTION, DEFAULT_QUERIES, DEFAULT_SCOPE, DEFAULT_STORE_DIR
-from src.storage.vector_store import VectorStoreManager
 
 
 PlannerNode = Callable[[Dict[str, Any]], Dict[str, Any]]
+DEFAULT_STORE_DIR = (
+    Path(
+        "benchmarks/results/policy_gate_regression_2026-06-03_1138_actual/"
+        "삼성전자-2023/stores/structural-selective-v2-prefix-2500-320"
+    )
+)
+DEFAULT_COLLECTION = "dart_reports_v2_structural-selective-v2-prefix-2500-320"
+DEFAULT_SCOPE = {
+    "company": "삼성전자",
+    "report_type": "사업보고서",
+    "rcept_no": "20240312000736",
+    "year": "2023",
+    "consolidation": "연결",
+}
+DEFAULT_QUERIES = [
+    "삼성전자 2023 사업보고서에서 영업이익률은 얼마이고, 주요 재무 리스크는 무엇인가요?",
+    "삼성전자 2023 사업보고서에서 연구개발비용 비중을 계산하고, 2023년 연구개발 성과 예시를 요약해줘.",
+]
+
+
+def _document_cls() -> Any:
+    from langchain_core.documents import Document
+
+    return Document
 
 
 def _doc_count(items: Sequence[Any]) -> int:
+    Document = _document_cls()
     count = 0
     for item in items or []:
         doc = item[0] if isinstance(item, tuple) and item else item
@@ -80,6 +89,8 @@ def _planned_tasks(
     report_scope: Dict[str, Any],
     planner_node: PlannerNode,
 ) -> List[Dict[str, Any]]:
+    from src.experimental.mas.graph import build_initial_state
+
     state = build_initial_state(query, report_scope=dict(report_scope or {}))
     updates = planner_node(state)
     tasks = dict(updates.get("tasks") or {})
@@ -102,8 +113,11 @@ def _analyst_material_status(result: Dict[str, Any]) -> Dict[str, Any]:
         result,
         allow_legacy_top_level=False,
     )
-    structured_result = _resolve_runtime_structured_result(result)
-    calc_result = dict(structured_result or resolved_trace.get("calculation_result") or {})
+    calc_result = dict(
+        result.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
+    )
     calc_status = str(calc_result.get("status") or "").strip().lower()
     calculation_plan = dict(resolved_trace.get("calculation_plan") or {})
     calculation_operands = list(resolved_trace.get("calculation_operands") or [])
@@ -278,6 +292,10 @@ def run_probe(
     analyst_core: Any | None = None,
     researcher_core: Any | None = None,
 ) -> Dict[str, Any]:
+    from src.agent.financial_graph import FinancialAgent
+    from src.experimental.mas.nodes import NarrativeResearcherCore, build_financial_orchestrator_plan_node
+    from src.storage.vector_store import VectorStoreManager
+
     scope = dict(report_scope or DEFAULT_SCOPE)
     vsm = vector_store_manager or VectorStoreManager(
         persist_directory=str(store_dir),

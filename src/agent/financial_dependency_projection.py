@@ -5,10 +5,162 @@ from __future__ import annotations
 import re
 from typing import Any, Callable, Dict, List
 
-from src.agent.financial_graph_helpers import _clean_source_row_ids, _normalise_operand_value, _normalise_spaces
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
+from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_runtime_normalization import (
+    _clean_source_row_ids,
+    _normalise_operand_value,
+    _normalise_spaces,
+)
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+
+
+def dependency_projection_values_differ(left: Any, right: Any) -> bool:
+    try:
+        if left is not None and right is not None:
+            return abs(float(left) - float(right)) > 1e-6
+    except (TypeError, ValueError):
+        pass
+    return left != right
+
+
+def dependency_projection_slot_differs_from_operand(
+    slot: Dict[str, Any],
+    operand: Dict[str, Any],
+) -> bool:
+    return any(
+        (
+            _normalise_spaces(str(slot.get("raw_value") or ""))
+            != _normalise_spaces(str(operand.get("raw_value") or "")),
+            _normalise_spaces(str(slot.get("raw_unit") or ""))
+            != _normalise_spaces(str(operand.get("raw_unit") or "")),
+            _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+            != _normalise_spaces(str(operand.get("normalized_unit") or "")).upper(),
+            dependency_projection_values_differ(
+                slot.get("normalized_value"),
+                operand.get("normalized_value"),
+            ),
+        )
+    )
+
+
+def source_task_id_for_dependency_operand(operand: Dict[str, Any]) -> str:
+    source_task_id = _normalise_spaces(str(operand.get("source_task_id") or ""))
+    if source_task_id:
+        return source_task_id
+    for source_id in _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")]):
+        if source_id.startswith("task_output:"):
+            return source_id.split(":", 1)[1]
+    return ""
+
+
+def dependency_ratio_role_group(role: str) -> str:
+    normalized = _normalise_spaces(str(role or ""))
+    if normalized.startswith("numerator"):
+        return "numerator"
+    if normalized.startswith("denominator"):
+        return "denominator"
+    return ""
+
+
+def dependency_lookup_slot_match_score(
+    lookup_slot: Dict[str, Any],
+    arithmetic_slot: Dict[str, Any],
+    role: str,
+) -> int:
+    score = 0
+    lookup_role = _normalise_spaces(str(lookup_slot.get("role") or ""))
+    arithmetic_role = _normalise_spaces(str(arithmetic_slot.get("role") or role or ""))
+    lookup_ratio_group = dependency_ratio_role_group(lookup_role)
+    arithmetic_ratio_group = dependency_ratio_role_group(arithmetic_role)
+    if lookup_ratio_group and arithmetic_ratio_group and lookup_ratio_group != arithmetic_ratio_group:
+        return 0
+    if lookup_role and arithmetic_role:
+        if lookup_role == arithmetic_role:
+            score += 2
+        if lookup_role.startswith(f"{arithmetic_role}_") or arithmetic_role.startswith(f"{lookup_role}_"):
+            score += 1
+    lookup_concept = _normalise_spaces(str(lookup_slot.get("concept") or ""))
+    arithmetic_concept = _normalise_spaces(
+        str(arithmetic_slot.get("concept") or arithmetic_slot.get("matched_operand_concept") or "")
+    )
+    if lookup_concept and arithmetic_concept and lookup_concept == arithmetic_concept:
+        score += 8
+    lookup_label = _normalise_spaces(str(lookup_slot.get("label") or ""))
+    arithmetic_label = _normalise_spaces(
+        str(arithmetic_slot.get("label") or arithmetic_slot.get("matched_operand_label") or "")
+    )
+    if lookup_label and arithmetic_label:
+        if lookup_label == arithmetic_label:
+            score += 6
+        elif _operand_text_match(lookup_label, {"label": arithmetic_label}):
+            score += 4
+        elif arithmetic_label in lookup_label or lookup_label in arithmetic_label:
+            score += 3
+    lookup_period = _normalise_spaces(str(lookup_slot.get("period") or ""))
+    arithmetic_period = _normalise_spaces(str(arithmetic_slot.get("period") or ""))
+    if score > 0 and lookup_period and arithmetic_period and lookup_period == arithmetic_period:
+        score += 1
+    return score
+
+
+def dependency_operand_rows_share_source_value(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    left_ids = set(_clean_source_row_ids([left.get("source_row_id"), left.get("source_row_ids")]))
+    right_ids = set(_clean_source_row_ids([right.get("source_row_id"), right.get("source_row_ids")]))
+    if not left_ids or not right_ids or not (left_ids & right_ids):
+        return False
+    try:
+        left_value = left.get("normalized_value")
+        right_value = right.get("normalized_value")
+        if left_value is not None and right_value is not None:
+            return abs(float(left_value) - float(right_value)) <= 1e-6
+    except (TypeError, ValueError):
+        pass
+    return _normalise_spaces(str(left.get("raw_value") or "")) == _normalise_spaces(
+        str(right.get("raw_value") or "")
+    )
+
+
+def dependency_source_slot_structurally_stronger(slot: Dict[str, Any]) -> bool:
+    return bool(
+        _normalise_spaces(str(slot.get("value_role") or "")).lower() == "aggregate"
+        or _normalise_spaces(str(slot.get("aggregation_stage") or "")).lower()
+        in {"final", "subtotal", "direct"}
+    )
+
+
+def dependency_operand_can_use_source_slot(
+    operand: Dict[str, Any],
+    source_slot: Dict[str, Any],
+) -> bool:
+    operand_source_ids = _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")])
+    source_task_id = source_task_id_for_dependency_operand(operand)
+    operand_role_group = dependency_ratio_role_group(
+        str(operand.get("matched_operand_role") or operand.get("role") or "")
+    )
+    source_role_group = dependency_ratio_role_group(str(source_slot.get("role") or ""))
+    if operand_role_group and source_role_group and operand_role_group != source_role_group:
+        return False
+    dependency_backed_operand = bool(
+        source_task_id
+        and (
+            _normalise_spaces(str(operand.get("source_task_id") or ""))
+            or any(source_id.startswith("task_output:") for source_id in operand_source_ids)
+        )
+    )
+    source_slot_ids = _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
+    role = _normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or ""))
+    match_score = dependency_lookup_slot_match_score(source_slot, operand, role)
+    strong_source_slot_match = bool(source_slot_ids and match_score >= 8)
+    if operand_role_group and source_role_group != operand_role_group and match_score <= 0:
+        return False
+    return bool(
+        dependency_backed_operand
+        or dependency_source_slot_structurally_stronger(source_slot)
+        or not operand_source_ids
+        or strong_source_slot_match
+    )
 
 
 def _slot_from_single_answer_numeric(
@@ -47,6 +199,126 @@ def _slot_from_single_answer_numeric(
     }
 
 
+def _dependency_lookup_operation(
+    result_row: Dict[str, Any],
+    *,
+    operation_family_for_result: Callable[[Dict[str, Any]], str],
+) -> str:
+    metric_family = _normalise_spaces(str(result_row.get("metric_family") or "")).lower()
+    operation = _normalise_spaces(
+        str(result_row.get("operation_family") or operation_family_for_result(result_row) or "")
+    ).lower()
+    if metric_family in {"concept_lookup", "generic_numeric"} and operation not in {"lookup", "single_value"}:
+        return "lookup"
+    return operation
+
+
+def _dependency_producer_task(
+    result_row: Dict[str, Any],
+    *,
+    task_by_id: Dict[str, Dict[str, Any]],
+    result_task_id: str,
+) -> Dict[str, Any]:
+    producer_task = {
+        **(
+            dict(task_by_id.get(result_task_id) or {})
+            or {
+                "task_id": result_task_id,
+                "metric_family": result_row.get("metric_family") or "concept_lookup",
+                "operation_family": "lookup",
+            }
+        )
+    }
+    row_metric_label = _normalise_spaces(str(result_row.get("metric_label") or ""))
+    if row_metric_label and not _normalise_spaces(str(producer_task.get("metric_label") or "")):
+        producer_task["metric_label"] = row_metric_label
+    if not producer_task.get("required_operands"):
+        producer_task["required_operands"] = [
+            {
+                "label": producer_task.get("metric_label") or row_metric_label,
+                "role": "primary_value",
+                "period": "",
+            }
+        ]
+    return producer_task
+
+
+def _populate_answer_numeric_slot_context(
+    answer_numeric_slot: Dict[str, Any],
+    producer_task: Dict[str, Any],
+) -> None:
+    producer_required_operands = [
+        dict(item)
+        for item in (producer_task.get("required_operands") or [])
+        if isinstance(item, dict) and bool(item.get("required", True))
+    ]
+    if len(producer_required_operands) != 1 or not answer_numeric_slot:
+        return
+    producer_operand = producer_required_operands[0]
+    if not _normalise_spaces(str(answer_numeric_slot.get("concept") or "")):
+        answer_numeric_slot["concept"] = _normalise_spaces(str(producer_operand.get("concept") or ""))
+    if not _normalise_spaces(str(answer_numeric_slot.get("period") or "")):
+        answer_numeric_slot["period"] = _normalise_spaces(str(producer_operand.get("period") or ""))
+
+
+def _dependency_lookup_slot_for_result_row(
+    result_row: Dict[str, Any],
+    *,
+    task_by_id: Dict[str, Dict[str, Any]],
+    result_task_id: str,
+    slot_has_material: Callable[[Dict[str, Any]], bool],
+) -> Dict[str, Any]:
+    result = dict(result_row.get("calculation_result") or {})
+    result_slots = dict(result.get("answer_slots") or result_row.get("answer_slots") or {})
+    slot = dict(result_slots.get("primary_value") or {})
+    answer_text = _normalise_spaces(
+        str(result_row.get("answer") or result.get("formatted_result") or result.get("rendered_value") or "")
+    )
+    answer_numeric_slot: Dict[str, Any] = {}
+    if slot_has_material(slot) and answer_text:
+        answer_numeric_slot = _slot_from_single_answer_numeric(
+            slot,
+            answer_text=answer_text,
+            result_row=result_row,
+        )
+    if slot_has_material(slot) and not answer_numeric_slot:
+        return slot
+
+    producer_task = _dependency_producer_task(
+        result_row,
+        task_by_id=task_by_id,
+        result_task_id=result_task_id,
+    )
+    _populate_answer_numeric_slot_context(answer_numeric_slot, producer_task)
+    synthetic_result = _synthesize_lookup_answer_slot_from_prose(
+        active_subtask=producer_task,
+        answer=answer_text,
+        calculation_result=result,
+        selected_claim_ids=[
+            str(claim_id).strip()
+            for claim_id in (result_row.get("selected_claim_ids") or [])
+            if str(claim_id).strip()
+        ],
+    )
+    synthetic_slot_material = False
+    if synthetic_result:
+        synthetic_slots = dict(synthetic_result.get("answer_slots") or {})
+        synthetic_slot = dict(synthetic_slots.get("primary_value") or {})
+        if slot_has_material(synthetic_slot):
+            slot = synthetic_slot
+            synthetic_slot_material = True
+    synthetic_raw = _normalise_spaces(str(slot.get("raw_value") or ""))
+    synthetic_missing_concept = not _normalise_spaces(str(slot.get("concept") or ""))
+    answer_numeric_has_concept = bool(_normalise_spaces(str(answer_numeric_slot.get("concept") or "")))
+    if answer_numeric_slot and (
+        not synthetic_slot_material
+        or (synthetic_raw and synthetic_raw not in answer_text)
+        or (synthetic_missing_concept and answer_numeric_has_concept)
+    ):
+        return answer_numeric_slot
+    return slot
+
+
 def build_dependency_lookup_slots_by_task(
     ordered_results: List[Dict[str, Any]],
     task_by_id: Dict[str, Dict[str, Any]],
@@ -59,86 +331,18 @@ def build_dependency_lookup_slots_by_task(
         result_task_id = _normalise_spaces(str(result_row.get("task_id") or ""))
         if not result_task_id:
             continue
-        metric_family = _normalise_spaces(str(result_row.get("metric_family") or "")).lower()
-        operation = _normalise_spaces(
-            str(result_row.get("operation_family") or operation_family_for_result(result_row) or "")
-        ).lower()
-        if metric_family in {"concept_lookup", "generic_numeric"} and operation not in {"lookup", "single_value"}:
-            operation = "lookup"
+        operation = _dependency_lookup_operation(
+            result_row,
+            operation_family_for_result=operation_family_for_result,
+        )
         if operation not in {"lookup", "single_value"}:
             continue
-        result = dict(result_row.get("calculation_result") or {})
-        result_slots = dict(result.get("answer_slots") or result_row.get("answer_slots") or {})
-        slot = dict(result_slots.get("primary_value") or {})
-        answer_text = _normalise_spaces(
-            str(result_row.get("answer") or result.get("formatted_result") or result.get("rendered_value") or "")
+        slot = _dependency_lookup_slot_for_result_row(
+            result_row,
+            task_by_id=task_by_id,
+            result_task_id=result_task_id,
+            slot_has_material=slot_has_material,
         )
-        answer_numeric_slot: Dict[str, Any] = {}
-        if slot_has_material(slot) and answer_text:
-            answer_numeric_slot = _slot_from_single_answer_numeric(
-                slot,
-                answer_text=answer_text,
-                result_row=result_row,
-            )
-        if not slot_has_material(slot) or answer_numeric_slot:
-            producer_task = {
-                **(
-                    dict(task_by_id.get(result_task_id) or {})
-                    or {
-                        "task_id": result_task_id,
-                        "metric_family": result_row.get("metric_family") or "concept_lookup",
-                        "operation_family": "lookup",
-                    }
-                )
-            }
-            row_metric_label = _normalise_spaces(str(result_row.get("metric_label") or ""))
-            if row_metric_label and not _normalise_spaces(str(producer_task.get("metric_label") or "")):
-                producer_task["metric_label"] = row_metric_label
-            if not producer_task.get("required_operands"):
-                producer_task["required_operands"] = [
-                    {
-                        "label": producer_task.get("metric_label") or row_metric_label,
-                        "role": "primary_value",
-                        "period": "",
-                    }
-                ]
-            producer_required_operands = [
-                dict(item)
-                for item in (producer_task.get("required_operands") or [])
-                if isinstance(item, dict) and bool(item.get("required", True))
-            ]
-            if len(producer_required_operands) == 1 and answer_numeric_slot:
-                producer_operand = producer_required_operands[0]
-                if not _normalise_spaces(str(answer_numeric_slot.get("concept") or "")):
-                    answer_numeric_slot["concept"] = _normalise_spaces(str(producer_operand.get("concept") or ""))
-                if not _normalise_spaces(str(answer_numeric_slot.get("period") or "")):
-                    answer_numeric_slot["period"] = _normalise_spaces(str(producer_operand.get("period") or ""))
-            synthetic_result = _synthesize_lookup_answer_slot_from_prose(
-                active_subtask=producer_task,
-                answer=answer_text,
-                calculation_result=result,
-                selected_claim_ids=[
-                    str(claim_id).strip()
-                    for claim_id in (result_row.get("selected_claim_ids") or [])
-                    if str(claim_id).strip()
-                ],
-            )
-            synthetic_slot_material = False
-            if synthetic_result:
-                result_slots = dict(synthetic_result.get("answer_slots") or {})
-                synthetic_slot = dict(result_slots.get("primary_value") or {})
-                if slot_has_material(synthetic_slot):
-                    slot = synthetic_slot
-                    synthetic_slot_material = True
-            synthetic_raw = _normalise_spaces(str(slot.get("raw_value") or ""))
-            synthetic_missing_concept = not _normalise_spaces(str(slot.get("concept") or ""))
-            answer_numeric_has_concept = bool(_normalise_spaces(str(answer_numeric_slot.get("concept") or "")))
-            if answer_numeric_slot and (
-                not synthetic_slot_material
-                or (synthetic_raw and synthetic_raw not in answer_text)
-                or (synthetic_missing_concept and answer_numeric_has_concept)
-            ):
-                slot = answer_numeric_slot
         if slot_has_material(slot):
             slot = dict(slot)
             slot["source_task_id"] = result_task_id
@@ -721,6 +925,223 @@ def _numeric_values_differ(left: Any, right: Any) -> bool:
     return left != right
 
 
+def _ratio_dependency_present_groups(
+    operands: List[Dict[str, Any]],
+    *,
+    ratio_role_group: Callable[[str], str],
+) -> set[str]:
+    present_groups = {
+        ratio_role_group(_normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or "")))
+        for operand in operands
+    }
+    present_groups.discard("")
+    return present_groups
+
+
+def _required_ratio_dependency_operands(active_subtask: Dict[str, Any]) -> List[Dict[str, Any]]:
+    return [
+        dict(item)
+        for item in (active_subtask.get("required_operands") or active_subtask.get("inputs") or [])
+        if bool(item.get("required", True))
+    ]
+
+
+def _lookup_like_result_for_ratio_dependency(
+    result_row: Dict[str, Any],
+    *,
+    operation_family_for_result: Callable[[Dict[str, Any]], str],
+) -> bool:
+    result_operation = _normalise_spaces(
+        str(result_row.get("operation_family") or operation_family_for_result(result_row) or "")
+    ).lower()
+    result_metric_family = _normalise_spaces(str(result_row.get("metric_family") or "")).lower()
+    return bool(
+        result_operation in {"lookup", "single_value"}
+        or result_metric_family in {"concept_lookup", "generic_numeric"}
+    )
+
+
+def _primary_answer_slot_from_result_row(result_row: Dict[str, Any]) -> Dict[str, Any]:
+    return dict(
+        (
+            dict(result_row.get("calculation_result") or {}).get("answer_slots")
+            or result_row.get("answer_slots")
+            or {}
+        ).get("primary_value")
+        or {}
+    )
+
+
+def _append_inferred_denominator_requirement(
+    required_operands: List[Dict[str, Any]],
+    *,
+    updated_operands: List[Dict[str, Any]],
+    ordered_results: List[Dict[str, Any]],
+    task_id: str,
+    operation_family_for_result: Callable[[Dict[str, Any]], str],
+    ratio_role_group: Callable[[str], str],
+    source_task_id_for_operand: Callable[[Dict[str, Any]], str],
+) -> List[Dict[str, Any]]:
+    existing_required_groups = {
+        ratio_role_group(_normalise_spaces(str(operand.get("role") or "")))
+        for operand in required_operands
+    }
+    if "denominator" in existing_required_groups:
+        return required_operands
+    used_source_task_ids = {
+        source_task_id
+        for source_task_id in (source_task_id_for_operand(operand) for operand in updated_operands)
+        if source_task_id
+    }
+    for result_row in ordered_results:
+        result_task_id = _normalise_spaces(str(result_row.get("task_id") or ""))
+        if not result_task_id or result_task_id == task_id or result_task_id in used_source_task_ids:
+            continue
+        if not _lookup_like_result_for_ratio_dependency(
+            result_row,
+            operation_family_for_result=operation_family_for_result,
+        ):
+            continue
+        result_label = _normalise_spaces(str(result_row.get("metric_label") or ""))
+        if not result_label:
+            continue
+        result_slot = _primary_answer_slot_from_result_row(result_row)
+        return [
+            *required_operands,
+            {
+                "role": "denominator_1",
+                "label": result_label,
+                "concept": _normalise_spaces(str(result_slot.get("concept") or "")),
+                "required": True,
+            },
+        ]
+    return required_operands
+
+
+def _ratio_dependency_operand_seed(
+    required_operand: Dict[str, Any],
+    *,
+    required_role: str,
+    operand_count: int,
+) -> Dict[str, Any]:
+    label = _normalise_spaces(str(required_operand.get("label") or ""))
+    concept = _normalise_spaces(str(required_operand.get("concept") or ""))
+    return {
+        "operand_id": _normalise_spaces(
+            str(required_operand.get("operand_id") or f"{required_role}_{operand_count + 1}")
+        ),
+        "matched_operand_role": required_role,
+        "role": required_role,
+        "label": label,
+        "matched_operand_label": label,
+        "concept": concept,
+        "matched_operand_concept": concept,
+    }
+
+
+def _ratio_dependency_source_operand_seed(
+    operand_seed: Dict[str, Any],
+    required_operand: Dict[str, Any],
+    source_slot: Dict[str, Any],
+) -> Dict[str, Any]:
+    label = _normalise_spaces(str(required_operand.get("label") or source_slot.get("label") or ""))
+    concept = _normalise_spaces(str(required_operand.get("concept") or source_slot.get("concept") or ""))
+    return {
+        **operand_seed,
+        "label": label,
+        "matched_operand_label": label,
+        "concept": concept,
+        "matched_operand_concept": concept,
+    }
+
+
+def _dependency_operand_is_duplicate_source_value(
+    operand: Dict[str, Any],
+    existing_operands: List[Dict[str, Any]],
+    *,
+    operand_rows_share_source_value: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+) -> bool:
+    return any(
+        operand_rows_share_source_value(operand, existing_operand)
+        for existing_operand in existing_operands
+    )
+
+
+def _ratio_dependency_operand_from_source(
+    operand_seed: Dict[str, Any],
+    required_operand: Dict[str, Any],
+    *,
+    task_id: str,
+    lookup_source_for_arithmetic_slot: Callable[..., tuple[str, Dict[str, Any]]],
+    slot_has_material: Callable[[Dict[str, Any]], bool],
+    operand_can_use_source_slot: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+    operand_from_source_slot: Callable[..., Dict[str, Any]],
+) -> Dict[str, Any]:
+    required_role = _normalise_spaces(str(required_operand.get("role") or ""))
+    source_task_id, source_slot = lookup_source_for_arithmetic_slot(
+        current_task_id=task_id,
+        role=required_role,
+        slot=required_operand,
+    )
+    if not source_task_id or not slot_has_material(source_slot):
+        return {}
+    source_operand_seed = _ratio_dependency_source_operand_seed(
+        operand_seed,
+        required_operand,
+        source_slot,
+    )
+    if not operand_can_use_source_slot(source_operand_seed, source_slot):
+        return {}
+    return operand_from_source_slot(
+        source_operand_seed,
+        source_slot,
+        source_task_id=source_task_id,
+    )
+
+
+def _missing_ratio_dependency_operand(
+    required_operand: Dict[str, Any],
+    *,
+    updated_operands: List[Dict[str, Any]],
+    task_id: str,
+    lookup_source_for_arithmetic_slot: Callable[..., tuple[str, Dict[str, Any]]],
+    slot_has_material: Callable[[Dict[str, Any]], bool],
+    operand_can_use_source_slot: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+    operand_from_source_slot: Callable[..., Dict[str, Any]],
+    operand_from_table_label_evidence: Callable[[Dict[str, Any]], Dict[str, Any]],
+    operand_rows_share_source_value: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+) -> Dict[str, Any]:
+    required_role = _normalise_spaces(str(required_operand.get("role") or ""))
+    operand_seed = _ratio_dependency_operand_seed(
+        required_operand,
+        required_role=required_role,
+        operand_count=len(updated_operands),
+    )
+    source_operand = _ratio_dependency_operand_from_source(
+        operand_seed,
+        required_operand,
+        task_id=task_id,
+        lookup_source_for_arithmetic_slot=lookup_source_for_arithmetic_slot,
+        slot_has_material=slot_has_material,
+        operand_can_use_source_slot=operand_can_use_source_slot,
+        operand_from_source_slot=operand_from_source_slot,
+    )
+    if source_operand and not _dependency_operand_is_duplicate_source_value(
+        source_operand,
+        updated_operands,
+        operand_rows_share_source_value=operand_rows_share_source_value,
+    ):
+        return source_operand
+    table_operand = operand_from_table_label_evidence(operand_seed)
+    if table_operand and not _dependency_operand_is_duplicate_source_value(
+        table_operand,
+        updated_operands,
+        operand_rows_share_source_value=operand_rows_share_source_value,
+    ):
+        return table_operand
+    return {}
+
+
 def fill_missing_ratio_dependency_operands(
     updated_operands: List[Dict[str, Any]],
     *,
@@ -737,60 +1158,18 @@ def fill_missing_ratio_dependency_operands(
     ratio_role_group: Callable[[str], str],
     source_task_id_for_operand: Callable[[Dict[str, Any]], str],
 ) -> tuple[List[Dict[str, Any]], bool]:
-    present_groups = {
-        ratio_role_group(_normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or "")))
-        for operand in updated_operands
-    }
-    present_groups.discard("")
-    required_operands = [
-        dict(item)
-        for item in (active_subtask.get("required_operands") or active_subtask.get("inputs") or [])
-        if bool(item.get("required", True))
-    ]
+    present_groups = _ratio_dependency_present_groups(updated_operands, ratio_role_group=ratio_role_group)
+    required_operands = _required_ratio_dependency_operands(active_subtask)
     if "denominator" not in present_groups:
-        used_source_task_ids = {
-            source_task_id_for_operand(operand)
-            for operand in updated_operands
-            if source_task_id_for_operand(operand)
-        }
-        existing_required_groups = {
-            ratio_role_group(_normalise_spaces(str(operand.get("role") or "")))
-            for operand in required_operands
-        }
-        if "denominator" not in existing_required_groups:
-            for result_row in ordered_results:
-                result_task_id = _normalise_spaces(str(result_row.get("task_id") or ""))
-                if not result_task_id or result_task_id == task_id or result_task_id in used_source_task_ids:
-                    continue
-                result_operation = _normalise_spaces(
-                    str(result_row.get("operation_family") or operation_family_for_result(result_row) or "")
-                ).lower()
-                result_metric_family = _normalise_spaces(str(result_row.get("metric_family") or "")).lower()
-                if (
-                    result_operation not in {"lookup", "single_value"}
-                    and result_metric_family not in {"concept_lookup", "generic_numeric"}
-                ):
-                    continue
-                result_label = _normalise_spaces(str(result_row.get("metric_label") or ""))
-                if not result_label:
-                    continue
-                result_slot = dict(
-                    (
-                        dict(result_row.get("calculation_result") or {}).get("answer_slots")
-                        or result_row.get("answer_slots")
-                        or {}
-                    ).get("primary_value")
-                    or {}
-                )
-                required_operands.append(
-                    {
-                        "role": "denominator_1",
-                        "label": result_label,
-                        "concept": _normalise_spaces(str(result_slot.get("concept") or "")),
-                        "required": True,
-                    }
-                )
-                break
+        required_operands = _append_inferred_denominator_requirement(
+            required_operands,
+            updated_operands=updated_operands,
+            ordered_results=ordered_results,
+            task_id=task_id,
+            operation_family_for_result=operation_family_for_result,
+            ratio_role_group=ratio_role_group,
+            source_task_id_for_operand=source_task_id_for_operand,
+        )
 
     changed = False
     for required_operand in required_operands:
@@ -798,137 +1177,136 @@ def fill_missing_ratio_dependency_operands(
         required_group = ratio_role_group(required_role)
         if required_group not in {"numerator", "denominator"} or required_group in present_groups:
             continue
-        operand_seed = {
-            "operand_id": _normalise_spaces(
-                str(required_operand.get("operand_id") or f"{required_role}_{len(updated_operands) + 1}")
-            ),
-            "matched_operand_role": required_role,
-            "role": required_role,
-            "label": _normalise_spaces(str(required_operand.get("label") or "")),
-            "matched_operand_label": _normalise_spaces(str(required_operand.get("label") or "")),
-            "concept": _normalise_spaces(str(required_operand.get("concept") or "")),
-            "matched_operand_concept": _normalise_spaces(str(required_operand.get("concept") or "")),
-        }
-        source_task_id, source_slot = lookup_source_for_arithmetic_slot(
-            current_task_id=task_id,
-            role=required_role,
-            slot=required_operand,
+        missing_operand = _missing_ratio_dependency_operand(
+            required_operand,
+            updated_operands=updated_operands,
+            task_id=task_id,
+            lookup_source_for_arithmetic_slot=lookup_source_for_arithmetic_slot,
+            slot_has_material=slot_has_material,
+            operand_can_use_source_slot=operand_can_use_source_slot,
+            operand_from_source_slot=operand_from_source_slot,
+            operand_from_table_label_evidence=operand_from_table_label_evidence,
+            operand_rows_share_source_value=operand_rows_share_source_value,
         )
-        if source_task_id and slot_has_material(source_slot):
-            source_operand_seed = {
-                **operand_seed,
-                "label": _normalise_spaces(str(required_operand.get("label") or source_slot.get("label") or "")),
-                "matched_operand_label": _normalise_spaces(
-                    str(required_operand.get("label") or source_slot.get("label") or "")
-                ),
-                "concept": _normalise_spaces(str(required_operand.get("concept") or source_slot.get("concept") or "")),
-                "matched_operand_concept": _normalise_spaces(
-                    str(required_operand.get("concept") or source_slot.get("concept") or "")
-                ),
-            }
-            if operand_can_use_source_slot(source_operand_seed, source_slot):
-                source_operand = operand_from_source_slot(
-                    source_operand_seed,
-                    source_slot,
-                    source_task_id=source_task_id,
-                )
-                if not any(
-                    operand_rows_share_source_value(source_operand, existing_operand)
-                    for existing_operand in updated_operands
-                ):
-                    updated_operands.append(source_operand)
-                    present_groups.add(required_group)
-                    changed = True
-                    continue
-        table_operand = operand_from_table_label_evidence(operand_seed)
-        if table_operand and not any(
-            operand_rows_share_source_value(table_operand, existing_operand)
-            for existing_operand in updated_operands
-        ):
-            updated_operands.append(table_operand)
-            present_groups.add(required_group)
-            changed = True
+        if not missing_operand:
             continue
+        updated_operands.append(missing_operand)
+        present_groups.add(required_group)
+        changed = True
     return updated_operands, changed
 
 
-def realign_lookup_row_from_dependency_projection(
+def _required_operands_for_lookup_realignment(
     row: Dict[str, Any],
-    *,
     task: Dict[str, Any],
-    projected_operands: List[Dict[str, Any]],
-    slot_has_material: Callable[[Dict[str, Any]], bool],
-    projection_operand_matches_lookup: Callable[[Dict[str, Any], Dict[str, Any]], bool],
-    slot_differs_from_operand: Callable[[Dict[str, Any], Dict[str, Any]], bool],
-    build_operand_value_slot: Callable[..., Dict[str, Any]],
-) -> tuple[Dict[str, Any], Dict[str, Any], bool]:
-    task_id = _normalise_spaces(str(row.get("task_id") or ""))
+    current_slot: Dict[str, Any],
+) -> List[Dict[str, Any]]:
     required_operands = [
         dict(item)
         for item in (task.get("required_operands") or [])
         if bool(item.get("required", True))
     ]
-    calculation_result = dict(row.get("calculation_result") or {})
-    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-    current_slot = dict(answer_slots.get("primary_value") or {})
-    if len(required_operands) != 1 and current_slot:
-        fallback_operand = {
-            "label": current_slot.get("label") or row.get("metric_label"),
-            "concept": current_slot.get("concept"),
-            "role": current_slot.get("role") or "primary_value",
-            "required": True,
-        }
-        if _normalise_spaces(str(fallback_operand.get("label") or fallback_operand.get("concept") or "")):
-            required_operands = [fallback_operand]
-    if len(required_operands) != 1:
-        return row, {}, False
-    candidate = next(
+    if len(required_operands) == 1 or not current_slot:
+        return required_operands
+    fallback_operand = {
+        "label": current_slot.get("label") or row.get("metric_label"),
+        "concept": current_slot.get("concept"),
+        "role": current_slot.get("role") or "primary_value",
+        "required": True,
+    }
+    if _normalise_spaces(str(fallback_operand.get("label") or fallback_operand.get("concept") or "")):
+        return [fallback_operand]
+    return required_operands
+
+
+def _lookup_realignment_candidate(
+    projected_operands: List[Dict[str, Any]],
+    required_operand: Dict[str, Any],
+    *,
+    projection_operand_matches_lookup: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+) -> Dict[str, Any]:
+    return next(
         (
             dict(item)
             for item in projected_operands
-            if projection_operand_matches_lookup(dict(item), required_operands[0])
+            if projection_operand_matches_lookup(dict(item), required_operand)
         ),
         {},
     )
-    if not candidate or not slot_has_material(current_slot):
-        return row, {}, False
-    candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
-    current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
-    if not candidate_raw or not slot_differs_from_operand(candidate, current_slot):
-        return row, {}, False
 
+
+def _lookup_realignment_source_context(
+    task_id: str,
+    candidate: Dict[str, Any],
+    current_slot: Dict[str, Any],
+) -> Dict[str, Any]:
     source_ids = _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
-    direct_source_ids = [source_id for source_id in source_ids if not source_id.startswith("task_output:")]
     current_source_ids = _clean_source_row_ids([current_slot.get("source_row_id"), current_slot.get("source_row_ids")])
-    direct_current_source_ids = [
-        source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
-    ]
-    self_task_projection = f"task_output:{task_id}" in source_ids
+    return {
+        "source_ids": source_ids,
+        "direct_source_ids": [source_id for source_id in source_ids if not source_id.startswith("task_output:")],
+        "direct_current_source_ids": [
+            source_id for source_id in current_source_ids if not source_id.startswith("task_output:")
+        ],
+        "self_task_projection": f"task_output:{task_id}" in source_ids,
+    }
+
+
+def _lookup_realignment_source_context_allowed(
+    candidate: Dict[str, Any],
+    current_slot: Dict[str, Any],
+    source_context: Dict[str, Any],
+) -> bool:
+    direct_source_ids = source_context["direct_source_ids"]
+    direct_current_source_ids = source_context["direct_current_source_ids"]
     source_overlap_required = direct_current_source_ids and direct_source_ids
     source_ids_disjoint = source_overlap_required and not (set(direct_current_source_ids) & set(direct_source_ids))
     candidate_anchor = _normalise_spaces(str(candidate.get("source_anchor") or ""))
     current_anchor = _normalise_spaces(str(current_slot.get("source_anchor") or ""))
     source_anchor_conflict = bool(candidate_anchor and current_anchor and candidate_anchor != current_anchor)
-    if not self_task_projection and (source_ids_disjoint or source_anchor_conflict):
-        return row, {}, False
-    if self_task_projection:
-        candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
-        current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
-        evidence_backed_unit_realignment = bool(
-            direct_source_ids
-            and (not direct_current_source_ids or bool(set(direct_source_ids) & set(direct_current_source_ids)))
-            and candidate_unit
-            and current_unit
-            and candidate_unit != current_unit
-        )
-        normalized_differs = _numeric_values_differ(candidate.get("normalized_value"), current_slot.get("normalized_value"))
-        if candidate_raw == current_raw and normalized_differs and not evidence_backed_unit_realignment:
-            return row, {}, False
+    return bool(source_context["self_task_projection"] or not (source_ids_disjoint or source_anchor_conflict))
+
+
+def _self_task_lookup_realignment_allowed(
+    candidate: Dict[str, Any],
+    current_slot: Dict[str, Any],
+    source_context: Dict[str, Any],
+) -> bool:
+    if not source_context["self_task_projection"]:
+        return True
+    candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
+    current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
+    candidate_unit = _normalise_spaces(str(candidate.get("raw_unit") or ""))
+    current_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+    direct_source_ids = source_context["direct_source_ids"]
+    direct_current_source_ids = source_context["direct_current_source_ids"]
+    evidence_backed_unit_realignment = bool(
+        direct_source_ids
+        and (not direct_current_source_ids or bool(set(direct_source_ids) & set(direct_current_source_ids)))
+        and candidate_unit
+        and current_unit
+        and candidate_unit != current_unit
+    )
+    normalized_differs = _numeric_values_differ(
+        candidate.get("normalized_value"),
+        current_slot.get("normalized_value"),
+    )
+    return not (candidate_raw == current_raw and normalized_differs and not evidence_backed_unit_realignment)
+
+
+def _lookup_realignment_primary_slot(
+    candidate: Dict[str, Any],
+    required_operand: Dict[str, Any],
+    current_slot: Dict[str, Any],
+    direct_source_ids: List[str],
+    *,
+    build_operand_value_slot: Callable[..., Dict[str, Any]],
+) -> tuple[Dict[str, Any], Dict[str, Any]]:
     component_slot = build_operand_value_slot(
         candidate,
         default_role=str(
             candidate.get("matched_operand_role")
-            or required_operands[0].get("role")
+            or required_operand.get("role")
             or current_slot.get("role")
             or "primary_value"
         ),
@@ -937,26 +1315,37 @@ def realign_lookup_row_from_dependency_projection(
     if direct_source_ids:
         component_slot["source_row_id"] = direct_source_ids[0]
         component_slot["source_row_ids"] = direct_source_ids
-    primary_slot = {**component_slot, "role": "primary_value"}
+    return component_slot, {**component_slot, "role": "primary_value"}
 
-    rendered_value = _normalise_spaces(str(primary_slot.get("rendered_value") or ""))
-    if not rendered_value:
-        rendered_value = _normalise_spaces(f"{primary_slot.get('raw_value') or ''}{primary_slot.get('raw_unit') or ''}")
-    result_source_ids = list(primary_slot.get("source_row_ids") or source_ids)
+
+def _lookup_realignment_updated_slots(
+    answer_slots: Dict[str, Any],
+    component_slot: Dict[str, Any],
+    primary_slot: Dict[str, Any],
+) -> Dict[str, Any]:
     updated_slots = dict(answer_slots)
     updated_slots["primary_value"] = primary_slot
-    updated_slots["source_row_ids"] = result_source_ids
     role_key = _normalise_spaces(str(component_slot.get("role") or ""))
-    if role_key:
-        components_by_role = dict(updated_slots.get("components_by_role") or {})
-        components_by_role[role_key] = [component_slot]
-        updated_slots["components_by_role"] = components_by_role
-        group_key = "denominator" if role_key.startswith("denominator") else "numerator"
-        components_by_group = dict(updated_slots.get("components_by_group") or {})
-        components_by_group[group_key] = [component_slot]
-        updated_slots["components_by_group"] = components_by_group
+    if not role_key:
+        return updated_slots
+    components_by_role = dict(updated_slots.get("components_by_role") or {})
+    components_by_role[role_key] = [component_slot]
+    updated_slots["components_by_role"] = components_by_role
+    group_key = "denominator" if role_key.startswith("denominator") else "numerator"
+    components_by_group = dict(updated_slots.get("components_by_group") or {})
+    components_by_group[group_key] = [component_slot]
+    updated_slots["components_by_group"] = components_by_group
+    return updated_slots
 
-    updated_result = {
+
+def _lookup_realignment_updated_result(
+    calculation_result: Dict[str, Any],
+    primary_slot: Dict[str, Any],
+    updated_slots: Dict[str, Any],
+    rendered_value: str,
+    result_source_ids: List[str],
+) -> Dict[str, Any]:
+    return {
         **calculation_result,
         "status": "ok",
         "result_value": primary_slot.get("normalized_value"),
@@ -979,6 +1368,63 @@ def realign_lookup_row_from_dependency_projection(
         "source_row_ids": result_source_ids,
         "answer_slots": updated_slots,
     }
+
+
+def realign_lookup_row_from_dependency_projection(
+    row: Dict[str, Any],
+    *,
+    task: Dict[str, Any],
+    projected_operands: List[Dict[str, Any]],
+    slot_has_material: Callable[[Dict[str, Any]], bool],
+    projection_operand_matches_lookup: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+    slot_differs_from_operand: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+    build_operand_value_slot: Callable[..., Dict[str, Any]],
+) -> tuple[Dict[str, Any], Dict[str, Any], bool]:
+    task_id = _normalise_spaces(str(row.get("task_id") or ""))
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    current_slot = dict(answer_slots.get("primary_value") or {})
+    required_operands = _required_operands_for_lookup_realignment(row, task, current_slot)
+    if len(required_operands) != 1:
+        return row, {}, False
+    required_operand = required_operands[0]
+    candidate = _lookup_realignment_candidate(
+        projected_operands,
+        required_operand,
+        projection_operand_matches_lookup=projection_operand_matches_lookup,
+    )
+    if not candidate or not slot_has_material(current_slot):
+        return row, {}, False
+    candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
+    if not candidate_raw or not slot_differs_from_operand(candidate, current_slot):
+        return row, {}, False
+
+    source_context = _lookup_realignment_source_context(task_id, candidate, current_slot)
+    if not _lookup_realignment_source_context_allowed(candidate, current_slot, source_context):
+        return row, {}, False
+    if not _self_task_lookup_realignment_allowed(candidate, current_slot, source_context):
+        return row, {}, False
+
+    component_slot, primary_slot = _lookup_realignment_primary_slot(
+        candidate,
+        required_operand,
+        current_slot,
+        source_context["direct_source_ids"],
+        build_operand_value_slot=build_operand_value_slot,
+    )
+    rendered_value = _normalise_spaces(str(primary_slot.get("rendered_value") or ""))
+    if not rendered_value:
+        rendered_value = _normalise_spaces(f"{primary_slot.get('raw_value') or ''}{primary_slot.get('raw_unit') or ''}")
+    result_source_ids = list(primary_slot.get("source_row_ids") or source_context["source_ids"])
+    updated_slots = _lookup_realignment_updated_slots(answer_slots, component_slot, primary_slot)
+    updated_slots["source_row_ids"] = result_source_ids
+    updated_result = _lookup_realignment_updated_result(
+        calculation_result,
+        primary_slot,
+        updated_slots,
+        rendered_value,
+        result_source_ids,
+    )
     return (
         {
             **dict(row),

@@ -3,8 +3,34 @@
 import re
 from typing import List
 
-from src.agent.financial_graph_helpers import _normalise_spaces
+from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
+
+
+def _tokenize_terms(text: str) -> set[str]:
+    tokens = re.findall(r"[가-힣A-Za-z0-9]+", text or "")
+    return {token.lower() for token in tokens if len(token) >= 2}
+
+
+def _split_sentences(text: str) -> List[str]:
+    cleaned = _normalise_spaces(text)
+    if not cleaned:
+        return []
+    parts = re.split(r"(?<=[.!?])\s+|(?<=다)\s+", cleaned)
+    return [part.strip() for part in parts if part.strip()]
+
+
+def _strip_anchor_text(text: str) -> str:
+    cleaned = re.sub(r"\[[^\]]+\]", " ", text or "")
+    cleaned = re.sub(r"^[*\-\u2022]+\s*", "", cleaned)
+    return _normalise_spaces(cleaned)
+
+
+def _strip_rerank_metadata(text: str) -> str:
+    raw = str(text or "")
+    raw = re.sub(r"\[[^\]]+\]", " ", raw)
+    raw = re.sub(r"\s+", " ", raw)
+    return raw.strip()
 
 
 def topic_particle(value: str) -> str:

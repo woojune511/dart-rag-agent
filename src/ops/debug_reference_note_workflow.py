@@ -8,22 +8,17 @@ import os
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from agent.financial_graph import FinancialAgent
-from agent.financial_graph_helpers import (
-    _resolve_runtime_calculation_trace,
-    _resolve_runtime_structured_result,
-)
-from processing.financial_parser import FinancialParser
-from storage.vector_store import VectorStoreManager
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+
+if TYPE_CHECKING:
+    from src.agent.financial_graph import FinancialAgent
+    from src.storage.vector_store import VectorStoreManager
 
 logger = logging.getLogger(__name__)
 
@@ -135,10 +130,6 @@ def _initial_state(query: str) -> Dict[str, Any]:
         "answer": "",
         "citations": [],
         "numeric_debug_trace": {},
-        "calculation_operands": [],
-        "calculation_plan": {},
-        "calculation_result": {},
-        "calculation_debug_trace": {},
         "planner_debug_trace": {},
     }
 
@@ -184,11 +175,10 @@ def _graph_smoke(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         answer_payload,
         allow_legacy_top_level=False,
     )
-    structured_result = _resolve_runtime_structured_result(
-        {
-            "resolved_calculation_trace": resolved_trace,
-            "structured_result": answer_payload.get("structured_result"),
-        }
+    structured_result = dict(
+        answer_payload.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
     )
 
     return {
@@ -289,6 +279,8 @@ def _graph_smoke_seed_fixed_compare(
     query: str,
     k: int,
 ) -> Dict[str, Any]:
+    from src.agent.financial_graph import FinancialAgent
+
     seed_agent = FinancialAgent(
         vsm,
         k=k,
@@ -369,6 +361,8 @@ def main() -> None:
     if not report_path.exists():
         raise FileNotFoundError(f"report_path not found: {report_path}")
 
+    from src.processing.financial_parser import FinancialParser
+
     financial_parser = FinancialParser(chunk_size=args.chunk_size, chunk_overlap=args.chunk_overlap)
     source_metadata = _build_source_metadata(args)
     chunks = financial_parser.process_document(str(report_path), source_metadata)
@@ -381,6 +375,8 @@ def main() -> None:
     if args.store_dir or args.collection_name or args.question:
         if not (args.store_dir and args.collection_name):
             raise ValueError("--store-dir and --collection-name are required for any store-level inspection.")
+        from src.storage.vector_store import VectorStoreManager
+
         vsm = VectorStoreManager(
             persist_directory=args.store_dir,
             collection_name=args.collection_name,
@@ -390,6 +386,8 @@ def main() -> None:
         if args.question:
             if not os.environ.get("GOOGLE_API_KEY"):
                 raise ValueError("GOOGLE_API_KEY is required for graph smoke because the agent reuses LLM-based routing/extraction.")
+            from src.agent.financial_graph import FinancialAgent
+
             agent = FinancialAgent(
                 vsm,
                 k=args.k,

@@ -9,12 +9,8 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, Iterable, List, Protocol, Sequence
 
-from langchain_core.documents import Document
-
-from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
 from src.agent.mas_types import AgentTask, Artifact, EvidenceRecord, MultiAgentState, TaskStatus, build_artifact, build_evidence_record
-from src.schema import ArtifactKind
+from src.schema.runtime_enums import ArtifactKind
 
 
 class AnalystCoreRunner(Protocol):
@@ -48,11 +44,21 @@ def _dedupe_preserve_order(values: Sequence[str]) -> List[str]:
     return ordered
 
 
+def _is_document_like(value: Any) -> bool:
+    return hasattr(value, "page_content") and hasattr(value, "metadata")
+
+
+def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+
+    return impl(*args, **kwargs)
+
+
 def _extract_doc_links(retrieved_docs: Sequence[Any]) -> List[str]:
     links: List[str] = []
     for item in retrieved_docs or []:
         doc = item[0] if isinstance(item, tuple) and item else item
-        if not isinstance(doc, Document):
+        if not _is_document_like(doc):
             continue
         metadata = doc.metadata or {}
         for key in ("chunk_uid", "section_path", "parent_id"):
@@ -139,7 +145,11 @@ def _build_analyst_artifacts(task_id: str, result: Dict[str, Any]) -> Dict[str, 
         result,
         allow_legacy_top_level=False,
     )
-    structured_result = _resolve_runtime_structured_result(result)
+    structured_result = dict(
+        result.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
+    )
     evidence_links = _extract_evidence_links(result)
     answer = str(result.get("answer") or "").strip()
     artifact_ids = _analyst_artifact_ids(task_id)
@@ -219,7 +229,11 @@ def _is_successful_numeric_result(result: Dict[str, Any]) -> bool:
         result,
         allow_legacy_top_level=False,
     )
-    calc_result = _resolve_runtime_structured_result(result)
+    calc_result = dict(
+        result.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
+    )
     calc_status = str(calc_result.get("status") or "").strip().lower()
     if calc_status and calc_status not in {"ok", "success"}:
         return False
@@ -296,6 +310,8 @@ def build_financial_analyst_node(
     graph_expansion_config: Dict[str, Any] | None = None,
     routing_config: Dict[str, Any] | None = None,
 ) -> Callable[[MultiAgentState], Dict[str, Any]]:
+    from src.agent.financial_graph import FinancialAgent
+
     financial_agent = FinancialAgent(
         vector_store_manager,
         k=k,

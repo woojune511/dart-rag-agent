@@ -2,21 +2,32 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-
-from src.routing import QueryRouter, default_canonical_queries_path
-from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL, create_embeddings
-
 
 ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.routing import QueryRouter, default_canonical_queries_path
+
+
 DEFAULT_CASES_PATH = ROOT / "benchmarks" / "golden" / "routing_confusion_cases_v1.json"
 DEFAULT_OUTPUT_DIR = ROOT / "benchmarks" / "results"
 
-load_dotenv()
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
+
+
+def _create_default_embeddings() -> Any:
+    from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL, create_embeddings
+
+    return create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
 
 
 def _load_json(path: Path) -> Any:
@@ -62,6 +73,7 @@ def _render_markdown(summary: Dict[str, Any], rows: List[Dict[str, Any]]) -> str
 
 
 def main() -> None:
+    load_dotenv()
     parser = argparse.ArgumentParser(description="Run routing confusion-pair regression checks.")
     parser.add_argument(
         "--canonical",
@@ -84,8 +96,8 @@ def main() -> None:
     args = parser.parse_args()
 
     cases: List[Dict[str, Any]] = _load_json(args.cases)
-    embeddings = create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
+    embeddings = _create_default_embeddings()
+    llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
     router = QueryRouter(embeddings=embeddings, llm=llm, canonical_queries_path=args.canonical)
 
     rows: List[Dict[str, Any]] = []

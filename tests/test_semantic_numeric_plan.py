@@ -11,25 +11,25 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_graph import (
-    FinancialAgent,
+from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import (
+    _annotate_task_dependencies,
+    _build_generic_retrieval_queries,
     _build_semantic_numeric_plan,
-    _extract_numeric_value_after_operand_text,
+    _extract_segment_labels_from_query,
     _infer_period_focus,
-    _is_percent_point_difference_query,
     _merge_operand_rows,
     _missing_required_operands,
+)
+from src.agent.financial_row_surfaces import (
+    _extract_numeric_value_after_operand_text,
     _parse_unstructured_table_row_cells,
 )
+from src.agent.financial_retrieval_hints import _active_preferred_sections
 from src.agent.financial_graph_evidence import _ensure_period_count_operand_docs, _focused_operand_surface_queries
-from src.agent.financial_graph_helpers import (
-    _active_preferred_sections,
-    _build_generic_retrieval_queries,
-    _extract_segment_labels_from_query,
-)
-from src.agent.financial_graph_helpers import _annotate_task_dependencies
 from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
+from src.agent.financial_operation_policies import _is_percent_point_difference_query
 
 
 class _StubStructuredLLM:

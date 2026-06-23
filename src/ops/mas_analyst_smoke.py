@@ -17,17 +17,10 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _resolve_runtime_structured_result
-from src.experimental.mas.graph import run_mas_graph
-from src.experimental.mas.nodes import build_financial_analyst_node
-from src.storage.vector_store import VectorStoreManager
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 
 DEFAULT_STORE_DIR = (
     Path("benchmarks/results/reference_note_phase1a/삼성전자-2024/stores/reference-note-plain-graph-2500-320")
@@ -69,11 +62,10 @@ def _artifact_calc_status(final_state: Dict[str, Any]) -> str:
         content,
         allow_legacy_top_level=False,
     )
-    calculation_result = _resolve_runtime_structured_result(
-        {
-            "resolved_calculation_trace": resolved_trace,
-            "structured_result": content.get("structured_result"),
-        }
+    calculation_result = dict(
+        content.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
     )
     return str(calculation_result.get("status") or "")
 
@@ -88,22 +80,26 @@ def _artifact_operand_count(final_state: Dict[str, Any]) -> int:
     return len(resolved.get("calculation_operands") or [])
 
 
-def _calc_payload(result: Dict[str, Any]) -> Dict[str, Any]:
-    # Direct FinancialAgent output is the public export bridge for this smoke
-    # comparison, so it keeps legacy compatibility for older result payloads.
+def _calc_payload(
+    result: Dict[str, Any],
+    *,
+    allow_legacy_top_level: bool = False,
+) -> Dict[str, Any]:
     resolved = _resolve_runtime_calculation_trace(
         result,
-        allow_legacy_top_level=True,
+        allow_legacy_top_level=allow_legacy_top_level,
     )
     return dict(resolved.get("calculation_result") or {})
 
 
-def _operand_count(result: Dict[str, Any]) -> int:
-    # Direct FinancialAgent output may come from the compatibility bridge; MAS
-    # artifact readers below stay strict because they inspect current handoff.
+def _operand_count(
+    result: Dict[str, Any],
+    *,
+    allow_legacy_top_level: bool = False,
+) -> int:
     resolved = _resolve_runtime_calculation_trace(
         result,
-        allow_legacy_top_level=True,
+        allow_legacy_top_level=allow_legacy_top_level,
     )
     return len(resolved.get("calculation_operands") or [])
 
@@ -115,11 +111,10 @@ def _artifact_calc_payload(final_state: Dict[str, Any]) -> Dict[str, Any]:
         content,
         allow_legacy_top_level=False,
     )
-    return _resolve_runtime_structured_result(
-        {
-            "resolved_calculation_trace": resolved_trace,
-            "structured_result": content.get("structured_result"),
-        }
+    return dict(
+        content.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
     )
 
 
@@ -145,6 +140,11 @@ def run_smoke(
     question_ids: List[str],
     k: int,
 ) -> Dict[str, Any]:
+    from src.agent.financial_graph import FinancialAgent
+    from src.experimental.mas.graph import run_mas_graph
+    from src.experimental.mas.nodes import build_financial_analyst_node
+    from src.storage.vector_store import VectorStoreManager
+
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),
         collection_name=collection_name,

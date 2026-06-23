@@ -1,4 +1,5 @@
 ﻿import json
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -32,6 +33,39 @@ from src.processing.financial_parser import (
 
 
 class FinancialParserUtilityTests(unittest.TestCase):
+    def test_financial_parser_import_does_not_load_text_splitter_backend(self) -> None:
+        code = (
+            "import sys\n"
+            "import src.processing.financial_parser\n"
+            "print('langchain_text_splitters' in sys.modules)\n"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertEqual(completed.stdout.strip(), "False")
+
+    def test_pdf_parser_import_does_not_load_pdf_or_text_splitter_backends(self) -> None:
+        code = (
+            "import sys\n"
+            "import src.processing.pdf_parser\n"
+            "print('pymupdf4llm' in sys.modules)\n"
+            "print('langchain_text_splitters' in sys.modules)\n"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertEqual(completed.stdout.splitlines(), ["False", "False"])
+
     def test_sanitize_xml_like_text_escapes_textual_angle_brackets_only(self) -> None:
         raw = "<ROOT><P><소매판매액 중 온라인쇼핑 거래액 비중 ></P><SPAN USERMARK=\" B\">정상 태그</SPAN></ROOT>"
         sanitized, count = _sanitize_xml_like_text(raw)

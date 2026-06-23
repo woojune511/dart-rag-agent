@@ -4,57 +4,18 @@ Structured runtime and document schemas for the DART disclosure analysis agent.
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.schema.runtime_enums import AggregationStage, ArtifactKind, TaskKind, TaskStatus, ValueRole
 
 
-class TaskStatus(str, Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    PARTIAL = "partial"
-    SUPERSEDED = "superseded"
+class _DeferredBaseModel(BaseModel):
+    model_config = ConfigDict(defer_build=True)
 
 
-class TaskKind(str, Enum):
-    CALCULATION = "calculation"
-    RETRIEVAL = "retrieval"
-    RECONCILIATION = "reconciliation"
-    REFLECTION = "reflection"
-    VERIFICATION = "verification"
-    CRITIC = "critic"
-    SYNTHESIS = "synthesis"
-
-
-class ArtifactKind(str, Enum):
-    SEMANTIC_PLAN = "semantic_plan"
-    RETRIEVAL_BUNDLE = "retrieval_bundle"
-    RECONCILIATION_RESULT = "reconciliation_result"
-    OPERAND_SET = "operand_set"
-    CALCULATION_PLAN = "calculation_plan"
-    CALCULATION_RESULT = "calculation_result"
-    REFLECTION_REPORT = "reflection_report"
-    AGGREGATED_ANSWER = "aggregated_answer"
-    CRITIC_REPORT = "critic_report"
-
-
-class ValueRole(str, Enum):
-    DETAIL = "detail"
-    AGGREGATE = "aggregate"
-    ADJUSTMENT = "adjustment"
-
-
-class AggregationStage(str, Enum):
-    NONE = "none"
-    DIRECT = "direct"
-    SUBTOTAL = "subtotal"
-    FINAL = "final"
-
-
-class CellRecord(BaseModel):
+class CellRecord(_DeferredBaseModel):
     cell_id: str
     column_index: int
     column_headers: List[str] = Field(default_factory=list)
@@ -64,14 +25,14 @@ class CellRecord(BaseModel):
     normalized_unit: Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"] = "UNKNOWN"
 
 
-class RowRecord(BaseModel):
+class RowRecord(_DeferredBaseModel):
     row_id: str
     row_label: str
     row_headers: List[str] = Field(default_factory=list)
     cells: List[CellRecord] = Field(default_factory=list)
 
 
-class ValueRecord(BaseModel):
+class ValueRecord(_DeferredBaseModel):
     value_id: str
     row_index: int
     column_index: int
@@ -93,7 +54,7 @@ class ValueRecord(BaseModel):
     normalized_unit: Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"] = "UNKNOWN"
 
 
-class TableObject(BaseModel):
+class TableObject(_DeferredBaseModel):
     table_id: str
     source_section_path: str
     caption: str = ""
@@ -113,7 +74,7 @@ class TableObject(BaseModel):
     table_summary_text: str = ""
 
 
-class TaskRecord(BaseModel):
+class TaskRecord(_DeferredBaseModel):
     task_id: str
     kind: TaskKind
     label: str
@@ -125,7 +86,7 @@ class TaskRecord(BaseModel):
     notes: List[str] = Field(default_factory=list)
 
 
-class ArtifactRecord(BaseModel):
+class ArtifactRecord(_DeferredBaseModel):
     artifact_id: str
     task_id: str
     kind: ArtifactKind

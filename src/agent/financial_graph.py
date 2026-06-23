@@ -4,52 +4,65 @@ LangGraph-based DART financial analysis agent.
 This file is intentionally thin after the refactor:
 - phase-specific node implementations live in mixins
 - shared pure functions live in `financial_graph_helpers.py`
-- schema/state definitions live in `financial_graph_models.py`
+- lightweight state definitions live in `financial_graph_state.py`
+- structured-output schema definitions live in `financial_graph_models.py`
 
 If you need to understand the runtime at a glance, read this file first and
 then jump into the mixin that owns the phase you care about.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 import re
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_openai import ChatOpenAI
-from langgraph.graph import END, StateGraph
-from src.agent.financial_graph_contextual import (
-    DEFAULT_CONTEXT_BATCH_SIZE,
-    DEFAULT_CONTEXT_MAX_WORKERS,
-    FinancialAgentContextualMixin,
-)
-from src.agent.financial_graph_models import (
-    AgentAnswer,
-    DebugBundle,
-    DebugTraceBundle,
-    FinancialAgentState,
-    ReviewTrace,
-    RuntimeCalculationTrace,
-)
+from src.agent.financial_graph_contextual import FinancialAgentContextualMixin
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import (
+        AgentAnswer,
+        DebugBundle,
+        DebugTraceBundle,
+        FinancialAgentState,
+        ReviewTrace,
+        RuntimeCalculationTrace,
+    )
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, SECTION_BIAS_BY_QUERY_TYPE
-from src.routing import QueryRouter
-from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
-load_dotenv()
 logger = logging.getLogger(__name__)
+_ENV_LOADED = False
+
+
+def _load_env_once() -> None:
+    global _ENV_LOADED
+    if not _ENV_LOADED:
+        load_dotenv()
+        _ENV_LOADED = True
+
+
+def _financial_agent_state_model() -> Any:
+    from src.agent.financial_graph_state import FinancialAgentState
+
+    return FinancialAgentState
+
+
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
-from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import (
-    _attach_runtime_projection_metadata,
-    _project_task_artifact_trace,
-    _resolve_runtime_structured_result,
-)
+from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
+from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_trace import (
+    _attach_runtime_projection_metadata,
+    _build_aggregate_calculation_projection,
+    _resolve_runtime_structured_result,
+    _structured_result_subtask_rows_and_answer,
+)
+from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
 
 class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMixin, FinancialAgentEvidenceMixin, FinancialAgentCalculationMixin, FinancialAgentContextualMixin):
     """Top-level orchestration shell for the DART single-agent workflow.
@@ -172,9 +185,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         structured_result: Dict[str, Any],
     ) -> str:
         answer_text = _normalise_spaces(str(public_answer or ""))
-        structured_answer = _normalise_spaces(
-            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
-        )
+        _, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
         if not structured_answer or structured_answer == answer_text or not re.search(r"\d", structured_answer):
             return ""
         missing_markers = tuple(
@@ -198,16 +209,9 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         structured_result: Dict[str, Any],
         evidence_items: list[Dict[str, Any]],
     ) -> tuple[str, RuntimeCalculationTrace]:
-        subtask_results = [
-            dict(row)
-            for row in list(structured_result.get("subtask_results") or [])
-            if isinstance(row, dict)
-        ]
+        subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
         if not subtask_results:
             return "", {}
-        structured_answer = _normalise_spaces(
-            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
-        )
         preferred_complete_answer = _preferred_complete_aggregate_subtask_answer(
             subtask_results,
             structured_answer or public_answer,
@@ -240,6 +244,92 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "public_answer_repaired": True,
         }
         return replacement_answer, projection
+
+    def _complete_aggregate_public_answer_projection(
+        self,
+        *,
+        subtask_results: list[Dict[str, Any]],
+        base_answer: str,
+        public_answer: str,
+    ) -> tuple[str, RuntimeCalculationTrace]:
+        complete_answer = _preferred_complete_aggregate_subtask_answer(
+            subtask_results,
+            base_answer or public_answer,
+        )
+        if not complete_answer:
+            return "", {}
+        projection = _build_aggregate_calculation_projection(
+            subtask_results,
+            complete_answer,
+        )
+        projection_result = dict(projection.get("calculation_result") or {})
+        if not projection_result.get("subtask_results"):
+            return complete_answer, {}
+        projection = _attach_runtime_projection_metadata(
+            projection,
+            source="structured_result_subtasks",
+        )
+        projection["runtime_projection"] = {
+            **dict(projection.get("runtime_projection") or {}),
+            "public_answer_repaired": True,
+            "complete_aggregate_answer_selected": True,
+        }
+        return complete_answer, projection
+
+    def _apply_stale_structured_numeric_public_answer_repair(
+        self,
+        final: Dict[str, Any],
+        *,
+        public_answer: str,
+        structured_result: Dict[str, Any],
+        runtime_calculation_trace: RuntimeCalculationTrace,
+        runtime_evidence: list[Dict[str, Any]],
+    ) -> tuple[str, Dict[str, Any], RuntimeCalculationTrace]:
+        structured_numeric_answer, structured_numeric_projection = (
+            self._structured_result_projection_for_stale_public_numeric_answer(
+                final,
+                public_answer=public_answer,
+                structured_result=structured_result,
+                evidence_items=runtime_evidence,
+            )
+        )
+        if not structured_numeric_answer:
+            return public_answer, final, runtime_calculation_trace
+        return (
+            structured_numeric_answer,
+            self._with_public_answer(final, structured_numeric_answer),
+            structured_numeric_projection,
+        )
+
+    def _structured_public_answer_trace_projection(
+        self,
+        final: Dict[str, Any],
+        *,
+        public_answer: str,
+        structured_result: Dict[str, Any],
+        runtime_calculation_trace: RuntimeCalculationTrace,
+        runtime_evidence: list[Dict[str, Any]],
+    ) -> RuntimeCalculationTrace:
+        projection_state = {
+            **self._with_public_answer(final, public_answer),
+            "structured_result": structured_result,
+            "resolved_calculation_trace": runtime_calculation_trace,
+        }
+        structured_public_projection = self._structured_subtask_projection_for_public_answer(
+            projection_state,
+            runtime_calculation_trace,
+        )
+        if not structured_public_projection:
+            return {}
+        return self._repair_collapsed_ratio_trace_from_evidence(
+            self._public_projection_state(
+                final,
+                public_answer=public_answer,
+                runtime_calculation_trace=structured_public_projection,
+                runtime_evidence=runtime_evidence,
+            ),
+            structured_public_projection,
+        )
 
     def _retrieved_ratio_context_projection_for_public_answer(
         self,
@@ -472,6 +562,7 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         graph_expansion_config: Optional[Dict[str, Any]] = None,
         routing_config: Optional[Dict[str, Any]] = None,
     ):
+        _load_env_once()
         self.vsm = vector_store_manager
         self.k = k
         self.routing_config = dict(routing_config or {})
@@ -519,11 +610,15 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         if graph_expansion_config:
             self.graph_expansion_config.update(graph_expansion_config)
 
+        from src.utils.gemini_usage import GeminiUsageCallbackHandler
+
         self.llm_usage_callback = GeminiUsageCallbackHandler()
         self.llm_routes = self._build_llm_routes()
         self.llm = self.llm_routes.get("default")
         if self.llm is None:
             raise ValueError("Default LLM route was not initialized.")
+        from src.routing import QueryRouter
+
         self.query_router = QueryRouter(
             embeddings=self.vsm.embeddings,
             llm=self.llm,
@@ -554,6 +649,8 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             api_key = str(spec.get("api_key") or os.environ.get("GOOGLE_API_KEY") or "").strip()
             if not api_key:
                 raise ValueError(f"GOOGLE_API_KEY environment variable is required for LLM route '{phase}'.")
+            from langchain_google_genai import ChatGoogleGenerativeAI
+
             return ChatGoogleGenerativeAI(
                 model=model,
                 temperature=temperature,
@@ -569,6 +666,8 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             base_url = spec.get("base_url")
             if provider == "openrouter" and not base_url:
                 base_url = os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+            from langchain_openai import ChatOpenAI
+
             return ChatOpenAI(
                 model=model,
                 temperature=temperature,
@@ -598,7 +697,9 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         Read this top-to-bottom as the canonical execution order. The mixins
         implement the node bodies; this method only owns routing.
         """
-        graph = StateGraph(FinancialAgentState)
+        from langgraph.graph import END, StateGraph
+
+        graph = StateGraph(_financial_agent_state_model())
 
         # Planning and retrieval
         graph.add_node("classify", self._classify_query)
@@ -697,6 +798,54 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
 
         return graph.compile()
 
+    def _public_projection_state(
+        self,
+        final: Dict[str, Any],
+        *,
+        public_answer: str,
+        runtime_calculation_trace: RuntimeCalculationTrace,
+        runtime_evidence: Optional[list[Dict[str, Any]]] = None,
+    ) -> Dict[str, Any]:
+        projection_state = self._with_public_answer(final, public_answer)
+        projection_state["resolved_calculation_trace"] = runtime_calculation_trace
+        if runtime_evidence is not None:
+            projection_state["runtime_evidence"] = runtime_evidence
+            projection_state["evidence_items"] = [
+                *list(final.get("evidence_items") or []),
+                *list(runtime_evidence or []),
+            ]
+        return projection_state
+
+    def _repair_public_runtime_calculation_trace(
+        self,
+        final: Dict[str, Any],
+        runtime_calculation_trace: RuntimeCalculationTrace,
+        *,
+        public_answer: str,
+        runtime_evidence: Optional[list[Dict[str, Any]]] = None,
+    ) -> RuntimeCalculationTrace:
+        projection_state = self._public_projection_state(
+            final,
+            public_answer=public_answer,
+            runtime_calculation_trace=runtime_calculation_trace,
+            runtime_evidence=runtime_evidence,
+        )
+        repaired = self._repair_collapsed_ratio_trace_from_evidence(
+            projection_state,
+            runtime_calculation_trace,
+        )
+        return self._repair_period_comparison_trace_from_evidence(
+            projection_state,
+            repaired,
+        )
+
+    def _with_public_answer(self, state: Dict[str, Any], public_answer: str) -> Dict[str, Any]:
+        return {
+            **dict(state),
+            "answer": public_answer,
+            "compressed_answer": public_answer,
+        }
+
     def run(self, query: str, *, report_scope: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Execute the graph and return a stable caller-facing payload."""
         usage_callback = getattr(self, "llm_usage_callback", None)
@@ -773,61 +922,42 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         embedding_snapshot = getattr(vsm, "get_current_thread_embedding_usage_snapshot", None)
         embedding_usage = embedding_snapshot() if callable(embedding_snapshot) else {}
         runtime_calculation_trace = self._project_runtime_calculation_trace(final)
-        runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
-            final,
-            runtime_calculation_trace,
-        )
-        runtime_calculation_trace = self._repair_period_comparison_trace_from_evidence(
-            final,
-            runtime_calculation_trace,
-        )
         public_answer = _normalise_spaces(str(final.get("answer") or ""))
+        runtime_calculation_trace = self._repair_public_runtime_calculation_trace(
+            final,
+            runtime_calculation_trace,
+            public_answer=public_answer,
+        )
         runtime_numeric_answer = self._late_runtime_numeric_answer(
-            {
-                **dict(final),
-                "resolved_calculation_trace": runtime_calculation_trace,
-            },
+            self._public_projection_state(
+                final,
+                public_answer=public_answer,
+                runtime_calculation_trace=runtime_calculation_trace,
+            ),
             public_answer,
         )
         if runtime_numeric_answer:
             public_answer = runtime_numeric_answer
-        final_for_evidence = {**dict(final), "answer": public_answer, "compressed_answer": public_answer}
+        final_for_evidence = self._with_public_answer(final, public_answer)
         runtime_evidence = self._runtime_evidence_from_retrieved_docs(final_for_evidence)
-        runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
-            {
-                **final_for_evidence,
-                "evidence_items": [
-                    *list(final_for_evidence.get("evidence_items") or []),
-                    *list(runtime_evidence or []),
-                ],
-                "runtime_evidence": runtime_evidence,
-                "resolved_calculation_trace": runtime_calculation_trace,
-            },
+        runtime_calculation_trace = self._repair_public_runtime_calculation_trace(
+            final_for_evidence,
             runtime_calculation_trace,
-        )
-        runtime_calculation_trace = self._repair_period_comparison_trace_from_evidence(
-            {
-                **final_for_evidence,
-                "evidence_items": [
-                    *list(final_for_evidence.get("evidence_items") or []),
-                    *list(runtime_evidence or []),
-                ],
-                "runtime_evidence": runtime_evidence,
-                "resolved_calculation_trace": runtime_calculation_trace,
-            },
-            runtime_calculation_trace,
+            public_answer=public_answer,
+            runtime_evidence=runtime_evidence,
         )
         runtime_numeric_answer = self._late_runtime_numeric_answer(
-            {
-                **dict(final_for_evidence),
-                "runtime_evidence": runtime_evidence,
-                "resolved_calculation_trace": runtime_calculation_trace,
-            },
+            self._public_projection_state(
+                final_for_evidence,
+                public_answer=public_answer,
+                runtime_calculation_trace=runtime_calculation_trace,
+                runtime_evidence=runtime_evidence,
+            ),
             public_answer,
         )
         if runtime_numeric_answer:
             public_answer = runtime_numeric_answer
-            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
+            final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
         structured_result = _resolve_runtime_structured_result(
             {
                 "structured_result": final.get("structured_result", {}),
@@ -835,76 +965,43 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
                 "calculation_result": final.get("calculation_result", {}),
             }
         )
-        structured_subtask_results = [
-            dict(row)
-            for row in list(structured_result.get("subtask_results") or [])
-            if isinstance(row, dict)
-        ]
-        structured_base_answer = _normalise_spaces(
-            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
+        structured_subtask_results, structured_base_answer = _structured_result_subtask_rows_and_answer(
+            structured_result
         )
-        complete_aggregate_answer = _preferred_complete_aggregate_subtask_answer(
-            structured_subtask_results,
-            structured_base_answer or public_answer,
+        complete_aggregate_answer, complete_aggregate_projection = (
+            self._complete_aggregate_public_answer_projection(
+                subtask_results=structured_subtask_results,
+                base_answer=structured_base_answer,
+                public_answer=public_answer,
+            )
         )
         if complete_aggregate_answer:
             public_answer = complete_aggregate_answer
-            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
-            complete_projection = _build_aggregate_calculation_projection(
-                structured_subtask_results,
-                public_answer,
-            )
-            complete_projection_result = dict(complete_projection.get("calculation_result") or {})
-            if complete_projection_result.get("subtask_results"):
-                runtime_calculation_trace = _attach_runtime_projection_metadata(
-                    complete_projection,
-                    source="structured_result_subtasks",
-                )
-                runtime_calculation_trace["runtime_projection"] = {
-                    **dict(runtime_calculation_trace.get("runtime_projection") or {}),
-                    "public_answer_repaired": True,
-                    "complete_aggregate_answer_selected": True,
-                }
+            final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
+            if complete_aggregate_projection:
+                runtime_calculation_trace = complete_aggregate_projection
         structured_answer = self._structured_result_answer_for_missing_public_answer(public_answer, structured_result)
         if structured_answer:
             public_answer = structured_answer
-            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
-        structured_numeric_answer, structured_numeric_projection = (
-            self._structured_result_projection_for_stale_public_numeric_answer(
+            final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
+        public_answer, final_for_evidence, runtime_calculation_trace = (
+            self._apply_stale_structured_numeric_public_answer_repair(
                 final_for_evidence,
                 public_answer=public_answer,
                 structured_result=structured_result,
-                evidence_items=runtime_evidence,
+                runtime_calculation_trace=runtime_calculation_trace,
+                runtime_evidence=runtime_evidence,
             )
         )
-        if structured_numeric_answer:
-            public_answer = structured_numeric_answer
-            final_for_evidence = {**dict(final_for_evidence), "answer": public_answer, "compressed_answer": public_answer}
-            runtime_calculation_trace = structured_numeric_projection
-        structured_public_projection = self._structured_subtask_projection_for_public_answer(
-            {
-                **dict(final_for_evidence),
-                "answer": public_answer,
-                "compressed_answer": public_answer,
-                "structured_result": structured_result,
-                "resolved_calculation_trace": runtime_calculation_trace,
-            },
-            runtime_calculation_trace,
+        structured_public_projection = self._structured_public_answer_trace_projection(
+            final_for_evidence,
+            public_answer=public_answer,
+            structured_result=structured_result,
+            runtime_calculation_trace=runtime_calculation_trace,
+            runtime_evidence=runtime_evidence,
         )
         if structured_public_projection:
             runtime_calculation_trace = structured_public_projection
-            runtime_calculation_trace = self._repair_collapsed_ratio_trace_from_evidence(
-                {
-                    **dict(final_for_evidence),
-                    "evidence_items": [
-                        *list(final_for_evidence.get("evidence_items") or []),
-                        *list(runtime_evidence or []),
-                    ],
-                    "runtime_evidence": runtime_evidence,
-                    "resolved_calculation_trace": runtime_calculation_trace,
-                },
-                runtime_calculation_trace,
-            )
         retrieved_ratio_projection = self._retrieved_ratio_context_projection_for_public_answer(
             final_for_evidence,
             public_answer=public_answer,
@@ -944,62 +1041,4 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
             "agent_answer": agent_answer,
             "review_trace": review_trace,
             "debug_bundle": debug_bundle,
-            # Compatibility bridge for callers that have not moved to
-            # `debug_traces.calculation` yet.
-            CALCULATION_DEBUG_TRACE_FIELD: debug_traces.get("calculation", {}),
         }
-
-
-
-if __name__ == "__main__":
-    import os
-    import sys
-
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    logging.basicConfig(level=logging.INFO)
-
-    from processing.financial_parser import FinancialParser
-    from storage.vector_store import DEFAULT_COLLECTION_NAME, VectorStoreManager
-
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    reports_dir = os.path.join(project_root, "data", "reports")
-    chroma_dir = os.path.join(project_root, "data", "chroma_dart")
-
-    target = None
-    for root_dir, _dirs, files in os.walk(reports_dir):
-        for filename in files:
-            if filename.endswith(".html"):
-                target = os.path.join(root_dir, filename)
-                break
-        if target:
-            break
-
-    if not target:
-        print("[SKIP] data/reports/ 아래에 .html 파일이 없습니다. dart_fetcher.py를 먼저 실행하세요.")
-        sys.exit(0)
-
-    parser = FinancialParser()
-    metadata = {
-        "company": "삼성전자",
-        "stock_code": "005930",
-        "year": 2023,
-        "report_type": "사업보고서",
-        "rcept_no": "20230307000542",
-    }
-    chunks = parser.process_document(target, metadata)
-    print(f"[1] parsed {len(chunks)} chunks")
-
-    vsm = VectorStoreManager(persist_directory=chroma_dir, collection_name=DEFAULT_COLLECTION_NAME)
-    agent = FinancialAgent(vsm)
-    agent.ingest(chunks)
-    print("[2] indexing complete")
-
-    for question in [
-        "삼성전자의 주요 리스크 요인을 알려줘.",
-        "삼성전자 2023년 매출과 영업이익은?",
-    ]:
-        result = agent.run(question)
-        print(f"\nQ: {question}")
-        print(f"type: {result['query_type']} | companies: {result['companies']} | years: {result['years']}")
-        print(result["answer"][:500])
-        print(result["citations"][:3])

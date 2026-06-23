@@ -20,25 +20,92 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Literal, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
-from pydantic import BaseModel, Field
-from rank_bm25 import BM25Okapi
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from ingestion.dart_fetcher import DARTFetcher, ReportMetadata
-from processing.financial_parser import FinancialParser
+if TYPE_CHECKING:
+    from src.ingestion.dart_fetcher import DARTFetcher, ReportMetadata
+    from src.processing.financial_parser import FinancialParser
+    from rank_bm25 import BM25Okapi
 
 logger = logging.getLogger(__name__)
 CORE_COMPLETENESS_FIELDS = ("answer_key", "expected_sections", "evidence")
 BUSINESS_PERIOD_FROM_PATTERN = re.compile(r'AUNIT="PERIODFROM" AUNITVALUE="(\d{8})"')
 BUSINESS_PERIOD_TO_PATTERN = re.compile(r'AUNIT="PERIODTO" AUNITVALUE="(\d{8})"')
+_DRAFT_PAYLOAD_MODEL: Any = None
+
+
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
+
+
+def _dart_fetcher_cls() -> type["DARTFetcher"]:
+    from src.ingestion.dart_fetcher import DARTFetcher
+
+    return DARTFetcher
+
+
+def _report_metadata_cls() -> type["ReportMetadata"]:
+    from src.ingestion.dart_fetcher import ReportMetadata
+
+    return ReportMetadata
+
+
+def _financial_parser_cls() -> type["FinancialParser"]:
+    from src.processing.financial_parser import FinancialParser
+
+    return FinancialParser
+
+
+def _bm25_okapi_cls() -> type["BM25Okapi"]:
+    from rank_bm25 import BM25Okapi
+
+    return BM25Okapi
+
+
+def _draft_payload_model() -> Any:
+    global _DRAFT_PAYLOAD_MODEL
+    if _DRAFT_PAYLOAD_MODEL is not None:
+        return _DRAFT_PAYLOAD_MODEL
+
+    from typing import Literal
+
+    from pydantic import BaseModel, Field
+
+    class EvidenceDraft(BaseModel):
+        section_path: str = Field(default="")
+        quote: str = Field(default="")
+        quote_type: Literal["verbatim", "paraphrase"] = Field(default="verbatim")
+        why_it_supports_answer: str = Field(default="")
+
+    class OperandDraft(BaseModel):
+        label: str = Field(default="")
+        period: str = Field(default="")
+        raw_value: str = Field(default="")
+        raw_unit: str = Field(default="")
+
+    class DraftPayload(BaseModel):
+        category: str = Field(default="")
+        answer_key: str = Field(default="")
+        expected_sections: List[str] = Field(default_factory=list)
+        evidence: List[EvidenceDraft] = Field(default_factory=list)
+        required_entities: List[str] = Field(default_factory=list)
+        answer_type: Literal["numeric", "boolean", "span", "list", "summary", "refusal"] = Field(default="summary")
+        expected_refusal: bool = Field(default=False)
+        expected_operands: List[OperandDraft] = Field(default_factory=list)
+        expected_operation: str = Field(default="")
+        reasoning_steps: List[str] = Field(default_factory=list)
+        notes: str = Field(default="")
+
+    _DRAFT_PAYLOAD_MODEL = DraftPayload
+    return DraftPayload
 
 
 def _normalise_path(path_value: str | Path) -> Path:
@@ -273,34 +340,6 @@ class ParsedChunk:
     chunk_id: str
 
 
-class EvidenceDraft(BaseModel):
-    section_path: str = Field(default="")
-    quote: str = Field(default="")
-    quote_type: Literal["verbatim", "paraphrase"] = Field(default="verbatim")
-    why_it_supports_answer: str = Field(default="")
-
-
-class OperandDraft(BaseModel):
-    label: str = Field(default="")
-    period: str = Field(default="")
-    raw_value: str = Field(default="")
-    raw_unit: str = Field(default="")
-
-
-class DraftPayload(BaseModel):
-    category: str = Field(default="")
-    answer_key: str = Field(default="")
-    expected_sections: List[str] = Field(default_factory=list)
-    evidence: List[EvidenceDraft] = Field(default_factory=list)
-    required_entities: List[str] = Field(default_factory=list)
-    answer_type: Literal["numeric", "boolean", "span", "list", "summary", "refusal"] = Field(default="summary")
-    expected_refusal: bool = Field(default=False)
-    expected_operands: List[OperandDraft] = Field(default_factory=list)
-    expected_operation: str = Field(default="")
-    reasoning_steps: List[str] = Field(default_factory=list)
-    notes: str = Field(default="")
-
-
 @dataclass
 class RunProgress:
     total_rows: int
@@ -318,10 +357,10 @@ class RunProgress:
 class FilingDraftGenerator:
     def __init__(self) -> None:
         load_dotenv(PROJECT_ROOT / ".env")
-        self.fetcher = DARTFetcher()
-        self.parser = FinancialParser()
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
-        self.structured_llm = self.llm.with_structured_output(DraftPayload)
+        self.fetcher = _dart_fetcher_cls()()
+        self.parser = _financial_parser_cls()()
+        self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
+        self.structured_llm = self.llm.with_structured_output(_draft_payload_model())
         self._report_cache: Dict[Tuple[str, int], ReportMetadata] = {}
         self._chunk_cache: Dict[Tuple[str, int, str], List[ParsedChunk]] = {}
         self._bm25_cache: Dict[Tuple[str, int, str], Tuple[BM25Okapi, List[List[str]]]] = {}
@@ -332,6 +371,7 @@ class FilingDraftGenerator:
             return []
 
         reports: List[ReportMetadata] = []
+        report_metadata_cls = _report_metadata_cls()
         for path in sorted(company_dir.iterdir(), reverse=True):
             if not path.is_file() or path.suffix.lower() not in {".htm", ".html"}:
                 continue
@@ -340,7 +380,7 @@ class FilingDraftGenerator:
 
             rcept_no = path.stem.split("_")[-1]
             reports.append(
-                ReportMetadata(
+                report_metadata_cls(
                     rcept_no=rcept_no,
                     corp_name=company,
                     corp_code="",
@@ -426,7 +466,7 @@ class FilingDraftGenerator:
             _tokenize_ko(" ".join(part for part in (chunk.section_path, chunk.section, chunk.text) if part))
             for chunk in chunks
         ]
-        bm25 = BM25Okapi(tokenized)
+        bm25 = _bm25_okapi_cls()(tokenized)
         self._bm25_cache[cache_key] = (bm25, tokenized)
         return bm25, tokenized, chunks
 
@@ -468,7 +508,7 @@ class FilingDraftGenerator:
         if not all_chunks:
             return []
 
-        bm25 = BM25Okapi(tokenized_docs)
+        bm25 = _bm25_okapi_cls()(tokenized_docs)
         question = _coerce_question(item)
         operands = _coerce_required_operands(item)
         keywords = _coerce_required_keywords(item)
@@ -566,7 +606,7 @@ base_rcept_no: {report.rcept_no}
         context_chunks = self._retrieve_context(reports, item)
         context = self._format_context(context_chunks)
         prompt = self._prompt_payload(item, report, context)
-        payload: DraftPayload = self.structured_llm.invoke(prompt)
+        payload = self.structured_llm.invoke(prompt)
 
         expected_sections = [value for value in payload.expected_sections if str(value).strip()]
         if not expected_sections:

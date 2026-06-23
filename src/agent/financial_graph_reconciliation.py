@@ -7,22 +7,64 @@ This module turns retrieved evidence into operand-ready candidate sets:
 - decide whether retrieval should retry or calculation can continue
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
-from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _coerce_lookup_magnitude_value
-from src.agent.financial_graph_models import (
-    FinancialAgentState,
-    ReconciliationCandidateRerank,
-    ReflectionPlanRecord,
-    ReflectionQueryPlan,
-    ReflectionRequest,
+from src.agent.financial_graph_helpers import (
+    _build_reconciliation_candidate,
+    _build_table_row_reconciliation_candidates,
+    _candidate_is_descriptor_row,
+    _candidate_is_direct_grounding_candidate,
+    _candidate_matches_operand,
+    _candidate_row_block_signature,
+    _candidate_satisfies_direct_acceptance_contract,
+    _candidate_satisfies_ratio_component_acceptance_contract,
+    _deterministic_reconcile_task,
+    _extract_generic_operand_labels,
+    _operand_period_focus,
+    _operand_prefers_aggregate_value_role,
+    _operand_target_years,
+    _query_years_from_state,
+    _resolve_candidate_local_unit_hint,
+    _score_operand_candidate,
+    _score_structured_cell,
+    _select_aggregate_structured_cell,
+    _select_structured_cell,
 )
+from src.agent.financial_graph_model_loaders import (
+    _reconciliation_candidate_rerank_model,
+    _reflection_query_plan_model,
+)
+from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template, _document
+from src.agent.financial_retrieval_hints import (
+    _active_preferred_sections,
+    _active_preferred_statement_types,
+    _preferred_calc_sections,
+    _section_hint_alias,
+    _supplement_section_terms_for_query,
+)
+from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_surface_contracts import _operand_needles
+from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
+from src.agent.financial_row_surfaces import (
+    _extract_table_row_label,
+    _operand_text_match,
+    _parse_unstructured_table_row_cells,
+)
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState, ReflectionPlanRecord, ReflectionRequest
+from src.agent.financial_task_artifacts import reconciliation_result_artifact_update as _reconciliation_result_artifact_update
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_operation_policies import (
+    _is_percent_point_difference_query,
+    _is_ratio_percent_query,
+    _label_implies_percent_metric,
+)
+from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
@@ -31,9 +73,11 @@ from src.config.retrieval_policy import (
     QUERY_FOCUS_MARKER_POLICY,
     RECONCILIATION_POLICY,
 )
-from src.schema import ArtifactKind, TaskKind, TaskStatus
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
+
 
 ALLOWED_REFLECTION_RETRY_STRATEGIES = {
     "retry_retrieval",
@@ -543,7 +587,7 @@ class FinancialAgentReconciliationMixin:
             selected_cell=selected_cell,
         )
         normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-        normalized_value = _coerce_lookup_magnitude_value(
+        normalized_value = coerce_lookup_magnitude_value(
             normalized_value=normalized_value,
             normalized_unit=normalized_unit,
             raw_value=raw_value,
@@ -646,7 +690,7 @@ class FinancialAgentReconciliationMixin:
                     str(row.get("raw_value") or "").strip(),
                     inherited_unit,
                 )
-                normalized_value = _coerce_lookup_magnitude_value(
+                normalized_value = coerce_lookup_magnitude_value(
                     normalized_value=normalized_value,
                     normalized_unit=normalized_unit,
                     raw_value=str(row.get("raw_value") or "").strip(),
@@ -1083,8 +1127,9 @@ class FinancialAgentReconciliationMixin:
         if len(allowed_ids) < 2:
             return allowed_ids
 
+        ReconciliationCandidateRerank = _reconciliation_candidate_rerank_model()
         structured_llm = self._llm_for_phase("reconciliation_rerank").with_structured_output(ReconciliationCandidateRerank)
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(RECONCILIATION_POLICY.get("candidate_rerank_prompt_template") or "")
         )
         try:
@@ -1688,38 +1733,21 @@ class FinancialAgentReconciliationMixin:
                 0,
                 int(state.get("reconciliation_retry_count") or 0),
             )
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str(active_subtask.get("task_id") or "reconcile")
-            artifact_id = f"reconcile:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.RECONCILIATION_RESULT,
-                status=status,
+            ledger_update = _reconciliation_result_artifact_update(
+                tasks=list(state.get("tasks") or []),
+                artifacts=list(state.get("artifacts") or []),
+                active_subtask=active_subtask,
+                reconciliation_result=result,
                 summary="reconciliation=ready(dependency_outputs)",
-                payload={"reconciliation_result": result},
                 evidence_refs=self._reconciliation_evidence_refs(result),
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.RECONCILIATION,
-                label=f"reconcile {active_subtask.get('metric_label') or active_subtask.get('metric_family') or task_id}",
-                status=TaskStatus.COMPLETED,
-                query=str(active_subtask.get("query") or ""),
-                metric_family=str(active_subtask.get("metric_family") or ""),
-                constraints=dict(active_subtask.get("constraints") or {}),
-                artifact_id=artifact_id,
             )
             return {
                 "reconciliation_result": result,
                 "retry_strategy": "",
                 "retry_queries": [],
                 "retry_reason": "",
-                "tasks": tasks,
-                "artifacts": artifacts,
+                "tasks": list(ledger_update["tasks"]),
+                "artifacts": list(ledger_update["artifacts"]),
             }
 
         years = _query_years_from_state(state)
@@ -1761,35 +1789,18 @@ class FinancialAgentReconciliationMixin:
             len(result.get("missing_operands") or []),
             retry_count,
         )
-        artifacts = list(state.get("artifacts") or [])
-        tasks = list(state.get("tasks") or [])
-        task_id = str(active_subtask.get("task_id") or "reconcile")
-        artifact_id = f"reconcile:{task_id}:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=artifact_id,
-            task_id=task_id,
-            kind=ArtifactKind.RECONCILIATION_RESULT,
-            status=status,
+        ledger_update = _reconciliation_result_artifact_update(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(state.get("artifacts") or []),
+            active_subtask=active_subtask,
+            reconciliation_result=result,
             summary=f"reconciliation={status}",
-            payload={"reconciliation_result": result},
             evidence_refs=self._reconciliation_evidence_refs(result),
-        )
-        tasks = _upsert_task(
-            tasks,
-            task_id=task_id,
-            kind=TaskKind.RECONCILIATION,
-            label=f"reconcile {active_subtask.get('metric_label') or active_subtask.get('metric_family') or task_id}",
-            status=TaskStatus.COMPLETED if status == "ready" else TaskStatus.PARTIAL,
-            query=str(active_subtask.get("query") or ""),
-            metric_family=str(active_subtask.get("metric_family") or ""),
-            constraints=dict(active_subtask.get("constraints") or {}),
-            artifact_id=artifact_id,
         )
         updates: Dict[str, Any] = {
             "reconciliation_result": result,
-            "tasks": tasks,
-            "artifacts": artifacts,
+            "tasks": list(ledger_update["tasks"]),
+            "artifacts": list(ledger_update["artifacts"]),
         }
         if status == "retry_retrieval":
             updates.update(
@@ -1840,6 +1851,9 @@ class FinancialAgentReconciliationMixin:
     def _apply_strict_filter(self, docs, predicate):
         filtered = [item for item in docs if predicate(item[0])]
         return filtered if filtered else docs
+
+    def _make_reconciliation_document(self, *, page_content: str, metadata: Dict[str, Any]) -> Document:
+        return _document(page_content=page_content, metadata=metadata)
 
     def _supplement_section_seed_docs(self, state: FinancialAgentState) -> List[tuple[Document, float]]:
         query = state["query"]
@@ -2010,7 +2024,12 @@ class FinancialAgentReconciliationMixin:
                 except (TypeError, ValueError):
                     pass
 
-            supplemented.append((Document(page_content=str(body or ""), metadata=metadata), score))
+            supplemented.append(
+                (
+                    self._make_reconciliation_document(page_content=str(body or ""), metadata=metadata),
+                    score,
+                )
+            )
 
         supplemented.sort(key=lambda item: item[1], reverse=True)
         if supplemented:
@@ -2345,8 +2364,9 @@ class FinancialAgentReconciliationMixin:
             explanation="fallback reflection query plan",
         )
 
+        ReflectionQueryPlan = _reflection_query_plan_model()
         structured_llm = self._llm_for_phase("reflection_planning").with_structured_output(ReflectionQueryPlan)
-        prompt = ChatPromptTemplate.from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
+        prompt = _chat_prompt_template_from_template(str(RECONCILIATION_POLICY.get("reflection_prompt_template") or ""))
         try:
             reflection_plan: ReflectionQueryPlan = (prompt | structured_llm).invoke(
                 {

@@ -1,8 +1,8 @@
 import unittest
 
-from src.agent.financial_graph_helpers import (
+from src.agent.financial_runtime_normalization import _display_operand_label
+from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
-    _display_operand_label,
     _preferred_calc_sections,
     _retrieval_hint_from_topic,
 )

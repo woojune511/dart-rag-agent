@@ -9,22 +9,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-from ops.evaluator import (  # noqa: E402
-    _compute_numeric_equivalence,
-    _compute_numeric_result_correctness,
-    _compute_operand_selection_correctness,
-    _extract_numeric_candidates,
-    _labels_match,
-    _normalise_label_text,
-    _resolve_numeric_judgement,
-    _safe_float,
-    load_eval_examples_from_path,
-)
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace  # noqa: E402
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 @dataclass(frozen=True)
@@ -61,6 +47,66 @@ CASES: List[AblationCase] = [
         note="Same override principle applied to a direct precomputed-ratio path.",
     ),
 ]
+
+
+def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_numeric_equivalence(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_numeric_equivalence as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_numeric_result_correctness(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_numeric_result_correctness as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_operand_selection_correctness(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_operand_selection_correctness as impl
+
+    return impl(*args, **kwargs)
+
+
+def _extract_numeric_candidates(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _extract_numeric_candidates as impl
+
+    return impl(*args, **kwargs)
+
+
+def _labels_match(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _labels_match as impl
+
+    return impl(*args, **kwargs)
+
+
+def _normalise_label_text(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _normalise_label_text as impl
+
+    return impl(*args, **kwargs)
+
+
+def _resolve_numeric_judgement(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _resolve_numeric_judgement as impl
+
+    return impl(*args, **kwargs)
+
+
+def _safe_float(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _safe_float as impl
+
+    return impl(*args, **kwargs)
+
+
+def load_eval_examples_from_path(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import load_eval_examples_from_path as impl
+
+    return impl(*args, **kwargs)
 
 
 def _load_per_question_rows(path: Path) -> List[Dict[str, Any]]:
@@ -139,7 +185,7 @@ def _legacy_operand_matches(expected: Dict[str, Any], actual: Dict[str, Any]) ->
 
     # Keep value/unit comparison aligned with the current evaluator so the
     # ablation isolates label matching rather than numeric normalization.
-    from ops.evaluator import _normalise_math_operand_value  # noqa: WPS433
+    from src.ops.evaluator import _normalise_math_operand_value
 
     expected_value, expected_unit = _normalise_math_operand_value(
         str(expected.get("raw_value") or ""),

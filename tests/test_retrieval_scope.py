@@ -8,7 +8,7 @@ from src.agent.financial_graph_retrieval_budget import (
     _cross_trace_reuse_candidate_diagnostics,
     _summarize_executed_query_telemetry,
 )
-from src.agent.financial_graph_helpers import _should_apply_strict_company_scope
+from src.agent.financial_scope_policies import _should_apply_strict_company_scope
 
 
 class _EvidenceBiasProbe:

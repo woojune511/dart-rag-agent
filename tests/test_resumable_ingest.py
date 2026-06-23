@@ -26,6 +26,7 @@ from src.ops.benchmark_runner import (
 )
 from src.ops.evaluator import EvalExample
 from src.ingestion.dart_fetcher import ReportMetadata
+from src.storage import document_batches
 from src.storage.vector_store import VectorStoreManager
 
 
@@ -87,6 +88,36 @@ class _FakeIngestVectorManager:
 
 
 class ResumableIngestTests(unittest.TestCase):
+    def test_document_batch_preparation_skips_duplicate_input_chunk_uids(self) -> None:
+        prepared = document_batches.prepare_documents_for_add(
+            ["a", "b", "dup", "no-id"],
+            [
+                {"chunk_uid": "r1::chunk:1", "rcept_no": "r1"},
+                {"chunk_uid": "r1::chunk:2", "rcept_no": "r1"},
+                {"chunk_uid": "r1::chunk:2", "rcept_no": "r1"},
+                {"rcept_no": "r1"},
+            ],
+            chunk_uid_from_metadata=lambda metadata: str(metadata.get("chunk_uid") or ""),
+        )
+
+        self.assertEqual(prepared.duplicate_input_count, 1)
+        self.assertEqual([text for text, _, _ in prepared.chunks], ["a", "b", "no-id"])
+        self.assertEqual(document_batches.single_rcept_no_for_resume(prepared.chunks), "r1")
+
+    def test_document_batch_pending_and_batching_contract(self) -> None:
+        prepared = [
+            ("a", {"chunk_uid": "old"}, "old"),
+            ("b", {"chunk_uid": "new"}, "new"),
+            ("c", {}, ""),
+        ]
+
+        pending = document_batches.pending_documents(prepared, existing_chunk_uids={"old"})
+        batches = list(document_batches.iter_batches(pending, 1))
+
+        self.assertEqual([text for text, _, _ in pending], ["b", "c"])
+        self.assertEqual(document_batches.batch_count(len(pending), 1), 2)
+        self.assertEqual([document_batches.batch_texts(batch) for batch in batches], [["b"], ["c"]])
+
     def _make_manager(self, existing_metadatas=None):
         manager = VectorStoreManager.__new__(VectorStoreManager)
         manager.vector_store = _FakeVectorStore(existing_metadatas)

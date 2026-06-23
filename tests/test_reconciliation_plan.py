@@ -11,17 +11,15 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_graph import (
-    FinancialAgent,
+from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import (
     _build_table_row_reconciliation_candidates,
+    _build_lookup_producer_task_from_binding,
+    _build_reconciliation_retry_queries,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
     _deterministic_reconcile_task,
     _score_operand_candidate,
-)
-from src.agent.financial_graph_helpers import (
-    _build_lookup_producer_task_from_binding,
-    _build_reconciliation_retry_queries,
 )
 
 

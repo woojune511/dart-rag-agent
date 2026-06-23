@@ -8,12 +8,15 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 from src.config.report_scoped_cache import report_cache_capability_status
 from src.ops.check_report_cache_index_smoke_contract import check_contract
 from src.ops.report_cache_index_smoke import build_smoke_payload
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPORT_CACHE_INDEX_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "report_cache_index" / "rehydration_diagnostics.json"
 )

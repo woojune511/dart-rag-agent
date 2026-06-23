@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Tuple
 
-from src.schema import AggregationStage, CellRecord, RowRecord, ValueRecord, ValueRole
+from src.schema.runtime_enums import AggregationStage, ValueRole
 
 
 _YEAR_LABEL_RE = re.compile(r"\b(20\d{2})년\b")
@@ -27,6 +27,24 @@ _GENERIC_VALUE_LABELS = {
     "소계",
     "합계",
 }
+
+
+def _cell_record_model() -> Any:
+    from src.schema import CellRecord
+
+    return CellRecord
+
+
+def _row_record_model() -> Any:
+    from src.schema import RowRecord
+
+    return RowRecord
+
+
+def _value_record_model() -> Any:
+    from src.schema import ValueRecord
+
+    return ValueRecord
 
 
 def normalize_table_text(text: str) -> str:
@@ -352,6 +370,8 @@ def build_table_row_records(table_object: Dict[str, Any], unit_hint: str) -> Lis
                     header_stack.append(text)
         column_headers[col_idx] = merge_header_stack(header_stack)
 
+    CellRecord = _cell_record_model()
+    RowRecord = _row_record_model()
     row_records: List[Dict[str, Any]] = []
     for row_idx, row in enumerate(body_rows):
         row_label, row_headers, row_axis_cols = infer_table_row_axis(row)
@@ -392,6 +412,7 @@ def build_table_value_records(
     table_id: str,
     unit_hint: str,
 ) -> List[Dict[str, Any]]:
+    ValueRecord = _value_record_model()
     value_records: List[Dict[str, Any]] = []
     for row_idx, record in enumerate(row_records):
         row_label = normalize_table_text(str(record.get("row_label") or ""))

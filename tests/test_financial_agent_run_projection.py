@@ -2,8 +2,8 @@ import unittest
 from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_models import AgentAnswer, DebugBundle, FinancialAgentState, ReviewTrace
-from src.agent.financial_graph_models import (
+from src.agent.financial_graph_state import AgentAnswer, DebugBundle, FinancialAgentState, ReviewTrace
+from src.agent.financial_graph_state import (
     CalculationState,
     EvidenceState,
     LedgerState,
@@ -59,13 +59,13 @@ class _PhaseUsageGraph:
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
-    def test_state_typing_keeps_legacy_calculation_and_debug_surfaces_optional(self) -> None:
+    def test_state_typing_keeps_debug_surface_optional_without_flat_calculation_mirrors(self) -> None:
         self.assertIn("answer", AgentAnswer.__optional_keys__)
         self.assertIn("task_artifact_trace", ReviewTrace.__optional_keys__)
         self.assertIn("llm_usage", DebugBundle.__optional_keys__)
-        self.assertIn("calculation_operands", FinancialAgentState.__optional_keys__)
-        self.assertIn("calculation_plan", FinancialAgentState.__optional_keys__)
-        self.assertIn("calculation_result", FinancialAgentState.__optional_keys__)
+        self.assertNotIn("calculation_operands", FinancialAgentState.__optional_keys__)
+        self.assertNotIn("calculation_plan", FinancialAgentState.__optional_keys__)
+        self.assertNotIn("calculation_result", FinancialAgentState.__optional_keys__)
         self.assertIn("calculation_debug_trace", FinancialAgentState.__optional_keys__)
         self.assertIn("debug_traces", FinancialAgentState.__optional_keys__)
         self.assertIn("reflection_request", FinancialAgentState.__optional_keys__)
@@ -1270,10 +1270,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             result["debug_traces"]["calculation"],
             {"source": "structured_row_direct", "coverage": "sufficient"},
         )
-        self.assertEqual(
-            result["calculation_debug_trace"],
-            result["debug_traces"]["calculation"],
-        )
+        self.assertNotIn("calculation_debug_trace", result)
         self.assertEqual(
             result["numeric_debug_trace_history"],
             [{"numeric_extraction_prompt": {"selected_doc_count": 2}}],
@@ -1289,7 +1286,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         result = agent.run("test question")
 
         self.assertEqual(result["debug_traces"]["calculation"], {})
-        self.assertEqual(result["calculation_debug_trace"], {})
+        self.assertNotIn("calculation_debug_trace", result)
 
     def test_run_public_projection_adds_read_only_report_cache_candidate(self) -> None:
         final_state = self._base_final_state()

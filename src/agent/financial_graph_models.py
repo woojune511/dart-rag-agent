@@ -1,257 +1,15 @@
-"""
-Shared state and structured-output models for the financial graph agent.
-"""
+"""Pydantic structured-output models for the financial agent."""
 
-from typing import Annotated, Any, Dict, List, Literal, NotRequired, Optional, TypedDict, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class RuntimeProjectionMetadata(TypedDict, total=False):
-    source: str
-    legacy_fallback: bool
-    source_task_id: str
+class _DeferredBaseModel(BaseModel):
+    model_config = ConfigDict(defer_build=True)
 
 
-class RuntimeCalculationTrace(TypedDict, total=False):
-    calculation_operands: List[Dict[str, Any]]
-    calculation_plan: Dict[str, Any]
-    calculation_result: Dict[str, Any]
-    report_cache_candidate: Dict[str, Any]
-    runtime_projection: RuntimeProjectionMetadata
-
-
-class DebugTraceBundle(TypedDict, total=False):
-    calculation: Dict[str, Any]
-
-
-class AgentAnswer(TypedDict, total=False):
-    query: str
-    report_scope: Dict[str, Any]
-    query_type: str
-    intent: str
-    planner_mode: str
-    planner_feedback: str
-    plan_loop_count: int
-    target_metric_family: str
-    target_metric_family_hint: str
-    planned_metric_families: List[str]
-    format_preference: str
-    routing_source: str
-    routing_confidence: float
-    routing_scores: Dict[str, float]
-    companies: List[str]
-    years: List[int]
-    answer: str
-    citations: List[str]
-    structured_result: Dict[str, Any]
-    resolved_calculation_trace: RuntimeCalculationTrace
-
-
-class DebugBundle(TypedDict, total=False):
-    debug_traces: DebugTraceBundle
-    llm_usage: Dict[str, Any]
-    llm_usage_by_phase: Dict[str, Any]
-    embedding_usage: Dict[str, Any]
-
-
-class TaskResultRecord(TypedDict, total=False):
-    task_id: str
-    metric_family: str
-    metric_label: str
-    status: str
-    answer: str
-    calculation_operands: List[Dict[str, Any]]
-    calculation_plan: Dict[str, Any]
-    calculation_result: Dict[str, Any]
-    runtime_evidence: List[Dict[str, Any]]
-    selected_claim_ids: List[str]
-
-
-ReflectionRetryStrategy = Literal[
-    "retry_retrieval",
-    "synthesize_from_task_outputs",
-    "stop_insufficient",
-]
-
-
-class ReflectionRequest(TypedDict, total=False):
-    query: str
-    active_task_id: str
-    failure_status: str
-    missing_info: List[str]
-    runtime_trace_summary: Dict[str, Any]
-    evidence_summary: Dict[str, Any]
-    remaining_retry_budget: int
-
-
-class ReflectionPlanRecord(TypedDict, total=False):
-    status: str
-    retry_objective: str
-    retry_strategy: ReflectionRetryStrategy
-    missing_info: List[str]
-    subqueries: List[str]
-    preferred_sections: List[str]
-    explanation: str
-
-
-class ReflectionAction(TypedDict, total=False):
-    action_type: ReflectionRetryStrategy
-    retry_queries: List[str]
-    retrieval_scope_hints: List[str]
-    synthesis_source_ids: List[str]
-    stop_reason: str
-
-
-class ReflectionReport(TypedDict, total=False):
-    outcome: str
-    action_taken: str
-    budget_consumed: int
-    target_task_ids: List[str]
-    target_artifact_ids: List[str]
-    blocking_issues: List[Dict[str, Any]]
-
-
-class ReviewTrace(TypedDict, total=False):
-    seed_retrieved_docs: List[Any]
-    retrieved_docs: List[Any]
-    retrieval_debug_trace: Dict[str, Any]
-    retrieval_debug_trace_history: List[Dict[str, Any]]
-    evidence_items: List[Dict[str, Any]]
-    selected_claim_ids: List[str]
-    draft_points: List[str]
-    kept_claim_ids: List[str]
-    dropped_claim_ids: List[str]
-    unsupported_sentences: List[str]
-    sentence_checks: List[Dict[str, Any]]
-    numeric_debug_trace: Dict[str, Any]
-    numeric_debug_trace_history: List[Dict[str, Any]]
-    planner_debug_trace: Dict[str, Any]
-    missing_info: List[str]
-    reflection_count: int
-    retry_reason: str
-    retry_strategy: str
-    retry_queries: List[str]
-    reconciliation_retry_count: int
-    reflection_plan: Dict[str, Any]
-    reflection_request: ReflectionRequest
-    reflection_action: ReflectionAction
-    reflection_report: ReflectionReport
-    semantic_plan: Dict[str, Any]
-    calc_subtasks: List[Dict[str, Any]]
-    retrieval_queries: List[str]
-    active_subtask_index: int
-    active_subtask: Dict[str, Any]
-    subtask_results: List[TaskResultRecord]
-    subtask_debug_trace: Dict[str, Any]
-    subtask_loop_complete: bool
-    reconciliation_result: Dict[str, Any]
-    tasks: List[Dict[str, Any]]
-    artifacts: List[Dict[str, Any]]
-    task_artifact_trace: Dict[str, Any]
-
-
-class RoutingState(TypedDict):
-    query: str
-    report_scope: Dict[str, Any]
-    query_type: str
-    intent: str
-    planner_mode: str
-    planner_feedback: str
-    plan_loop_count: int
-    target_metric_family: str
-    target_metric_family_hint: str
-    planned_metric_families: List[str]
-    format_preference: str
-    routing_source: str
-    routing_confidence: float
-    routing_scores: Dict[str, float]
-    companies: List[str]
-    years: List[int]
-    topic: str
-    section_filter: Optional[str]
-
-
-class RetrievalState(TypedDict):
-    seed_retrieved_docs: List
-    retrieved_docs: List
-    retrieval_debug_trace: Dict[str, Any]
-    retrieval_debug_trace_history: List[Dict[str, Any]]
-    retrieval_query_result_cache: NotRequired[Dict[str, Dict[str, Any]]]
-
-
-class EvidenceState(TypedDict):
-    evidence_bullets: List[str]
-    evidence_items: List[Dict[str, Any]]
-    evidence_status: str
-    selected_claim_ids: List[str]
-    draft_points: List[str]
-    compressed_answer: str
-    kept_claim_ids: List[str]
-    dropped_claim_ids: List[str]
-    unsupported_sentences: List[str]
-    sentence_checks: List[Dict[str, Any]]
-    answer: str
-    citations: List[str]
-
-
-class CalculationState(TypedDict):
-    numeric_debug_trace: Dict[str, Any]
-    numeric_debug_trace_history: List[Dict[str, Any]]
-    resolved_calculation_trace: RuntimeCalculationTrace
-    structured_result: Dict[str, Any]
-    # Legacy flat calculation fields are optional compatibility mirrors.
-    # Current graph readers should use `resolved_calculation_trace` /
-    # `structured_result`; only explicit compatibility surfaces may depend on
-    # these keys being present.
-    calculation_operands: NotRequired[List[Dict[str, Any]]]
-    calculation_plan: NotRequired[Dict[str, Any]]
-    calculation_result: NotRequired[Dict[str, Any]]
-    calculation_debug_trace: NotRequired[Dict[str, Any]]
-    debug_traces: NotRequired[DebugTraceBundle]
-    planner_debug_trace: Dict[str, Any]
-    semantic_plan: Dict[str, Any]
-    calc_subtasks: List[Dict[str, Any]]
-    retrieval_queries: List[str]
-    active_subtask_index: int
-    active_subtask: Dict[str, Any]
-    subtask_results: List[TaskResultRecord]
-    subtask_debug_trace: Dict[str, Any]
-    subtask_loop_complete: bool
-    reconciliation_result: Dict[str, Any]
-
-
-class ReflectionState(TypedDict):
-    missing_info: List[str]
-    reflection_count: int
-    retry_reason: str
-    retry_strategy: str
-    retry_queries: List[str]
-    reconciliation_retry_count: int
-    reflection_plan: Dict[str, Any]
-    reflection_request: NotRequired[ReflectionRequest]
-    reflection_action: NotRequired[ReflectionAction]
-    reflection_report: NotRequired[ReflectionReport]
-    replan_blocked_reason: NotRequired[str]
-
-
-class LedgerState(TypedDict):
-    tasks: List[Dict[str, Any]]
-    artifacts: List[Dict[str, Any]]
-
-
-class FinancialAgentState(
-    RoutingState,
-    RetrievalState,
-    EvidenceState,
-    CalculationState,
-    ReflectionState,
-    LedgerState,
-):
-    pass
-
-
-class EntityExtraction(BaseModel):
+class EntityExtraction(_DeferredBaseModel):
     companies: List[str] = Field(default_factory=list, description="질문에 등장한 기업명 목록")
     years: List[int] = Field(default_factory=list, description="질문에 등장한 연도 목록")
     topic: str = Field(description="질문의 핵심 분석 주제")
@@ -265,7 +23,7 @@ class EntityExtraction(BaseModel):
     )
 
 
-class EvidenceItem(BaseModel):
+class EvidenceItem(_DeferredBaseModel):
     source_anchor: str = Field(description="근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]")
     parent_category: Optional[str] = Field(
         default=None,
@@ -292,12 +50,12 @@ class EvidenceItem(BaseModel):
     )
 
 
-class EvidenceExtraction(BaseModel):
+class EvidenceExtraction(_DeferredBaseModel):
     coverage: Literal["sufficient", "sparse", "conflicting", "missing"]
     evidence: List[EvidenceItem] = Field(default_factory=list)
 
 
-class CompressionOutput(BaseModel):
+class CompressionOutput(_DeferredBaseModel):
     selected_claim_ids: List[str] = Field(
         default_factory=list,
         description="답변 초안에 실제로 사용한 evidence_id 목록",
@@ -311,7 +69,7 @@ class CompressionOutput(BaseModel):
     )
 
 
-class NumericExtraction(BaseModel):
+class NumericExtraction(_DeferredBaseModel):
     period_check: str = Field(
         description="질문이 요구하는 연도/기수(예: 2024년, 당기, 제56기)를 확인하고, 문서(표)에서 해당 기간의 열을 찾았는지 설명"
     )
@@ -329,7 +87,7 @@ class NumericExtraction(BaseModel):
     )
 
 
-class CalculationOperand(BaseModel):
+class CalculationOperand(_DeferredBaseModel):
     operand_id: str = Field(description="계산용 고유 피연산자 ID. 예: op_001")
     evidence_id: str = Field(description="이 숫자가 추출된 evidence_id")
     source_anchor: str = Field(description="근거 출처 앵커")
@@ -347,19 +105,19 @@ class CalculationOperand(BaseModel):
     period: str = Field(default="", description="이 숫자가 대응하는 기간/기수. 예: 2024년, 2023년, 당기, 전기")
 
 
-class OperandExtraction(BaseModel):
+class OperandExtraction(_DeferredBaseModel):
     coverage: Literal["sufficient", "partial", "missing"] = Field(
         description="질문 계산에 필요한 피연산자를 충분히 찾았는지 여부"
     )
     operands: List[CalculationOperand] = Field(default_factory=list)
 
 
-class FormulaVariableBinding(BaseModel):
+class FormulaVariableBinding(_DeferredBaseModel):
     variable: str = Field(description="수식에서 사용할 변수명. 예: A, B, C")
     operand_id: str = Field(description="이 변수에 바인딩할 operand_id")
 
 
-class CalculationPlan(BaseModel):
+class CalculationPlan(_DeferredBaseModel):
     status: Literal["ok", "incomplete"] = Field(
         default="ok",
         description="계산 계획이 완결되었는지 여부. 부족한 정보가 있으면 incomplete"
@@ -405,7 +163,7 @@ class CalculationPlan(BaseModel):
     )
 
 
-class ReflectionQueryPlan(BaseModel):
+class ReflectionQueryPlan(_DeferredBaseModel):
     status: Literal["ready", "skip"] = Field(
         default="ready",
         description="재검색 계획을 만들 수 있으면 ready, 그렇지 않으면 skip"
@@ -449,7 +207,7 @@ NormalizedUnit = Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"]
 AnswerSlotStatus = Literal["ok", "missing", "derived", "ambiguous"]
 
 
-class AnswerSlotValue(BaseModel):
+class AnswerSlotValue(_DeferredBaseModel):
     status: AnswerSlotStatus = Field(
         default="ok",
         description="이 슬롯 값의 상태. missing이면 synthesizer/evaluator가 재료 부족으로 해석한다.",
@@ -468,7 +226,7 @@ class AnswerSlotValue(BaseModel):
     source_anchor: str = Field(default="", description="대표 evidence source anchor")
 
 
-class BaseAnswerSlots(BaseModel):
+class BaseAnswerSlots(_DeferredBaseModel):
     metric_label: str = Field(default="", description="이 result slot 집합이 대응하는 metric label")
     components_by_role: Dict[str, List[AnswerSlotValue]] = Field(
         default_factory=dict,
@@ -518,7 +276,7 @@ class SumAnswerSlots(BaseAnswerSlots):
     primary_value: AnswerSlotValue
 
 
-class AggregateSubtaskAnswerSlots(BaseModel):
+class AggregateSubtaskAnswerSlots(_DeferredBaseModel):
     task_id: str = Field(default="")
     metric_family: str = Field(default="")
     metric_label: str = Field(default="")
@@ -530,7 +288,7 @@ class AggregateSubtaskAnswerSlots(BaseModel):
     source_evidence_ids: List[str] = Field(default_factory=list)
 
 
-class AggregateAnswerSlots(BaseModel):
+class AggregateAnswerSlots(_DeferredBaseModel):
     operation_family: Literal["aggregate_subtasks"] = "aggregate_subtasks"
     subtask_results: List[AggregateSubtaskAnswerSlots] = Field(default_factory=list)
 
@@ -548,15 +306,24 @@ AnswerSlotsPayload = Annotated[
     Field(discriminator="operation_family"),
 ]
 
-_ANSWER_SLOTS_ADAPTER = TypeAdapter(AnswerSlotsPayload)
+_ANSWER_SLOTS_ADAPTER: Any = None
+
+
+def _answer_slots_adapter() -> Any:
+    global _ANSWER_SLOTS_ADAPTER
+    if _ANSWER_SLOTS_ADAPTER is None:
+        from pydantic import TypeAdapter
+
+        _ANSWER_SLOTS_ADAPTER = TypeAdapter(AnswerSlotsPayload)
+    return _ANSWER_SLOTS_ADAPTER
 
 
 def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
-    validated = _ANSWER_SLOTS_ADAPTER.validate_python(payload)
+    validated = _answer_slots_adapter().validate_python(payload)
     return validated.model_dump()
 
 
-class CalculationResult(BaseModel):
+class CalculationResult(_DeferredBaseModel):
     status: Literal["ok", "insufficient_operands", "zero_division", "unsupported_operation", "unit_mismatch", "parse_error"] = Field(
         description="계산 수행 상태"
     )
@@ -583,11 +350,11 @@ class CalculationResult(BaseModel):
     explanation: str = Field(default="", description="계산 또는 실패 이유 설명")
 
 
-class CalculationRenderOutput(BaseModel):
+class CalculationRenderOutput(_DeferredBaseModel):
     final_answer: str = Field(description="CalculationResult와 operand labels만 사용해 작성한 최종 답변")
 
 
-class CalculationVerificationOutput(BaseModel):
+class CalculationVerificationOutput(_DeferredBaseModel):
     verdict: Literal["keep", "rewrite", "fallback"] = Field(
         description="현재 계산 답변을 유지할지, 짧게 고쳐쓸지, deterministic fallback으로 돌릴지"
     )
@@ -600,7 +367,7 @@ class CalculationVerificationOutput(BaseModel):
     )
 
 
-class AggregateSynthesisOutput(BaseModel):
+class AggregateSynthesisOutput(_DeferredBaseModel):
     final_answer: str = Field(
         description="원본 질문과 subtask 결과를 종합해 작성한 최종 답변"
     )
@@ -610,7 +377,7 @@ class AggregateSynthesisOutput(BaseModel):
     )
 
 
-class OperandRequirement(BaseModel):
+class OperandRequirement(_DeferredBaseModel):
     label: str = Field(description="찾아야 하는 피연산자 대표 라벨")
     concept: str = Field(default="", description="ontology concept key")
     aliases: List[str] = Field(default_factory=list, description="허용 가능한 동의어/대체 라벨")
@@ -623,14 +390,14 @@ class OperandRequirement(BaseModel):
     binding_policy: Dict[str, Any] = Field(default_factory=dict, description="concept-level structured value binding preferences")
 
 
-class TaskConstraints(BaseModel):
+class TaskConstraints(_DeferredBaseModel):
     consolidation_scope: str = Field(default="unknown")
     period_focus: str = Field(default="unknown")
     entity_scope: str = Field(default="unknown")
     segment_scope: str = Field(default="none")
 
 
-class TaskInputBinding(BaseModel):
+class TaskInputBinding(_DeferredBaseModel):
     role: str = Field(default="", description="consumer operand role. 예: current_period, prior_period")
     concept: str = Field(default="", description="required ontology concept key")
     period: str = Field(default="", description="required period hint. 예: 2023, 2022")
@@ -644,7 +411,7 @@ class TaskInputBinding(BaseModel):
     segment_label: str = Field(default="", description="segment/entity-scoped binding label")
 
 
-class TaskOutputSlot(BaseModel):
+class TaskOutputSlot(_DeferredBaseModel):
     slot: str = Field(default="primary_value", description="producer answer_slots slot name")
     role: str = Field(default="", description="producer operand role or semantic slot role")
     concept: str = Field(default="", description="produced ontology concept key")
@@ -653,7 +420,7 @@ class TaskOutputSlot(BaseModel):
     segment_label: str = Field(default="", description="segment/entity-scoped output label")
 
 
-class RetrievalTask(BaseModel):
+class RetrievalTask(_DeferredBaseModel):
     task_id: str
     metric_family: str
     metric_label: str
@@ -669,12 +436,12 @@ class RetrievalTask(BaseModel):
     constraints: TaskConstraints = Field(default_factory=TaskConstraints)
 
 
-class ConceptPlannerOperand(BaseModel):
+class ConceptPlannerOperand(_DeferredBaseModel):
     concept: str = Field(description="ontology concept key")
     role: str = Field(default="", description="numerator_1, denominator_1, addend_1, current_period 등")
 
 
-class ConceptPlannerTask(BaseModel):
+class ConceptPlannerTask(_DeferredBaseModel):
     metric_label: str = Field(default="", description="사용자에게 보일 계산 라벨")
     operation_family: Literal["lookup", "sum", "difference", "ratio", "growth_rate", "single_value", "none"] = Field(
         default="none"
@@ -682,7 +449,7 @@ class ConceptPlannerTask(BaseModel):
     operands: List[ConceptPlannerOperand] = Field(default_factory=list)
 
 
-class ConceptPlannerOutput(BaseModel):
+class ConceptPlannerOutput(_DeferredBaseModel):
     companies: List[str] = Field(default_factory=list, description="planner가 질문에서 파악한 기업명 목록")
     years: List[int] = Field(default_factory=list, description="planner가 질문에서 파악한 연도 목록")
     topic: str = Field(default="", description="planner가 정리한 핵심 주제")
@@ -691,7 +458,7 @@ class ConceptPlannerOutput(BaseModel):
     rationale: str = Field(default="", description="planner가 이렇게 분해한 이유")
 
 
-class SemanticPlan(BaseModel):
+class SemanticPlan(_DeferredBaseModel):
     status: Literal[
         "ok",
         "needs_clarification",
@@ -708,7 +475,7 @@ class SemanticPlan(BaseModel):
     planner_notes: List[str] = Field(default_factory=list)
 
 
-class ReconciliationCandidateRerank(BaseModel):
+class ReconciliationCandidateRerank(_DeferredBaseModel):
     ordered_candidate_ids: List[str] = Field(
         default_factory=list,
         description="질문과 operand에 가장 잘 맞는 candidate_id를 best-first 순서로 정렬한 목록",
@@ -716,7 +483,7 @@ class ReconciliationCandidateRerank(BaseModel):
     rationale: str = Field(default="", description="선택 이유를 간단히 설명")
 
 
-class ValidationOutput(BaseModel):
+class ValidationOutput(_DeferredBaseModel):
     kept_claim_ids: List[str] = Field(
         default_factory=list,
         description="검증 후 최종 답변에 남긴 evidence_id 목록",

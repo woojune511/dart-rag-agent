@@ -1,27 +1,27 @@
-import json
+from __future__ import annotations
+
 import logging
 import os
 import time
 from collections import OrderedDict
 from pathlib import Path
-from typing import Any, Dict, Hashable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Hashable, List, Optional, Tuple
 
-from langchain_community.vectorstores import Chroma
-from langchain_core.documents import Document
 from src.storage.bm25_index import (
     build_bm25_index,
     collect_bm25_results,
-    metadata_matches_filter,
     tokenize_ko,
 )
+from src.storage import chroma_backend
+from src.storage import document_batches
 from src.storage.embedding_config import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_PROVIDER,
     create_embeddings,
     get_embedding_runtime_spec,
-    infer_embedding_dimension,
     _select_default_embedding_provider,
 )
+from src.storage import graph_persistence
 from src.storage.metadata_payloads import (
     CHROMA_METADATA_DROP_KEYS as _CHROMA_METADATA_DROP_KEYS,
     CHROMA_METADATA_MAX_STRING_LEN as _CHROMA_METADATA_MAX_STRING_LEN,
@@ -32,8 +32,9 @@ from src.storage.metadata_payloads import (
     metadata_for_chroma,
     metadata_with_table_payload,
     table_payload_id,
-    table_payload_sidecar_stats,
 )
+from src.storage import parent_store
+from src.storage import search_merge
 from src.storage.structure_graph import (
     empty_structure_graph,
     get_described_by_doc as structure_graph_described_by_doc,
@@ -42,7 +43,6 @@ from src.storage.structure_graph import (
     get_sibling_docs as structure_graph_sibling_docs,
     get_structure_node as structure_graph_node,
     hydrate_document_from_structure_graph,
-    normalise_structure_graph_payload,
     rebuild_structure_relationships,
     structure_graph_bm25_payload,
     structure_graph_chunk_uids,
@@ -54,27 +54,30 @@ from src.utils.embedding_usage import (
     zero_embedding_usage_counts,
 )
 
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_COLLECTION_NAME = "dart_reports_v2"
 DEFAULT_CHROMA_HNSW_BATCH_SIZE = int(os.getenv("DART_CHROMA_HNSW_BATCH_SIZE", "100") or 100)
 DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD = int(os.getenv("DART_CHROMA_HNSW_SYNC_THRESHOLD", "100000") or 100000)
 
+Chroma = None
+
+
+def _chroma_cls():
+    global Chroma
+    Chroma = chroma_backend.get_chroma_cls()
+    return Chroma
+
+
 def _tokenize_ko(text: str) -> List[str]:
     return tokenize_ko(text)
 
 
 def _doc_identity(doc: Document) -> str:
-    metadata = getattr(doc, "metadata", {}) or {}
-    return (
-        metadata.get("chunk_uid")
-        or metadata.get("id")
-        or "|".join(
-            str(metadata.get(key, ""))
-            for key in ("rcept_no", "chunk_id", "sub_chunk_idx", "company", "year", "section_path")
-        )
-        or doc.page_content
-    )
+    return search_merge.doc_identity(doc)
 
 
 def _chunk_uid_from_metadata(metadata: Dict[str, Any]) -> str:
@@ -92,70 +95,20 @@ def _metadata_for_chroma(metadata: Dict[str, Any]) -> Dict[str, Any]:
     return metadata_for_chroma(metadata)
 
 
-def _metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[dict]) -> bool:
-    return metadata_matches_filter(metadata, where_filter)
-
-
 def _is_embedding_capacity_error(exc: Exception) -> bool:
-    message = str(exc or "").lower()
-    markers = (
-        "resource_exhausted",
-        "429",
-        "rate limit",
-        "quota",
-        "error embedding content",
-        "embed_query",
-    )
-    return any(marker in message for marker in markers)
+    return chroma_backend.is_embedding_capacity_error(exc)
 
 
 def _is_vector_store_read_error(exc: Exception) -> bool:
-    message = str(exc or "").lower()
-    markers = (
-        "error loading hnsw index",
-        "hnsw",
-        "segment reader",
-        "backfill request to compactor",
-        "constructing hnsw segment reader",
-    )
-    return any(marker in message for marker in markers)
+    return chroma_backend.is_vector_store_read_error(exc)
 
 
 def _is_transient_vector_add_error(exc: Exception) -> bool:
-    message = str(exc or "").lower()
-    markers = (
-        "503",
-        "unavailable",
-        "service is currently unavailable",
-        "servererror",
-        "resource_exhausted",
-        "429",
-        "rate limit",
-        "quota",
-        "error embedding content",
-    )
-    return any(marker in message for marker in markers)
-
-
-def _freeze_filter(where_filter: Optional[dict]) -> Hashable:
-    if where_filter is None:
-        return ()
-    if isinstance(where_filter, dict):
-        return tuple(sorted((str(key), _freeze_filter(value)) for key, value in where_filter.items()))
-    if isinstance(where_filter, list):
-        return tuple(_freeze_filter(item) for item in where_filter)
-    return where_filter
+    return chroma_backend.is_transient_vector_add_error(exc)
 
 
 def _elapsed_sec(started_at: float) -> float:
     return round(time.perf_counter() - started_at, 6)
-
-
-def _table_payload_sidecar_stats(
-    payloads: Dict[str, Dict[str, str]],
-    nodes: Dict[str, Dict[str, Any]],
-) -> Dict[str, Any]:
-    return table_payload_sidecar_stats(payloads, nodes)
 
 
 class VectorStoreManager:
@@ -202,7 +155,8 @@ class VectorStoreManager:
             model_name=self.embedding_model_name,
         )
 
-        self.vector_store = Chroma(
+        chroma_cls = _chroma_cls()
+        self.vector_store = chroma_cls(
             collection_name=self.collection_name,
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory,
@@ -264,8 +218,7 @@ class VectorStoreManager:
         k_rrf: int,
         where_filter: Optional[dict],
     ) -> Tuple[str, int, int, Hashable]:
-        normalized_query = " ".join(str(query or "").split())
-        return (normalized_query, int(k), int(k_rrf), _freeze_filter(where_filter))
+        return search_merge.search_cache_key(query, k=k, k_rrf=k_rrf, where_filter=where_filter)
 
     def _get_cached_search(self, key: Tuple[str, int, int, Hashable]) -> Optional[List[Tuple[Document, float]]]:
         cache = getattr(self, "_search_cache", None)
@@ -330,36 +283,12 @@ class VectorStoreManager:
         fail before spending time on answer generation when the vector index is
         unreadable.
         """
-        probe = (query or "").strip()
-        if not probe:
-            for doc in self.bm25_docs:
-                probe = str(doc or "").strip()
-                if probe:
-                    break
-        if not probe:
-            probe = "vector store health check"
-        probe = " ".join(probe.split())[:500]
-
-        try:
-            results = self.vector_store.similarity_search_with_score(
-                probe,
-                k=1,
-                filter=where_filter,
-            )
-        except Exception as exc:
-            return {
-                "ok": False,
-                "error": str(exc),
-                "embedding_capacity_error": _is_embedding_capacity_error(exc),
-                "vector_store_read_error": _is_vector_store_read_error(exc),
-                "probe_query": probe,
-            }
-
-        return {
-            "ok": bool(results),
-            "result_count": len(results or []),
-            "probe_query": probe,
-        }
+        return chroma_backend.probe_vector_index(
+            self.vector_store,
+            self.bm25_docs,
+            query=query,
+            where_filter=where_filter,
+        )
 
     def _build_bm25_index(self, docs: List[str], metadatas: List[dict]) -> None:
         self.bm25, self.bm25_docs, self.bm25_metadatas = build_bm25_index(docs, metadatas)
@@ -380,29 +309,23 @@ class VectorStoreManager:
     # ------------------------------------------------------------------
 
     def _load_parents(self) -> Dict[str, str]:
-        if self._parents_path.exists():
-            try:
-                return json.loads(self._parents_path.read_text(encoding="utf-8"))
-            except Exception as e:
-                logger.warning("Failed to load parents.json: %s", e)
+        try:
+            return parent_store.load_parents(self._parents_path)
+        except Exception as e:
+            logger.warning("Failed to load parents.json: %s", e)
         return {}
 
     def _save_parents(self) -> None:
         try:
-            self._parents_path.write_text(
-                json.dumps(self._parents, ensure_ascii=False),
-                encoding="utf-8",
-            )
+            parent_store.save_parents(self._parents_path, self._parents)
         except Exception as e:
             logger.warning("Failed to save parents.json: %s", e)
 
     def _load_structure_graph(self) -> Dict[str, Any]:
-        if self._graph_path.exists():
-            try:
-                payload = json.loads(self._graph_path.read_text(encoding="utf-8"))
-                return normalise_structure_graph_payload(payload)
-            except Exception as e:
-                logger.warning("Failed to load document_structure_graph.json: %s", e)
+        try:
+            return graph_persistence.load_structure_graph(self._graph_path)
+        except Exception as e:
+            logger.warning("Failed to load document_structure_graph.json: %s", e)
         return empty_structure_graph()
 
     def _load_table_payloads(self) -> Dict[str, Dict[str, str]]:
@@ -432,22 +355,13 @@ class VectorStoreManager:
 
     def _save_structure_graph(self) -> None:
         try:
-            payloads: Dict[str, Dict[str, str]] = {}
-            graph = dict(self._structure_graph or {})
-            graph["nodes"] = {
-                str(chunk_uid): self._compact_node_for_storage(dict(node or {}), payloads)
-                for chunk_uid, node in dict(graph.get("nodes", {}) or {}).items()
-            }
-            self._graph_path.write_text(
-                json.dumps(graph, ensure_ascii=False),
-                encoding="utf-8",
+            _graph, payloads = graph_persistence.persist_structure_graph(
+                self._graph_path,
+                self._table_payloads_path,
+                self._structure_graph,
+                compact_node_for_storage=self._compact_node_for_storage,
             )
             self._table_payloads = payloads
-            stats = _table_payload_sidecar_stats(payloads, dict(graph.get("nodes", {}) or {}))
-            self._table_payloads_path.write_text(
-                json.dumps({"version": 1, "payloads": payloads, "stats": stats}, ensure_ascii=False),
-                encoding="utf-8",
-            )
         except Exception as e:
             logger.warning("Failed to save document_structure_graph.json: %s", e)
 
@@ -465,21 +379,19 @@ class VectorStoreManager:
 
     def add_parents(self, parents: Dict[str, str]) -> None:
         """부모 청크 딕셔너리를 저장 (기존 항목에 병합)."""
-        self._parents.update(parents)
+        self._parents = parent_store.merge_parents(self._parents, parents)
         self._save_parents()
         logger.info("Stored %s parent chunks (total=%s).", len(parents), len(self._parents))
 
     def get_parent(self, parent_id: str) -> Optional[str]:
         """parent_id에 해당하는 섹션 전체 텍스트 반환. 없으면 None."""
-        return self._parents.get(parent_id)
+        return parent_store.get_parent(self._parents, parent_id)
 
     def delete_parents_for_rcept(self, rcept_no: str) -> None:
         """특정 접수번호의 부모 청크를 모두 삭제."""
-        prefix = f"{rcept_no}::"
-        before = len(self._parents)
-        self._parents = {k: v for k, v in self._parents.items() if not k.startswith(prefix)}
+        self._parents, deleted_count = parent_store.delete_parents_for_rcept(self._parents, rcept_no)
         self._save_parents()
-        logger.info("Deleted %s parent chunks for rcept_no=%s.", before - len(self._parents), rcept_no)
+        logger.info("Deleted %s parent chunks for rcept_no=%s.", deleted_count, rcept_no)
 
         nodes = dict(self._structure_graph.get("nodes", {}) or {})
         filtered_nodes = {
@@ -529,6 +441,153 @@ class VectorStoreManager:
                 indexed.add(chunk_uid)
         return indexed
 
+    def _empty_add_documents_result(self, *, started_at: float, resume: bool) -> Dict[str, Any]:
+        return {
+            "requested_chunks": 0,
+            "added_chunks": 0,
+            "skipped_chunks": 0,
+            "batch_count": 0,
+            "resume_enabled": bool(resume),
+            "embedding_usage": zero_embedding_usage_counts(),
+            "elapsed_sec": _elapsed_sec(started_at),
+        }
+
+    def _no_pending_add_documents_result(
+        self,
+        *,
+        requested_chunks: int,
+        skipped_chunks: int,
+        started_at: float,
+        resume: bool,
+        prepare_sec: float,
+        resume_lookup_sec: float,
+    ) -> Dict[str, Any]:
+        return {
+            "requested_chunks": requested_chunks,
+            "added_chunks": 0,
+            "skipped_chunks": skipped_chunks,
+            "batch_count": 0,
+            "resume_enabled": bool(resume),
+            "embedding_usage": zero_embedding_usage_counts(),
+            "elapsed_sec": _elapsed_sec(started_at),
+            "prepare_sec": prepare_sec,
+            "resume_lookup_sec": resume_lookup_sec,
+        }
+
+    def _add_documents_without_vectors(
+        self,
+        pending: List[document_batches.PreparedChunk],
+        *,
+        effective_batch_size: int,
+        on_progress=None,
+    ) -> Dict[str, Any]:
+        logger.info(
+            "Skipping vector add for %s chunks because skip_vector_add is enabled; building BM25 from structure graph.",
+            len(pending),
+        )
+        # BM25-only diagnostic stores do not need per-batch durable graph
+        # writes. Saving once avoids repeatedly serialising large structured
+        # table sidecars while preserving progress heartbeats.
+        all_texts = document_batches.batch_texts(pending)
+        all_metadatas = document_batches.batch_metadatas(pending)
+        graph_started = time.perf_counter()
+        self._update_structure_graph(all_texts, all_metadatas)
+        structure_graph_update_sec = _elapsed_sec(graph_started)
+        batch_count = document_batches.batch_count(len(pending), effective_batch_size)
+        added_count = 0
+        for batch in document_batches.iter_batches(pending, effective_batch_size):
+            added_count += len(batch)
+            if on_progress:
+                on_progress(added_count, len(pending))
+        bm25_started = time.perf_counter()
+        self._init_bm25()
+        bm25_build_sec = _elapsed_sec(bm25_started)
+        logger.info("Successfully updated structure graph and BM25 index without vector embeddings.")
+        return {
+            "added_chunks": len(pending),
+            "batch_count": batch_count,
+            "vector_add_skipped": True,
+            "embedding_usage": zero_embedding_usage_counts(),
+            "structure_graph_update_sec": structure_graph_update_sec,
+            "vector_add_sec": 0.0,
+            "persist_sec": 0.0,
+            "bm25_build_sec": bm25_build_sec,
+        }
+
+    def _add_one_vector_batch(
+        self,
+        *,
+        batch_texts: List[str],
+        chroma_metadatas: List[dict],
+        batch_index: int,
+        total_batches: int,
+    ) -> float:
+        vector_add_sec = 0.0
+        max_attempts = max(1, int(getattr(self, "vector_add_max_retries", 1) or 1))
+        for attempt in range(1, max_attempts + 1):
+            try:
+                vector_started = time.perf_counter()
+                self.vector_store.add_texts(texts=batch_texts, metadatas=chroma_metadatas)
+                vector_add_sec += time.perf_counter() - vector_started
+                break
+            except Exception as exc:
+                vector_add_sec += time.perf_counter() - vector_started
+                if attempt >= max_attempts or not _is_transient_vector_add_error(exc):
+                    raise
+                sleep_sec = float(getattr(self, "vector_add_retry_sleep_sec", 0.0) or 0.0) * attempt
+                logger.warning(
+                    "Transient vector add failure on batch %s/%s; retrying in %.1fs (attempt %s/%s): %s",
+                    batch_index,
+                    total_batches,
+                    sleep_sec,
+                    attempt,
+                    max_attempts,
+                    exc,
+                )
+                if sleep_sec > 0:
+                    time.sleep(sleep_sec)
+        return vector_add_sec
+
+    def _add_pending_documents_with_vectors(
+        self,
+        pending: List[document_batches.PreparedChunk],
+        *,
+        effective_batch_size: int,
+        on_progress=None,
+    ) -> Dict[str, Any]:
+        batch_count = 0
+        added_count = 0
+        vector_add_sec = 0.0
+        structure_graph_update_sec = 0.0
+        total_batches = document_batches.batch_count(len(pending), effective_batch_size)
+        embedding_usage_before = self.get_embedding_usage_snapshot()
+        for batch_index, batch in enumerate(document_batches.iter_batches(pending, effective_batch_size), 1):
+            batch_texts = document_batches.batch_texts(batch)
+            batch_metadatas = document_batches.batch_metadatas(batch)
+            chroma_metadatas = [_metadata_for_chroma(metadata) for metadata in batch_metadatas]
+            vector_add_sec += self._add_one_vector_batch(
+                batch_texts=batch_texts,
+                chroma_metadatas=chroma_metadatas,
+                batch_index=batch_index,
+                total_batches=total_batches,
+            )
+            graph_started = time.perf_counter()
+            self._update_structure_graph(batch_texts, batch_metadatas)
+            structure_graph_update_sec += time.perf_counter() - graph_started
+            batch_count += 1
+            added_count += len(batch)
+            if on_progress:
+                on_progress(added_count, len(pending))
+        embedding_usage = subtract_embedding_usage_counts(self.get_embedding_usage_snapshot(), embedding_usage_before)
+        return {
+            "added_chunks": added_count,
+            "batch_count": batch_count,
+            "vector_add_skipped": False,
+            "embedding_usage": embedding_usage,
+            "structure_graph_update_sec": round(structure_graph_update_sec, 6),
+            "vector_add_sec": round(vector_add_sec, 6),
+        }
+
     def add_documents(
         self,
         chunks: List[str],
@@ -542,52 +601,32 @@ class VectorStoreManager:
         started_at = time.perf_counter()
         if not chunks:
             logger.warning("No chunks provided to add_documents.")
-            return {
-                "requested_chunks": 0,
-                "added_chunks": 0,
-                "skipped_chunks": 0,
-                "batch_count": 0,
-                "resume_enabled": bool(resume),
-                "embedding_usage": zero_embedding_usage_counts(),
-                "elapsed_sec": _elapsed_sec(started_at),
-            }
+            return self._empty_add_documents_result(started_at=started_at, resume=resume)
 
         if len(chunks) != len(metadatas):
             raise ValueError("chunks and metadatas must have the same length.")
 
         effective_batch_size = max(int(batch_size or 0), 1)
         prepare_started = time.perf_counter()
-        prepared: List[tuple[str, dict, str]] = []
-        seen_input_chunk_uids: set[str] = set()
-        duplicate_input_count = 0
-        for text, metadata in zip(chunks, metadatas):
-            normalized_metadata = dict(metadata or {})
-            chunk_uid = _chunk_uid_from_metadata(normalized_metadata)
-            if chunk_uid and chunk_uid in seen_input_chunk_uids:
-                duplicate_input_count += 1
-                continue
-            if chunk_uid:
-                seen_input_chunk_uids.add(chunk_uid)
-            prepared.append((text, normalized_metadata, chunk_uid))
+        prepared_documents = document_batches.prepare_documents_for_add(
+            chunks,
+            metadatas,
+            chunk_uid_from_metadata=_chunk_uid_from_metadata,
+        )
+        prepared = prepared_documents.chunks
+        duplicate_input_count = prepared_documents.duplicate_input_count
         prepare_sec = _elapsed_sec(prepare_started)
 
         existing_chunk_uids: set[str] = set()
         resume_lookup_sec = 0.0
         if resume:
             resume_started = time.perf_counter()
-            rcept_nos = {
-                str(metadata.get("rcept_no")).strip()
-                for _, metadata, _ in prepared
-                if str(metadata.get("rcept_no", "")).strip()
-            }
-            existing_chunk_uids = self.list_indexed_chunk_uids(rcept_no=next(iter(rcept_nos)) if len(rcept_nos) == 1 else None)
+            existing_chunk_uids = self.list_indexed_chunk_uids(
+                rcept_no=document_batches.single_rcept_no_for_resume(prepared)
+            )
             resume_lookup_sec = _elapsed_sec(resume_started)
 
-        pending = [
-            (text, metadata, chunk_uid)
-            for text, metadata, chunk_uid in prepared
-            if not chunk_uid or chunk_uid not in existing_chunk_uids
-        ]
+        pending = document_batches.pending_documents(prepared, existing_chunk_uids=existing_chunk_uids)
         skipped_chunks = duplicate_input_count + (len(prepared) - len(pending))
 
         if not pending:
@@ -598,23 +637,20 @@ class VectorStoreManager:
             )
             if on_progress:
                 on_progress(0, 0)
-            return {
-                "requested_chunks": len(chunks),
-                "added_chunks": 0,
-                "skipped_chunks": skipped_chunks,
-                "batch_count": 0,
-                "resume_enabled": bool(resume),
-                "embedding_usage": zero_embedding_usage_counts(),
-                "elapsed_sec": _elapsed_sec(started_at),
-                "prepare_sec": prepare_sec,
-                "resume_lookup_sec": resume_lookup_sec,
-            }
+            return self._no_pending_add_documents_result(
+                requested_chunks=len(chunks),
+                skipped_chunks=skipped_chunks,
+                started_at=started_at,
+                resume=resume,
+                prepare_sec=prepare_sec,
+                resume_lookup_sec=resume_lookup_sec,
+            )
 
         logger.info(
             "Adding %s/%s chunks to Vector DB in %s batch(es) (resume=%s, skipped=%s).",
             len(pending),
             len(chunks),
-            (len(pending) + effective_batch_size - 1) // effective_batch_size,
+            document_batches.batch_count(len(pending), effective_batch_size),
             resume,
             skipped_chunks,
         )
@@ -622,86 +658,26 @@ class VectorStoreManager:
             on_progress(0, len(pending))
 
         if getattr(self, "skip_vector_add", False):
-            logger.info(
-                "Skipping vector add for %s chunks because skip_vector_add is enabled; building BM25 from structure graph.",
-                len(pending),
+            add_metrics = self._add_documents_without_vectors(
+                pending,
+                effective_batch_size=effective_batch_size,
+                on_progress=on_progress,
             )
-            # BM25-only diagnostic stores do not need per-batch durable graph
-            # writes. Saving once avoids repeatedly serialising large structured
-            # table sidecars while preserving progress heartbeats.
-            all_texts = [text for text, _, _ in pending]
-            all_metadatas = [metadata for _, metadata, _ in pending]
-            graph_started = time.perf_counter()
-            self._update_structure_graph(all_texts, all_metadatas)
-            structure_graph_update_sec = _elapsed_sec(graph_started)
-            batch_count = (len(pending) + effective_batch_size - 1) // effective_batch_size
-            added_count = 0
-            for start in range(0, len(pending), effective_batch_size):
-                batch = pending[start : start + effective_batch_size]
-                added_count += len(batch)
-                if on_progress:
-                    on_progress(added_count, len(pending))
-            bm25_started = time.perf_counter()
-            self._init_bm25()
-            bm25_build_sec = _elapsed_sec(bm25_started)
-            logger.info("Successfully updated structure graph and BM25 index without vector embeddings.")
             return {
                 "requested_chunks": len(chunks),
-                "added_chunks": len(pending),
                 "skipped_chunks": skipped_chunks,
-                "batch_count": batch_count,
                 "resume_enabled": bool(resume),
-                "vector_add_skipped": True,
-                "embedding_usage": zero_embedding_usage_counts(),
                 "elapsed_sec": _elapsed_sec(started_at),
                 "prepare_sec": prepare_sec,
                 "resume_lookup_sec": resume_lookup_sec,
-                "structure_graph_update_sec": structure_graph_update_sec,
-                "vector_add_sec": 0.0,
-                "persist_sec": 0.0,
-                "bm25_build_sec": bm25_build_sec,
+                **add_metrics,
             }
 
-        batch_count = 0
-        added_count = 0
-        vector_add_sec = 0.0
-        structure_graph_update_sec = 0.0
-        embedding_usage_before = self.get_embedding_usage_snapshot()
-        for start in range(0, len(pending), effective_batch_size):
-            batch = pending[start : start + effective_batch_size]
-            batch_texts = [text for text, _, _ in batch]
-            batch_metadatas = [metadata for _, metadata, _ in batch]
-            chroma_metadatas = [_metadata_for_chroma(metadata) for metadata in batch_metadatas]
-            max_attempts = max(1, int(getattr(self, "vector_add_max_retries", 1) or 1))
-            for attempt in range(1, max_attempts + 1):
-                try:
-                    vector_started = time.perf_counter()
-                    self.vector_store.add_texts(texts=batch_texts, metadatas=chroma_metadatas)
-                    vector_add_sec += time.perf_counter() - vector_started
-                    break
-                except Exception as exc:
-                    vector_add_sec += time.perf_counter() - vector_started
-                    if attempt >= max_attempts or not _is_transient_vector_add_error(exc):
-                        raise
-                    sleep_sec = float(getattr(self, "vector_add_retry_sleep_sec", 0.0) or 0.0) * attempt
-                    logger.warning(
-                        "Transient vector add failure on batch %s/%s; retrying in %.1fs (attempt %s/%s): %s",
-                        (start // effective_batch_size) + 1,
-                        (len(pending) + effective_batch_size - 1) // effective_batch_size,
-                        sleep_sec,
-                        attempt,
-                        max_attempts,
-                        exc,
-                    )
-                    if sleep_sec > 0:
-                        time.sleep(sleep_sec)
-            graph_started = time.perf_counter()
-            self._update_structure_graph(batch_texts, batch_metadatas)
-            structure_graph_update_sec += time.perf_counter() - graph_started
-            batch_count += 1
-            added_count += len(batch)
-            if on_progress:
-                on_progress(added_count, len(pending))
+        add_metrics = self._add_pending_documents_with_vectors(
+            pending,
+            effective_batch_size=effective_batch_size,
+            on_progress=on_progress,
+        )
         persist_started = time.perf_counter()
         self.persist()
         persist_sec = _elapsed_sec(persist_started)
@@ -709,22 +685,16 @@ class VectorStoreManager:
         self._init_bm25()
         bm25_build_sec = _elapsed_sec(bm25_started)
         logger.info("Successfully added documents and updated BM25 index.")
-        embedding_usage = subtract_embedding_usage_counts(self.get_embedding_usage_snapshot(), embedding_usage_before)
         return {
             "requested_chunks": len(chunks),
-            "added_chunks": len(pending),
             "skipped_chunks": skipped_chunks,
-            "batch_count": batch_count,
             "resume_enabled": bool(resume),
-            "vector_add_skipped": False,
-            "embedding_usage": embedding_usage,
             "elapsed_sec": _elapsed_sec(started_at),
             "prepare_sec": prepare_sec,
             "resume_lookup_sec": resume_lookup_sec,
-            "structure_graph_update_sec": round(structure_graph_update_sec, 6),
-            "vector_add_sec": round(vector_add_sec, 6),
             "persist_sec": persist_sec,
             "bm25_build_sec": bm25_build_sec,
+            **add_metrics,
         }
 
     def get_structure_node(self, chunk_uid: str) -> Optional[Dict[str, Any]]:
@@ -889,21 +859,7 @@ class VectorStoreManager:
             telemetry["bm25_result_count"] = len(bm25_results)
 
         merge_started = time.perf_counter()
-        rrf_scores: Dict[str, float] = {}
-        doc_map: Dict[str, Document] = {}
-
-        for rank, (doc, _) in enumerate(vector_results, 1):
-            doc_id = _doc_identity(doc)
-            doc_map[doc_id] = doc
-            rrf_scores[doc_id] = 1.0 / (k_rrf + rank)
-
-        for rank, (doc, _) in enumerate(bm25_results, 1):
-            doc_id = _doc_identity(doc)
-            doc_map[doc_id] = doc
-            rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (k_rrf + rank)
-
-        sorted_rrf = sorted(rrf_scores.items(), key=lambda item: item[1], reverse=True)
-        results = [(doc_map[doc_id], rrf_score) for doc_id, rrf_score in sorted_rrf[:k]]
+        results = search_merge.merge_rrf_results(vector_results, bm25_results, k=k, k_rrf=k_rrf)
         telemetry["rrf_merge_sec"] = _elapsed_sec(merge_started)
         telemetry["result_count"] = len(results)
         telemetry["total_sec"] = _elapsed_sec(started_at)
@@ -911,20 +867,3 @@ class VectorStoreManager:
         self.last_search_telemetry = telemetry
         self._store_cached_search(cache_key, results)
         return results
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    manager = VectorStoreManager()
-
-    test_chunks = [
-        "Retrieval-Augmented Generation (RAG) improves LLM responses.",
-        "Agentic workflows use LangGraph to route tasks.",
-    ]
-    test_meta = [{"source": "paper1", "chunk_uid": "paper1:0"}, {"source": "paper2", "chunk_uid": "paper2:0"}]
-
-    manager.add_documents(test_chunks, test_meta)
-
-    res = manager.search("What is RAG?", k=1)
-    for doc, rrf_score in res:
-        logger.info("RRF Score: %.4f | Content: %s", rrf_score, doc.page_content)

@@ -15,29 +15,102 @@ Important:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from ops.benchmark_runner import (
-    _company_output_subdir,
-    _deep_merge,
-    _filter_experiments_by_candidate_ids,
-    _load_json,
-    _normalise_path,
-    _run_full_evaluation,
-    _sanitize_settings,
-    _write_benchmark_outputs,
-)
-from storage.vector_store import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROVIDER, VectorStoreManager
+from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROVIDER
+
+VectorStoreManager = None
 
 logger = logging.getLogger(__name__)
+
+
+def _load_json(path: Path) -> Any:
+    with open(path, encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _slugify(value: str) -> str:
+    lowered = "".join(ch.lower() if ch.isalnum() else "-" for ch in value)
+    return "-".join(part for part in lowered.split("-") if part)
+
+
+def _looks_like_windows_absolute_path(path_text: str) -> bool:
+    return len(path_text) >= 3 and path_text[1] == ":" and path_text[2] in {"\\", "/"}
+
+
+def _normalise_path(path_value: str | Path) -> Path:
+    path_text = str(path_value)
+    path = Path(path_text)
+    if not path.is_absolute() and not _looks_like_windows_absolute_path(path_text):
+        path = (PROJECT_ROOT / path).resolve()
+    parts_lower = [part.lower() for part in path.parts]
+    for index in range(len(parts_lower) - 1):
+        if parts_lower[index] == "data" and parts_lower[index + 1] == "reports":
+            return (PROJECT_ROOT / "data" / "reports" / Path(*path.parts[index + 2 :])).resolve()
+    return path
+
+
+def _company_output_subdir(company_run: Dict[str, Any], defaults: Dict[str, Any]) -> str:
+    if company_run.get("output_subdir"):
+        return str(company_run["output_subdir"])
+    metadata = _deep_merge(defaults.get("metadata", {}), company_run.get("defaults", {}).get("metadata", {}))
+    company = str(metadata.get("company") or company_run.get("id") or "company")
+    year = str(metadata.get("year") or "").strip()
+    parts = [_slugify(company)]
+    if year:
+        parts.append(year)
+    return "-".join(part for part in parts if part)
+
+
+def _filter_experiments_by_candidate_ids(
+    experiments: List[Dict[str, Any]],
+    candidate_ids: List[str],
+) -> List[Dict[str, Any]]:
+    if not candidate_ids:
+        return experiments
+    requested = [candidate_id for candidate_id in candidate_ids if candidate_id]
+    requested_set = set(requested)
+    filtered = [experiment for experiment in experiments if str(experiment.get("id")) in requested_set]
+    missing = [candidate_id for candidate_id in requested if candidate_id not in {str(exp.get("id")) for exp in filtered}]
+    if missing:
+        raise ValueError(f"Unknown candidate_ids requested: {missing}")
+    return filtered
+
+
+def _is_path_like_key(key: str) -> bool:
+    lowered = key.lower()
+    return lowered.endswith("_path") or "directory" in lowered
+
+
+def _sanitize_settings(value: Any, key: str = "") -> Any:
+    if isinstance(value, dict):
+        sanitised: Dict[str, Any] = {}
+        for child_key, child_value in value.items():
+            if _is_path_like_key(child_key):
+                continue
+            sanitised[child_key] = _sanitize_settings(child_value, child_key)
+        return sanitised
+    if isinstance(value, list):
+        return [_sanitize_settings(item, key) for item in value]
+    return value
 
 
 def _resolve_company_run(matrix: Dict[str, Any], company_run_id: str) -> Dict[str, Any]:
@@ -75,7 +148,11 @@ def _load_existing_results(company_output_dir: Path) -> List[Dict[str, Any]]:
 
 
 def _validate_store_for_eval_only(store_info: Dict[str, Any], *, allow_degraded_retrieval: bool) -> Dict[str, Any]:
-    vsm = VectorStoreManager(
+    vector_store_manager_cls = VectorStoreManager
+    if vector_store_manager_cls is None:
+        from src.storage.vector_store import VectorStoreManager as vector_store_manager_cls
+
+    vsm = vector_store_manager_cls(
         persist_directory=store_info["persist_directory"],
         collection_name=store_info["collection_name"],
         embedding_provider=store_info.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
@@ -166,7 +243,7 @@ def main() -> None:
     existing_results = _load_existing_results(source_company_output_dir)
     merged_by_id = _resolve_merged_experiments(matrix, company_run)
 
-    from ops.benchmark_runner import _slugify
+    from src.ops.benchmark_runner import _slugify
 
     requested_ids = set(args.experiment_id or [])
     selected_results: List[Dict[str, Any]] = []
@@ -198,6 +275,8 @@ def main() -> None:
         updated["store_health"] = health
         if args.allow_degraded_retrieval:
             updated["store"]["allow_retrieval_fallback"] = True
+        from src.ops.benchmark_runner import _run_full_evaluation
+
         updated["full_eval"] = _run_full_evaluation(updated, merged_by_id[experiment_id], full_eval_config)
         selected_results.append(updated)
 
@@ -218,6 +297,8 @@ def main() -> None:
         "company_runs": [_sanitize_settings(company_run)],
     }
     selected_ids = [str(result.get("id") or "") for result in selected_results]
+    from src.ops.benchmark_runner import _write_benchmark_outputs
+
     _write_benchmark_outputs(
         output_dir=target_company_output_dir,
         config_path=config_path,

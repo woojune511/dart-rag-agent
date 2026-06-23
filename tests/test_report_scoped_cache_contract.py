@@ -45,7 +45,8 @@ from src.config.report_scoped_cache import (
     report_cache_key_id,
     validate_report_cache_calculation_contract_projection,
 )
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace, _runtime_trace_state_update
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import _runtime_trace_state_update
 
 
 class ReportScopedCacheContractTests(unittest.TestCase):

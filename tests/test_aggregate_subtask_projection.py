@@ -2,15 +2,552 @@ import unittest
 from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_calculation import _evidence_item_conflicts_requested_scope
-from src.agent.financial_graph_helpers import (
-    _dependency_operand_can_use_source_slot,
-    _resolve_runtime_calculation_trace,
+from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
+from src.agent.financial_aggregate_projection import (
+    aggregate_artifact_payload,
+    aggregate_completion_base_payload,
+    aggregate_extend_selected_claim_ids,
+    aggregate_integrity_extra_refs,
+    aggregate_ordered_result_source_refs,
+    aggregate_period_context_evidence_items,
+    aggregate_projection_apply_override,
+    aggregate_projection_for_integrity,
+    aggregate_selected_claim_ids,
+    aggregate_source_task_ids,
+    aggregate_task_status_value,
 )
+from src.agent.financial_graph_calculation import _evidence_item_conflicts_requested_scope
+from src.agent.financial_dependency_projection import dependency_operand_can_use_source_slot
 from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_task_artifacts import (
+    aggregate_answer_artifact_update,
+    calculation_plan_artifact_update,
+    calculation_result_artifact_update,
+    operand_set_artifact_update,
+    reconciliation_result_artifact_update,
+    reflection_report_artifact_update,
+    semantic_plan_artifact_update,
+    supersede_task_with_aggregate_result,
+)
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_semantic_plan_artifact_update_attaches_pending_calculation_tasks(self) -> None:
+        updated = semantic_plan_artifact_update(
+            tasks=[],
+            artifacts=[{"artifact_id": "existing"}],
+            artifact_task_id="task_ratio",
+            semantic_plan={"status": "ok", "tasks": [{"task_id": "task_ratio"}]},
+            retrieval_queries=["q1", "q2"],
+            summary="planned 1 numeric task(s)",
+            payload_extra={"planner_feedback": "feedback"},
+            calculation_tasks=[
+                {
+                    "task_id": "task_ratio",
+                    "metric_label": "ratio task",
+                    "metric_family": "ratio",
+                    "query": "query",
+                    "constraints": {"period": "2023"},
+                }
+            ],
+        )
+
+        self.assertEqual(updated["artifact_id"], "semantic_plan:002")
+        self.assertEqual(updated["artifacts"][-1]["kind"], "semantic_plan")
+        self.assertEqual(updated["artifacts"][-1]["payload"]["retrieval_queries"], ["q1", "q2"])
+        self.assertEqual(updated["artifacts"][-1]["payload"]["planner_feedback"], "feedback")
+        self.assertEqual(updated["tasks"][0]["task_id"], "task_ratio")
+        self.assertEqual(updated["tasks"][0]["status"], "pending")
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], ["semantic_plan:002"])
+
+    def test_reconciliation_result_artifact_update_attaches_reconciliation_task(self) -> None:
+        updated = reconciliation_result_artifact_update(
+            tasks=[],
+            artifacts=[],
+            active_subtask={
+                "task_id": "task_ratio",
+                "metric_label": "ratio task",
+                "metric_family": "ratio",
+                "query": "query",
+                "constraints": {"period": "2023"},
+            },
+            reconciliation_result={"status": "retry_retrieval", "matched_operands": []},
+            summary="reconciliation=retry_retrieval",
+            evidence_refs=["ev1", ""],
+        )
+
+        self.assertEqual(updated["artifact_id"], "reconcile:task_ratio:001")
+        self.assertEqual(updated["artifacts"][0]["kind"], "reconciliation_result")
+        self.assertEqual(updated["artifacts"][0]["status"], "retry_retrieval")
+        self.assertEqual(updated["artifacts"][0]["evidence_refs"], ["ev1"])
+        self.assertEqual(updated["tasks"][0]["kind"], "reconciliation")
+        self.assertEqual(updated["tasks"][0]["status"], "partial")
+        self.assertEqual(updated["tasks"][0]["constraints"], {"period": "2023"})
+
+    def test_supersede_task_with_aggregate_result_adds_replacement_artifact(self) -> None:
+        updated = supersede_task_with_aggregate_result(
+            tasks=[
+                {
+                    "task_id": "task_ratio",
+                    "kind": "calculation",
+                    "label": "ratio task",
+                    "status": "completed",
+                    "query": "query",
+                    "metric_family": "ratio",
+                    "constraints": {"period": "2023"},
+                    "artifact_ids": ["result:task_ratio:001"],
+                    "notes": ["existing"],
+                }
+            ],
+            artifacts=[{"artifact_id": "result:task_ratio:001", "task_id": "task_ratio", "kind": "calculation_result"}],
+            task={"task_id": "task_ratio", "kind": "calculation", "label": "ratio task", "query": "query", "metric_family": "ratio", "constraints": {"period": "2023"}, "notes": ["existing"]},
+            aggregate_artifact_id="aggregate:002",
+            replacement_summary="aggregate replacement",
+            replacement_payload={"replacement_summary": "aggregate replacement"},
+        )
+
+        self.assertEqual(updated["artifact_id"], "supersession:task_ratio:002")
+        self.assertEqual(updated["artifacts"][-1]["kind"], "calculation_result")
+        self.assertEqual(updated["artifacts"][-1]["status"], "superseded_by_aggregate_result")
+        self.assertEqual(updated["tasks"][0]["status"], "superseded")
+        self.assertEqual(
+            updated["tasks"][0]["constraints"]["superseded_by_artifact_id"],
+            "aggregate:002",
+        )
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], ["result:task_ratio:001", "supersession:task_ratio:002"])
+        self.assertEqual(updated["tasks"][0]["notes"], ["existing", "superseded_by_aggregate_result"])
+
+    def test_supersede_task_with_aggregate_result_can_mark_without_new_artifact(self) -> None:
+        updated = supersede_task_with_aggregate_result(
+            tasks=[],
+            artifacts=[],
+            task={"task_id": "task_pending", "kind": "calculation", "label": "pending task"},
+            aggregate_artifact_id="aggregate:001",
+        )
+
+        self.assertEqual(updated["artifact_id"], "")
+        self.assertEqual(updated["artifacts"], [])
+        self.assertEqual(updated["tasks"][0]["task_id"], "task_pending")
+        self.assertEqual(updated["tasks"][0]["status"], "superseded")
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], [])
+
+    def test_aggregate_answer_artifact_update_attaches_synthesis_task(self) -> None:
+        updated = aggregate_answer_artifact_update(
+            tasks=[],
+            artifacts=[{"artifact_id": "result:task_a:001"}],
+            final_answer="final answer",
+            payload={"final_answer": "final answer"},
+            evidence_refs=["ev1", ""],
+            planner_feedback="",
+            query="query",
+        )
+
+        self.assertEqual(updated["artifact_id"], "aggregate:002")
+        self.assertEqual(updated["artifacts"][-1]["artifact_id"], "aggregate:002")
+        self.assertEqual(updated["artifacts"][-1]["kind"], "aggregated_answer")
+        self.assertEqual(updated["artifacts"][-1]["summary"], "final answer")
+        self.assertEqual(updated["artifacts"][-1]["evidence_refs"], ["ev1"])
+        self.assertEqual(updated["tasks"][0]["task_id"], "aggregate")
+        self.assertEqual(updated["tasks"][0]["kind"], "synthesis")
+        self.assertEqual(updated["tasks"][0]["status"], "completed")
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], ["aggregate:002"])
+
+    def test_aggregate_answer_artifact_update_marks_feedback_as_partial(self) -> None:
+        updated = aggregate_answer_artifact_update(
+            tasks=[],
+            artifacts=[],
+            final_answer="needs review",
+            payload={},
+            evidence_refs=[],
+            planner_feedback="missing detail",
+            query="query",
+        )
+
+        self.assertEqual(updated["artifacts"][0]["artifact_id"], "aggregate:001")
+        self.assertEqual(updated["tasks"][0]["status"], "partial")
+
+    def test_reflection_report_artifact_update_attaches_reflection_task(self) -> None:
+        updated = reflection_report_artifact_update(
+            tasks=[],
+            artifacts=[],
+            reflection_task_id="reflection:task_a:001",
+            target_task_id="task_a",
+            query="query",
+            metric_family="ratio",
+            reflection_report={
+                "outcome": "retry_prepared",
+                "action_taken": "retrieve_more",
+                "target_task_ids": ["task_a"],
+                "target_artifact_ids": ["plan:task_a:001"],
+            },
+            reflection_action={"action_type": "retrieve_more"},
+            reflection_request={"reason": "missing operands"},
+            reflection_plan={"status": "retry"},
+            retry_strategy="fallback",
+        )
+
+        self.assertEqual(updated["artifact_id"], "reflection:task_a:001:report")
+        self.assertEqual(updated["artifacts"][0]["kind"], "reflection_report")
+        self.assertEqual(updated["artifacts"][0]["summary"], "reflection=retrieve_more")
+        self.assertEqual(updated["artifacts"][0]["payload"]["reflection_request"]["reason"], "missing operands")
+        self.assertEqual(updated["tasks"][0]["task_id"], "reflection:task_a:001")
+        self.assertEqual(updated["tasks"][0]["kind"], "reflection")
+        self.assertEqual(updated["tasks"][0]["status"], "completed")
+        self.assertEqual(updated["tasks"][0]["constraints"]["target_task_ids"], ["task_a"])
+
+    def test_calculation_plan_artifact_update_appends_and_attaches_calculation_task(self) -> None:
+        updated = calculation_plan_artifact_update(
+            tasks=[
+                {
+                    "task_id": "task_ratio",
+                    "kind": "calculation",
+                    "label": "old label",
+                    "status": "pending",
+                    "query": "old query",
+                    "metric_family": "old_metric",
+                    "constraints": {},
+                    "artifact_ids": ["operands:task_ratio:001"],
+                    "notes": [],
+                }
+            ],
+            artifacts=[{"artifact_id": "operands:task_ratio:001", "task_id": "task_ratio", "kind": "operand_set"}],
+            task_id="task_ratio",
+            task_label="ratio task",
+            query="new query",
+            metric_family="ratio",
+            calculation_plan={"status": "partial", "mode": "formula", "operation": "divide"},
+        )
+
+        self.assertEqual(updated["artifacts"][-1]["artifact_id"], "plan:task_ratio:002")
+        self.assertEqual(updated["artifacts"][-1]["kind"], "calculation_plan")
+        self.assertEqual(updated["artifacts"][-1]["status"], "partial")
+        self.assertEqual(updated["artifacts"][-1]["summary"], "mode=formula op=divide")
+        self.assertEqual(updated["artifacts"][-1]["payload"]["calculation_plan"]["operation"], "divide")
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], ["operands:task_ratio:001", "plan:task_ratio:002"])
+        self.assertEqual(updated["tasks"][0]["status"], "in_progress")
+        self.assertEqual(updated["tasks"][0]["query"], "new query")
+        self.assertEqual(updated["tasks"][0]["metric_family"], "ratio")
+
+    def test_calculation_plan_artifact_update_defaults_empty_task_id(self) -> None:
+        updated = calculation_plan_artifact_update(
+            tasks=[],
+            artifacts=[],
+            task_id="",
+            task_label="",
+            query="query",
+            metric_family="",
+            calculation_plan={},
+        )
+
+        self.assertEqual(updated["artifacts"][0]["artifact_id"], "plan:calc:001")
+        self.assertEqual(updated["artifacts"][0]["task_id"], "calc")
+        self.assertEqual(updated["artifacts"][0]["status"], "ok")
+        self.assertEqual(updated["tasks"][0]["task_id"], "calc")
+        self.assertEqual(updated["tasks"][0]["label"], "calc")
+
+    def test_calculation_result_artifact_update_attaches_completed_calculation_task(self) -> None:
+        updated = calculation_result_artifact_update(
+            tasks=[],
+            artifacts=[{"artifact_id": "plan:task_ratio:001", "task_id": "task_ratio", "kind": "calculation_plan"}],
+            task_id="task_ratio",
+            task_label="ratio task",
+            query="query",
+            metric_family="ratio",
+            calculation_result={"status": "ok", "rendered_value": "12.3%"},
+            evidence_refs=["ev1", ""],
+        )
+
+        self.assertEqual(updated["artifact_id"], "result:task_ratio:002")
+        self.assertEqual(updated["artifacts"][-1]["kind"], "calculation_result")
+        self.assertEqual(updated["artifacts"][-1]["summary"], "12.3%")
+        self.assertEqual(updated["artifacts"][-1]["payload"]["calculation_result"]["rendered_value"], "12.3%")
+        self.assertEqual(updated["artifacts"][-1]["evidence_refs"], ["ev1"])
+        self.assertEqual(updated["tasks"][0]["status"], "completed")
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], ["result:task_ratio:002"])
+
+    def test_calculation_result_artifact_update_marks_non_ok_as_failed(self) -> None:
+        updated = calculation_result_artifact_update(
+            tasks=[],
+            artifacts=[],
+            task_id="task_ratio",
+            task_label="ratio task",
+            query="query",
+            metric_family="ratio",
+            calculation_result={"status": "insufficient_operands", "formatted_result": "missing"},
+            evidence_refs=[],
+        )
+
+        self.assertEqual(updated["artifacts"][0]["artifact_id"], "result:task_ratio:001")
+        self.assertEqual(updated["artifacts"][0]["summary"], "missing")
+        self.assertEqual(updated["tasks"][0]["status"], "failed")
+
+    def test_operand_set_artifact_update_appends_and_attaches_calculation_task(self) -> None:
+        updated = operand_set_artifact_update(
+            tasks=[
+                {
+                    "task_id": "task_ratio",
+                    "kind": "calculation",
+                    "label": "old label",
+                    "status": "pending",
+                    "query": "old query",
+                    "metric_family": "old_metric",
+                    "constraints": {},
+                    "artifact_ids": ["plan:task_ratio:001"],
+                    "notes": [],
+                }
+            ],
+            artifacts=[{"artifact_id": "plan:task_ratio:001", "task_id": "task_ratio", "kind": "calculation_plan"}],
+            task_id="task_ratio",
+            task_label="ratio task",
+            query="new query",
+            metric_family="ratio",
+            operand_rows=[
+                {"operand_id": "a", "evidence_id": "ev1"},
+                {"operand_id": "b", "evidence_id": ""},
+            ],
+            status="ok",
+            summary="2 operands",
+            payload={"calculation_operands": [{"operand_id": "a"}, {"operand_id": "b"}]},
+        )
+
+        self.assertEqual(updated["artifacts"][-1]["artifact_id"], "operands:task_ratio:002")
+        self.assertEqual(updated["artifacts"][-1]["kind"], "operand_set")
+        self.assertEqual(updated["artifacts"][-1]["evidence_refs"], ["ev1"])
+        self.assertEqual(updated["tasks"][0]["artifact_ids"], ["plan:task_ratio:001", "operands:task_ratio:002"])
+        self.assertEqual(updated["tasks"][0]["status"], "in_progress")
+        self.assertEqual(updated["tasks"][0]["query"], "new query")
+        self.assertEqual(updated["tasks"][0]["metric_family"], "ratio")
+
+    def test_operand_set_artifact_update_uses_explicit_evidence_refs(self) -> None:
+        updated = operand_set_artifact_update(
+            tasks=[],
+            artifacts=[],
+            task_id="",
+            task_label="",
+            query="query",
+            metric_family="",
+            operand_rows=[{"evidence_id": "derived"}],
+            status="partial",
+            summary="summary",
+            payload={},
+            evidence_refs=["explicit", ""],
+        )
+
+        self.assertEqual(updated["artifacts"][0]["artifact_id"], "operands:calc:001")
+        self.assertEqual(updated["artifacts"][0]["task_id"], "calc")
+        self.assertEqual(updated["artifacts"][0]["evidence_refs"], ["explicit"])
+        self.assertEqual(updated["tasks"][0]["task_id"], "calc")
+        self.assertEqual(updated["tasks"][0]["label"], "calc")
+
+    def test_aggregate_synthesis_state_updates_selected_fields(self) -> None:
+        state = _AggregateSynthesisState(
+            [{"task_id": "old"}],
+            {"old": True},
+            "old answer",
+            ["old_ev"],
+        )
+
+        updated = state.with_updates(
+            aggregate_projection={"new": True},
+            final_answer="",
+            selected_claim_ids=[],
+        )
+
+        self.assertEqual(updated.ordered_results, [{"task_id": "old"}])
+        self.assertEqual(updated.aggregate_projection, {"new": True})
+        self.assertEqual(updated.final_answer, "")
+        self.assertEqual(updated.selected_claim_ids, [])
+
+    def test_aggregate_mutable_state_replaces_synthesis_state_without_touching_evidence(self) -> None:
+        evidence_items = [{"evidence_id": "ev1"}]
+        mutable_state = _AggregateMutableState(
+            _AggregateSynthesisState([], {"old": True}, "old", ["old_ev"]),
+            evidence_items,
+        )
+        replacement = _AggregateSynthesisState(
+            [{"task_id": "task_a"}],
+            {"new": True},
+            "new",
+            ["new_ev"],
+        )
+
+        updated = mutable_state.with_synthesis_state(replacement)
+
+        self.assertEqual(updated.synthesis_state, replacement)
+        self.assertIs(updated.evidence_items, evidence_items)
+
+    def test_aggregate_selected_claim_ids_preserves_order_and_dedupes(self) -> None:
+        selected = aggregate_selected_claim_ids(
+            [
+                {"selected_claim_ids": ["ev1", "", "ev2", "ev1"]},
+                {"selected_claim_ids": ["ev3"]},
+                {"selected_claim_ids": None},
+            ],
+            ["ev2", "ev4", ""],
+        )
+
+        self.assertEqual(selected, ["ev1", "ev2", "ev3", "ev4", ""])
+
+    def test_aggregate_extend_selected_claim_ids_preserves_first_seen_order(self) -> None:
+        selected = aggregate_extend_selected_claim_ids(
+            ["ev1", "ev2"],
+            ["ev2", "ev3", "ev1", ""],
+        )
+
+        self.assertEqual(selected, ["ev1", "ev2", "ev3", ""])
+
+    def test_aggregate_ordered_result_source_refs_collects_nested_sources(self) -> None:
+        source_refs = aggregate_ordered_result_source_refs(
+            [
+                {
+                    "source_row_id": "row:1",
+                    "source_row_ids": ["row:2", "row:1"],
+                    "calculation_result": {"source_row_ids": ["calc:1"]},
+                    "answer_slots": {"source_row_id": "slot:1", "source_row_ids": ["slot:2"]},
+                },
+                {
+                    "calculation_result": "not-a-dict",
+                    "answer_slots": {"source_row_ids": ["row:2", "slot:3"]},
+                },
+            ]
+        )
+
+        self.assertEqual(source_refs, ["row:1", "row:2", "calc:1", "slot:1", "slot:2", "slot:3"])
+
+    def test_aggregate_integrity_projection_helpers_build_ledger_inputs(self) -> None:
+        ordered_results = [{"task_id": " task_a "}, {"task_id": ""}, {"task_id": "task_b"}]
+        preliminary_projection = {"calculation_result": {"source_row_id": "prelim"}}
+        override_projection = {
+            "calculation_result": {
+                "source_row_ids": ["result:1"],
+                "answer_slots": {
+                    "source_row_id": "slot:1",
+                    "source_row_ids": ["slot:2"],
+                },
+            }
+        }
+
+        projection = aggregate_projection_for_integrity(preliminary_projection, override_projection)
+        refs = aggregate_integrity_extra_refs(projection, ["row:1"], ["ev:1"])
+
+        self.assertEqual(aggregate_source_task_ids(ordered_results), ["task_a", "task_b"])
+        self.assertIs(projection, override_projection)
+        self.assertEqual(refs, [None, ["result:1"], "slot:1", ["slot:2"], ["row:1"], ["ev:1"]])
+        self.assertIs(
+            aggregate_projection_for_integrity(preliminary_projection, {}),
+            preliminary_projection,
+        )
+
+    def test_aggregate_projection_apply_override_updates_supported_fields(self) -> None:
+        projection = {
+            "calculation_operands": ["old_operand"],
+            "calculation_plan": {"old": True},
+            "calculation_result": {"old": True},
+            "evidence_items": ["keep"],
+        }
+        override = {
+            "calculation_operands": ["new_operand"],
+            "calculation_plan": {},
+            "calculation_result": {"status": "ok"},
+            "evidence_items": ["ignored"],
+        }
+
+        result = aggregate_projection_apply_override(projection, override)
+
+        self.assertIs(result, projection)
+        self.assertEqual(result["calculation_operands"], ["new_operand"])
+        self.assertEqual(result["calculation_plan"], {"old": True})
+        self.assertEqual(result["calculation_result"], {"status": "ok"})
+        self.assertEqual(result["evidence_items"], ["keep"])
+        self.assertIs(
+            aggregate_projection_apply_override(projection, "not-a-dict"),
+            projection,
+        )
+
+    def test_aggregate_period_context_evidence_items_dedupes_context_rows(self) -> None:
+        context_items = aggregate_period_context_evidence_items(
+            [{"evidence_id": "ev1", "claim": "base"}],
+            [
+                {"evidence_id": " ev1 ", "claim": "duplicate"},
+                {"evidence_id": "ev2", "claim": "context"},
+                "not-a-row",
+                {"claim": "no id"},
+            ],
+        )
+
+        self.assertEqual(
+            context_items,
+            [
+                {"evidence_id": "ev1", "claim": "base"},
+                {"evidence_id": "ev2", "claim": "context"},
+                {"claim": "no id"},
+            ],
+        )
+
+    def test_aggregate_completion_base_payload_builds_non_trace_fields(self) -> None:
+        payload = aggregate_completion_base_payload(
+            state={"subtask_debug_trace": {"existing": True}},
+            ordered_results=[{"task_id": "task_a"}],
+            aggregate_projection={"evidence_items": [{"evidence_id": "projection"}]},
+            final_answer="final",
+            selected_claim_ids=["ev1"],
+            aggregate_evidence_items=[],
+            tasks=[{"task_id": "aggregate"}],
+            artifacts=[{"artifact_id": "aggregate:001"}],
+            planner_feedback="needs retry",
+            should_replan=True,
+            replan_blocked_reason="",
+            aggregate_synthesis_debug={"input_json_chars": 10},
+        )
+
+        self.assertTrue(payload["subtask_loop_complete"])
+        self.assertEqual(payload["answer"], "final")
+        self.assertEqual(payload["compressed_answer"], "final")
+        self.assertEqual(payload["planner_mode"], "replan")
+        self.assertEqual(payload["selected_claim_ids"], ["ev1"])
+        self.assertEqual(payload["kept_claim_ids"], ["ev1"])
+        self.assertEqual(payload["draft_points"], ["final"])
+        self.assertEqual(payload["evidence_items"], [{"evidence_id": "projection"}])
+        self.assertEqual(
+            payload["subtask_debug_trace"],
+            {"existing": True, "aggregate_synthesis_prompt": {"input_json_chars": 10}},
+        )
+
+    def test_aggregate_artifact_payload_and_task_status_helpers(self) -> None:
+        payload = aggregate_artifact_payload(
+            ordered_results=[{"task_id": "task_a"}],
+            final_answer="final",
+            planner_feedback="retry",
+            aggregate_projection={"calculation_result": {"status": "ok"}},
+        )
+
+        self.assertEqual(
+            payload,
+            {
+                "subtask_results": [{"task_id": "task_a"}],
+                "final_answer": "final",
+                "planner_feedback": "retry",
+                "calculation_result": {"status": "ok"},
+            },
+        )
+        self.assertEqual(
+            aggregate_task_status_value(
+                planner_feedback="retry",
+                completed_value="completed",
+                partial_value="partial",
+            ),
+            "partial",
+        )
+        self.assertEqual(
+            aggregate_task_status_value(
+                planner_feedback="",
+                completed_value="completed",
+                partial_value="partial",
+            ),
+            "completed",
+        )
+
     def test_ordered_aggregate_subtask_results_for_repair_preserves_trace_priority(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         calculation_result = {
@@ -2000,6 +2537,32 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
     def test_lookup_execution_applies_ontology_magnitude_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
+        calculation_operands = [
+            {
+                "operand_id": "op_gain",
+                "evidence_id": "gain_cell",
+                "source_row_id": "gain_cell",
+                "source_row_ids": ["gain_cell"],
+                "label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                "raw_value": "(573,884)",
+                "raw_unit": "\ubc31\ub9cc\uc6d0",
+                "normalized_value": -573_884_000_000.0,
+                "normalized_unit": "KRW",
+                "matched_operand_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
+                "matched_operand_concept": "foreign_currency_translation_gain",
+                "matched_operand_role": "operand",
+                "statement_type": "notes",
+            }
+        ]
+        calculation_plan = {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "lookup",
+            "ordered_operand_ids": ["op_gain"],
+            "variable_bindings": [{"variable": "A", "operand_id": "op_gain"}],
+            "formula": "A",
+            "result_unit": "\ubc31\ub9cc\uc6d0",
+        }
         state = {
             "query": "lookup translated gain",
             "active_subtask": {
@@ -2008,37 +2571,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "metric_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
                 "operation_family": "lookup",
             },
-            "calculation_operands": [
-                {
-                    "operand_id": "op_gain",
-                    "evidence_id": "gain_cell",
-                    "source_row_id": "gain_cell",
-                    "source_row_ids": ["gain_cell"],
-                    "label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
-                    "raw_value": "(573,884)",
-                    "raw_unit": "\ubc31\ub9cc\uc6d0",
-                    "normalized_value": -573_884_000_000.0,
-                    "normalized_unit": "KRW",
-                    "matched_operand_label": "\uc678\ud654\ud658\uc0b0\uc774\uc775",
-                    "matched_operand_concept": "foreign_currency_translation_gain",
-                    "matched_operand_role": "operand",
-                    "statement_type": "notes",
-                }
-            ],
-            "calculation_plan": {
-                "status": "ok",
-                "mode": "single_value",
-                "operation": "lookup",
-                "ordered_operand_ids": ["op_gain"],
-                "variable_bindings": [{"variable": "A", "operand_id": "op_gain"}],
-                "formula": "A",
-                "result_unit": "\ubc31\ub9cc\uc6d0",
+            "resolved_calculation_trace": {
+                "calculation_operands": calculation_operands,
+                "calculation_plan": calculation_plan,
+                "calculation_result": {},
             },
-        }
-        state["resolved_calculation_trace"] = {
-            "calculation_operands": list(state.get("calculation_operands") or []),
-            "calculation_plan": dict(state.get("calculation_plan") or {}),
-            "calculation_result": {},
         }
 
         result = agent._execute_calculation(state)
@@ -2380,7 +2917,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "source_row_ids": ["row_borrowing"],
         }
 
-        self.assertFalse(_dependency_operand_can_use_source_slot(operand, source_slot))
+        self.assertFalse(dependency_operand_can_use_source_slot(operand, source_slot))
 
     def test_dependency_projection_replaces_collapsed_ratio_role_from_sibling_lookup(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

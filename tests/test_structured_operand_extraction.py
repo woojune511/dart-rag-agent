@@ -14,7 +14,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import OperandExtraction
 
 
@@ -1269,7 +1269,7 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         result = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(result)
 
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(result["calculation_debug_trace"]["coverage"], "missing")
 
     def test_reconciliation_evidence_items_use_table_backed_row_surface(self) -> None:

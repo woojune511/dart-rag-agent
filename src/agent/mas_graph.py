@@ -6,16 +6,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict
 
-from langgraph.graph import END, StateGraph
-
 from src.agent.mas_types import MultiAgentState, ReportScope, TaskStatus, project_mas_task_artifact_trace
-from src.agent.nodes.critic_node import run_critic
-from src.agent.nodes.dummy_nodes import (
-    run_orchestrator_merge as run_dummy_orchestrator_merge,
-    run_orchestrator_plan as run_dummy_orchestrator_plan,
-    run_researcher as run_dummy_researcher,
-    run_analyst as run_dummy_analyst,
-)
 
 
 def check_critic_approval(state: MultiAgentState) -> str:
@@ -87,6 +78,15 @@ def build_mas_graph(
     analyst_node: Callable[[MultiAgentState], Dict[str, Any]] | None = None,
     researcher_node: Callable[[MultiAgentState], Dict[str, Any]] | None = None,
 ):
+    from langgraph.graph import END, StateGraph
+    from src.agent.nodes.critic_node import run_critic
+    from src.agent.nodes.dummy_nodes import (
+        run_analyst as run_dummy_analyst,
+        run_orchestrator_merge as run_dummy_orchestrator_merge,
+        run_orchestrator_plan as run_dummy_orchestrator_plan,
+        run_researcher as run_dummy_researcher,
+    )
+
     workflow = StateGraph(MultiAgentState)
 
     workflow.add_node("Orchestrator_Plan", orchestrator_plan_node or run_dummy_orchestrator_plan)

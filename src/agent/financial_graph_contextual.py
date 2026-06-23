@@ -9,7 +9,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from src.config.retrieval_policy import CONTEXTUAL_INGEST_POLICY
-from src.utils.gemini_usage import (
+from src.utils.gemini_usage_counts import (
     add_gemini_usage_counts,
     extract_gemini_usage_counts,
     zero_gemini_usage_counts,
@@ -98,6 +98,89 @@ class FinancialAgentContextualMixin:
         )
         return max(workers, configured)
 
+    def _contextual_index_payload(self, chunks: List, contexts: Dict[int, str]) -> tuple[List[str], List[dict]]:
+        total = len(chunks)
+        texts = [
+            f"{self._build_index_prefix(chunks[i].metadata, contexts[i])}\n\n{chunks[i].content}"
+            for i in range(total)
+        ]
+        return texts, [chunk.metadata for chunk in chunks]
+
+    def _context_generation_metrics(self) -> Dict[str, Any]:
+        return {
+            "prompt_chars": 0,
+            "response_chars": 0,
+            "fallback_count": 0,
+            **zero_gemini_usage_counts(),
+        }
+
+    def _context_batch_responses(self, prompts: List[str], workers: int) -> List[Any]:
+        try:
+            return self.llm.batch(
+                prompts,
+                config={"max_concurrency": workers},
+                return_exceptions=True,
+            )
+        except Exception as exc:
+            logger.warning("Context batch generation failed, falling back to per-item mode: %s", exc)
+            return [exc] * len(prompts)
+
+    def _context_from_response(
+        self,
+        *,
+        chunk: Any,
+        response: Any,
+        idx: int,
+        metrics: Dict[str, Any],
+        collect_usage: bool,
+        log_item_failures: bool,
+    ) -> str:
+        if isinstance(response, Exception):
+            if log_item_failures:
+                logger.warning("Context generation failed for chunk %s: %s", idx, response)
+            metrics["fallback_count"] += 1
+            return self._fallback_context(chunk.metadata)
+        content = getattr(response, "content", "") or ""
+        context = content.strip() or self._fallback_context(chunk.metadata)
+        if collect_usage:
+            add_gemini_usage_counts(metrics, extract_gemini_usage_counts(response))
+        return context
+
+    def _generate_contexts_for_chunks(
+        self,
+        chunks: List,
+        *,
+        workers: int,
+        request_batch_size: int,
+        on_progress=None,
+        collect_usage: bool = False,
+        log_item_failures: bool = False,
+    ) -> tuple[Dict[int, str], Dict[str, Any]]:
+        total = len(chunks)
+        contexts: Dict[int, str] = {}
+        metrics = self._context_generation_metrics()
+        completed_count = 0
+        for start in range(0, total, request_batch_size):
+            batch_items = list(enumerate(chunks[start : start + request_batch_size], start=start))
+            prompts = [self._build_context_prompt(chunk.content, chunk.metadata) for _, chunk in batch_items]
+            metrics["prompt_chars"] += sum(len(prompt) for prompt in prompts)
+            responses = self._context_batch_responses(prompts, workers)
+
+            for (idx, chunk), response in zip(batch_items, responses):
+                contexts[idx] = self._context_from_response(
+                    chunk=chunk,
+                    response=response,
+                    idx=idx,
+                    metrics=metrics,
+                    collect_usage=collect_usage,
+                    log_item_failures=log_item_failures,
+                )
+                metrics["response_chars"] += len(contexts[idx])
+                completed_count += 1
+                if on_progress:
+                    on_progress(completed_count, total)
+        return contexts, metrics
+
     def contextual_ingest(
         self,
         chunks: List,
@@ -122,17 +205,15 @@ class FinancialAgentContextualMixin:
                 "elapsed_sec": 0.0,
             }
 
-        from processing.financial_parser import FinancialParser
+        from src.processing.financial_parser import FinancialParser
 
         parents = FinancialParser.build_parents(chunks)
         self.vsm.add_parents(parents)
         logger.info("[contextual_ingest] stored %s parent chunks", len(parents))
 
         total = len(chunks)
-        contexts: Dict[int, str] = {}
         workers = self._resolve_context_workers(max_workers, total)
         request_batch_size = self._resolve_context_batch_size(batch_size, workers)
-        completed_count = 0
 
         logger.info(
             "[contextual_ingest] generating contexts with max_workers=%s batch_size=%s",
@@ -140,37 +221,14 @@ class FinancialAgentContextualMixin:
             request_batch_size,
         )
 
-        for start in range(0, total, request_batch_size):
-            batch_items = list(enumerate(chunks[start : start + request_batch_size], start=start))
-            prompts = [self._build_context_prompt(chunk.content, chunk.metadata) for _, chunk in batch_items]
-
-            try:
-                responses = self.llm.batch(
-                    prompts,
-                    config={"max_concurrency": workers},
-                    return_exceptions=True,
-                )
-            except Exception as exc:
-                logger.warning("Context batch generation failed, falling back to per-item mode: %s", exc)
-                responses = [exc] * len(batch_items)
-
-            for (idx, chunk), response in zip(batch_items, responses):
-                if isinstance(response, Exception):
-                    logger.warning("Context generation failed for chunk %s: %s", idx, response)
-                    contexts[idx] = self._fallback_context(chunk.metadata)
-                else:
-                    content = getattr(response, "content", "") or ""
-                    contexts[idx] = content.strip() or self._fallback_context(chunk.metadata)
-
-                completed_count += 1
-                if on_progress:
-                    on_progress(completed_count, total)
-
-        texts = [
-            f"{self._build_index_prefix(chunks[i].metadata, contexts[i])}\n\n{chunks[i].content}"
-            for i in range(total)
-        ]
-        metadatas = [chunk.metadata for chunk in chunks]
+        contexts, _ = self._generate_contexts_for_chunks(
+            chunks,
+            workers=workers,
+            request_batch_size=request_batch_size,
+            on_progress=on_progress,
+            log_item_failures=True,
+        )
+        texts, metadatas = self._contextual_index_payload(chunks, contexts)
         self.vsm.add_documents(texts, metadatas)
         logger.info("[contextual_ingest] indexed %s contextualized chunks", total)
         return {
@@ -214,21 +272,15 @@ class FinancialAgentContextualMixin:
                 "elapsed_sec": 0.0,
             }
 
-        from processing.financial_parser import FinancialParser
+        from src.processing.financial_parser import FinancialParser
 
         started_at = time.perf_counter()
         parents = FinancialParser.build_parents(chunks)
         self.vsm.add_parents(parents)
 
         total = len(chunks)
-        contexts: Dict[int, str] = {}
         workers = self._resolve_context_workers(max_workers, total)
         request_batch_size = self._resolve_context_batch_size(batch_size, workers)
-        completed_count = 0
-        prompt_chars = 0
-        response_chars = 0
-        usage_totals = zero_gemini_usage_counts()
-        fallback_count = 0
 
         logger.info(
             "[benchmark_contextual_ingest] generating contexts with max_workers=%s batch_size=%s",
@@ -236,40 +288,14 @@ class FinancialAgentContextualMixin:
             request_batch_size,
         )
 
-        for start in range(0, total, request_batch_size):
-            batch_items = list(enumerate(chunks[start : start + request_batch_size], start=start))
-            prompts = [self._build_context_prompt(chunk.content, chunk.metadata) for _, chunk in batch_items]
-            prompt_chars += sum(len(prompt) for prompt in prompts)
-
-            try:
-                responses = self.llm.batch(
-                    prompts,
-                    config={"max_concurrency": workers},
-                    return_exceptions=True,
-                )
-            except Exception as exc:
-                logger.warning("Context batch generation failed, falling back to per-item mode: %s", exc)
-                responses = [exc] * len(batch_items)
-
-            for (idx, chunk), response in zip(batch_items, responses):
-                if isinstance(response, Exception):
-                    contexts[idx] = self._fallback_context(chunk.metadata)
-                    fallback_count += 1
-                else:
-                    content = getattr(response, "content", "") or ""
-                    contexts[idx] = content.strip() or self._fallback_context(chunk.metadata)
-                    add_gemini_usage_counts(usage_totals, extract_gemini_usage_counts(response))
-
-                response_chars += len(contexts[idx])
-                completed_count += 1
-                if on_progress:
-                    on_progress(completed_count, total)
-
-        texts = [
-            f"{self._build_index_prefix(chunks[i].metadata, contexts[i])}\n\n{chunks[i].content}"
-            for i in range(total)
-        ]
-        metadatas = [chunk.metadata for chunk in chunks]
+        contexts, context_metrics = self._generate_contexts_for_chunks(
+            chunks,
+            workers=workers,
+            request_batch_size=request_batch_size,
+            on_progress=on_progress,
+            collect_usage=True,
+        )
+        texts, metadatas = self._contextual_index_payload(chunks, contexts)
         add_metrics = self.vsm.add_documents(
             texts,
             metadatas,
@@ -283,10 +309,7 @@ class FinancialAgentContextualMixin:
             "chunks": total,
             "stored_parent_chunks": len(parents),
             "api_calls": total,
-            "fallback_count": fallback_count,
-            "prompt_chars": prompt_chars,
-            "response_chars": response_chars,
-            **usage_totals,
+            **context_metrics,
             "max_workers": workers,
             "batch_size": request_batch_size,
             "elapsed_sec": time.perf_counter() - started_at,

@@ -7,7 +7,9 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import logging
+import math
 import re
+import sys
 from statistics import mean
 import threading
 import time
@@ -15,30 +17,84 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-import mlflow
-import numpy as np
-from langchain_google_genai import ChatGoogleGenerativeAI
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_graph_helpers import _resolve_runtime_calculation_trace
-from src.agent.financial_numeric_surface import (
-    runtime_evidence_numeric_candidates as _shared_runtime_evidence_numeric_candidates,
-)
 from src.config.retrieval_policy import FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES
-from src.utils.gemini_usage import (
-    GeminiUsageCallbackHandler,
-    add_gemini_usage_counts,
-    zero_gemini_usage_counts,
-)
-from src.utils.embedding_usage import (
-    add_embedding_usage_counts,
-    zero_embedding_usage_counts,
-)
-from storage.vector_store import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_MODEL, create_embeddings
-
 logger = logging.getLogger(__name__)
+mlflow = None
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_DEFAULT_DATASET = _PROJECT_ROOT / "benchmarks" / "datasets" / "single_doc_eval_full.curated.json"
+_DEFAULT_DATASET = PROJECT_ROOT / "benchmarks" / "datasets" / "single_doc_eval_full.curated.json"
+
+
+def _clip_score(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
+    return min(max(float(value), lower), upper)
+
+
+def _chat_google_generative_ai(*, model: str, temperature: float, callbacks: Optional[List[Any]] = None) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature, callbacks=callbacks)
+
+
+def _vector_store_defaults() -> Tuple[str, str]:
+    from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL
+
+    return "dart_reports_v2", DEFAULT_EMBEDDING_MODEL
+
+
+def _create_embeddings(*, model_name: str) -> Any:
+    from src.storage.embedding_config import create_embeddings
+
+    return create_embeddings(model_name=model_name)
+
+
+def _mlflow() -> Any:
+    global mlflow
+    if mlflow is None:
+        import mlflow as mlflow_module
+
+        mlflow = mlflow_module
+    return mlflow
+
+
+def _resolve_runtime_calculation_trace(*args, **kwargs):
+    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+
+    return impl(*args, **kwargs)
+
+
+def _gemini_usage_callback_handler(*args, **kwargs):
+    from src.utils.gemini_usage import GeminiUsageCallbackHandler as impl
+
+    return impl(*args, **kwargs)
+
+
+def zero_gemini_usage_counts() -> Dict[str, int]:
+    from src.utils.gemini_usage_counts import zero_gemini_usage_counts as impl
+
+    return impl()
+
+
+def add_gemini_usage_counts(target: Dict[str, int], usage: Dict[str, Any]) -> None:
+    from src.utils.gemini_usage_counts import add_gemini_usage_counts as impl
+
+    impl(target, usage)
+
+
+def zero_embedding_usage_counts() -> Dict[str, int]:
+    from src.utils.embedding_usage import zero_embedding_usage_counts as impl
+
+    return impl()
+
+
+def add_embedding_usage_counts(target: Dict[str, int], usage: Dict[str, Any]) -> None:
+    from src.utils.embedding_usage import add_embedding_usage_counts as impl
+
+    impl(target, usage)
+
+
 DEFAULT_NUMERIC_SECTION_ALIASES = [
     "매출현황",
     "재무제표",
@@ -1762,7 +1818,7 @@ def _compute_completeness_judge(
         score = payload.get("score")
         score_value = float(score) if score is not None else None
         if score_value is not None:
-            score_value = float(np.clip(score_value, 0.0, 1.0))
+            score_value = _clip_score(score_value)
         return score_value, str(payload.get("reason") or "").strip() or None
     except Exception as exc:
         logger.warning("completeness judge failed: %s", exc)
@@ -1778,10 +1834,12 @@ def _compute_answer_relevancy(
         return 0.0
 
     try:
+        import numpy as np
+
         q_vec = np.array(embeddings.embed_query(question))
         a_vec = np.array(embeddings.embed_query(answer))
         cosine = np.dot(q_vec, a_vec) / (np.linalg.norm(q_vec) * np.linalg.norm(a_vec) + 1e-9)
-        return float(np.clip(cosine, 0.0, 1.0))
+        return _clip_score(float(cosine))
     except Exception as exc:
         logger.warning("answer_relevancy calculation failed: %s", exc)
         return 0.5
@@ -1852,13 +1910,13 @@ def _compute_ndcg_at_k(example: EvalExample, retrieved_docs: List[Any], k: int) 
     dcg = 0.0
     for index, rel in enumerate(relevances, start=1):
         if rel:
-            dcg += rel / np.log2(index + 1)
+            dcg += rel / math.log2(index + 1)
     total_relevant = len(example.ground_truth_context_ids) or len(expected_sections)
     ideal_count = min(max(total_relevant, 1), len(top_docs))
-    idcg = sum(1.0 / np.log2(index + 1) for index in range(1, ideal_count + 1))
+    idcg = sum(1.0 / math.log2(index + 1) for index in range(1, ideal_count + 1))
     if idcg == 0.0:
         return 0.0
-    return float(np.clip(dcg / idcg, 0.0, 1.0))
+    return _clip_score(dcg / idcg)
 
 
 def _compute_retrieval_hit_at_k(example: EvalExample, retrieved_docs: List[Any]) -> float:
@@ -2204,7 +2262,11 @@ def _numeric_candidate_supported_by_candidate_derivation(
 
 
 def _runtime_evidence_numeric_candidates(runtime_evidence: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    candidates = _shared_runtime_evidence_numeric_candidates(
+    from src.agent.financial_numeric_surface import (
+        runtime_evidence_numeric_candidates as shared_runtime_evidence_numeric_candidates,
+    )
+
+    candidates = shared_runtime_evidence_numeric_candidates(
         runtime_evidence,
         text_candidate_extractor=_extract_numeric_candidates,
         unitless_candidate_extractor=_extract_unitless_number_candidates,
@@ -2598,7 +2660,7 @@ def _compute_trend_interpretation_correctness(
         payload = _extract_json_object(getattr(response, "content", ""))
         score = _safe_float(payload.get("score"))
         reason = str(payload.get("reason") or "").strip() or None
-        return (float(np.clip(score, 0.0, 1.0)) if score is not None else 0.5), reason
+        return (_clip_score(score) if score is not None else 0.5), reason
     except Exception as exc:
         logger.warning("trend interpretation judge failed: %s", exc)
         return 0.5, str(exc)
@@ -2664,7 +2726,7 @@ def _compute_grounded_rendering_correctness(
         payload = _extract_json_object(getattr(response, "content", ""))
         score = _safe_float(payload.get("score"))
         reason = str(payload.get("reason") or "").strip() or None
-        return (float(np.clip(score, 0.0, 1.0)) if score is not None else 0.5), reason
+        return (_clip_score(score) if score is not None else 0.5), reason
     except Exception as exc:
         logger.warning("grounded rendering judge failed: %s", exc)
         return 0.5, str(exc)
@@ -3314,17 +3376,21 @@ class RAGEvaluator:
         self.numeric_fast_gate = bool(numeric_fast_gate)
         self.skip_llm_judges = bool(skip_llm_judges)
         self.skip_embedding_metrics = bool(skip_embedding_metrics or self.skip_llm_judges)
-        self._llm_usage_callback = None if self.skip_llm_judges else GeminiUsageCallbackHandler()
+        self._llm_usage_callback = None if self.skip_llm_judges else _gemini_usage_callback_handler()
         self._llm = (
             None
             if self.skip_llm_judges
-            else ChatGoogleGenerativeAI(
+            else _chat_google_generative_ai(
                 model="gemini-2.5-flash",
                 temperature=0.0,
                 callbacks=[self._llm_usage_callback],
             )
         )
-        self._embeddings = None if self.skip_embedding_metrics else create_embeddings(model_name=DEFAULT_EMBEDDING_MODEL)
+        if self.skip_embedding_metrics:
+            self._embeddings = None
+        else:
+            _collection_name, embedding_model_name = _vector_store_defaults()
+            self._embeddings = _create_embeddings(model_name=embedding_model_name)
 
     def load_dataset(self) -> List[EvalExample]:
         return load_eval_examples_from_path(self._dataset_path)
@@ -3917,12 +3983,13 @@ class RAGEvaluator:
         if examples is None:
             examples = self.load_dataset()
 
-        mlflow.set_experiment(self.experiment_name)
+        mlflow_client = _mlflow()
+        mlflow_client.set_experiment(self.experiment_name)
 
-        with mlflow.start_run(run_name=run_name):
+        with mlflow_client.start_run(run_name=run_name):
             if params:
-                mlflow.log_params(params)
-            mlflow.log_param("n_questions", len(examples))
+                mlflow_client.log_params(params)
+            mlflow_client.log_param("n_questions", len(examples))
 
             results: List[EvalResult] = []
             worker_count = max(1, min(int(max_workers or 1), len(examples)))
@@ -4042,18 +4109,18 @@ class RAGEvaluator:
                     metrics["grounded_rendering_correctness"] = result.grounded_rendering_correctness
                 if result.calculation_correctness is not None:
                     metrics["calculation_correctness"] = result.calculation_correctness
-                mlflow.log_metrics(metrics, step=index)
+                mlflow_client.log_metrics(metrics, step=index)
 
             valid_results = [result for result in results if result.error is None]
             error_rate = (len(results) - len(valid_results)) / len(results) if results else 0.0
 
             def _average(attr: str) -> float:
                 values = [getattr(result, attr) for result in valid_results]
-                return float(np.mean(values)) if values else 0.0
+                return float(mean(values)) if values else 0.0
 
             def _average_optional(attr: str) -> Optional[float]:
                 values = [getattr(result, attr) for result in valid_results if getattr(result, attr) is not None]
-                return float(np.mean(values)) if values else None
+                return float(mean(values)) if values else None
 
             numeric_results = [
                 result
@@ -4152,9 +4219,9 @@ class RAGEvaluator:
                 "document_embedding_input_chars": embedding_usage_totals["document_embedding_input_chars"],
                 "document_embedding_estimated_input_tokens": embedding_usage_totals["document_embedding_estimated_input_tokens"],
             }
-            mlflow.log_metrics({"agg_" + key: value for key, value in aggregate.items() if value is not None})
+            mlflow_client.log_metrics({"agg_" + key: value for key, value in aggregate.items() if value is not None})
 
-            artifact_path = _PROJECT_ROOT / "mlruns" / "_eval_artifact_tmp.json"
+            artifact_path = PROJECT_ROOT / "mlruns" / "_eval_artifact_tmp.json"
             artifact_path.parent.mkdir(parents=True, exist_ok=True)
             with open(artifact_path, "w", encoding="utf-8") as file:
                 json.dump(
@@ -4204,7 +4271,7 @@ class RAGEvaluator:
                     ensure_ascii=False,
                     indent=2,
                 )
-            mlflow.log_artifact(str(artifact_path), artifact_path="eval_results")
+            mlflow_client.log_artifact(str(artifact_path), artifact_path="eval_results")
             artifact_path.unlink(missing_ok=True)
 
             logger.info(
@@ -4245,21 +4312,20 @@ class RAGEvaluator:
 
 if __name__ == "__main__":
     import glob
-    import sys
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 
-    sys.path.insert(0, str(_PROJECT_ROOT / "src"))
-    from agent.financial_graph import FinancialAgent
-    from processing.financial_parser import FinancialParser
-    from storage.vector_store import VectorStoreManager
+    from src.agent.financial_graph import FinancialAgent
+    from src.processing.financial_parser import FinancialParser
+    from src.storage.vector_store import VectorStoreManager
 
-    chroma_path = str(_PROJECT_ROOT / "data" / "chroma_dart")
-    vsm = VectorStoreManager(persist_directory=chroma_path, collection_name=DEFAULT_COLLECTION_NAME)
+    default_collection_name, default_embedding_model = _vector_store_defaults()
+    chroma_path = str(PROJECT_ROOT / "data" / "chroma_dart")
+    vsm = VectorStoreManager(persist_directory=chroma_path, collection_name=default_collection_name)
 
     if len(vsm.bm25_docs) == 0:
         print("[INFO] ChromaDB is empty. Indexing local filings first...")
-        reports = glob.glob(str(_PROJECT_ROOT / "data" / "reports" / "**" / "*.html"), recursive=True)
+        reports = glob.glob(str(PROJECT_ROOT / "data" / "reports" / "**" / "*.html"), recursive=True)
         if not reports:
             print("[ERROR] No .html file found under data/reports/. Run dart_fetcher.py first.")
             sys.exit(1)
@@ -4295,8 +4361,8 @@ if __name__ == "__main__":
             "chunk_size": 1500,
             "k": 8,
             "strategy": "hybrid_rerank",
-            "embedding_model": DEFAULT_EMBEDDING_MODEL,
-            "collection_name": DEFAULT_COLLECTION_NAME,
+            "embedding_model": default_embedding_model,
+            "collection_name": default_collection_name,
         },
     )
 

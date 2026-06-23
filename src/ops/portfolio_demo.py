@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-from src.experimental.mas.types import critic_report_runtime_acceptance_state
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.agent.financial_artifact_contracts import critic_report_runtime_acceptance_state
 from src.ops.review_report_cache_index_contract import run_review
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DEMO_PAYLOAD_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "portfolio_demo" / "demo_payload.json"
 )

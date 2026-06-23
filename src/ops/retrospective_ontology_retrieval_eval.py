@@ -7,33 +7,43 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
-from typing import Any, Dict, Iterator, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(PROJECT_ROOT) not in sys.path:
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
-import agent.financial_graph as financial_graph_module
-from agent.financial_graph import FinancialAgent
-from agent.financial_graph_helpers import (
-    _resolve_runtime_calculation_trace,
-    _resolve_runtime_structured_result,
-)
-from ops.evaluator import (
-    EvalExample,
-    _compute_operand_grounding_score,
-    _compute_retrieval_hit_at_k,
-    _compute_section_match_rate,
-    _example_from_dict,
-)
-from storage.vector_store import VectorStoreManager
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 
-load_dotenv()
+if TYPE_CHECKING:
+    from src.agent.financial_graph import FinancialAgent
+    from src.ops.evaluator import EvalExample
+
+
+def _example_from_dict(item: Dict[str, Any]) -> "EvalExample":
+    from src.ops.evaluator import _example_from_dict as impl
+
+    return impl(item)
+
+
+def _compute_retrieval_hit_at_k(example: "EvalExample", retrieved_docs: List[Any]) -> float:
+    from src.ops.evaluator import _compute_retrieval_hit_at_k as impl
+
+    return impl(example, retrieved_docs)
+
+
+def _compute_section_match_rate(example: "EvalExample", retrieved_docs: List[Any]) -> float:
+    from src.ops.evaluator import _compute_section_match_rate as impl
+
+    return impl(example, retrieved_docs)
+
+
+def _compute_operand_grounding_score(**kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_operand_grounding_score as impl
+
+    return impl(**kwargs)
 
 DEFAULT_QUESTION_IDS = ["comparison_004", "comparison_005", "comparison_006"]
 
@@ -94,10 +104,6 @@ def _initial_state(query: str) -> Dict[str, Any]:
         "answer": "",
         "citations": [],
         "numeric_debug_trace": {},
-        "calculation_operands": [],
-        "calculation_plan": {},
-        "calculation_result": {},
-        "calculation_debug_trace": {},
         "planner_debug_trace": {},
     }
 
@@ -139,6 +145,8 @@ class _RetrievalOnlyOntologyShim:
 
 @contextmanager
 def _ontology_mode(enabled: bool) -> Iterator[None]:
+    import src.agent.financial_graph as financial_graph_module
+
     original = financial_graph_module.get_financial_ontology
     if enabled:
         yield
@@ -210,11 +218,10 @@ def _run_question(agent: FinancialAgent, example: EvalExample) -> QuestionOutcom
         state,
         allow_legacy_top_level=False,
     )
-    structured_result = _resolve_runtime_structured_result(
-        {
-            "resolved_calculation_trace": resolved_trace,
-            "structured_result": state.get("structured_result"),
-        }
+    structured_result = dict(
+        state.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
     )
 
     retrieved_docs = list(state.get("retrieved_docs") or [])
@@ -356,6 +363,7 @@ def _render_markdown(
 
 
 def main() -> None:
+    load_dotenv()
     parser = argparse.ArgumentParser(
         description="Retrospective experiment 2: Standard Retrieval vs Ontology-Guided Retrieval"
     )
@@ -398,6 +406,9 @@ def main() -> None:
     k = int(config.get("k") or 8)
     question_ids = list(args.question_id or DEFAULT_QUESTION_IDS)
     examples = _load_examples(dataset_path, question_ids)
+
+    from src.agent.financial_graph import FinancialAgent
+    from src.storage.vector_store import VectorStoreManager
 
     vsm = VectorStoreManager(
         persist_directory=str(store_dir),

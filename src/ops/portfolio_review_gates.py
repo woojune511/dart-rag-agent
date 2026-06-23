@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.ops.portfolio_demo import build_demo
 from src.ops.promotion_trace_materiality_gate import run_gate as run_trace_materiality_gate

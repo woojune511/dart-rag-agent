@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any, Dict, List
 
-from src.agent.financial_graph_helpers import _normalise_spaces
+from src.agent.financial_runtime_normalization import _normalise_spaces
 
 
 def _query_budget_int(value: Any) -> int:

@@ -1,10 +1,19 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from __future__ import annotations
 
-from langchain_core.documents import Document
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
 
 
 MetadataHydrator = Callable[[Dict[str, Any]], Dict[str, Any]]
 ChunkUidResolver = Callable[[Dict[str, Any]], str]
+
+
+def _make_document(page_content: str, metadata: dict):
+    from langchain_core.documents import Document
+
+    return Document(page_content=page_content, metadata=metadata)
 
 
 def empty_structure_graph() -> Dict[str, Any]:
@@ -66,7 +75,7 @@ def hydrate_document_from_structure_graph(
     hydrated_metadata = dict(metadata)
     hydrated_metadata.update(hydrate_metadata(dict((node.get("metadata") or {}))))
     text = str(node.get("text") or doc.page_content or "")
-    return Document(page_content=text, metadata=hydrated_metadata)
+    return _make_document(page_content=text, metadata=hydrated_metadata)
 
 
 def rebuild_structure_relationships(graph: Dict[str, Any]) -> Dict[str, Any]:
@@ -207,7 +216,7 @@ def get_section_lead_doc(
     metadata = dict(node.get("metadata", {}) or {})
     metadata["graph_relation"] = "section_lead"
     metadata["graph_source_parent_id"] = parent_id
-    return Document(page_content=str(node.get("text", "")), metadata=metadata)
+    return _make_document(page_content=str(node.get("text", "")), metadata=metadata)
 
 
 def get_described_by_doc(
@@ -227,7 +236,7 @@ def get_described_by_doc(
     metadata = dict(paragraph_node.get("metadata", {}) or {})
     metadata["graph_relation"] = "described_by_paragraph"
     metadata["graph_source_chunk_uid"] = chunk_uid
-    return Document(page_content=str(paragraph_node.get("text", "")), metadata=metadata)
+    return _make_document(page_content=str(paragraph_node.get("text", "")), metadata=metadata)
 
 
 def get_sibling_docs(
@@ -261,7 +270,7 @@ def get_sibling_docs(
         direction = "sibling_prev" if sibling_index < index else "sibling_next"
         metadata["graph_relation"] = direction
         metadata["graph_source_chunk_uid"] = chunk_uid
-        siblings.append(Document(page_content=str(node.get("text", "")), metadata=metadata))
+        siblings.append(_make_document(page_content=str(node.get("text", "")), metadata=metadata))
 
     return siblings
 
@@ -309,7 +318,7 @@ def get_reference_docs(
             if not fallback_node:
                 continue
             fallback_metadata = dict(fallback_node.get("metadata", {}) or {})
-            referenced_doc = Document(
+            referenced_doc = _make_document(
                 page_content=str(fallback_node.get("text", "")),
                 metadata=fallback_metadata,
             )
@@ -318,7 +327,7 @@ def get_reference_docs(
         ref_metadata["graph_relation"] = "reference_note"
         ref_metadata["graph_source_chunk_uid"] = chunk_uid
         ref_metadata["graph_reference_parent_id"] = reference_parent_id
-        docs.append(Document(page_content=referenced_doc.page_content, metadata=ref_metadata))
+        docs.append(_make_document(page_content=referenced_doc.page_content, metadata=ref_metadata))
 
         if len(docs) >= limit:
             break

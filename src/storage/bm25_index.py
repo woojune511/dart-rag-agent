@@ -1,7 +1,16 @@
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from __future__ import annotations
 
-from langchain_core.documents import Document
+import re
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
+
+
+def _make_document(page_content: str, metadata: dict):
+    from langchain_core.documents import Document
+
+    return Document(page_content=page_content, metadata=metadata)
 
 
 def tokenize_ko(text: str) -> List[str]:
@@ -70,6 +79,6 @@ def collect_bm25_results(
         metadata = metadatas[idx] or {}
         if not metadata_matches_filter(metadata, where_filter):
             continue
-        doc = Document(page_content=docs[idx], metadata=metadata)
+        doc = _make_document(page_content=docs[idx], metadata=metadata)
         results.append((doc, bm25_scores[idx]))
     return results

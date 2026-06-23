@@ -6,25 +6,28 @@ import os
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, Iterator, List
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 import src.config.ontology as ontology_module
-from src.agent.financial_graph import FinancialAgent, _build_semantic_numeric_plan
+from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_helpers import _build_semantic_numeric_plan
 from src.config.ontology import FinancialOntologyManager
 
 
 DEFAULT_PROFILE = PROJECT_ROOT / "benchmarks" / "profiles" / "concept_planner_canary.json"
+
+
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
 
 
 def _load_json(path: Path) -> Any:
@@ -153,7 +156,7 @@ def _concept_plan(case: Dict[str, Any], ontology_path: Path, llm_model: str) -> 
         raise ValueError("GOOGLE_API_KEY environment variable is required for concept planner shadow compare.")
 
     agent = FinancialAgent.__new__(FinancialAgent)
-    agent.llm = ChatGoogleGenerativeAI(model=llm_model, temperature=0)
+    agent.llm = _chat_google_generative_ai(model=llm_model, temperature=0)
 
     with _use_ontology(ontology_path):
         result = agent._plan_semantic_numeric_tasks(

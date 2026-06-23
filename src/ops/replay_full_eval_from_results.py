@@ -17,21 +17,61 @@ from statistics import mean
 from typing import Any, Dict, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace  # noqa: E402
-from ops.evaluator import (  # noqa: E402
-    _compute_calculation_correctness,
-    _compute_numeric_equivalence,
-    _compute_numeric_result_correctness,
-    _compute_operand_grounding_score,
-    _compute_operand_selection_correctness,
-    _compute_unit_consistency_pass,
-    _resolve_numeric_judgement,
-    load_eval_examples_from_path,
-)
+def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_calculation_correctness(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_calculation_correctness as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_numeric_equivalence(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_numeric_equivalence as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_numeric_result_correctness(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_numeric_result_correctness as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_operand_grounding_score(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_operand_grounding_score as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_operand_selection_correctness(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_operand_selection_correctness as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_unit_consistency_pass(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_unit_consistency_pass as impl
+
+    return impl(*args, **kwargs)
+
+
+def _resolve_numeric_judgement(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _resolve_numeric_judgement as impl
+
+    return impl(*args, **kwargs)
+
+
+def load_eval_examples_from_path(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import load_eval_examples_from_path as impl
+
+    return impl(*args, **kwargs)
 
 
 def _load_source_rows(path: Path) -> List[Dict[str, Any]]:

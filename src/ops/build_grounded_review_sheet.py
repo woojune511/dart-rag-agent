@@ -201,16 +201,6 @@ def _flatten_retrieval_preview(item: Dict[str, Any], limit: int = 5) -> List[str
     return previews
 
 
-def _has_value(value: Any) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, str):
-        return bool(value.strip())
-    if isinstance(value, (list, tuple, set, dict)):
-        return bool(value)
-    return True
-
-
 def _risk_tags(item: Dict[str, Any]) -> List[str]:
     tags: List[str] = []
     source_expected_refusal = _source_expected_refusal(item)

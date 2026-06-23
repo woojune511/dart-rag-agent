@@ -1,13 +1,21 @@
 import unittest
 import json
+import subprocess
+import sys
 from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from langchain_core.documents import Document
 
+from src.storage import graph_persistence
+from src.storage import search_merge
+from src.storage import parent_store
+from src.storage.metadata_payloads import compact_node_for_storage
 from src.storage.vector_store import VectorStoreManager
 from src.utils.embedding_usage import TrackingEmbeddings
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class _CapacityErrorVectorStore:
@@ -94,6 +102,130 @@ class _BrokenGetVectorStore:
 
 
 class VectorStoreFallbackTests(unittest.TestCase):
+    def test_graph_persistence_writes_deduplicated_table_payload_sidecar(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            graph_path = Path(tmp_dir) / "document_structure_graph.json"
+            sidecar_path = Path(tmp_dir) / "table_payloads.json"
+            graph = {
+                "nodes": {
+                    "chunk-1": {
+                        "text": "table text",
+                        "metadata": {
+                            "chunk_uid": "chunk-1",
+                            "table_row_records_json": "[large rows]",
+                        },
+                    }
+                },
+                "parents": {},
+                "sections": {},
+            }
+
+            saved_graph, payloads = graph_persistence.persist_structure_graph(
+                graph_path,
+                sidecar_path,
+                graph,
+                compact_node_for_storage=lambda node, payload_map: compact_node_for_storage(
+                    node,
+                    payload_map,
+                    existing_payloads={},
+                ),
+            )
+
+            graph_payload = json.loads(graph_path.read_text(encoding="utf-8"))
+            sidecar_payload = json.loads(sidecar_path.read_text(encoding="utf-8"))
+            metadata = graph_payload["nodes"]["chunk-1"]["metadata"]
+
+            self.assertEqual(saved_graph, graph_payload)
+            self.assertNotIn("table_row_records_json", metadata)
+            self.assertIn("table_payload_id", metadata)
+            self.assertEqual(sidecar_payload["payloads"], payloads)
+            self.assertEqual(sidecar_payload["stats"]["payload_count"], 1)
+            self.assertEqual(
+                graph_persistence.load_structure_graph(graph_path)["nodes"]["chunk-1"]["text"],
+                "table text",
+            )
+
+    def test_parent_store_preserves_plain_json_artifact_and_rcept_delete(self) -> None:
+        with TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "parents.json"
+            parents = {
+                "r1::section-a": "parent a",
+                "r1::section-b": "parent b",
+                "r2::section-a": "parent c",
+            }
+
+            parent_store.save_parents(path, parents)
+            loaded = parent_store.load_parents(path)
+            filtered, deleted_count = parent_store.delete_parents_for_rcept(loaded, "r1")
+
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), parents)
+            self.assertEqual(parent_store.get_parent(loaded, "r1::section-a"), "parent a")
+            self.assertEqual(deleted_count, 2)
+            self.assertEqual(filtered, {"r2::section-a": "parent c"})
+
+    def test_search_cache_key_is_stable_for_filter_key_order(self) -> None:
+        left = search_merge.search_cache_key(
+            "  시설투자   총액 ",
+            k=2,
+            k_rrf=60,
+            where_filter={"year": 2023, "company": "삼성전자"},
+        )
+        right = search_merge.search_cache_key(
+            "시설투자 총액",
+            k=2,
+            k_rrf=60,
+            where_filter={"company": "삼성전자", "year": 2023},
+        )
+
+        self.assertEqual(left, right)
+
+    def test_search_merge_combines_duplicate_identity_scores(self) -> None:
+        vector_doc = Document(page_content="vector", metadata={"chunk_uid": "same"})
+        bm25_doc = Document(page_content="bm25", metadata={"chunk_uid": "same"})
+
+        results = search_merge.merge_rrf_results(
+            [(vector_doc, 0.25)],
+            [(bm25_doc, 1.0)],
+            k=1,
+            k_rrf=60,
+        )
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][0].page_content, "bm25")
+        self.assertAlmostEqual(results[0][1], (1.0 / 61) + (1.0 / 61))
+
+    def test_chroma_backend_import_does_not_load_chroma_backend(self) -> None:
+        code = (
+            "import sys\n"
+            "import src.storage.chroma_backend\n"
+            "print('langchain_community.vectorstores' in sys.modules)\n"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertEqual(completed.stdout.strip(), "False")
+
+    def test_vector_store_import_does_not_load_chroma_backend(self) -> None:
+        code = (
+            "import sys\n"
+            "import src.storage.vector_store\n"
+            "print('langchain_community.vectorstores' in sys.modules)\n"
+        )
+        completed = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertEqual(completed.stdout.strip(), "False")
+
     def _build_manager(self, vector_store, *, docs, metadatas, scores):
         manager = object.__new__(VectorStoreManager)
         manager.vector_store = vector_store

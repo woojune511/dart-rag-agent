@@ -8,19 +8,25 @@ LLM summarizer to produce a grounded contextual answer.
 from __future__ import annotations
 
 import os
-from typing import Any, Callable, Dict, Iterable, List, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Protocol, Sequence
 
 from dotenv import load_dotenv
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
+from src.agent.financial_langchain_loaders import (
+    _chat_prompt_template_from_template,
+    _str_output_parser,
+)
 from src.agent.mas_types import AgentTask, Artifact, EvidenceRecord, MultiAgentState, TaskStatus, build_artifact, build_evidence_record
-from src.schema import ArtifactKind
-from src.storage.vector_store import VectorStoreManager
+from src.schema.runtime_enums import ArtifactKind
 
-load_dotenv()
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
+    from src.storage.vector_store import VectorStoreManager
+
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
 
 
 class ResearcherCoreRunner(Protocol):
@@ -52,6 +58,10 @@ def _dedupe_preserve_order(values: Sequence[str]) -> List[str]:
         seen.add(item)
         ordered.append(item)
     return ordered
+
+
+def _is_document_like(value: Any) -> bool:
+    return hasattr(value, "page_content") and hasattr(value, "metadata")
 
 
 def _build_where_filter(report_scope: Dict[str, Any] | None) -> Optional[Dict[str, Any]]:
@@ -114,7 +124,7 @@ def _select_narrative_docs(docs: Sequence[Any], limit: int) -> List[tuple[Docume
         if not isinstance(item, tuple) or not item:
             continue
         doc, score = item
-        if not isinstance(doc, Document):
+        if not _is_document_like(doc):
             continue
         block_type = str((doc.metadata or {}).get("block_type") or "").strip().lower()
         if block_type != "table":
@@ -161,7 +171,7 @@ def _extract_doc_links(retrieved_docs: Sequence[Any]) -> List[str]:
     links: List[str] = []
     for item in retrieved_docs or []:
         doc = item[0] if isinstance(item, tuple) and item else item
-        if not isinstance(doc, Document):
+        if not _is_document_like(doc):
             continue
         metadata = doc.metadata or {}
         for key in ("chunk_uid", "section_path", "parent_id"):
@@ -177,7 +187,7 @@ def _project_retrieved_docs(retrieved_docs: Sequence[Any]) -> List[Dict[str, Any
     for item in retrieved_docs or []:
         doc = item[0] if isinstance(item, tuple) and item else item
         score = item[1] if isinstance(item, tuple) and len(item) > 1 else None
-        if not isinstance(doc, Document):
+        if not _is_document_like(doc):
             continue
         metadata = dict(doc.metadata or {})
         chunk_id = str(metadata.get("chunk_uid") or metadata.get("parent_id") or "").strip()
@@ -195,6 +205,7 @@ def _project_retrieved_docs(retrieved_docs: Sequence[Any]) -> List[Dict[str, Any
 
 class NarrativeResearcherCore:
     def __init__(self, vector_store_manager: VectorStoreManager, *, k: int = 6) -> None:
+        load_dotenv()
         self.vsm = vector_store_manager
         self.k = k
 
@@ -202,8 +213,8 @@ class NarrativeResearcherCore:
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
-        self.prompt = ChatPromptTemplate.from_template(
+        self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
+        self.prompt = _chat_prompt_template_from_template(
             """당신은 DART 공시 문서를 읽고 맥락을 요약하는 리서처입니다.
 
 아래 검색 컨텍스트만 사용해서 질문에 답하세요.
@@ -234,7 +245,7 @@ class NarrativeResearcherCore:
                 "summary_points": [],
             }
 
-        answer = (self.prompt | self.llm | StrOutputParser()).invoke(
+        answer = (self.prompt | self.llm | _str_output_parser()).invoke(
             {
                 "question": query,
                 "context": context,
@@ -254,7 +265,7 @@ def _build_evidence_pool_entries(task_id: str, result: Dict[str, Any]) -> List[E
     entries: List[EvidenceRecord] = []
     for item in result.get("retrieved_docs", []) or []:
         doc = item[0] if isinstance(item, tuple) and item else item
-        if not isinstance(doc, Document):
+        if not _is_document_like(doc):
             continue
         metadata = dict(doc.metadata or {})
         entries.append(
@@ -359,4 +370,3 @@ def build_financial_researcher_node(
     k: int = 6,
 ) -> Callable[[MultiAgentState], Dict[str, Any]]:
     return make_run_researcher(NarrativeResearcherCore(vector_store_manager, k=k))
-

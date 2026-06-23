@@ -7,7 +7,6 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Tuple
 
-from src.agent.financial_graph_helpers import _resolve_runtime_structured_result
 from src.agent.mas_types import (
     AgentTask,
     Artifact,
@@ -20,7 +19,7 @@ from src.agent.mas_types import (
     build_critic_report,
     project_worker_artifact_boundary,
 )
-from src.schema import ArtifactKind, TaskKind
+from src.schema.runtime_enums import ArtifactKind, TaskKind
 
 MAX_CRITIC_RETRIES = 2
 _PERCENT_RE = re.compile(r"\d+(?:\.\d+)?%")
@@ -42,12 +41,24 @@ def _artifact_answer(artifact: Artifact) -> str:
 def _artifact_calc_result(artifact: Artifact) -> Dict[str, Any]:
     payload = _artifact_payload(artifact)
     if payload:
-        calc_result = _resolve_runtime_structured_result(payload)
+        resolved_trace = dict(payload.get("resolved_calculation_trace") or {})
+        calc_result = dict(
+            payload.get("structured_result")
+            or resolved_trace.get("calculation_result")
+            or payload.get("calculation_result")
+            or {}
+        )
         if calc_result:
             return calc_result
     content = artifact.get("content")
     if isinstance(content, dict):
-        return _resolve_runtime_structured_result(content)
+        resolved_trace = dict(content.get("resolved_calculation_trace") or {})
+        return dict(
+            content.get("structured_result")
+            or resolved_trace.get("calculation_result")
+            or content.get("calculation_result")
+            or {}
+        )
     return {}
 
 

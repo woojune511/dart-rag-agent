@@ -1,14 +1,30 @@
-import pymupdf4llm
 import logging
-import os
+from dataclasses import dataclass
 from typing import List, Dict, Any
-from pydantic import BaseModel
-from langchain_text_splitters import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class DocumentChunk(BaseModel):
+
+def _markdown_header_text_splitter(**kwargs):
+    from langchain_text_splitters import MarkdownHeaderTextSplitter
+
+    return MarkdownHeaderTextSplitter(**kwargs)
+
+
+def _recursive_character_text_splitter(**kwargs):
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    return RecursiveCharacterTextSplitter(**kwargs)
+
+
+def _pdf_to_markdown(pdf_path: str) -> str:
+    import pymupdf4llm
+
+    return pymupdf4llm.to_markdown(pdf_path)
+
+
+@dataclass
+class DocumentChunk:
     content: str
     metadata: Dict[str, Any]
 
@@ -20,10 +36,10 @@ class PDFParser:
             ("##", "Header 2"),
             ("###", "Header 3"),
         ]
-        self.markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+        self.markdown_splitter = _markdown_header_text_splitter(headers_to_split_on=headers_to_split_on)
         
         # 2. Secondary Splitter: Fallback for massive sections
-        self.text_splitter = RecursiveCharacterTextSplitter(
+        self.text_splitter = _recursive_character_text_splitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=len,
@@ -33,7 +49,7 @@ class PDFParser:
     def extract_text(self, pdf_path: str) -> str:
         """Extracts PDF directly to structurally rich Markdown."""
         try:
-            md_text = pymupdf4llm.to_markdown(pdf_path)
+            md_text = _pdf_to_markdown(pdf_path)
             # pymupdf4llm preserves tables and reading order beautifully
             return md_text
         except Exception as e:
@@ -65,29 +81,3 @@ class PDFParser:
             
         logger.info(f"Created {len(document_chunks)} structure-aware chunks from {pdf_path}")
         return document_chunks
-
-if __name__ == "__main__":
-    # Smoke test for Document Structure Chunking
-    parser = PDFParser(chunk_size=1000, chunk_overlap=100)
-    
-    papers_dir = "data/papers"
-    if os.path.exists(papers_dir):
-        pdfs = [f for f in os.listdir(papers_dir) if f.endswith(".pdf")]
-        if pdfs:
-            pdf_path = os.path.join(papers_dir, pdfs[0])
-            test_metadata = {"arxiv_id": "test_id", "title": "Test Paper"}
-            
-            print(f"\n--- Testing Structure-Aware Parsing on {pdfs[0]} ---")
-            chunks = parser.process_document(pdf_path, test_metadata)
-            
-            if chunks:
-                print(f"✅ Successfully extracted {len(chunks)} contextual chunks.")
-                for i in range(min(3, len(chunks))):
-                    print(f"\n[Chunk {i} Metadata]: {chunks[i].metadata}")
-                    print(f"[Chunk {i} Content Head]:\n{chunks[i].content[:200]}...\n{'-'*50}")
-            else:
-                logger.error("Extraction failed or empty.")
-        else:
-            logger.warning("No PDF files found to test.")
-    else:
-        logger.warning(f"Directory {papers_dir} does not exist.")

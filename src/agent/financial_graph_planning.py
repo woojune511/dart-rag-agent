@@ -8,24 +8,56 @@ This module owns the "front" of the graph:
 - project ledger state back into the runtime calculation trace
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from langchain_core.prompts import ChatPromptTemplate
-from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import (
-    _attach_runtime_projection_metadata,
+    _annotate_task_dependencies,
+    _build_concept_metric_label,
+    _build_concept_required_operands,
+    _build_concept_task_constraints,
+    _build_generic_retrieval_queries,
+    _build_metric_task_query,
+    _build_semantic_numeric_plan,
     _extract_segment_labels_from_query,
+    _infer_generic_concept_spec,
     _infer_concept_ratio_result_unit,
-    _report_cache_candidate_for_trace,
+    _infer_operation_family_from_query,
+    _infer_period_focus,
 )
-from src.agent.financial_graph_models import (
-    ConceptPlannerOutput,
-    EntityExtraction,
-    FinancialAgentState,
-    validate_answer_slots_payload,
+from src.agent.financial_graph_model_loaders import (
+    _concept_planner_output_model,
+    _validate_answer_slots_payload,
+)
+from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
+from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState
+from src.agent.financial_runtime_normalization import (
+    _clean_source_row_ids,
+    _normalise_operand_value,
+    _normalise_spaces,
+)
+from src.agent.financial_retrieval_hints import _infer_statement_and_section_hints
+from src.agent.financial_runtime_trace import (
+    _attach_runtime_projection_metadata,
+    _build_aggregate_calculation_projection,
+    _project_task_trace_from_state,
+    _report_cache_candidate_for_trace,
+    _resolve_runtime_calculation_trace,
+    _structured_result_subtask_rows_and_answer,
+)
+from src.agent.financial_task_artifacts import semantic_plan_artifact_update as _semantic_plan_artifact_update
+from src.agent.financial_operation_policies import _query_requests_narrative_context
+from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
+from src.agent.financial_surface_contracts import _operand_needles
+from src.agent.financial_scope_policies import (
+    _desired_consolidation_scope,
+    _report_scope_source_receipts,
 )
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -39,8 +71,6 @@ from src.config.retrieval_policy import (
     narrative_policy_terms,
 )
 from src.routing import default_format_preference
-from src.schema import ArtifactKind, TaskKind, TaskStatus
-
 logger = logging.getLogger(__name__)
 
 
@@ -358,7 +388,7 @@ def _synthesize_lookup_answer_slot_from_prose(
         "operation_family": "lookup",
         "rendered_value": rendered_value,
         "formatted_result": _normalise_spaces(answer) or rendered_value,
-        "answer_slots": validate_answer_slots_payload(updated_slots),
+        "answer_slots": _validate_answer_slots_payload(updated_slots),
     }
 
 
@@ -1053,9 +1083,10 @@ class FinancialAgentPlanningMixin:
             if replan_mode
             else str(PLANNING_POLICY.get("concept_planner_initial_rule") or "")
         )
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(PLANNING_POLICY.get("concept_planner_prompt_template") or "")
         )
+        ConceptPlannerOutput = _concept_planner_output_model()
         structured_llm = self._llm_for_phase("concept_planning").with_structured_output(ConceptPlannerOutput)
         try:
             prompt_value = prompt.invoke(
@@ -1410,28 +1441,14 @@ class FinancialAgentPlanningMixin:
             if str(item).strip()
         )
         retrieval_queries = list(dict.fromkeys(item for item in retrieval_queries if item))
-        task_records = list(state.get("tasks") or [])
-        artifacts = list(state.get("artifacts") or [])
-        semantic_artifact_id = f"semantic_plan:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=semantic_artifact_id,
-            task_id=str(narrative_task.get("task_id") or "semantic_plan"),
-            kind=ArtifactKind.SEMANTIC_PLAN,
-            status=str(plan.get("status") or "ok"),
+        ledger_update = _semantic_plan_artifact_update(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(state.get("artifacts") or []),
+            artifact_task_id=str(narrative_task.get("task_id") or "semantic_plan"),
+            semantic_plan=plan,
+            retrieval_queries=retrieval_queries,
             summary="planned exclusive narrative task",
-            payload={"semantic_plan": plan, "retrieval_queries": retrieval_queries},
-        )
-        task_records = _upsert_task(
-            task_records,
-            task_id=str(narrative_task.get("task_id") or ""),
-            kind=TaskKind.CALCULATION,
-            label=str(narrative_task.get("metric_label") or narrative_task.get("metric_family") or "calculation"),
-            status=TaskStatus.PENDING,
-            query=str(narrative_task.get("query") or ""),
-            metric_family=str(narrative_task.get("metric_family") or ""),
-            constraints=dict(narrative_task.get("constraints") or {}),
-            artifact_id=semantic_artifact_id,
+            calculation_tasks=[narrative_task],
         )
         logger.info(
             "[semantic_plan] exclusive narrative policy tasks=%s retrieval_queries=%s",
@@ -1459,8 +1476,8 @@ class FinancialAgentPlanningMixin:
                 "planner_notes": list(plan.get("planner_notes") or []),
             },
             "subtask_loop_complete": False,
-            "tasks": task_records,
-            "artifacts": artifacts,
+            "tasks": list(ledger_update["tasks"]),
+            "artifacts": list(ledger_update["artifacts"]),
         }
 
     def _plan_semantic_numeric_tasks(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -1631,37 +1648,21 @@ class FinancialAgentPlanningMixin:
                 _normalise_spaces(str((llm_plan or {}).get("section_filter") or ""))
                 or state.get("section_filter")
             )
-            task_records = list(state.get("tasks") or [])
-            artifacts = list(state.get("artifacts") or [])
-            semantic_artifact_id = f"semantic_plan:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=semantic_artifact_id,
-                task_id=str(active_subtask.get("task_id") or "semantic_plan"),
-                kind=ArtifactKind.SEMANTIC_PLAN,
-                status=plan_status,
+            ledger_update = _semantic_plan_artifact_update(
+                tasks=list(state.get("tasks") or []),
+                artifacts=list(state.get("artifacts") or []),
+                artifact_task_id=str(active_subtask.get("task_id") or "semantic_plan"),
+                semantic_plan=semantic_plan,
+                retrieval_queries=retrieval_queries,
                 summary=f"replanned {len(appended_tasks)} additional numeric task(s)",
-                payload={
-                    "semantic_plan": semantic_plan,
-                    "retrieval_queries": retrieval_queries,
+                payload_extra={
                     "planner_feedback": planner_feedback,
                     "base_task_count": len(existing_tasks),
                     "appended_task_count": len(appended_tasks),
                     "execution_task_count": len(execution_tasks),
                 },
+                calculation_tasks=list(pending_execution_tasks or replanned_execution_tasks),
             )
-            for task in pending_execution_tasks or replanned_execution_tasks:
-                task_records = _upsert_task(
-                    task_records,
-                    task_id=str(task.get("task_id") or ""),
-                    kind=TaskKind.CALCULATION,
-                    label=str(task.get("metric_label") or task.get("metric_family") or "calculation"),
-                    status=TaskStatus.PENDING,
-                    query=str(task.get("query") or ""),
-                    metric_family=str(task.get("metric_family") or ""),
-                    constraints=dict(task.get("constraints") or {}),
-                    artifact_id=semantic_artifact_id,
-                )
             logger.info(
                 "[semantic_plan_replan] base_tasks=%s appended=%s retrieval_queries=%s feedback=%s",
                 len(existing_tasks),
@@ -1701,8 +1702,8 @@ class FinancialAgentPlanningMixin:
                     "base_task_count": len(existing_tasks),
                     "appended_task_count": len(replanned_execution_tasks),
                 },
-                "tasks": task_records,
-                "artifacts": artifacts,
+                "tasks": list(ledger_update["tasks"]),
+                "artifacts": list(ledger_update["artifacts"]),
             }
 
         plan = _build_semantic_numeric_plan(
@@ -1759,30 +1760,15 @@ class FinancialAgentPlanningMixin:
             retrieval_queries.extend(str(item).strip() for item in (task.get("retrieval_queries") or []) if str(item).strip())
         retrieval_queries = list(dict.fromkeys(item for item in retrieval_queries if item))
         active_subtask = dict(tasks[0]) if tasks else {}
-        task_records = list(state.get("tasks") or [])
-        artifacts = list(state.get("artifacts") or [])
-        semantic_artifact_id = f"semantic_plan:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=semantic_artifact_id,
-            task_id=str(active_subtask.get("task_id") or "semantic_plan"),
-            kind=ArtifactKind.SEMANTIC_PLAN,
-            status=str(plan.get("status") or "ok"),
+        ledger_update = _semantic_plan_artifact_update(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(state.get("artifacts") or []),
+            artifact_task_id=str(active_subtask.get("task_id") or "semantic_plan"),
+            semantic_plan=plan,
+            retrieval_queries=retrieval_queries,
             summary=f"planned {len(tasks)} numeric task(s)",
-            payload={"semantic_plan": plan, "retrieval_queries": retrieval_queries},
+            calculation_tasks=list(tasks),
         )
-        for task in tasks:
-            task_records = _upsert_task(
-                task_records,
-                task_id=str(task.get("task_id") or ""),
-                kind=TaskKind.CALCULATION,
-                label=str(task.get("metric_label") or task.get("metric_family") or "calculation"),
-                status=TaskStatus.PENDING,
-                query=str(task.get("query") or ""),
-                metric_family=str(task.get("metric_family") or ""),
-                constraints=dict(task.get("constraints") or {}),
-                artifact_id=semantic_artifact_id,
-            )
         logger.info(
             "[semantic_plan] status=%s tasks=%s retrieval_queries=%s",
             plan.get("status"),
@@ -1810,8 +1796,8 @@ class FinancialAgentPlanningMixin:
                 "planner_notes": list(plan.get("planner_notes") or []),
             },
             "subtask_loop_complete": False,
-            "tasks": task_records,
-            "artifacts": artifacts,
+            "tasks": list(ledger_update["tasks"]),
+            "artifacts": list(ledger_update["artifacts"]),
         }
 
     def _calc_query(self, state: FinancialAgentState) -> str:
@@ -1908,16 +1894,9 @@ class FinancialAgentPlanningMixin:
     ) -> Dict[str, Any]:
         structured_result = dict(state.get("structured_result") or {})
         public_answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
-        structured_answer = _normalise_spaces(
-            str(structured_result.get("formatted_result") or structured_result.get("rendered_value") or "")
-        )
+        subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
         if not public_answer or public_answer != structured_answer:
             return {}
-        subtask_results = [
-            dict(row)
-            for row in list(structured_result.get("subtask_results") or [])
-            if isinstance(row, dict)
-        ]
         if not subtask_results:
             return {}
         current_result = dict((trace or {}).get("calculation_result") or {})
@@ -1960,10 +1939,6 @@ class FinancialAgentPlanningMixin:
                 trace = dict(trace)
                 trace["report_cache_candidate"] = report_cache_candidate
         return trace
-
-    def _project_legacy_calculation_fields(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Compatibility alias while older tests and callers migrate."""
-        return self._project_runtime_calculation_trace(state)
 
     def _nested_subtask_rows(self, calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
         rows: List[Dict[str, Any]] = []
@@ -2197,7 +2172,7 @@ class FinancialAgentPlanningMixin:
                 "rendered_value": rendered_value,
                 "formatted_result": answer or rendered_value,
                 "source_row_ids": primary_slot_from_operand["source_row_ids"],
-                "answer_slots": validate_answer_slots_payload(
+                "answer_slots": _validate_answer_slots_payload(
                     {
                         **dict(calculation_result.get("answer_slots") or {}),
                         "operation_family": "lookup",
@@ -2255,7 +2230,7 @@ class FinancialAgentPlanningMixin:
                     if not _normalise_spaces(str(primary_slot.get("source_anchor") or "")):
                         primary_slot["source_anchor"] = _normalise_spaces(str(slot_evidence.get("source_anchor") or ""))
                     primary_slot = _refine_lookup_slot_unit_from_evidence(primary_slot, slot_evidence)
-                    primary_slot = _coerce_lookup_magnitude_record(primary_slot, slot_evidence)
+                    primary_slot = coerce_lookup_magnitude_record(primary_slot, slot_evidence)
                     if calculation_operands:
                         refined_operands: List[Dict[str, Any]] = []
                         primary_ids = set(_clean_source_row_ids([primary_slot.get("source_row_ids")]))

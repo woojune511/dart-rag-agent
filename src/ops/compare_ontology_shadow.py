@@ -4,21 +4,17 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from langchain_core.documents import Document
+from src.agent.financial_graph_helpers import _candidate_matches_operand, _score_operand_candidate
 
-from src.agent.financial_graph import FinancialAgent, _candidate_matches_operand, _score_operand_candidate
-from src.config.ontology import FinancialOntologyManager
-from src.processing.financial_parser import FinancialParser
+if TYPE_CHECKING:
+    from src.config.ontology import FinancialOntologyManager
 
 DEFAULT_DATASET = PROJECT_ROOT / "benchmarks" / "datasets" / "single_doc_eval_multi_metric_numeric.curated.json"
 DEFAULT_V2 = PROJECT_ROOT / "src" / "config" / "financial_ontology_v2.draft.json"
@@ -50,6 +46,8 @@ def _find_local_report(example: Dict[str, Any], report_root: Path) -> Optional[P
 
 
 def _load_chunks(report_path: Path, example: Dict[str, Any]) -> List[Any]:
+    from src.processing.financial_parser import FinancialParser
+
     parser = FinancialParser()
     source_metadata = {
         "company": str(example.get("company") or ""),
@@ -60,6 +58,8 @@ def _load_chunks(report_path: Path, example: Dict[str, Any]) -> List[Any]:
 
 
 def _docs_from_chunks(chunks: List[Any]) -> List[tuple[Document, float]]:
+    from langchain_core.documents import Document
+
     docs: List[tuple[Document, float]] = []
     for chunk in chunks:
         docs.append((Document(page_content=chunk.content, metadata=dict(chunk.metadata or {})), 1.0))
@@ -67,6 +67,8 @@ def _docs_from_chunks(chunks: List[Any]) -> List[tuple[Document, float]]:
 
 
 def _build_candidates(docs: List[tuple[Document, float]]) -> List[Dict[str, Any]]:
+    from src.agent.financial_graph import FinancialAgent
+
     agent = FinancialAgent.__new__(FinancialAgent)
     state = {
         "evidence_items": [],
@@ -199,6 +201,8 @@ def _compare_example(
 
 
 def main() -> None:
+    from src.config.ontology import FinancialOntologyManager
+
     parser = argparse.ArgumentParser(description="Compare legacy-like and ontology-policy candidate ranking.")
     parser.add_argument("--example-id", action="append", required=True, help="Benchmark example id to compare.")
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)

@@ -35,26 +35,20 @@ from src.agent.financial_graph_helpers import (
     _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
-    _coerce_lookup_magnitude_value,
-    _desired_consolidation_scope,
-    _desired_statement_types,
-    _extract_numeric_value_after_operand_text,
     _extract_generic_operand_labels,
-    _infer_statement_and_section_hints,
-    _label_implies_percent_metric,
-    _normalise_operand_value,
     _operand_target_years,
     _operand_row_matches_requirement,
     _order_concept_specs_by_query,
-    _parse_unstructured_table_row_cells,
-    _prioritize_candidate_items,
     _resolve_candidate_local_unit_hint,
-    _requires_direct_numeric_grounding,
-    _retrieval_hint_from_topic,
-    _resolve_runtime_calculation_trace,
-    _structured_cell_period_text,
-    _supplement_section_terms_for_query,
 )
+from src.agent.financial_graph_evidence import _prioritize_candidate_items
+from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
+from src.agent.financial_row_surfaces import (
+    _extract_numeric_value_after_operand_text,
+    _parse_unstructured_table_row_cells,
+)
+from src.agent.financial_operation_policies import _label_implies_percent_metric, _requires_direct_numeric_grounding
+from src.agent.financial_scope_policies import _desired_consolidation_scope
 from src.agent.financial_graph_models import (
     CalculationPlan,
     CalculationRenderOutput,
@@ -63,6 +57,13 @@ from src.agent.financial_graph_models import (
     NumericExtraction,
 )
 from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask, _refine_lookup_slot_unit_from_evidence
+from src.agent.financial_runtime_normalization import _normalise_operand_value
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_retrieval_hints import (
+    _desired_statement_types,
+    _infer_statement_and_section_hints,
+)
+from src.agent.financial_structured_cells import _structured_cell_period_text
 from src.config.ontology import FinancialOntologyManager
 import src.config.ontology as ontology_module
 
@@ -1139,7 +1140,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_operating_expense_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(8,181,823,307)", "천원")
-        coerced = _coerce_lookup_magnitude_value(
+        coerced = coerce_lookup_magnitude_value(
             normalized_value=normalized_value,
             normalized_unit=normalized_unit,
             raw_value="(8,181,823,307)",
@@ -1153,7 +1154,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_cost_of_sales_lookup_coerces_parenthesized_statement_value_to_positive_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(60,000,000)", "백만원")
-        coerced = _coerce_lookup_magnitude_value(
+        coerced = coerce_lookup_magnitude_value(
             normalized_value=normalized_value,
             normalized_unit=normalized_unit,
             raw_value="(60,000,000)",
@@ -2065,7 +2066,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_non_expense_lookup_preserves_negative_parenthesized_value(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(1,234)", "천원")
-        coerced = _coerce_lookup_magnitude_value(
+        coerced = coerce_lookup_magnitude_value(
             normalized_value=normalized_value,
             normalized_unit=normalized_unit,
             raw_value="(1,234)",
@@ -2083,7 +2084,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_foreign_currency_gain_lookup_coerces_parenthesized_amount_to_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(573,884)", "\ubc31\ub9cc\uc6d0")
-        coerced = _coerce_lookup_magnitude_value(
+        coerced = coerce_lookup_magnitude_value(
             normalized_value=normalized_value,
             normalized_unit=normalized_unit,
             raw_value="(573,884)",
@@ -3326,8 +3327,8 @@ class OperationContractTests(unittest.TestCase):
         )
 
         trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
-        self.assertEqual(trace["calculation_operands"], [])
-        self.assertEqual(trace["calculation_plan"], {})
+        self.assertEqual(trace.get("calculation_operands", []), [])
+        self.assertEqual(trace.get("calculation_plan", {}), {})
         self.assertEqual(trace["calculation_result"]["status"], "insufficient_operands")
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
@@ -6322,7 +6323,7 @@ class OperationContractTests(unittest.TestCase):
         trace = _resolve_runtime_calculation_trace(result)
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
-        self.assertEqual(trace["calculation_result"], {})
+        self.assertEqual(trace.get("calculation_result", {}), {})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
@@ -6357,9 +6358,9 @@ class OperationContractTests(unittest.TestCase):
 
         trace = _resolve_runtime_calculation_trace(result, allow_legacy_top_level=False)
         self.assertEqual(result["planner_debug_trace"]["reason"], "no operands")
-        self.assertEqual(trace["calculation_operands"], [])
+        self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
-        self.assertEqual(trace["calculation_result"], {})
+        self.assertEqual(trace.get("calculation_result", {}), {})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
@@ -6407,7 +6408,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertIn("distinct_operands", trace["calculation_plan"]["missing_info"])
-        self.assertEqual(trace["calculation_result"], {})
+        self.assertEqual(trace.get("calculation_result", {}), {})
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
 
@@ -6451,7 +6452,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("error", result["planner_debug_trace"])
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertEqual(trace["calculation_plan"]["operation"], "none")
-        self.assertEqual(trace["calculation_result"], {})
+        self.assertEqual(trace.get("calculation_result", {}), {})
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
 
@@ -6512,7 +6513,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["planner_debug_trace"]["reason"], "invalid_required_operand_bindings")
         self.assertEqual(trace["calculation_plan"]["status"], "incomplete")
         self.assertIn("denominator", trace["calculation_plan"]["missing_info"])
-        self.assertEqual(trace["calculation_result"], {})
+        self.assertEqual(trace.get("calculation_result", {}), {})
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
 
@@ -6552,9 +6553,9 @@ class OperationContractTests(unittest.TestCase):
         trace = _resolve_runtime_calculation_trace(result)
         self.assertEqual(result["evidence_status"], "missing")
         self.assertIn("error", result["calculation_debug_trace"])
-        self.assertEqual(trace["calculation_operands"], [])
-        self.assertEqual(trace["calculation_plan"], {})
-        self.assertEqual(trace["calculation_result"], {})
+        self.assertEqual(trace.get("calculation_operands", []), [])
+        self.assertEqual(trace.get("calculation_plan", {}), {})
+        self.assertEqual(trace.get("calculation_result", {}), {})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)

@@ -97,6 +97,26 @@ class OpsRuntimeProjectionModeTests(unittest.TestCase):
         self.assertEqual(result["structured_result"]["rendered_value"], "123")
         self.assertNotIn("999", str(result["resolved_calculation_trace"]))
 
+    def test_debug_math_workflow_projects_calculation_debug_under_debug_traces(self) -> None:
+        agent = self._ontology_fake_agent(
+            {
+                "calculation_debug_trace": {
+                    "source": "structured_row_direct",
+                    "coverage": "sufficient",
+                },
+                "resolved_calculation_trace": {},
+                "structured_result": {},
+            }
+        )
+
+        result = debug_math.debug_question(agent, "question")
+
+        self.assertEqual(
+            result["debug_traces"]["calculation"],
+            {"source": "structured_row_direct", "coverage": "sufficient"},
+        )
+        self.assertNotIn("calculation_debug_trace", result)
+
     def test_debug_reference_graph_smoke_rejects_legacy_top_level_runtime_projection(self) -> None:
         class FakeAgent:
             def _classify_query(self, state):
@@ -164,7 +184,7 @@ class OpsRuntimeProjectionModeTests(unittest.TestCase):
         self.assertEqual(result["structured_result"]["rendered_value"], "123")
         self.assertNotIn("999", str(result["resolved_calculation_trace"]))
 
-    def test_mas_smoke_keeps_direct_reader_compatible_but_artifact_reader_strict(self) -> None:
+    def test_mas_smoke_direct_reader_requires_explicit_legacy_opt_in(self) -> None:
         legacy_payload = {
             "calculation_operands": [{"label": "legacy", "value": "999"}],
             "calculation_plan": {"mode": "legacy"},
@@ -179,8 +199,16 @@ class OpsRuntimeProjectionModeTests(unittest.TestCase):
             }
         }
 
-        self.assertEqual(mas_analyst_smoke._operand_count(legacy_payload), 1)
-        self.assertEqual(mas_analyst_smoke._calc_payload(legacy_payload)["value"], 999)
+        self.assertEqual(mas_analyst_smoke._operand_count(legacy_payload), 0)
+        self.assertEqual(mas_analyst_smoke._calc_payload(legacy_payload), {})
+        self.assertEqual(
+            mas_analyst_smoke._operand_count(legacy_payload, allow_legacy_top_level=True),
+            1,
+        )
+        self.assertEqual(
+            mas_analyst_smoke._calc_payload(legacy_payload, allow_legacy_top_level=True)["value"],
+            999,
+        )
         self.assertEqual(mas_analyst_smoke._artifact_operand_count(final_state), 0)
         self.assertEqual(mas_analyst_smoke._artifact_calc_payload(final_state), {})
         self.assertEqual(mas_analyst_smoke._artifact_calc_status(final_state), "")

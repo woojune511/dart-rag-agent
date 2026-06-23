@@ -3,15 +3,12 @@ import os
 import logging
 import zipfile
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from typing import Any
 from typing import Dict, List, Optional
 
-import requests
 from dotenv import load_dotenv
-from pydantic import BaseModel
 
-load_dotenv()
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 DART_BASE_URL = "https://opendart.fss.or.kr/api"
@@ -39,7 +36,14 @@ _COMPANY_ALIASES: Dict[str, str] = {
 }
 
 
-class ReportMetadata(BaseModel):
+def _requests_get(*args: Any, **kwargs: Any) -> Any:
+    import requests
+
+    return requests.get(*args, **kwargs)
+
+
+@dataclass
+class ReportMetadata:
     rcept_no: str           # 접수번호 (문서 고유 식별자)
     corp_name: str          # 회사명
     corp_code: str          # DART 고유번호
@@ -63,6 +67,7 @@ class DARTFetcher:
     """
 
     def __init__(self, download_dir: str = None):
+        load_dotenv()
         self.api_key = os.environ.get("DART_API_KEY")
         if not self.api_key:
             raise ValueError(
@@ -86,7 +91,7 @@ class DARTFetcher:
             return self._corp_code_cache
 
         logger.info("DART 기업 코드 목록 다운로드 중...")
-        resp = requests.get(
+        resp = _requests_get(
             f"{DART_BASE_URL}/corpCode.xml",
             params={"crtfc_key": self.api_key},
             timeout=30,
@@ -192,7 +197,7 @@ class DARTFetcher:
             "page_count": 10,
         }
 
-        resp = requests.get(f"{DART_BASE_URL}/list.json", params=params, timeout=30)
+        resp = _requests_get(f"{DART_BASE_URL}/list.json", params=params, timeout=30)
         resp.raise_for_status()
         data = resp.json()
 
@@ -252,7 +257,7 @@ class DARTFetcher:
             f"(접수번호: {report.rcept_no})"
         )
 
-        resp = requests.get(
+        resp = _requests_get(
             f"{DART_BASE_URL}/document.xml",
             params={"crtfc_key": self.api_key, "rcept_no": report.rcept_no},
             timeout=60,
@@ -327,18 +332,3 @@ class DARTFetcher:
             f"{len(success)}/{len(all_reports)}개 다운로드 성공"
         )
         return all_reports
-
-
-if __name__ == "__main__":
-    # 스모크 테스트: 삼성전자 2023년 사업보고서
-    fetcher = DARTFetcher()
-
-    reports = fetcher.fetch_company_reports(
-        company_name="삼성전자",
-        years=[2023],
-        report_type="사업보고서",
-    )
-
-    for r in reports:
-        status = "OK" if r.file_path else "FAIL"
-        print(f"[{status}] {r.corp_name} {r.year}년 {r.report_type} -> {r.file_path}")

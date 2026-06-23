@@ -4,13 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config.report_scoped_cache import build_report_cache_promotion_evidence_case
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_PRODUCER_POLICY = "calculation_task_contract"
 EXPECTED_PRODUCER_SOURCE = "report_cache_rehydration"
 EXPECTED_CACHE_ORIGIN = "local_cache_index"

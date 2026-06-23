@@ -8,11 +8,8 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-from processing.financial_parser import FinancialParser
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,6 +23,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    from src.processing.financial_parser import FinancialParser
+
     args = build_parser().parse_args()
     report_path = Path(args.report_path)
     parser = FinancialParser()

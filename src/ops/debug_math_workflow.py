@@ -13,21 +13,16 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(PROJECT_ROOT) not in sys.path:
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
 
-from agent.financial_graph import FinancialAgent
-from agent.financial_graph_helpers import (
-    _resolve_runtime_calculation_trace,
-    _resolve_runtime_structured_result,
-)
-from storage.vector_store import VectorStoreManager
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+
+if TYPE_CHECKING:
+    from src.agent.financial_graph import FinancialAgent
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +56,6 @@ def _initial_state(query: str) -> Dict[str, Any]:
         "answer": "",
         "citations": [],
         "numeric_debug_trace": {},
-        "calculation_operands": [],
-        "calculation_plan": {},
-        "calculation_result": {},
-        "calculation_debug_trace": {},
         "planner_debug_trace": {},
     }
 
@@ -136,12 +127,13 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         state,
         allow_legacy_top_level=False,
     )
-    structured_result = _resolve_runtime_structured_result(
-        {
-            "resolved_calculation_trace": resolved_trace,
-            "structured_result": state.get("structured_result"),
-        }
+    structured_result = dict(
+        state.get("structured_result")
+        or resolved_trace.get("calculation_result")
+        or {}
     )
+
+    calculation_debug_trace = dict(state.get("calculation_debug_trace") or {})
 
     return {
         "query": query,
@@ -165,7 +157,7 @@ def debug_question(agent: FinancialAgent, query: str) -> Dict[str, Any]:
         "evidence_items": [_evidence_summary(item) for item in (state.get("evidence_items") or [])],
         "ratio_row_candidates": [_candidate_summary(item) for item in ratio_row_candidates],
         "component_candidates": [_candidate_summary(item) for item in component_candidates],
-        "calculation_debug_trace": state.get("calculation_debug_trace"),
+        "debug_traces": {"calculation": calculation_debug_trace},
         "planner_debug_trace": state.get("planner_debug_trace"),
         "resolved_calculation_trace": resolved_trace,
         "structured_result": structured_result,
@@ -185,6 +177,9 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+
+    from src.agent.financial_graph import FinancialAgent
+    from src.storage.vector_store import VectorStoreManager
 
     vsm = VectorStoreManager(
         persist_directory=args.store_dir,

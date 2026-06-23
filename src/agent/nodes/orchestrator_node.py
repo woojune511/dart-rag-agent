@@ -14,10 +14,11 @@ import re
 from typing import Any, Callable, Dict, List, Protocol, Sequence
 
 from dotenv import load_dotenv
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 
+from src.agent.financial_langchain_loaders import (
+    _chat_prompt_template_from_template,
+    _str_output_parser,
+)
 from src.agent.mas_types import (
     AgentTask,
     Artifact,
@@ -30,9 +31,12 @@ from src.agent.mas_types import (
     build_final_report_record,
     project_worker_artifact_boundary,
 )
-from src.schema import ArtifactKind, TaskKind
+from src.schema.runtime_enums import ArtifactKind, TaskKind
 
-load_dotenv()
+def _chat_google_generative_ai(*, model: str, temperature: float) -> Any:
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    return ChatGoogleGenerativeAI(model=model, temperature=temperature)
 
 
 class OrchestratorPlannerCore(Protocol):
@@ -340,12 +344,13 @@ def _subtask_results(artifacts: Dict[str, Artifact]) -> List[Dict[str, str]]:
 
 class FinancialOrchestratorPlannerCore:
     def __init__(self) -> None:
+        load_dotenv()
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
-        self.prompt = ChatPromptTemplate.from_template(
+        self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
+        self.prompt = _chat_prompt_template_from_template(
             """당신은 DART 공시 분석 멀티 에이전트 시스템의 최고 책임자(Orchestrator)입니다.
 
 사용자의 질문을 보고 하위 작업으로 분해하세요.
@@ -393,7 +398,7 @@ consolidation={consolidation}
 
     def run(self, query: str, *, report_scope: ReportScope | None = None) -> Dict[str, Any]:
         scope = dict(report_scope or {})
-        raw = (self.prompt | self.llm | StrOutputParser()).invoke(
+        raw = (self.prompt | self.llm | _str_output_parser()).invoke(
             {
                 "question": query,
                 "company": str(scope.get("company") or ""),
@@ -417,12 +422,13 @@ MERGE_ANSWER_COMPRESSION_GUIDANCE = """[additional compression policy]
 
 class FinancialOrchestratorMergeCore:
     def __init__(self) -> None:
+        load_dotenv()
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY environment variable is required.")
 
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0)
-        self.prompt = ChatPromptTemplate.from_template(
+        self.llm = _chat_google_generative_ai(model="gemini-2.5-flash", temperature=0)
+        self.prompt = _chat_prompt_template_from_template(
             MERGE_ANSWER_COMPRESSION_GUIDANCE
             + """당신은 금융 데이터 분석 보고서를 작성하는 Orchestrator입니다.
 
@@ -466,7 +472,7 @@ report_type={report_type}
         scope = dict(report_scope or {})
         analyst_artifacts = "\n".join(_artifact_lines(artifacts or {}, "Analyst")) or "(none)"
         researcher_artifacts = "\n".join(_artifact_lines(artifacts or {}, "Researcher")) or "(none)"
-        answer = (self.prompt | self.llm | StrOutputParser()).invoke(
+        answer = (self.prompt | self.llm | _str_output_parser()).invoke(
             {
                 "company": str(scope.get("company") or ""),
                 "year": str(scope.get("year") or ""),

@@ -5,29 +5,39 @@ import logging
 import math
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-from langchain_core.prompts import ChatPromptTemplate
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from src.config.retrieval_policy import (
     ROUTING_CALC_GUARDRAIL_ENABLED,
     ROUTING_CALC_GUARDRAIL_OPERATION_TERMS,
 )
 
-from .types import FormatPreference, QueryIntent, QueryRouteResult, QueryRoutingDecision
+from .format_policy import ROUTER_INTENTS, default_format_preference
+
+if TYPE_CHECKING:
+    from .types import QueryRouteResult
 
 
 logger = logging.getLogger(__name__)
 
-ROUTER_INTENTS: tuple[str, ...] = ("numeric_fact", "business_overview", "risk", "comparison", "trend", "qa")
-FORMAT_PREFERENCE_BY_INTENT: Dict[str, str] = {
-    "numeric_fact": "table",
-    "business_overview": "mixed",
-    "risk": "paragraph",
-    "comparison": "table",
-    "trend": "table",
-    "qa": "paragraph",
-}
+
+def _query_route_result_model() -> Any:
+    from .types import QueryRouteResult
+
+    return QueryRouteResult
+
+
+def _query_routing_decision_model() -> Any:
+    from .types import QueryRoutingDecision
+
+    return QueryRoutingDecision
+
+
+def _chat_prompt_template_from_template(template: str) -> Any:
+    from langchain_core.prompts import ChatPromptTemplate
+
+    return ChatPromptTemplate.from_template(template)
+
 SEMANTIC_FASTPATH_THRESHOLD = 0.76
 SEMANTIC_FASTPATH_MARGIN = 0.04
 SEMANTIC_CONFUSION_PAIR_MARGIN = 0.10
@@ -43,10 +53,6 @@ def default_canonical_queries_path() -> Path:
     if override:
         return Path(override).resolve()
     return Path(__file__).resolve().parents[2] / "benchmarks" / "golden" / "query_routing_canonical_v1.json"
-
-
-def default_format_preference(intent: str) -> str:
-    return FORMAT_PREFERENCE_BY_INTENT.get(intent, "mixed")
 
 
 def cosine_similarity(left: List[float], right: List[float]) -> float:
@@ -211,6 +217,7 @@ class QueryRouter:
         }
 
     def route(self, query: str) -> QueryRouteResult:
+        QueryRouteResult = _query_route_result_model()
         semantic_result = self.semantic_route(query)
         logger.info(
             "[routing] semantic intent=%s second=%s confidence=%.3f margin=%.3f required_margin=%.3f fast_path=%s scores=%s",
@@ -273,8 +280,9 @@ class QueryRouter:
                 required_margin=float(semantic_result.get("required_margin") or SEMANTIC_FASTPATH_MARGIN),
             )
 
+        QueryRoutingDecision = _query_routing_decision_model()
         structured_llm = self.llm.with_structured_output(QueryRoutingDecision)
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             """다음 기업 공시 질문을 `intent`와 `format_preference`로 분류하세요.
 
 intent 정의:

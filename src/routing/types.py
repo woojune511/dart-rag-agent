@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from typing import Dict, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 QueryIntent = Literal["numeric_fact", "business_overview", "risk", "comparison", "trend", "qa"]
 FormatPreference = Literal["table", "paragraph", "mixed"]
 
 
-class QueryRoutingDecision(BaseModel):
+class _DeferredBaseModel(BaseModel):
+    model_config = ConfigDict(defer_build=True)
+
+
+class QueryRoutingDecision(_DeferredBaseModel):
     intent: QueryIntent = Field(
         description=(
             "numeric_fact=특정 수치·금액·비율을 묻는 질의 (매출, 영업이익, 부채비율, R&D 비용 등), "
@@ -26,7 +30,7 @@ class QueryRoutingDecision(BaseModel):
     confidence: Optional[float] = Field(default=None, description="0.0~1.0 범위의 분류 확신도")
 
 
-class QueryRouteResult(BaseModel):
+class QueryRouteResult(_DeferredBaseModel):
     intent: QueryIntent
     format_preference: FormatPreference
     routing_source: Literal["semantic_fast_path", "llm_fallback", "heuristic_fallback"]

@@ -11,6 +11,7 @@ import csv
 import hashlib
 import json
 import logging
+import os
 import shutil
 import sys
 import threading
@@ -20,44 +21,41 @@ from statistics import mean
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from agent.financial_graph import DEFAULT_CONTEXT_BATCH_SIZE, DEFAULT_CONTEXT_MAX_WORKERS, FinancialAgent
-from agent.financial_graph_helpers import (
-    _project_task_artifact_trace,
-    _resolve_runtime_calculation_trace,
-    _resolve_runtime_structured_result,
-)
-from config.runtime_contract import CANONICAL_INGEST_MODE
-from ingestion.dart_fetcher import DARTFetcher, ReportMetadata
-from ops.evaluator import (
-    EvalExample,
-    RAGEvaluator,
-    _build_example_report_scope,
-    load_eval_examples_from_path,
-)
-from processing.financial_parser import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, FinancialParser
-from storage.vector_store import (
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_EMBEDDING_MODEL,
-    DEFAULT_EMBEDDING_PROVIDER,
-    VectorStoreManager,
-    get_embedding_runtime_spec,
-)
-from utils.gemini_usage import (
+from src.config.runtime_contract import CANONICAL_INGEST_MODE
+from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL, DEFAULT_EMBEDDING_PROVIDER, get_embedding_runtime_spec
+from src.utils.gemini_usage_counts import (
     add_gemini_usage_counts,
     estimate_gemini_cost_usd,
     extract_gemini_usage_counts,
     zero_gemini_usage_counts,
 )
-from utils.embedding_usage import (
+from src.utils.embedding_usage import (
     estimate_embedding_cost_usd,
     zero_embedding_usage_counts,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_runtime_calculation_trace(*args, **kwargs):
+    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+
+    return impl(*args, **kwargs)
+
+
+def _project_task_artifact_trace(*args, **kwargs):
+    from src.agent.financial_task_artifacts import project_task_artifact_trace as impl
+
+    return impl(*args, **kwargs)
+
+DEFAULT_CHUNK_SIZE = 2500
+DEFAULT_CHUNK_OVERLAP = 320
+DEFAULT_COLLECTION_NAME = "dart_reports_v2"
+DEFAULT_CONTEXT_MAX_WORKERS = max(4, min(12, (os.cpu_count() or 4) * 2))
+DEFAULT_CONTEXT_BATCH_SIZE = max(8, DEFAULT_CONTEXT_MAX_WORKERS * 2)
 
 RISK_CATEGORIES = {"risk", "risk_analysis"}
 BUSINESS_CATEGORIES = {"business", "business_overview"}
@@ -84,6 +82,48 @@ ABSTENTION_MARKERS = (
 )
 RISK_FAILURE_MARKERS = ("찾지 못", "확인하기 어렵", "확인할 수 없", "명시되지")
 BENCHMARK_CACHE_SCHEMA_VERSION = 2
+
+
+def _financial_agent_cls():
+    from src.agent.financial_graph import FinancialAgent
+
+    return FinancialAgent
+
+
+def _dart_fetcher_cls():
+    from src.ingestion.dart_fetcher import DARTFetcher
+
+    return DARTFetcher
+
+
+def _financial_parser_cls():
+    from src.processing.financial_parser import FinancialParser
+
+    return FinancialParser
+
+
+def _vector_store_manager_cls():
+    from src.storage.vector_store import VectorStoreManager
+
+    return VectorStoreManager
+
+
+def _rag_evaluator_cls():
+    from src.ops.evaluator import RAGEvaluator
+
+    return RAGEvaluator
+
+
+def _build_example_report_scope_for_eval(example):
+    from src.ops.evaluator import _build_example_report_scope
+
+    return _build_example_report_scope(example)
+
+
+def _load_eval_examples_from_path(path: Path):
+    from src.ops.evaluator import load_eval_examples_from_path
+
+    return load_eval_examples_from_path(path)
 
 
 class _BenchmarkProgressReporter:
@@ -396,7 +436,7 @@ def _ensure_benchmark_report_path(
             f"report_path not found and auto-fetch metadata is incomplete: {report_path}"
         )
 
-    report_fetcher = fetcher or DARTFetcher(download_dir=str(PROJECT_ROOT / "data" / "reports"))
+    report_fetcher = fetcher or _dart_fetcher_cls()(download_dir=str(PROJECT_ROOT / "data" / "reports"))
     reports = report_fetcher.fetch_company_reports(company, [year], report_type=report_type)
     if not reports:
         raise FileNotFoundError(
@@ -841,7 +881,7 @@ def _build_graph_expansion_config(config: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _load_eval_dataset(dataset_path: Path) -> List[EvalExample]:
-    return load_eval_examples_from_path(dataset_path)
+    return _load_eval_examples_from_path(dataset_path)
 
 
 def _normalise_section_alias_config(raw_aliases: Dict[str, Any] | None) -> Dict[str, List[str]]:
@@ -1052,7 +1092,11 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
             runtime_projection,
             allow_legacy_top_level=False,
         )
-        structured_result = _resolve_runtime_structured_result(runtime_projection)
+        structured_result = dict(
+            runtime_projection.get("structured_result")
+            or resolved_trace.get("calculation_result")
+            or {}
+        )
         projection_metadata = dict(resolved_trace.get("runtime_projection") or {})
         task_artifact_trace = dict(getattr(result, "task_artifact_trace", {}) or {})
         serialised.append(
@@ -1180,7 +1224,11 @@ def _run_smoke_queries(agent: FinancialAgent, queries: List[Any]) -> Dict[str, A
                 runtime_projection,
                 allow_legacy_top_level=False,
             )
-            structured_result = _resolve_runtime_structured_result(runtime_projection)
+            structured_result = dict(
+                runtime_projection.get("structured_result")
+                or resolved_trace.get("calculation_result")
+                or {}
+            )
         except Exception as exc:
             error = str(exc)
             logger.error("Smoke query failed: %s", exc)
@@ -1243,7 +1291,7 @@ def _run_screening_eval(
         try:
             result = agent.run(
                 example.question,
-                report_scope=_build_example_report_scope(example),
+                report_scope=_build_example_report_scope_for_eval(example),
             )
             answer = result.get("answer", "")
             query_type = result.get("query_type", "unknown")
@@ -1625,23 +1673,6 @@ def _build_parent_context_prompt(text: str, metadata: Dict[str, Any]) -> str:
     )
 
 
-def _should_contextualize_chunk(
-    chunk: Any,
-    short_text_threshold: int = 900,
-    targeted_sections: Optional[List[str]] = None,
-) -> bool:
-    metadata = chunk.metadata or {}
-    if metadata.get("block_type") == "table":
-        return True
-    if len((chunk.content or "").strip()) <= short_text_threshold:
-        return True
-
-    targets = targeted_sections or ["리스크", "연구개발", "매출현황", "사업개요", "경영진단"]
-    section = str(metadata.get("section", "")).strip()
-    section_path = str(metadata.get("section_path", section)).strip()
-    return any(target and (target == section or target in section_path) for target in targets)
-
-
 def _contains_any_target(section: str, section_path: str, targets: List[str]) -> bool:
     return any(target and (target == section or target in section_path) for target in targets)
 
@@ -1823,7 +1854,7 @@ def _select_chunk_reasons(
 
 
 def _store_parent_chunks(agent: FinancialAgent, chunks: List[Any]) -> Dict[str, str]:
-    parents = FinancialParser.build_parents(chunks)
+    parents = _financial_parser_cls().build_parents(chunks)
     agent.vsm.add_parents(parents)
     return parents
 
@@ -3819,7 +3850,7 @@ def run_screening_experiment(
             cache_meta = {}
             store_meta = {}
 
-    vsm = VectorStoreManager(
+    vsm = _vector_store_manager_cls()(
         persist_directory=str(persist_dir),
         collection_name=collection_name,
         embedding_provider=embedding_provider,
@@ -3828,7 +3859,7 @@ def run_screening_experiment(
         force_bm25_only=False,
         skip_vector_add=False,
     )
-    agent = FinancialAgent(
+    agent = _financial_agent_cls()(
         vsm,
         k=int(config_with_inventory.get("k", 8)),
         graph_expansion_config=_build_graph_expansion_config(config_with_inventory),
@@ -3913,7 +3944,7 @@ def run_screening_experiment(
     else:
         if progress_reporter:
             progress_reporter.update("screening:parse", experiment_id=experiment_id, emit_now=True)
-        parser = FinancialParser(
+        parser = _financial_parser_cls()(
             chunk_size=int(config_with_inventory.get("chunk_size", DEFAULT_CHUNK_SIZE)),
             chunk_overlap=int(config_with_inventory.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)),
         )
@@ -4229,7 +4260,7 @@ def _run_full_evaluation(
     if progress_reporter:
         progress_reporter.update("full_eval:prepare", experiment_id=result.get("id"), emit_now=True)
     store_info = result["store"]
-    vsm = VectorStoreManager(
+    vsm = _vector_store_manager_cls()(
         persist_directory=store_info["persist_directory"],
         collection_name=store_info["collection_name"],
         embedding_provider=store_info.get("embedding_provider", DEFAULT_EMBEDDING_PROVIDER),
@@ -4239,13 +4270,13 @@ def _run_full_evaluation(
         ),
         force_bm25_only=False,
     )
-    agent = FinancialAgent(
+    agent = _financial_agent_cls()(
         vsm,
         k=int(merged_config.get("k", 8)),
         graph_expansion_config=_build_graph_expansion_config(merged_config),
         routing_config=_build_agent_routing_config(full_eval_config),
     )
-    evaluator = RAGEvaluator(
+    evaluator = _rag_evaluator_cls()(
         agent,
         dataset_path=str(_normalise_path(merged_config["eval_dataset_path"])),
         experiment_name=merged_config.get("mlflow_experiment_name", "dart_rag_benchmark"),

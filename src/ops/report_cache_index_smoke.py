@@ -9,11 +9,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.storage.report_cache_index import ReportCacheIndex  # noqa: E402
 from src.config.report_scoped_cache import (  # noqa: E402

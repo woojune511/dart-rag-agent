@@ -3,11 +3,146 @@
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from src.agent.financial_graph_helpers import (
-    _normalise_operand_value,
-    _normalise_spaces,
-    _operand_text_match,
-)
+from src.config import get_financial_ontology
+from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
+
+
+def lookup_hints_for_concept_key(concept_key: str) -> Dict[str, Any]:
+    normalized_key = _normalise_spaces(str(concept_key or ""))
+    if not normalized_key:
+        return {}
+
+    ontology = get_financial_ontology()
+    concept = ontology.concept(str(concept_key or "").strip())
+    if concept:
+        return dict(concept.get("lookup_hints") or {})
+
+    for spec in list(getattr(ontology, "all_concept_specs", lambda: [])() or []):
+        if bool(spec.get("is_group")):
+            continue
+        if _normalise_spaces(str(spec.get("concept") or "")) == normalized_key:
+            return dict(spec.get("lookup_hints") or {})
+    return {}
+
+
+def coerce_lookup_magnitude_value(
+    *,
+    normalized_value: Optional[float],
+    normalized_unit: str,
+    raw_value: str,
+    concept: str,
+    statement_type: str,
+    row_label: str = "",
+    semantic_label: str = "",
+) -> Optional[float]:
+    if normalized_value is None or normalized_unit != "KRW" or normalized_value >= 0:
+        return normalized_value
+
+    lookup_hints = lookup_hints_for_concept_key(concept)
+    normalized_statement_type = _normalise_spaces(statement_type).lower()
+    if not bool(lookup_hints.get("coerce_parenthesized_negative_to_positive_magnitude")):
+        return normalized_value
+    if normalized_statement_type not in {"income_statement", "summary_financials", "notes"}:
+        return normalized_value
+
+    magnitude_surface_tokens = [
+        _normalise_spaces(str(token))
+        for token in (lookup_hints.get("magnitude_surface_tokens") or [])
+        if _normalise_spaces(str(token))
+    ]
+    surface = _normalise_spaces(" ".join(part for part in (row_label, semantic_label) if part))
+    if surface and magnitude_surface_tokens and not any(token in surface for token in magnitude_surface_tokens):
+        return normalized_value
+    raw_surface = str(raw_value or "")
+    if not any(marker in raw_surface for marker in ("(", ")", "△", "▲", "-")):
+        return normalized_value
+    return abs(normalized_value)
+
+
+def coerce_lookup_magnitude_record(
+    record: Dict[str, Any],
+    evidence_item: Optional[Dict[str, Any]] = None,
+    *,
+    concept: str = "",
+    statement_type: str = "",
+    row_label: str = "",
+    semantic_label: str = "",
+) -> Dict[str, Any]:
+    """Apply ontology-declared lookup magnitude semantics to a slot/operand row."""
+    updated = dict(record or {})
+    normalized_unit = _normalise_spaces(str(updated.get("normalized_unit") or "")).upper()
+    normalized_value = updated.get("normalized_value")
+    try:
+        numeric_value = float(normalized_value)
+    except (TypeError, ValueError):
+        return updated
+
+    metadata = dict((evidence_item or {}).get("metadata") or {})
+    resolved_concept = _normalise_spaces(
+        str(
+            concept
+            or updated.get("concept")
+            or updated.get("matched_operand_concept")
+            or ""
+        )
+    )
+    resolved_statement_type = _normalise_spaces(
+        str(
+            statement_type
+            or updated.get("statement_type")
+            or metadata.get("statement_type")
+            or ""
+        )
+    )
+    resolved_row_label = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in (
+                row_label,
+                updated.get("row_label"),
+                updated.get("label"),
+                updated.get("matched_operand_label"),
+                metadata.get("row_label"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    resolved_semantic_label = _normalise_spaces(
+        " ".join(
+            str(part or "")
+            for part in (
+                semantic_label,
+                updated.get("semantic_label"),
+                metadata.get("semantic_label"),
+                metadata.get("table_value_labels_text"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    coerced_value = coerce_lookup_magnitude_value(
+        normalized_value=numeric_value,
+        normalized_unit=normalized_unit,
+        raw_value=_normalise_spaces(str(updated.get("raw_value") or updated.get("rendered_value") or "")),
+        concept=resolved_concept,
+        statement_type=resolved_statement_type,
+        row_label=resolved_row_label,
+        semantic_label=resolved_semantic_label,
+    )
+    if coerced_value != numeric_value:
+        raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
+        rendered_value = _normalise_spaces(str(updated.get("rendered_value") or ""))
+        magnitude_raw = raw_value.strip()
+        if magnitude_raw.startswith("(") and magnitude_raw.endswith(")"):
+            magnitude_raw = magnitude_raw[1:-1].strip()
+        magnitude_raw = magnitude_raw.lstrip("△▲-").strip()
+        if rendered_value and not updated.get("source_rendered_value"):
+            updated["source_rendered_value"] = rendered_value
+        if magnitude_raw and raw_unit:
+            updated["rendered_value"] = _normalise_spaces(f"{magnitude_raw}{raw_unit}")
+        updated["normalized_value"] = coerced_value
+        updated["value_coercion"] = "lookup_magnitude_from_source_surface"
+    return updated
 
 
 def lookup_recovery_digit_count(value: Any) -> int:
@@ -105,17 +240,13 @@ def recovered_slot_has_primary_label_match(
     return matched_line_label in primary_keys
 
 
-def lookup_recovery_value_refinement_allowed(
+def _lookup_recovery_scope_allows_refinement(
+    *,
     current_slot: Dict[str, Any],
     preferred_slot: Dict[str, Any],
-    preferred_evidence: Optional[Dict[str, Any]],
-    *,
-    desired_scope: str,
     current_evidence: Optional[Dict[str, Any]],
-    operand: Dict[str, Any],
-    recovered_slot_matches_primary_label: Callable[[Dict[str, Any]], bool],
-    direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
-    operand_rows_materially_conflict: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+    preferred_evidence: Optional[Dict[str, Any]],
+    desired_scope: str,
 ) -> bool:
     current_scope = _normalise_spaces(
         str(
@@ -131,17 +262,15 @@ def lookup_recovery_value_refinement_allowed(
             or "unknown"
         )
     )
-    if desired_scope != "unknown" and current_scope == desired_scope and preferred_scope != desired_scope:
-        return False
-    preferred_metadata = dict((preferred_evidence or {}).get("metadata") or {})
-    if operand_rows_materially_conflict(current_slot, preferred_slot):
-        selected_value_match = preferred_slot_value_matches_selected_evidence(
-            preferred_slot,
-            preferred_evidence,
-        )
-        if selected_value_match is False:
-            return False
-    has_structured_surface = any(
+    return not (
+        desired_scope != "unknown"
+        and current_scope == desired_scope
+        and preferred_scope != desired_scope
+    )
+
+
+def _lookup_recovery_has_structured_surface(preferred_metadata: Dict[str, Any]) -> bool:
+    return any(
         _normalise_spaces(str(value or ""))
         for value in (
             preferred_metadata.get("table_value_labels_text"),
@@ -150,60 +279,90 @@ def lookup_recovery_value_refinement_allowed(
             preferred_metadata.get("structured_cells"),
         )
     )
-    if not has_structured_surface:
-        return False
-    if bool(preferred_metadata.get("table_value_labels_text")) and recovered_slot_matches_primary_label(
+
+
+def _lookup_recovery_float_pair(
+    current_slot: Dict[str, Any],
+    preferred_slot: Dict[str, Any],
+) -> Optional[tuple[float, float]]:
+    try:
+        return float(current_slot.get("normalized_value")), float(preferred_slot.get("normalized_value"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _lookup_recovery_slot_relative_delta(current_float: float, preferred_float: float) -> float:
+    return abs(preferred_float - current_float) / max(abs(current_float), abs(preferred_float), 1.0)
+
+
+def _lookup_recovery_more_compact_same_raw_unit(
+    current_slot: Dict[str, Any],
+    preferred_slot: Dict[str, Any],
+) -> bool:
+    current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+    preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+    return (
+        bool(preferred_raw_unit)
+        and current_raw_unit == preferred_raw_unit
+        and lookup_recovery_digit_count(preferred_slot.get("raw_value"))
+        < lookup_recovery_digit_count(current_slot.get("raw_value"))
+    )
+
+
+def _lookup_recovery_table_label_refinement_allowed(
+    *,
+    current_slot: Dict[str, Any],
+    preferred_slot: Dict[str, Any],
+    preferred_metadata: Dict[str, Any],
+    recovered_slot_matches_primary_label: Callable[[Dict[str, Any]], bool],
+) -> Optional[bool]:
+    if not bool(preferred_metadata.get("table_value_labels_text")) or not recovered_slot_matches_primary_label(
         preferred_slot
     ):
-        current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
-        preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
-        if preferred_raw_unit and (not current_raw_unit or preferred_raw_unit == current_raw_unit):
-            try:
-                current_float = float(current_slot.get("normalized_value"))
-                preferred_float = float(preferred_slot.get("normalized_value"))
-            except (TypeError, ValueError):
-                current_float = None
-                preferred_float = None
-            if current_float is not None and preferred_float is not None:
-                relative_delta = abs(preferred_float - current_float) / max(
-                    abs(current_float),
-                    abs(preferred_float),
-                    1.0,
-                )
-                if (
-                    relative_delta > 0.005
-                    and lookup_recovery_digit_count(preferred_slot.get("raw_value"))
-                    < lookup_recovery_digit_count(current_slot.get("raw_value"))
-                ):
-                    return False
-            return True
+        return None
+    current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
+    preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
+    if not preferred_raw_unit or (current_raw_unit and preferred_raw_unit != current_raw_unit):
+        return None
+    value_pair = _lookup_recovery_float_pair(current_slot, preferred_slot)
+    if value_pair is not None:
+        current_float, preferred_float = value_pair
+        if (
+            _lookup_recovery_slot_relative_delta(current_float, preferred_float) > 0.005
+            and lookup_recovery_digit_count(preferred_slot.get("raw_value"))
+            < lookup_recovery_digit_count(current_slot.get("raw_value"))
+        ):
+            return False
+    return True
+
+
+def _lookup_recovery_same_unit_refinement_allowed(
+    *,
+    current_slot: Dict[str, Any],
+    preferred_slot: Dict[str, Any],
+    preferred_evidence: Optional[Dict[str, Any]],
+    preferred_metadata: Dict[str, Any],
+    operand: Dict[str, Any],
+    recovered_slot_matches_primary_label: Callable[[Dict[str, Any]], bool],
+    direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
+) -> bool:
     current_unit = _normalise_spaces(str(current_slot.get("normalized_unit") or "")).upper()
     preferred_unit = _normalise_spaces(str(preferred_slot.get("normalized_unit") or "")).upper()
     if not current_unit or not preferred_unit or current_unit == "UNKNOWN" or preferred_unit == "UNKNOWN":
         return False
     if current_unit != preferred_unit:
         return False
-    current_value = current_slot.get("normalized_value")
-    preferred_value = preferred_slot.get("normalized_value")
-    try:
-        current_float = float(current_value)
-        preferred_float = float(preferred_value)
-    except (TypeError, ValueError):
+    value_pair = _lookup_recovery_float_pair(current_slot, preferred_slot)
+    if value_pair is None:
         return False
+    current_float, preferred_float = value_pair
     if current_float == 0:
         return False
     if (current_float < 0) != (preferred_float < 0):
         return False
-    relative_delta = abs(preferred_float - current_float) / max(abs(current_float), abs(preferred_float), 1.0)
+    relative_delta = _lookup_recovery_slot_relative_delta(current_float, preferred_float)
     if relative_delta > 0.005:
-        current_raw_unit = _normalise_spaces(str(current_slot.get("raw_unit") or ""))
-        preferred_raw_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
-        if (
-            preferred_raw_unit
-            and current_raw_unit == preferred_raw_unit
-            and lookup_recovery_digit_count(preferred_slot.get("raw_value"))
-            < lookup_recovery_digit_count(current_slot.get("raw_value"))
-        ):
+        if _lookup_recovery_more_compact_same_raw_unit(current_slot, preferred_slot):
             return False
         evidence_score = (
             direct_structured_lookup_evidence_score(operand, preferred_evidence)
@@ -224,6 +383,55 @@ def lookup_recovery_value_refinement_allowed(
         )
     return lookup_recovery_digit_count(preferred_slot.get("raw_value")) > lookup_recovery_digit_count(
         current_slot.get("raw_value")
+    )
+
+
+def lookup_recovery_value_refinement_allowed(
+    current_slot: Dict[str, Any],
+    preferred_slot: Dict[str, Any],
+    preferred_evidence: Optional[Dict[str, Any]],
+    *,
+    desired_scope: str,
+    current_evidence: Optional[Dict[str, Any]],
+    operand: Dict[str, Any],
+    recovered_slot_matches_primary_label: Callable[[Dict[str, Any]], bool],
+    direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
+    operand_rows_materially_conflict: Callable[[Dict[str, Any], Dict[str, Any]], bool],
+) -> bool:
+    if not _lookup_recovery_scope_allows_refinement(
+        current_slot=current_slot,
+        preferred_slot=preferred_slot,
+        current_evidence=current_evidence,
+        preferred_evidence=preferred_evidence,
+        desired_scope=desired_scope,
+    ):
+        return False
+    preferred_metadata = dict((preferred_evidence or {}).get("metadata") or {})
+    if operand_rows_materially_conflict(current_slot, preferred_slot):
+        selected_value_match = preferred_slot_value_matches_selected_evidence(
+            preferred_slot,
+            preferred_evidence,
+        )
+        if selected_value_match is False:
+            return False
+    if not _lookup_recovery_has_structured_surface(preferred_metadata):
+        return False
+    table_label_decision = _lookup_recovery_table_label_refinement_allowed(
+        current_slot=current_slot,
+        preferred_slot=preferred_slot,
+        preferred_metadata=preferred_metadata,
+        recovered_slot_matches_primary_label=recovered_slot_matches_primary_label,
+    )
+    if table_label_decision is not None:
+        return table_label_decision
+    return _lookup_recovery_same_unit_refinement_allowed(
+        current_slot=current_slot,
+        preferred_slot=preferred_slot,
+        preferred_evidence=preferred_evidence,
+        preferred_metadata=preferred_metadata,
+        operand=operand,
+        recovered_slot_matches_primary_label=recovered_slot_matches_primary_label,
+        direct_structured_lookup_evidence_score=direct_structured_lookup_evidence_score,
     )
 
 

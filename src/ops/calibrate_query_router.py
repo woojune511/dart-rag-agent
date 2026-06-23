@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
-
-from src.routing import cosine_similarity, default_canonical_queries_path, load_canonical_routing_examples
-from src.storage.vector_store import DEFAULT_EMBEDDING_MODEL, create_embeddings
-
+from typing import Any, Dict, List
 
 ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.routing import cosine_similarity, default_canonical_queries_path, load_canonical_routing_examples
+
+
 DEFAULT_CANONICAL_PATH = default_canonical_queries_path()
 DEFAULT_EVAL_PATH = ROOT / "benchmarks" / "golden" / "query_routing_eval_v1.json"
 DEFAULT_OUTPUT_DIR = ROOT / "benchmarks" / "results"
@@ -29,6 +32,18 @@ class ExampleScore:
     second_score: float
     margin: float
     scores: Dict[str, float]
+
+
+def _default_embedding_model() -> str:
+    from src.storage.embedding_config import DEFAULT_EMBEDDING_MODEL
+
+    return DEFAULT_EMBEDDING_MODEL
+
+
+def _create_embeddings(*, model_name: str) -> Any:
+    from src.storage.embedding_config import create_embeddings
+
+    return create_embeddings(model_name=model_name)
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -243,13 +258,13 @@ def main() -> None:
     parser.add_argument("--eval-path", type=Path, default=DEFAULT_EVAL_PATH)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--output-name", type=str, default="query_router_calibration_2026-04-24")
-    parser.add_argument("--embedding-model", type=str, default=DEFAULT_EMBEDDING_MODEL)
+    parser.add_argument("--embedding-model", type=str, default=_default_embedding_model())
     parser.add_argument("--min-precision", type=float, default=0.95)
     args = parser.parse_args()
 
     canonical_examples = _load_canonical_examples(args.canonical_path)
     eval_examples = _load_eval_examples(args.eval_path)
-    embeddings = create_embeddings(model_name=args.embedding_model)
+    embeddings = _create_embeddings(model_name=args.embedding_model)
 
     scored_examples = _score_examples(embeddings, canonical_examples, eval_examples)
 

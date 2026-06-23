@@ -19,11 +19,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.experimental.mas.graph import run_mas_graph
 from src.experimental.mas.nodes import (
@@ -33,7 +30,23 @@ from src.experimental.mas.nodes import (
     build_financial_researcher_node,
 )
 from src.experimental.mas.types import project_final_report_carry_forward
-from src.storage.vector_store import VectorStoreManager, get_embedding_runtime_spec
+
+VectorStoreManager = None
+
+
+def get_embedding_runtime_spec(provider=None, model_name=None):
+    from src.storage.embedding_config import get_embedding_runtime_spec as impl
+
+    return impl(provider=provider, model_name=model_name)
+
+
+def _vector_store_manager_cls():
+    global VectorStoreManager
+    if VectorStoreManager is None:
+        from src.storage.vector_store import VectorStoreManager as impl
+
+        VectorStoreManager = impl
+    return VectorStoreManager
 
 DEFAULT_STORE_DIR = (
     Path(
@@ -761,7 +774,8 @@ def run_smoke(
         f"graph_nodes={store_inventory['structure_graph_node_count']}"
     )
     log("init_vector_store")
-    vsm = VectorStoreManager(
+    vector_store_manager_cls = _vector_store_manager_cls()
+    vsm = vector_store_manager_cls(
         persist_directory=str(store_dir),
         collection_name=collection_name,
         embedding_provider=str(embedding_runtime_spec.get("provider") or ""),

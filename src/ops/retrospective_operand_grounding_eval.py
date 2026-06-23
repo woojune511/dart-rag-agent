@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from statistics import mean
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from ops.evaluator import _compute_operand_grounding_score, _resolve_numeric_judgement
-from agent.financial_graph_helpers import _resolve_runtime_calculation_trace
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,24 @@ EXCLUDED_QUESTION_IDS: Dict[str, str] = {
     "comparison_003": "display-aware equivalence 변경의 영향이 섞여 있어 operand grounding 실험에서 제외",
     "trend_001": "numeric_final_judgement가 없는 trend 서술형 문항이라 제외",
 }
+
+
+def _resolve_runtime_calculation_trace(*args: Any, **kwargs: Any) -> Dict[str, Any]:
+    from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace as impl
+
+    return impl(*args, **kwargs)
+
+
+def _compute_operand_grounding_score(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _compute_operand_grounding_score as impl
+
+    return impl(*args, **kwargs)
+
+
+def _resolve_numeric_judgement(*args: Any, **kwargs: Any) -> Any:
+    from src.ops.evaluator import _resolve_numeric_judgement as impl
+
+    return impl(*args, **kwargs)
 
 
 def _load_per_question_rows(path: Path) -> List[Dict[str, Any]]:

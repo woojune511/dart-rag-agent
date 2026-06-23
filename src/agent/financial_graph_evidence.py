@@ -8,26 +8,54 @@ This module owns document retrieval and evidence shaping:
 - run the narrative answer path for non-calculation questions
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from src.agent.financial_graph_helpers import *  # noqa: F401,F403
-from src.agent.financial_graph_helpers import _report_scope_source_receipts
-from src.agent.financial_graph_models import (
-    CompressionOutput,
-    EvidenceExtraction,
-    EvidenceItem,
-    FinancialAgentState,
-    NumericExtraction,
-    ValidationOutput,
-    validate_answer_slots_payload,
+from src.agent.financial_graph_helpers import (
+    _build_generic_metric_aliases,
+    _extract_generic_operand_labels,
+    _operand_row_matches_requirement,
+    _scoped_surface_affinity_priority,
+    _score_structured_cell,
 )
+from src.agent.financial_graph_model_loaders import (
+    _compression_output_model,
+    _evidence_extraction_model,
+    _numeric_extraction_model,
+    _validate_answer_slots_payload,
+    _validation_output_model,
+)
+from src.agent.financial_langchain_loaders import (
+    _chat_prompt_template_from_template,
+    _document,
+    _str_output_parser,
+)
+from src.agent.financial_retrieval_hints import (
+    _active_preferred_sections,
+    _active_preferred_statement_types,
+    _desired_statement_types,
+    _retrieval_hint_from_topic,
+)
+from src.agent.financial_surface_contracts import (
+    _operand_needles,
+    _text_has_negative_surface,
+    _text_has_positive_surface,
+)
+from src.agent.financial_row_surfaces import (
+    _extract_numeric_value_after_operand_text,
+    _extract_table_row_label,
+    _operand_text_match,
+    _parse_unstructured_table_row_cells,
+)
+from src.agent.financial_structured_cells import _structured_cell_period_text
+if TYPE_CHECKING:
+    from src.agent.financial_graph_models import EvidenceItem
+    from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_graph_retrieval_budget import (
     _apply_query_budget,
     _cross_trace_reuse_candidate_diagnostics,
@@ -38,6 +66,30 @@ from src.agent.financial_graph_retrieval_budget import (
     _query_budget_int,
     _store_query_result_cache,
     _summarize_executed_query_telemetry,
+)
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
+from src.agent.financial_operation_policies import (
+    _is_percent_point_difference_query,
+    _is_ratio_percent_query,
+    _query_requests_narrative_context,
+    _requires_direct_numeric_grounding,
+)
+from src.agent.financial_runtime_normalization import (
+    _normalise_operand_value,
+    _normalise_spaces,
+    _parse_number_text,
+)
+from src.agent.financial_scope_policies import (
+    _desired_consolidation_scope,
+    _metadata_period_match_strength,
+    _report_scope_source_receipts,
+    _should_apply_strict_company_scope,
+)
+from src.agent.financial_text_surface import (
+    _split_sentences,
+    _strip_anchor_text,
+    _strip_rerank_metadata,
+    _tokenize_terms,
 )
 from src.config import get_financial_ontology
 from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
@@ -52,6 +104,7 @@ from src.config.retrieval_policy import (
     EVIDENCE_EXTRACTION_POLICY,
     EVIDENCE_RUNTIME_POLICY,
     NARRATIVE_RERANK_POLICY,
+    METRIC_TOPIC_EXTRACTION_TERMS,
     NUMERIC_IMPAIRMENT_LOOKUP_POLICY,
     PERIOD_COMPARISON_COUNT_POLICY,
     QUANTITATIVE_IMPACT_ASSEMBLY_POLICY,
@@ -60,6 +113,8 @@ from src.config.retrieval_policy import (
     REQUIRED_OPERAND_ASSEMBLY_POLICY,
     QUERY_FOCUS_STOPWORDS,
     SENTENCE_NORMALISATION_POLICY,
+    STRUCTURED_CELL_AFFINITY_POLICY,
+    VALUE_NEAR_MATCH_POLICY,
     active_narrative_policies,
     narrative_policy_active,
     narrative_policy_driver_groups,
@@ -72,13 +127,95 @@ from src.config.retrieval_policy import (
 from src.routing import default_format_preference
 from src.storage.report_cache_index import ReportCacheIndex
 
+if TYPE_CHECKING:
+    from langchain_core.documents import Document
+
 logger = logging.getLogger(__name__)
+
+
+def _prioritize_candidate_items(
+    candidate_items: List[Dict[str, Any]],
+    query: str,
+    topic: str,
+    report_scope: Dict[str, Any],
+    query_years: List[int],
+) -> List[Dict[str, Any]]:
+    desired_statement_types = set(_desired_statement_types(query, topic))
+    desired_consolidation = _desired_consolidation_scope(query, report_scope)
+    table_counts: Dict[str, int] = {}
+    for item in candidate_items:
+        metadata = dict(item.get("metadata") or {})
+        table_source_id = str(metadata.get("table_source_id") or "").strip()
+        if table_source_id:
+            table_counts[table_source_id] = table_counts.get(table_source_id, 0) + 1
+
+    def score(item: Dict[str, Any]) -> tuple[float, int]:
+        metadata = dict(item.get("metadata") or {})
+        points = 0.0
+        statement_type = str(metadata.get("statement_type") or "unknown").strip()
+        if desired_statement_types:
+            if statement_type in desired_statement_types:
+                points += 3.0
+            elif statement_type != "unknown":
+                points -= 1.0
+        consolidation_scope = str(metadata.get("consolidation_scope") or "unknown").strip()
+        if desired_consolidation != "unknown":
+            if consolidation_scope == desired_consolidation:
+                points += 2.0
+            elif consolidation_scope != "unknown":
+                points -= 2.0
+        period_strength = _metadata_period_match_strength(list(metadata.get("period_labels") or []), query_years)
+        points += period_strength * 1.5
+        affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
+        metric_terms = tuple(str(term) for term in (affinity_policy.get("metric_terms") or ()) if str(term))
+        query_surface = _normalise_spaces(f"{query} {topic}")
+        if statement_type == "segment_note" and any(term in query_surface for term in metric_terms):
+            points += _scoped_surface_affinity_priority(
+                [item],
+                query=query,
+                topic=topic,
+                direct_weight=2.5,
+                adjustment_weight=-1.5,
+            )
+        table_source_id = str(metadata.get("table_source_id") or "").strip()
+        return points, table_counts.get(table_source_id, 0)
+
+    return sorted(candidate_items, key=score, reverse=True)
 
 
 _COUNT_VALUE_UNIT_RE = (
     r"(?P<value>[\(\)\-]?\d[\d,]*(?:\.\d+)?)\s*"
     rf"(?P<unit>{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
 )
+
+
+def _metric_terms_from_topic(topic: str) -> set[str]:
+    text = _normalise_spaces(topic)
+    known_terms = [str(item) for item in METRIC_TOPIC_EXTRACTION_TERMS if str(item)]
+    return {term for term in known_terms if term in text}
+
+
+def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional[str], str]:
+    tail = text[end : min(len(text), end + 120)]
+    if not tail:
+        return None, ""
+    tail = _normalise_spaces(tail)
+    value_policy = dict(VALUE_NEAR_MATCH_POLICY)
+    match = re.search(str(value_policy.get("value_pattern") or r"$^"), tail)
+    if not match:
+        return None, ""
+    raw_value = _normalise_spaces(match.group(1))
+    percent_markers = tuple(str(item) for item in (value_policy.get("percent_markers") or ()) if str(item))
+    million_krw_unit = str(value_policy.get("million_krw_unit") or "")
+    composite_markers = tuple(str(item) for item in (value_policy.get("composite_krw_markers") or ()) if str(item))
+    composite_unit = str(value_policy.get("composite_krw_unit") or "")
+    if any(marker in raw_value for marker in percent_markers):
+        return raw_value, percent_markers[0] if percent_markers else ""
+    if million_krw_unit and million_krw_unit in raw_value:
+        return raw_value.replace(million_krw_unit, "").strip(), million_krw_unit
+    if any(marker in raw_value for marker in composite_markers):
+        return raw_value, composite_unit
+    return raw_value, ""
 
 
 def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -790,6 +927,14 @@ def _doc_matches_target_period(doc: Document, target_period: str) -> bool:
     return target in _doc_operand_context_text(doc)
 
 
+def _is_document_like(doc: Any) -> bool:
+    return hasattr(doc, "page_content") and hasattr(doc, "metadata")
+
+
+def _make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
+    return _document(page_content=page_content, metadata=metadata)
+
+
 def _required_operand_coverage_from_docs(
     docs: List[tuple[Document, float]],
     active_subtask: Dict[str, Any],
@@ -817,7 +962,7 @@ def _required_operand_coverage_from_docs(
         matched_doc_ids: List[str] = []
         for doc_score in docs:
             doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
-            if not isinstance(doc, Document):
+            if not _is_document_like(doc):
                 continue
             if not _doc_has_numeric_signal(doc, ignored_numeric_periods):
                 continue
@@ -1596,13 +1741,6 @@ class FinancialAgentEvidenceMixin:
             if any(marker in section_path for marker in paragraph_priority_sections):
                 priority += 1
             return priority, float(score)
-
-        def _policy_realized_priority(item: Any) -> tuple[int, float]:
-            fallback_score = float(item[1] if isinstance(item, (tuple, list)) and len(item) > 1 else 0.0)
-            return max(
-                (_policy_realized_priority_for_policy(item, policy) for policy in realized_policies),
-                default=(0, fallback_score),
-            )
 
         def _selected_policy_realized_count(policy: Dict[str, Any]) -> int:
             return sum(1 for item in selected if _policy_realized_priority_for_policy(item, policy)[0] > 0)
@@ -2769,7 +2907,7 @@ class FinancialAgentEvidenceMixin:
             seed_metadata = dict(metadata)
             if include_parent_context and parent_id:
                 seed_metadata["graph_seed_with_parent_context"] = True
-            add_doc(Document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
+            add_doc(_make_document(page_content=doc.page_content, metadata=seed_metadata), float(score), relation="seed")
 
             if include_parent_context and parent_id:
                 parent_text = self.vsm.get_parent(parent_id)
@@ -2781,7 +2919,11 @@ class FinancialAgentEvidenceMixin:
                         "block_type": "parent_context",
                         "chunk_uid": f"{chunk_uid}::parent_context" if chunk_uid else f"{parent_id}::parent_context",
                     }
-                    add_doc(Document(page_content=parent_text, metadata=parent_metadata), float(score) - 0.005, "parent_context")
+                    add_doc(
+                        _make_document(page_content=parent_text, metadata=parent_metadata),
+                        float(score) - 0.005,
+                        "parent_context",
+                    )
 
             if include_section_lead and parent_id:
                 section_lead_doc = self.vsm.get_section_lead_doc(parent_id=parent_id, exclude_chunk_uid=chunk_uid)
@@ -2827,7 +2969,11 @@ class FinancialAgentEvidenceMixin:
                         "block_type": "table_context",
                         "chunk_uid": f"{chunk_uid}::table_context" if chunk_uid else f"{parent_id}::table_context",
                     }
-                    add_doc(Document(page_content=table_context, metadata=table_metadata), float(score) - 0.007, "table_context")
+                    add_doc(
+                        _make_document(page_content=table_context, metadata=table_metadata),
+                        float(score) - 0.007,
+                        "table_context",
+                    )
 
         expanded.sort(key=lambda item: item[1], reverse=True)
         expanded = expanded[:max_docs]
@@ -5345,7 +5491,7 @@ class FinancialAgentEvidenceMixin:
             calculation_operands[0] if calculation_operands else {},
         )
         primary_slot = dict(next(iter(components_by_role.get(str(primary_operand.get("operand_id") or ""), [])), {}))
-        answer_slots = validate_answer_slots_payload(
+        answer_slots = _validate_answer_slots_payload(
             {
                 "operation_family": "lookup",
                 "metric_label": entity_label,
@@ -6083,6 +6229,7 @@ class FinancialAgentEvidenceMixin:
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
 
+        EvidenceExtraction = _evidence_extraction_model()
         structured_llm = self._llm_for_phase("evidence_extraction").with_structured_output(EvidenceExtraction)
         query_type = state.get("query_type", "qa")
         focus_terms = self._evidence_extraction_focus_terms(str(state.get("query") or ""))
@@ -6092,7 +6239,7 @@ class FinancialAgentEvidenceMixin:
         extra_rules = str(dict(extraction_policy.get("extra_rules_by_query_type") or {}).get(query_type) or "")
         if not extra_rules:
             extra_rules = str(dict(extraction_policy.get("extra_rules_by_operation_family") or {}).get(operation_family) or "")
-        prompt = ChatPromptTemplate.from_template(str(extraction_policy.get("prompt_template") or ""))
+        prompt = _chat_prompt_template_from_template(str(extraction_policy.get("prompt_template") or ""))
 
         try:
             result: EvidenceExtraction = (prompt | structured_llm).invoke(
@@ -6201,8 +6348,9 @@ class FinancialAgentEvidenceMixin:
         guidance = self._compression_guidance(query_type, query, coverage)
 
         compression_llm = self._llm_for_phase("compression")
+        CompressionOutput = _compression_output_model()
         structured_llm = compression_llm.with_structured_output(CompressionOutput)
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("compression_prompt_template") or "")
         )
 
@@ -6244,7 +6392,7 @@ class FinancialAgentEvidenceMixin:
             }
         except Exception as exc:
             logger.warning("Compression structured output failed, using fallback text output: %s", exc)
-            chain = prompt | compression_llm | StrOutputParser()
+            chain = prompt | compression_llm | _str_output_parser()
             compressed_answer = chain.invoke(
                 {
                     "instruction": guidance["instruction"],
@@ -6524,8 +6672,9 @@ class FinancialAgentEvidenceMixin:
         evidence_text = self._format_evidence_for_prompt(selected_evidence, evidence_bullets)
 
         validation_llm = self._llm_for_phase("validation")
+        ValidationOutput = _validation_output_model()
         structured_llm = validation_llm.with_structured_output(ValidationOutput)
-        validator_prompt = ChatPromptTemplate.from_template(
+        validator_prompt = _chat_prompt_template_from_template(
             str(EVIDENCE_RUNTIME_POLICY.get("validation_prompt_template") or "")
         )
         try:
@@ -6623,7 +6772,7 @@ class FinancialAgentEvidenceMixin:
             return normalized_result
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
-            validated_answer = (validator_prompt | validation_llm | StrOutputParser()).invoke(
+            validated_answer = (validator_prompt | validation_llm | _str_output_parser()).invoke(
                 {
                     "query_type": query_type,
                     "query": state["query"],
@@ -6975,8 +7124,9 @@ class FinancialAgentEvidenceMixin:
             debug_trace = reused_debug_trace
             answer = reused_answer
         else:
+            NumericExtraction = _numeric_extraction_model()
             structured_llm = self._llm_for_phase("numeric_extraction").with_structured_output(NumericExtraction)
-            prompt = ChatPromptTemplate.from_template(
+            prompt = _chat_prompt_template_from_template(
                 str(EVIDENCE_RUNTIME_POLICY.get("numeric_extractor_prompt_template") or "")
             )
 

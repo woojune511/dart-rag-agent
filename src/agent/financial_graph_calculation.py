@@ -8,13 +8,34 @@ This module owns the structured numeric path after reconciliation:
 - advance or aggregate multi-subtask calculations
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import re
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, NamedTuple, Optional, Sequence
 
-from langchain_core.prompts import ChatPromptTemplate
 from src.agent import financial_answer_slots
+from src.agent.financial_aggregate_state import (
+    _AggregateCompositionState,
+    _AggregateEvidenceState,
+    _AggregateFeedbackState,
+    _AggregateMutableState,
+    _AggregateSynthesisState,
+    _PreparedAggregateState,
+)
+from src.agent.financial_aggregate_projection import (
+    aggregate_artifact_payload as _aggregate_artifact_payload,
+    aggregate_completion_base_payload as _aggregate_completion_base_payload,
+    aggregate_extend_selected_claim_ids as _aggregate_extend_selected_claim_ids,
+    aggregate_integrity_extra_refs as _aggregate_integrity_extra_refs,
+    aggregate_ordered_result_source_refs as _aggregate_ordered_result_source_refs,
+    aggregate_period_context_evidence_items as _aggregate_period_context_evidence_items,
+    aggregate_projection_apply_override as _aggregate_projection_apply_override,
+    aggregate_projection_for_integrity as _aggregate_projection_for_integrity,
+    aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
+    aggregate_source_task_ids as _aggregate_source_task_ids,
+)
 from src.agent.financial_calculation_execution import (
     build_failed_calculation_result,
     build_scalar_calculation_state,
@@ -31,9 +52,14 @@ from src.agent.financial_dependency_projection import (
     build_dependency_recalculation_state,
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
+    dependency_lookup_slot_match_score,
     dependency_operand_from_answer_slot,
+    dependency_operand_can_use_source_slot,
     dependency_operand_from_source_slot,
     dependency_operand_from_table_label_evidence,
+    dependency_operand_rows_share_source_value,
+    dependency_projection_slot_differs_from_operand,
+    dependency_ratio_role_group,
     derive_dependency_operands_from_source_task_slots,
     fill_missing_ratio_dependency_operands,
     lookup_primary_slot,
@@ -41,29 +67,77 @@ from src.agent.financial_dependency_projection import (
     realign_lookup_row_from_dependency_projection,
     rebuild_dependency_calculation_plan,
     replace_lookup_primary_slot,
+    source_task_id_for_dependency_operand,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
-from src.agent.financial_graph_helpers import *  # noqa: F401,F403
 from src.agent.financial_graph_helpers import (
-    _collect_nested_result_evidence,
     _concept_spec_for_key,
-    _operand_row_has_material_numeric_payload,
+    _merge_operand_rows,
+    _missing_required_operands,
+    _operand_period_focus,
+    _operand_prefers_aggregate_value_role,
+    _operand_row_matches_requirement,
     _operand_segment_label,
+    _resolve_candidate_local_unit_hint,
+    _scoped_surface_affinity_priority,
+    _select_aggregate_structured_cell,
+    _select_structured_cell,
+)
+from src.agent.financial_graph_model_loaders import (
+    _aggregate_synthesis_output_model,
+    _calculation_plan_model,
+    _calculation_render_output_model,
+    _calculation_verification_output_model,
+    _operand_extraction_model,
+)
+from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
+from src.agent.financial_formula_eval import _safe_eval_formula
+from src.agent.financial_operation_policies import (
+    _is_percent_point_difference_query,
+    _is_ratio_percent_query,
+    _query_requests_narrative_context,
+    _requires_direct_numeric_grounding,
+    _should_coerce_percent_point_unit,
+)
+from src.agent.financial_runtime_normalization import (
+    _clean_source_row_ids,
+    _display_operand_label,
+    _normalise_operand_value,
+    _normalise_spaces,
+    _parse_number_text,
+)
+from src.agent.financial_scope_policies import _desired_consolidation_scope, _extract_period_sort_key
+from src.agent.financial_text_surface import _strip_rerank_metadata, _tokenize_terms
+from src.agent.financial_runtime_trace import (
+    _collect_nested_result_evidence,
+    _operand_row_has_material_numeric_payload,
+    _resolve_runtime_calculation_trace,
+    _runtime_trace_state_update,
+)
+from src.agent.financial_reflection_projection import (
+    reflection_action_from_plan as _reflection_action_from_plan,
+    reflection_report_from_action as _reflection_report_from_action,
+    task_artifact_integrity_feedback as _task_artifact_integrity_feedback,
+)
+from src.agent.financial_surface_contracts import (
+    _operand_needles,
+    _text_has_negative_surface,
+    _text_has_positive_surface,
+)
+from src.agent.financial_row_surfaces import (
+    _extract_numeric_value_after_operand_text,
+    _operand_text_match,
     _strip_leading_period_qualifiers,
     _surface_match_variants,
-    _tokenize_terms,
 )
+from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
 from src.agent.financial_numeric_surface import (
     evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
     numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
-)
-from src.agent.financial_reflection_projection import (
-    reflection_action_from_plan as _reflection_action_from_plan,
-    reflection_report_from_action as _reflection_report_from_action,
-    task_artifact_integrity_feedback as _task_artifact_integrity_feedback,
 )
 from src.agent.financial_text_surface import (
     narrative_sentence_looks_abbreviated_fragment as _narrative_sentence_looks_abbreviated_fragment,
@@ -72,16 +146,16 @@ from src.agent.financial_text_surface import (
     split_narrative_sentences as _split_narrative_sentences,
     topic_particle as _topic_particle,
 )
-from src.agent.financial_graph_models import (
-    AggregateSynthesisOutput,
-    CalculationPlan,
-    CalculationRenderOutput,
-    CalculationResult,
-    CalculationVerificationOutput,
-    FinancialAgentState,
-    OperandExtraction,
-    validate_answer_slots_payload,
+from src.agent.financial_task_artifacts import (
+    aggregate_answer_artifact_update as _build_aggregate_answer_artifact_update,
+    calculation_plan_artifact_update as _build_calculation_plan_artifact_update,
+    operand_set_artifact_update as _build_operand_set_artifact_update,
+    project_task_artifact_trace as _project_task_artifact_trace,
+    reflection_report_artifact_update as _build_reflection_report_artifact_update,
+    supersede_task_with_aggregate_result as _supersede_task_with_aggregate_result,
 )
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_lookup_recovery import (
     align_or_replace_successful_lookup_row,
@@ -108,95 +182,9 @@ from src.config.retrieval_policy import (
     STRUCTURED_CELL_AFFINITY_POLICY,
     narrative_policy_terms,
 )
-from src.schema import ArtifactKind, TaskKind, TaskStatus
+from src.schema.runtime_enums import ArtifactKind, TaskStatus
 
 logger = logging.getLogger(__name__)
-
-
-class _AggregateSynthesisState(NamedTuple):
-    ordered_results: List[Dict[str, Any]]
-    aggregate_projection: Dict[str, Any]
-    final_answer: str
-    selected_claim_ids: List[str]
-
-
-class _PreparedAggregateState(NamedTuple):
-    ordered_results: List[Dict[str, Any]]
-    fallback_answer: str
-    supported_aggregate_answer: str
-    complete_numeric_answer: str
-    has_narrative_summary: bool
-    has_growth_rate_result: bool
-    numeric_answer_locked: bool
-
-
-class _AggregateEvidenceState(NamedTuple):
-    ordered_results: List[Dict[str, Any]]
-    aggregate_evidence_items: List[Dict[str, Any]]
-    fallback_answer: str
-    final_answer: str
-    complete_numeric_answer: str
-    deterministic_feedback: str
-
-
-class _AggregateFeedbackState(NamedTuple):
-    final_answer: str
-    planner_feedback: str
-    deterministic_feedback: str
-    ledger_artifacts: List[Dict[str, Any]]
-    task_artifact_trace: Dict[str, Any]
-    should_replan: bool
-    replan_blocked_reason: str
-
-
-class _AggregateCompositionState(NamedTuple):
-    final_answer: str
-    selected_claim_ids: List[str]
-    calculation_projection_override: Optional[Dict[str, Any]]
-    narrative_answer_locked: bool
-    planner_feedback: str
-    deterministic_feedback: str
-
-
-class _AggregateMutableState(NamedTuple):
-    synthesis_state: _AggregateSynthesisState
-    evidence_items: List[Dict[str, Any]]
-
-    @property
-    def ordered_results(self) -> List[Dict[str, Any]]:
-        return self.synthesis_state.ordered_results
-
-    @property
-    def aggregate_projection(self) -> Dict[str, Any]:
-        return self.synthesis_state.aggregate_projection
-
-    @property
-    def final_answer(self) -> str:
-        return self.synthesis_state.final_answer
-
-    @property
-    def selected_claim_ids(self) -> List[str]:
-        return self.synthesis_state.selected_claim_ids
-
-    def with_updates(
-        self,
-        *,
-        ordered_results: Optional[List[Dict[str, Any]]] = None,
-        aggregate_projection: Optional[Dict[str, Any]] = None,
-        final_answer: Optional[str] = None,
-        selected_claim_ids: Optional[List[str]] = None,
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> "_AggregateMutableState":
-        synthesis_state = self.synthesis_state._replace(
-            ordered_results=self.ordered_results if ordered_results is None else ordered_results,
-            aggregate_projection=self.aggregate_projection if aggregate_projection is None else aggregate_projection,
-            final_answer=self.final_answer if final_answer is None else final_answer,
-            selected_claim_ids=self.selected_claim_ids if selected_claim_ids is None else selected_claim_ids,
-        )
-        return _AggregateMutableState(
-            synthesis_state,
-            self.evidence_items if evidence_items is None else evidence_items,
-        )
 
 
 class _OperandPrecisionContext(NamedTuple):
@@ -572,34 +560,36 @@ class FinancialAgentCalculationMixin:
             task_id=task_id,
             operand_rows=operand_rows,
         )
-        artifact_id = f"operands:{task_id}:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=artifact_id,
+        return _build_operand_set_artifact_update(
+            tasks=tasks,
+            artifacts=artifacts,
             task_id=task_id,
-            kind=ArtifactKind.OPERAND_SET,
+            task_label=str(active_subtask.get("metric_label") or task_id),
+            query=self._calc_query(state),
+            metric_family=self._calc_metric_family(state),
+            operand_rows=operand_rows,
             status=status,
             summary=summary,
             payload=payload,
-            evidence_refs=evidence_refs
-            if evidence_refs is not None
-            else [
-                str(row.get("evidence_id") or "")
-                for row in operand_rows
-                if str(row.get("evidence_id") or "").strip()
-            ],
+            evidence_refs=evidence_refs,
         )
-        tasks = _upsert_task(
-            tasks,
+
+    def _calculation_plan_artifact_update(
+        self,
+        state: FinancialAgentState,
+        calculation_plan: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        active_subtask = dict(state.get("active_subtask") or {})
+        task_id = str(active_subtask.get("task_id") or "calc")
+        return _build_calculation_plan_artifact_update(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(state.get("artifacts") or []),
             task_id=task_id,
-            kind=TaskKind.CALCULATION,
-            label=str(active_subtask.get("metric_label") or task_id),
-            status=TaskStatus.IN_PROGRESS,
+            task_label=str(active_subtask.get("metric_label") or task_id),
             query=self._calc_query(state),
             metric_family=self._calc_metric_family(state),
-            artifact_id=artifact_id,
+            calculation_plan=calculation_plan,
         )
-        return {"tasks": tasks, "artifacts": artifacts}
 
     def _evidence_items_with_runtime(
         self,
@@ -1249,7 +1239,7 @@ class FinancialAgentCalculationMixin:
             if not self._task_target_matches_resolved_slot(task, resolved_slots):
                 continue
             replacement_summary = ""
-            supersession_artifact_id: Optional[str] = None
+            replacement_payload: Dict[str, Any] = {}
             if status == TaskStatus.COMPLETED.value:
                 latest_artifact = self._latest_task_artifact(task, updated_artifacts)
                 latest_summary = _normalise_spaces(str(latest_artifact.get("summary") or ""))
@@ -1281,22 +1271,12 @@ class FinancialAgentCalculationMixin:
                 )
                 if not replacement_conflicts:
                     continue
-                base_artifact_id = f"supersession:{task_id}"
-                supersession_artifact_id = f"{base_artifact_id}:{len(updated_artifacts) + 1:03d}"
-                existing_artifact_ids = {
-                    _normalise_spaces(str(item.get("artifact_id") or ""))
-                    for item in updated_artifacts
-                }
-                suffix = len(updated_artifacts) + 1
-                while supersession_artifact_id in existing_artifact_ids:
-                    suffix += 1
-                    supersession_artifact_id = f"{base_artifact_id}:{suffix:03d}"
                 row = self._aggregate_projection_row_for_task(
                     task_id,
                     ordered_results,
                     aggregate_projection,
                 )
-                replacement_payload: Dict[str, Any] = {
+                replacement_payload = {
                     "resolution_status": "superseded_by_aggregate_result",
                     "superseded_artifact_id": str(latest_artifact.get("artifact_id") or ""),
                     "superseded_by_artifact_id": aggregate_artifact_id,
@@ -1306,40 +1286,16 @@ class FinancialAgentCalculationMixin:
                     replacement_payload["calculation_result"] = dict(
                         row.get("calculation_result") or {"formatted_result": replacement_summary}
                     )
-                updated_artifacts = _append_artifact(
-                    updated_artifacts,
-                    artifact_id=supersession_artifact_id,
-                    task_id=task_id,
-                    kind=ArtifactKind.CALCULATION_RESULT,
-                    status="superseded_by_aggregate_result",
-                    summary=replacement_summary[:200],
-                    payload=replacement_payload,
-                )
-            try:
-                task_kind = TaskKind(str(task.get("kind") or TaskKind.CALCULATION.value))
-            except ValueError:
-                task_kind = TaskKind.CALCULATION
-            constraints = dict(task.get("constraints") or {})
-            constraints.update(
-                {
-                    "resolution_status": "superseded_by_aggregate_result",
-                    "superseded_by_task_id": "aggregate",
-                    "superseded_by_artifact_id": aggregate_artifact_id,
-                }
+            supersession_update = _supersede_task_with_aggregate_result(
+                tasks=updated_tasks,
+                artifacts=updated_artifacts,
+                task=task,
+                aggregate_artifact_id=aggregate_artifact_id,
+                replacement_summary=replacement_summary,
+                replacement_payload=replacement_payload,
             )
-            notes = list(dict.fromkeys([*(task.get("notes") or []), "superseded_by_aggregate_result"]))
-            updated_tasks = _upsert_task(
-                updated_tasks,
-                task_id=task_id,
-                kind=task_kind,
-                label=str(task.get("label") or task_id),
-                status=TaskStatus.SUPERSEDED,
-                query=str(task.get("query") or ""),
-                metric_family=str(task.get("metric_family") or ""),
-                constraints=constraints,
-                artifact_id=supersession_artifact_id,
-                notes=notes,
-            )
+            updated_tasks = list(supersession_update["tasks"])
+            updated_artifacts = list(supersession_update["artifacts"])
         return updated_tasks, updated_artifacts
 
     def _row_is_narrative_summary(self, row: Dict[str, Any]) -> bool:
@@ -1839,7 +1795,7 @@ class FinancialAgentCalculationMixin:
             selected["stated_change_raw_unit"] = "%"
 
         semantic_label = str(selected.pop("_semantic_label", ""))
-        return _coerce_lookup_magnitude_record(
+        return coerce_lookup_magnitude_record(
             selected,
             evidence_item,
             concept=str(operand.get("concept") or ""),
@@ -2072,7 +2028,7 @@ class FinancialAgentCalculationMixin:
                 str(selected_cell.get("aggregate_label") or metadata.get("aggregate_label") or "")
             ),
         }
-        return _coerce_lookup_magnitude_record(
+        return coerce_lookup_magnitude_record(
             row,
             evidence_item,
             concept=str(operand.get("concept") or ""),
@@ -2330,26 +2286,6 @@ class FinancialAgentCalculationMixin:
             return {}, 0.0
         return best_slot, best_score
 
-    def _best_direct_lookup_slot_from_evidence_pool_compat(
-        self,
-        operand: Dict[str, Any],
-        evidence_pool: List[Dict[str, Any]],
-        *,
-        state: Optional[FinancialAgentState] = None,
-        preferred_raw_units: Optional[set[str]] = None,
-    ) -> tuple[Dict[str, Any], float]:
-        try:
-            return self._best_direct_lookup_slot_from_evidence_pool(
-                operand,
-                evidence_pool,
-                state=state,
-                preferred_raw_units=preferred_raw_units,
-            )
-        except TypeError as exc:
-            if "unexpected keyword argument 'state'" not in str(exc):
-                raise
-            return self._best_direct_lookup_slot_from_evidence_pool(operand, evidence_pool)
-
     def _prefer_direct_structured_evidence_rows(
         self,
         direct_structured_rows: List[Dict[str, Any]],
@@ -2385,7 +2321,7 @@ class FinancialAgentCalculationMixin:
                 and _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
                 == _normalise_spaces(str(current.get("normalized_unit") or "")).upper()
             }
-            preferred_slot, best_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
+            preferred_slot, best_score = self._best_direct_lookup_slot_from_evidence_pool(
                 operand,
                 evidence_items,
                 state=state,
@@ -2607,7 +2543,7 @@ class FinancialAgentCalculationMixin:
                         lookup_result_builder=_lookup_result_from_slot,
                         evidence_item_for_operand_row=self._evidence_item_for_operand_row,
                         direct_structured_lookup_evidence_score=self._direct_structured_lookup_evidence_score,
-                        best_direct_lookup_slot=self._best_direct_lookup_slot_from_evidence_pool_compat,
+                        best_direct_lookup_slot=self._best_direct_lookup_slot_from_evidence_pool,
                         preferred_slot_has_evidence_surface_match=_preferred_slot_has_evidence_surface_match,
                         value_refinement_allowed=_value_refinement_allowed,
                     )
@@ -2772,10 +2708,10 @@ class FinancialAgentCalculationMixin:
                 return True
             return bool(candidate_label and _operand_text_match(candidate_label, operand))
 
-        _slot_differs_from_operand = _dependency_projection_slot_differs_from_operand
-        _source_task_id_for_operand = _source_task_id_for_dependency_operand
-        _ratio_role_group = _dependency_ratio_role_group
-        _lookup_slot_match_score = _dependency_lookup_slot_match_score
+        _slot_differs_from_operand = dependency_projection_slot_differs_from_operand
+        _source_task_id_for_operand = source_task_id_for_dependency_operand
+        _ratio_role_group = dependency_ratio_role_group
+        _lookup_slot_match_score = dependency_lookup_slot_match_score
 
         def _lookup_source_for_arithmetic_slot(
             *,
@@ -2809,7 +2745,7 @@ class FinancialAgentCalculationMixin:
         table_label_evidence_candidates = collect_table_label_evidence_candidates(ordered_results, state)
         _operand_from_source_slot = dependency_operand_from_source_slot
         _operand_from_answer_slot = dependency_operand_from_answer_slot
-        _operand_rows_share_source_value = _dependency_operand_rows_share_source_value
+        _operand_rows_share_source_value = dependency_operand_rows_share_source_value
 
         def _operand_from_table_label_evidence(operand: Dict[str, Any]) -> Dict[str, Any]:
             return dependency_operand_from_table_label_evidence(
@@ -2876,7 +2812,7 @@ class FinancialAgentCalculationMixin:
                     slot_has_material=self._answer_slot_has_material,
                     lookup_source_for_arithmetic_slot=_lookup_source_for_arithmetic_slot,
                     operand_from_source_slot=_operand_from_source_slot,
-                    operand_can_use_source_slot=_dependency_operand_can_use_source_slot,
+                    operand_can_use_source_slot=dependency_operand_can_use_source_slot,
                     ratio_role_group=_ratio_role_group,
                     source_task_id_for_operand=_source_task_id_for_operand,
                 )
@@ -2892,7 +2828,7 @@ class FinancialAgentCalculationMixin:
                 lookup_source_for_arithmetic_slot=_lookup_source_for_arithmetic_slot,
                 source_task_id_for_operand=_source_task_id_for_operand,
                 slot_differs_from_operand=_slot_differs_from_operand,
-                operand_can_use_source_slot=_dependency_operand_can_use_source_slot,
+                operand_can_use_source_slot=dependency_operand_can_use_source_slot,
                 operand_from_source_slot=_operand_from_source_slot,
             )
             changed = changed or refreshed_any
@@ -2906,7 +2842,7 @@ class FinancialAgentCalculationMixin:
                     operation_family_for_result=self._aggregate_result_operation_family,
                     lookup_source_for_arithmetic_slot=_lookup_source_for_arithmetic_slot,
                     slot_has_material=self._answer_slot_has_material,
-                    operand_can_use_source_slot=_dependency_operand_can_use_source_slot,
+                    operand_can_use_source_slot=dependency_operand_can_use_source_slot,
                     operand_from_source_slot=_operand_from_source_slot,
                     operand_from_table_label_evidence=_operand_from_table_label_evidence,
                     operand_rows_share_source_value=_operand_rows_share_source_value,
@@ -6010,7 +5946,7 @@ class FinancialAgentCalculationMixin:
         rebuild_after_numeric_refresh: bool = True,
         kept_evidence_ids: Optional[set[str]] = None,
     ) -> _AggregateMutableState:
-        synthesis_state = mutable_state.synthesis_state._replace(
+        synthesis_state = mutable_state.synthesis_state.with_updates(
             ordered_results=ordered_results,
             aggregate_projection=self._rebuild_aggregate_projection(
                 ordered_results, mutable_state.final_answer, kept_evidence_ids=kept_evidence_ids
@@ -6027,14 +5963,14 @@ class FinancialAgentCalculationMixin:
                     sync_projection=sync_projection,
                 )
                 if rebuild_after_numeric_refresh:
-                    synthesis_state = synthesis_state._replace(
+                    synthesis_state = synthesis_state.with_updates(
                         aggregate_projection=self._rebuild_aggregate_projection(
                             synthesis_state.ordered_results,
                             synthesis_state.final_answer,
                             kept_evidence_ids=kept_evidence_ids,
                         )
                     )
-        return mutable_state._replace(synthesis_state=synthesis_state)
+        return mutable_state.with_synthesis_state(synthesis_state)
 
     def _apply_final_narrative_repair_pipeline(
         self,
@@ -6091,14 +6027,17 @@ class FinancialAgentCalculationMixin:
         )
         _sync_state(evidence_items=aggregate_evidence_items)
         if retrieved_narrative_claim_ids:
-            selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *retrieved_narrative_claim_ids]))
+            selected_claim_ids = _aggregate_extend_selected_claim_ids(
+                selected_claim_ids,
+                retrieved_narrative_claim_ids,
+            )
             _sync_state(selected_claim_ids=selected_claim_ids)
         aggregate_state = self._apply_period_context_realignment_to_aggregate(
             aggregate_state=mutable_state.synthesis_state,
             state=state,
             evidence_items=aggregate_evidence_items,
         )
-        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
+        mutable_state = mutable_state.with_synthesis_state(aggregate_state)
         _sync_locals()
         if has_narrative_summary and not self._answer_satisfies_growth_narrative_intent(
             query=str(state.get("query") or ""),
@@ -6401,7 +6340,7 @@ class FinancialAgentCalculationMixin:
             )
         )
         if not repaired_result.get("stale_result_repaired_from_operands"):
-            return aggregate_state._replace(aggregate_projection=aggregate_projection)
+            return aggregate_state.with_updates(aggregate_projection=aggregate_projection)
         if (
             self._aggregate_dependency_slot_coherence_rank_for_operands(
                 operation_family=_normalise_spaces(
@@ -6450,7 +6389,7 @@ class FinancialAgentCalculationMixin:
                     **repaired_result,
                     "formatted_result": aggregate_state.final_answer,
                 }
-                return aggregate_state._replace(aggregate_projection=aggregate_projection)
+                return aggregate_state.with_updates(aggregate_projection=aggregate_projection)
             replacement_answer = self._complete_numeric_projection_replacement_answer(
                 final_answer=repaired_answer,
                 ordered_results=aggregate_state.ordered_results,
@@ -6469,14 +6408,14 @@ class FinancialAgentCalculationMixin:
                 **repaired_result,
                 "formatted_result": repaired_answer,
             }
-            return aggregate_state._replace(
+            return aggregate_state.with_updates(
                 aggregate_projection=aggregate_projection,
                 final_answer=repaired_answer,
             )
         if not repaired_answer:
-            return aggregate_state._replace(aggregate_projection=aggregate_projection)
+            return aggregate_state.with_updates(aggregate_projection=aggregate_projection)
         return self._apply_numeric_answer_to_aggregate_state(
-            aggregate_state=aggregate_state._replace(aggregate_projection=aggregate_projection),
+            aggregate_state=aggregate_state.with_updates(aggregate_projection=aggregate_projection),
             state=state,
             numeric_answer=repaired_answer,
             evidence_items=evidence_items,
@@ -7697,7 +7636,7 @@ class FinancialAgentCalculationMixin:
             if source_slot_from_answer_slots and "retrieval" in source_preference:
                 source_raw_number = _parse_number_text(str(source_slot.get("raw_value") or ""))
                 preferred_raw_number = None
-                candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
+                candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool(
                     binding,
                     evidence_pool,
                     state=state,
@@ -7783,7 +7722,7 @@ class FinancialAgentCalculationMixin:
                     if candidate_has_sibling_context and preferred_score <= current_score:
                         preferred_score = current_score + 0.1
             else:
-                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
+                preferred_slot, preferred_score = self._best_direct_lookup_slot_from_evidence_pool(
                     binding,
                     evidence_pool,
                     state=state,
@@ -8751,7 +8690,7 @@ class FinancialAgentCalculationMixin:
             )
             if role and not seed.get("matched_operand_role"):
                 seed["matched_operand_role"] = role
-            group = _dependency_ratio_role_group(role)
+            group = dependency_ratio_role_group(role)
             if group == "numerator":
                 numerator.append(seed)
             elif group == "denominator":
@@ -8797,7 +8736,7 @@ class FinancialAgentCalculationMixin:
         seed: Dict[str, Any],
         role: str,
     ) -> int:
-        score = _dependency_lookup_slot_match_score(slot, seed, role)
+        score = dependency_lookup_slot_match_score(slot, seed, role)
         slot_text = " ".join(
             str(slot.get(key) or "")
             for key in ("label", "metric_label", "concept", "period")
@@ -9161,7 +9100,7 @@ class FinancialAgentCalculationMixin:
             slot = dict(source_slot or {})
             if not self._answer_slot_has_material(slot):
                 continue
-            if _dependency_lookup_slot_match_score(slot, operand, role) >= 12:
+            if dependency_lookup_slot_match_score(slot, operand, role) >= 12:
                 inferred_task_ids.append(task_id)
         return inferred_task_ids
 
@@ -9192,7 +9131,7 @@ class FinancialAgentCalculationMixin:
                     source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
                     operand_anchor = _normalise_spaces(str(operand.get("source_anchor") or ""))
                     source_mismatch = bool(source_anchor and operand_anchor and source_anchor != operand_anchor)
-                    projection_mismatch = _dependency_projection_slot_differs_from_operand(source_slot, operand)
+                    projection_mismatch = dependency_projection_slot_differs_from_operand(source_slot, operand)
                     if (
                         (source_mismatch or projection_mismatch)
                         and not self._structured_unit_realigned_operand_matches_source_slot(
@@ -11156,7 +11095,7 @@ class FinancialAgentCalculationMixin:
                 updated["table_source_id"] = metadata.get("table_source_id")
             updated = self._coerce_operand_period_from_evidence_surface(updated, evidence_item)
             updated = self._coerce_operand_value_from_direct_structured_evidence(updated, evidence_item)
-        updated = _coerce_lookup_magnitude_record(updated, evidence_item)
+        updated = coerce_lookup_magnitude_record(updated, evidence_item)
         if updated.get("structured_evidence_cell_realigned"):
             return updated
         if (
@@ -15791,7 +15730,6 @@ class FinancialAgentCalculationMixin:
                 calculation_operands=[],
                 calculation_plan={},
                 calculation_result={},
-                include_compatibility_mirrors=False,
             ),
         }
         direct_structured_rows = self._extract_structured_operands_from_reconciliation(state)
@@ -16347,7 +16285,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
         if direct_structured_rows:
@@ -16391,7 +16328,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=direct_structured_rows,
                     calculation_plan={},
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
         if synthesis_only_retry:
@@ -16451,7 +16387,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=synthesis_operands,
                     calculation_plan={},
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
         should_augment_with_docs = (
@@ -16667,9 +16602,10 @@ class FinancialAgentCalculationMixin:
                     len(deterministic_required_rows),
                 )
 
+        OperandExtraction = _operand_extraction_model()
         structured_llm = self._llm_for_phase("operand_extraction").with_structured_output(OperandExtraction)
         evidence_text = self._format_evidence_for_prompt(evidence_items, evidence_bullets)
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(CALCULATION_PROMPT_POLICY.get("operand_extraction_prompt_template") or "")
         )
         try:
@@ -16865,7 +16801,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operand_rows,
                     calculation_plan={},
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
         except Exception as exc:
@@ -16880,7 +16815,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=[],
                     calculation_plan={},
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -17016,7 +16950,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=empty_plan,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -17058,7 +16991,6 @@ class FinancialAgentCalculationMixin:
                         calculation_operands=operands,
                         calculation_plan=incomplete_plan,
                         calculation_result={},
-                        include_compatibility_mirrors=False,
                     ),
                 }
 
@@ -17074,29 +17006,7 @@ class FinancialAgentCalculationMixin:
                 deterministic_lookup_plan.get("operation"),
                 len(deterministic_lookup_plan.get("variable_bindings") or []),
             )
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str(active_subtask.get("task_id") or "calc")
-            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.CALCULATION_PLAN,
-                status=str(deterministic_lookup_plan.get("status") or "ok"),
-                summary=f"mode={deterministic_lookup_plan.get('mode')} op={deterministic_lookup_plan.get('operation')}",
-                payload={"calculation_plan": deterministic_lookup_plan},
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.CALCULATION,
-                label=str(active_subtask.get("metric_label") or task_id),
-                status=TaskStatus.IN_PROGRESS,
-                query=self._calc_query(state),
-                metric_family=self._calc_metric_family(state),
-                artifact_id=artifact_id,
-            )
+            ledger_update = self._calculation_plan_artifact_update(state, deterministic_lookup_plan)
             return {
                 "missing_info": [str(item).strip() for item in (deterministic_lookup_plan.get("missing_info") or []) if str(item).strip()],
                 "planner_debug_trace": {
@@ -17110,14 +17020,12 @@ class FinancialAgentCalculationMixin:
                     "guard_applied": True,
                     "raw_plan": deterministic_lookup_plan,
                 },
-                "tasks": tasks,
-                "artifacts": artifacts,
+                **ledger_update,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=deterministic_lookup_plan,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -17146,7 +17054,6 @@ class FinancialAgentCalculationMixin:
                         calculation_operands=operands,
                         calculation_plan=guarded_plan,
                         calculation_result={},
-                        include_compatibility_mirrors=False,
                     ),
                 }
             logger.info(
@@ -17155,29 +17062,7 @@ class FinancialAgentCalculationMixin:
                 deterministic_operation_plan.get("operation"),
                 len(deterministic_operation_plan.get("variable_bindings") or []),
             )
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
-            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.CALCULATION_PLAN,
-                status=str(deterministic_operation_plan.get("status") or "ok"),
-                summary=f"mode={deterministic_operation_plan.get('mode')} op={deterministic_operation_plan.get('operation')}",
-                payload={"calculation_plan": deterministic_operation_plan},
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.CALCULATION,
-                label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
-                status=TaskStatus.IN_PROGRESS,
-                query=self._calc_query(state),
-                metric_family=self._calc_metric_family(state),
-                artifact_id=artifact_id,
-            )
+            ledger_update = self._calculation_plan_artifact_update(state, deterministic_operation_plan)
             return {
                 "missing_info": [],
                 "planner_debug_trace": {
@@ -17191,14 +17076,12 @@ class FinancialAgentCalculationMixin:
                     "guard_applied": True,
                     "raw_plan": deterministic_operation_plan,
                 },
-                "tasks": tasks,
-                "artifacts": artifacts,
+                **ledger_update,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=deterministic_operation_plan,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -17236,7 +17119,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=guard_plan,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -17265,7 +17147,6 @@ class FinancialAgentCalculationMixin:
                         calculation_operands=operands,
                         calculation_plan=guarded_plan,
                         calculation_result={},
-                        include_compatibility_mirrors=False,
                     ),
                 }
             logger.info(
@@ -17274,29 +17155,7 @@ class FinancialAgentCalculationMixin:
                 deterministic_plan.get("operation"),
                 len(deterministic_plan.get("variable_bindings") or []),
             )
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
-            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.CALCULATION_PLAN,
-                status=str(deterministic_plan.get("status") or "ok"),
-                summary=f"mode={deterministic_plan.get('mode')} op={deterministic_plan.get('operation')}",
-                payload={"calculation_plan": deterministic_plan},
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.CALCULATION,
-                label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
-                status=TaskStatus.IN_PROGRESS,
-                query=self._calc_query(state),
-                metric_family=self._calc_metric_family(state),
-                artifact_id=artifact_id,
-            )
+            ledger_update = self._calculation_plan_artifact_update(state, deterministic_plan)
             return {
                 "missing_info": [],
                 "planner_debug_trace": {
@@ -17310,16 +17169,15 @@ class FinancialAgentCalculationMixin:
                     "guard_applied": False,
                     "raw_plan": deterministic_plan,
                 },
-                "tasks": tasks,
-                "artifacts": artifacts,
+                **ledger_update,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=deterministic_plan,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
+        CalculationPlan = _calculation_plan_model()
         structured_llm = self._llm_for_phase("formula_planning").with_structured_output(CalculationPlan)
         ontology_context = ""
         if metric_info:
@@ -17369,7 +17227,7 @@ class FinancialAgentCalculationMixin:
             "ontology_context": ontology_context or "-",
             "operands_text": operands_text,
         }
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(CALCULATION_PROMPT_POLICY.get("formula_plan_prompt_template") or "")
         )
         try:
@@ -17411,29 +17269,7 @@ class FinancialAgentCalculationMixin:
                 plan_data = guarded_plan
                 guard_applied = True
             logger.info("[formula_plan] mode=%s op=%s vars=%s", plan_data.get("mode"), plan_data.get("operation"), len(plan_data.get("variable_bindings") or []))
-            artifacts = list(state.get("artifacts") or [])
-            tasks = list(state.get("tasks") or [])
-            task_id = str((state.get("active_subtask") or {}).get("task_id") or "calc")
-            artifact_id = f"plan:{task_id}:{len(artifacts) + 1:03d}"
-            artifacts = _append_artifact(
-                artifacts,
-                artifact_id=artifact_id,
-                task_id=task_id,
-                kind=ArtifactKind.CALCULATION_PLAN,
-                status=str(plan_data.get("status") or "ok"),
-                summary=f"mode={plan_data.get('mode')} op={plan_data.get('operation')}",
-                payload={"calculation_plan": plan_data},
-            )
-            tasks = _upsert_task(
-                tasks,
-                task_id=task_id,
-                kind=TaskKind.CALCULATION,
-                label=str((state.get("active_subtask") or {}).get("metric_label") or task_id),
-                status=TaskStatus.IN_PROGRESS,
-                query=self._calc_query(state),
-                metric_family=self._calc_metric_family(state),
-                artifact_id=artifact_id,
-            )
+            ledger_update = self._calculation_plan_artifact_update(state, plan_data)
             return {
                 "missing_info": [str(item).strip() for item in (plan_data.get("missing_info") or []) if str(item).strip()],
                 "planner_debug_trace": {
@@ -17444,14 +17280,12 @@ class FinancialAgentCalculationMixin:
                     "raw_plan": raw_plan_data if guard_applied else plan_data,
                     "guarded_plan": plan_data if guard_applied else {},
                 },
-                "tasks": tasks,
-                "artifacts": artifacts,
+                **ledger_update,
                 **_runtime_trace_state_update(
                     state,
                     calculation_operands=operands,
                     calculation_plan=plan_data,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
         except Exception as exc:
@@ -17482,7 +17316,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=failed_plan,
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -17871,7 +17704,7 @@ class FinancialAgentCalculationMixin:
         }
         if hasattr(self, "_complete_required_operand_from_ontology"):
             target_operand = self._complete_required_operand_from_ontology(target_operand)
-        candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool_compat(
+        candidate_slot, candidate_score = self._best_direct_lookup_slot_from_evidence_pool(
             target_operand,
             [dict(item) for item in evidence_items if isinstance(item, dict)],
             state=state,
@@ -18055,7 +17888,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=runtime_operands,
                     calculation_plan=calculation_plan if calculation_plan is not None else plan,
                     calculation_result=failed_result,
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -18210,7 +18042,7 @@ class FinancialAgentCalculationMixin:
         coerced_lookup_operands: List[Dict[str, Any]] = []
         lookup_magnitude_changed = False
         for row in ordered_operands:
-            coerced_row = _coerce_lookup_magnitude_record(dict(row), None)
+            coerced_row = coerce_lookup_magnitude_record(dict(row), None)
             coerced_lookup_operands.append(coerced_row)
             if coerced_row != row:
                 lookup_magnitude_changed = True
@@ -18564,12 +18396,12 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=plan,
                     calculation_result=calculation_result,
-                    include_compatibility_mirrors=False,
                 ),
             }
 
+        CalculationRenderOutput = _calculation_render_output_model()
         structured_llm = self._llm_for_phase("calculation_render").with_structured_output(CalculationRenderOutput)
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(CALCULATION_RENDER_POLICY.get("renderer_prompt_template") or "")
         )
         try:
@@ -18610,7 +18442,6 @@ class FinancialAgentCalculationMixin:
                 calculation_operands=operands,
                 calculation_plan=plan,
                 calculation_result=calculation_result,
-                include_compatibility_mirrors=False,
             ),
         }
 
@@ -18647,7 +18478,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=plan,
                     calculation_result=calculation_result,
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -18672,8 +18502,9 @@ class FinancialAgentCalculationMixin:
             result_value=result_val,
             render_policy=render_policy,
         )
+        CalculationVerificationOutput = _calculation_verification_output_model()
         structured_llm = self._llm_for_phase("calculation_verification").with_structured_output(CalculationVerificationOutput)
-        prompt = ChatPromptTemplate.from_template(
+        prompt = _chat_prompt_template_from_template(
             str(render_policy.get("verification_prompt_template") or "")
         )
         try:
@@ -18732,7 +18563,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=plan,
                     calculation_result=calculation_result,
-                    include_compatibility_mirrors=False,
                 ),
             }
         except Exception as exc:
@@ -18754,7 +18584,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=operands,
                     calculation_plan=plan,
                     calculation_result=calculation_result,
-                    include_compatibility_mirrors=False,
                 ),
             }
 
@@ -18803,7 +18632,6 @@ class FinancialAgentCalculationMixin:
                     calculation_operands=[],
                     calculation_plan={},
                     calculation_result={},
-                    include_compatibility_mirrors=False,
                 ),
             }
         return {
@@ -19600,25 +19428,6 @@ class FinancialAgentCalculationMixin:
             deterministic_feedback=deterministic_feedback,
         )
 
-    def _aggregate_selected_claim_ids(
-        self,
-        ordered_results: List[Dict[str, Any]],
-        composition_selected_claim_ids: List[str],
-    ) -> List[str]:
-        return list(
-            dict.fromkeys(
-                [
-                    *[
-                        claim_id
-                        for row in ordered_results
-                        for claim_id in (row.get("selected_claim_ids") or [])
-                        if str(claim_id).strip()
-                    ],
-                    *composition_selected_claim_ids,
-                ]
-            )
-        )
-
     def _resolve_aggregate_feedback_state(
         self,
         state: FinancialAgentState,
@@ -19634,57 +19443,26 @@ class FinancialAgentCalculationMixin:
         plan_loop_count: int,
         max_plan_loops: int,
     ) -> _AggregateFeedbackState:
-        source_task_ids = [
-            str(row.get("task_id") or "").strip()
-            for row in ordered_results
-            if str(row.get("task_id") or "").strip()
-        ]
-        selected_claim_ids_for_integrity = self._aggregate_selected_claim_ids(
+        source_task_ids = _aggregate_source_task_ids(ordered_results)
+        selected_claim_ids_for_integrity = _aggregate_selected_claim_ids(
             ordered_results,
             composition_selected_claim_ids,
         )
-        ordered_result_source_refs = _clean_source_row_ids(
-            [
-                value
-                for row in ordered_results
-                for value in [
-                    row.get("source_row_id"),
-                    row.get("source_row_ids"),
-                    (row.get("calculation_result") or {}).get("source_row_id")
-                    if isinstance(row.get("calculation_result"), dict)
-                    else None,
-                    (row.get("calculation_result") or {}).get("source_row_ids")
-                    if isinstance(row.get("calculation_result"), dict)
-                    else None,
-                    (row.get("answer_slots") or {}).get("source_row_id")
-                    if isinstance(row.get("answer_slots"), dict)
-                    else None,
-                    (row.get("answer_slots") or {}).get("source_row_ids")
-                    if isinstance(row.get("answer_slots"), dict)
-                    else None,
-                ]
-            ]
+        ordered_result_source_refs = _aggregate_ordered_result_source_refs(ordered_results)
+        projection_for_integrity = _aggregate_projection_for_integrity(
+            preliminary_projection,
+            calculation_projection_override,
         )
-        projection_for_integrity = (
-            calculation_projection_override
-            if isinstance(calculation_projection_override, dict) and calculation_projection_override
-            else preliminary_projection
-        )
-        projection_result_for_integrity = dict(projection_for_integrity.get("calculation_result") or {})
-        projection_slots_for_integrity = dict(projection_result_for_integrity.get("answer_slots") or {})
         ledger_artifacts = self._enrich_reconciliation_artifact_refs(
             list(state.get("artifacts") or []),
             task_id="",
             task_ids=source_task_ids,
             operand_rows=list(projection_for_integrity.get("calculation_operands") or []),
-            extra_refs=[
-                projection_result_for_integrity.get("source_row_id"),
-                projection_result_for_integrity.get("source_row_ids"),
-                projection_slots_for_integrity.get("source_row_id"),
-                projection_slots_for_integrity.get("source_row_ids"),
+            extra_refs=_aggregate_integrity_extra_refs(
+                projection_for_integrity,
                 ordered_result_source_refs,
                 selected_claim_ids_for_integrity,
-            ],
+            ),
         )
         task_artifact_trace = _project_task_artifact_trace(
             state.get("tasks") or [],
@@ -19709,8 +19487,12 @@ class FinancialAgentCalculationMixin:
                 or self._preferred_complete_numeric_answer(ordered_results)
                 or self._supported_aggregate_subtask_answer(ordered_results)
             )
+            state_runtime_trace = _resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            )
             state_calculation_status = _normalise_spaces(
-                str((state.get("calculation_result") or {}).get("status") or "")
+                str(((state_runtime_trace.get("calculation_result") or {})).get("status") or "")
             ).lower()
             has_traceable_partial_material = bool(
                 selected_claim_ids_for_integrity
@@ -19804,34 +19586,23 @@ class FinancialAgentCalculationMixin:
         replan_blocked_reason: str,
         aggregate_synthesis_debug: Dict[str, Any],
     ) -> Dict[str, Any]:
-        artifacts = list(ledger_artifacts)
-        tasks = list(state.get("tasks") or [])
-        artifact_id = f"aggregate:{len(artifacts) + 1:03d}"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=artifact_id,
-            task_id="aggregate",
-            kind=ArtifactKind.AGGREGATED_ANSWER,
-            status="ok",
-            summary=final_answer[:200],
-            payload={
-                "subtask_results": ordered_results,
-                "final_answer": final_answer,
-                "planner_feedback": planner_feedback,
-                **aggregate_projection,
-            },
+        aggregate_artifact_update = _build_aggregate_answer_artifact_update(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(ledger_artifacts),
+            final_answer=final_answer,
+            payload=_aggregate_artifact_payload(
+                ordered_results=ordered_results,
+                final_answer=final_answer,
+                planner_feedback=planner_feedback,
+                aggregate_projection=aggregate_projection,
+            ),
             evidence_refs=selected_claim_ids,
-        )
-        tasks = _upsert_task(
-            tasks,
-            task_id="aggregate",
-            kind=TaskKind.SYNTHESIS,
-            label="Aggregate subtask results",
-            status=TaskStatus.PARTIAL if planner_feedback else TaskStatus.COMPLETED,
             query=str(state.get("query") or ""),
-            metric_family="aggregate",
-            artifact_id=artifact_id,
+            planner_feedback=planner_feedback,
         )
+        tasks = list(aggregate_artifact_update["tasks"])
+        artifacts = list(aggregate_artifact_update["artifacts"])
+        artifact_id = str(aggregate_artifact_update.get("artifact_id") or "")
         tasks, artifacts = self._finalize_aggregate_task_ledger(
             tasks,
             artifacts,
@@ -19848,32 +19619,25 @@ class FinancialAgentCalculationMixin:
             artifacts=artifacts,
         )
         return {
-            "subtask_results": ordered_results,
-            "subtask_loop_complete": True,
-            "answer": final_answer,
-            "compressed_answer": final_answer,
-            "planner_mode": "replan" if should_replan else "initial",
-            "planner_feedback": planner_feedback,
-            "replan_blocked_reason": replan_blocked_reason,
-            "draft_points": [final_answer] if final_answer else [],
-            "selected_claim_ids": selected_claim_ids,
-            "kept_claim_ids": selected_claim_ids,
-            "dropped_claim_ids": [],
-            "unsupported_sentences": [],
-            "sentence_checks": [],
-            "tasks": tasks,
-            "artifacts": artifacts,
-            "evidence_items": aggregate_evidence_items or aggregate_projection.get("evidence_items", []),
-            "subtask_debug_trace": {
-                **dict(state.get("subtask_debug_trace") or {}),
-                "aggregate_synthesis_prompt": aggregate_synthesis_debug,
-            },
+            **_aggregate_completion_base_payload(
+                state=state,
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                selected_claim_ids=selected_claim_ids,
+                aggregate_evidence_items=aggregate_evidence_items,
+                tasks=tasks,
+                artifacts=artifacts,
+                planner_feedback=planner_feedback,
+                should_replan=should_replan,
+                replan_blocked_reason=replan_blocked_reason,
+                aggregate_synthesis_debug=aggregate_synthesis_debug,
+            ),
             **_runtime_trace_state_update(
                 state,
                 calculation_operands=aggregate_projection["calculation_operands"],
                 calculation_plan=aggregate_projection["calculation_plan"],
                 calculation_result=aggregate_projection["calculation_result"],
-                include_compatibility_mirrors=False,
             ),
         }
 
@@ -19906,21 +19670,10 @@ class FinancialAgentCalculationMixin:
         complete_numeric_answer = evidence_state.complete_numeric_answer
         deterministic_feedback = evidence_state.deterministic_feedback
         preliminary_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
-        period_context_evidence_items = list(aggregate_evidence_items)
-        seen_period_context_ids = {
-            _normalise_spaces(str(item.get("evidence_id") or ""))
-            for item in period_context_evidence_items
-            if isinstance(item, dict) and _normalise_spaces(str(item.get("evidence_id") or ""))
-        }
-        for item in self._runtime_evidence_rows_with_context_docs(state):
-            if not isinstance(item, dict):
-                continue
-            evidence_id = _normalise_spaces(str(item.get("evidence_id") or ""))
-            if evidence_id and evidence_id in seen_period_context_ids:
-                continue
-            if evidence_id:
-                seen_period_context_ids.add(evidence_id)
-            period_context_evidence_items.append(dict(item))
+        period_context_evidence_items = _aggregate_period_context_evidence_items(
+            aggregate_evidence_items,
+            self._runtime_evidence_rows_with_context_docs(state),
+        )
         period_realigned_state = self._apply_period_context_realignment_to_aggregate(
             aggregate_state=_AggregateSynthesisState(
                 ordered_results,
@@ -19950,8 +19703,9 @@ class FinancialAgentCalculationMixin:
         aggregate_synthesis_input_json = ""
         aggregate_synthesis_debug: Dict[str, Any] = {}
         if hasattr(self, "llm") and getattr(self, "llm", None) is not None:
+            AggregateSynthesisOutput = _aggregate_synthesis_output_model()
             structured_llm = self._llm_for_phase("aggregate_synthesis").with_structured_output(AggregateSynthesisOutput)
-            prompt = ChatPromptTemplate.from_template(
+            prompt = _chat_prompt_template_from_template(
                 str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")
             )
             try:
@@ -20055,10 +19809,9 @@ class FinancialAgentCalculationMixin:
         planner_feedback = feedback_state.planner_feedback
         deterministic_feedback = feedback_state.deterministic_feedback
         ledger_artifacts = feedback_state.ledger_artifacts
-        task_artifact_trace = feedback_state.task_artifact_trace
         should_replan = feedback_state.should_replan
         replan_blocked_reason = feedback_state.replan_blocked_reason
-        selected_claim_ids = self._aggregate_selected_claim_ids(
+        selected_claim_ids = _aggregate_selected_claim_ids(
             ordered_results,
             composition_selected_claim_ids,
         )
@@ -20096,12 +19849,11 @@ class FinancialAgentCalculationMixin:
             )
             _sync_aggregate_locals()
         if calculation_projection_override:
-            for key in ("calculation_operands", "calculation_plan", "calculation_result"):
-                if calculation_projection_override.get(key):
-                    aggregate_projection[key] = calculation_projection_override[key]
-            mutable_state = mutable_state._replace(
-                synthesis_state=mutable_state.synthesis_state._replace(aggregate_projection=aggregate_projection)
+            aggregate_projection = _aggregate_projection_apply_override(
+                aggregate_projection,
+                calculation_projection_override,
             )
+            _sync_state(aggregate_projection=aggregate_projection)
         slot_based_difference_answer = calculation_rendering.compose_slot_based_difference_answer(
             query=str(state.get("query") or ""),
             report_scope=dict(state.get("report_scope") or {}),
@@ -20139,9 +19891,7 @@ class FinancialAgentCalculationMixin:
                 ordered_results,
                 evidence_items=aggregate_evidence_items,
             )
-            mutable_state = mutable_state._replace(
-                synthesis_state=mutable_state.synthesis_state._replace(final_answer=final_answer)
-            )
+            _sync_state(final_answer=final_answer)
         late_aligned_results, late_identity_changed, _late_value_changed, _late_alignment_changed = (
             self._promote_and_align_aggregate_results(
                 ordered_results,
@@ -20220,7 +19970,10 @@ class FinancialAgentCalculationMixin:
         )
         _sync_state(evidence_items=aggregate_evidence_items)
         if missing_context_claim_ids:
-            selected_claim_ids = list(dict.fromkeys([*selected_claim_ids, *missing_context_claim_ids]))
+            selected_claim_ids = _aggregate_extend_selected_claim_ids(
+                selected_claim_ids,
+                missing_context_claim_ids,
+            )
             _sync_state(selected_claim_ids=selected_claim_ids)
         late_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
             ordered_results,
@@ -20322,7 +20075,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
             prefer_compact_ratio_answer=True,
         )
-        mutable_state = mutable_state._replace(synthesis_state=aggregate_state)
+        mutable_state = mutable_state.with_synthesis_state(aggregate_state)
         ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
         complete_projection_answer = self._complete_numeric_projection_replacement_answer(
             final_answer=final_answer,
@@ -20486,28 +20239,17 @@ class FinancialAgentCalculationMixin:
                     selected_claim_ids=selected_claim_ids,
                 )
         _sync_aggregate_locals()
-        final_period_context_evidence_items = list(aggregate_evidence_items)
-        final_period_context_seen_ids = {
-            _normalise_spaces(str(item.get("evidence_id") or ""))
-            for item in final_period_context_evidence_items
-            if isinstance(item, dict) and _normalise_spaces(str(item.get("evidence_id") or ""))
-        }
-        for item in period_context_evidence_items:
-            if not isinstance(item, dict):
-                continue
-            evidence_id = _normalise_spaces(str(item.get("evidence_id") or ""))
-            if evidence_id and evidence_id in final_period_context_seen_ids:
-                continue
-            if evidence_id:
-                final_period_context_seen_ids.add(evidence_id)
-            final_period_context_evidence_items.append(dict(item))
+        final_period_context_evidence_items = _aggregate_period_context_evidence_items(
+            aggregate_evidence_items,
+            period_context_evidence_items,
+        )
         final_period_realigned_state = self._apply_period_context_realignment_to_aggregate(
             aggregate_state=mutable_state.synthesis_state,
             state=state,
             evidence_items=final_period_context_evidence_items,
         )
         if final_period_realigned_state.ordered_results is not ordered_results:
-            mutable_state = mutable_state._replace(synthesis_state=final_period_realigned_state)
+            mutable_state = mutable_state.with_synthesis_state(final_period_realigned_state)
             _sync_aggregate_locals()
         ordered_results, aggregate_projection = self._sync_aggregate_arithmetic_subtask_surfaces(
             ordered_results,
@@ -20640,38 +20382,21 @@ class FinancialAgentCalculationMixin:
             target_task_id=target_task_id,
             current_count=current_count,
         )
-        artifacts = list(state.get("artifacts") or [])
-        artifact_id = f"{reflection_task_id}:report"
-        artifacts = _append_artifact(
-            artifacts,
-            artifact_id=artifact_id,
-            task_id=reflection_task_id,
-            kind=ArtifactKind.REFLECTION_REPORT,
-            status=str(reflection_report.get("outcome") or "retry_prepared"),
-            summary=f"reflection={reflection_report.get('action_taken') or retry_strategy}",
-            payload={
-                "reflection_report": reflection_report,
-                "reflection_action": reflection_action,
-                "reflection_request": dict(state.get("reflection_request") or {}),
-                "reflection_plan": reflection_plan,
-            },
-            evidence_refs=[],
-        )
-        tasks = _upsert_task(
-            list(state.get("tasks") or []),
-            task_id=reflection_task_id,
-            kind=TaskKind.REFLECTION,
-            label=f"reflect {target_task_id or 'global'}",
-            status=TaskStatus.COMPLETED,
+        reflection_artifact_update = _build_reflection_report_artifact_update(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(state.get("artifacts") or []),
+            reflection_task_id=reflection_task_id,
+            target_task_id=target_task_id,
             query=str(state.get("query") or ""),
             metric_family=str(active_subtask.get("metric_family") or ""),
-            constraints={
-                "target_task_ids": list(reflection_report.get("target_task_ids") or []),
-                "target_artifact_ids": list(reflection_report.get("target_artifact_ids") or []),
-                "action_taken": str(reflection_report.get("action_taken") or ""),
-            },
-            artifact_id=artifact_id,
+            reflection_report=reflection_report,
+            reflection_action=reflection_action,
+            reflection_request=dict(state.get("reflection_request") or {}),
+            reflection_plan=reflection_plan,
+            retry_strategy=retry_strategy,
         )
+        tasks = list(reflection_artifact_update["tasks"])
+        artifacts = list(reflection_artifact_update["artifacts"])
         retry_reason = (
             str(reflection_plan.get("explanation") or "")
             or str(plan.get("explanation") or "")
@@ -20716,7 +20441,6 @@ class FinancialAgentCalculationMixin:
                 calculation_operands=[],
                 calculation_plan={},
                 calculation_result={},
-                include_compatibility_mirrors=False,
             ),
         }
 

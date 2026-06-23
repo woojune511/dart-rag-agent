@@ -9,11 +9,8 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent.financial_graph import (
-    _extract_composite_krw,
-    _normalise_operand_value,
-    _should_coerce_percent_point_unit,
-)
+from src.agent.financial_operation_policies import _should_coerce_percent_point_unit
+from src.agent.financial_runtime_normalization import _extract_composite_krw, _normalise_operand_value
 from src.ops.evaluator import (
     EvalExample,
     _compute_numeric_equivalence,

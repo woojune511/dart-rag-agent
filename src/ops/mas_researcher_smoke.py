@@ -17,19 +17,19 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-for path in (PROJECT_ROOT, SRC_ROOT):
-    path_text = str(path)
-    if path_text not in sys.path:
-        sys.path.insert(0, path_text)
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.experimental.mas.graph import run_mas_graph
-from src.experimental.mas.nodes import (
-    NarrativeResearcherCore,
-    build_financial_researcher_node,
-)
-from src.experimental.mas.types import critic_report_runtime_acceptance_state
-from src.storage.vector_store import VectorStoreManager
+VectorStoreManager = None
+
+
+def _vector_store_manager_cls():
+    global VectorStoreManager
+    if VectorStoreManager is None:
+        from src.storage.vector_store import VectorStoreManager as impl
+
+        VectorStoreManager = impl
+    return VectorStoreManager
 
 DEFAULT_STORE_DIR = (
     Path("benchmarks/results/reference_note_phase1a/삼성전자-2024/stores/reference-note-plain-graph-2500-320")
@@ -95,6 +95,8 @@ def _critic_report_for_task(final_state: Dict[str, Any], task_id: str) -> Dict[s
 
 
 def _critic_acceptance_summary(report: Dict[str, Any]) -> Dict[str, Any]:
+    from src.agent.financial_artifact_contracts import critic_report_runtime_acceptance_state
+
     acceptance = critic_report_runtime_acceptance_state(dict(report))
     return {
         "accepted": bool(acceptance.get("accepted")),
@@ -116,7 +118,14 @@ def run_smoke(
     question_ids: List[str],
     k: int,
 ) -> Dict[str, Any]:
-    vsm = VectorStoreManager(
+    from src.experimental.mas.graph import run_mas_graph
+    from src.experimental.mas.nodes import (
+        NarrativeResearcherCore,
+        build_financial_researcher_node,
+    )
+
+    vector_store_manager_cls = _vector_store_manager_cls()
+    vsm = vector_store_manager_cls(
         persist_directory=str(store_dir),
         collection_name=collection_name,
     )

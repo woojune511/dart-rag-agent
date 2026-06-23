@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List
 
-from src.agent.financial_graph_helpers import _normalise_spaces
-from src.agent.financial_graph_models import FinancialAgentState, ReflectionAction, ReflectionReport
+from src.agent.financial_runtime_normalization import _normalise_spaces
+
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState, ReflectionAction, ReflectionReport
 
 
 def reflection_action_from_plan(

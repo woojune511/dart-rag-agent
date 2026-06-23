@@ -17,13 +17,31 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-from ops.benchmark_runner import _load_json, _normalise_path
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 logger = logging.getLogger(__name__)
+
+
+def _load_json(path: Path):
+    with open(path, encoding="utf-8") as file:
+        return json.load(file)
+
+
+def _looks_like_windows_absolute_path(path_text: str) -> bool:
+    return len(path_text) >= 3 and path_text[1] == ":" and path_text[2] in {"\\", "/"}
+
+
+def _normalise_path(path_value: str | Path) -> Path:
+    path_text = str(path_value)
+    path = Path(path_text)
+    if not path.is_absolute() and not _looks_like_windows_absolute_path(path_text):
+        path = (PROJECT_ROOT / path).resolve()
+    parts_lower = [part.lower() for part in path.parts]
+    for index in range(len(parts_lower) - 1):
+        if parts_lower[index] == "data" and parts_lower[index + 1] == "reports":
+            return (PROJECT_ROOT / "data" / "reports" / Path(*path.parts[index + 2 :])).resolve()
+    return path
 
 
 def main() -> None:
@@ -56,9 +74,9 @@ def main() -> None:
     import os
     os.environ.setdefault("CHROMA_PERSIST_DIRECTORY", persist_dir)
 
-    from agent.financial_graph import FinancialAgent
-    from ops.evaluator import RAGEvaluator, load_eval_examples_from_path
-    from storage.vector_store import VectorStoreManager
+    from src.agent.financial_graph import FinancialAgent
+    from src.ops.evaluator import RAGEvaluator, load_eval_examples_from_path
+    from src.storage.vector_store import VectorStoreManager
 
     vsm = VectorStoreManager(
         persist_directory=persist_dir,

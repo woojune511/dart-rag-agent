@@ -11,14 +11,13 @@ from pathlib import Path
 from typing import Any, List
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_ROOT = PROJECT_ROOT / "src"
-if str(SRC_ROOT) not in sys.path:
-    sys.path.insert(0, str(SRC_ROOT))
-
-from processing.financial_parser import FinancialParser, _classify_section, _normalize
+if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def _get_first_text(root: Any, tag: str) -> str:
+    from src.processing.financial_parser import _normalize
+
     elem = root.find(f".//{tag}")
     if elem is None:
         return ""
@@ -58,6 +57,8 @@ def _render_table(table_text: str) -> str:
 
 
 def _render_section(section: dict[str, Any], index: int) -> str:
+    from src.processing.financial_parser import _classify_section
+
     section_id = f"section-{index}-{_slugify(section['title'])}"
     label = _classify_section(section["title"])
     blocks_html: List[str] = []
@@ -89,6 +90,8 @@ def _render_section(section: dict[str, Any], index: int) -> str:
 
 
 def render_preview(input_path: Path, output_path: Path) -> Path:
+    from src.processing.financial_parser import FinancialParser
+
     parser = FinancialParser()
     root = parser._parse_xml(str(input_path))
     if root is None:

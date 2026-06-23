@@ -12,13 +12,12 @@ import logging
 import os
 import re
 import json
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from lxml import etree
-from pydantic import BaseModel
 from src.processing.block_collection import collect_blocks
 from src.processing.chunking import (
     chunk_blocks,
@@ -31,9 +30,7 @@ from src.processing.chunking import (
 )
 from src.processing.reference_resolution import (
     build_reference_index,
-    canonicalize_reference_text,
     extract_reference_section_paths,
-    resolve_reference_path,
 )
 from src.processing.section_extraction import (
     SectionParseTimeout,
@@ -48,7 +45,6 @@ from src.processing.table_records import (
     extract_period_labels,
     infer_table_header_row_count,
     infer_table_row_axis,
-    is_generic_value_label,
     merge_header_stack,
 )
 from src.processing.table_structure import (
@@ -60,7 +56,6 @@ from src.processing.table_structure import (
     normalize_table_grid,
     table_has_spans,
 )
-from src.schema import RowRecord, TableObject, ValueRecord
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +114,12 @@ _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("기타", []),
 ]
 
+
+def _recursive_character_text_splitter(**kwargs):
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    return RecursiveCharacterTextSplitter(**kwargs)
+
 _CONTENT_RECLASSIFY: List[Tuple[str, List[str]]] = [
     ("리스크", ["위험관리", "위험요인", "리스크", "파생상품", "hedge"]),
     ("매출현황", ["매출", "수주", "매출 구성", "매출비중"]),
@@ -153,17 +154,32 @@ _BRACKET_SECTION_LABEL_PREFIXES = (
 _SHORT_BRACKET_LABEL_MAX_CHARS = 8
 
 
-class DocumentChunk(BaseModel):
+@dataclass
+class DocumentChunk:
     content: str
     metadata: Dict[str, Any]
 
 
+def _row_record_model() -> Any:
+    from src.schema import RowRecord
+
+    return RowRecord
+
+
+def _table_object_model() -> Any:
+    from src.schema import TableObject
+
+    return TableObject
+
+
+def _value_record_model() -> Any:
+    from src.schema import ValueRecord
+
+    return ValueRecord
+
+
 def _normalize(text: str) -> str:
     return re.sub(r"[ \t]+", " ", text).strip()
-
-
-def _canonicalize_reference_text(text: str) -> str:
-    return canonicalize_reference_text(text)
 
 
 def _summarize_for_context(text: str, max_len: int = 220) -> str:
@@ -363,10 +379,6 @@ def _infer_consolidation_scope(section_path: str, header_context: Optional[str])
     if any(re.search(r"(?:^|\s)\d+[.)]?\s*재무제표(?:\s+주석)?$", part) for part in path_parts):
         return "separate"
     return "unknown"
-
-
-def _is_generic_value_label(text: str) -> bool:
-    return is_generic_value_label(text)
 
 
 def _is_probable_xml_markup(inner: str) -> bool:
@@ -617,14 +629,6 @@ def _build_reference_index(raw_sections: List[Dict[str, Any]]) -> Dict[str, Any]
     return build_reference_index(raw_sections)
 
 
-def _resolve_reference_path(
-    left: Optional[str],
-    right: str,
-    reference_index: Dict[str, Any],
-) -> Optional[str]:
-    return resolve_reference_path(left, right, reference_index)
-
-
 def _extract_reference_section_paths(text: str, reference_index: Dict[str, Any]) -> List[str]:
     return extract_reference_section_paths(text, reference_index)
 
@@ -641,7 +645,7 @@ class FinancialParser:
         self.chunk_overlap = chunk_overlap
         self.section_warn_sec = max(0.0, section_warn_sec)
         self.section_parse_budget_sec = max(0.0, section_parse_budget_sec)
-        self.text_splitter = RecursiveCharacterTextSplitter(
+        self.text_splitter = _recursive_character_text_splitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             separators=["\n\n", ".\n", "다.\n", "\n", ". ", " ", ""],
@@ -801,6 +805,9 @@ class FinancialParser:
                     value_label_lines.append(line)
                 table_value_labels_text = "\n".join(value_label_lines)
             header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
+            RowRecord = _row_record_model()
+            TableObject = _table_object_model()
+            ValueRecord = _value_record_model()
             table_model = TableObject(
                 table_id=table_source_id,
                 source_section_path=section_path,
@@ -1199,54 +1206,3 @@ class FinancialParser:
             full = "\n\n".join(texts)
             parents[pid] = full[:max_parent_len] if len(full) > max_parent_len else full
         return parents
-
-
-if __name__ == "__main__":
-    import sys
-    from collections import Counter
-
-    logging.basicConfig(level=logging.INFO)
-
-    reports_dir = os.path.join(_PROJECT_ROOT, "data", "reports")
-    target = None
-    for root_dir, _, files in os.walk(reports_dir):
-        for filename in files:
-            if filename.endswith(".html"):
-                target = os.path.join(root_dir, filename)
-                break
-        if target:
-            break
-
-    if not target:
-        print(f"[SKIP] No .html file found under {reports_dir}. Run dart_fetcher.py first.")
-        sys.exit(0)
-
-    print(f"\n--- FinancialParser smoke test: {os.path.basename(target)} ---\n")
-
-    parser = FinancialParser(chunk_size=DEFAULT_CHUNK_SIZE, chunk_overlap=DEFAULT_CHUNK_OVERLAP)
-    sections = parser.parse_sections(target)
-    print(f"Total sections: {len(sections)}")
-
-    meta = {
-        "company": "삼성전자",
-        "stock_code": "005930",
-        "year": 2023,
-        "report_type": "사업보고서",
-        "rcept_no": "20230307000542",
-    }
-    chunks = parser.process_document(target, meta)
-    print(f"Total chunks: {len(chunks)}")
-
-    distribution = Counter(chunk.metadata["section"] for chunk in chunks)
-    print("\n[Section distribution]")
-    for label, count in distribution.most_common():
-        print(f"  {label:>10}: {count}")
-
-    risk_chunks = [chunk for chunk in chunks if chunk.metadata["section"] == "리스크"]
-    if risk_chunks:
-        sample = risk_chunks[0]
-        print("\n[Risk sample]")
-        print(f"  section_path: {sample.metadata['section_path']}")
-        print(f"  block_type  : {sample.metadata['block_type']}")
-        print(f"  table_ctx   : {sample.metadata.get('table_context')}")
-        print(f"  content     : {sample.content[:200]}")
