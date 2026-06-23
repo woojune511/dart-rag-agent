@@ -65,7 +65,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 ### Latest Local Runtime Surface Cleanup
 
 - Run date: 2026-06-23
-- Scope: local uncommitted cleanup after PR #77, focused on removing stale
+- Scope: committed and pushed cleanup after PR #77, focused on removing stale
   calculation mirror compatibility, narrowing public projection bridges, and
   deleting clearly unused runtime imports and stale direct-run demo surfaces.
 - Cleanup notes:

@@ -11,9 +11,14 @@
 
 ## 최신 상태
 
-- 2026-06-23 PR #77 이후 local runtime cleanup이 source/docs split 직전 상태까지
-  정리됐다.
-  - 현재 변경은 아직 uncommitted이며, index에 staged된 파일은 없다.
+- 2026-06-23 PR #77 이후 local runtime cleanup이 source/docs split으로
+  커밋되어 `origin/main`에 push됐다.
+  - current HEAD: `08dbb92 document runtime cleanup split and audit baseline`
+  - source/test commit:
+    `949cb48 refactor runtime surfaces and import boundaries`
+  - docs/audit commit:
+    `08dbb92 document runtime cleanup split and audit baseline`
+  - 현재 worktree는 clean이고 `main`은 `origin/main`과 일치한다.
   - source/test split path set:
     - `122` paths
     - `main.py`, `src/**`, `tests/**`
@@ -52,15 +57,12 @@
     - artifact hygiene checks showed no `benchmarks/results/**`, temp benchmark
       files, local stores, or `mlruns` artifacts in the cleanup split.
   - recommended next action:
-    - If committing, stage source/test first:
-      `git add main.py src tests ':!tests/fixtures/runtime_domain_terms_baseline.json'`
-      and commit as `refactor runtime surfaces and import boundaries`.
-    - Then stage docs/audit:
-      `git add README.md CONTEXT.md docs tests/fixtures/runtime_domain_terms_baseline.json`
-      and commit as `document runtime cleanup split and audit baseline`.
     - Do not continue reducing large graph/evidence/calculation functions unless
-      there is a concrete owner-boundary seam or bug; the current local cleanup
-      has reached the split/commit stage.
+      there is a concrete owner-boundary seam or bug.
+    - Run store-fixed eval-only benchmark refresh first to confirm the
+      no-behavior-change cleanup did not regress answer quality.
+    - If a regression appears, classify it by trace layer
+      (`retrieval/evidence/reconcile/calculation/projection`) before patching.
 
 - 2026-06-22 `FinancialAgent` 파악용 문서를 최신 runtime 구조에 맞게 갱신했다.
   - `docs/overview/question_trace_walkthrough.md`: PR #77 이후 graph wiring,
