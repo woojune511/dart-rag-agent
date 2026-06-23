@@ -11,6 +11,46 @@
 
 ## 최신 상태
 
+- 2026-06-24 runtime numeric projection regression fix가 커밋되어
+  `origin/main`에 push됐고, 그 상태에서 expanded structural 9-question
+  store-fixed `eval-only` refresh를 다시 돌렸다.
+  - current HEAD: `1d78b31 Fix runtime numeric projection regressions`
+  - branch state: `main` is aligned with `origin/main`; worktree clean before
+    the benchmark refresh.
+  - source/test commits since PR #77 cleanup:
+    - `949cb48 refactor runtime surfaces and import boundaries`
+    - `08dbb92 document runtime cleanup split and audit baseline`
+    - `7cfe62c Update cleanup handoff after push`
+    - `1d78b31 Fix runtime numeric projection regressions`
+  - focused/local validation for `1d78b31`:
+    - `python3 -m unittest tests.test_subtask_loop`: `232` OK
+    - `python3 -m unittest tests.test_financial_agent_run_projection tests.test_import_side_effects`:
+      `71` OK
+    - `python3 -m unittest tests.test_operation_contracts tests.test_aggregate_subtask_projection`:
+      `320` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+    - `git diff --check`: passed
+  - refreshed full eval-only command:
+    `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_9q_after_runtime_numeric_projection_fix_2026-06-24.jsonl`
+  - refreshed result:
+    - run status: `completed`
+    - completed companies: `6`; pending companies: `0`
+    - numeric final judgement: `9/9` PASS
+    - winner ranking: `structural_selective_v2_prefix_2500_320`
+      with `avg_full_numeric_pass_rate=1.000`,
+      `avg_full_completeness=0.958`, `avg_full_faithfulness=1.000`,
+      `avg_full_context_recall=0.900`
+    - `full_eval_fail_count=1` remains because KB금융 aggregate completeness is
+      `0.750`; this is a quality/completeness residual, not a numeric failure.
+  - recommended next action:
+    - Do not keep doing blind line-count refactoring.
+    - If optimizing, target the KB completeness residual or a named
+      owner-boundary item from
+      `docs/architecture/core_runtime_surface_refactoring_plan.md`.
+    - Keep benchmark artifacts under `benchmarks/results/**` out of commits
+      unless explicitly publishing experiment bundles.
+
 - 2026-06-23 PR #77 이후 local runtime cleanup이 source/docs split으로
   커밋되어 `origin/main`에 push됐다.
   - current HEAD: `08dbb92 document runtime cleanup split and audit baseline`

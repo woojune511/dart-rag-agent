@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ## Positioning
 
@@ -44,6 +44,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Hard structural numeric gate | 5 curated hard numeric questions | PASS, 5 / 5 |
 | Concept runtime gap gate | 7 ontology-driven concept questions | PASS, 7 / 7 |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
+| Expanded structural numeric gate | 9 expanded structural questions | PASS, 9 / 9 numeric; KB completeness residual |
 | Reflection promotion gate | base fixture, store-fixed candidate surface, two reviewed trace summaries | READY |
 | Report-cache promotion evidence | candidate-only cache producer/fallback contract | READY, disabled |
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
@@ -52,15 +53,59 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Current Baseline
 
-- Current runtime/code baseline from PR #77: `main@6d98d67`.
+- Current runtime/code baseline: `main@1d78b31`
+  (`Fix runtime numeric projection regressions`), pushed to `origin/main`.
+- This is PR #77 plus local post-merge runtime-surface cleanup and the
+  follow-up numeric projection regression fix:
+  - `949cb48` runtime/import boundary cleanup
+  - `08dbb92` cleanup handoff docs and runtime-domain audit baseline
+  - `7cfe62c` cleanup handoff update after push
+  - `1d78b31` runtime numeric projection regression fix
 - PR #77 merged on 2026-06-22:
   `https://github.com/woojune511/dart-rag-agent/pull/77`
 - The merge contains:
   - `6557f50` numeric projection conflict fix
   - `77b68bf` deterministic ablation documentation
   - `c3a75be` no-behavior-change aggregate answer projection helper extraction
-- Gate status remains the expanded structural closure below: `9 / 9` numeric
-  final judgement PASS.
+- Latest store-fixed expanded structural eval-only refresh on 2026-06-24:
+  `9 / 9` numeric final judgement PASS. Cross-company `full_eval_fail_count=1`
+  remains because KB금융 completeness is `0.750`; numeric pass rate and
+  faithfulness are both `1.000`.
+
+### Latest Runtime Numeric Projection Regression Fix
+
+- Run date: 2026-06-24
+- Commit: `1d78b31 Fix runtime numeric projection regressions`
+- Scope:
+  - restored runtime imports needed by LangGraph route type-hint resolution;
+  - kept ratio-marker projection in multiplier units such as `배` instead of
+    percent when the ratio policy requires it;
+  - protected supported aggregate/narrative answers from being overwritten by a
+    conflicting late numeric trace when the public answer already carries the
+    source-visible numeric explanation.
+- Focused/local validation:
+  - `python3 -m unittest tests.test_subtask_loop`: `232` OK
+  - `python3 -m unittest tests.test_financial_agent_run_projection tests.test_import_side_effects`:
+    `71` OK
+  - `python3 -m unittest tests.test_operation_contracts tests.test_aggregate_subtask_projection`:
+    `320` OK
+  - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+    reviewed literals
+  - `git diff --check`: passed
+- Store-fixed expanded structural `eval-only` refresh:
+  - command:
+    `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_9q_after_runtime_numeric_projection_fix_2026-06-24.jsonl`
+  - run status: `completed`; completed companies: `6`; pending companies: `0`
+  - numeric final judgement: `9 / 9` PASS
+  - winner ranking:
+    `structural_selective_v2_prefix_2500_320`,
+    `avg_full_numeric_pass_rate=1.000`,
+    `avg_full_completeness=0.958`,
+    `avg_full_faithfulness=1.000`,
+    `avg_full_context_recall=0.900`
+  - residual:
+    `full_eval_fail_count=1` because KB금융 completeness is `0.750` while
+    `numeric_pass_rate=1.000` and `faithfulness=1.000`.
 
 ### Latest Local Runtime Surface Cleanup
 

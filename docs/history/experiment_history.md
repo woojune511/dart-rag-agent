@@ -60,6 +60,7 @@
 | [SKH_T1_060 Structured Subtask Projection Closure (2026-06-19)](#skh_t1_060-structured-subtask-projection-closure-2026-06-19) | expanded structural residual의 trace/answer consistency fix | focused rerun passes `42.02%`; full 9-question structural refresh still pending before changing aggregate claim |
 | [KBF_T2_018 Supported Aggregate Narrative Repair (2026-06-19)](#kbf_t2_018-supported-aggregate-narrative-repair-2026-06-19) | full structural refresh after SKH fix exposed a supported aggregate final-answer precedence bug | full run is `8 / 9`; focused KBF repair passes with `70.28%`; rerun full structural before claiming fresh `9 / 9` |
 | [Expanded Structural Numeric-Surface Conflict Closure (2026-06-22)](#expanded-structural-numeric-surface-conflict-closure-2026-06-22) | takeout-restored structural full-system eval-only after aggregate projection hardening | focused KBF guard and full 9-question structural refresh both pass; structural is now `9 / 9` numeric PASS |
+| [Post-Cleanup Runtime Numeric Projection Refresh (2026-06-24)](#post-cleanup-runtime-numeric-projection-refresh-2026-06-24) | post-PR #77 cleanup and `1d78b31` numeric projection regression fix after store-fixed full replay | expanded structural remains `9 / 9` numeric PASS; KB completeness residual keeps cross-company full-eval fail count at `1` |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -73,6 +74,61 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Post-Cleanup Runtime Numeric Projection Refresh (2026-06-24)
+
+참조:
+
+- local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- heartbeat log:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_9q_after_runtime_numeric_projection_fix_2026-06-24.jsonl`
+- source commit:
+  - `1d78b31 Fix runtime numeric projection regressions`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Setup
+
+- Store-fixed structural full-system `eval-only` over the expanded 9-question
+  profile after the PR #77 post-merge runtime-surface cleanup and the
+  `1d78b31` numeric projection regression fix.
+- Profile:
+  `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
+- Command:
+  `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full_9q_after_runtime_numeric_projection_fix_2026-06-24.jsonl`
+
+### Results
+
+| Scope | Result | Detail |
+| --- | --- | --- |
+| Full expanded structural refresh | `9 / 9` numeric PASS | Six companies completed, no pending companies. |
+| Winner ranking | `structural_selective_v2_prefix_2500_320` | `avg_full_numeric_pass_rate=1.000`, `avg_full_completeness=0.958`, `avg_full_faithfulness=1.000`, `avg_full_context_recall=0.900`. |
+| Cross-company full eval | `full_eval_fail_count=1` | KB금융 completeness remains `0.750`; numeric pass rate and faithfulness are both `1.000`. |
+
+Company-level aggregate metrics:
+
+| Company | Questions | Numeric | Completeness | Faithfulness | Recall |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 카카오뱅크 2023 | 1 | 1.000 | 1.000 | 1.000 | 1.000 |
+| POSCO홀딩스 2023 | 1 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 삼성전자 2023 | 2 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 셀트리온 2023 | 1 | 1.000 | 1.000 | 1.000 | 0.667 |
+| KB금융 2023 | 2 | 1.000 | 0.750 | 1.000 | 0.833 |
+| SK하이닉스 2023 | 2 | 1.000 | 1.000 | 1.000 | 0.900 |
+
+### Interpretation
+
+- The cleanup and `1d78b31` projection fix did not regress the expanded
+  structural numeric gate: the current source baseline still clears all nine
+  numeric final judgements.
+- The remaining cross-company full-eval failure is not numeric correctness. It
+  is a KB금융 completeness residual, so follow-up work should inspect the public
+  answer and evidence/projection trace for missing explanatory coverage before
+  changing retrieval or calculator code.
+- Further refactoring should be tied to named owner-boundary work from
+  `docs/architecture/core_runtime_surface_refactoring_plan.md`; blind
+  line-count reduction is no longer the next useful step.
 
 ## Expanded Structural Numeric-Surface Conflict Closure (2026-06-22)
 
