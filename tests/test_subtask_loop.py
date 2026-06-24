@@ -1054,6 +1054,183 @@ class SubtaskLoopTests(unittest.TestCase):
             "[NAVER | 2023 | IV. 이사의 경영진단 및 분석의견]",
         )
 
+    def test_dependency_rows_repair_task_output_from_same_evidence_exact_table_label(self) -> None:
+        state = {
+            "query": "Calculate borrowings ratio.",
+            "report_scope": {"company": "Example", "year": 2023, "consolidation": "consolidated"},
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "short_term_borrowings",
+                        "label": "short-term borrowings",
+                        "preferred_task_id": "task_short",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "numerator_2",
+                        "concept": "long_term_borrowings",
+                        "label": "2023 long-term borrowings",
+                        "preferred_task_id": "task_long",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ]
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_short",
+                    "metric_label": "short-term borrowings",
+                    "operation_family": "lookup",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_borrowings",
+                            "source_anchor": "[borrowings table]",
+                            "claim": "9,857,189 (백만원)",
+                            "quote_span": "9,857,189",
+                            "metadata": {
+                                "year": 2023,
+                                "statement_type": "notes",
+                                "consolidation_scope": "consolidated",
+                                "table_source_id": "table_borrowings",
+                                "unit_hint": "백만원",
+                                "table_value_labels_text": "\n".join(
+                                    [
+                                        "short-term borrowings 4,145,647",
+                                        "current long-term borrowings 2,012,002",
+                                        "current bonds 3,699,540",
+                                        "current subtotal 9,857,189",
+                                        "long-term borrowings 10,121,033",
+                                    ]
+                                ),
+                                "table_row_labels_text": "\n".join(
+                                    [
+                                        "short-term borrowings",
+                                        "current long-term borrowings",
+                                        "current bonds",
+                                        "current subtotal",
+                                        "long-term borrowings",
+                                    ]
+                                ),
+                            },
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "short-term borrowings",
+                                "concept": "short_term_borrowings",
+                                "raw_value": "9,857,189",
+                                "raw_unit": "백만원",
+                                "normalized_value": 9857189000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "9,857,189백만원",
+                                "source_row_id": "ev_borrowings",
+                                "source_row_ids": ["ev_borrowings"],
+                            }
+                        },
+                    },
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "4,145,647")
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_short", "ev_borrowings"])
+
+    def test_dependency_rows_repair_prior_task_output_from_period_table_context(self) -> None:
+        period_table_evidence = {
+            "evidence_id": "ev_period_table",
+            "source_anchor": "[period table]",
+            "claim": "credit loss expense 3,146,409 1,847,775",
+            "quote_span": "credit loss expense 3,146,409 1,847,775",
+            "metadata": {
+                "year": 2023,
+                "statement_type": "summary_financials",
+                "table_source_id": "table_period",
+                "unit_hint": "백만원",
+                "table_header_context": "item | 2023 | 2022",
+                "table_value_labels_text": "\n".join(
+                    [
+                        "credit loss expense 3,146,409",
+                        "credit loss expense 1,847,775",
+                    ]
+                ),
+                "table_row_labels_text": "credit loss expense",
+            },
+        }
+        state = {
+            "query": "Calculate year-over-year growth.",
+            "report_scope": {"company": "Example", "year": 2023},
+            "evidence_items": [period_table_evidence],
+            "active_subtask": {
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "credit_loss_expense",
+                        "label": "credit loss expense",
+                        "period": "2023",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "prior_period",
+                        "concept": "credit_loss_expense",
+                        "label": "credit loss expense",
+                        "period": "2022",
+                        "preferred_task_id": "task_prior",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ]
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_prior",
+                    "metric_label": "2022 credit loss expense",
+                    "operation_family": "lookup",
+                    "runtime_evidence": [
+                        {
+                            "evidence_id": "ev_notes",
+                            "source_anchor": "[notes]",
+                            "claim": "unrelated note 54",
+                            "metadata": {"statement_type": "notes"},
+                        }
+                    ],
+                    "calculation_result": {
+                        "status": "ok",
+                        "answer_slots": {
+                            "primary_value": {
+                                "status": "ok",
+                                "label": "credit loss expense",
+                                "concept": "credit_loss_expense",
+                                "period": "2022",
+                                "raw_value": "54",
+                                "raw_unit": "백만원",
+                                "normalized_value": 54000000.0,
+                                "normalized_unit": "KRW",
+                                "rendered_value": "54백만원",
+                                "source_row_id": "ev_notes",
+                                "source_row_ids": ["ev_notes"],
+                            }
+                        },
+                    },
+                }
+            ],
+        }
+
+        rows = self.agent._build_dependency_operand_rows(state)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["raw_value"], "1,847,775")
+        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_prior", "ev_period_table"])
+
     def test_dependency_rows_preserve_task_output_when_retrieval_scope_conflicts_evidence_metadata(self) -> None:
         state = {
             "active_subtask": {
@@ -5005,6 +5182,71 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("7.87%", repaired.final_answer)
         self.assertIn("42.02%", repaired.aggregate_projection["calculation_result"]["formatted_result"])
 
+    def test_final_answer_evidence_numeric_surface_backfills_projection_operand(self) -> None:
+        projection = {
+            "calculation_operands": [
+                {
+                    "status": "ok",
+                    "role": "current_period",
+                    "matched_operand_role": "current_period",
+                    "operand_id": "current_period",
+                    "label": "target metric",
+                    "concept": "target_metric",
+                    "period": "2024",
+                    "raw_value": "1,200",
+                    "raw_unit": "백만원",
+                    "normalized_value": 1200000000.0,
+                    "normalized_unit": "KRW",
+                    "rendered_value": "1,200백만원",
+                    "source_row_id": "recon::row:current",
+                    "source_row_ids": ["recon::row:current"],
+                    "source_anchor": "source table",
+                }
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "current_period": "2024",
+                "prior_period": "2023",
+                "formatted_result": "2024 target metric is 1,200백만원, versus 2023 800백만원, up 50.00%.",
+            },
+        }
+        evidence_items = [
+            {
+                "evidence_id": "recon::row:all",
+                "source_anchor": "source table",
+                "claim": "target metric | 2024 1,200백만원 | 2023 800백만원",
+                "quote_span": "target metric | 2024 1,200백만원 | 2023 800백만원",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {},
+            }
+        ]
+
+        _filtered, updated_projection, _selected, _kept = self.agent._filter_final_aggregate_evidence_and_projection(
+            evidence_items,
+            projection,
+            final_answer="2024 target metric is 1,200백만원, versus 2023 800백만원, up 50.00%.",
+            selected_claim_ids=[],
+        )
+
+        operands = list(updated_projection.get("calculation_operands") or [])
+        self.assertEqual(len(operands), 2)
+        prior_operand = operands[1]
+        self.assertEqual(prior_operand["matched_operand_role"], "prior_period")
+        self.assertEqual(prior_operand["period"], "2023")
+        self.assertEqual(prior_operand["raw_value"], "800")
+        self.assertEqual(prior_operand["raw_unit"], "백만원")
+        self.assertEqual(prior_operand["source_row_id"], "recon::row:all")
+        self.assertTrue(prior_operand["projection_backfilled_from_final_evidence"])
+        calculation_result = updated_projection["calculation_result"]
+        self.assertEqual(calculation_result["operation_family"], "growth_rate")
+        self.assertAlmostEqual(calculation_result["result_value"], 50.0)
+        self.assertEqual(calculation_result["rendered_value"], "50.00%")
+        self.assertEqual(
+            calculation_result["answer_slots"]["components_by_role"]["prior_period"][0]["raw_value"],
+            "800",
+        )
+
     def test_late_runtime_numeric_answer_rejects_dependency_incoherent_trace(self) -> None:
         source_lookup = {
             "task_id": "task_num",
@@ -5704,6 +5946,599 @@ class SubtaskLoopTests(unittest.TestCase):
             numerator_value=350_000_000.0,
             denominator_value=100_000_000.0,
             query="2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+            metric_label="이자보상배율",
+        )
+
+        self.assertEqual(projection["result_unit"], "배")
+        self.assertEqual(projection["normalized_unit"], "COUNT")
+        self.assertEqual(projection["result_value"], 3.5)
+        self.assertEqual(projection["rendered_value"], "3.5배")
+
+    def test_task_output_ratio_projection_repairs_slot_from_direct_table_label_evidence(self) -> None:
+        ordered = [
+            {
+                "task_id": "task_short",
+                "metric_family": "concept_lookup",
+                "metric_label": "short-term borrowings",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_unit": "million",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "short-term borrowings",
+                            "concept": "short_term_borrowings",
+                            "raw_value": "9,857,189",
+                            "raw_unit": "백만원",
+                            "normalized_value": 9_857_189_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "9,857,189백만원",
+                            "source_row_id": "ev_subtotal",
+                            "source_row_ids": ["ev_subtotal"],
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_long",
+                "metric_family": "concept_lookup",
+                "metric_label": "long-term borrowings",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_unit": "백만원",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_2",
+                            "label": "long-term borrowings",
+                            "concept": "long_term_borrowings",
+                            "raw_value": "10,121,033",
+                            "raw_unit": "백만원",
+                            "normalized_value": 10_121_033_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "10,121,033백만원",
+                            "source_row_id": "ev_long",
+                            "source_row_ids": ["ev_long"],
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_assets",
+                "metric_family": "concept_lookup",
+                "metric_label": "asset base",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "result_unit": "백만원",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "asset base",
+                            "concept": "asset_base",
+                            "raw_value": "100,000,000",
+                            "raw_unit": "백만원",
+                            "normalized_value": 100_000_000_000_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "100,000,000백만원",
+                            "source_row_id": "ev_assets",
+                            "source_row_ids": ["ev_assets"],
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "debt to asset ratio",
+                "operation_family": "ratio",
+                "status": "missing",
+                "calculation_result": {"status": "missing"},
+            },
+        ]
+        state = {
+            "query": "calculate debt to asset ratio",
+            "calc_subtasks": [
+                {"task_id": "task_short", "operation_family": "lookup"},
+                {"task_id": "task_long", "operation_family": "lookup"},
+                {"task_id": "task_assets", "operation_family": "lookup"},
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "operation_family": "ratio",
+                    "metric_label": "debt to asset ratio",
+                    "inputs": [
+                        {
+                            "label": "short-term borrowings",
+                            "concept": "short_term_borrowings",
+                            "role": "numerator_1",
+                            "source_slot": "primary_value",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_short",
+                        },
+                        {
+                            "label": "long-term borrowings",
+                            "concept": "long_term_borrowings",
+                            "role": "numerator_2",
+                            "source_slot": "primary_value",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_long",
+                        },
+                        {
+                            "label": "asset base",
+                            "concept": "asset_base",
+                            "role": "denominator_1",
+                            "source_slot": "primary_value",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_assets",
+                        },
+                    ],
+                },
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_subtotal",
+                    "source_anchor": "note table",
+                    "claim": "current subtotal 9,857,189",
+                    "quote_span": "current subtotal 9,857,189",
+                    "metadata": {
+                        "unit_hint": "백만원",
+                        "table_source_id": "note::table:1",
+                        "table_value_labels_text": "short-term borrowings 4,145,647\ncurrent subtotal 9,857,189\nlong-term borrowings 10,121,033",
+                        "table_row_labels_text": "short-term borrowings | current subtotal | long-term borrowings",
+                        "table_header_context": "amount | short-term borrowings | 4,145,647",
+                    },
+                },
+                {
+                    "evidence_id": "ev_assets_conflict",
+                    "source_anchor": "alternate summary table",
+                    "claim": "asset base 50,000,000",
+                    "quote_span": "asset base 50,000,000",
+                    "metadata": {
+                        "unit_hint": "백만원",
+                        "table_source_id": "summary::table:2",
+                        "table_value_labels_text": "asset base 50,000,000",
+                        "table_row_labels_text": "asset base",
+                        "table_header_context": "amount | asset base | 50,000,000",
+                    },
+                },
+            ],
+        }
+
+        updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+
+        ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
+        short_row = next(
+            row for row in ratio_row["calculation_operands"] if row["matched_operand_role"] == "numerator_1"
+        )
+        self.assertEqual(short_row["raw_value"], "4,145,647")
+        asset_row = next(
+            row for row in ratio_row["calculation_operands"] if row["matched_operand_role"] == "denominator_1"
+        )
+        self.assertEqual(asset_row["raw_value"], "100,000,000")
+        self.assertIn("14.27%", ratio_row["answer"])
+
+    def test_task_output_ratio_projection_does_not_cross_table_repair_direct_slot(self) -> None:
+        ordered = [
+            {
+                "task_id": "task_capitalized",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "numerator_1",
+                            "label": "capitalized development cost",
+                            "raw_value": "181,624,107",
+                            "raw_unit": "thousand",
+                            "normalized_value": 181_624_107_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "181,624,107thousand",
+                            "source_row_id": "ev_correct_capitalized",
+                            "source_row_ids": ["ev_correct_capitalized"],
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_total",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "role": "denominator_1",
+                            "label": "research and development expense",
+                            "raw_value": "342,736,271",
+                            "raw_unit": "thousand",
+                            "normalized_value": 342_736_271_000.0,
+                            "normalized_unit": "KRW",
+                            "rendered_value": "342,736,271thousand",
+                            "source_row_id": "ev_correct_total",
+                            "source_row_ids": ["ev_correct_total"],
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "capitalized development cost ratio",
+                "operation_family": "ratio",
+                "status": "ok",
+                "answer": "capitalized development cost ratio is 2%.",
+                "calculation_result": {
+                    "status": "ok",
+                    "operation_family": "ratio",
+                    "result_value": 2.0,
+                    "result_unit": "%",
+                    "rendered_value": "2%",
+                    "formatted_result": "capitalized development cost ratio is 2%.",
+                    "derived_metrics": {
+                        "operation_family": "ratio",
+                        "formula_result_value": 2.0,
+                    },
+                },
+                "calculation_operands": [
+                    {
+                        "matched_operand_role": "numerator_1",
+                        "label": "capitalized development cost",
+                        "raw_value": "259,611",
+                        "raw_unit": "thousand",
+                        "normalized_value": 259_611_000.0,
+                        "normalized_unit": "KRW",
+                        "source_row_id": "ev_wrong_capitalized",
+                    },
+                    {
+                        "matched_operand_role": "denominator_1",
+                        "label": "research and development expense",
+                        "raw_value": "12,966,955",
+                        "raw_unit": "thousand",
+                        "normalized_value": 12_966_955_000.0,
+                        "normalized_unit": "KRW",
+                        "source_row_id": "ev_wrong_total",
+                    },
+                ],
+                "recovered_from_retrieved_ratio_context": True,
+            },
+        ]
+        state = {
+            "query": "calculate capitalized development cost ratio",
+            "calc_subtasks": [
+                {"task_id": "task_capitalized", "operation_family": "lookup"},
+                {"task_id": "task_total", "operation_family": "lookup"},
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "operation_family": "ratio",
+                    "metric_label": "capitalized development cost ratio",
+                    "inputs": [
+                        {
+                            "label": "capitalized development cost",
+                            "role": "numerator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_capitalized",
+                        },
+                        {
+                            "label": "research and development expense",
+                            "role": "denominator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_total",
+                        },
+                    ],
+                },
+            ],
+            "runtime_evidence": [
+                {
+                    "evidence_id": "ev_correct_capitalized",
+                    "claim": "capitalized development cost 181,624,107 thousand",
+                    "quote_span": "capitalized development cost 181,624,107",
+                    "metadata": {
+                        "unit_hint": "thousand",
+                        "table_source_id": "research_table",
+                    },
+                },
+                {
+                    "evidence_id": "ev_correct_total",
+                    "claim": "research and development expense 342,736,271 thousand",
+                    "quote_span": "research and development expense 342,736,271",
+                    "metadata": {
+                        "unit_hint": "thousand",
+                        "table_source_id": "research_table",
+                    },
+                },
+                {
+                    "evidence_id": "ev_wrong_capitalized",
+                    "claim": "capitalized development cost 259,611 thousand",
+                    "quote_span": "capitalized development cost 259,611",
+                    "metadata": {
+                        "unit_hint": "thousand",
+                        "table_source_id": "other_table",
+                        "table_value_labels_text": "capitalized development cost 259,611",
+                        "table_row_labels_text": "capitalized development cost | research and development expense",
+                    },
+                },
+                {
+                    "evidence_id": "ev_wrong_total",
+                    "claim": "research and development expense 12,966,955 thousand",
+                    "quote_span": "research and development expense 12,966,955",
+                    "metadata": {
+                        "unit_hint": "thousand",
+                        "table_source_id": "other_table",
+                        "table_value_labels_text": "research and development expense 12,966,955",
+                        "table_row_labels_text": "capitalized development cost | research and development expense",
+                    },
+                },
+            ],
+        }
+
+        updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+
+        ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
+        self.assertTrue(ratio_row.get("recovered_from_task_outputs"))
+        self.assertIn("52.99%", ratio_row["answer"])
+        numerator = next(
+            row for row in ratio_row["calculation_operands"] if row["matched_operand_role"] == "numerator_1"
+        )
+        self.assertEqual(numerator["raw_value"], "181,624,107")
+
+    def test_task_output_ratio_projection_preserves_existing_direct_ratio_row(self) -> None:
+        existing_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "coverage ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "answer": "coverage ratio is 3.5배.",
+            "calculation_operands": [
+                {
+                    "matched_operand_role": "numerator_1",
+                    "label": "operating profit",
+                    "raw_value": "350",
+                    "raw_unit": "million",
+                    "normalized_value": 350_000_000.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_num",
+                },
+                {
+                    "matched_operand_role": "denominator_1",
+                    "label": "interest expense",
+                    "raw_value": "100",
+                    "raw_unit": "million",
+                    "normalized_value": 100_000_000.0,
+                    "normalized_unit": "KRW",
+                    "source_row_id": "ev_den",
+                },
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "ratio",
+                "result_value": 3.5,
+                "result_unit": "배",
+                "rendered_value": "3.5배",
+                "formatted_result": "coverage ratio is 3.5배.",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_group": {
+                        "numerator": [{"source_row_id": "ev_num", "normalized_value": 350_000_000.0}],
+                        "denominator": [{"source_row_id": "ev_den", "normalized_value": 100_000_000.0}],
+                    },
+                },
+            },
+        }
+        ordered = [
+            {
+                "task_id": "task_num",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "label": "operating profit",
+                            "raw_value": "350",
+                            "raw_unit": "million",
+                            "normalized_value": 350_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_num",
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_den",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "label": "interest expense",
+                            "raw_value": "10",
+                            "raw_unit": "million",
+                            "normalized_value": 10_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_weak_den",
+                        }
+                    },
+                },
+            },
+            existing_ratio,
+        ]
+        state = {
+            "query": "calculate coverage ratio",
+            "calc_subtasks": [
+                {"task_id": "task_num", "operation_family": "lookup"},
+                {"task_id": "task_den", "operation_family": "lookup"},
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "operation_family": "ratio",
+                    "metric_label": "coverage ratio",
+                    "inputs": [
+                        {
+                            "label": "operating profit",
+                            "role": "numerator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_num",
+                        },
+                        {
+                            "label": "interest expense",
+                            "role": "denominator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_den",
+                        },
+                    ],
+                },
+            ],
+        }
+
+        updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+
+        ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
+        self.assertEqual(ratio_row["answer"], "coverage ratio is 3.5배.")
+
+    def test_task_output_ratio_projection_preserves_formula_consistent_ratio_row(self) -> None:
+        existing_ratio = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": "cost income ratio",
+            "operation_family": "ratio",
+            "status": "ok",
+            "answer": "cost income ratio is 37.47%.",
+            "calculation_result": {
+                "status": "ok",
+                "operation_family": "ratio",
+                "result_value": 37.46881183859589,
+                "result_unit": "%",
+                "rendered_value": "37.47%",
+                "formatted_result": "cost income ratio is 37.47%.",
+                "derived_metrics": {
+                    "operation_family": "ratio",
+                    "formula_result_value": 37.46881183859589,
+                    "source_stated_result_used": False,
+                },
+            },
+        }
+        ordered = [
+            {
+                "task_id": "task_num",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "label": "cost",
+                            "raw_value": "435,542",
+                            "raw_unit": "thousand",
+                            "normalized_value": 435_542_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_num",
+                        }
+                    },
+                },
+            },
+            {
+                "task_id": "task_den",
+                "operation_family": "lookup",
+                "status": "ok",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "label": "income",
+                            "raw_value": "11,623",
+                            "raw_unit": "million",
+                            "normalized_value": 11_623_000_000.0,
+                            "normalized_unit": "KRW",
+                            "source_row_id": "ev_den",
+                        }
+                    },
+                },
+            },
+            existing_ratio,
+        ]
+        state = {
+            "query": "calculate cost income ratio",
+            "calc_subtasks": [
+                {"task_id": "task_num", "operation_family": "lookup"},
+                {"task_id": "task_den", "operation_family": "lookup"},
+                {
+                    "task_id": "task_ratio",
+                    "metric_family": "concept_ratio",
+                    "operation_family": "ratio",
+                    "metric_label": "cost income ratio",
+                    "inputs": [
+                        {
+                            "label": "cost",
+                            "role": "numerator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_num",
+                        },
+                        {
+                            "label": "income",
+                            "role": "denominator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_den",
+                        },
+                    ],
+                },
+            ],
+        }
+
+        updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+
+        ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
+        self.assertEqual(ratio_row["answer"], "cost income ratio is 37.47%.")
+
+    def test_ratio_display_sync_uses_formula_trace_when_result_value_diverges(self) -> None:
+        synced = self.agent._sync_ratio_display_from_result_value(
+            {
+                "status": "ok",
+                "operation_family": "ratio",
+                "result_value": 3.746881183859589,
+                "result_unit": "%",
+                "rendered_value": "3.75%",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "raw_value": "3.75",
+                        "raw_unit": "%",
+                        "normalized_value": 3.746881183859589,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": "3.75%",
+                    }
+                },
+                "derived_metrics": {
+                    "operation_family": "ratio",
+                    "formula_result_value": 37.46881183859589,
+                    "source_stated_result_used": False,
+                },
+            }
+        )
+
+        self.assertEqual(synced["result_value"], 37.46881183859589)
+        self.assertEqual(synced["rendered_value"], "37.47%")
+        self.assertEqual(synced["answer_slots"]["primary_value"]["rendered_value"], "37.47%")
+        self.assertTrue(synced["derived_metrics"]["result_value_synced_from_formula_trace"])
+
+    def test_ratio_projection_uses_absolute_magnitude_for_coverage_query(self) -> None:
+        projection = self.agent._ratio_result_projection(
+            numerator_value=350_000_000.0,
+            denominator_value=-100_000_000.0,
+            query="절대값 기준 2023년 연결기준 이자보상배율을 계산해 줘.",
             metric_label="이자보상배율",
         )
 
@@ -15500,6 +16335,185 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows[0]["source_anchor"], "source task table")
         self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
         self.assertNotIn("sibling_table_context_realigned", rows[0])
+
+    def test_dependency_alignment_realigns_task_output_to_same_table_component_row(self) -> None:
+        dependency_rows = [
+            {
+                "label": "short-term borrowings",
+                "matched_operand_label": "short-term borrowings",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "9,857,189",
+                "raw_unit": "백만원",
+                "normalized_value": 9857189000000.0,
+                "normalized_unit": "KRW",
+                "source_task_id": "task_short",
+                "source_row_id": "task_output:task_short",
+                "source_row_ids": ["task_output:task_short", "ev_subtotal", "chunk_table"],
+                "table_source_id": "table_borrowings",
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "evidence_id": "row_short",
+                "source_row_id": "row_short",
+                "source_row_ids": ["row_short", "chunk_table"],
+                "table_source_id": "table_borrowings",
+                "label": "short-term borrowings",
+                "matched_operand_label": "short-term borrowings",
+                "matched_operand_role": "numerator_1",
+                "raw_value": "4,145,647",
+                "raw_unit": "백만원",
+                "normalized_value": 4145647000000.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "evidence_id": "row_long",
+                "source_row_id": "row_long",
+                "source_row_ids": ["row_long", "chunk_table"],
+                "table_source_id": "table_borrowings",
+                "label": "long-term borrowings",
+                "matched_operand_label": "long-term borrowings",
+                "matched_operand_role": "numerator_2",
+                "raw_value": "10,121,033",
+                "raw_unit": "백만원",
+                "normalized_value": 10121033000000.0,
+                "normalized_unit": "KRW",
+            },
+            {
+                "evidence_id": "row_bond",
+                "source_row_id": "row_bond",
+                "source_row_ids": ["row_bond", "chunk_table"],
+                "table_source_id": "table_borrowings",
+                "label": "bonds",
+                "matched_operand_label": "bonds",
+                "matched_operand_role": "numerator_3",
+                "raw_value": "9,490,410",
+                "raw_unit": "백만원",
+                "normalized_value": 9490410000000.0,
+                "normalized_unit": "KRW",
+            },
+        ]
+
+        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
+
+        self.assertEqual(rows[0]["raw_value"], "4,145,647")
+        self.assertEqual(rows[0]["source_row_id"], "row_short")
+        self.assertTrue(rows[0]["sibling_table_context_realigned"])
+
+    def test_period_comparison_complete_direct_context_does_not_block_dependency(self) -> None:
+        dependency_rows = [
+            {
+                "label": "prior metric",
+                "matched_operand_label": "metric",
+                "matched_operand_role": "prior_period",
+                "raw_value": "54",
+                "raw_unit": "백만원",
+                "normalized_value": 54000000.0,
+                "normalized_unit": "KRW",
+                "source_task_id": "task_prior",
+                "source_row_id": "task_output:task_prior",
+                "source_row_ids": ["task_output:task_prior", "ev_note"],
+                "dependency_resolved": True,
+            }
+        ]
+        direct_rows = [
+            {
+                "label": "current metric",
+                "matched_operand_label": "metric",
+                "matched_operand_role": "current_period",
+                "raw_value": "3,146,409",
+                "raw_unit": "백만원",
+                "normalized_value": 3146409000000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "row_current",
+                "source_row_ids": ["row_current"],
+                "table_source_id": "period_table",
+            },
+            {
+                "label": "prior metric",
+                "matched_operand_label": "metric",
+                "matched_operand_role": "prior_period",
+                "raw_value": "1,847,775",
+                "raw_unit": "백만원",
+                "normalized_value": 1847775000000.0,
+                "normalized_unit": "KRW",
+                "source_row_id": "row_prior",
+                "source_row_ids": ["row_prior"],
+                "table_source_id": "period_table",
+            },
+        ]
+
+        self.assertFalse(
+            self.agent._period_comparison_direct_rows_conflict_with_dependency_outputs(
+                dependency_rows,
+                direct_rows,
+            )
+        )
+
+    def test_period_comparison_table_context_prefers_pure_period_columns_over_change_columns(self) -> None:
+        required_operands = [
+            {
+                "role": "current_period",
+                "label": "target metric",
+                "concept": "target_metric",
+                "period": "2023",
+            },
+            {
+                "role": "prior_period",
+                "label": "target metric",
+                "concept": "target_metric",
+                "period": "2022",
+            },
+        ]
+        pure_period_evidence = {
+            "evidence_id": "ev_pure_period",
+            "claim": "target metric | 2023 300 | 2022 100",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "백만원",
+                "statement_type": "summary_financials",
+                "table_source_id": "table_pure_period",
+                "table_header_context": "item | 2023 | 2022 | 2021",
+                "table_value_labels_text": "\n".join(
+                    [
+                        "target metric 300",
+                        "target metric 100",
+                        "target metric 80",
+                    ]
+                ),
+            },
+        }
+        change_column_evidence = {
+            "evidence_id": "ev_change_column",
+            "claim": "target metric | 2023 300 | change 200 | 2022 100",
+            "metadata": {
+                "year": 2023,
+                "unit_hint": "백만원",
+                "statement_type": "mda",
+                "table_source_id": "table_change_column",
+                "table_header_context": "item | 2023 | 전년 대비 | 2022",
+                "table_value_labels_text": "\n".join(
+                    [
+                        "target metric 300",
+                        "target metric 200",
+                        "target metric 100",
+                    ]
+                ),
+            },
+        }
+
+        rows = self.agent._build_period_comparison_operands_from_table_label_context(
+            [change_column_evidence, pure_period_evidence],
+            required_operands=required_operands,
+            query="target metric 증가율을 계산하고 원인을 요약해 줘",
+            operation_family="growth_rate",
+        )
+
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(rows_by_role["current_period"]["raw_value"], "300")
+        self.assertEqual(rows_by_role["prior_period"]["raw_value"], "100")
+        self.assertEqual(rows_by_role["prior_period"]["source_row_id"], "ev_pure_period")
 
     def test_dependency_alignment_still_realigns_unanchored_row_to_complete_direct_context(self) -> None:
         dependency_rows = [
