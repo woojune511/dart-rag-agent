@@ -115,8 +115,9 @@ in [report_cache_capability_contract.md](../architecture/report_cache_capability
 | REFERENCE_NOTE boundary | `reference_note_capability_gate` keeps note traversal as Researcher graph-expansion context, not cache serving or final acceptance authority |
 | Promotion trace materiality | reviewed trace summaries cover distinct source/action/fallback surfaces |
 | Source-visible ratio close | `KAB_T1_066` resolves CIR from one MDA table: `4,355억원 / 11,623억원 = 37.47%`, numeric `PASS`, grounded rendering `1.000` |
-| Expanded ablation refresh | structural full-system `8 / 9` numeric PASS vs plain retrieval `5 / 9` |
-| Structural separators | `POS_T1_057`, `CEL_T1_013`, and `SKH_T3_080` pass structurally but fail under plain retrieval |
+| Expanded structural refresh | structural full-system `9 / 9` numeric PASS after PR #78 operand projection repair |
+| Plain retrieval comparison | most recent plain retrieval comparison remains `5 / 9`; use it as diagnostic baseline evidence, not a freshly synchronized final ablation |
+| Structural separators | `POS_T1_057`, `CEL_T1_013`, and `SKH_T3_080` remain representative plain-vs-structural failure diagnostics |
 | Historical hard replay | prior structural `5 / 5` vs plain `4 / 5` replay remains diagnostic evidence for current/prior row binding, not the latest promoted result |
 | Experiment report | [portfolio_experiment_report.md](portfolio_experiment_report.md) summarizes problem framing, method comparison, and quantitative evidence |
 | Portfolio demo | `portfolio_demo` prints answer, citations, trace, integrity, critic, and cache handoff surfaces |
@@ -140,12 +141,14 @@ improvements remain auditable and hard to overfit.
 The compact example starts with KAB CIR: the system had to reject a plausible
 wrong row, avoid overzealous aggregate-result blocking, recover both operands
 from the same source table, and force final prose to follow the canonical
-calculation trace. The follow-up ablation story is deliberately conservative:
-the latest expanded refresh compares structural full-system `8 / 9` against
-plain retrieval `5 / 9`. The useful signal is diagnostic rather than
-overbroad: `POS_T1_057`, `CEL_T1_013`, and `SKH_T3_080` show display/unit,
-denominator, and row-binding improvements, while
-`SKH_T1_060` remains the hard residual before making a broader benchmark claim.
+calculation trace. The expanded story is deliberately conservative: the latest
+structural full-system refresh is `9 / 9` numeric PASS, but the most recent
+plain-retrieval comparison remains the earlier `5 / 9` diagnostic baseline.
+The useful signal is the failure taxonomy: `POS_T1_057`, `CEL_T1_013`, and
+`SKH_T3_080` show display/unit, denominator, and row-binding improvements,
+while the final `KBF_T2_018` and `SKH_T1_060` closure shows how stale
+projection and disjoint-source operand repair were fixed without adding
+benchmark-specific runtime branches.
 
 ## What Is Still Intentionally Disabled
 

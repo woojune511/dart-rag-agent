@@ -94,9 +94,10 @@ normalization, source references, and rendered displays.
 | Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
 | Publication gate | `portfolio_review_gates` reports `Status: ready` |
 | Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Latest expanded ablation refresh | structural full-system `8 / 9` numeric PASS vs plain retrieval `5 / 9` |
+| Latest expanded structural refresh | structural full-system `9 / 9` numeric PASS after PR #78 operand projection repair |
+| Plain retrieval comparison | most recent plain retrieval comparison remains `5 / 9`; use as diagnostic baseline evidence rather than a freshly synchronized final ablation |
 | Reproduced structural separators | `POS_T1_057`, `CEL_T1_013`, and `SKH_T3_080` pass structurally while the plain baseline fails |
-| Remaining structural residual | `SKH_T1_060` exposes debt/asset role binding instability |
+| Final residual closure | `KBF_T2_018` stale growth projection and `SKH_T1_060` disjoint-source operand overwrite are closed in focused replays and the final full structural replay |
 
 Representative KAB answer:
 
@@ -108,14 +109,34 @@ Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`. 
 fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 `8` agent LLM calls, and estimated runtime cost `$0.056292`.
 
-### Current Expanded Ablation Refresh
+### Current Expanded Structural Refresh
 
-After the aggregate public-answer projection fix and operand-candidate
-filtering cleanup, the expanded candidate full-system profile and its
-plain-retrieval counterpart were rerun as store-fixed `eval-only` refreshes.
-This is the current experiment state for portfolio review.
+After the operand projection repair in PR #78, the expanded structural
+full-system profile was rerun as a store-fixed `eval-only` refresh. This is the
+current structural quality claim for portfolio review.
 
-| Metric | Structural full-system | Plain retrieval |
+| Metric | Structural full-system |
+| --- | ---: |
+| Numeric PASS | `9 / 9` |
+| Scope | six company runs, nine numeric/mixed questions |
+| Refresh mode | store-fixed `eval-only` |
+| Final heartbeat | `heartbeat_full9_final_after_kbf_skh_repairs_2026-06-24.jsonl` |
+
+Per-question numeric final judgement:
+
+| Company bundle | Questions |
+| --- | --- |
+| `kb금융-2023` | `KBF_T2_018: PASS`, `KBF_T1_017: PASS` |
+| `posco홀딩스-2023` | `POS_T1_057: PASS` |
+| `sk하이닉스-2023` | `SKH_T3_080: PASS`, `SKH_T1_060: PASS` |
+| `삼성전자-2023` | `SAM_T3_028: PASS`, `MIX_T1_021: PASS` |
+| `셀트리온-2023` | `CEL_T1_013: PASS` |
+| `카카오뱅크-2023` | `KAB_T1_066: PASS` |
+
+The most recent plain-retrieval expanded comparison was not rerun after PR #78.
+It remains useful as diagnostic baseline evidence:
+
+| Metric | Earlier structural full-system | Plain retrieval |
 | --- | ---: | ---: |
 | Numeric PASS | `8 / 9` | `5 / 9` |
 | Avg numeric pass rate | `0.917` | `0.556` |
@@ -135,11 +156,12 @@ This is the current experiment state for portfolio review.
 | `KBF_T2_018` | PASS | PASS | Mixed numeric+narrative projection now survives. |
 | `KBF_T1_017` | PASS | PASS | Both recover the NIM difference. |
 | `SKH_T3_080` | PASS | FAIL | Structural preserves foreign-currency gain/loss row binding; plain binds the loss surface incorrectly. |
-| `SKH_T1_060` | FAIL | FAIL | Debt-component numerator aggregation remains unstable. |
+| `SKH_T1_060` | FAIL | FAIL | Former debt-component numerator residual; closed later by PR #78 projection/provenance repair. |
 
 The result supports a narrow structural-representation claim: it improves
-display/unit, denominator, and row-binding behavior on several hard cases,
-while `SKH_T1_060` remains a visible debt/asset role-binding residual.
+display/unit, denominator, and row-binding behavior on several hard cases. The
+later PR #78 structural-only refresh closes the remaining numeric residuals,
+but the plain profile has not been rerun under that exact code state.
 
 ### Historical Expanded Structural Ablation
 
@@ -166,8 +188,8 @@ Separating numeric cases:
 
 This historical run remains useful as a diagnostic trace source, especially for
 `SKH_T3_080`. It is no longer the active portfolio-facing result because the
-latest store-fixed expanded comparison supersedes it with structural `8 / 9`
-versus plain `5 / 9`.
+latest store-fixed structural refresh supersedes it with structural `9 / 9`
+numeric PASS.
 
 ### Historical Hard Structural-vs-Plain Replay
 
@@ -278,9 +300,12 @@ Fix layer: period-aware structural metadata, structured evidence selection,
 direct row/semantic-label preference, and dependency projection alignment from
 producer lookup tasks into downstream ratio tasks.
 
-Current status: still a hard diagnostic. Historical traces show a clean
-current/prior row-binding separator, but the latest expanded refresh still
-fails this question through debt-component numerator aggregation.
+Current status: closed in PR #78. Historical traces still show a clean
+current/prior row-binding separator, and the latest focused/full structural
+refresh now returns `42.02%` with the current-period debt and asset operands.
+The closing fix is a projection/provenance repair: exact periodless table-label
+metadata lookup and disjoint-source task-output protection, not a
+company-specific branch.
 
 ### `NAV_T2_006`: mixed numeric and narrative growth answer
 
