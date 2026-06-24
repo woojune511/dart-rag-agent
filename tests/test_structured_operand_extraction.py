@@ -2021,6 +2021,91 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         self.assertEqual(rows[0]["matched_operand_label"], "단기차입금")
         self.assertEqual(rows[0]["period"], "2023")
 
+    def test_direct_lookup_prefers_exact_table_value_label_over_subtotal_row(self) -> None:
+        operand = {
+            "label": "2023년 단기차입금",
+            "aliases": [],
+            "concept": "short_term_borrowings",
+            "role": "numerator_1",
+            "binding_policy": {
+                "prefer_value_roles": ["aggregate", "detail"],
+                "prefer_aggregation_stages": ["final", "direct", "subtotal", "none"],
+            },
+        }
+        evidence = {
+            "evidence_id": "ev_current_borrowings",
+            "source_anchor": "[SK하이닉스 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+            "claim": "9,857,189 (백만원)",
+            "metadata": {
+                "chunk_uid": "chunk_current_borrowings",
+                "company": "SK하이닉스",
+                "year": 2023,
+                "block_type": "table",
+                "statement_type": "notes",
+                "consolidation_scope": "consolidated",
+                "period_labels": ["당기"],
+                "period_focus": "current",
+                "table_source_id": "table_borrowings",
+                "table_header_context": "| 공시금액",
+                "value_role": "aggregate",
+                "aggregation_stage": "subtotal",
+                "unit_hint": "백만원",
+                "structured_cells": [
+                    {
+                        "column_headers": ["공시금액"],
+                        "value_text": "9,857,189",
+                        "unit_hint": "백만원",
+                        "value_role": "aggregate",
+                        "aggregation_stage": "subtotal",
+                    }
+                ],
+                "table_value_labels_text": "\n".join(
+                    [
+                        "단기차입금 4,145,647",
+                        "유동성장기차입금 2,012,002",
+                        "유동성사채 3,699,540",
+                        "소계, 유동 9,857,189",
+                        "장기차입금 10,121,033",
+                        "사채 9,490,410",
+                    ]
+                ),
+            },
+        }
+
+        slot, score = self.agent._best_direct_lookup_slot_from_evidence_pool(
+            operand,
+            [evidence],
+            state={
+                "query": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금 비중을 계산해 줘.",
+                "report_scope": {"company": "SK하이닉스", "year": 2023, "consolidation": "consolidated"},
+            },
+        )
+
+        self.assertGreater(score, 6.0)
+        self.assertEqual(slot["raw_value"], "4,145,647")
+        self.assertEqual(slot["rendered_value"], "4,145,647백만원")
+
+        compacted_evidence = {
+            **evidence,
+            "metadata": {
+                key: value
+                for key, value in evidence["metadata"].items()
+                if key != "structured_cells"
+            },
+        }
+        compacted_slot, compacted_score = self.agent._best_direct_lookup_slot_from_evidence_pool(
+            operand,
+            [compacted_evidence],
+            state={
+                "query": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금 비중을 계산해 줘.",
+                "report_scope": {"company": "SK하이닉스", "year": 2023, "consolidation": "consolidated"},
+            },
+        )
+
+        self.assertGreater(compacted_score, 6.0)
+        self.assertEqual(compacted_slot["raw_value"], "4,145,647")
+        self.assertEqual(compacted_slot["rendered_value"], "4,145,647백만원")
+
     def test_ratio_component_accepts_structured_surface_contract_without_counterpart_row(self) -> None:
         state = {
             "query": "Calculate selected expense over total base for 2023.",

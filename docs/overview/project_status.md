@@ -44,7 +44,7 @@ role-separated multi-agent system using a task ledger and artifact store.
 | Hard structural numeric gate | 5 curated hard numeric questions | PASS, 5 / 5 |
 | Concept runtime gap gate | 7 ontology-driven concept questions | PASS, 7 / 7 |
 | Policy-driven runtime gate | 4 company runs, 5 policy/narrative questions | PASS |
-| Expanded structural numeric gate | 9 expanded structural questions | PASS, 9 / 9 numeric; KB focused completeness residual closed |
+| Expanded structural numeric gate | 9 expanded structural questions | PASS, fresh 9 / 9 numeric after PR #78 repairs |
 | Reflection promotion gate | base fixture, store-fixed candidate surface, two reviewed trace summaries | READY |
 | Report-cache promotion evidence | candidate-only cache producer/fallback contract | READY, disabled |
 | Promotion trace materiality gate | reviewed trace-summary source/action/fallback diversity | READY |
@@ -53,36 +53,78 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Current Baseline
 
-- Current runtime/code baseline: `main@1d78b31`
-  (`Fix runtime numeric projection regressions`), pushed to `origin/main`.
-- This is PR #77 plus local post-merge runtime-surface cleanup and the
-  follow-up numeric projection regression fix:
+- Current merged runtime/code baseline: `main@62f516d`
+  (`Fix focused numeric projection regressions`), pushed to `origin/main`.
+- Active repair branch: `codex/repair-financial-operands`
+  (`https://github.com/woojune511/dart-rag-agent/pull/78`).
+- PR #78 source/test commits:
+  - `fafe639 fix: repair financial operand projection`
+  - `c3d234a test: cover financial operand regressions`
+- The merged baseline includes PR #77 plus local post-merge runtime-surface
+  cleanup and focused numeric projection follow-ups:
   - `949cb48` runtime/import boundary cleanup
   - `08dbb92` cleanup handoff docs and runtime-domain audit baseline
   - `7cfe62c` cleanup handoff update after push
   - `1d78b31` runtime numeric projection regression fix
+  - `7db8fde` period-difference rendering fix
+  - `62f516d` focused numeric projection regression fix
 - PR #77 merged on 2026-06-22:
   `https://github.com/woojune511/dart-rag-agent/pull/77`
 - The merge contains:
   - `6557f50` numeric projection conflict fix
   - `77b68bf` deterministic ablation documentation
   - `c3a75be` no-behavior-change aggregate answer projection helper extraction
-- Latest store-fixed expanded structural eval-only refresh on 2026-06-24:
-  `9 / 9` numeric final judgement PASS. Cross-company `full_eval_fail_count=1`
-  remains because KB금융 completeness is `0.750`; numeric pass rate and
-  faithfulness are both `1.000`.
+- Latest store-fixed expanded structural eval-only refresh on 2026-06-24 from
+  PR #78 state: `9 / 9` numeric final judgement PASS.
 - Follow-up focused KB금융 2-question eval-only refresh after the
   period-difference rendering fix reports numeric `2 / 2` PASS,
-  completeness `1.000`, faithfulness `1.000`, and error rate `0.0%`. The last
-  full six-company aggregate remains the earlier 2026-06-24 `9 / 9` numeric
-  refresh unless a fresh cross-company rerun is needed.
+  completeness `1.000`, faithfulness `1.000`, and error rate `0.0%`.
 - Follow-up focused numeric projection closure after the ratio/dependency
   regressions reports:
   - `CEL_T1_013`: numeric `PASS`, completeness `1.000`
   - `KAB_T1_066`: numeric `PASS`
   - `KBF_T2_018` + `KBF_T1_017`: numeric `2 / 2` PASS, completeness `0.850`,
     faithfulness `1.000`, error rate `0.0%`
-  Full six-company `9Q` was not rerun after these final focused fixes.
+  PR #78 then reran focused KBF/SKH residuals and a full six-company `9Q`,
+  closing the aggregate numeric claim at `9 / 9` PASS.
+
+### Latest Final Financial Operand Projection Repair
+
+- Run date: 2026-06-24
+- Branch / PR: `codex/repair-financial-operands`,
+  `https://github.com/woojune511/dart-rag-agent/pull/78`
+- Scope:
+  - fixed `KBF_T2_018` stale growth projection where final answer/evidence had
+    the correct `70.28%` but projected trace fields could remain stale;
+  - fixed `SKH_T1_060` table-label / direct-evidence repair where a correct
+    task-output operand could be overwritten by a conflicting row from a
+    disjoint source context;
+  - added regression tests for final-answer surface operand backfill,
+    growth-trace sync, periodless table-label lookup, and disjoint-source
+    task-output protection.
+- Contract change:
+  - final-answer surface numeric operands are synchronized into public
+    calculation projection before debug/citation projection;
+  - table-label metadata lookup consumes the existing
+    `CALCULATION_SLOT_POLICY["leading_period_strip_pattern"]` instead of adding
+    metric-specific row terms;
+  - aggregate ratio repair checks source-row provenance before replacing
+    task-output slots with direct-evidence slots.
+- Validation:
+  - `python3 -m unittest tests.test_structured_operand_extraction tests.test_subtask_loop`:
+    `274` OK
+  - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+    reviewed literals
+  - `git diff --check`: passed
+  - `python3 -m unittest discover -s tests`: `1345` OK
+  - focused `KBF_T2_018`: numeric `PASS`
+  - focused `SKH_T1_060`: numeric `PASS`
+  - final full six-company 9-question store-fixed `eval-only`:
+    `9 / 9` numeric final judgement `PASS`
+- Methodology record:
+  [../evaluation/numeric_regression_methodology.md](../evaluation/numeric_regression_methodology.md)
+- Experiment record:
+  [../history/experiment_history.md#final-financial-operand-projection-repair-2026-06-24](../history/experiment_history.md#final-financial-operand-projection-repair-2026-06-24)
 
 ### Latest Focused Numeric Projection Closure
 

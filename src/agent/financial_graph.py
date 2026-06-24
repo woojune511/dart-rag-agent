@@ -1008,6 +1008,14 @@ class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMi
         )
         if retrieved_ratio_projection:
             runtime_calculation_trace = retrieved_ratio_projection
+        runtime_calculation_trace = self._append_final_answer_surface_operands_from_evidence(
+            runtime_calculation_trace,
+            [
+                *list(final_for_evidence.get("evidence_items") or []),
+                *list(runtime_evidence or []),
+            ],
+            final_answer=public_answer,
+        )
         debug_traces = self._project_debug_traces(final)
         citations = self._augment_citations_from_runtime_evidence(final["citations"], runtime_evidence)
         task_artifact_trace = _project_task_artifact_trace(

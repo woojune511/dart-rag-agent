@@ -11,6 +11,52 @@
 
 ## 최신 상태
 
+- 2026-06-24 final financial operand projection repair를 별도 PR로 정리했다.
+  - active branch: `codex/repair-financial-operands`
+  - draft PR: `https://github.com/woojune511/dart-rag-agent/pull/78`
+  - commits:
+    - `fafe639 fix: repair financial operand projection`
+    - `c3d234a test: cover financial operand regressions`
+  - failure layers:
+    - `KBF_T2_018`: final answer/evidence는 `3,146,409`,
+      `1,847,775`, `70.28%`를 보존했지만 public
+      `calculation_result` / `calculation_plan` projection이 stale할 수 있었다.
+    - `SKH_T1_060`: correct task-output source slot이 disjoint conflicting
+      direct evidence row로 overwrite될 수 있었고, period-prefixed operand
+      label이 table row label과 exact match되지 않아 subtotal row가 이길 수
+      있었다.
+  - change:
+    - public projection before debug/citation projection now backfills
+      final-answer surface operands from evidence.
+    - stale growth-rate traces are synchronized when current/prior operands
+      compute to the percent visible in the final answer.
+    - table-label metadata lookup strips leading period markers through
+      `CALCULATION_SLOT_POLICY["leading_period_strip_pattern"]` and marks
+      `table_label_metadata_lookup` slots.
+    - aggregate ratio repair keeps task-output source slots when the preferred
+      direct evidence has disjoint source row ids and conflicting values.
+  - validation:
+    - `python3 -m unittest tests.test_structured_operand_extraction tests.test_subtask_loop`:
+      `274` OK
+    - `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+      reviewed literals
+    - `git diff --check`: passed
+    - `python3 -m unittest discover -s tests`: `1345` OK
+    - focused `KBF_T2_018`: numeric `PASS`
+    - focused `SKH_T1_060`: numeric `PASS`
+    - final full six-company 9-question store-fixed `eval-only`:
+      `9/9` numeric final judgement `PASS`
+  - final full eval-only command:
+    `python3 -m src.ops.benchmark_runner --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 --eval-only --progress-heartbeat-sec 60 --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full9_final_after_kbf_skh_repairs_2026-06-24.jsonl`
+  - documentation:
+    - methodology recorded in
+      `docs/evaluation/numeric_regression_methodology.md`
+    - experiment narrative recorded in
+      `docs/history/experiment_history.md`
+  - artifact hygiene:
+    - benchmark results and heartbeat logs remain local-only under
+      `benchmarks/results/**`; do not stage them.
+
 - 2026-06-24 focused numeric projection 후속 회귀를 닫았다.
   - failure layers:
     - `CEL_T1_013`: retrieved direct ratio context가 complete task-output
