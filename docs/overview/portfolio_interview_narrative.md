@@ -215,5 +215,6 @@ Then open:
 - [portfolio_one_pager.md](portfolio_one_pager.md)
 - [portfolio_experiment_report.md](portfolio_experiment_report.md)
 - [technical_highlights.md](technical_highlights.md)
+- [portfolio_deep_dive_qa.md](portfolio_deep_dive_qa.md)
 - [portfolio_resume_snippets.md](portfolio_resume_snippets.md)
 - [structural_trace_diagnostics.md](../evaluation/structural_trace_diagnostics.md)
