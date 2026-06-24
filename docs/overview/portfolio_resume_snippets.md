@@ -20,11 +20,11 @@ calculation traces, critic reports, and reproducible reviewer gates.
   intent/concept interpretation, while code handles operand binding, arithmetic,
   unit handling, dedupe, validation, and final rendering.
 - Validated the design with trace-based gates and store-fixed benchmark
-  refreshes; the latest expanded ablation slice reports structural
-  full-system `8 / 9` numeric PASS versus plain retrieval `5 / 9`.
-- Reproduced structural separators in `POS_T1_057`, `CEL_T1_013`, and
-  `SKH_T3_080`, while keeping `SKH_T1_060` as the explicit residual follow-up
-  case.
+  refreshes; the latest expanded structural refresh reports `9 / 9` numeric
+  PASS across six company runs.
+- Kept the most recent plain retrieval `5 / 9` comparison as diagnostic
+  baseline evidence for display/unit, denominator, and row-binding failure
+  modes rather than as an overbroad leaderboard claim.
 
 ## Technical Portfolio Version
 
@@ -45,9 +45,11 @@ retrieval, extraction, calculation, and final rendering. Evaluation uses
 trace-based numeric grounding rather than final-text exact match alone.
 In structural diagnostics, historical hard replays and the latest expanded
 refresh show the same engineering concern: relevant values can be retrieved,
-but final operand selection, sign/display handling, or mixed answer composition
-can still drift unless the runtime preserves structured traces through final
-rendering.
+but final operand selection, sign/display handling, mixed answer composition,
+or public trace projection can still drift unless the runtime preserves
+structured traces through final rendering. The final KBF/SKH repair closed stale
+growth projection and disjoint-source operand overwrite without adding
+benchmark-specific runtime branches.
 
 ## Conservative Version
 
@@ -56,8 +58,9 @@ focused on making numeric answers auditable. The project combines
 structure-aware retrieval, deterministic numeric execution, multi-agent artifact
 handoff, and reviewer-facing gates. Current results support a narrow claim:
 structured provenance and trace-based gates make operand, unit, and period-row
-drift visible. The latest expanded comparison supports a narrow structural
-claim, not a full-benchmark claim.
+drift visible. The latest expanded structural refresh reports `9 / 9` numeric
+PASS; the plain retrieval comparison remains diagnostic baseline evidence, not
+a freshly synchronized final ablation.
 
 ## Korean Short Version
 
@@ -84,5 +87,5 @@ Safer alternatives:
   extraction"
 - "Used trace-based numeric grounding gates for acceptance"
 - "Used store-fixed benchmark refreshes as promotion gates, including a latest
-  expanded refresh that separates structural full-system `8 / 9` from plain
-  retrieval `5 / 9`, while leaving the remaining structural residual visible"
+  expanded structural refresh with `9 / 9` numeric PASS and a plain-retrieval
+  `5 / 9` diagnostic baseline"
