@@ -63,6 +63,7 @@
 | [Post-Cleanup Runtime Numeric Projection Refresh (2026-06-24)](#post-cleanup-runtime-numeric-projection-refresh-2026-06-24) | post-PR #77 cleanup and `1d78b31` numeric projection regression fix after store-fixed full replay | expanded structural remains `9 / 9` numeric PASS; KB completeness residual keeps cross-company full-eval fail count at `1` |
 | [KB Period-Difference Rendering Closure (2026-06-24)](#kb-period-difference-rendering-closure-2026-06-24) | focused follow-up for the KB completeness residual from the post-cleanup replay | KB 2-question eval-only now has numeric `2 / 2` PASS and completeness `1.000` |
 | [Focused Numeric Projection Closure Follow-up (2026-06-24)](#focused-numeric-projection-closure-follow-up-2026-06-24) | CEL/KAB/KBF focused regressions after ratio/dependency repairs | CEL and KAB focused rows PASS; KB focused pair is `2 / 2` numeric PASS after weak unit-repaired task output no longer blocks coherent direct period rows |
+| [Final Financial Operand Projection Repair (2026-06-24)](#final-financial-operand-projection-repair-2026-06-24) | KBF stale growth projection and SKH disjoint-source table-label overwrite after the focused closure | focused KBF/SKH rows PASS; full six-company 9-question eval-only is `9 / 9` numeric PASS |
 | [Growth Narrative Payload / Rendering Judge Compaction (2026-06-15)](#growth-narrative-payload--rendering-judge-compaction-2026-06-15) | NAV/KBF growth narrative canaries after numeric refresh | KBF grounded-rendering token overflow was removed by compact runtime evidence and judge payload projection |
 | [Runtime Cost-Control Diagnostics (2026-06-09)](#runtime-cost-control-diagnostics-2026-06-09) | phase usage, prompt-size diagnostics, numeric extraction history canary | aggregate prompt 축소 후 다음 병목은 duplicate numeric extraction / failed lookup retry loop로 확인 |
 | [MAS Smoke Outcome Refresh (2026-06-07)](#mas-smoke-outcome-refresh-2026-06-07) | live/default MAS smoke outcome 관측 | acceptance contract는 선명해졌고, valid default-store compact contract는 source-controlled baseline으로 고정 |
@@ -76,6 +77,140 @@
 | `해석` | 왜 다음 버전으로 넘어갔는지 |
 
 상세 원본 결과는 각 버전 디렉터리의 `results.json`, `summary.md`, `cross_company_summary.md`를 참고한다.
+
+## Final Financial Operand Projection Repair (2026-06-24)
+
+참조:
+
+- active branch / PR:
+  - `codex/repair-financial-operands`
+  - `https://github.com/woojune511/dart-rag-agent/pull/78`
+- commits:
+  - `fafe639 fix: repair financial operand projection`
+  - `c3d234a test: cover financial operand regressions`
+- local result bundle:
+  - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
+- heartbeat logs:
+  - focused KBF:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_kbf_t2_final_trace_sync_retry_2026-06-24.jsonl`
+  - focused SKH:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_skh_t1_periodless_table_label_retry_2026-06-24.jsonl`
+  - final full 9Q:
+    `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full9_final_after_kbf_skh_repairs_2026-06-24.jsonl`
+- artifact hygiene: result bundles and heartbeat logs are local experiment
+  output and should not be staged.
+
+### Context
+
+- The preceding focused numeric projection closure closed CEL/KAB/KBF
+  regressions, but the next full replay still exposed two hard residuals:
+  - `KBF_T2_018`: the final answer/evidence carried the correct current value,
+    prior value, and growth rate, but the public calculation trace could remain
+    stale.
+  - `SKH_T1_060`: aggregate ratio subtasks had the correct task-output values,
+    but direct evidence repair could overwrite a source-backed task output with
+    a conflicting row from a disjoint source context.
+- Both failures were projection/provenance contract problems, not missing
+  financial vocabulary.
+
+### Failure Layer
+
+| Question | Layer | Root cause |
+| --- | --- | --- |
+| `KBF_T2_018` | projection / rendering trace | final-answer surface operands were not synchronized back into `calculation_result`, `calculation_plan`, and `answer_slots` when the projected growth trace was stale |
+| `SKH_T1_060` | operand extraction / aggregate subtask repair | table-label lookup did not strip leading period markers for row-label matching, and direct evidence repair did not protect task-output operands from disjoint conflicting source rows |
+
+### Code / Contract Change
+
+- Public result projection now calls
+  `_append_final_answer_surface_operands_from_evidence()` before debug/citation
+  projection so final-answer numeric surfaces are preserved in the runtime
+  calculation trace.
+- Final-answer surface operand repair now:
+  - backfills missing non-percent projected operands from final-answer/evidence
+    numeric components;
+  - syncs stale growth-rate trace fields when current/prior operands calculate
+    to the percent already visible in the final answer.
+- Table-label metadata lookup now:
+  - marks `table_label_metadata_lookup` slots;
+  - derives periodless surface variants from
+    `CALCULATION_SLOT_POLICY["leading_period_strip_pattern"]`;
+  - can prefer exact table-label metadata on ties with structured rows from the
+    same evidence.
+- Aggregate task-output ratio repair now protects a source slot when the
+  preferred direct evidence slot has disjoint source-row ids and conflicting
+  values.
+- Regression tests pin the KBF growth trace sync and SKH table-label /
+  disjoint-source repair behavior.
+- No company names, benchmark IDs, or metric-specific runtime branches were
+  added.
+
+### Focused Results
+
+| Run | Command scope | Result |
+| --- | --- | --- |
+| KBF focused replay | `--company-run-id kbf_2023_expanded_candidate --question-id KBF_T2_018` | `KBF_T2_018` numeric final judgement `PASS`; current `3,146,409`, prior `1,847,775`, growth `70.28%` |
+| SKH focused replay | `--company-run-id skh_2023_expanded_candidate --question-id SKH_T1_060` | `SKH_T1_060` numeric final judgement `PASS`; short-term borrowings `4,145,647`, ratio `42.02%` |
+
+Focused command pattern:
+
+```bash
+python3 -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json \
+  --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 \
+  --company-run-id <company_run_id> \
+  --question-id <question_id> \
+  --eval-only \
+  --progress-heartbeat-sec 60 \
+  --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/<heartbeat>.jsonl
+```
+
+### Final Full Replay
+
+Command:
+
+```bash
+python3 -m src.ops.benchmark_runner \
+  --config benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json \
+  --output-dir benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10 \
+  --eval-only \
+  --progress-heartbeat-sec 60 \
+  --heartbeat-log benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/heartbeat_full9_final_after_kbf_skh_repairs_2026-06-24.jsonl
+```
+
+Per-question numeric final judgement:
+
+| Company bundle | Questions |
+| --- | --- |
+| `kb금융-2023` | `KBF_T2_018: PASS`, `KBF_T1_017: PASS` |
+| `posco홀딩스-2023` | `POS_T1_057: PASS` |
+| `sk하이닉스-2023` | `SKH_T3_080: PASS`, `SKH_T1_060: PASS` |
+| `삼성전자-2023` | `SAM_T3_028: PASS`, `MIX_T1_021: PASS` |
+| `셀트리온-2023` | `CEL_T1_013: PASS` |
+| `카카오뱅크-2023` | `KAB_T1_066: PASS` |
+
+Final result: expanded structural six-company, nine-question store-fixed
+`eval-only` replay is `9 / 9` numeric final judgement PASS.
+
+### Validation
+
+- `python3 -m unittest tests.test_structured_operand_extraction tests.test_subtask_loop`:
+  `274` tests OK.
+- `python3 -m src.ops.audit_runtime_domain_terms`: passed with `215`
+  reviewed literals.
+- `git diff --check`: passed.
+- `python3 -m unittest discover -s tests`: `1345` tests OK.
+- Full 9-question store-fixed `eval-only`: `9 / 9` numeric PASS.
+
+### Interpretation
+
+- The latest expanded structural numeric gate is again closed by a fresh full
+  replay, not only by focused follow-up rows.
+- The repair follows the numeric regression methodology:
+  - failure layers were classified before patching;
+  - fixes were expressed as projection, table-label, and provenance contracts;
+  - focused rows were closed before the full replay;
+  - raw benchmark artifacts remain local-only.
 
 ## Focused Numeric Projection Closure Follow-up (2026-06-24)
 

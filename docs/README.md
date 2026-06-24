@@ -66,6 +66,7 @@ deliverable로 둔다:
 | [evaluation/evaluator_design_rationale.md](evaluation/evaluator_design_rationale.md) | numeric evaluator 분리 이유 |
 | [evaluation/structural_trace_diagnostics.md](evaluation/structural_trace_diagnostics.md) | structural-vs-plain separating trace와 operand/row-binding 진단 |
 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | curated dataset track rationale |
+| [evaluation/numeric_regression_methodology.md](evaluation/numeric_regression_methodology.md) | numeric benchmark failure를 일반 runtime fix로 닫는 운영 방법론 |
 | [evaluation/runtime_contract_gate.md](evaluation/runtime_contract_gate.md) | runtime gate 운영 기록 |
 
 ## Internal Logs
