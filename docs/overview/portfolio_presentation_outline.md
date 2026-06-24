@@ -1,68 +1,50 @@
 # Portfolio Presentation Outline
 
 This outline is for a short portfolio presentation, interview walkthrough, or
-project review. It focuses on the engineering story: turning a financial RAG
-prototype into a contract-driven runtime where answers are inspectable.
+project review. It assumes the audience already knows LLM/RAG basics, so the
+talk should focus on the engineering story: making financial RAG answers
+inspectable through runtime contracts, traces, and gates.
 
-Assume the audience already knows the basics of LLM/RAG systems, embeddings,
-agent workflows, and grounding/evaluation. The talk should therefore spend time
-on problem formulation, runtime boundaries, traces, and gates rather than on
-introductory RAG definitions.
+For spoken answers, start from
+[portfolio_interview_narrative.md](portfolio_interview_narrative.md). This file
+is the slide structure.
 
-For a shorter spoken version, start from
-[portfolio_interview_narrative.md](portfolio_interview_narrative.md) and use
-this file only as slide structure.
-
-## Slide 1. Title
+## Slide 1. Title And Claim
 
 **DART Multi-Agent Financial Analysis Lab**
 
 Message:
 
-- Evidence-backed numeric QA over DART filings
-- Multi-agent RAG with explicit calculation traces
-- Reviewer-ready runtime contracts instead of opaque answer text
+- Contract-driven Agentic RAG runtime for numeric QA over Korean DART filings.
+- The claim is not a new model or TableQA SOTA result.
+- The claim is systems engineering: numeric financial answers should be
+  accepted through evidence, operands, formulas, critic state, and trace gates.
 
-Optional visual:
+Headline evidence:
 
-- One-line pipeline from user question to final answer and `task_artifact_trace`
+- Latest expanded structural store-fixed refresh: `9 / 9` numeric PASS.
+- Lightweight reviewer gates: `Status: ready`.
+- Benchmark-specific runtime branches remain disabled.
 
 ## Slide 2. Problem
 
-Financial-document RAG failures often look small but change the answer:
+Financial-document RAG can look grounded while being numerically wrong.
 
-- wrong row, subtotal, segment, or reporting period
-- calculated value treated as a directly stated value
-- citation preserved in prose but lost in structured state
+Failure modes:
+
+- wrong row, subtotal, segment, entity, or reporting period
+- correct citation in prose but missing provenance in runtime state
+- calculated value presented as directly stated
+- stale compatibility fields overriding the canonical trace
 - benchmark score improved by brittle question-specific rules
-- stale compatibility fields overriding the canonical calculation trace
 
 Message:
 
-- The hard part is not only retrieval. It is keeping evidence, calculation,
-  acceptance, and review state aligned.
+- The hard part is not only retrieving a relevant chunk. The hard part is
+  keeping evidence, operand binding, calculation, rendering, and acceptance
+  aligned.
 
-## Slide 3. Goal
-
-Build a runtime that can answer numeric filing questions and show why the answer
-was accepted.
-
-The accepted answer should expose:
-
-- final answer text
-- citations and evidence items
-- `structured_result`
-- `resolved_calculation_trace`
-- critic acceptance state
-- `task_artifact_trace`
-- benchmark or reviewer gate status
-
-Message:
-
-- The answer is a presentation layer. The contract is the structured runtime
-  trace behind it.
-
-## Slide 4. System Architecture
+## Slide 3. Runtime Contract
 
 High-level flow:
 
@@ -76,180 +58,154 @@ User question
   -> Final answer + task_artifact_trace
 ```
 
-Key shared state:
+Key state:
 
 - `tasks`
 - `artifacts`
 - `evidence_pool`
 - `critic_reports`
 - `task_artifact_trace`
+- `answer_slots`, `structured_result`, `resolved_calculation_trace`
 
 Message:
 
-- Agent communication is modeled as typed ledger state, not free-form chat.
+- Agent communication is typed ledger state, not free-form chat.
+- Final answer text is the presentation layer; the contract is the trace behind
+  it.
 
-## Slide 5. Key Design Choices
+## Slide 4. LLM Semantics, Deterministic Execution
 
-Design choices that keep the system general:
+Boundary:
 
-- LLMs handle semantics; deterministic code handles execution
-- domain vocabulary stays in ontology, retrieval policy, config, or data
-- numeric answers publish `answer_slots`, `structured_result`, and
-  `resolved_calculation_trace`
-- critic acceptance is based on verdict, target refs, reasons, and blocking
-  issues, not just a score threshold
-- report-cache work is candidate-only until the safety contract is proven
+- LLMs: intent, concept interpretation, narrative meaning, planning support.
+- Code: arithmetic, unit handling, dependency binding, dedupe, ordering,
+  provenance checks, validation, and rendering.
 
-Message:
+Numeric path:
 
-- The project is less about prompt tuning and more about runtime boundaries.
-
-## Slide 6. Retrieval And Ingest Strategy
-
-The retrieval layer must preserve document shape, not only semantic similarity.
-
-Important surfaces:
-
-- section/table-aware DART parsing
-- hybrid retrieval with structure-aware chunks
-- retrieval debug traces
-- evidence items with source anchors and row provenance
-- parser rules limited to recovering document structure
-
-Message:
-
-- Financial filings need source shape. A relevant chunk is not enough if the
-  row, period, or table context is wrong.
-
-## Slide 7. Numeric Execution Path
-
-Numeric questions are decomposed into calculation tasks:
-
-1. identify required operands
-2. retrieve and reconcile evidence
-3. extract structured operands
-4. plan the formula
-5. execute deterministically
-6. render and verify the result
-7. expose `resolved_calculation_trace`
-
-Message:
-
-- The calculator does not invent evidence. It assembles already-grounded
-  operands into an inspectable trace.
-
-## Slide 8. Acceptance And Review Gates
-
-Current gates:
-
-- task/artifact integrity projection
-- final close blocking on integrity errors
-- critic acceptance state and rejection feedback
-- canonical calculation trace projection, with legacy top-level mirrors kept
-  only as optional compatibility bridges
-- report-cache reviewer handoff
-- runtime domain-term audit
-- full unit-test discovery
-
-Representative commands:
-
-```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests
-.\.venv\Scripts\python.exe -m src.ops.audit_runtime_domain_terms
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
-.\.venv\Scripts\python.exe -m src.ops.review_report_cache_index_contract
+```text
+retrieve/evidence
+  -> reconcile_plan
+  -> operand extraction
+  -> formula/calculator
+  -> aggregate subtasks
+  -> public projection
 ```
 
 Message:
 
-- The gates are designed to catch regressions in evidence, calculation,
-  acceptance, and overfitting boundaries.
+- The calculator does not invent evidence. It assembles grounded operands into
+  an inspectable result.
+- Domain vocabulary lives in ontology, retrieval policy, config, or reviewed
+  data, not runtime branches.
 
-## Slide 9. Portfolio Demo
+## Slide 5. Representative Demo Case
 
-Use the fixture-backed demo as the reviewer path:
+Use `KAB_T1_066` as the compact visible case.
 
-```powershell
-.\.venv\Scripts\python.exe -m src.ops.portfolio_demo
+Question:
+
+```text
+카카오뱅크 2023년 연결기준 CIR(판매비와관리비/경비차감전영업이익)을 계산해 줘.
 ```
 
-The demo shows:
+Expected demo answer:
 
-- final answer
-- citations
-- calculation trace
-- task/artifact integrity
-- critic acceptance
-- cache reviewer handoff
+```text
+2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
+```
 
-Reviewer note:
+Why it matters:
 
-- Treat `resolved_calculation_trace`, `structured_result`, and
-  `task_artifact_trace` as the primary contract surfaces. Top-level
-  calculation/debug mirrors exist only for compatibility with older callers or
-  result bundles.
+- rejects a plausible wrong denominator row
+- recovers both operands from one MDA table
+- renders from the canonical calculation trace
+- exposes citations, operands, formula, integrity, critic acceptance, and cache
+  handoff
 
-Expected headline:
+Command:
 
-- `Readiness: ready`
-- cache mode remains `candidate_only`
-- `serving_enabled = false`
-- `ledger_insertion_enabled = false`
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
+```
+
+## Slide 6. Final Regression Story
+
+Use `KBF_T2_018` and `SKH_T1_060` to show why trace contracts matter.
+
+`KBF_T2_018`:
+
+- final answer/evidence showed the right numbers:
+  `3,146,409`, `1,847,775`, `70.28%`
+- public `calculation_result` / `calculation_plan` projection could remain
+  stale
+- fix: synchronize final-answer numeric surfaces back into projected growth
+  trace
+
+`SKH_T1_060`:
+
+- correct task-output operands could be overwritten by a conflicting direct row
+  from a disjoint source context
+- fix: periodless table-label metadata lookup plus source-row provenance guard
+- final structural answer: `42.02%`
 
 Message:
 
-- A reviewer can scan the runtime contract without needing API keys, a vector
-  store, DART downloads, or benchmark result bundles.
+- The fixes were projection/provenance contracts, not company-specific or
+  benchmark-ID branches.
 
-## Slide 10. What This Demonstrates
+## Slide 7. Evaluation And Gates
 
-Engineering capabilities shown by the project:
+Current structural evidence:
 
-- long-form financial RAG failure-mode analysis
-- LLM/deterministic boundary design
-- structured evidence and calculation provenance
-- multi-agent handoff through typed artifacts
-- contract tests and reviewer gates
-- quality/cost tradeoff awareness
+| Scope | Result |
+| --- | ---: |
+| Expanded structural store-fixed eval-only | `9 / 9` numeric PASS |
+| Plain retrieval diagnostic comparison | `5 / 9` numeric PASS |
+| Runtime domain-term audit | pass |
+| Portfolio review gates | ready |
+
+Reviewer commands:
+
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
+```
+
+Capability-specific gates:
+
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.review_report_cache_index_contract
+uv run --with-requirements requirements-review.txt python -m src.ops.report_cache_promotion_evidence_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.reflection_promotion_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.reference_note_capability_gate
+uv run --with-requirements requirements-review.txt python -m src.ops.promotion_trace_materiality_gate
+```
 
 Message:
 
-- The repo demonstrates how to make financial RAG auditable instead of merely
-  plausible.
+- Generic metrics are useful signals, but final acceptance depends on operands,
+  formulas, source references, rendered displays, integrity, and critic state.
 
-## Slide 11. Current Limits And Future Work
+## Slide 8. Limits And Closing
 
-Intentionally disabled today:
+Do not overclaim:
+
+- not a new model architecture
+- not a general TableQA SOTA result
+- not proof that structure helps every question
+- not a claim that arithmetic hallucination is impossible
+
+Intentionally disabled:
 
 - cache serving and retrieval bypass
 - automatic cache writes
-- cache candidate insertion into the live task/artifact ledger
-- LLM critic as an acceptance authority
+- cache candidate insertion into the live ledger
+- LLM critic as final acceptance authority
 - benchmark-specific runtime routing branches
 
-Longer-term work:
-
-- promotion-risk management for any future cache consumer
-- cost/runtime control for larger benchmark refreshes
-- task-ledger and artifact-contract cleanup
-- broader benchmark coverage after the contract surfaces stabilize
-
-Message:
-
-- The disabled features are part of the safety story, not unfinished hidden
-  behavior.
-
-## Slide 12. Closing
-
-Close on three points:
-
-- The project defines financial RAG quality as an inspectable runtime contract.
-- Numeric answers are accepted through evidence, calculation trace, critic
-  state, and ledger integrity.
-- The current repo is packaged with a README, one-pager, codebase map, question
-  trace walkthrough, portfolio demo, and reviewer commands.
-
-Suggested final line:
+Closing line:
 
 > This project is my answer to the question: how do we make a financial RAG
 > system that a reviewer can audit, not just a model that sounds confident?

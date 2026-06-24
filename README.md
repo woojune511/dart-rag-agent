@@ -141,6 +141,10 @@ and gate commands without installing the full ML, ingest, app, benchmark, and
 tracing stack. Use the full profile only when running the whole test suite,
 fresh ingest, benchmarks, or the app.
 
+These lightweight commands were verified on the current `main`: the audit
+passes, `portfolio_demo` reports `Readiness: ready`, and
+`portfolio_review_gates` reports aggregate `Status: ready`.
+
 Lightweight reviewer profile:
 
 ```bash
