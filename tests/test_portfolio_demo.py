@@ -20,6 +20,11 @@ class PortfolioDemoTests(unittest.TestCase):
         demo = build_demo()
 
         self.assertEqual(demo["readiness"]["status"], "ready")
+        self.assertEqual(
+            demo["semantic_plan"]["tasks"][0]["operation_family"],
+            "ratio",
+        )
+        self.assertEqual(demo["retrieval_debug_trace"]["selected_count"], 1)
         self.assertEqual(demo["structured_result"]["rendered_value"], "37.47%")
         self.assertEqual(
             demo["resolved_calculation_trace"]["calculation_result"]["status"],
@@ -27,6 +32,11 @@ class PortfolioDemoTests(unittest.TestCase):
         )
         self.assertEqual(demo["task_artifact_integrity"]["integrity_status"], "ok")
         self.assertEqual(demo["critic_acceptance"]["status"], "accepted")
+        self.assertIsNone(demo["cache_reviewer_handoff"])
+
+    def test_build_demo_can_include_optional_cache_review(self) -> None:
+        demo = build_demo(include_cache_review=True)
+
         self.assertEqual(demo["cache_reviewer_handoff"]["status"], "ready")
         self.assertFalse(demo["cache_reviewer_handoff"]["retrieval_bypass_enabled"])
         self.assertFalse(demo["cache_reviewer_handoff"]["write_enabled"])
@@ -67,9 +77,18 @@ class PortfolioDemoTests(unittest.TestCase):
         text = render_text(build_demo(include_cache_review=False))
 
         self.assertIn("# Portfolio Runtime Demo", text)
+        self.assertIn("Semantic Plan:", text)
+        self.assertIn("planner: concept_llm_planner", text)
+        self.assertIn("Retrieval Trace:", text)
+        self.assertIn("mode: hybrid", text)
         self.assertIn("Calculation Trace:", text)
         self.assertIn("Task/Artifact Integrity:", text)
         self.assertIn("Critic Acceptance:", text)
+        self.assertNotIn("Cache Reviewer Handoff:", text)
+
+    def test_render_text_can_include_optional_cache_review(self) -> None:
+        text = render_text(build_demo(include_cache_review=True))
+
         self.assertIn("Cache Reviewer Handoff:", text)
         self.assertIn("retrieval_bypass_enabled:", text)
         self.assertIn("write_enabled:", text)
@@ -100,7 +119,9 @@ class PortfolioDemoTests(unittest.TestCase):
             self.assertIn('"readiness"', demo_result.stdout)
             payload = json.loads(output.read_text(encoding="utf-8"))
             self.assertEqual(payload["readiness"]["status"], "ready")
-            self.assertEqual(payload["cache_reviewer_handoff"]["mode"], "candidate_only")
+            self.assertEqual(payload["semantic_plan"]["tasks"][0]["operation_family"], "ratio")
+            self.assertEqual(payload["retrieval_debug_trace"]["selected_count"], 1)
+            self.assertIsNone(payload["cache_reviewer_handoff"])
 
 
 if __name__ == "__main__":

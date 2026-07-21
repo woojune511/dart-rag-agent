@@ -94,23 +94,39 @@ taxonomy. See
 [portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
 for the methodology and limitations.
 
-## Quick review
+## Five-minute review
 
 The lightweight profile runs without the full ingest, ML, benchmark, and app
-stack:
+stack. Start with one command:
 
 ```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
+```
+
+Use the five minutes as follows:
+
+1. Read the problem and core pipeline above.
+2. Run the demo and inspect `Semantic Plan`, `Retrieval Trace`, `Calculation
+   Trace`, citations, and critic acceptance.
+3. Scan the representative result and scope boundary in the
+   [portfolio one-pager](docs/overview/portfolio_one_pager.md).
+
+The fixture-backed demo is a reproducible contract projection, not a live DART
+ingest or provider call. For deeper validation, run:
+
+```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
 ```
 
-Then read:
+Optional deep dives:
 
-1. [Portfolio one-pager](docs/overview/portfolio_one_pager.md)
-2. [Question trace walkthrough](docs/overview/question_trace_walkthrough.md)
-3. [Experiment report](docs/overview/portfolio_experiment_report.md)
-4. [Technical highlights](docs/overview/technical_highlights.md)
+| Question | Document |
+| --- | --- |
+| How does one question move through the code? | [Question trace walkthrough](docs/overview/question_trace_walkthrough.md) |
+| What evidence supports the result claims? | [Experiment report](docs/overview/portfolio_experiment_report.md) |
+| What are the main implementation techniques? | [Technical highlights](docs/overview/technical_highlights.md) |
+| How is the fixture-backed demo assembled? | [Demo walkthrough](docs/overview/portfolio_demo_walkthrough.md) |
 
 ## Run the API
 
@@ -152,5 +168,5 @@ docs/                      reviewer guides and internal history
 ```
 
 Internal status and experiment logs remain available for reproducibility, but
-they are not the recommended first-read path. Start with the four documents in
-the quick review section.
+they are not the recommended first-read path. Start with the five-minute review
+above and open a deep dive only for the question you want to inspect.

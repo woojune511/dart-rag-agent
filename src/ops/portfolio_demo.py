@@ -73,20 +73,20 @@ def _checks(
     answer_package: Dict[str, Any],
     task_artifact: Dict[str, Any],
     critic_acceptance: Dict[str, Any],
-    cache_review: Dict[str, Any] | None,
 ) -> Dict[str, Any]:
+    semantic_plan = dict(answer_package.get("semantic_plan") or {})
+    retrieval_trace = dict(answer_package.get("retrieval_debug_trace") or {})
     trace = dict(answer_package.get("resolved_calculation_trace") or {})
     calculation_result = dict(trace.get("calculation_result") or {})
     checks = {
         "answer_present": bool(str(answer_package.get("answer") or "").strip()),
         "citations_present": bool(answer_package.get("citations") or []),
+        "semantic_plan_present": bool(semantic_plan.get("tasks") or []),
+        "retrieval_trace_present": bool(retrieval_trace.get("query_bundle") or [])
+        and int(retrieval_trace.get("selected_count") or 0) > 0,
         "calculation_trace_ok": calculation_result.get("status") == "ok",
         "task_artifact_integrity_ok": task_artifact.get("integrity_status") == "ok",
         "critic_accepted": critic_acceptance.get("status") == "accepted",
-        "cache_reviewer_ready": (
-            cache_review is None
-            or dict(cache_review.get("reviewer_handoff") or {}).get("status") == "ready"
-        ),
     }
     return {
         "status": "ready" if all(checks.values()) else "needs_review",
@@ -97,7 +97,7 @@ def _checks(
 def build_demo(
     *,
     demo_payload_path: str | Path = DEFAULT_DEMO_PAYLOAD_PATH,
-    include_cache_review: bool = True,
+    include_cache_review: bool = False,
 ) -> Dict[str, Any]:
     payload_path = Path(demo_payload_path)
     payload = _read_json_object(payload_path)
@@ -116,6 +116,11 @@ def build_demo(
         "answer": answer_package.get("answer"),
         "citations": list(answer_package.get("citations") or []),
         "evidence_items": list(answer_package.get("evidence_items") or []),
+        "semantic_plan": dict(answer_package.get("semantic_plan") or {}),
+        "retrieval_queries": list(answer_package.get("retrieval_queries") or []),
+        "retrieval_debug_trace": dict(
+            answer_package.get("retrieval_debug_trace") or {}
+        ),
         "structured_result": dict(answer_package.get("structured_result") or {}),
         "resolved_calculation_trace": dict(
             answer_package.get("resolved_calculation_trace") or {}
@@ -129,7 +134,6 @@ def build_demo(
             answer_package=answer_package,
             task_artifact=task_artifact,
             critic_acceptance=critic_acceptance,
-            cache_review=cache_review,
         ),
     }
 
@@ -145,6 +149,22 @@ def _format_bool(value: Any) -> str:
 
 
 def render_text(demo: Dict[str, Any]) -> str:
+    semantic_plan = dict(demo.get("semantic_plan") or {})
+    semantic_task = _first_mapping(semantic_plan.get("tasks"))
+    semantic_operands = [
+        dict(item)
+        for item in list(semantic_task.get("required_operands") or [])
+        if isinstance(item, dict)
+    ]
+    planner_notes = [str(item) for item in semantic_plan.get("planner_notes") or []]
+    planner_strategy = next(
+        (item for item in planner_notes if "llm" in item.lower()),
+        str(semantic_plan.get("status") or "-"),
+    )
+    retrieval_trace = dict(demo.get("retrieval_debug_trace") or {})
+    executed_query = _first_mapping(retrieval_trace.get("executed_queries"))
+    search_telemetry = dict(executed_query.get("search_telemetry") or {})
+    selected_chunk = _first_mapping(retrieval_trace.get("selected_chunks"))
     trace = dict(demo.get("resolved_calculation_trace") or {})
     plan = dict(trace.get("calculation_plan") or {})
     result = dict(trace.get("calculation_result") or {})
@@ -168,11 +188,38 @@ def render_text(demo: Dict[str, Any]) -> str:
         "Citations:",
         *_format_list([str(item) for item in demo.get("citations") or []]),
         "",
-        "Calculation Trace:",
-        f"  - operation: {plan.get('operation')}",
-        f"  - result: {result.get('rendered_value')} ({result.get('status')})",
-        "  - operands:",
+        "Semantic Plan:",
+        f"  - planner: {planner_strategy}",
+        f"  - operation: {semantic_task.get('operation_family')}",
+        "  - required_operands:",
     ]
+    for operand in semantic_operands:
+        lines.append(
+            "    - "
+            f"{operand.get('role')}: {operand.get('label')}"
+        )
+
+    lines.extend(
+        [
+            "",
+            "Retrieval Trace:",
+            f"  - mode: {search_telemetry.get('retrieval_mode')}",
+            f"  - queries: {len(retrieval_trace.get('query_bundle') or [])}",
+            f"  - vector_results: {search_telemetry.get('vector_result_count')}",
+            f"  - bm25_results: {search_telemetry.get('bm25_result_count')}",
+            f"  - candidates: {retrieval_trace.get('candidate_count')}",
+            f"  - selected: {retrieval_trace.get('selected_count')}",
+            (
+                "  - selected_source: "
+                f"{selected_chunk.get('section_path')} [{selected_chunk.get('chunk_uid')}]"
+            ),
+            "",
+            "Calculation Trace:",
+            f"  - operation: {plan.get('operation')}",
+            f"  - result: {result.get('rendered_value')} ({result.get('status')})",
+            "  - operands:",
+        ]
+    )
     for operand in operands:
         lines.append(
             "    - "
@@ -194,22 +241,27 @@ def render_text(demo: Dict[str, Any]) -> str:
             f"  - target_task_id: {critic.get('target_task_id')}",
             f"  - target_artifact_ids: {', '.join(critic.get('target_artifact_ids') or [])}",
             f"  - reason: {critic.get('acceptance_reason') or '-'}",
-            "",
-            "Cache Reviewer Handoff:",
-            f"  - status: {cache_handoff.get('status')}",
-            f"  - mode: {cache_handoff.get('mode')}",
-            (
-                "  - retrieval_bypass_enabled: "
-                f"{_format_bool(cache_handoff.get('retrieval_bypass_enabled'))}"
-            ),
-            f"  - write_enabled: {_format_bool(cache_handoff.get('write_enabled'))}",
-            f"  - serving_enabled: {_format_bool(cache_handoff.get('serving_enabled'))}",
-            (
-                "  - ledger_insertion_enabled: "
-                f"{_format_bool(cache_handoff.get('ledger_insertion_enabled'))}"
-            ),
         ]
     )
+    if cache_handoff:
+        lines.extend(
+            [
+                "",
+                "Cache Reviewer Handoff:",
+                f"  - status: {cache_handoff.get('status')}",
+                f"  - mode: {cache_handoff.get('mode')}",
+                (
+                    "  - retrieval_bypass_enabled: "
+                    f"{_format_bool(cache_handoff.get('retrieval_bypass_enabled'))}"
+                ),
+                f"  - write_enabled: {_format_bool(cache_handoff.get('write_enabled'))}",
+                f"  - serving_enabled: {_format_bool(cache_handoff.get('serving_enabled'))}",
+                (
+                    "  - ledger_insertion_enabled: "
+                    f"{_format_bool(cache_handoff.get('ledger_insertion_enabled'))}"
+                ),
+            ]
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -234,10 +286,16 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         default="text",
         help="Output format.",
     )
-    parser.add_argument(
+    cache_group = parser.add_mutually_exclusive_group()
+    cache_group.add_argument(
+        "--include-cache-review",
+        action="store_true",
+        help="Also run and render the optional candidate-only cache review.",
+    )
+    cache_group.add_argument(
         "--skip-cache-review",
         action="store_true",
-        help="Render the demo without running the cache reviewer handoff check.",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument("--output", type=Path, help="Optional output file path.")
     return parser.parse_args(argv)
@@ -247,7 +305,7 @@ def main(argv: List[str] | None = None) -> int:
     args = parse_args(argv)
     demo = build_demo(
         demo_payload_path=args.demo_payload,
-        include_cache_review=not args.skip_cache_review,
+        include_cache_review=args.include_cache_review,
     )
     if args.format == "json":
         rendered = f"{json.dumps(demo, ensure_ascii=False, indent=2)}\n"

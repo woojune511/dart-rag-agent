@@ -17,6 +17,67 @@
         }
       }
     ],
+    "semantic_plan": {
+      "status": "concept_fallback",
+      "fallback_to_general_search": false,
+      "planned_metric_families": [
+        "concept_ratio"
+      ],
+      "tasks": [
+        {
+          "task_id": "task_1",
+          "metric_family": "concept_ratio",
+          "metric_label": "CIR",
+          "operation_family": "ratio",
+          "required_operands": [
+            {
+              "label": "판매비와관리비",
+              "role": "numerator"
+            },
+            {
+              "label": "경비차감전영업이익",
+              "role": "denominator"
+            }
+          ]
+        }
+      ],
+      "planner_notes": [
+        "concept_llm_planner"
+      ]
+    },
+    "retrieval_queries": [
+      "2023년 연결 CIR 판매비와관리비 경비차감전영업이익",
+      "2023년 판매비와관리비 경비차감전영업이익 이사의 경영진단 및 분석의견"
+    ],
+    "retrieval_debug_trace": {
+      "query_bundle": [
+        "2023년 연결 CIR 판매비와관리비 경비차감전영업이익",
+        "2023년 판매비와관리비 경비차감전영업이익 이사의 경영진단 및 분석의견"
+      ],
+      "executed_queries": [
+        {
+          "source": "primary",
+          "executed_query": "2023년 연결 CIR 판매비와관리비 경비차감전영업이익",
+          "search_telemetry": {
+            "retrieval_mode": "hybrid",
+            "vector_result_count": 6,
+            "bm25_result_count": 6
+          }
+        }
+      ],
+      "candidate_count": 8,
+      "selected_count": 1,
+      "selected_chunks": [
+        {
+          "rank": 1,
+          "chunk_uid": "2023-mda-table-3",
+          "section_path": "IV. 이사의 경영진단 및 분석의견",
+          "block_type": "table",
+          "company": "카카오뱅크",
+          "year": 2023
+        }
+      ]
+    },
     "structured_result": {
       "status": "ok",
       "rendered_value": "37.47%",

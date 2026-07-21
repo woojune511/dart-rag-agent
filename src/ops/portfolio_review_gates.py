@@ -54,9 +54,6 @@ def run_review_gates() -> Dict[str, Any]:
                 portfolio_demo.get("task_artifact_integrity") or {}
             ).get("integrity_status"),
             "critic_acceptance": dict(portfolio_demo.get("critic_acceptance") or {}).get("status"),
-            "cache_reviewer_handoff": dict(
-                portfolio_demo.get("cache_reviewer_handoff") or {}
-            ).get("status"),
         },
         "cache_reviewer": {
             "status": cache_review.get("status"),

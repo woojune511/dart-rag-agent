@@ -1,7 +1,8 @@
 # Question Trace Walkthrough
 
 이 문서는 질문 1개가 현재 코드에서 어떻게 흐르는지 따라가기 위한
-walkthrough다. 기준은 2026-06-22 PR #77 merge 이후의 single-agent runtime이다.
+walkthrough다. 기준은 Phase 5 core-runtime surface 정리가 끝난 현재
+single-agent runtime이다.
 
 같이 보면 좋은 문서:
 
@@ -23,9 +24,11 @@ walkthrough다. 기준은 2026-06-22 PR #77 merge 이후의 single-agent runtime
 4. 각 graph node의 mixin 구현
 5. helper/module 내부
 
-현재 runtime의 핵심 계약은 `answer`, `structured_result`,
-`resolved_calculation_trace`, `review_trace`, `debug_bundle`이다. 오래된 flat
-field도 아직 반환되지만, 새 코드가 먼저 봐야 하는 표면은 named projection이다.
+현재 runtime의 핵심 계약은 `agent_answer`, `review_trace`, `debug_bundle` named
+projection이다. `answer`, `structured_result`, `resolved_calculation_trace` 같은
+선택된 canonical field는 기존 API/eval caller를 위해 top level에도 보이지만,
+top-level `calculation_operands`, `calculation_plan`, `calculation_result` mirror는
+더 이상 기본 응답에 포함되지 않는다.
 
 ## 2. 한 화면으로 보는 호출 체인
 
@@ -244,7 +247,7 @@ graph node가 만든 raw runtime state이고, 그대로 API에 내보내는 payl
 9. `_retrieved_ratio_context_projection_for_public_answer()`가 retrieved context의
    ratio projection을 보강할 수 있다.
 
-PR #77 이후 새로 중요한 helper:
+현재 output projection에서 중요한 helper:
 
 - [src/agent/financial_answer_projection.py](../../src/agent/financial_answer_projection.py)
 
@@ -254,19 +257,21 @@ overlap, conflicting numeric surface 감소 여부만 본다.
 
 ### 6.4 최종 return shape
 
-`run()`은 named projection과 legacy flat compatibility field를 함께 반환한다.
+`run()`은 세 개의 named projection과 기존 caller에 필요한 선택된 canonical
+top-level field를 반환한다.
 
 | Projection | 의미 |
 | --- | --- |
 | `agent_answer` | public answer, query metadata, citations, `structured_result`, `resolved_calculation_trace` |
 | `review_trace` | retrieval/evidence/numeric/debug/retry/subtask/task-artifact review material |
 | `debug_bundle` | calculation debug trace, LLM usage, phase usage, embedding usage |
-| top-level flat fields | 기존 API/eval code를 위한 compatibility adapter |
+| selected top-level fields | 기존 API/eval code를 위한 compatibility adapter; calculation mirror 제외 |
 
 새 코드가 가능하면 `agent_answer`, `review_trace`, `debug_bundle`를 먼저 소비해야
-한다. 오래된 flat field는 compatibility bridge다.
+한다. top-level adapter가 canonical calculation trace를 복제한 별도
+`calculation_*` 상태를 만들지는 않는다.
 
-## 7. Numeric 질문의 실제 흐름
+## 7. Numeric question trace
 
 대표 질문:
 
@@ -372,28 +377,26 @@ validation 결과를 먼저 봐야 한다.
 helper를 먼저 읽지 않는다. state field와 node order를 먼저 잡고, 증상이 생긴
 layer의 helper만 내려간다.
 
-## 11. MAS 쪽과의 관계
+## 11. Optional MAS appendix
 
-MAS 경로는 numeric engine을 새로 구현하지 않는다.
+MAS 경로는 core portfolio를 이해하기 위한 선행 읽기 항목이 아니다. 선택적으로
+확인할 경우에도 numeric engine을 새로 구현하지 않고 `FinancialAgent.run()`을
+감싼다는 점만 먼저 보면 된다.
 
-- [src/agent/mas_graph.py](../../src/agent/mas_graph.py)
+- [src/experimental/mas](../../src/experimental/mas)
 - [src/agent/nodes/analyst_node.py](../../src/agent/nodes/analyst_node.py)
 
 `Analyst` node가 기존 `FinancialAgent.run()`을 감싸서 재사용한다. 따라서 MAS를
 읽기 전에도 single-agent `FinancialAgent.run()` 계약을 먼저 이해하는 것이 맞다.
 
-## 12. 다음 리팩터링을 할 때의 안전선
+## 12. 현재 stop line
 
-`FinancialAgent`가 어렵게 느껴지는 주된 이유는 output projection이 아직
-`run()` 안에 많이 남아 있기 때문이다. 다음 리팩터링 후보는 아래다.
+Phase 5의 broad surface refactoring은 완료됐다. 파일 크기만을 이유로 output
+projection을 다시 이동하거나 public surface를 바꾸지 않는다. 다음 구조 변경은
+재현 가능한 runtime regression, 실제 caller 의존성, 또는 reviewer가 설명할 수
+없는 core contract가 확인될 때만 연다.
 
-- `run()` 후반부의 caller-facing output projection을 별도 module로 extraction
-- 단, `FinancialAgent` facade와 return shape는 유지
-- `agent_answer`, `review_trace`, `debug_bundle` named projection을 우선 계약으로
-  보존
-- legacy flat field는 compatibility adapter로만 유지
-
-이 작업을 하기 전에는 반드시 관련 테스트를 먼저 고정한다.
+public output 계약을 다시 바꿔야 한다면 아래 검증을 먼저 고정한다.
 
 - `tests.test_financial_agent_run_projection`
 - `tests.test_benchmark_runner_runtime_projection`

@@ -27,8 +27,8 @@ imports or an unconfigured `FinancialAgent` invocation.
 ## Current Source State
 
 - PRs #79 through #84 completed the portfolio core simplification sequence on
-  2026-07-22.
-- Latest confirmed merge: PR #84, `main@294b4ea`.
+  2026-07-22; PR #85 compressed the current-state and handoff documents.
+- Latest confirmed merge: PR #85, `main@f0a5145`.
 - Canonical public numeric contracts are `resolved_calculation_trace`, explicit
   `structured_result`, and task/artifact projections.
 - Top-level `calculation_*` compatibility mirrors are not part of the default
@@ -77,7 +77,7 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | Promotion trace materiality gate | READY |
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Portfolio review gates | READY |
-| Full unittest discovery | 1,350 passed at Phase 5 closure |
+| Full unittest discovery | 1,352 passed after the final reviewer walkthrough |
 
 The structural and plain numbers are retained portfolio evidence, not a claim
 that every docs-only change reran a paid benchmark. Fresh benchmark work is
@@ -114,10 +114,15 @@ Open work should be created only when one of these conditions is met:
 
 ## Next Work
 
-1. Perform a final reviewer walkthrough starting from README.
-2. Confirm that one representative demo exposes retrieval, semantic planning,
-   deterministic calculation, and provenance in a coherent trace.
-3. Improve presentation or explanation before adding more runtime scope.
+The final README-first walkthrough is complete. The primary path now runs one
+fixture-backed command and exposes semantic planning, hybrid retrieval,
+deterministic calculation, provenance, task/artifact integrity, and critic
+acceptance in a coherent trace. Optional cache and promotion surfaces are
+separate deep-validation paths.
+
+There is no planned broad cleanup phase. Open the next change only for a
+reproducible regression, a concrete caller requirement, or a specific reviewer
+explanation gap.
 
 Do not start another broad refactor, proactive full benchmark, all-at-once test
 split, new MAS capability, or cache-serving path without a concrete blocker.

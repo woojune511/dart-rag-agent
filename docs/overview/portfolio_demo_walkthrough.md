@@ -1,12 +1,12 @@
 # Portfolio Demo Walkthrough
 
-This walkthrough shows the smallest reviewer-facing demo for the current
-runtime contract. It is fixture-backed, so it can run without DART downloads,
-vector-store setup, API keys, or benchmark result bundles.
+This walkthrough explains the smallest reviewer-facing demo for the current
+single-agent runtime contract. It is fixture-backed, so it runs without DART
+downloads, vector-store setup, API keys, or benchmark result bundles.
 
-The expected reviewer already understands RAG and agent-workflow basics; the
-demo is meant to expose the runtime contract surfaces rather than teach those
-concepts from scratch.
+The fixture is a source-controlled projection of real runtime fields. It proves
+that the public contract remains coherent and reviewable; it does not claim to
+perform live retrieval or an LLM call during the demo command.
 
 ## Run It
 
@@ -14,39 +14,27 @@ concepts from scratch.
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
 ```
 
-For machine-readable review output:
+For machine-readable output:
 
 ```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --format json
 ```
 
-The command reads
-`tests/fixtures/portfolio_demo/demo_payload.json` and also runs the
-repo-default report-cache reviewer handoff check. That means the output shows
-the answer contract and the candidate-only cache gate together.
-
 ## Review Order
 
-Use this demo as the first scan, then inspect the one-pager or experiment
-report only if the reviewer wants the broader story. The current runtime
-contract to look for is:
+The default output keeps the core portfolio story in execution order:
 
-- canonical numeric state is exposed through `resolved_calculation_trace` and
-  `structured_result`
-- MAS handoff state is exposed through `task_artifact_trace`
-- reflection retry state, when triggered, is persisted as a `reflection_report`
-  artifact rather than an unbounded graph escape hatch
-- critic acceptance is exposed as target refs, verdict/status, and reasons
-- report-cache material remains candidate-only with retrieval bypass, writes,
-  serving, and ledger insertion disabled
-- promotion trace summaries are checked for materially distinct source,
-  reflection-action, and cache-fallback surfaces before more summary evidence
-  is added
-- `REFERENCE_NOTE` traversal remains Researcher graph-expansion context and is
-  not cache serving, retrieval bypass, ledger insertion, or final acceptance
-  authority
-- legacy top-level calculation/debug fields are compatibility bridges, not the
-  canonical state for new live runs
+1. `Semantic Plan` shows the planner strategy, operation, and required
+   operands.
+2. `Retrieval Trace` shows hybrid-search telemetry, query count, candidates,
+   and the selected chunk.
+3. `Calculation Trace` binds source-visible operands to a deterministic
+   formula and result.
+4. `Citations` and the selected source keep provenance visible.
+5. `Task/Artifact Integrity` shows that runtime work and produced artifacts
+   remain linked.
+6. `Critic Acceptance` records the reviewed target and explicit acceptance
+   reason.
 
 ## Expected Output
 
@@ -59,6 +47,22 @@ Answer: 2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억�
 
 Citations:
   - [카카오뱅크 | 2023 | IV. 이사의 경영진단 및 분석의견::table:3]
+
+Semantic Plan:
+  - planner: concept_llm_planner
+  - operation: ratio
+  - required_operands:
+    - numerator: 판매비와관리비
+    - denominator: 경비차감전영업이익
+
+Retrieval Trace:
+  - mode: hybrid
+  - queries: 2
+  - vector_results: 6
+  - bm25_results: 6
+  - candidates: 8
+  - selected: 1
+  - selected_source: IV. 이사의 경영진단 및 분석의견 [2023-mda-table-3]
 
 Calculation Trace:
   - operation: ratio
@@ -78,46 +82,47 @@ Critic Acceptance:
   - target_task_id: task_1
   - target_artifact_ids: artifact:calculation_result
   - reason: Source-visible operands, ratio trace, and target refs are present.
-
-Cache Reviewer Handoff:
-  - status: ready
-  - mode: candidate_only
-  - retrieval_bypass_enabled: false
-  - write_enabled: false
-  - serving_enabled: false
-  - ledger_insertion_enabled: false
 ```
 
-## What A Reviewer Should Notice
+## What It Demonstrates
 
-| Output section | What it proves |
+| Output section | Contract demonstrated |
 | --- | --- |
-| `Readiness` | The compact demo contract passed its local checks |
-| `Answer` | Final prose stays separate from the structured contract |
-| `Citations` | The answer keeps source anchors visible to callers |
-| `Calculation Trace` | Numeric output is backed by operands, plan, and result |
-| `Task/Artifact Integrity` | The MAS ledger projection is present and clean |
-| `reflection_report` artifacts | Retry/reflection actions are inspectable through the same ledger contract when a retry is prepared |
-| `Critic Acceptance` | Runtime acceptance uses target refs, verdict, and reasons |
-| `Cache Reviewer Handoff` | Cache candidates remain candidate-only with bypass/write/serving/ledger insertion disabled |
+| `Semantic Plan` | Semantic interpretation is explicit before execution |
+| `Retrieval Trace` | Dense and sparse search telemetry and selection are inspectable |
+| `Calculation Trace` | Arithmetic is backed by bound operands, formula, and result |
+| `Citations` | Source anchors remain visible to callers |
+| `Task/Artifact Integrity` | Agent runtime tasks and artifacts have valid references |
+| `Critic Acceptance` | Acceptance uses target refs and an explicit reason |
 
-The important portfolio point is not the fixture value itself. The point is that
-the command exposes the same surfaces that are risky in financial-document RAG:
-source grounding, calculation provenance, agent handoff integrity, critic
-acceptance, bounded retry/reflection handoff, and cache safety.
+The important point is not the fixture value itself. The command presents the
+four core engineering stages—semantic planning, retrieval, deterministic
+calculation, and provenance—as one coherent trace.
+
+## Optional Systems Appendix
+
+Cache promotion, reflection promotion, `REFERENCE_NOTE`, and the MAS facade are
+supporting experiments, not prerequisites for the core demo. Review their
+aggregate gates separately:
+
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
+```
+
+To append the candidate-only cache handoff to the demo output explicitly:
+
+```bash
+uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo --include-cache-review
+```
+
+The optional cache surface keeps retrieval bypass, writes, serving, and ledger
+insertion disabled.
 
 ## Source Files
 
 | File | Role |
 | --- | --- |
 | `src/ops/portfolio_demo.py` | CLI and compact readiness projection |
-| `tests/fixtures/portfolio_demo/demo_payload.json` | Source-controlled demo payload |
-| `tests/test_portfolio_demo.py` | Regression tests for the command and JSON output |
-| `src/ops/review_report_cache_index_contract.py` | Candidate-only cache reviewer handoff |
-
-## Optional Capture
-
-For a portfolio README, resume appendix, or PR description, use the text output
-as the short scan view and the JSON output as the audit view. The command is
-designed to be copied into a terminal recording or screenshot without requiring
-the full benchmark environment.
+| `tests/fixtures/portfolio_demo/demo_payload.json` | Source-controlled runtime projection |
+| `tests/test_portfolio_demo.py` | Contract and output regression tests |
+| `src/ops/portfolio_review_gates.py` | Separate optional-system gate bundle |
