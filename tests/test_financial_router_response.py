@@ -47,6 +47,39 @@ class FinancialRouterResponseTests(unittest.TestCase):
         self.assertNotIn("review_trace", payload)
         self.assertNotIn("debug_bundle", payload)
 
+    def test_query_response_preserves_empty_agent_answer_projection(self) -> None:
+        response = _query_response_from_agent_result(
+            "question",
+            {
+                "answer": "stale flat answer",
+                "query_type": "flat",
+                "companies": ["flat company"],
+                "years": [1999],
+                "citations": ["flat citation"],
+                "structured_result": {"status": "flat"},
+                "resolved_calculation_trace": {"source": "flat"},
+                "agent_answer": {
+                    "answer": "",
+                    "query_type": "",
+                    "companies": [],
+                    "years": [],
+                    "citations": [],
+                    "structured_result": {},
+                    "resolved_calculation_trace": {},
+                },
+            },
+        )
+
+        payload = _dump_excluding_none(response)
+
+        self.assertEqual(payload["answer"], "")
+        self.assertEqual(payload["query_type"], "unknown")
+        self.assertEqual(payload["companies"], [])
+        self.assertEqual(payload["years"], [])
+        self.assertEqual(payload["citations"], [])
+        self.assertEqual(payload["structured_result"], {})
+        self.assertEqual(payload["resolved_calculation_trace"], {})
+
     def test_query_response_can_include_review_and_debug_bundles_explicitly(self) -> None:
         response = _query_response_from_agent_result(
             "question",

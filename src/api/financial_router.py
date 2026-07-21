@@ -157,23 +157,21 @@ def _query_response_from_agent_result(
     include_debug_bundle: bool = False,
 ) -> QueryResponse:
     QueryResponse = _schema_models()["QueryResponse"]
-    agent_answer = dict(result.get("agent_answer") or {})
+    answer_payload = (
+        dict(result.get("agent_answer") or {})
+        if "agent_answer" in result
+        else result
+    )
     response = QueryResponse(
         question=question,
-        answer=str(agent_answer.get("answer") or result.get("answer") or ""),
-        query_type=str(agent_answer.get("query_type") or result.get("query_type") or "unknown"),
-        companies=list(agent_answer.get("companies") or result.get("companies") or []),
-        years=list(agent_answer.get("years") or result.get("years") or []),
-        citations=list(agent_answer.get("citations") or result.get("citations") or []),
-        structured_result=dict(
-            agent_answer.get("structured_result")
-            or result.get("structured_result")
-            or {}
-        ),
+        answer=str(answer_payload.get("answer") or ""),
+        query_type=str(answer_payload.get("query_type") or "unknown"),
+        companies=list(answer_payload.get("companies") or []),
+        years=list(answer_payload.get("years") or []),
+        citations=list(answer_payload.get("citations") or []),
+        structured_result=dict(answer_payload.get("structured_result") or {}),
         resolved_calculation_trace=dict(
-            agent_answer.get("resolved_calculation_trace")
-            or result.get("resolved_calculation_trace")
-            or {}
+            answer_payload.get("resolved_calculation_trace") or {}
         ),
     )
     if include_review_trace:
