@@ -15,12 +15,16 @@
   - branch: `codex/portfolio-core-simplification`
   - commit: `7933f8c Refactor portfolio core and retrieval ownership`
   - PR: `https://github.com/woojune511/dart-rag-agent/pull/79`
-  - next handoff: begin Phase 3 at
-    `src/api/financial_router.py::_query_response_from_agent_result`.
-    If `agent_answer` exists, its empty values are canonical; legacy flat fields
-    may be used only when `agent_answer` itself is absent. Cover the boundary in
-    `tests/test_financial_router_response.py` and keep the change separate from
-    retrieval or calculation behavior changes.
+  - Phase 3 first slice is implemented as stacked draft PR #80:
+    `https://github.com/woojune511/dart-rag-agent/pull/80`.
+  - branch: `codex/canonical-agent-answer-projection`
+  - commit: `4baf699 Fix canonical agent answer projection`
+  - `src/api/financial_router.py::_query_response_from_agent_result` now treats
+    an existing `agent_answer` as canonical even when its fields are empty;
+    legacy flat fields remain available only when `agent_answer` is absent.
+  - validation: focused router/projection/import suite `79` OK, full unittest
+    discovery `1350` OK, and `git diff --check` passed. Retrieval and
+    calculation behavior were not changed, so no benchmark refresh was needed.
 
 - 2026-07-22 포트폴리오 단순화 1단계를 진행했다.
   - product surface를 experimental MAS가 아니라 single-agent
