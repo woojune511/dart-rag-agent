@@ -166,8 +166,6 @@ def numeric_surface_candidates_equivalent(left: Dict[str, Any], right: Dict[str,
         return False
     kind = str(left.get("kind") or "")
     if kind == "currency":
-        left_value = abs(left_value)
-        right_value = abs(right_value)
         tolerance = max(
             abs(left_value) * 5e-4,
             float(left.get("display_step") or 1.0),
@@ -182,6 +180,84 @@ def numeric_surface_candidates_equivalent(left: Dict[str, Any], right: Dict[str,
     else:
         tolerance = max(abs(left_value) * 1e-6, 0.5)
     return abs(left_value - right_value) <= tolerance
+
+
+def numeric_evidence_relevance_score(
+    evidence: Dict[str, Any],
+    *,
+    answer_text: str,
+    answer_candidate: Dict[str, Any],
+    label_hints: Iterable[str] = (),
+    period_hint: str = "",
+) -> int:
+    """Score generic label and period affinity for an answer numeric surface."""
+    metadata = dict((evidence or {}).get("metadata") or {})
+
+    def _surface(value: Any) -> str:
+        return _normalise_spaces(str(value or "")).lower()
+
+    def _terms(value: Any) -> set[str]:
+        return {
+            term
+            for term in re.findall(r"[^\W\d_]+", _surface(value), flags=re.UNICODE)
+            if len(term) >= 2
+        }
+
+    answer_context = str(answer_text or "")
+    span = answer_candidate.get("span")
+    if isinstance(span, (list, tuple)) and len(span) == 2:
+        try:
+            start = max(0, int(span[0]) - 100)
+            end = min(len(answer_context), int(span[1]) + 100)
+            answer_context = answer_context[start:end]
+        except (TypeError, ValueError):
+            pass
+    answer_context = _surface(answer_context)
+    labels = {
+        _surface(metadata.get(key))
+        for key in (
+            "row_label",
+            "semantic_label",
+            "aggregate_label",
+            "metric_label",
+            "label",
+            "concept",
+        )
+        if _surface(metadata.get(key))
+    }
+    hints = {_surface(value) for value in label_hints if _surface(value)}
+    evidence_surface = _surface(
+        " ".join(
+            str(value or "")
+            for value in (
+                evidence.get("claim"),
+                evidence.get("quote_span"),
+                evidence.get("raw_row_text"),
+            )
+        )
+    )
+    score = 8 if any(label in answer_context for label in labels) else 0
+    if any(label == hint for label in labels for hint in hints):
+        score = max(score, 7)
+    elif any(label in hint or hint in label for label in labels for hint in hints):
+        score = max(score, 5)
+    elif any(hint in evidence_surface for hint in hints):
+        score = max(score, 5)
+    score += min(3, len(_terms(answer_context) & _terms(evidence_surface)))
+
+    normalized_period = _surface(period_hint)
+    if normalized_period:
+        period_surface = " ".join(
+            _surface(metadata.get(key))
+            for key in ("year", "period", "period_label", "period_labels", "column_headers_chain")
+        )
+        period_surface = f"{period_surface} {evidence_surface}"
+        known_periods = set(re.findall(r"(?:19|20)\d{2}", period_surface))
+        if normalized_period in known_periods:
+            score += 3
+        elif known_periods:
+            score -= 3
+    return score
 
 
 def numeric_surface_slot_components(candidate: Dict[str, Any]) -> Dict[str, Any]:

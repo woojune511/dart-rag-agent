@@ -1,216 +1,156 @@
-# DART Multi-Agent Financial Analysis Lab
+# DART Financial Agentic RAG
 
-A contract-driven Agentic RAG runtime for numeric QA over Korean DART filings.
-The project focuses on making financial answers inspectable through structured
-evidence, deterministic calculation traces, critic reports, and reviewer-ready
-runtime gates.
+An evidence-first financial QA agent for Korean DART filings. It combines
+hybrid retrieval, LLM-based semantic planning, deterministic calculation, and
+traceable provenance so a reviewer can inspect how each numeric answer was
+produced.
 
-This README is written for reviewers who already know LLM/RAG basics:
-embeddings, hybrid retrieval, reranking, RAG evaluation, and agent/workflow
-state. The claim is applied systems work, not a new model or SOTA TableQA
-result: make financial RAG answers inspectable, testable, and harder to
-overfit.
+> Portfolio scope: the product is the single-agent `FinancialAgent` runtime.
+> Multi-agent orchestration, cache promotion, and extended review machinery are
+> experiments around the core, not the main product claim.
 
-## At A Glance
+## The problem
 
-- **What is this?** Financial-document RAG runtime with typed multi-agent
-  artifacts and trace-based numeric acceptance.
-- **Failure mode:** answers that look grounded while using the wrong row,
-  period, unit, subtotal, or provenance path.
-- **Key design:** LLMs handle semantic planning; deterministic code handles
-  operand binding, arithmetic, unit handling, validation, and final rendering.
-- **Current evidence:** `portfolio_review_gates` reports `ready`. The latest
-  store-fixed expanded structural refresh is `9 / 9` numeric PASS across six
-  company runs. The most recent plain-retrieval comparison remains `5 / 9` and
-  is used as diagnostic evidence for display/unit, denominator, and row-binding
-  failure modes rather than as a freshly rerun synchronized ablation.
-- **Disabled by design:** cache serving, retrieval bypass, automatic cache
-  writes, cache-ledger insertion, LLM critic as final acceptance authority, and
-  benchmark-specific runtime branches.
+Financial RAG can return a plausible answer while selecting the wrong row,
+period, unit, subtotal, or entity. Free-form citations do not reveal which
+operands were used or whether a displayed number was retrieved or calculated.
 
-## Problem
+This project makes that path explicit:
 
-Financial-document RAG often fails in ways that look small but change the
-answer:
-
-- wrong row, subtotal, segment, entity, or reporting period
-- calculated value presented as if it were directly stated
-- citation preserved in prose but missing from structured runtime state
-- stale compatibility fields overriding the canonical calculation trace
-- benchmark improvements caused by brittle question-specific runtime rules
-
-This project treats those as **runtime contract failures**. An accepted answer
-must expose the evidence, operands, formula, critic decision, and gate result
-that justify it.
-
-## Runtime Shape
-
-```text
-User question
-  -> Orchestrator plan
-      -> Analyst numeric artifacts
-      -> Researcher narrative artifacts
-      -> Critic reports
-  -> Orchestrator merge
-  -> Final answer + task_artifact_trace
+```mermaid
+flowchart LR
+    Q["User question"] --> P["LLM semantic planner"]
+    P --> R["Hybrid retrieval"]
+    R --> E["Evidence and operand binding"]
+    E --> C["Deterministic calculation"]
+    C --> V["Provenance and consistency checks"]
+    V --> A["Answer plus trace"]
 ```
 
-Shared state is typed rather than free-form chat:
+The LLM interprets intent, concepts, and required operands. Code owns metadata
+filtering, dense/BM25 fusion, row binding, arithmetic, unit handling, validation,
+and final trace construction.
 
-- `tasks`: planned work and ownership
-- `artifacts`: operand sets, calculation plans/results, retrieval bundles,
-  reflection reports, critic reports, aggregated answers
-- `evidence_pool`: source-grounded evidence records
-- `critic_reports`: verdicts, target refs, reasons, and blocking issues
-- `task_artifact_trace`: compact integrity projection for callers/reviewers
+## Core engineering
 
-## Design Claims
+### 1. Structure-aware DART ingest
 
-| Claim | Concrete repo surface |
-| --- | --- |
-| LLMs handle semantics; code handles execution | arithmetic, unit handling, dependency binding, dedupe, validation, and final acceptance are deterministic |
-| Numeric answers are structured artifacts | `answer_slots`, `structured_result`, `resolved_calculation_trace` |
-| Domain terms stay out of runtime branches | vocabulary belongs in ontology, retrieval policy, config, or reviewed data |
-| Agent handoff is inspectable | `tasks`, `artifacts`, `critic_reports`, `task_artifact_trace` |
-| Reflection is bounded | `ReflectionRequest -> ReflectionPlan -> ReflectionAction -> ReflectionReport` |
-| Cache is candidate-only | serving, writes, retrieval bypass, and ledger insertion remain disabled |
+The parser preserves filing structure such as `section_path`, table context,
+period, unit, statement type, and consolidation scope. Structured cells and
+their row/header relationships remain available after chunking.
 
-See [docs/overview/documentation_claim_boundaries.md](docs/overview/documentation_claim_boundaries.md)
-for terminology and novelty boundaries.
+### 2. Hybrid retrieval
 
-## Representative Case
+- Chroma stores dense vectors. The canonical remote embedding runtime is OpenAI
+  `text-embedding-3-large` with 3,072 dimensions.
+- BM25 provides a separate sparse lexical signal.
+- Reciprocal-rank fusion combines dense and sparse candidates.
+- Metadata filters and deterministic structural reranking prefer compatible
+  company, filing, period, section, table, and consolidation context.
+- `retrieval_debug_trace` records the query bundle, filters, budgets, selected
+  chunks, and policy decisions.
 
-`KAB_T1_066` is the compact close-out case. It exposed three financial-RAG
-failures at once:
+Contextual ingest may prepend an LLM- or metadata-generated context string
+before embedding, but the Chroma vector itself is a dense embedding vector, not
+a sparse vector and not a chat-model hidden state.
 
-- plausible but wrong denominator row from another financial statement surface
-- direct-support guard over-blocking a correct value because an operation-like
-  token appeared inside the metric label
-- final prose using stale component display instead of the calculation trace
+### 3. Agentic numeric reasoning
 
-Current answer:
+`FinancialAgent.run()` is the public runtime entry point. The graph plans the
+question, retrieves evidence, resolves required operands, executes a formula,
+and validates the result. Numeric output is carried through three canonical
+surfaces:
 
-```text
-2023년 CIR은 37.47%입니다. 계산: 판매비와관리비 4,355억원 / 경비차감전영업이익 11,623억원.
-```
+- `answer_slots`: display-preserving values and operand roles
+- `structured_result`: caller-facing structured answer
+- `resolved_calculation_trace`: operands, formula, result, and provenance
 
-Both operands are resolved from
-`IV. 이사의 경영진단 및 분석의견::table:3`. The verified store-fixed eval-only
-run reports numeric `PASS`, faithfulness/completeness/context recall/retrieval
-hit@k/grounded rendering correctness all `1.000`, `2` executed queries, `0`
-duplicate executed queries, `8` agent LLM calls, and estimated runtime cost
-`$0.056292`.
+### 4. Evidence-first acceptance
 
-The structural evidence is intentionally narrow. The latest expanded structural
-refresh returns `9 / 9` numeric PASS after closing two projection/provenance
-residuals: `KBF_T2_018` now keeps the source-visible growth trace
-`3,146,409 / 1,847,775 -> 70.28%`, and `SKH_T1_060` now preserves the current
-debt/asset operand set and answers `42.02%`. The most recent plain retrieval
-comparison remains `5 / 9`; it is diagnostic evidence that structural metadata
-and runtime contracts help with display/unit, denominator, and row-binding
-failures, not a claim of a new synchronized benchmark leaderboard.
+An answer is not accepted merely because generated prose sounds correct.
+Numeric surfaces must agree with signed evidence values, selected rows must
+preserve source identifiers, and calculated claims must be reproducible from
+the trace.
 
-## Quick Review Path
+### 5. Reproducible evaluation
 
-For a fast review, run the first two commands and then read the core project
-documents. Interview talk tracks and resume wording are optional deliverables;
-the longer architecture/evaluation logs are appendix material unless deeper
-validation is needed.
+The repository includes contract tests, runtime-domain-term auditing, focused
+benchmark profiles, and store-fixed eval-only workflows. Benchmark failures are
+classified by parser, retrieval, ontology/policy, planning, evidence, calculation,
+or projection layer instead of being patched with question-specific branches.
 
-| Step | Document / command | Purpose |
-| --- | --- | --- |
-| 1 | `portfolio_review_gates` | aggregate ready/not-ready reviewer gate; command below |
-| 2 | `portfolio_demo` | compact answer/evidence/trace/integrity demo; command below |
-| 3 | [docs/overview/portfolio_one_pager.md](docs/overview/portfolio_one_pager.md) | shortest project story |
-| 4 | [docs/overview/portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md) | problem, method, results, failure analysis |
-| 5 | [docs/overview/technical_highlights.md](docs/overview/technical_highlights.md) | core technical claims |
-| 6 | [docs/overview/portfolio_demo_walkthrough.md](docs/overview/portfolio_demo_walkthrough.md) | fixture-backed demo details |
+## Representative evidence
 
-Everything else is appendix or internal log. Start with
-[docs/README.md](docs/README.md) for the full document map.
+| Signal | Result | Interpretation |
+| --- | ---: | --- |
+| Expanded structural numeric set | 9 / 9 PASS | Latest store-fixed full-system close after operand/provenance repairs |
+| Plain-retrieval comparison | 5 / 9 PASS | Diagnostic baseline for row, denominator, and display/unit failures |
+| Full unit test discovery | 1,349 PASS | Current baseline including provenance and retrieval-owner regressions |
+| Portfolio review gates | READY | Fixture-backed review surface is reproducible |
 
-Optional presentation/interview deliverables:
-[docs/overview/portfolio_interview_narrative.md](docs/overview/portfolio_interview_narrative.md),
-[docs/overview/portfolio_resume_snippets.md](docs/overview/portfolio_resume_snippets.md), and
-[docs/overview/portfolio_presentation_outline.md](docs/overview/portfolio_presentation_outline.md).
+The structural and plain results are not presented as a freshly synchronized
+leaderboard ablation. They are engineering evidence for the observed failure
+taxonomy. See
+[portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
+for the methodology and limitations.
 
-## Representative Checks
+## Quick review
 
-Use the lightweight profile for normal review. It covers fixture-backed demo
-and gate commands without installing the full ML, ingest, app, benchmark, and
-tracing stack. Use the full profile only when running the whole test suite,
-fresh ingest, benchmarks, or the app.
-
-These lightweight commands were verified on the current `main`: the audit
-passes, `portfolio_demo` reports `Readiness: ready`, and
-`portfolio_review_gates` reports aggregate `Status: ready`.
-
-Lightweight reviewer profile:
+The lightweight profile runs without the full ingest, ML, benchmark, and app
+stack:
 
 ```bash
-uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
+uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
 ```
 
-Capability-specific gates covered by `portfolio_review_gates`:
+Then read:
+
+1. [Portfolio one-pager](docs/overview/portfolio_one_pager.md)
+2. [Question trace walkthrough](docs/overview/question_trace_walkthrough.md)
+3. [Experiment report](docs/overview/portfolio_experiment_report.md)
+4. [Technical highlights](docs/overview/technical_highlights.md)
+
+## Run the API
+
+The full profile is needed for ingest, Chroma, the API, benchmarks, and the full
+test suite. Provider selection also depends on the configured API keys.
 
 ```bash
-uv run --with-requirements requirements-review.txt python -m src.ops.review_report_cache_index_contract
-uv run --with-requirements requirements-review.txt python -m src.ops.report_cache_promotion_evidence_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.reflection_promotion_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.reference_note_capability_gate
-uv run --with-requirements requirements-review.txt python -m src.ops.promotion_trace_materiality_gate
-```
-
-Full development profile:
-
-```bash
+uv run --with-requirements requirements.txt uvicorn main:app --reload --port 8000
 uv run --with-requirements requirements.txt python -m unittest discover -s tests
 ```
 
-`portfolio_review_gates` should report aggregate `status = ready`. The cache
-reviewer path should remain `candidate_only` with retrieval bypass, writes,
-serving, and ledger insertion disabled.
+Swagger UI is available at `http://localhost:8000/docs`.
 
-## Current Status
+## Scope boundary
 
-Implemented and validated:
+| Surface | Role | Portfolio treatment |
+| --- | --- | --- |
+| Core runtime | parser, retrieval, evidence binding, calculation, answer projection | Main product story |
+| Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |
+| Experimental | MAS facade, graph-expansion variants, cache/reflection promotion paths | Optional appendix; disabled or isolated by default |
+| Legacy compatibility | flat mirrors, old import paths, callerless wrappers | Remove after caller and contract checks |
 
-- section/table-aware retrieval and structured numeric traces
-- source-visible ratio operand recovery from coherent table context
-- MAS skeleton with Orchestrator, Analyst, Researcher, Critic, and merge
-- task/artifact integrity projection and final close blocking
-- critic runtime acceptance boundary and rejection feedback surface
-- bounded reflection request/action/report handoff through the ledger
-- candidate-only report-cache reviewer handoff
-- aggregate portfolio review gate bundle
-- runtime domain-term audit
+The active cleanup sequence and deletion criteria are documented in
+[core_runtime_surface_refactoring_plan.md](docs/architecture/core_runtime_surface_refactoring_plan.md).
 
-Intentionally disabled:
-
-- cache serving and retrieval bypass
-- automatic cache writes
-- cache candidate insertion into the live task/artifact ledger
-- LLM critic as an acceptance authority
-- benchmark-specific runtime routing branches
-
-Internal logs such as [docs/overview/project_status.md](docs/overview/project_status.md),
-[docs/history/experiment_history.md](docs/history/experiment_history.md), and
-[docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) are preserved
-for traceability, but they are not first-read portfolio documents.
-
-## Repository Guide
+## Repository map
 
 ```text
-src/
-  agent/       default runtime graph and compatibility MAS imports
-  config/      ontology, retrieval policy, cache classification
-  experimental/mas  experimental multi-agent facade
-  ops/         evaluator, benchmark runner, smoke/review commands
-  processing/  DART parsing and chunk preparation
-  storage/     vector/BM25 storage and retrieval support
-tests/         contract and regression tests
-docs/          reviewer docs, architecture appendix, evaluation/internal logs
-benchmarks/    profiles and local result bundles
+main.py                    FastAPI entry point
+src/api/                   HTTP boundary
+src/agent/                 FinancialAgent graph and core runtime contracts
+src/processing/            DART parsing and chunk preparation
+src/storage/               embeddings, Chroma, BM25, and structure storage
+src/config/                ontology, retrieval policy, and runtime config
+src/experimental/mas/      optional multi-agent experiment
+src/ops/                   evaluation, benchmark, and reviewer commands
+tests/                     contract and regression tests
+docs/                      reviewer guides and internal history
 ```
+
+Internal status and experiment logs remain available for reproducibility, but
+they are not the recommended first-read path. Start with the four documents in
+the quick review section.

@@ -138,6 +138,7 @@ from src.agent.financial_numeric_surface import (
     evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
+    numeric_evidence_relevance_score,
     numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
 )
@@ -7122,6 +7123,7 @@ class FinancialAgentCalculationMixin:
 
         def _best_evidence_for_candidate(candidate: Dict[str, Any]) -> tuple[Dict[str, Any], Dict[str, Any]]:
             best: tuple[int, Dict[str, Any], Dict[str, Any]] | None = None
+            period_hint = _period_near_answer_candidate(candidate)
             for evidence in list(evidence_items or []):
                 item = dict(evidence or {})
                 text = evidence_text_for_numeric_support(item)
@@ -7138,6 +7140,13 @@ class FinancialAgentCalculationMixin:
                         score += 2
                     if str(item.get("evidence_id") or "").startswith("recon::"):
                         score += 1
+                    score += numeric_evidence_relevance_score(
+                        item,
+                        answer_text=final_answer,
+                        answer_candidate=candidate,
+                        label_hints=(label_hint, concept_hint),
+                        period_hint=period_hint,
+                    )
                     if best is None or score > best[0]:
                         best = (score, item, dict(evidence_candidate))
             if best is None:
