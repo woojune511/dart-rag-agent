@@ -336,6 +336,52 @@ class ImportSideEffectTests(unittest.TestCase):
 
         self.assertEqual(failures, [])
 
+    def test_default_runtime_imports_do_not_load_optional_subsystems(self) -> None:
+        modules = [
+            "main",
+            "src.api.financial_router",
+            "src.agent.financial_graph",
+        ]
+        optional_prefixes = [
+            "src.agent.mas_graph",
+            "src.agent.mas_types",
+            "src.experimental.mas",
+            "src.ops.benchmark_runner",
+            "src.ops.evaluator",
+            "src.ops.portfolio_review_gates",
+            "src.ops.promotion_trace_materiality_gate",
+            "src.ops.reflection_promotion_gate",
+            "src.ops.report_cache_index_smoke",
+            "src.ops.report_cache_promotion_evidence_gate",
+            "src.storage.report_cache_index",
+        ]
+        script = """
+            import importlib
+            import json
+            import sys
+
+            name = sys.argv[1]
+            forbidden = sys.argv[2].split(",")
+            importlib.import_module(name)
+            loaded = sorted(
+                module
+                for module in sys.modules
+                if any(module == prefix or module.startswith(prefix + ".") for prefix in forbidden)
+            )
+            print(json.dumps({
+                "module": name,
+                "loaded": loaded,
+            }, sort_keys=True))
+            """
+
+        failures = []
+        for module in modules:
+            payload = self._run_python_json(script, module, ",".join(optional_prefixes))
+            if payload["loaded"]:
+                failures.append((module, payload["loaded"]))
+
+        self.assertEqual(failures, [])
+
     def test_source_has_no_top_level_dotenv_or_logging_configuration(self) -> None:
         violations = []
         for path in sorted((PROJECT_ROOT / "src").rglob("*.py")):

@@ -175,9 +175,9 @@ Completion conditions:
 
 ### Phase 3: Converge on one calculation path
 
-Status: the first slice was merged in PR #80 on 2026-07-22. The second slice is
-published as draft PR #81. Both changes tighten public projection ownership
-without splitting calculation helpers by file size.
+Status: the first slice was merged in PR #80 on 2026-07-22 and the second slice
+was merged in PR #81 on the same date. Both changes tighten public projection
+ownership without splitting calculation helpers by file size.
 
 Completed first slice:
 
@@ -235,6 +235,12 @@ Completion conditions:
   projection contracts rather than private helper location.
 
 ### Phase 4: Isolate optional systems
+
+Status: in progress on 2026-07-22. The first verified slice removes eager
+loading of the persisted report-cache index from the default agent import and
+adds a subprocess gate for optional-system module leakage. Cache candidate
+trace policy remains unchanged; broader isolation requires a concrete default
+runtime leak rather than speculative deletion.
 
 - Default runtime imports must not load MAS, evaluator, benchmark, cache
   promotion, or portfolio-review implementations.

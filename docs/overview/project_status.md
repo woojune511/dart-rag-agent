@@ -28,8 +28,9 @@ cache promotion, and extended review workflows remain experimental or internal.
 
 ## Current Simplification Direction
 
-- Current merged baseline: `main@33c756d`, including portfolio/retrieval PR #79
-  and canonical API projection PR #80.
+- Current merged baseline: `main@db9d6e7`, including portfolio/retrieval PR
+  #79, canonical API projection PR #80, and strict public calculation
+  projection PR #81.
 - Canonical portfolio entry point: `FinancialAgent.run()`.
 - First-read story: DART structure-aware ingest -> dense/BM25 hybrid retrieval
   -> LLM semantic plan -> deterministic operand binding/calculation ->
@@ -50,11 +51,19 @@ cache promotion, and extended review workflows remain experimental or internal.
   because one reviewed pattern now has separate owner-path records.
 - Final full unittest discovery after the retrieval owner extraction: `1349`
   OK.
-- Phase 3 strict public calculation projection is published as draft PR #81.
+- Phase 3 strict public calculation projection was merged as PR #81.
   `FinancialAgent.run()` no longer revives top-level `calculation_*` mirrors;
   historical replay compatibility remains explicit and isolated. Validation:
   domain-term audit `216` passed, focused suite `625` OK, full discovery `1348`
   OK, and `git diff --check` passed.
+- Phase 4's first concrete import-boundary slice is on
+  `codex/lazy-report-cache-import`. The persisted `ReportCacheIndex`
+  implementation is now loaded only when an index path is explicitly
+  configured; an unused import was removed from the evidence owner. A fresh
+  subprocess gate checks default imports against optional MAS, evaluation,
+  benchmark, promotion, portfolio-review, and cache-index implementations.
+  Validation: domain-term audit `216` passed, focused import/cache suite `46`
+  OK, full discovery `1349` OK, and `git diff --check` passed.
 - Detailed execution and deletion criteria:
   [../architecture/core_runtime_surface_refactoring_plan.md](../architecture/core_runtime_surface_refactoring_plan.md).
 
@@ -87,10 +96,10 @@ cache promotion, and extended review workflows remain experimental or internal.
 
 ### Current Baseline
 
-- Current repository baseline before this simplification change: `main@732c239`,
-  aligned with `origin/main`.
-- Latest runtime repair on `main`: `8794423` (`Repair financial operand
-  projection`). The four newer commits are portfolio documentation updates.
+- Current merged repository baseline: `main@db9d6e7`, aligned with
+  `origin/main` before the Phase 4 import-boundary branch was created.
+- Latest simplification merges are PR #79 (`d88040f`), PR #80 (`33c756d`), and
+  PR #81 (`db9d6e7`).
 - PR #78 repair history is retained below for reproducibility.
 - The merged baseline includes PR #77 plus local post-merge runtime-surface
   cleanup and focused numeric projection follow-ups:

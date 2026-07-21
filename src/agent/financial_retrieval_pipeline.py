@@ -70,8 +70,6 @@ from src.config.retrieval_policy import (
     narrative_policy_terms,
 )
 from src.routing import default_format_preference
-from src.storage.report_cache_index import ReportCacheIndex
-
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 
@@ -135,6 +133,10 @@ def _report_cache_index_diagnostics_for_retrieval(
             "path": "",
             "lookup_attempted": False,
         }
+
+    # The persisted report-cache index is an optional runtime surface. Import
+    # it only when a caller explicitly configures an index path.
+    from src.storage.report_cache_index import ReportCacheIndex
 
     trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
     candidate = dict(trace.get("report_cache_candidate") or {})
