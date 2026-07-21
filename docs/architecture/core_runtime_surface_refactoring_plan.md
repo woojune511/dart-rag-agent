@@ -175,6 +175,22 @@ Completion conditions:
 
 ### Phase 3: Converge on one calculation path
 
+Status: next after draft PR #79. Start with the public API projection boundary;
+do not begin by splitting calculation helpers by file size.
+
+First slice:
+
+- owner: `src/api/financial_router.py::_query_response_from_agent_result`;
+- when `agent_answer` is present, treat it as the canonical projection and
+  preserve intentional empty strings, lists, and dictionaries;
+- use legacy flat result fields only when `agent_answer` itself is absent;
+- add the regression contract to `tests/test_financial_router_response.py`;
+- keep retrieval, formula execution, and answer-generation behavior unchanged.
+
+Required proof for this slice: the focused router response tests, full unit
+test discovery, and `git diff --check`. A benchmark refresh is not required for
+this API-only compatibility change.
+
 The canonical path is:
 
 ```text

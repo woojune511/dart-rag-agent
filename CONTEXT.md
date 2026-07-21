@@ -11,6 +11,17 @@
 
 ## 최신 상태
 
+- 2026-07-22 portfolio core simplification work is published as draft PR #79.
+  - branch: `codex/portfolio-core-simplification`
+  - commit: `7933f8c Refactor portfolio core and retrieval ownership`
+  - PR: `https://github.com/woojune511/dart-rag-agent/pull/79`
+  - next handoff: begin Phase 3 at
+    `src/api/financial_router.py::_query_response_from_agent_result`.
+    If `agent_answer` exists, its empty values are canonical; legacy flat fields
+    may be used only when `agent_answer` itself is absent. Cover the boundary in
+    `tests/test_financial_router_response.py` and keep the change separate from
+    retrieval or calculation behavior changes.
+
 - 2026-07-22 포트폴리오 단순화 1단계를 진행했다.
   - product surface를 experimental MAS가 아니라 single-agent
     `FinancialAgent.run()`으로 고정했다.
