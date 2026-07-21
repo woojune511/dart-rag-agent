@@ -1926,13 +1926,7 @@ class FinancialAgentPlanningMixin:
 
     def _project_runtime_calculation_trace(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Project caller-facing calculation material into the canonical runtime trace."""
-        # Public return/export surfaces keep this compatibility bridge until
-        # older callers stop sending top-level calculation mirrors. Internal
-        # current-state readers should use strict resolver mode instead.
-        trace = _resolve_runtime_calculation_trace(
-            dict(state),
-            allow_legacy_top_level=True,
-        )
+        trace = _resolve_runtime_calculation_trace(dict(state))
         if trace and not trace.get("report_cache_candidate"):
             report_cache_candidate = _report_cache_candidate_for_trace(dict(state), trace)
             if report_cache_candidate:

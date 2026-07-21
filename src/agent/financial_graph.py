@@ -60,7 +60,6 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
     _attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
-    _resolve_runtime_structured_result,
     _structured_result_subtask_rows_and_answer,
 )
 from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
@@ -966,12 +965,10 @@ class FinancialAgent(
         if runtime_numeric_answer:
             public_answer = runtime_numeric_answer
             final_for_evidence = self._with_public_answer(final_for_evidence, public_answer)
-        structured_result = _resolve_runtime_structured_result(
-            {
-                "structured_result": final.get("structured_result", {}),
-                "resolved_calculation_trace": runtime_calculation_trace,
-                "calculation_result": final.get("calculation_result", {}),
-            }
+        structured_result = dict(
+            final.get("structured_result")
+            or runtime_calculation_trace.get("calculation_result")
+            or {}
         )
         structured_subtask_results, structured_base_answer = _structured_result_subtask_rows_and_answer(
             structured_result

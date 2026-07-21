@@ -41,7 +41,6 @@ from src.ops.evaluator import (
     _should_override_numeric_grounding_from_runtime_evidence,
     _should_override_structured_summary_faithfulness,
 )
-from src.agent.financial_runtime_trace import _resolve_runtime_structured_result
 from src.agent.financial_runtime_trace import _runtime_trace_state_update
 
 
@@ -1504,17 +1503,6 @@ class EvaluatorRuntimeProjectionTests(unittest.TestCase):
         self.assertEqual(trace["runtime_projection"]["source"], "structured_result")
         self.assertFalse(trace["runtime_projection"]["legacy_fallback"])
         self.assertNotIn("calculation_result_source", trace["runtime_projection"])
-
-    def test_resolve_runtime_structured_result_keeps_legacy_export_compatibility(self) -> None:
-        result = {
-            "resolved_calculation_trace": {},
-            "structured_result": {},
-            "calculation_result": {"status": "ok", "rendered_value": "123"},
-        }
-
-        structured_result = _resolve_runtime_structured_result(result)
-
-        self.assertEqual(structured_result["rendered_value"], "123")
 
     def test_runtime_trace_state_update_omits_compatibility_mirrors_by_default(self) -> None:
         update = _runtime_trace_state_update(
