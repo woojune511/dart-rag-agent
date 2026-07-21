@@ -114,19 +114,24 @@ verified trace.
 
 ## Review path
 
-Run the fixture-backed commands from the repository README:
+Run the fixture-backed core demo from the repository README:
 
 ```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 ```
 
-Then inspect:
+The first scan should confirm four connected surfaces in one output:
 
-1. [Question trace walkthrough](question_trace_walkthrough.md)
-2. [Portfolio experiment report](portfolio_experiment_report.md)
-3. [Technical highlights](technical_highlights.md)
-4. [Demo walkthrough](portfolio_demo_walkthrough.md)
+1. an LLM-backed semantic plan with required operands;
+2. a hybrid retrieval trace with candidate and selected-chunk counts;
+3. deterministic operands, formula, and result;
+4. citations, task/artifact integrity, and critic acceptance.
+
+The demo is a source-controlled runtime projection, not a live provider call.
+Use the [question trace walkthrough](question_trace_walkthrough.md),
+[experiment report](portfolio_experiment_report.md), or
+[technical highlights](technical_highlights.md) only when a deeper code,
+evidence, or implementation review is useful.
 
 ## Scope boundary
 

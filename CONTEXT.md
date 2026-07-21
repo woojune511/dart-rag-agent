@@ -19,8 +19,9 @@ Last updated: 2026-07-22
 
 ## 현재 소스 상태
 
-- PR #79부터 #84까지의 portfolio core simplification이 `main`에 병합됐다.
-- PR #84 merge commit은 `294b4ea`다.
+- PR #79부터 #84까지의 portfolio core simplification과 PR #85의 handoff
+  문서 압축이 `main`에 병합됐다.
+- 최신 확인 merge commit은 PR #85의 `f0a5145`다.
 - `FinancialAgent.run()`의 public numeric surface는
   `resolved_calculation_trace`, `structured_result`, task/artifact projection을
   사용하며 top-level `calculation_*` compatibility mirror를 되살리지 않는다.
@@ -40,7 +41,7 @@ Last updated: 2026-07-22
 | Reflection promotion gate | READY |
 | Report-cache promotion evidence | READY, serving disabled |
 | REFERENCE_NOTE capability | READY, Researcher context-only |
-| Full unittest discovery | 1,350 passed at Phase 5 closure |
+| Full unittest discovery | 1,352 passed after final reviewer walkthrough |
 
 현재 active correctness blocker는 없다. 문서 및 artifact surface만 바꾸는
 작업에는 fresh ingest나 benchmark refresh가 필요하지 않다.
@@ -60,10 +61,13 @@ Last updated: 2026-07-22
 
 ## 바로 다음에 할 일
 
-1. README에서 시작하는 채용 담당자 5분 리뷰 경로를 최종 점검한다.
-2. 대표 demo가 retrieval, semantic planning, deterministic calculation,
-   provenance를 한 흐름으로 보여주는지 확인한다.
-3. 실제 blocker가 재현될 때만 runtime 또는 benchmark 작업을 다시 연다.
+README에서 시작하는 최종 reviewer walkthrough는 완료됐다. 대표 demo는
+semantic planning, hybrid retrieval, deterministic calculation, provenance,
+task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
+promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
+
+다음 작업은 실제 blocker, 구체적인 caller 요구, 또는 특정 reviewer 설명
+공백이 재현될 때만 연다.
 
 지금은 broad runtime refactor, 전면적인 test-file 분할, 새 MAS 기능,
 cache serving 활성화를 시작하지 않는다. oversized test는 해당 public contract를
@@ -89,5 +93,5 @@ Git이다.
   [core_runtime_surface_refactoring_plan.md](docs/architecture/core_runtime_surface_refactoring_plan.md)
 - 장기 backlog: [backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md)
 
-이 snapshot 이전의 상세 내용은 Git의 `main@294b4ea:CONTEXT.md`에서 복구할 수
-있다.
+이 reviewer 정리 이전 snapshot은 Git의 `main@f0a5145:CONTEXT.md`에서 복구할
+수 있다.
