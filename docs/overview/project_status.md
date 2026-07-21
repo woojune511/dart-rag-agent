@@ -28,8 +28,8 @@ cache promotion, and extended review workflows remain experimental or internal.
 
 ## Current Simplification Direction
 
-- Baseline at the start of this phase: `main@732c239`, aligned with
-  `origin/main` and a clean worktree.
+- Current merged baseline: `main@33c756d`, including portfolio/retrieval PR #79
+  and canonical API projection PR #80.
 - Canonical portfolio entry point: `FinancialAgent.run()`.
 - First-read story: DART structure-aware ingest -> dense/BM25 hybrid retrieval
   -> LLM semantic plan -> deterministic operand binding/calculation ->
@@ -50,6 +50,11 @@ cache promotion, and extended review workflows remain experimental or internal.
   because one reviewed pattern now has separate owner-path records.
 - Final full unittest discovery after the retrieval owner extraction: `1349`
   OK.
+- Phase 3 strict public calculation projection is published as draft PR #81.
+  `FinancialAgent.run()` no longer revives top-level `calculation_*` mirrors;
+  historical replay compatibility remains explicit and isolated. Validation:
+  domain-term audit `216` passed, focused suite `625` OK, full discovery `1348`
+  OK, and `git diff --check` passed.
 - Detailed execution and deletion criteria:
   [../architecture/core_runtime_surface_refactoring_plan.md](../architecture/core_runtime_surface_refactoring_plan.md).
 

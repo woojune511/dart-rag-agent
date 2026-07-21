@@ -11,20 +11,22 @@
 
 ## 최신 상태
 
-- 2026-07-22 portfolio core simplification work is published as draft PR #79.
-  - branch: `codex/portfolio-core-simplification`
-  - commit: `7933f8c Refactor portfolio core and retrieval ownership`
-  - PR: `https://github.com/woojune511/dart-rag-agent/pull/79`
-  - Phase 3 first slice is implemented as stacked draft PR #80:
-    `https://github.com/woojune511/dart-rag-agent/pull/80`.
-  - branch: `codex/canonical-agent-answer-projection`
-  - commit: `4baf699 Fix canonical agent answer projection`
-  - `src/api/financial_router.py::_query_response_from_agent_result` now treats
-    an existing `agent_answer` as canonical even when its fields are empty;
-    legacy flat fields remain available only when `agent_answer` is absent.
-  - validation: focused router/projection/import suite `79` OK, full unittest
-    discovery `1350` OK, and `git diff --check` passed. Retrieval and
-    calculation behavior were not changed, so no benchmark refresh was needed.
+- 2026-07-22 portfolio core simplification PR #79 and canonical API projection
+  PR #80 were merged to `main`.
+  - PR #79 merge: `d88040f`; PR #80 merge: `33c756d`.
+  - Phase 3 second slice is published as draft PR #81:
+    `https://github.com/woojune511/dart-rag-agent/pull/81`.
+  - branch: `codex/strict-public-calculation-projection`
+  - commit: `bd0624d Remove legacy public calculation fallback`
+  - `FinancialAgent.run()` no longer accepts top-level `calculation_*` mirrors;
+    current public output uses canonical `resolved_calculation_trace`, explicit
+    `structured_result`, or task/artifact projections.
+  - the callerless `_resolve_runtime_structured_result()` wrapper and a
+    redundant legacy-only stale-aggregate fixture were deleted. Historical
+    replay and retrospective opt-ins remain available.
+  - validation: runtime domain-term audit `216` passed, focused calculation
+    projection suite `625` OK, full unittest discovery `1348` OK, and
+    `git diff --check` passed. No benchmark refresh was needed.
 
 - 2026-07-22 포트폴리오 단순화 1단계를 진행했다.
   - product surface를 experimental MAS가 아니라 single-agent

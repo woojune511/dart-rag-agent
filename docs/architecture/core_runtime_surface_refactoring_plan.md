@@ -175,8 +175,8 @@ Completion conditions:
 
 ### Phase 3: Converge on one calculation path
 
-Status: the first slice was implemented in draft PR #80 on 2026-07-22,
-stacked on draft PR #79. The change fixes the public API projection boundary
+Status: the first slice was merged in PR #80 on 2026-07-22. The second slice is
+published as draft PR #81. Both changes tighten public projection ownership
 without splitting calculation helpers by file size.
 
 Completed first slice:
@@ -191,6 +191,22 @@ Completed first slice:
 Proof: the focused router/projection/import suite passed `79` tests, full unit
 test discovery passed `1350` tests, and `git diff --check` passed. No benchmark
 refresh was required for this API-only compatibility change.
+
+Second slice:
+
+- `FinancialAgent.run()` now rejects legacy top-level `calculation_*` mirrors;
+- public structured output reads explicit `structured_result` or the canonical
+  trace calculation result;
+- the callerless `_resolve_runtime_structured_result()` wrapper and its
+  private-helper compatibility test were deleted;
+- stale aggregate replacement remains covered through canonical active
+  task/artifact ledger material;
+- historical replay and retrospective resolver opt-ins remain unchanged.
+
+Proof: the runtime domain-term audit passed with `216` reviewed literals, the
+focused calculation projection suite passed `625` tests, full unit test
+discovery passed `1348` tests, and `git diff --check` passed. No benchmark
+refresh was required because retrieval and calculation behavior did not change.
 
 The canonical path is:
 
