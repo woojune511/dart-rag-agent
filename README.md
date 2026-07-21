@@ -85,7 +85,7 @@ or projection layer instead of being patched with question-specific branches.
 | --- | ---: | --- |
 | Expanded structural numeric set | 9 / 9 PASS | Latest store-fixed full-system close after operand/provenance repairs |
 | Plain-retrieval comparison | 5 / 9 PASS | Diagnostic baseline for row, denominator, and display/unit failures |
-| Full unit test discovery | 1,349 PASS | Current baseline including provenance and retrieval-owner regressions |
+| Full unit test discovery | 1,350 PASS | Current baseline including provenance, retrieval-owner, and optional-boundary regressions |
 | Portfolio review gates | READY | Fixture-backed review surface is reproducible |
 
 The structural and plain results are not presented as a freshly synchronized

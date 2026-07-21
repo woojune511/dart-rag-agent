@@ -28,9 +28,10 @@ cache promotion, and extended review workflows remain experimental or internal.
 
 ## Current Simplification Direction
 
-- Current merged baseline: `main@511f1bd`, including portfolio/retrieval PR
+- Current merged baseline: `main@69082c6`, including portfolio/retrieval PR
   #79, canonical API projection PR #80, strict public calculation projection
-  PR #81, and optional report-cache import isolation PR #82.
+  PR #81, optional report-cache import isolation PR #82, and Phase 4 closure
+  PR #83.
 - Canonical portfolio entry point: `FinancialAgent.run()`.
 - First-read story: DART structure-aware ingest -> dense/BM25 hybrid retrieval
   -> LLM semantic plan -> deterministic operand binding/calculation ->
@@ -64,12 +65,17 @@ cache promotion, and extended review workflows remain experimental or internal.
   benchmark, promotion, portfolio-review, and cache-index implementations.
   Validation: domain-term audit `216` passed, focused import/cache suite `46`
   OK, full discovery `1349` OK, and `git diff --check` passed.
-- Phase 4 completion is verified on
-  `codex/close-optional-runtime-boundary`. A deterministic subprocess constructs
-  `FinancialAgent`, executes its public `run()` projection, and exercises the
-  unconfigured cache-diagnostics guard without API keys, network access, or
-  optional-system imports. Focused import tests `19` and full discovery `1350`
-  are OK. No additional runtime code change was required.
+- Phase 4 completion was merged as PR #83. A deterministic subprocess
+  constructs `FinancialAgent`, executes its public `run()` projection, and
+  exercises the unconfigured cache-diagnostics guard without API keys, network
+  access, or optional-system imports. Focused import tests `19` and full
+  discovery `1350` are OK. No additional runtime code change was required.
+- Phase 5 evidence cleanup is in progress on
+  `codex/reduce-published-benchmark-noise`. The checked-in result surface is
+  reduced from `324` raw/intermediate files to `26` compact summaries and small
+  diagnostics referenced by internal history. Full result bundles remain
+  local-only and the current portfolio claims remain summarized in the
+  experiment report with reproducible benchmark profiles.
 - Detailed execution and deletion criteria:
   [../architecture/core_runtime_surface_refactoring_plan.md](../architecture/core_runtime_surface_refactoring_plan.md).
 

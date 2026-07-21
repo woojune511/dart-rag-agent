@@ -16,7 +16,7 @@
 
 | 영역 | 핵심 결정 | 왜 중요한가 | 정량 근거 / 증거 | 상태 |
 | --- | --- | --- | --- | --- |
-| 프로젝트 정의 | 단일 QA 앱보다 **DART 도메인 위에서 MAS를 설계/검증하는 financial analysis lab**로 포지셔닝 | topology, communication, memory, critique를 모두 설명 가능 | [docs/architecture/architecture_direction.md](docs/architecture/architecture_direction.md) | 유지 |
+| 프로젝트 정의 | **single-agent `FinancialAgent`를 DART 분석 제품 surface로 유지**하고 MAS/cache promotion은 optional experiment로 분리 | retrieval, semantic planning, deterministic calculation, provenance라는 핵심 역량이 먼저 보임 | [README.md](README.md), [core runtime plan](docs/architecture/core_runtime_surface_refactoring_plan.md) | 유지 |
 | Parser | DART 구조를 보존하는 parser를 코어 자산으로 유지 | 후속 graph / parent-child / note expansion의 기반 | parser 기반 graph / retrieval 구조는 아래 상세 결정 1~9 참고 | 유지 |
 | Retrieval | dense-only 대신 **hybrid + structure-aware expansion** 채택 | section purity와 context recall을 함께 다루기 위함 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | 유지 |
 | Math architecture | `operation enum`보다 **formula planner + safe AST evaluator** 중심 | direct calc / rule calc의 수학·단위 흔들림 제거 | retrospective strict correctness `0.556 -> 1.000` ([benchmarking.md](docs/evaluation/benchmarking.md)) | 유지 |
