@@ -1063,25 +1063,3 @@ def _resolve_runtime_calculation_trace(
         return normalised
 
     return fallback_trace
-
-
-def _resolve_runtime_structured_result(result: Dict[str, Any]) -> Dict[str, Any]:
-    """Return a structured result for the public run compatibility bridge.
-
-    This helper intentionally preserves legacy top-level fallback for older
-    caller-facing payloads. Live graph, benchmark export, MAS handoff, and debug
-    readers should consume structured_result or the canonical trace directly.
-    """
-    structured_result = dict(result.get("structured_result") or {})
-    if structured_result:
-        return structured_result
-
-    resolved_trace = _resolve_runtime_calculation_trace(
-        result,
-        allow_legacy_top_level=True,
-    )
-    resolved_result = dict(resolved_trace.get("calculation_result") or {})
-    if resolved_result:
-        return resolved_result
-
-    return {}

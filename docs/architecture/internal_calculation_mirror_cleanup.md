@@ -27,9 +27,9 @@ is internal representation cleanup, not a new answer-quality fix.
 | --- | --- | --- |
 | Live graph readers | formula planning, calculation execution, retry/reflection, active-task capture | strict: `allow_legacy_top_level = false` |
 | Current export/review readers | evaluator, benchmark serialization, benchmark review, MAS analyst handoff | strict current-contract projection |
-| Public bridge | `FinancialAgent.run()` projection | compatibility allowed, but must mark projection metadata |
+| Public bridge | `FinancialAgent.run()` projection | strict current-contract projection |
 | Historical tools | replay and retrospective rescoring scripts | compatibility allowed, canonical trace wins |
-| Helper compatibility adapters | `_resolve_runtime_structured_result()` | compatibility allowed only by explicit public bridge contract |
+| Historical resolver adapters | explicit `allow_legacy_top_level = true` call sites | compatibility allowed only for old bundles |
 
 ## Findings From 2026-06-07 Audit
 
@@ -50,9 +50,9 @@ is internal representation cleanup, not a new answer-quality fix.
   projection material, ordered subtask source refs, and selected claims. It no
   longer reads top-level `calculation_result` source refs when deciding whether
   to backfill reconciliation artifact evidence refs.
-- `FinancialAgent.run()` still uses `_project_runtime_calculation_trace()` as a
-  public compatibility bridge. This is intentional while older callers may still
-  send or inspect legacy top-level fields.
+- `FinancialAgent.run()` uses `_project_runtime_calculation_trace()` as a strict
+  current-state projection. Top-level calculation mirrors are not accepted by
+  the live public path.
 - Retrospective scripts that read old bundles intentionally allow legacy
   fallback. They should not be used as evidence that live runtime readers still
   need top-level mirrors.
@@ -130,15 +130,18 @@ is internal representation cleanup, not a new answer-quality fix.
   resolver mode by default. Legacy top-level result payloads are still readable
   only through an explicit helper opt-in for compatibility tests, while current
   smoke comparisons now require canonical `resolved_calculation_trace`.
+- 2026-07-22: removed legacy top-level calculation fallback from
+  `FinancialAgent.run()`. The public projection now resolves only canonical
+  `resolved_calculation_trace`, and structured output falls back only to that
+  trace's calculation result. The callerless `_resolve_runtime_structured_result()`
+  compatibility wrapper and its private-helper test were deleted. Historical
+  replay and retrospective opt-ins remain unchanged.
 
-## Next Implementation Candidate
+## Remaining Implementation Candidates
 
-The next code cleanup should target compatibility bridge boundaries, not answer
-behavior:
+Further cleanup should target internal diagnostics or proven callerless
+surfaces, not answer behavior:
 
-- audit whether public compatibility bridges still need to accept the optional
-  legacy `calculation_operands` / `calculation_plan` / `calculation_result`
-  mirror keys;
 - keep calculation-node diagnostics on the explicit scratch helpers; new
   callsites should not write the top-level debug key directly;
 - update tests that seed stale top-level fields so they remain explicit

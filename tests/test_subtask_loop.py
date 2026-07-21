@@ -11731,49 +11731,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(current["calculation_result"]["rendered_value"], "53조 1,139억원")
         self.assertEqual(current["calculation_operands"][0]["operand_id"], "capex_2023")
 
-    def test_project_runtime_calculation_trace_prefers_live_lookup_over_stale_aggregate_trace(self) -> None:
-        state = {
-            "answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
-            "compressed_answer": "2023년 시설투자(CAPEX) 총액은 53조 1,139억원입니다.",
-            "active_subtask": {"task_id": "task_1"},
-            "resolved_calculation_trace": {
-                "calculation_operands": [],
-                "calculation_plan": {"status": "ok", "mode": "aggregate_subtasks", "subtask_count": 2},
-                "calculation_result": {
-                    "status": "partial",
-                    "rendered_value": "stale aggregate",
-                    "answer_slots": {"operation_family": "aggregate_subtasks", "subtask_results": []},
-                },
-            },
-            "calculation_operands": [
-                {
-                    "operand_id": "capex_2023",
-                    "label": "2023 시설투자(CAPEX)",
-                    "raw_value": "531,139",
-                    "raw_unit": "억원",
-                    "normalized_value": 53113900000000.0,
-                    "normalized_unit": "KRW",
-                }
-            ],
-            "calculation_plan": {"status": "ok", "operation": "lookup", "mode": "single_value"},
-            "calculation_result": {
-                "status": "ok",
-                "rendered_value": "53조 1,139억원",
-                "answer_slots": {
-                    "operation_family": "lookup",
-                    "primary_value": {"status": "ok", "rendered_value": "53조 1,139억원"},
-                },
-            },
-            "tasks": [],
-            "artifacts": [],
-        }
-
-        projected = self.agent._project_runtime_calculation_trace(state)
-
-        self.assertEqual(projected["calculation_plan"]["operation"], "lookup")
-        self.assertEqual(projected["calculation_result"]["rendered_value"], "53조 1,139억원")
-        self.assertEqual(projected["calculation_operands"][0]["operand_id"], "capex_2023")
-
     def test_reflection_retry_ignores_legacy_top_level_runtime_projection(self) -> None:
         self.agent._llm_for_phase = lambda _phase: _FailingStructuredLLM()
         state = {

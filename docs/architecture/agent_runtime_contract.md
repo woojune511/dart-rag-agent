@@ -599,10 +599,10 @@ and retrospective checks can inspect child row/evidence provenance without
 re-running the agent.
 
 The compatibility `calculation_operands`, `calculation_plan`, and
-`calculation_result` mirrors are not the long-term source of truth. Caller,
-evaluator, and benchmark surfaces should consume `resolved_calculation_trace`
-first, then task/artifact ledger projections, then aggregate subtask
-projections. If the resolver must fall back to legacy top-level
+`calculation_result` mirrors are not the source of truth. Current caller,
+evaluator, and benchmark surfaces consume `resolved_calculation_trace` first,
+then task/artifact ledger projections, then aggregate subtask projections.
+If an explicit historical resolver must fall back to legacy top-level
 `calculation_*` fields, it must mark
 `resolved_calculation_trace.runtime_projection.source = "legacy_top_level"` and
 `legacy_fallback = true`; canonical or ledger-derived projections must set the
@@ -615,10 +615,10 @@ must be combined with `structured_result`, the projection remains
 Evaluator and benchmark review exports should surface projection source,
 legacy-fallback status, and calculation-result source as first-class audit
 fields alongside the full `resolved_calculation_trace`.
-`_resolve_runtime_calculation_trace()` is strict by default. Readers that need
-external compatibility must opt in with `allow_legacy_top_level = true`. Strict
-mode rejects top-level `calculation_*` fallback while still allowing non-legacy
-`structured_result` projection.
+`_resolve_runtime_calculation_trace()` is strict by default. Historical replay
+or retrospective readers that need old-bundle compatibility must opt in with
+`allow_legacy_top_level = true`. Strict mode rejects top-level `calculation_*`
+fallback while still allowing non-legacy `structured_result` projection.
 Evaluator result export, benchmark serialized/review export, eligible
 analyst/MAS artifact handoff consumers, current-runtime debug readers,
 reflection retry planning, formula planning input resolution, calculation
@@ -628,30 +628,29 @@ render/verification/retry preparation readers, and late runtime numeric answer
 shaping use strict mode, so those review, runtime handoff, debug, retry,
 planning, execution, routing, and answer preparation surfaces do not resurrect
 legacy top-level mirrors.
-Historical replay, retrospective readers, and public runtime projection bridges
-may opt into legacy compatibility when they read older result bundles or older
-caller surfaces. In the live agent, that bridge is limited to
-`FinancialAgent.run()`/export-facing projection; new internal current-state
-readers must use strict mode.
+Historical replay and retrospective readers may opt into legacy compatibility
+when they read older result bundles. `FinancialAgent.run()` and all live-agent
+current-state readers use strict mode and do not revive top-level calculation
+mirrors.
 
 Reflection retry behavior is being moved toward a bounded capability contract.
 See [self_reflection_capability_contract.md](self_reflection_capability_contract.md)
 for the target request/plan/action/report boundary and allowed retry
 strategies.
 
-Helper-level adapters may preserve legacy fallback only when their surface is
-explicitly compatibility-oriented: `_resolve_runtime_structured_result()` is now
-limited to the public `FinancialAgent.run()` projection bridge and direct
-compatibility tests. Current export/review, MAS handoff, and debug readers read
-`structured_result` or canonical `resolved_calculation_trace` directly.
+The former `_resolve_runtime_structured_result()` public compatibility adapter
+has been removed. `FinancialAgent.run()` reads `structured_result` directly and
+falls back only to the canonical `resolved_calculation_trace.calculation_result`.
+Historical compatibility remains inside explicit resolver call sites rather
+than a live public projection helper.
 `_runtime_trace_state_update()` is now a strict canonical state-update helper:
 callers must pass operands, plan, and result explicitly.
 
 The remaining cleanup scope for internal top-level `calculation_*` mirrors is
 tracked in
 [`internal_calculation_mirror_cleanup.md`](internal_calculation_mirror_cleanup.md).
-That note separates live strict readers, public compatibility bridges,
-historical replay tools, and internal scratch-state cleanup candidates.
+That note separates live/public strict readers, historical replay tools, and
+internal scratch-state cleanup candidates.
 
 Benchmark runner serialized-result, smoke-summary, and review export surfaces
 are strict current-contract projections. They may expose runtime projection
@@ -760,5 +759,6 @@ the calculation node also omit compatibility mirrors, and all
 `financial_graph_calculation.py` call sites now rely on the helper's mirror-free
 contract. Active-task artifact projection uses strict current-state resolution as
 well: empty `resolved_calculation_trace` must not resurrect legacy top-level
-`calculation_*` fields, except for the explicit stale-aggregate to live
-non-aggregate override. Downstream readers must use `resolved_calculation_trace`.
+`calculation_*` fields. A stale aggregate is replaced only by canonical active
+task/artifact ledger material. Downstream readers must use
+`resolved_calculation_trace`.

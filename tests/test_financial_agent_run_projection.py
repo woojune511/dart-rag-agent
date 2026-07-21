@@ -1331,7 +1331,7 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertEqual(candidate["key"]["company"], "ACME")
         self.assertEqual(candidate["key"]["metric_label"], "metric label")
 
-    def test_run_public_projection_preserves_legacy_top_level_trace_without_flat_mirrors(self) -> None:
+    def test_run_public_projection_rejects_legacy_top_level_trace(self) -> None:
         final_state = self._base_final_state()
         final_state["resolved_calculation_trace"] = {}
         final_state["structured_result"] = {}
@@ -1348,10 +1348,8 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
 
         result = agent.run("test question")
 
-        trace = result["resolved_calculation_trace"]
-        self.assertEqual(trace["calculation_result"]["rendered_value"], "25.4%")
-        self.assertEqual(trace["runtime_projection"]["source"], "legacy_top_level")
-        self.assertTrue(trace["runtime_projection"]["legacy_fallback"])
+        self.assertEqual(result["resolved_calculation_trace"], {})
+        self.assertEqual(result["structured_result"], {})
         self.assertNotIn("calculation_operands", result)
         self.assertNotIn("calculation_plan", result)
         self.assertNotIn("calculation_result", result)
