@@ -11,19 +11,18 @@
 
 ## 최신 상태
 
-- 2026-07-22 portfolio core simplification PRs #79 through #82 were merged to
+- 2026-07-22 portfolio core simplification PRs #79 through #83 were merged to
   `main`.
   - merge commits: PR #79 `d88040f`, PR #80 `33c756d`, PR #81 `db9d6e7`,
-    PR #82 `511f1bd`.
+    PR #82 `511f1bd`, PR #83 `69082c6`.
   - `FinancialAgent.run()` no longer accepts top-level `calculation_*` mirrors;
     current public output uses canonical `resolved_calculation_trace`, explicit
     `structured_result`, or task/artifact projections.
   - historical replay and retrospective compatibility remain explicit and
     isolated from the default public path.
-  - Phase 4 optional-system isolation is complete on
-    `codex/close-optional-runtime-boundary`. Default imports no longer load the
-    persisted `ReportCacheIndex` implementation unless an index path is
-    explicitly configured.
+  - Phase 4 optional-system isolation was completed in PR #83. Default imports
+    no longer load the persisted `ReportCacheIndex` implementation unless an
+    index path is explicitly configured.
   - subprocess regression gates check `main`, the financial API router, and
     `FinancialAgent` imports plus a deterministic `FinancialAgent` constructor
     and `run()` invocation against MAS, evaluator, benchmark, promotion,
@@ -31,6 +30,11 @@
   - validation: PR #82 runtime domain-term audit `216` passed and focused
     import/cache suite `46` OK; the Phase 4 closure import suite `19` and full
     unittest discovery `1350` are OK. No benchmark refresh was needed.
+  - Phase 5 evidence cleanup is in progress on
+    `codex/reduce-published-benchmark-noise`: tracked benchmark results are
+    reduced from `324` raw/intermediate files to `26` compact summaries and
+    small diagnostics directly linked by internal history. Removed files remain
+    recoverable from `main@69082c6`; local ignored result bundles are untouched.
 
 - 2026-07-22 포트폴리오 단순화 1단계를 진행했다.
   - product surface를 experimental MAS가 아니라 single-agent

@@ -6,6 +6,10 @@
 > for the compressed experiment story. This file preserves detailed historical
 > runs and should stay append-oriented.
 
+Full raw benchmark bundles are local-only. Historical links in this document
+point only to compact summaries retained for provenance; detailed raw outputs
+remain recoverable from the pre-Phase-5 Git history when needed.
+
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
 ## At a Glance
@@ -17,7 +21,7 @@
 | 초기 국면 | 저비용 ingest 후보 탐색과 다기업 일반화 검증 |
 | 중간 전환 | retrieval 문제와 generation 문제를 분리해서 보기 시작 |
 | 최근 전환 | single-document benchmark와 evaluator를 먼저 고정 |
-| raw artifact 위치 | 각 버전 디렉터리의 `summary.md`, `results.json`, `cross_company_summary.md` |
+| published history evidence | 직접 링크된 compact `summary.md`와 작은 diagnostic만 유지; full raw bundle은 local-only |
 
 ## Timeline Index
 
@@ -2023,9 +2027,7 @@ experiment artifact.
 
 ## v1 Legacy Local Test
 
-참조:
-
-- [archive/v1_legacy_local_test_2026-04-16](../../benchmarks/archive/v1_legacy_local_test_2026-04-16)
+참조: 이 초기 raw artifact는 현재 published evidence surface에 포함하지 않는다.
 
 ### 코드 / 설정 변화
 
@@ -2228,9 +2230,9 @@ experiment artifact.
 
 참조:
 
-- [graph_micro_2026-04-22](../../benchmarks/results/graph_micro_2026-04-22)
-- [graph_micro_constrained_2026-04-22](../../benchmarks/results/graph_micro_constrained_2026-04-22)
-- [graph_micro_prefix_2026-04-22](../../benchmarks/results/graph_micro_prefix_2026-04-22)
+- [graph_micro_2026-04-22/cross_company_summary.md](../../benchmarks/results/graph_micro_2026-04-22/cross_company_summary.md)
+- [graph_micro_constrained_2026-04-22/cross_company_summary.md](../../benchmarks/results/graph_micro_constrained_2026-04-22/cross_company_summary.md)
+- [graph_micro_prefix_2026-04-22/cross_company_summary.md](../../benchmarks/results/graph_micro_prefix_2026-04-22/cross_company_summary.md)
 
 ### 코드 / 설정 변화
 
@@ -2422,8 +2424,8 @@ experiment artifact.
 
 참조:
 
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/results.json)
-- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.csv)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/summary.md)
+- [dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md](../../benchmarks/results/dev_fast_cache_check_2026-04-17/삼성전자-2024/review.md)
 
 ### 코드 / 설정 변화
 
@@ -2530,7 +2532,6 @@ experiment artifact.
 참조:
 
 - [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md](../../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/summary.md)
-- [dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json](../../benchmarks/results/dev_fast_focus_selective_prefix_2026-04-23/삼성전자-2024/results.json)
 
 ### 코드 / 설정 변화
 

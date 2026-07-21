@@ -257,6 +257,11 @@ optional systems, while their focused tests still pass independently.
 
 ### Phase 5: Reduce review and test noise
 
+Status: in progress on 2026-07-22. The first slice reduces checked-in benchmark
+outputs to history-linked compact summaries and small diagnostics, while full
+result bundles remain local-only. Oversized tests will be split only alongside
+the public contract they exercise, not through an all-at-once rewrite.
+
 - Split oversized test files by public contract when touching the relevant
   behavior; do not perform an all-at-once test rewrite.
 - Keep only representative published benchmark evidence: one structural

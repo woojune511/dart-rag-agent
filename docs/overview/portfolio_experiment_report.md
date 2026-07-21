@@ -3,7 +3,9 @@
 This report summarizes the portfolio experiment story. It does not introduce a
 new benchmark run; it packages the current repo evidence into a reviewer-facing
 case study. Historical `benchmarks/results/**` artifacts are treated as
-screening context, not as the current official quality baseline.
+screening context, not as the current official quality baseline. Full raw result
+bundles remain local-only; this report, the checked-in benchmark profiles, and a
+small set of history-linked summaries are the published evidence surface.
 
 ## Audience And Claim Boundary
 
