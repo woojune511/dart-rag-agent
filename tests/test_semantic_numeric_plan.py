@@ -26,7 +26,7 @@ from src.agent.financial_row_surfaces import (
     _parse_unstructured_table_row_cells,
 )
 from src.agent.financial_retrieval_hints import _active_preferred_sections
-from src.agent.financial_graph_evidence import _ensure_period_count_operand_docs, _focused_operand_surface_queries
+from src.agent.financial_retrieval_pipeline import _ensure_period_count_operand_docs, _focused_operand_surface_queries
 from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
 from src.agent.financial_operation_policies import _is_percent_point_difference_query

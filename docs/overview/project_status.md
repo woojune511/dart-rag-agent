@@ -7,7 +7,7 @@
 > kept long so handoff state, gate results, and experiment details remain
 > traceable.
 
-Last updated: 2026-06-24
+Last updated: 2026-07-22
 
 ## Positioning
 
@@ -21,8 +21,37 @@ traceable runtime contract for financial analysis:
 - preserve calculation and evidence traces
 - validate changes through reproducible benchmark gates
 
-The current direction is to turn the verified single-agent runtime into a
-role-separated multi-agent system using a task ledger and artifact store.
+The current direction is to keep the verified single-agent `FinancialAgent`
+runtime as the product surface and simplify the portfolio around hybrid
+retrieval, semantic planning, deterministic calculation, and provenance. MAS,
+cache promotion, and extended review workflows remain experimental or internal.
+
+## Current Simplification Direction
+
+- Baseline at the start of this phase: `main@732c239`, aligned with
+  `origin/main` and a clean worktree.
+- Canonical portfolio entry point: `FinancialAgent.run()`.
+- First-read story: DART structure-aware ingest -> dense/BM25 hybrid retrieval
+  -> LLM semantic plan -> deterministic operand binding/calculation ->
+  evidence-validated answer and trace.
+- Completed correctness prerequisites: numeric evidence matching now preserves
+  sign, and final-answer evidence selection scores generic value, label, period,
+  and provenance compatibility instead of numeric equality plus list order.
+- Initial correctness validation: focused owner/projection suites `331` OK,
+  full unittest discovery `1348` OK, and portfolio review gates `ready`.
+- No benchmark was rerun because the change is projection/evidence matching plus
+  reviewer documentation; no parser, ingest, store, or retrieval behavior changed.
+- Retrieval owner extraction completed without tuning behavior:
+  `financial_retrieval_pipeline.py` now owns query/filter/search/rerank/selection
+  and `retrieval_debug_trace`; `financial_graph_evidence.py` starts at structure
+  expansion and evidence construction.
+- Focused retrieval/scope/query/import verification: `131` OK. Runtime
+  domain-term audit passes with `216` reviewed records; the count changed only
+  because one reviewed pattern now has separate owner-path records.
+- Final full unittest discovery after the retrieval owner extraction: `1349`
+  OK.
+- Detailed execution and deletion criteria:
+  [../architecture/core_runtime_surface_refactoring_plan.md](../architecture/core_runtime_surface_refactoring_plan.md).
 
 ## Session Handoff
 
@@ -53,13 +82,11 @@ role-separated multi-agent system using a task ledger and artifact store.
 
 ### Current Baseline
 
-- Current merged runtime/code baseline: `main@62f516d`
-  (`Fix focused numeric projection regressions`), pushed to `origin/main`.
-- Active repair branch: `codex/repair-financial-operands`
-  (`https://github.com/woojune511/dart-rag-agent/pull/78`).
-- PR #78 source/test commits:
-  - `fafe639 fix: repair financial operand projection`
-  - `c3d234a test: cover financial operand regressions`
+- Current repository baseline before this simplification change: `main@732c239`,
+  aligned with `origin/main`.
+- Latest runtime repair on `main`: `8794423` (`Repair financial operand
+  projection`). The four newer commits are portfolio documentation updates.
+- PR #78 repair history is retained below for reproducibility.
 - The merged baseline includes PR #77 plus local post-merge runtime-surface
   cleanup and focused numeric projection follow-ups:
   - `949cb48` runtime/import boundary cleanup

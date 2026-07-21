@@ -208,16 +208,6 @@
     },
     {
       "path": "src/agent/financial_graph_evidence.py",
-      "text": "(20\\d{2})년?",
-      "category": "regex_or_pattern",
-      "fingerprint": "b58bee8eb37c98a0",
-      "count": 1,
-      "first_lines": [
-        153
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
       "text": "(20\\d{2}년)",
       "category": "regex_or_pattern",
       "fingerprint": "09aadfd07ef92e69",
@@ -242,16 +232,6 @@
     },
     {
       "path": "src/agent/financial_graph_evidence.py",
-      "text": "[A-Za-z0-9가-힣_]",
-      "category": "regex_or_pattern",
-      "fingerprint": "c441f78f71f2d4f8",
-      "count": 1,
-      "first_lines": [
-        215
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
       "text": "[A-Za-z가-힣]",
       "category": "regex_or_pattern",
       "fingerprint": "4ec5a8e849d0dfb3",
@@ -262,24 +242,55 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "[A-Za-z가-힣][A-Za-z가-힣0-9_]{5,}",
+      "path": "src/agent/financial_retrieval_pipeline.py",
+      "text": "[가-힣]",
       "category": "regex_or_pattern",
-      "fingerprint": "ff164d9b9ddf32ee",
-      "count": 1,
+      "fingerprint": "ba63bcec3fbd94ce",
+      "count": 2,
       "first_lines": [
-        545
+        198,
+        1172
       ]
     },
     {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "[가-힣]",
+      "path": "src/agent/financial_retrieval_pipeline.py",
+      "text": "(20\\d{2})년?",
       "category": "regex_or_pattern",
-      "fingerprint": "38804614940659cb",
+      "fingerprint": "c85947eed90c47e1",
+      "count": 1,
+      "first_lines": [
+        169
+      ]
+    },
+    {
+      "path": "src/agent/financial_retrieval_pipeline.py",
+      "text": "[A-Za-z0-9가-힣_]",
+      "category": "regex_or_pattern",
+      "fingerprint": "eeea17380e96aa34",
+      "count": 1,
+      "first_lines": [
+        231
+      ]
+    },
+    {
+      "path": "src/agent/financial_retrieval_pipeline.py",
+      "text": "[A-Za-z가-힣][A-Za-z가-힣0-9_]{5,}",
+      "category": "regex_or_pattern",
+      "fingerprint": "dd519d92c20683f5",
+      "count": 1,
+      "first_lines": [
+        561
+      ]
+    },
+    {
+      "path": "src/agent/financial_retrieval_pipeline.py",
+      "text": "년",
+      "category": "runtime_literal",
+      "fingerprint": "28f3336ebdd5c08d",
       "count": 2,
       "first_lines": [
-        182,
-        1148
+        683,
+        913
       ]
     },
     {
@@ -338,13 +349,13 @@
       "text": "년",
       "category": "runtime_literal",
       "fingerprint": "64b3b3b42c1c1156",
-      "count": 7,
+      "count": 5,
       "first_lines": [
-        667,
-        889,
-        3621,
-        3836,
-        3953
+        1115,
+        1330,
+        1447,
+        3031,
+        4323
       ]
     },
     {

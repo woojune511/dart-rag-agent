@@ -97,7 +97,7 @@ citations, `structured_result`, `resolved_calculation_trace` 같은 public field
 | final answer projection repair | `run()` plus helper modules |
 
 `FinancialAgent`는 아직 작지 않지만, “graph wiring + output projection facade”로
-보면 읽을 수 있다. 계산, evidence, reconciliation, planning의 세부 로직은 아래
+보면 읽을 수 있다. retrieval, 계산, evidence, reconciliation, planning의 세부 로직은 아래
 mixin 파일들로 내려간다.
 
 ## 5. 현재 graph wiring
@@ -109,7 +109,7 @@ mixin 파일들로 내려간다.
 | planning | `classify` | `FinancialAgentPlanningMixin._classify_query()` |
 | planning | `extract` | `FinancialAgentPlanningMixin._extract_entities()` |
 | planning | `pre_calc_planner` | `FinancialAgentPlanningMixin._plan_semantic_numeric_tasks()` |
-| retrieval | `retrieve` | `FinancialAgentEvidenceMixin._retrieve()` |
+| retrieval | `retrieve` | `FinancialRetrievalPipelineMixin._retrieve()` |
 | retrieval | `expand` | `FinancialAgentEvidenceMixin._expand_via_structure_graph()` |
 | evidence | `numeric_extractor` | `FinancialAgentEvidenceMixin._extract_numeric_fact()` |
 | evidence | `evidence` | `FinancialAgentEvidenceMixin._extract_evidence()` |
@@ -339,7 +339,8 @@ validation 결과를 먼저 봐야 한다.
 | [financial_graph_state.py](../../src/agent/financial_graph_state.py) | lightweight graph state contract |
 | [financial_graph_models.py](../../src/agent/financial_graph_models.py) | Pydantic structured-output schema and compatibility exports |
 | [financial_graph_planning.py](../../src/agent/financial_graph_planning.py) | routing, entity extraction, semantic numeric tasks, reflection planning |
-| [financial_graph_evidence.py](../../src/agent/financial_graph_evidence.py) | retrieval, expansion, numeric extraction, evidence/compress/validate |
+| [financial_retrieval_pipeline.py](../../src/agent/financial_retrieval_pipeline.py) | retrieval query/filter/search/rerank/selection/trace owner |
+| [financial_graph_evidence.py](../../src/agent/financial_graph_evidence.py) | expansion, numeric extraction, evidence/compress/validate |
 | [financial_graph_reconciliation.py](../../src/agent/financial_graph_reconciliation.py) | retrieved candidates와 required operands 매칭 |
 | [financial_graph_calculation.py](../../src/agent/financial_graph_calculation.py) | operand extraction, formula planning, execution orchestration, subtask loop |
 | [financial_graph_helpers.py](../../src/agent/financial_graph_helpers.py) | shared runtime projection, trace, normalization, matching helpers |
@@ -359,7 +360,7 @@ validation 결과를 먼저 봐야 한다.
 2. `financial_graph.py::run()`
 3. `financial_graph_state.py::FinancialAgentState`
 4. `financial_graph_planning.py::_plan_semantic_numeric_tasks()`
-5. `financial_graph_evidence.py::_retrieve()`
+5. `financial_retrieval_pipeline.py::_retrieve()`
 6. `financial_graph_reconciliation.py::_reconcile_retrieved_evidence()`
 7. `financial_graph_calculation.py::_extract_calculation_operands()`
 8. `financial_graph_calculation.py::_plan_formula_calculation()`

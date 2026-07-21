@@ -52,6 +52,7 @@ def _financial_agent_state_model() -> Any:
 
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
+from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
 from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
@@ -64,7 +65,14 @@ from src.agent.financial_runtime_trace import (
 )
 from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
 
-class FinancialAgent(FinancialAgentPlanningMixin, FinancialAgentReconciliationMixin, FinancialAgentEvidenceMixin, FinancialAgentCalculationMixin, FinancialAgentContextualMixin):
+class FinancialAgent(
+    FinancialAgentPlanningMixin,
+    FinancialAgentReconciliationMixin,
+    FinancialRetrievalPipelineMixin,
+    FinancialAgentEvidenceMixin,
+    FinancialAgentCalculationMixin,
+    FinancialAgentContextualMixin,
+):
     """Top-level orchestration shell for the DART single-agent workflow.
 
     The actual node bodies are split across mixins so this class can stay

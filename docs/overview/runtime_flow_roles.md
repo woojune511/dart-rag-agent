@@ -178,17 +178,31 @@ hybrid narrative subtask 삽입을 담당한다.
 
 ## 6. Retrieval And Evidence Layer
 
-### `src/agent/financial_graph_evidence.py::FinancialAgentEvidenceMixin`
+### `src/agent/financial_retrieval_pipeline.py::FinancialRetrievalPipelineMixin`
 
-역할은 문서를 검색하고, 구조 graph로 확장하고, 답변에 쓸 evidence를 고르는
+역할은 active subtask와 report scope를 실제 retrieval 실행과 trace로 바꾸는
 것이다.
 
-- `_retrieve(state)`: active subtask와 report scope를 기준으로 metadata filter,
-  query variants, cache reuse, BM25/vector hybrid retrieval을 수행한다.
+- `_retrieve(state)`: metadata filter, query bundle/budget, cache reuse,
+  BM25/vector hybrid retrieval, retry retrieval, seed/visible 결과와
+  `retrieval_debug_trace`를 만든다.
+- `_rerank_docs(docs, state)`: query intent, section bias, numeric signal,
+  narrative policy를 반영해 후보를 재정렬한다.
+- `_select_narrative_summary_docs(...)`: narrative/table/policy coverage를
+  유지하면서 visible retrieval window를 고른다.
+- `_ensure_preferred_operand_section_docs(...)`: required operand와 period
+  coverage를 만족하는 후보가 final window에서 사라지지 않게 한다.
+
+query/filter/search/rerank/selection/trace의 실제 구현은 이 파일 한 곳에 있고,
+evidence mixin에는 `_retrieve` 호환 복사본이 없다.
+
+### `src/agent/financial_graph_evidence.py::FinancialAgentEvidenceMixin`
+
+역할은 검색된 문서를 구조 graph로 확장하고, 답변에 쓸 evidence를 고르는
+것이다.
+
 - `_expand_via_structure_graph(state)`: seed docs 주변의 section/table/reference
   graph를 따라 후보 evidence를 확장한다.
-- `_rerank_docs(docs, state)`: query intent, section bias, numeric signal,
-  narrative policy 등을 반영해 retrieved docs를 재정렬한다.
 - `_extract_numeric_fact(state)`: lookup/single numeric fact 후보를 추출하고
   direct support를 확인한다.
 - `_extract_evidence(state)`: narrative/mixed answer에 필요한 evidence item을
@@ -502,14 +516,15 @@ profile 기반 실험 orchestrator다.
 4. `src/agent/financial_graph.py::run`
 5. `src/agent/financial_graph_state.py::FinancialAgentState`
 6. `src/agent/financial_graph_planning.py::FinancialAgentPlanningMixin`
-7. `src/agent/financial_graph_evidence.py::FinancialAgentEvidenceMixin`
-8. `src/agent/financial_graph_reconciliation.py::FinancialAgentReconciliationMixin`
-9. `src/agent/financial_graph_calculation.py::FinancialAgentCalculationMixin`
-10. `src/agent/financial_answer_projection.py`
-11. `src/processing/financial_parser.py::FinancialParser.process_document`
-12. `src/storage/vector_store.py::VectorStoreManager.search`
-13. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
-14. MAS가 필요할 때만 `src/agent/mas_graph.py`와 `src/agent/nodes/*`
+7. `src/agent/financial_retrieval_pipeline.py::FinancialRetrievalPipelineMixin`
+8. `src/agent/financial_graph_evidence.py::FinancialAgentEvidenceMixin`
+9. `src/agent/financial_graph_reconciliation.py::FinancialAgentReconciliationMixin`
+10. `src/agent/financial_graph_calculation.py::FinancialAgentCalculationMixin`
+11. `src/agent/financial_answer_projection.py`
+12. `src/processing/financial_parser.py::FinancialParser.process_document`
+13. `src/storage/vector_store.py::VectorStoreManager.search`
+14. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
+15. MAS가 필요할 때만 `src/agent/mas_graph.py`와 `src/agent/nodes/*`
 
 ## 18. 헷갈리지 말아야 할 경계
 

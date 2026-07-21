@@ -11,6 +11,35 @@
 
 ## 최신 상태
 
+- 2026-07-22 포트폴리오 단순화 1단계를 진행했다.
+  - product surface를 experimental MAS가 아니라 single-agent
+    `FinancialAgent.run()`으로 고정했다.
+  - README, portfolio one-pager, project status, core runtime refactoring plan을
+    hybrid retrieval -> LLM semantic planning -> deterministic calculation ->
+    provenance validation 흐름으로 재정렬했다.
+  - `numeric_surface_candidates_equivalent()`의 currency 비교가 부호를
+    제거하던 문제를 고쳐 양수 답변이 음수 근거로 support되지 않게 했다.
+  - final-answer numeric backfill이 같은 숫자의 첫 evidence를 고르던 문제를
+    일반적인 label/period/provenance affinity score로 보완했다.
+  - 새 회귀 파일: `tests/test_financial_numeric_provenance.py`.
+  - validation:
+    - focused owner/projection tests: `331` OK
+    - runtime domain-term audit: passed with `216` reviewed records after owner
+      path migration; 새 금융 vocabulary는 추가하지 않았다.
+    - full unittest discovery: `1348` OK
+    - portfolio review gates: `ready`
+    - modified-doc local links: `17/17` valid
+  - parser/ingest/store/retrieval behavior는 바뀌지 않아 benchmark는 재실행하지
+    않았다.
+  - retrieval owner 분리도 no-behavior-change로 완료했다.
+    - `financial_retrieval_pipeline.py`: query/filter/search/rerank/selection/trace
+      및 retrieval-only helper owner
+    - `financial_graph_evidence.py`: structure expansion 이후 evidence
+      construction/compression/validation owner
+    - `FinancialAgentEvidenceMixin`에는 `_retrieve` 복사본이 남지 않는다.
+    - focused retrieval/scope/query/import tests: `131` OK
+    - final full unittest discovery: `1349` OK
+
 - 2026-06-24 final financial operand projection repair를 별도 PR로 정리했다.
   - active branch: `codex/repair-financial-operands`
   - draft PR: `https://github.com/woojune511/dart-rag-agent/pull/78`

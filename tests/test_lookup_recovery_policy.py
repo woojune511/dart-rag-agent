@@ -690,7 +690,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 "operand_id": "prior_period",
                 "label": "prior metric",
                 "period": "2022",
-                "raw_value": "(1,847,775)",
+                "raw_value": "1,847,775",
                 "raw_unit": "\ubc31\ub9cc\uc6d0",
                 "source_anchor": "[ACME | 2022 | Notes]",
             }

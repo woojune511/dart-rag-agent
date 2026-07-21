@@ -119,6 +119,7 @@ benchmark profile
 - [src/agent/financial_graph_models.py](../../src/agent/financial_graph_models.py)
 - `src/agent/financial_graph_planning.py`
 - `src/agent/financial_graph_contextual.py`
+- `src/agent/financial_retrieval_pipeline.py`
 - `src/agent/financial_graph_evidence.py`
 - `src/agent/financial_graph_calculation.py`
 - `src/agent/financial_graph_reconciliation.py`
