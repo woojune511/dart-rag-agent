@@ -80,7 +80,8 @@ first-read 문서가 아니며, 필요한 근거를 추적할 때만 본다.
 | [../CONTEXT.md](../CONTEXT.md) | 최신 작업 상태 snapshot |
 | [../PLAN.md](../PLAN.md) | active work와 다음 작업 |
 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
-| [overview/project_status.md](overview/project_status.md) | 긴 구현/gate 상태 로그 |
+| [overview/project_status.md](overview/project_status.md) | 현재 제품 경계와 gate 상태 |
+| [history/implementation_history.md](history/implementation_history.md) | core runtime 단순화 연대기 |
 | [history/experiment_history.md](history/experiment_history.md) | 과거 실험 흐름 |
 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark 운영 상세 로그 |
 | [planning/backlog_and_next_epics.md](planning/backlog_and_next_epics.md) | backlog와 future epics |
@@ -88,7 +89,8 @@ first-read 문서가 아니며, 필요한 근거를 추적할 때만 본다.
 ## Maintenance Rule
 
 - reviewer-facing 문서는 짧게 유지한다.
-- 긴 수치/실험 로그는 `project_status`, `experiment_history`,
-  `benchmarking`에 남긴다.
+- 구현 연대기는 `implementation_history`, 수치/실험 로그는
+  `experiment_history`와 `benchmarking`에 남긴다. `project_status`에는 현재
+  제품 경계, gate, blocker, 다음 작업만 둔다.
 - 새 claim을 README나 portfolio 문서에 넣기 전에 appendix/internal log에
   근거가 있는지 확인한다.

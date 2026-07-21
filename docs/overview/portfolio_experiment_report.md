@@ -365,6 +365,7 @@ Primary evidence lives in:
 - [technical_highlights.md](technical_highlights.md)
 - [../evaluation/runtime_contract_gate.md](../evaluation/runtime_contract_gate.md)
 - [../evaluation/benchmarking.md](../evaluation/benchmarking.md)
+- [../history/implementation_history.md](../history/implementation_history.md)
 - [../history/experiment_history.md](../history/experiment_history.md)
 
 Artifact hygiene: `benchmarks/results/**` remains local experiment output and

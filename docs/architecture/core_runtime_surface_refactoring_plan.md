@@ -2,10 +2,12 @@
 
 Last revised: 2026-07-22
 
-This is the current execution plan for reducing repository complexity while
-preserving the verified financial QA behavior. Git history and
-`docs/overview/project_status.md` retain the detailed history of earlier
-extraction PRs; this document describes the remaining direction and stop lines.
+This is the completed execution record for reducing repository complexity while
+preserving the verified financial QA behavior. Git history,
+`docs/history/implementation_history.md`, and
+`docs/history/experiment_history.md` retain detailed chronology;
+`docs/overview/project_status.md` contains current state only. This document
+describes the resulting boundaries and stop lines.
 
 `docs/architecture/agent_runtime_contract.md` remains authoritative for runtime
 behavior. Update both documents if a structural change alters that contract.
@@ -257,20 +259,25 @@ optional systems, while their focused tests still pass independently.
 
 ### Phase 5: Reduce review and test noise
 
-Status: in progress on 2026-07-22. The first slice reduces checked-in benchmark
-outputs to history-linked compact summaries and small diagnostics, while full
-result bundles remain local-only. Oversized tests will be split only alongside
-the public contract they exercise, not through an all-at-once rewrite.
+Status: completed on 2026-07-22. PR #84 reduced checked-in benchmark outputs to
+history-linked compact summaries and small diagnostics, while full result
+bundles remain local-only. The final documentation slice converted `CONTEXT.md`
+and `docs/overview/project_status.md` from chronological diaries into current
+state snapshots. Oversized tests were not split because no public behavior
+changed; they remain an opportunistic cleanup alongside the contract they
+exercise.
 
 - Split oversized test files by public contract when touching the relevant
   behavior; do not perform an all-at-once test rewrite.
-- Keep only representative published benchmark evidence: one structural
-  full-system result, one plain comparison, and a small failure fixture set.
+- Publish the portfolio claim through one structural summary, one plain
+  comparison, and a small fixture set; internal history may retain compact
+  directly linked summaries and diagnostics.
 - Keep full local result bundles, stores, caches, and heartbeat logs untracked.
 - Prefer current architecture docs over chronological implementation diaries.
 
-Completion condition: reviewer-facing docs link to a small evidence set, while
-internal history remains available without defining the product surface.
+Completion condition met: reviewer-facing docs link to a small evidence set,
+while implementation history, experiment history, and Git preserve chronology
+without defining the product surface.
 
 ## Deletion criteria
 
