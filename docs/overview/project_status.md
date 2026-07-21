@@ -28,9 +28,9 @@ cache promotion, and extended review workflows remain experimental or internal.
 
 ## Current Simplification Direction
 
-- Current merged baseline: `main@db9d6e7`, including portfolio/retrieval PR
-  #79, canonical API projection PR #80, and strict public calculation
-  projection PR #81.
+- Current merged baseline: `main@511f1bd`, including portfolio/retrieval PR
+  #79, canonical API projection PR #80, strict public calculation projection
+  PR #81, and optional report-cache import isolation PR #82.
 - Canonical portfolio entry point: `FinancialAgent.run()`.
 - First-read story: DART structure-aware ingest -> dense/BM25 hybrid retrieval
   -> LLM semantic plan -> deterministic operand binding/calculation ->
@@ -56,14 +56,20 @@ cache promotion, and extended review workflows remain experimental or internal.
   historical replay compatibility remains explicit and isolated. Validation:
   domain-term audit `216` passed, focused suite `625` OK, full discovery `1348`
   OK, and `git diff --check` passed.
-- Phase 4's first concrete import-boundary slice is on
-  `codex/lazy-report-cache-import`. The persisted `ReportCacheIndex`
+- Phase 4's first concrete import-boundary slice was merged as PR #82. The
+  persisted `ReportCacheIndex`
   implementation is now loaded only when an index path is explicitly
   configured; an unused import was removed from the evidence owner. A fresh
   subprocess gate checks default imports against optional MAS, evaluation,
   benchmark, promotion, portfolio-review, and cache-index implementations.
   Validation: domain-term audit `216` passed, focused import/cache suite `46`
   OK, full discovery `1349` OK, and `git diff --check` passed.
+- Phase 4 completion is verified on
+  `codex/close-optional-runtime-boundary`. A deterministic subprocess constructs
+  `FinancialAgent`, executes its public `run()` projection, and exercises the
+  unconfigured cache-diagnostics guard without API keys, network access, or
+  optional-system imports. Focused import tests `19` and full discovery `1350`
+  are OK. No additional runtime code change was required.
 - Detailed execution and deletion criteria:
   [../architecture/core_runtime_surface_refactoring_plan.md](../architecture/core_runtime_surface_refactoring_plan.md).
 

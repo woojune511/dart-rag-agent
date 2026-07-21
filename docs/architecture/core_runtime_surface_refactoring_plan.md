@@ -236,11 +236,13 @@ Completion conditions:
 
 ### Phase 4: Isolate optional systems
 
-Status: in progress on 2026-07-22. The first verified slice removes eager
-loading of the persisted report-cache index from the default agent import and
-adds a subprocess gate for optional-system module leakage. Cache candidate
-trace policy remains unchanged; broader isolation requires a concrete default
-runtime leak rather than speculative deletion.
+Status: completed on 2026-07-22. The default entrypoints pass fresh-process
+import checks, and a deterministic `FinancialAgent` construction plus `run()`
+invocation loads none of the reviewed MAS, evaluator, benchmark, promotion,
+portfolio-review, or persisted-cache implementations. The only remaining local
+cache-index import is guarded by an explicitly configured index path. Cache
+candidate trace policy remains unchanged; further isolation requires a concrete
+product requirement or observed default-runtime leak.
 
 - Default runtime imports must not load MAS, evaluator, benchmark, cache
   promotion, or portfolio-review implementations.

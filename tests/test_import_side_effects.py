@@ -13,6 +13,19 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_RUNTIME_OPTIONAL_MODULE_PREFIXES = (
+    "src.agent.mas_graph",
+    "src.agent.mas_types",
+    "src.experimental.mas",
+    "src.ops.benchmark_runner",
+    "src.ops.evaluator",
+    "src.ops.portfolio_review_gates",
+    "src.ops.promotion_trace_materiality_gate",
+    "src.ops.reflection_promotion_gate",
+    "src.ops.report_cache_index_smoke",
+    "src.ops.report_cache_promotion_evidence_gate",
+    "src.storage.report_cache_index",
+)
 
 
 class ImportSideEffectTests(unittest.TestCase):
@@ -342,19 +355,6 @@ class ImportSideEffectTests(unittest.TestCase):
             "src.api.financial_router",
             "src.agent.financial_graph",
         ]
-        optional_prefixes = [
-            "src.agent.mas_graph",
-            "src.agent.mas_types",
-            "src.experimental.mas",
-            "src.ops.benchmark_runner",
-            "src.ops.evaluator",
-            "src.ops.portfolio_review_gates",
-            "src.ops.promotion_trace_materiality_gate",
-            "src.ops.reflection_promotion_gate",
-            "src.ops.report_cache_index_smoke",
-            "src.ops.report_cache_promotion_evidence_gate",
-            "src.storage.report_cache_index",
-        ]
         script = """
             import importlib
             import json
@@ -376,11 +376,70 @@ class ImportSideEffectTests(unittest.TestCase):
 
         failures = []
         for module in modules:
-            payload = self._run_python_json(script, module, ",".join(optional_prefixes))
+            payload = self._run_python_json(
+                script,
+                module,
+                ",".join(DEFAULT_RUNTIME_OPTIONAL_MODULE_PREFIXES),
+            )
             if payload["loaded"]:
                 failures.append((module, payload["loaded"]))
 
         self.assertEqual(failures, [])
+
+    def test_default_runtime_invocation_does_not_load_optional_subsystems(self) -> None:
+        script = """
+            import json
+            import sys
+
+            from src.agent.financial_graph import FinancialAgent
+            from src.agent.financial_retrieval_pipeline import (
+                _report_cache_index_diagnostics_for_retrieval,
+            )
+
+            class FakeGraph:
+                def invoke(self, initial):
+                    return {
+                        **dict(initial),
+                        "answer": "insufficient evidence",
+                        "citations": [],
+                    }
+
+            class FakeVectorStore:
+                embeddings = object()
+
+            FinancialAgent._build_llm_routes = lambda self: {"default": object()}
+            FinancialAgent._build_graph = lambda self: FakeGraph()
+            agent = FinancialAgent(
+                FakeVectorStore(),
+                routing_config={
+                    "enable_semantic_router": False,
+                    "enable_llm_fallback": False,
+                },
+            )
+            result = agent.run("test question")
+            cache_diagnostics = _report_cache_index_diagnostics_for_retrieval({}, "")
+
+            forbidden = sys.argv[1].split(",")
+            loaded = sorted(
+                module
+                for module in sys.modules
+                if any(module == prefix or module.startswith(prefix + ".") for prefix in forbidden)
+            )
+            print(json.dumps({
+                "answer": result.get("answer"),
+                "cache_status": cache_diagnostics.get("status"),
+                "loaded": loaded,
+            }, sort_keys=True))
+            """
+
+        payload = self._run_python_json(
+            script,
+            ",".join(DEFAULT_RUNTIME_OPTIONAL_MODULE_PREFIXES),
+        )
+
+        self.assertEqual(payload["answer"], "insufficient evidence")
+        self.assertEqual(payload["cache_status"], "not_configured")
+        self.assertEqual(payload["loaded"], [])
 
     def test_source_has_no_top_level_dotenv_or_logging_configuration(self) -> None:
         violations = []
