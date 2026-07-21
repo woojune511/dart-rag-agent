@@ -114,8 +114,6 @@ from src.config.retrieval_policy import (
     narrative_policy_slot_groups,
     narrative_policy_terms,
 )
-from src.storage.report_cache_index import ReportCacheIndex
-
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 

@@ -11,22 +11,24 @@
 
 ## 최신 상태
 
-- 2026-07-22 portfolio core simplification PR #79 and canonical API projection
-  PR #80 were merged to `main`.
-  - PR #79 merge: `d88040f`; PR #80 merge: `33c756d`.
-  - Phase 3 second slice is published as draft PR #81:
-    `https://github.com/woojune511/dart-rag-agent/pull/81`.
-  - branch: `codex/strict-public-calculation-projection`
-  - commit: `bd0624d Remove legacy public calculation fallback`
+- 2026-07-22 portfolio core simplification PRs #79 through #81 were merged to
+  `main`.
+  - merge commits: PR #79 `d88040f`, PR #80 `33c756d`, PR #81 `db9d6e7`.
   - `FinancialAgent.run()` no longer accepts top-level `calculation_*` mirrors;
     current public output uses canonical `resolved_calculation_trace`, explicit
     `structured_result`, or task/artifact projections.
-  - the callerless `_resolve_runtime_structured_result()` wrapper and a
-    redundant legacy-only stale-aggregate fixture were deleted. Historical
-    replay and retrospective opt-ins remain available.
-  - validation: runtime domain-term audit `216` passed, focused calculation
-    projection suite `625` OK, full unittest discovery `1348` OK, and
-    `git diff --check` passed. No benchmark refresh was needed.
+  - historical replay and retrospective compatibility remain explicit and
+    isolated from the default public path.
+  - Phase 4 import-boundary work continues on
+    `codex/lazy-report-cache-import`: importing the default runtime no longer
+    loads the persisted `ReportCacheIndex` implementation unless an index path
+    is explicitly configured.
+  - a subprocess regression gate now checks `main`, the financial API router,
+    and `FinancialAgent` imports against MAS, evaluator, benchmark, promotion,
+    portfolio-review, and persisted-cache implementations.
+  - validation: runtime domain-term audit `216` passed, focused import/cache
+    suite `46` OK, full unittest discovery `1349` OK, and `git diff --check`
+    passed. No benchmark refresh was needed.
 
 - 2026-07-22 포트폴리오 단순화 1단계를 진행했다.
   - product surface를 experimental MAS가 아니라 single-agent
