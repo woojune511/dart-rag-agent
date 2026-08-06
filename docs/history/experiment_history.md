@@ -3062,3 +3062,31 @@ References:
   원천 subtask provenance가 보존되어 있으면 grounded operand로 인정하는 것이
   맞다.
 - 특정 문항/회사/계정명을 직접 처리하는 rule은 추가하지 않았다.
+
+## Routing Dataset Ownership And Leakage Boundary (2026-08-07)
+
+### Context
+
+- Runtime canonical queries were stored under `benchmarks/golden`, which made
+  the default router depend on an evaluation-owned path.
+- One query in `query_routing_eval_v1.json` later became an exact member of the
+  risk canonical set. The historical 2026-04-24 calibration therefore remains
+  reproducible, but its v1 accuracy is not a clean held-out claim against the
+  current canonical set.
+
+### Code / Contract Change
+
+- Moved canonical v1 unchanged to `src/config/query_routing_canonical_v1.json`.
+- Preserved `query_routing_eval_v1.json` as the historical calibration input.
+- Added disjoint `query_routing_eval_v2.json` and made it the calibration
+  default.
+- Added a contract for the runtime config path, environment override, 30 unique
+  v2 queries, and normalized exact disjointness between canonical and v2.
+
+### Interpretation
+
+- This is a runtime/evaluation ownership and dataset-leakage correction, not a
+  routing score improvement claim.
+- No new calibration result was produced. Historical v1 metrics must not be
+  presented as v2 metrics or as clean held-out performance against the current
+  canonical set.

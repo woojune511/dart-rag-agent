@@ -193,11 +193,18 @@
 - few-shot 예제 세트:
   - [query_routing_examples.md](query_routing_examples.md)
 - semantic router용 canonical queries:
-  - [benchmarks/golden/query_routing_canonical_v1.json](../benchmarks/golden/query_routing_canonical_v1.json)
-- held-out routing 검증셋:
-  - [benchmarks/golden/query_routing_eval_v1.json](../benchmarks/golden/query_routing_eval_v1.json)
+  - [src/config/query_routing_canonical_v1.json](../../src/config/query_routing_canonical_v1.json)
+- 현재 held-out routing 검증셋:
+  - [benchmarks/golden/query_routing_eval_v2.json](../../benchmarks/golden/query_routing_eval_v2.json)
+  - canonical과 v2 질문은 정규화 후 서로 겹치지 않는 계약 테스트로
+    exact-overlap 방지 상태를 검증한다.
+- historical calibration 검증셋:
+  - [benchmarks/golden/query_routing_eval_v1.json](../../benchmarks/golden/query_routing_eval_v1.json)
+  - v1은 2026-04-24 calibration 재현용으로 보존한다. 이후 canonical에
+    편입된 질문 1건이 포함되므로 현재 canonical 대비 clean held-out
+    성능 근거로 재사용하지 않는다.
 - calibration 스크립트:
-  - [src/ops/calibrate_query_router.py](../src/ops/calibrate_query_router.py)
+  - [src/ops/calibrate_query_router.py](../../src/ops/calibrate_query_router.py)
 
 ## 현재 구현 상태
 
