@@ -501,8 +501,10 @@ profile 기반 실험 orchestrator다.
 
 - `src/ops/portfolio_review_gates.py::run_review_gates()`: reviewer-facing gate
   상태를 묶어 ready/not-ready로 요약한다.
-- `src/ops/portfolio_demo.py::build_demo()`: fixture-backed demo payload를 만들고
-  task/artifact/critic integrity를 요약한다.
+- `src/ops/portfolio_fixture_contract.py::evaluate_fixture_contract()`:
+  curated fixture의 manifest binding과 cross-surface contract를 판정한다.
+- `src/ops/portfolio_demo.py::build_demo()`: 판정 결과를 reviewer-facing demo
+  projection으로 구성하고 CLI renderer에 전달한다.
 - `src/ops/run_eval_only.py::main()`: 기존 benchmark output/store로 eval만 다시
   수행한다.
 

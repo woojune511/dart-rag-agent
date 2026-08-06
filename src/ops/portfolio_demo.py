@@ -12,12 +12,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.agent.financial_artifact_contracts import critic_report_runtime_acceptance_state
+from src.ops.portfolio_fixture_contract import evaluate_fixture_contract
 from src.ops.review_report_cache_index_contract import run_review
 
 
 DEFAULT_DEMO_PAYLOAD_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "portfolio_demo" / "demo_payload.json"
+)
+DEFAULT_DEMO_EVIDENCE_MANIFEST_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "portfolio_demo"
+    / "evidence_manifest.json"
 )
 
 
@@ -36,83 +43,27 @@ def _first_mapping(items: Any) -> Dict[str, Any]:
     return {}
 
 
-def _summarize_task_artifact_trace(trace: Dict[str, Any]) -> Dict[str, Any]:
-    return {
-        "integrity_status": trace.get("integrity_status"),
-        "integrity_issue_count": int(trace.get("integrity_issue_count") or 0),
-        "task_count": int(trace.get("task_count") or 0),
-        "artifact_count": int(trace.get("artifact_count") or 0),
-        "missing_artifact_ids": list(trace.get("missing_artifact_ids") or []),
-        "orphan_artifact_ids": list(trace.get("orphan_artifact_ids") or []),
-        "integrity_issues": list(trace.get("integrity_issues") or []),
-    }
-
-
-def _summarize_critic_acceptance(report: Dict[str, Any]) -> Dict[str, Any]:
-    acceptance = critic_report_runtime_acceptance_state(dict(report))
-    blocking_issues = list(report.get("blocking_issues") or [])
-    target_artifact_ids = list(report.get("target_artifact_ids") or [])
-    return {
-        "status": acceptance.get("runtime_acceptance_status"),
-        "verdict": report.get("verdict"),
-        "target_task_id": report.get("target_task_id"),
-        "target_artifact_ids": target_artifact_ids,
-        "target_refs": list(acceptance.get("target_refs") or []),
-        "acceptance_reason": str(report.get("acceptance_reason") or ""),
-        "blocking_issues": blocking_issues,
-        "runtime_acceptance_reasons": list(acceptance.get("reasons") or []),
-        "deterministic_score": acceptance.get("deterministic_score"),
-        "deterministic_score_used_for_acceptance": bool(
-            acceptance.get("deterministic_score_used_for_acceptance")
-        ),
-    }
-
-
-def _checks(
-    *,
-    answer_package: Dict[str, Any],
-    task_artifact: Dict[str, Any],
-    critic_acceptance: Dict[str, Any],
-) -> Dict[str, Any]:
-    semantic_plan = dict(answer_package.get("semantic_plan") or {})
-    retrieval_trace = dict(answer_package.get("retrieval_debug_trace") or {})
-    trace = dict(answer_package.get("resolved_calculation_trace") or {})
-    calculation_result = dict(trace.get("calculation_result") or {})
-    checks = {
-        "answer_present": bool(str(answer_package.get("answer") or "").strip()),
-        "citations_present": bool(answer_package.get("citations") or []),
-        "semantic_plan_present": bool(semantic_plan.get("tasks") or []),
-        "retrieval_trace_present": bool(retrieval_trace.get("query_bundle") or [])
-        and int(retrieval_trace.get("selected_count") or 0) > 0,
-        "calculation_trace_ok": calculation_result.get("status") == "ok",
-        "task_artifact_integrity_ok": task_artifact.get("integrity_status") == "ok",
-        "critic_accepted": critic_acceptance.get("status") == "accepted",
-    }
-    return {
-        "status": "ready" if all(checks.values()) else "needs_review",
-        "checks": checks,
-    }
-
-
 def build_demo(
     *,
     demo_payload_path: str | Path = DEFAULT_DEMO_PAYLOAD_PATH,
+    evidence_manifest_path: str | Path = DEFAULT_DEMO_EVIDENCE_MANIFEST_PATH,
     include_cache_review: bool = False,
 ) -> Dict[str, Any]:
     payload_path = Path(demo_payload_path)
+    manifest_path = Path(evidence_manifest_path)
     payload = _read_json_object(payload_path)
     answer_package = dict(payload.get("answer_package") or {})
-    task_artifact = _summarize_task_artifact_trace(
-        dict(answer_package.get("task_artifact_trace") or {})
-    )
-    critic_acceptance = _summarize_critic_acceptance(
-        _first_mapping(answer_package.get("critic_reports"))
+    fixture_contract = evaluate_fixture_contract(
+        answer_package=answer_package,
+        manifest_path=manifest_path,
+        payload_path=payload_path,
     )
     cache_review = run_review() if include_cache_review else None
     return {
         "demo_id": payload.get("demo_id"),
         "question": payload.get("question"),
         "source_payload": str(payload_path),
+        "fixture_evidence": dict(fixture_contract.get("fixture_evidence") or {}),
         "answer": answer_package.get("answer"),
         "citations": list(answer_package.get("citations") or []),
         "evidence_items": list(answer_package.get("evidence_items") or []),
@@ -125,16 +76,16 @@ def build_demo(
         "resolved_calculation_trace": dict(
             answer_package.get("resolved_calculation_trace") or {}
         ),
-        "task_artifact_integrity": task_artifact,
-        "critic_acceptance": critic_acceptance,
+        "task_artifact_integrity": dict(
+            fixture_contract.get("task_artifact_integrity") or {}
+        ),
+        "critic_acceptance": dict(
+            fixture_contract.get("critic_acceptance") or {}
+        ),
         "cache_reviewer_handoff": (
             dict(cache_review.get("reviewer_handoff") or {}) if cache_review else None
         ),
-        "readiness": _checks(
-            answer_package=answer_package,
-            task_artifact=task_artifact,
-            critic_acceptance=critic_acceptance,
-        ),
+        "readiness": dict(fixture_contract.get("readiness") or {}),
     }
 
 
@@ -177,13 +128,32 @@ def render_text(demo: Dict[str, Any]) -> str:
     critic = dict(demo.get("critic_acceptance") or {})
     cache_handoff = dict(demo.get("cache_reviewer_handoff") or {})
     readiness = dict(demo.get("readiness") or {})
+    fixture_evidence = dict(demo.get("fixture_evidence") or {})
+    readiness_checks = dict(readiness.get("checks") or {})
 
     lines = [
         "# Portfolio Runtime Demo",
         "",
-        f"Readiness: {readiness.get('status')}",
+        f"Fixture Contract Readiness: {readiness.get('status')}",
+        "Scope: checked-in fixture contract; this command does not replay a live runtime run",
         f"Question: {demo.get('question')}",
         f"Answer: {demo.get('answer')}",
+        "",
+        "Fixture Evidence:",
+        f"  - status: {fixture_evidence.get('status')}",
+        f"  - evidence_kind: {fixture_evidence.get('evidence_kind')}",
+        (
+            "  - upstream_artifact_availability: "
+            f"{fixture_evidence.get('upstream_artifact_availability')}"
+        ),
+        (
+            "  - fixture_sha256_matches: "
+            f"{_format_bool(fixture_evidence.get('fixture_sha256_matches'))}"
+        ),
+        "  - limitations:",
+        *_format_list(
+            [str(item) for item in fixture_evidence.get("limitations") or []]
+        ),
         "",
         "Citations:",
         *_format_list([str(item) for item in demo.get("citations") or []]),
@@ -241,6 +211,12 @@ def render_text(demo: Dict[str, Any]) -> str:
             f"  - target_task_id: {critic.get('target_task_id')}",
             f"  - target_artifact_ids: {', '.join(critic.get('target_artifact_ids') or [])}",
             f"  - reason: {critic.get('acceptance_reason') or '-'}",
+            "",
+            "Cross-Surface Contract Checks:",
+            *[
+                f"  - {name}: {_format_bool(value)}"
+                for name, value in readiness_checks.items()
+            ],
         ]
     )
     if cache_handoff:
@@ -281,6 +257,12 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         help="Fixture JSON containing the representative runtime projection.",
     )
     parser.add_argument(
+        "--evidence-manifest",
+        type=Path,
+        default=DEFAULT_DEMO_EVIDENCE_MANIFEST_PATH,
+        help="Evidence manifest containing the SHA-256 fixture binding.",
+    )
+    parser.add_argument(
         "--format",
         choices=("text", "json"),
         default="text",
@@ -305,6 +287,7 @@ def main(argv: List[str] | None = None) -> int:
     args = parse_args(argv)
     demo = build_demo(
         demo_payload_path=args.demo_payload,
+        evidence_manifest_path=args.evidence_manifest,
         include_cache_review=args.include_cache_review,
     )
     if args.format == "json":
@@ -315,7 +298,12 @@ def main(argv: List[str] | None = None) -> int:
     if args.output:
         _write_output(args.output, rendered)
     print(rendered, end="")
-    return 0 if dict(demo.get("readiness") or {}).get("status") == "ready" else 1
+    return (
+        0
+        if dict(demo.get("readiness") or {}).get("status")
+        == "fixture_contract_ready"
+        else 1
+    )
 
 
 if __name__ == "__main__":

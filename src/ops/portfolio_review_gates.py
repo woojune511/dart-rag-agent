@@ -20,8 +20,15 @@ from src.ops.report_cache_promotion_evidence_gate import run_gate as run_cache_p
 from src.ops.review_report_cache_index_contract import run_review
 
 
-def _is_ready(value: Any) -> bool:
-    return str(value or "").strip() in {"ready", "ok"}
+REVIEW_SURFACE_READY_STATUS = "review_surface_ready"
+
+
+def _is_successful_gate_state(value: Any) -> bool:
+    return str(value or "").strip() in {
+        "ready",
+        "ok",
+        "fixture_contract_ready",
+    }
 
 
 def run_review_gates() -> Dict[str, Any]:
@@ -31,25 +38,55 @@ def run_review_gates() -> Dict[str, Any]:
     reflection_gate = run_gate_suite()
     reference_note = run_reference_note_gate()
     trace_materiality = run_trace_materiality_gate()
+    portfolio_readiness = dict(portfolio_demo.get("readiness") or {})
+    portfolio_checks = dict(portfolio_readiness.get("checks") or {})
     checks = {
-        "portfolio_demo_ready": _is_ready(
-            dict(portfolio_demo.get("readiness") or {}).get("status")
+        "portfolio_demo_fixture_contract_ready": _is_successful_gate_state(
+            portfolio_readiness.get("status")
         ),
         "cache_reviewer_ok": str(cache_review.get("status") or "") == "ok",
-        "cache_handoff_ready": _is_ready(
+        "cache_handoff_ready": _is_successful_gate_state(
             dict(cache_review.get("reviewer_handoff") or {}).get("status")
         ),
-        "cache_promotion_evidence_ready": _is_ready(cache_promotion.get("status")),
-        "reflection_promotion_ready": _is_ready(reflection_gate.get("status")),
-        "reference_note_capability_ready": _is_ready(reference_note.get("status")),
-        "promotion_trace_materiality_ready": _is_ready(trace_materiality.get("status")),
+        "cache_promotion_evidence_ready": _is_successful_gate_state(
+            cache_promotion.get("status")
+        ),
+        "reflection_promotion_ready": _is_successful_gate_state(
+            reflection_gate.get("status")
+        ),
+        "reference_note_capability_ready": _is_successful_gate_state(
+            reference_note.get("status")
+        ),
+        "promotion_trace_materiality_ready": _is_successful_gate_state(
+            trace_materiality.get("status")
+        ),
     }
-    status = "ready" if all(checks.values()) else "needs_review"
+    status = REVIEW_SURFACE_READY_STATUS if all(checks.values()) else "needs_review"
     return {
         "status": status,
+        "scope": "review_surface_only",
+        "publication_validation": {
+            "status": "not_run",
+            "unit_tests": "not_run",
+            "runtime_domain_term_audit": "not_run",
+            "publication_ready": None,
+            "note": (
+                "This command validates the reviewer-facing fixture and optional "
+                "capability surfaces only; run unit tests and the runtime-domain "
+                "audit separately for publication validation."
+            ),
+        },
         "checks": checks,
         "portfolio_demo": {
-            "readiness": dict(portfolio_demo.get("readiness") or {}).get("status"),
+            "readiness": portfolio_readiness.get("status"),
+            "scope": portfolio_readiness.get("scope"),
+            "fixture_evidence": dict(portfolio_demo.get("fixture_evidence") or {}).get(
+                "status"
+            ),
+            "contract_check_count": len(portfolio_checks),
+            "contract_checks_passed": sum(
+                1 for value in portfolio_checks.values() if value is True
+            ),
             "task_artifact_integrity": dict(
                 portfolio_demo.get("task_artifact_integrity") or {}
             ).get("integrity_status"),
@@ -121,14 +158,30 @@ def render_text(result: Dict[str, Any]) -> str:
     reflection = dict(result.get("reflection_promotion") or {})
     reference_note = dict(result.get("reference_note_capability") or {})
     trace_materiality = dict(result.get("promotion_trace_materiality") or {})
+    publication_validation = dict(result.get("publication_validation") or {})
     signals = dict(reflection.get("promotion_signals") or {})
     lines = [
         "# Portfolio Review Gates",
         "",
         f"Status: {result.get('status')}",
+        f"Scope: {result.get('scope')}",
+        f"Publication Validation: {publication_validation.get('status')}",
+        f"  - unit_tests: {publication_validation.get('unit_tests')}",
+        (
+            "  - runtime_domain_term_audit: "
+            f"{publication_validation.get('runtime_domain_term_audit')}"
+        ),
+        f"  - note: {publication_validation.get('note')}",
         "",
         "Portfolio Demo:",
         f"  - readiness: {portfolio.get('readiness')}",
+        f"  - scope: {portfolio.get('scope')}",
+        f"  - fixture_evidence: {portfolio.get('fixture_evidence')}",
+        (
+            "  - contract_checks_passed: "
+            f"{portfolio.get('contract_checks_passed')}/"
+            f"{portfolio.get('contract_check_count')}"
+        ),
         f"  - task_artifact_integrity: {portfolio.get('task_artifact_integrity')}",
         f"  - critic_acceptance: {portfolio.get('critic_acceptance')}",
         "",
@@ -205,7 +258,7 @@ def main(argv: List[str] | None = None) -> int:
     if args.output:
         _write_output(args.output, rendered)
     print(rendered, end="")
-    return 0 if result.get("status") == "ready" else 1
+    return 0 if result.get("status") == REVIEW_SURFACE_READY_STATUS else 1
 
 
 if __name__ == "__main__":
