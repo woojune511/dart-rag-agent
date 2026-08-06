@@ -140,15 +140,30 @@ Runtime default와 trace 계약은 [../architecture/agent_runtime_contract.md](.
 
 | 항목 | 내용 |
 | --- | --- |
-| 공식 gate 재평가 | `python -m src.ops.benchmark_runner --eval-only` |
+| 공식 gate 재평가 | `python -m src.ops.benchmark_runner --eval-only --eval-output-dir <fresh-target>` |
 | legacy/standalone 스크립트 | [src/ops/run_eval_only.py](../../src/ops/run_eval_only.py) |
 | 용도 | 기존 store 재사용, current agent/evaluator 전체 회귀, answer/evidence/rendering 회귀 |
 | 주의 1 | source output dir는 persisted store가 실제로 들어 있는 결과 번들이어야 한다 |
-| 주의 2 | `latest/` 같은 임시 번들은 source로 부적절할 수 있다 |
+| 주의 2 | `--eval-output-dir`를 지정하면 `--output-dir`은 read-only source로 유지된다. 생략하면 기존 in-place refresh 동작을 유지한다 |
 | 주의 3 | 이 경로는 **같은 answer를 재채점하는 evaluator-only replay가 아니다**. 같은 store를 읽고 current code path를 다시 실행한다 |
 | 주의 4 | `benchmark_runner --eval-only`는 parse / ingest / screening을 건너뛰지만, agent answer generation과 evaluator LLM은 다시 호출한다 |
+| 주의 5 | `--eval-output-dir`는 persisted store를 복사하지 않는다. refreshed 결과가 계속 source store를 참조할 수 있으므로 원본 bundle을 보존한다 |
 
 > evaluator만 바꿔서 **같은 historical answer / runtime_evidence / calculation trace**를 재판정하려면 `retrospective_*_eval.py` 계열 replay 스크립트를 사용한다.
+
+새 refresh에서는 source evidence 보존을 위해 별도 target을 기본 운영 방식으로
+사용한다. JSON 결과는 같은 디렉터리의 임시 파일에 먼저 기록한 뒤 원자적으로
+교체되므로, 직렬화나 교체 실패가 기존 `results.json`을 부분 파일로 남기지 않는다.
+
+```powershell
+uv run --with-requirements requirements.txt python -m src.ops.benchmark_runner `
+  --config benchmarks\profiles\<profile>.json `
+  --output-dir benchmarks\results\<source-bundle> `
+  --eval-only `
+  --eval-output-dir benchmarks\results\<fresh-target> `
+  --progress-heartbeat-sec 60 `
+  --heartbeat-log benchmarks\results\<fresh-target>\_logs\heartbeat.jsonl
+```
 
 Concept-runtime promotion baseline:
 
