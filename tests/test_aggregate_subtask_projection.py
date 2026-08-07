@@ -1146,8 +1146,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "assess_stale_calculation_result",
-                wraps=financial_graph_calculation.assess_stale_calculation_result,
+                "assess_stale_calculation_value",
+                wraps=financial_graph_calculation.assess_stale_calculation_value,
             ) as freshness_assessment,
             patch.object(
                 financial_calculation_execution,
@@ -1186,15 +1186,13 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertEqual(repaired_operands, operands)
         self.assertEqual(repaired_plan, plan)
         freshness_assessment.assert_called_once_with(
-            formula="A - B",
-            operands=operands,
-            variable_bindings=plan["variable_bindings"],
+            expected_value=750.0,
             calculation_result=stale_result,
         )
-        self.assertEqual(formula_evaluation.call_count, 2)
+        self.assertEqual(formula_evaluation.call_count, 1)
         self.assertEqual(
             [call.args for call in formula_evaluation.call_args_list],
-            [("A - B", {"A": 1000.0, "B": 250.0})] * 2,
+            [("A - B", {"A": 1000.0, "B": 250.0})],
         )
         canonical_execution.assert_called_once()
         candidate_preparation.assert_called_once()
@@ -1227,12 +1225,13 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         }
         indeterminate_result = {"status": "ok", "result_value": 1.0}
         failed_result = {"status": "parse_error", "result_value": None}
+        state = {"query": "calculate value"}
 
         with (
             patch.object(
                 financial_graph_calculation,
-                "assess_stale_calculation_result",
-                wraps=financial_graph_calculation.assess_stale_calculation_result,
+                "assess_stale_calculation_value",
+                wraps=financial_graph_calculation.assess_stale_calculation_value,
             ) as freshness_assessment,
             patch.object(
                 financial_calculation_execution,
@@ -1262,22 +1261,22 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             indeterminate = agent._repair_stale_calculation_result_from_operands(
-                {},
+                state,
                 operands=operands,
                 plan=plan,
                 calculation_result=indeterminate_result,
             )
             failed = agent._repair_stale_calculation_result_from_operands(
-                {},
+                state,
                 operands=operands,
                 plan=plan,
                 calculation_result=failed_result,
             )
 
-        freshness_assessment.assert_called_once()
+        freshness_assessment.assert_not_called()
         formula_evaluation.assert_not_called()
         canonical_execution.assert_not_called()
-        candidate_preparation.assert_not_called()
+        candidate_preparation.assert_called_once()
         candidate_projection.assert_not_called()
         state_projection.assert_not_called()
         recursive_execute.assert_not_called()

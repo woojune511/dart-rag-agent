@@ -3954,7 +3954,7 @@ class OperationContractTests(unittest.TestCase):
         original_trace = json.loads(json.dumps(state["resolved_calculation_trace"]))
         stale_result = {
             "status": "ok",
-            "result_value": 0.0,
+            "result_value": 0.0035,
             "result_unit": "times",
             "rendered_value": "0 times",
             "source_row_ids": ["row_stale"],
@@ -3998,7 +3998,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(
             [call.args for call in formula_evaluation.call_args_list],
             [
-                ("A / B", {"A": 3_500_000.0, "B": 1_000_000_000.0}),
                 ("A / B", {"A": 3_500_000_000.0, "B": 1_000_000_000.0}),
             ],
         )
@@ -7839,10 +7838,14 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(recursive_execute.call_count, 0)
         self.assertEqual(formula_evaluation.call_count, 2)
-        canonical_execution.assert_not_called()
-        candidate_preparation.assert_not_called()
+        self.assertEqual(canonical_execution.call_count, 2)
+        self.assertEqual(candidate_preparation.call_count, 2)
         candidate_projection.assert_not_called()
+        self.assertIs(first_operands, operands)
+        self.assertIs(first_plan, plan)
         self.assertIs(first_result, calc)
+        self.assertIs(second_operands, first_operands)
+        self.assertIs(second_plan, first_plan)
         self.assertIs(second_result, first_result)
         self.assertEqual(second_result, calc)
         self.assertNotIn("stale_result_repaired_from_operands", second_result)
@@ -7890,9 +7893,9 @@ class OperationContractTests(unittest.TestCase):
             )
 
         recursive_execute.assert_not_called()
-        self.assertEqual(formula_evaluation.call_count, 3)
-        canonical_execution.assert_called_once()
-        candidate_preparation.assert_called_once()
+        self.assertEqual(formula_evaluation.call_count, 2)
+        self.assertEqual(canonical_execution.call_count, 2)
+        self.assertEqual(candidate_preparation.call_count, 2)
         candidate_projection.assert_called_once()
         self.assertIs(settled_result, changed_result)
         self.assertTrue(changed_result["stale_result_repaired_from_operands"])

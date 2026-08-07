@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
-    StaleCalculationAssessment,
-    assess_stale_calculation_result,
+    StaleCalculationValueAssessment,
+    assess_stale_calculation_value,
     build_failed_calculation_result,
     build_scalar_calculation_result,
     build_scalar_calculation_state,
@@ -18,43 +18,35 @@ from src.agent.financial_calculation_execution import (
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import CalculationResult
 
-
-def _stale_assessment_inputs():
-    return {
-        "formula": "A - B",
-        "operands": [
-            {"operand_id": "op_a", "normalized_value": 1000.0},
-            {"operand_id": "op_b", "normalized_value": 250.0},
-        ],
-        "variable_bindings": [
-            {"variable": "A", "operand_id": "op_a"},
-            {"variable": "B", "operand_id": "op_b"},
-        ],
-    }
-
-
 class FinancialCalculationExecutionTests(unittest.TestCase):
-    def test_assess_stale_calculation_result_classifies_current_and_stale_without_mutation(self) -> None:
-        kwargs = _stale_assessment_inputs()
+    def test_assess_stale_calculation_value_classifies_current_stale_and_nan_without_mutation(self) -> None:
         current_result = {"status": "ok", "result_value": 750.0}
-        original_inputs = deepcopy((kwargs, current_result))
+        original_result = deepcopy(current_result)
 
-        current = assess_stale_calculation_result(
-            **kwargs,
+        current = assess_stale_calculation_value(
+            expected_value=750.0,
             calculation_result=current_result,
         )
-        stale = assess_stale_calculation_result(
-            **kwargs,
+        stale = assess_stale_calculation_value(
+            expected_value=750.0,
             calculation_result={**current_result, "result_value": 990.0},
         )
-        nan_current = assess_stale_calculation_result(
-            **kwargs,
+        nan_current = assess_stale_calculation_value(
+            expected_value=750.0,
             calculation_result={**current_result, "result_value": float("nan")},
+        )
+        nan_expected = assess_stale_calculation_value(
+            expected_value=float("nan"),
+            calculation_result=current_result,
+        )
+        scaled_tolerance = assess_stale_calculation_value(
+            expected_value=2_000_000.0,
+            calculation_result={"result_value": 2_000_000.001},
         )
 
         self.assertEqual(
             current,
-            StaleCalculationAssessment(
+            StaleCalculationValueAssessment(
                 is_stale=False,
                 reason="current",
                 expected_value=750.0,
@@ -64,7 +56,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         )
         self.assertEqual(
             stale,
-            StaleCalculationAssessment(
+            StaleCalculationValueAssessment(
                 is_stale=True,
                 reason="stale",
                 expected_value=750.0,
@@ -74,12 +66,15 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         )
         self.assertTrue(nan_current.is_stale)
         self.assertEqual(nan_current.reason, "stale")
-        self.assertEqual((kwargs, current_result), original_inputs)
+        self.assertTrue(nan_expected.is_stale)
+        self.assertEqual(nan_expected.reason, "stale")
+        self.assertFalse(scaled_tolerance.is_stale)
+        self.assertEqual(scaled_tolerance.tolerance, 0.002)
+        self.assertEqual(current_result, original_result)
 
-    def test_assess_stale_calculation_result_uses_formula_trace_only_for_source_stated_result(self) -> None:
-        kwargs = _stale_assessment_inputs()
-        source_stated = assess_stale_calculation_result(
-            **kwargs,
+    def test_assess_stale_calculation_value_uses_formula_trace_only_for_source_stated_result(self) -> None:
+        source_stated = assess_stale_calculation_value(
+            expected_value=750.0,
             calculation_result={
                 "result_value": 800.0,
                 "derived_metrics": {
@@ -88,8 +83,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                 },
             },
         )
-        ordinary = assess_stale_calculation_result(
-            **kwargs,
+        ordinary = assess_stale_calculation_value(
+            expected_value=750.0,
             calculation_result={
                 "result_value": 800.0,
                 "derived_metrics": {
@@ -106,84 +101,31 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         self.assertEqual(ordinary.reason, "stale")
         self.assertEqual(ordinary.current_value, 800.0)
 
-    def test_assess_stale_calculation_result_uses_bound_normalized_values_without_unit_gating(self) -> None:
-        assessment = assess_stale_calculation_result(
-            formula="B / A",
-            operands=[
-                {
-                    "operand_id": "op_a",
-                    "raw_value": "1",
-                    "normalized_value": "100",
-                    "normalized_unit": "KRW",
-                },
-                {
-                    "operand_id": "op_b",
-                    "raw_value": "999",
-                    "normalized_value": 4.0,
-                    "normalized_unit": "COUNT",
-                },
-            ],
-            variable_bindings=[
-                {"variable": "B", "operand_id": "op_a"},
-                {"variable": "A", "operand_id": "op_b"},
-            ],
-            calculation_result={"result_value": 25.0},
+    def test_assess_stale_calculation_value_classifies_unavailable_values(self) -> None:
+        expected_unavailable = assess_stale_calculation_value(
+            expected_value=None,
+            calculation_result={"result_value": 2.0},
+        )
+        current_unavailable = assess_stale_calculation_value(
+            expected_value=2.0,
+            calculation_result={"result_value": None},
         )
 
-        self.assertEqual(assessment.reason, "current")
-        self.assertEqual(assessment.expected_value, 25.0)
-
-    def test_assess_stale_calculation_result_classifies_indeterminate_inputs(self) -> None:
-        valid_operand = {"operand_id": "op_a", "normalized_value": 2.0}
-        cases = [
-            ("no_bindings", "A", [valid_operand], [], {"result_value": 2.0}, None),
-            (
-                "invalid_binding",
-                "A",
-                [valid_operand],
-                [{"variable": "A", "operand_id": "missing"}],
-                {"result_value": 2.0},
-                None,
+        self.assertEqual(
+            expected_unavailable,
+            StaleCalculationValueAssessment(
+                is_stale=False,
+                reason="expected_value_unavailable",
             ),
-            (
-                "invalid_binding_value",
-                "A",
-                [{"operand_id": "op_a", "normalized_value": "not-a-number"}],
-                [{"variable": "A", "operand_id": "op_a"}],
-                {"result_value": 2.0},
-                None,
+        )
+        self.assertEqual(
+            current_unavailable,
+            StaleCalculationValueAssessment(
+                is_stale=False,
+                reason="current_value_unavailable",
+                expected_value=2.0,
             ),
-            (
-                "formula_evaluation_failed",
-                "A / 0",
-                [valid_operand],
-                [{"variable": "A", "operand_id": "op_a"}],
-                {"result_value": 2.0},
-                None,
-            ),
-            (
-                "current_value_unavailable",
-                "A",
-                [valid_operand],
-                [{"variable": "A", "operand_id": "op_a"}],
-                {"result_value": None},
-                2.0,
-            ),
-        ]
-
-        for reason, formula, operands, bindings, result, expected_value in cases:
-            with self.subTest(reason=reason):
-                assessment = assess_stale_calculation_result(
-                    formula=formula,
-                    operands=operands,
-                    variable_bindings=bindings,
-                    calculation_result=result,
-                )
-                self.assertFalse(assessment.is_stale)
-                self.assertEqual(assessment.reason, reason)
-                self.assertEqual(assessment.expected_value, expected_value)
-                self.assertIsNone(assessment.current_value)
-                self.assertIsNone(assessment.tolerance)
+        )
 
     def test_guard_operation_plan_accepts_distinct_ratio_bindings(self) -> None:
         guarded_plan = guard_operation_plan(

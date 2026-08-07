@@ -28,13 +28,10 @@ CalculationExecutionStatus = Literal[
     "parse_error",
 ]
 
-StaleCalculationAssessmentReason = Literal[
+StaleCalculationValueAssessmentReason = Literal[
     "stale",
     "current",
-    "invalid_binding",
-    "invalid_binding_value",
-    "no_bindings",
-    "formula_evaluation_failed",
+    "expected_value_unavailable",
     "current_value_unavailable",
 ]
 
@@ -54,59 +51,29 @@ class CalculationExecutionOutcome:
 
 
 @dataclass(frozen=True)
-class StaleCalculationAssessment:
-    """State-free comparison between bound operands and a projected result."""
+class StaleCalculationValueAssessment:
+    """State-free comparison between a canonical value and a projected result."""
 
     is_stale: bool
-    reason: StaleCalculationAssessmentReason
+    reason: StaleCalculationValueAssessmentReason
     expected_value: Optional[float] = None
     current_value: Optional[float] = None
     tolerance: Optional[float] = None
 
 
-def assess_stale_calculation_result(
+def assess_stale_calculation_value(
     *,
-    formula: str,
-    operands: Sequence[Dict[str, Any]],
-    variable_bindings: Sequence[Dict[str, Any]],
+    expected_value: Any,
     calculation_result: Mapping[str, Any],
-) -> StaleCalculationAssessment:
-    """Assess whether a projected scalar result disagrees with its bound operands."""
-
-    operands_by_id = {
-        str(row.get("operand_id") or "").strip(): dict(row)
-        for row in operands
-        if str(row.get("operand_id") or "").strip()
-    }
-    env: Dict[str, float] = {}
-    for binding in list(variable_bindings or []):
-        variable = str((binding or {}).get("variable") or "").strip()
-        operand_id = str((binding or {}).get("operand_id") or "").strip()
-        operand = operands_by_id.get(operand_id)
-        if not variable or operand is None:
-            return StaleCalculationAssessment(
-                is_stale=False,
-                reason="invalid_binding",
-            )
-        try:
-            env[variable] = float(operand.get("normalized_value"))
-        except (TypeError, ValueError):
-            return StaleCalculationAssessment(
-                is_stale=False,
-                reason="invalid_binding_value",
-            )
-    if not env:
-        return StaleCalculationAssessment(
-            is_stale=False,
-            reason="no_bindings",
-        )
+) -> StaleCalculationValueAssessment:
+    """Assess whether a projected scalar result disagrees with a canonical value."""
 
     try:
-        expected_value = float(_safe_eval_formula(formula, env))
+        canonical_value = float(expected_value)
     except Exception:
-        return StaleCalculationAssessment(
+        return StaleCalculationValueAssessment(
             is_stale=False,
-            reason="formula_evaluation_failed",
+            reason="expected_value_unavailable",
         )
 
     derived_metrics = calculation_result.get("derived_metrics")
@@ -124,18 +91,18 @@ def assess_stale_calculation_result(
         try:
             current_value = float(calculation_result.get("result_value"))
         except Exception:
-            return StaleCalculationAssessment(
+            return StaleCalculationValueAssessment(
                 is_stale=False,
                 reason="current_value_unavailable",
-                expected_value=expected_value,
+                expected_value=canonical_value,
             )
 
-    tolerance = max(1e-6, abs(expected_value) * 1e-9)
-    is_stale = not (abs(expected_value - current_value) <= tolerance)
-    return StaleCalculationAssessment(
+    tolerance = max(1e-6, abs(canonical_value) * 1e-9)
+    is_stale = not (abs(canonical_value - current_value) <= tolerance)
+    return StaleCalculationValueAssessment(
         is_stale=is_stale,
         reason="stale" if is_stale else "current",
-        expected_value=expected_value,
+        expected_value=canonical_value,
         current_value=current_value,
         tolerance=tolerance,
     )

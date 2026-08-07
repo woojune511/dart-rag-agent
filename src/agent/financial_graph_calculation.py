@@ -40,7 +40,7 @@ from src.agent.financial_aggregate_projection import (
 )
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
-    assess_stale_calculation_result,
+    assess_stale_calculation_value,
     build_failed_calculation_result,
     build_scalar_calculation_state,
     build_scalar_calculation_result,
@@ -17186,14 +17186,6 @@ class FinancialAgentCalculationMixin:
         formula = str(plan.get("formula") or "").strip()
         if not formula:
             return operands, plan, calculation_result
-        stale_assessment = assess_stale_calculation_result(
-            formula=formula,
-            operands=operands,
-            variable_bindings=list(plan.get("variable_bindings") or []),
-            calculation_result=calculation_result,
-        )
-        if not stale_assessment.is_stale:
-            return operands, plan, calculation_result
 
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         active_subtask = dict(state.get("active_subtask") or {})
@@ -17224,6 +17216,20 @@ class FinancialAgentCalculationMixin:
                 runtime_evidence=tuple(state.get("runtime_evidence") or []),
             )
         )
+        execution_outcome = prepared.execution_outcome
+        if (
+            prepared.status != "ok"
+            or execution_outcome is None
+            or execution_outcome.result_value is None
+        ):
+            return operands, plan, calculation_result
+        stale_assessment = assess_stale_calculation_value(
+            expected_value=execution_outcome.result_value,
+            calculation_result=calculation_result,
+        )
+        if not stale_assessment.is_stale:
+            return operands, plan, calculation_result
+
         projection = self._project_prepared_calculation_candidate(prepared)
         repaired_result = dict(projection.calculation_result)
         if (
