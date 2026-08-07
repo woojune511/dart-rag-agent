@@ -8,7 +8,6 @@ from src.agent.financial_dependency_projection import (
     LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
     align_dependency_rows_with_sibling_direct_context,
-    build_dependency_recalculation_state,
     decide_task_output_operand_resolution,
     dependency_binding_identity,
     direct_rows_resolved_dependency_keys,
@@ -22,71 +21,9 @@ from src.agent.financial_dependency_projection import (
     select_direct_dependency_operand_rows,
     summarize_dependency_bindings,
 )
-from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 
 
 class FinancialDependencyProjectionTests(unittest.TestCase):
-    def test_dependency_recalculation_state_prefers_supplied_trace_over_stale_aggregate_surfaces(self) -> None:
-        stale_subtask = {
-            "task_id": "task_stale",
-            "operation_family": "lookup",
-            "status": "ok",
-            "answer": "stale answer 999",
-            "calculation_operands": [{"operand_id": "stale", "normalized_value": 999.0}],
-            "calculation_plan": {"status": "ok", "operation": "lookup"},
-            "calculation_result": {"status": "ok", "rendered_value": "999"},
-        }
-        state = {
-            "answer": "stale answer 999",
-            "structured_result": {
-                "status": "ok",
-                "formatted_result": "stale answer 999",
-                "subtask_results": [stale_subtask],
-            },
-            "subtask_results": [stale_subtask],
-        }
-        operands = [
-            {"operand_id": "current", "normalized_value": 80.0},
-            {"operand_id": "prior", "normalized_value": 50.0},
-        ]
-        plan = {
-            "status": "ok",
-            "mode": "single_value",
-            "operation": "subtract",
-            "ordered_operand_ids": ["current", "prior"],
-            "variable_bindings": [
-                {"variable": "A", "operand_id": "current"},
-                {"variable": "B", "operand_id": "prior"},
-            ],
-            "formula": "A - B",
-            "result_unit": "KRW",
-        }
-        result = {
-            "status": "ok",
-            "result_value": 30.0,
-            "rendered_value": "30 KRW",
-            "answer_slots": {"operation_family": "difference"},
-        }
-        original_inputs = deepcopy((state, operands, plan, result))
-
-        recalculation_state = build_dependency_recalculation_state(
-            state,
-            active_subtask={"task_id": "task_current", "operation_family": "difference"},
-            updated_operands=operands,
-            calculation_plan=plan,
-            calculation_result=result,
-        )
-        trace = _resolve_runtime_calculation_trace(
-            recalculation_state,
-            allow_legacy_top_level=False,
-        )
-
-        self.assertEqual(trace["calculation_operands"], operands)
-        self.assertEqual(trace["calculation_plan"], plan)
-        self.assertEqual(trace["calculation_result"], result)
-        self.assertEqual(trace["runtime_projection"]["source"], "resolved_calculation_trace")
-        self.assertEqual((state, operands, plan, result), original_inputs)
-
     def test_resolve_dependency_producer_scope_preserves_task_precedence_and_hint_order(self) -> None:
         binding = {
             "preferred_task_id": "task_cost",

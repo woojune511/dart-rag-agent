@@ -1971,28 +1971,15 @@ def dependency_plan_is_executable(plan: Dict[str, Any]) -> bool:
 def rebuild_dependency_calculation_plan(
     calculation_plan: Dict[str, Any],
     *,
-    state: Dict[str, Any],
+    raw_deterministic_plan: Dict[str, Any],
     active_subtask: Dict[str, Any],
     updated_operands: List[Dict[str, Any]],
     operation_family: str,
     calculation_result: Dict[str, Any],
-    build_deterministic_operation_plan: Callable[[Dict[str, Any], List[Dict[str, Any]]], Dict[str, Any]],
 ) -> Dict[str, Any]:
-    if not dependency_plan_is_executable(calculation_plan):
-        calculation_plan = {}
-    if calculation_plan:
+    if dependency_plan_is_executable(calculation_plan):
         return calculation_plan
-    plan_state = {
-        **dict(state),
-        "active_subtask": active_subtask,
-        "calculation_operands": updated_operands,
-        "resolved_calculation_trace": {
-            "calculation_operands": updated_operands,
-            "calculation_plan": {},
-            "calculation_result": {},
-        },
-    }
-    calculation_plan = build_deterministic_operation_plan(plan_state, updated_operands) or {}
+    calculation_plan = raw_deterministic_plan
     if not dependency_plan_is_executable(calculation_plan):
         calculation_plan = build_fallback_dependency_operation_plan(
             updated_operands,
@@ -2001,32 +1988,6 @@ def rebuild_dependency_calculation_plan(
             calculation_result=calculation_result,
         )
     return calculation_plan
-
-
-def build_dependency_recalculation_state(
-    state: Dict[str, Any],
-    *,
-    active_subtask: Dict[str, Any],
-    updated_operands: List[Dict[str, Any]],
-    calculation_plan: Dict[str, Any],
-    calculation_result: Dict[str, Any],
-) -> Dict[str, Any]:
-    return {
-        **dict(state),
-        "active_subtask": active_subtask,
-        "calculation_operands": updated_operands,
-        "calculation_plan": calculation_plan,
-        "calculation_result": dict(calculation_result),
-        "resolved_calculation_trace": {
-            "calculation_operands": updated_operands,
-            "calculation_plan": calculation_plan,
-            "calculation_result": dict(calculation_result),
-        },
-        "structured_result": {},
-        "subtask_results": [],
-        "tasks": [],
-        "artifacts": [],
-    }
 
 
 def apply_absolute_ratio_magnitude_if_requested(

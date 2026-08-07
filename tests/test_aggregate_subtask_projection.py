@@ -1786,12 +1786,39 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 },
             ],
         }
+        projection = {"calculation_operands": []}
+        original_inputs = deepcopy((ordered_results, state, projection))
+        original_rows = tuple(ordered_results)
 
-        aligned = agent._align_lookup_results_with_dependency_projection(
-            ordered_results,
-            state,
-            {"calculation_operands": []},
-        )
+        with (
+            patch.object(
+                agent,
+                "_build_deterministic_operation_plan",
+                wraps=agent._build_deterministic_operation_plan,
+            ) as raw_plan_builder,
+            patch.object(
+                agent,
+                "_run_calculation_candidate_input",
+                wraps=agent._run_calculation_candidate_input,
+            ) as run_candidate_input,
+            patch.object(
+                agent,
+                "_compact_ratio_answer",
+                wraps=agent._compact_ratio_answer,
+            ) as format_ratio,
+        ):
+            aligned = agent._align_lookup_results_with_dependency_projection(
+                ordered_results,
+                state,
+                projection,
+            )
+
+        raw_plan_builder.assert_not_called()
+        run_candidate_input.assert_not_called()
+        format_ratio.assert_not_called()
+        self.assertIs(aligned, ordered_results)
+        self.assertEqual((ordered_results, state, projection), original_inputs)
+        self.assertTrue(all(row is original for row, original in zip(ordered_results, original_rows)))
 
         net_row = next(row for row in aligned if row["task_id"] == "task_net")
         self.assertNotIn("aligned_from_source_task_slots", net_row)
@@ -2652,27 +2679,118 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         ]
 
-        aligned = agent._align_lookup_results_with_dependency_projection(
-            ordered_results,
-            {
-                "query": "calculate margin drag",
-                "calc_subtasks": [
-                    {"task_id": "task_other_numerator", "operation_family": "lookup"},
-                    {"task_id": "task_numerator", "operation_family": "lookup"},
-                    {"task_id": "task_denominator", "operation_family": "lookup"},
-                    {"task_id": "task_ratio", "operation_family": "ratio", "metric_label": "margin drag"},
-                ],
+        stale_subtask = {
+            "task_id": "task_stale",
+            "status": "ok",
+            "answer": "stale aggregate 999",
+            "calculation_result": {"status": "ok", "rendered_value": "999"},
+        }
+        state = {
+            "query": "calculate margin drag",
+            "answer": "stale aggregate 999",
+            "structured_result": {
+                "formatted_result": "stale aggregate 999",
+                "subtask_results": [stale_subtask],
             },
-            {"calculation_operands": []},
-        )
+            "subtask_results": [stale_subtask],
+            "calc_subtasks": [
+                {"task_id": "task_other_numerator", "operation_family": "lookup"},
+                {"task_id": "task_numerator", "operation_family": "lookup"},
+                {"task_id": "task_denominator", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "operation_family": "ratio", "metric_label": "margin drag"},
+            ],
+        }
+        projection = {"calculation_operands": []}
+        original_inputs = deepcopy((ordered_results, state, projection))
+        original_rows = tuple(ordered_results)
+        candidate_runs = []
+        formatter_outputs = []
+        original_run = agent._run_calculation_candidate_input
+        original_formatter = agent._compact_ratio_answer
+
+        def record_candidate_run(candidate_input):
+            candidate_runs.append(original_run(candidate_input))
+            return candidate_runs[-1]
+
+        def record_formatted_answer(formatter_state, calculation_result, **kwargs):
+            result_snapshot = deepcopy(calculation_result)
+            formatted_answer = original_formatter(formatter_state, calculation_result, **kwargs)
+            formatter_outputs.append((result_snapshot, formatted_answer))
+            return formatted_answer
+
+        with (
+            patch.object(
+                agent,
+                "_build_deterministic_operation_plan",
+                wraps=agent._build_deterministic_operation_plan,
+            ) as raw_plan_builder,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_deterministic_operation_plan",
+                wraps=financial_graph_calculation.resolve_deterministic_operation_plan,
+            ) as guarded_plan_resolver,
+            patch.object(
+                agent,
+                "_run_calculation_candidate_input",
+                side_effect=record_candidate_run,
+            ) as run_candidate_input,
+            patch.object(
+                agent,
+                "_run_calculation_candidate",
+                wraps=agent._run_calculation_candidate,
+            ) as legacy_run_candidate,
+            patch.object(
+                agent,
+                "_compact_ratio_answer",
+                side_effect=record_formatted_answer,
+            ) as format_ratio,
+        ):
+            aligned = agent._align_lookup_results_with_dependency_projection(
+                ordered_results,
+                state,
+                projection,
+            )
+
+        raw_plan_builder.assert_called_once()
+        guarded_plan_resolver.assert_not_called()
+        run_candidate_input.assert_called_once()
+        legacy_run_candidate.assert_not_called()
+        format_ratio.assert_called_once()
 
         ratio_row = aligned[-1]
+        candidate_input = run_candidate_input.call_args.args[0]
+        canonical_projection = candidate_runs[0].projection
+        formatter_state, _ = format_ratio.call_args.args
+        formatter_kwargs = format_ratio.call_args.kwargs
+        formatter_result, formatted_answer = formatter_outputs[0]
+        expected_result = dict(canonical_projection.calculation_result)
+        expected_result["formatted_result"] = formatted_answer
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
         self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "9.00%p")
+        self.assertEqual(ratio_row["calculation_operands"], list(canonical_projection.calculation_operands))
+        self.assertEqual(ratio_row["calculation_plan"], canonical_projection.calculation_plan)
+        self.assertEqual(ratio_row["calculation_result"], expected_result)
+        self.assertIs(formatter_state, state)
+        self.assertEqual(formatter_result, dict(canonical_projection.calculation_result))
+        self.assertEqual(
+            {key: candidate_input.active_subtask.get(key) for key in state["calc_subtasks"][-1]},
+            state["calc_subtasks"][-1],
+        )
+        self.assertEqual(candidate_input.query, state["query"])
+        self.assertEqual(candidate_input.calculation_operands[0]["raw_value"], "180")
+        self.assertEqual(formatter_kwargs["active_subtask"], candidate_input.active_subtask)
+        self.assertEqual(
+            formatter_kwargs["calculation_operands"],
+            list(candidate_input.calculation_operands),
+        )
+        self.assertEqual(candidate_input.calculation_plan, canonical_projection.calculation_plan)
+        self.assertEqual(ratio_row["answer"], formatted_answer)
         numerator = ratio_row["calculation_operands"][0]
         self.assertEqual(numerator["raw_value"], "180")
         self.assertIn("task_output:task_numerator", numerator["source_row_ids"])
         self.assertNotIn("900", ratio_row["answer"])
+        self.assertEqual((ordered_results, state, projection), original_inputs)
+        self.assertTrue(all(row is original for row, original in zip(ordered_results, original_rows)))
 
     def test_dependency_projection_recalculates_partial_ratio_from_late_lookup_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

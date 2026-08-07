@@ -62,11 +62,11 @@ from src.agent.financial_dependency_projection import (
     align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
     build_dependency_recalculated_row,
-    build_dependency_recalculation_state,
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
     dependency_binding_identity,
     dependency_lookup_slot_match_score,
+    dependency_plan_is_executable,
     dependency_operand_from_answer_slot,
     dependency_operand_can_use_source_slot,
     dependency_operand_from_source_slot,
@@ -2777,25 +2777,33 @@ class FinancialAgentCalculationMixin:
             if not changed:
                 return row
 
+            raw_deterministic_plan: Dict[str, Any] = {}
+            if not dependency_plan_is_executable(calculation_plan):
+                raw_deterministic_plan = self._build_deterministic_operation_plan(
+                    state,
+                    updated_operands,
+                    active_subtask=active_subtask,
+                ) or {}
             calculation_plan = rebuild_dependency_calculation_plan(
                 calculation_plan,
-                state=state,
+                raw_deterministic_plan=raw_deterministic_plan,
                 active_subtask=active_subtask,
                 updated_operands=updated_operands,
                 operation_family=operation_family,
                 calculation_result=dict(row.get("calculation_result") or {}),
-                build_deterministic_operation_plan=self._build_deterministic_operation_plan,
             )
             if not calculation_plan:
                 return row
-            recalculation_state = build_dependency_recalculation_state(
-                state,
-                active_subtask=active_subtask,
-                updated_operands=updated_operands,
-                calculation_plan=calculation_plan,
-                calculation_result=dict(row.get("calculation_result") or {}),
-            )
-            recalculation_projection = self._run_calculation_candidate(recalculation_state).projection
+            recalculation_projection = self._run_calculation_candidate_input(
+                _CalculationCandidateInput(
+                    calculation_operands=tuple(dict(item) for item in updated_operands),
+                    calculation_plan=dict(calculation_plan),
+                    active_subtask=dict(active_subtask),
+                    query=str(active_subtask.get("query") or state["query"]),
+                    evidence_items=tuple(state.get("evidence_items") or []),
+                    runtime_evidence=tuple(state.get("runtime_evidence") or []),
+                )
+            ).projection
             recalculated_trace = {
                 "calculation_operands": [
                     dict(item) for item in recalculation_projection.calculation_operands
@@ -2820,7 +2828,12 @@ class FinancialAgentCalculationMixin:
                 if artifact_row:
                     return artifact_row
             if operation_family == "ratio":
-                formatted_answer = self._compact_ratio_answer(recalculation_state, recalculated_result)
+                formatted_answer = self._compact_ratio_answer(
+                    state,
+                    recalculated_result,
+                    active_subtask=active_subtask,
+                    calculation_operands=updated_operands,
+                )
             else:
                 formatted_answer = _normalise_spaces(
                     str(recalculated_result.get("formatted_result") or recalculated_result.get("rendered_value") or "")
@@ -14076,14 +14089,22 @@ class FinancialAgentCalculationMixin:
         self,
         state: FinancialAgentState,
         calculation_result: Dict[str, Any],
+        *,
+        active_subtask: Optional[Dict[str, Any]] = None,
+        calculation_operands: Optional[Sequence[Dict[str, Any]]] = None,
     ) -> str:
         calculation_result = self._sync_ratio_display_from_result_value(calculation_result)
         answer_slots = dict(calculation_result.get("answer_slots") or {})
+        resolved_active_subtask = dict(
+            active_subtask
+            if active_subtask is not None
+            else state.get("active_subtask") or {}
+        )
         metric_label = _normalise_spaces(
             str(
                 answer_slots.get("metric_label")
-                or (state.get("active_subtask") or {}).get("metric_label")
-                or (state.get("active_subtask") or {}).get("task_id")
+                or resolved_active_subtask.get("metric_label")
+                or resolved_active_subtask.get("task_id")
                 or CALCULATION_RENDER_POLICY.get("ratio_default_metric_label")
                 or ""
             )
@@ -14105,10 +14126,14 @@ class FinancialAgentCalculationMixin:
         period_pattern = str(render_policy.get("ratio_year_period_pattern") or "")
         if len(periods) == 1 and period_pattern and re.fullmatch(period_pattern, periods[0]):
             period_prefix = str(render_policy.get("ratio_period_prefix_template") or "").format(period=periods[0])
-        trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+        if calculation_operands is None:
+            trace = _resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
+            resolved_calculation_operands = list(trace.get("calculation_operands") or [])
+        else:
+            resolved_calculation_operands = [dict(item) for item in calculation_operands]
         scope = self._ratio_component_consolidation_scope(
             calculation_result,
-            list(trace.get("calculation_operands") or []),
+            resolved_calculation_operands,
         )
         scope_prefixes = dict(render_policy.get("consolidation_scope_answer_prefixes") or {})
         if scope and str(scope_prefixes.get(scope) or ""):
@@ -14813,15 +14838,25 @@ class FinancialAgentCalculationMixin:
         self,
         state: FinancialAgentState,
         operands: List[Dict[str, Any]],
+        *,
+        active_subtask: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
-        active_subtask = dict(state.get("active_subtask") or {})
-        operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
+        resolved_active_subtask = dict(
+            active_subtask
+            if active_subtask is not None
+            else state.get("active_subtask") or {}
+        )
+        operation_family = str(resolved_active_subtask.get("operation_family") or "").strip().lower()
         required_operands = [
             dict(item)
-            for item in (active_subtask.get("required_operands") or [])
+            for item in (resolved_active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
-        metric_label = str(active_subtask.get("metric_label") or active_subtask.get("task_id") or "").strip()
+        metric_label = str(
+            resolved_active_subtask.get("metric_label")
+            or resolved_active_subtask.get("task_id")
+            or ""
+        ).strip()
         plan = build_deterministic_operation_plan(
             operation_family=operation_family,
             required_operands=required_operands,
@@ -14830,7 +14865,7 @@ class FinancialAgentCalculationMixin:
             difference_result_unit="",
         )
         if operation_family == "difference" and plan and _should_coerce_percent_point_unit(
-            self._calc_query(state),
+            str(resolved_active_subtask.get("query") or state["query"]),
             operands,
             plan,
         ):
@@ -17138,24 +17173,31 @@ class FinancialAgentCalculationMixin:
             )
             return _failed_state(failed_result)
 
+    def _run_calculation_candidate_input(
+        self,
+        candidate_input: _CalculationCandidateInput,
+    ) -> _CalculationCandidateRun:
+        prepared = self._prepare_calculation_candidate(candidate_input)
+        projection = self._project_prepared_calculation_candidate(prepared)
+        return _CalculationCandidateRun(prepared=prepared, projection=projection)
+
     def _run_calculation_candidate(self, state: FinancialAgentState) -> _CalculationCandidateRun:
         runtime_trace = _resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
         )
-        candidate_input = _CalculationCandidateInput(
-            calculation_operands=tuple(
-                dict(row) for row in (runtime_trace.get("calculation_operands") or [])
-            ),
-            calculation_plan=dict(runtime_trace.get("calculation_plan") or {}),
-            active_subtask=dict(state.get("active_subtask") or {}),
-            query=self._calc_query(state),
-            evidence_items=tuple(state.get("evidence_items") or []),
-            runtime_evidence=tuple(state.get("runtime_evidence") or []),
+        return self._run_calculation_candidate_input(
+            _CalculationCandidateInput(
+                calculation_operands=tuple(
+                    dict(row) for row in (runtime_trace.get("calculation_operands") or [])
+                ),
+                calculation_plan=dict(runtime_trace.get("calculation_plan") or {}),
+                active_subtask=dict(state.get("active_subtask") or {}),
+                query=self._calc_query(state),
+                evidence_items=tuple(state.get("evidence_items") or []),
+                runtime_evidence=tuple(state.get("runtime_evidence") or []),
+            )
         )
-        prepared = self._prepare_calculation_candidate(candidate_input)
-        projection = self._project_prepared_calculation_candidate(prepared)
-        return _CalculationCandidateRun(prepared=prepared, projection=projection)
 
     def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Execute the planned numeric operation and normalize the result."""

@@ -5716,18 +5716,23 @@ class SubtaskLoopTests(unittest.TestCase):
         original_inputs = json.loads(json.dumps([ordered, state, projection]))
         original_rows = tuple(ordered)
         candidate_runs = []
-        original_run = self.agent._run_calculation_candidate
+        original_run = self.agent._run_calculation_candidate_input
 
-        def _record_candidate_run(recalculation_state):
-            candidate_runs.append(original_run(recalculation_state))
+        def _record_candidate_run(candidate_input):
+            candidate_runs.append(original_run(candidate_input))
             return candidate_runs[-1]
 
         with (
             patch.object(
                 self.agent,
-                "_run_calculation_candidate",
+                "_run_calculation_candidate_input",
                 side_effect=_record_candidate_run,
-            ) as run_candidate,
+            ) as run_candidate_input,
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate",
+                wraps=self.agent._run_calculation_candidate,
+            ) as legacy_run_candidate,
             patch.object(
                 self.agent,
                 "_execute_calculation",
@@ -5741,7 +5746,8 @@ class SubtaskLoopTests(unittest.TestCase):
         ):
             aligned = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
 
-        run_candidate.assert_called_once()
+        run_candidate_input.assert_called_once()
+        legacy_run_candidate.assert_not_called()
         execute_calculation.assert_not_called()
         state_projection.assert_not_called()
         ratio_row = aligned[-1]
@@ -5762,11 +5768,27 @@ class SubtaskLoopTests(unittest.TestCase):
                 calculation_result={"status": "parse_error"}
             )
         )
-        with patch.object(
-            self.agent, "_run_calculation_candidate", return_value=failed_run
-        ) as failed_candidate_run:
+        with (
+            patch.object(
+                self.agent,
+                "_build_deterministic_operation_plan",
+                wraps=self.agent._build_deterministic_operation_plan,
+            ) as failed_raw_plan_builder,
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                return_value=failed_run,
+            ) as failed_candidate_input,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                wraps=self.agent._compact_ratio_answer,
+            ) as failed_formatter,
+        ):
             failed = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
-        failed_candidate_run.assert_called_once()
+        failed_raw_plan_builder.assert_not_called()
+        failed_candidate_input.assert_called_once()
+        failed_formatter.assert_not_called()
         self.assertIs(failed, ordered)
 
     def test_ratio_recalculation_binds_lookup_slots_by_prefixed_roles(self) -> None:
