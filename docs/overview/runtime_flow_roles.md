@@ -315,8 +315,11 @@ graph adapter에 남은 orchestration 역할군:
 - source-visible display 보존
 - graph-private typed candidate preparation/result/state projection seam
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
-  stale-only result projection, caller별 provenance 및 미해결 ledger/selected-claim
-  synchronization contract
+  stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
+  same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
+  aggregate는 pre-filter snapshot의 unique provenance target과 accepted refilter를
+  동기화한다. numeric freshness/acceptance는 바꾸지 않고, ambiguous refs와 그
+  밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
 - dependency/period 내부 재계산의 버려지는 state projection
 - absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
@@ -358,6 +361,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
 - `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
 - `financial_calculation_execution.py`: plan validation, typed execution outcome, and typed state-free value-only stale freshness assessment
+- `financial_aggregate_projection.py`: aggregate projection helpers; 다음 bounded
+  구조 slice에서 graph에 새로 생긴 pure stale-repair provenance selection을 이
+  owner로 옮기되 behavior와 caller sequencing은 바꾸지 않는다.
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers

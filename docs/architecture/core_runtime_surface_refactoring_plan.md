@@ -322,6 +322,18 @@ The execution owner changes from `712` to `679` lines (`-33`) and the graph from
 for this behavior slice is net `-83` lines. No ledger or selected-claim
 synchronization is added.
 
+Behavior fix `be2e7bf` then synchronizes accepted stale-repair provenance at the
+three production caller boundaries without changing numeric freshness or repair
+acceptance. Render updates selected/kept refs and the latest same-id
+calculation-result artifact; planning capture updates only its returned row refs;
+aggregate repair uses a pre-filter evidence snapshot, supersedes only a unique
+provenance target, and re-filters after acceptance. Ambiguous refs are preserved.
+This changes the graph from `19,736` to `19,933` lines (`+197`), graph planning
+from `2,367` to `2,371` (`+4`), and task artifacts from `1,047` to `1,128`
+(`+81`). The production-source diff is `+332/-50`, net `+282`; the whole commit is
+`+792/-69`, net `+723`. This is caller-specific synchronization, not completion
+of the whole task/artifact ledger contract.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -340,18 +352,22 @@ stale/execution contracts, the same `217`-literal audit, and full discovery over
 `1,472` tests passed on Python 3.13. After `f2af4f4`, `345` unique focused
 contracts passed; the `7`-contract core subset and `2` adapter/time-series spot
 contracts were also rerun. The `217`-literal audit and full discovery over
-`1,472` tests passed on Python 3.13. Benchmark refresh has not run for these latest
-changes.
+`1,472` tests passed on Python 3.13. After `be2e7bf`, all `560` affected-module
+tests, the same `217`-literal audit, and full discovery over `1,472` tests passed
+on Python 3.13. Benchmark refresh has not run for these latest changes.
 
 Phase 3 remains open for these follow-ups:
 
+- mechanically move the new pure aggregate provenance selection from the graph
+  into the existing `financial_aggregate_projection.py` owner, without combining
+  it with another behavior change;
+- remove discarded state projection from the dependency and period recovery
+  callers in the following separate bounded slice;
+- keep broader task/artifact ledger synchronization as a separately specified
+  contract rather than inferring it from the three repaired caller surfaces;
 - move the remaining deterministic/LLM fallback and aggregate precedence
   orchestration behind named owner contracts;
 - reduce the remaining private-API mesh;
-- specify stale result-projection provenance and ledger/selected-claim
-  synchronization as a separate behavior contract;
-- remove discarded state projection from the dependency and period recovery
-  callers in a separate bounded slice;
 - characterize the remaining graph-owned absolute-ratio and trend
   projection/error boundaries before moving them;
 - extract the remaining extraction and aggregate repair clusters behind named

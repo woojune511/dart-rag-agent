@@ -127,6 +127,17 @@ from 712 to 679 lines (`-33`), the graph changes from 19,730 to 19,736 (`+6`), a
 the source net is `-27`; the whole source/test diff is net `-83` lines. This does
 not add ledger or selected-claim synchronization.
 
+Behavior fix `be2e7bf` synchronizes accepted stale-repair provenance at the three
+production caller boundaries while leaving numeric freshness and repair
+acceptance unchanged. Render updates selected/kept refs and the latest same-id
+calculation-result artifact; planning capture updates returned-row refs only;
+aggregate repair snapshots evidence before the first final filter, supersedes a
+unique provenance target, and re-filters after acceptance. Ambiguous refs are
+preserved. The graph changes from 19,736 to 19,933 lines (`+197`), graph planning
+from 2,367 to 2,371 (`+4`), and task artifacts from 1,047 to 1,128 (`+81`). The
+source diff is `+332/-50`, net `+282`; the whole commit is `+792/-69`, net `+723`.
+This is not full task/artifact ledger synchronization.
+
 Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
 the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
 focused contracts, the same audit, and full discovery over 1,468 tests; after
@@ -135,7 +146,9 @@ Python 3.13. After `f0eafae` and `2496fce`, 29 focused stale/execution contracts
 the same 217-literal audit, and all 1,472 tests passed on Python 3.13. The final
 `f2af4f4` state passed 345 unique focused contracts; the core 7-contract subset
 and 2 adapter/time-series spot contracts were also rerun. The 217-literal audit
-and all 1,472 tests passed on Python 3.13. Benchmark refresh remains not run.
+and all 1,472 tests passed on Python 3.13. After `be2e7bf`, all 560 affected-module
+tests, the same 217-literal audit, and all 1,472 tests passed on Python 3.13.
+Benchmark refresh remains not run.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -154,7 +167,7 @@ remains recoverable from `main@294b4ea`.
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
 | Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
-| Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, and caller provenance/ledger synchronization remains open |
+| Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, caller-specific stale provenance is synchronized, and broader ledger synchronization remains open |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
 | Optional persisted report cache | configured `ReportCacheIndex` boundary |
@@ -180,8 +193,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
 | Latest dependency-precedence focused contracts | PASS, 53 owner/graph tests after typed finalization and coverage repair on 2026-08-07 |
 | Latest stale/candidate focused contracts | PASS, 345 unique focused tests after `f2af4f4` on 2026-08-07; core 7 and spot 2 were subset reruns |
+| Latest stale-repair provenance affected modules | PASS, 560 tests after `be2e7bf` on 2026-08-07 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
-| Full unittest discovery | PASS, 1,472 tests locally on Python 3.13 after prepared-value freshness repair on 2026-08-07 |
+| Full unittest discovery | PASS, 1,472 tests locally on Python 3.13 after stale-repair provenance synchronization on 2026-08-07 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -193,8 +207,8 @@ does not promote the fixture into proof of the upstream run. Fresh benchmark
 work is required when parser, ingest, store signature, retrieval behavior, or a
 material answer contract changes. Because the latest calculation changes include
 candidate-conflict, dependency-precedence, and prepared-value stale-repair
-behavior, their unit/contract evidence must not be presented as a refreshed
-benchmark result.
+behavior plus stale-repair provenance synchronization, their unit/contract
+evidence must not be presented as a refreshed benchmark result.
 
 ## Reviewer Evidence Surface
 
@@ -229,11 +243,13 @@ finalization are co-located, but the graph adapter retains context/evidence
 builders plus retry, the percent-point query gate, post-filter coverage and state
 projection, other fallback paths, and aggregate repair. Private helper imports
 are broad. The calculation candidate seam remains graph-private. Stale repair no
-longer recursively calls `_execute_calculation()`, but its result provenance is not
-synchronized into the ledger or selected claims as one behavior contract.
-Dependency and period recovery still create state projections their callers
-discard, and absolute-ratio/trend projection boundaries remain graph-owned. These
-are named follow-ups, not hidden claims that the calculation monolith is resolved.
+longer recursively calls `_execute_calculation()`. Its render, planning-capture,
+and aggregate callers now synchronize the limited provenance surfaces described
+above, but this is not whole-ledger synchronization; ambiguous refs are preserved,
+and the new pure aggregate provenance selection remains graph-owned. Dependency
+and period recovery still create state projections their callers discard, and
+absolute-ratio/trend projection boundaries remain graph-owned. These are named
+follow-ups, not hidden claims that the calculation monolith is resolved.
 
 Open work should be created only when one of these conditions is met:
 
@@ -250,12 +266,15 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should characterize stale-result
-projection provenance and ledger/selected-claim synchronization as one bounded
-behavior contract. Cleanup of the dependency and period recovery callers that
-discard state projection should remain a separate slice. Aggregate precedence,
-remaining deterministic/LLM fallbacks, absolute-ratio/trend projection debt, and
-the private-API mesh remain separate follow-ups.
+The next architecture change, if continued, should mechanically move the pure
+aggregate stale-repair provenance selection added by `be2e7bf` from the graph to
+the existing `financial_aggregate_projection.py` owner. It should preserve the
+new behavior and caller sequencing while reversing graph growth, not combine a
+second behavior fix. Cleanup of the dependency and period recovery callers that
+discard state projection comes next as a separate slice. Broader ledger sync,
+aggregate precedence, remaining deterministic/LLM fallbacks,
+absolute-ratio/trend projection debt, and the private-API mesh remain separate
+follow-ups.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

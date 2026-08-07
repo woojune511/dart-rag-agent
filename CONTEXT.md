@@ -42,9 +42,13 @@ Last updated: 2026-08-07
   result projection, state/ledger projection을 분리한다. stale repair는 이 seam으로
   candidate를 한 번 prepare/execute하고, execution owner의 typed value-only
   freshness assessment 뒤 stale일 때만 result를 project한다. graph에는
-  applicability/same-slot guard와 caller provenance/ledger synchronization 책임이
-  남아 있으며, dependency/period 내부 재계산은 아직 버려지는 state projection을
-  만든다.
+  applicability/same-slot guard가 남아 있다. `be2e7bf`는 accepted stale repair의
+  caller projection을 제한적으로 동기화한다. render는 selected/kept refs와 같은
+  id의 최신 calculation-result artifact를, planning capture는 반환 row refs만,
+  aggregate는 pre-filter evidence snapshot에서 유일한 provenance target과 accepted
+  refilter를 동기화한다. ambiguous refs는 보존하며 전체 ledger synchronization을
+  완료한 것은 아니다. dependency/period 내부 재계산은 아직 버려지는 state
+  projection을 만든다.
 
 ## 현재 검증 기준
 
@@ -53,7 +57,7 @@ Last updated: 2026-08-07
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Calculation owner contract | value-only freshness 및 candidate 경계 focused unique 345개 PASS; benchmark refresh 미실행 |
+| Latest stale-repair provenance contract | affected 3-module regression 560개 PASS; benchmark refresh 미실행 |
 | Runtime validation | Python 3.13 full unittest 1,472개 PASS; domain-term audit 217개 literal PASS |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
@@ -68,7 +72,11 @@ post-late finalization을 product behavior 변경 없이 state-free owner로 옮
 behavior를 유지하면서 shared candidate pipeline을 graph-private seam으로
 분해했다. 별도 behavior fix `f2af4f4`는 pre-preparation raw 값 `0.0035`를
 current로 오판하던 경로를 prepared canonical 값 `3.5` 기준으로 고치고 stale
-formula evaluation을 2회에서 1회로 줄였다.
+formula evaluation을 2회에서 1회로 줄였다. 이어진 behavior fix `be2e7bf`는
+numeric freshness나 repair acceptance를 바꾸지 않고 render, capture, aggregate의
+accepted repair provenance를 위 범위로 동기화했다. 이 commit은 graph를
+19,736→19,933줄, graph planning을 2,367→2,371줄, task artifacts를
+1,047→1,128줄로 바꿨고 source net은 `+282`줄이다.
 이 변경들에 대한 benchmark refresh는 실행하지 않았으므로, 이전
 recorded benchmark를 검증 근거로 삼거나 새 score claim을 만들지 않는다.
 
@@ -92,11 +100,12 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 구조 작업은 stale result projection의 provenance와 ledger/selected-claim
-synchronization을 별도 behavior contract로 먼저 characterization하는 bounded
-slice다. dependency/period 내부 재계산의 버려지는 state projection 정리는 그와
-섞지 않는다. aggregate precedence, 남은 deterministic/LLM fallback, private API
-mesh도 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면
+다음 구조 작업은 `be2e7bf`가 graph에 추가한 pure aggregate provenance selection을
+product behavior 변경 없이 `financial_aggregate_projection.py` owner로 옮겨 graph
+증가를 되돌리는 bounded slice다. 그 다음 dependency/period 내부 재계산의
+버려지는 state projection을 별도로 정리한다. 전체 ledger sync, aggregate
+precedence, 남은 deterministic/LLM fallback, private API mesh도 별도 follow-up으로
+유지한다. 새 benchmark claim이 필요하면
 현재 profile과 store signature를 먼저 확인하고 monitored store-fixed
 `eval-only`로 갱신한다.
 

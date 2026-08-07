@@ -618,12 +618,19 @@ candidate, returns the original operand/plan/result identities on preparation
 failure or a current assessment, and performs deterministic result projection
 only when stale. A current result therefore still incurs one preparation and
 formula evaluation; an actual stale repair evaluates the formula once rather
-than through separate pre-preparation assessment and execution. The repair path
-does not run state/ledger projection or synchronize selected claims. Caller
-provenance and ledger synchronization remain explicit behavior debt, while
-dependency and period recovery still create state projections that their callers
-discard. Assessment reasons are owner-contract outputs, not runtime trace fields.
-This boundary does not establish a single end-to-end calculation owner.
+than through separate pre-preparation assessment and execution. Accepted repair
+callers synchronize only their owned provenance surfaces. Render updates
+selected/kept refs and the latest same-id calculation-result artifact without
+reordering or replacing unrelated artifacts. Planning capture updates refs on
+the returned row only. Aggregate repair snapshots its evidence window before the
+first final filter, supersedes a stale provenance target only when that target is
+unique, and re-filters the snapshot after acceptance. Ambiguous target refs must
+be preserved rather than destructively removed. These projections do not change
+numeric freshness or repair acceptance, and they are not a claim that the whole
+task/artifact ledger is synchronized. Dependency and period recovery still
+create state projections that their callers discard. Assessment reasons are
+owner-contract outputs, not runtime trace fields. This boundary does not
+establish a single end-to-end calculation owner.
 
 ## 9. Aggregate Subtask Projection
 
