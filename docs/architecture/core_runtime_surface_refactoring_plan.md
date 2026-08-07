@@ -287,6 +287,19 @@ at `19,576` lines. From the `77d5bff` baseline, the whole bounded slice changes
 the graph by `+12` and the owner by `+73`, for a two-source net of `+85` lines.
 The executed finalization policy moved owners; it was not removed from runtime.
 
+Commit `f0eafae` is a separate behavior fix that prevents a source-stated display
+from being repeatedly classified as stale when its traced formula value still
+matches the current operands. The following structural commit `2496fce` moves
+only the bound-operand formula comparison and typed freshness assessment into
+`financial_calculation_execution.py`. Applicability and same-slot guards, the
+stale-triggered second `_execute_calculation()`, and caller projection remain in
+the graph. The structural move changes `financial_graph_calculation.py` from
+`19,591` to `19,558` lines (`-33`) and the execution owner from `614` to `712`
+lines (`+98`), for a two-source net of `+65`. From the `73d593e` baseline, the
+whole stale-result bounded slice changes the graph from `19,576` to `19,558`
+lines (`-18`) and the execution owner by `+98`, for a two-source net of `+80`.
+The freshness policy moved owners; the duplicate execution path was not removed.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -300,7 +313,9 @@ filter fix `c6f6fdf` passed `3` focused contracts, the same audit, and full
 discovery over `1,462` tests. The behavior-preserving `5b44875` extraction passed
 `52` focused contracts, the same audit, and full discovery over `1,468` tests.
 After `8ebb239`, `53` focused contracts, the same audit, and full discovery over
-`1,468` tests passed on Python 3.13. Benchmark refresh has not run for these
+`1,468` tests passed on Python 3.13. After `f0eafae` and `2496fce`, `29` focused
+stale/execution contracts, the same `217`-literal audit, and full discovery over
+`1,472` tests passed on Python 3.13. Benchmark refresh has not run for these
 latest changes.
 
 Phase 3 remains open for these follow-ups:
@@ -308,9 +323,11 @@ Phase 3 remains open for these follow-ups:
 - move the remaining deterministic/LLM fallback and aggregate precedence
   orchestration behind named owner contracts;
 - reduce the remaining private-API mesh;
-- characterize the stale-result second formula-execution path, then move only
-  the validated execution boundary into
-  `financial_calculation_execution.execute_prepared_calculation_plan()`;
+- characterize a shared prepared-candidate/projection boundary and verify
+  whether it can remove stale-result duplicate formula execution without
+  changing preparation semantics;
+- specify ledger synchronization as a separate behavior contract rather than
+  folding it into the mechanical owner move;
 - extract the remaining extraction and aggregate repair clusters behind named
   contracts.
 

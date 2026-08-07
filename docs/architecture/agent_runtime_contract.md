@@ -584,10 +584,10 @@ projected as runtime trace fields.
 The graph adapter still owns the context/evidence builders that prepare these
 inputs, retry and dependency-guard decisions, the percent-point query gate,
 other deterministic/LLM fallback paths, coverage decisions, and state, trace,
-artifact, and logging projection. Aggregate repair and stale-result execution
-also remain graph-orchestrated, so this is not a single-owner end-to-end
-precedence claim. A task output may override a direct row only through an
-explicit decision reason and provenance record. The decision must retain the
+artifact, and logging projection. Aggregate repair also remains graph-owned, so
+this is not a single-owner end-to-end precedence claim. A task output may
+override a direct row only through an explicit decision reason and provenance
+record. The decision must retain the
 current and candidate source identities needed to inspect value, materiality,
 anchor, and scope conflicts; list order must never act as an implicit override
 rule.
@@ -598,6 +598,19 @@ execution. Before execution it must validate `ordered_operand_ids` and
 required roles. It returns a typed `CalculationExecutionOutcome` and does not
 mutate graph state. The graph adapter projects that outcome into
 `resolved_calculation_trace`, `structured_result`, and the task/artifact ledger.
+
+The same module owns the typed, state-free stale-result freshness assessment.
+`StaleCalculationAssessment` compares the formula result from bound normalized
+values with the projected result, using the traced formula value only when the
+source-stated-result flag is active. It intentionally adds no unit-family gate;
+unit validation remains part of prepared calculation execution. Invalid
+bindings, values, formulas, or projected values return typed indeterminate
+reasons and do not mutate inputs. The graph still owns the status/mode/formula
+applicability gates, the period-comparison same-slot veto, the stale-triggered
+second `_execute_calculation()` call, and caller-specific trace/artifact
+projection; ledger synchronization remains an explicit debt. Assessment reasons
+are owner-contract outputs, not runtime trace fields. This boundary does not
+establish a single formula-execution path.
 
 ## 9. Aggregate Subtask Projection
 

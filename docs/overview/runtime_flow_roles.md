@@ -296,7 +296,10 @@ state-free owner 경계:
   필드이며 현재 runtime trace 필드는 아니다. override에는 explicit reason과
   양쪽 provenance가 필요하다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
-  operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다.
+  operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
+  bound normalized value와 projected result를 비교하는 typed state-free
+  `StaleCalculationAssessment`를 소유한다. 이 assessment는 source-stated flag가
+  활성화된 경우에만 traced formula value를 우선하며 unit gate를 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -309,7 +312,8 @@ graph adapter에 남은 orchestration 역할군:
 - unit conversion/repair
 - period alignment
 - source-visible display 보존
-- stale projection 방지
+- stale applicability/same-slot guard, 두 번째 `_execute_calculation()`, caller별
+  trace/artifact projection과 미해결 ledger synchronization contract
 - aggregate result dedupe/ranking
 - narrative context preservation
 
@@ -348,7 +352,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
 - `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
-- `financial_calculation_execution.py`: plan validation and typed execution outcome
+- `financial_calculation_execution.py`: plan validation, typed execution outcome, and typed state-free stale freshness assessment
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
