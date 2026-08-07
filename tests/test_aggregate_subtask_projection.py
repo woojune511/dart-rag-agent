@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -1176,13 +1177,19 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ) as state_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
-            repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
+            repair = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=operands,
                 plan=plan,
                 calculation_result=stale_result,
             )
 
+        repaired_operands = repair.calculation_operands
+        repaired_plan = repair.calculation_plan
+        repaired_result = repair.calculation_result
+        self.assertTrue(repair.repair_applied)
+        self.assertEqual(repair.reason, "repaired")
+        self.assertEqual(repair.selected_evidence_ids, ("ev_current", "ev_adjustment"))
         self.assertEqual(repaired_operands, operands)
         self.assertEqual(repaired_plan, plan)
         freshness_assessment.assert_called_once_with(
@@ -1214,6 +1221,170 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         repaired_without_marker.pop("stale_result_repaired_from_operands")
         self.assertEqual(repaired_without_marker, primary_trace["calculation_result"])
         self.assertTrue(repaired_result["stale_result_repaired_from_operands"])
+
+        stale_task = {
+            "task_id": "task_difference",
+            "artifact_ids": [
+                "plan:task_difference:001",
+                "result:task_difference:002",
+            ],
+        }
+        stale_plan_artifact = {
+            "artifact_id": "plan:task_difference:001",
+            "task_id": "task_difference",
+            "kind": "calculation_plan",
+            "evidence_refs": ["ev_stale"],
+            "payload": {"calculation_plan": plan},
+        }
+        stale_artifact = {
+            "artifact_id": "result:task_difference:002",
+            "task_id": "task_difference",
+            "kind": "calculation_result",
+            "evidence_refs": ["ev_stale"],
+            "payload": {"calculation_result": stale_result},
+        }
+        render_state = {
+            **state,
+            "evidence_items": [{"evidence_id": "ev_stale", "claim": "stale adjusted value"}],
+            "selected_claim_ids": ["ev_stale"],
+            "kept_claim_ids": ["ev_stale"],
+            "tasks": [stale_task],
+            "artifacts": [stale_plan_artifact, stale_artifact],
+            "resolved_calculation_trace": {
+                "calculation_operands": operands,
+                "calculation_plan": plan,
+                "calculation_result": stale_result,
+            },
+        }
+        original_render_lists = (
+            render_state["selected_claim_ids"],
+            render_state["kept_claim_ids"],
+            render_state["tasks"],
+            render_state["artifacts"],
+        )
+        original_render_state = deepcopy(render_state)
+
+        rendered = agent._render_calculation_answer(render_state)
+        merged_render_state = {**render_state, **rendered}
+        rendered_trace = _resolve_runtime_calculation_trace(
+            merged_render_state,
+            allow_legacy_top_level=False,
+        )
+        rendered_result_artifact = next(
+            artifact
+            for artifact in merged_render_state["artifacts"]
+            if artifact.get("kind") == "calculation_result"
+        )
+
+        self.assertEqual(
+            rendered_trace["calculation_result"]["source_row_ids"],
+            ["ev_current", "row_current", "ev_adjustment", "row_adjustment"],
+        )
+        self.assertIs(render_state["selected_claim_ids"], original_render_lists[0])
+        self.assertIs(render_state["kept_claim_ids"], original_render_lists[1])
+        self.assertIs(render_state["tasks"], original_render_lists[2])
+        self.assertIs(render_state["artifacts"], original_render_lists[3])
+        self.assertEqual(render_state, original_render_state)
+        self.assertEqual(
+            merged_render_state["selected_claim_ids"],
+            ["ev_current", "ev_adjustment"],
+        )
+        self.assertEqual(
+            merged_render_state["kept_claim_ids"],
+            ["ev_current", "ev_adjustment"],
+        )
+        self.assertEqual(
+            rendered_result_artifact["payload"]["calculation_result"]["source_row_ids"],
+            ["ev_current", "row_current", "ev_adjustment", "row_adjustment"],
+        )
+        self.assertEqual(
+            rendered_result_artifact["evidence_refs"],
+            ["ev_current", "ev_adjustment"],
+        )
+        self.assertEqual(merged_render_state["artifacts"][0], stale_plan_artifact)
+        self.assertEqual(
+            [task["task_id"] for task in merged_render_state["tasks"]],
+            ["task_difference"],
+        )
+        self.assertEqual(
+            [artifact["artifact_id"] for artifact in merged_render_state["artifacts"]],
+            ["plan:task_difference:001", "result:task_difference:002"],
+        )
+
+        outer_row = {
+            "task_id": "task_difference",
+            "metric_family": "concept_difference",
+            "metric_label": "adjusted value",
+            "operation_family": "difference",
+            "status": "ok",
+            "answer": stale_result["rendered_value"],
+            "selected_claim_ids": ["ev_stale"],
+            "calculation_operands": operands,
+            "calculation_plan": plan,
+            "calculation_result": stale_result,
+        }
+        outer_evidence = [
+            render_state["evidence_items"][0],
+            {"evidence_id": "ev_current", "claim": "current value 1,000"},
+            {"evidence_id": "ev_adjustment", "claim": "adjustment 250"},
+        ]
+        outer_state = {
+            **state,
+            "calc_subtasks": [state["active_subtask"]],
+            "active_subtask_index": 0,
+            "subtask_results": [],
+            "answer": stale_result["rendered_value"],
+            "compressed_answer": stale_result["rendered_value"],
+            "selected_claim_ids": ["ev_stale"],
+            "kept_claim_ids": ["ev_stale"],
+            "evidence_items": outer_evidence,
+            "resolved_calculation_trace": {
+                "calculation_operands": operands,
+                "calculation_plan": plan,
+                "calculation_result": stale_result,
+            },
+            "tasks": [],
+            "artifacts": [],
+        }
+        filter_windows = []
+        original_final_filter = agent._filter_final_aggregate_evidence_and_projection
+
+        def _record_final_filter(*args, **kwargs):
+            output = original_final_filter(*args, **kwargs)
+            if not filter_windows:
+                # Simulate a lossy first pass while retaining the real outer call/projection.
+                output = ([dict(outer_evidence[0])], output[1], ["ev_stale"], ["ev_stale"])
+            filter_windows.append(output)
+            return output
+
+        agent.llm = None
+        with (
+            patch.object(agent, "_capture_current_subtask_result", return_value=outer_row),
+            patch.object(
+                agent,
+                "_filter_final_aggregate_evidence_and_projection",
+                side_effect=_record_final_filter,
+            ),
+            patch.object(
+                agent,
+                "_apply_stale_projection_repair_to_aggregate_state",
+                wraps=agent._apply_stale_projection_repair_to_aggregate_state,
+            ) as aggregate_repair,
+        ):
+            agent._aggregate_calculation_subtasks(outer_state)
+
+        filter_window_ids = [
+            [item["evidence_id"] for item in window[0]]
+            for window in filter_windows
+        ]
+        self.assertEqual(filter_window_ids[0], ["ev_stale"])
+        aggregate_repair.assert_called_once()
+        repair_evidence = aggregate_repair.call_args.kwargs["evidence_items"]
+        canonical_refs = ["ev_current", "ev_adjustment"]
+        self.assertEqual(
+            [item["evidence_id"] for item in repair_evidence],
+            ["ev_stale", *canonical_refs],
+        )
 
     def test_stale_repair_keeps_inputs_for_failure_and_indeterminate_assessment(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -1280,14 +1451,18 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         candidate_projection.assert_not_called()
         state_projection.assert_not_called()
         recursive_execute.assert_not_called()
-        self.assertEqual(indeterminate, (operands, plan, indeterminate_result))
-        self.assertEqual(failed, (operands, plan, failed_result))
-        self.assertIs(indeterminate[0], operands)
-        self.assertIs(indeterminate[1], plan)
-        self.assertIs(indeterminate[2], indeterminate_result)
-        self.assertIs(failed[0], operands)
-        self.assertIs(failed[1], plan)
-        self.assertIs(failed[2], failed_result)
+        self.assertFalse(indeterminate.repair_applied)
+        self.assertEqual(indeterminate.reason, "preparation_failed")
+        self.assertEqual(indeterminate.selected_evidence_ids, ())
+        self.assertIs(indeterminate.calculation_operands, operands)
+        self.assertIs(indeterminate.calculation_plan, plan)
+        self.assertIs(indeterminate.calculation_result, indeterminate_result)
+        self.assertFalse(failed.repair_applied)
+        self.assertEqual(failed.reason, "status_not_ok")
+        self.assertEqual(failed.selected_evidence_ids, ())
+        self.assertIs(failed.calculation_operands, operands)
+        self.assertIs(failed.calculation_plan, plan)
+        self.assertIs(failed.calculation_result, failed_result)
 
     def test_dependency_alignment_keeps_complete_direct_difference_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

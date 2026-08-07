@@ -4967,7 +4967,7 @@ class SubtaskLoopTests(unittest.TestCase):
             [source_lookup, coherent_ratio],
             stale_projection,
             "target share is 80%.",
-            [],
+            ["ev_stale"],
         )
 
         repaired = self.agent._apply_stale_projection_repair_to_aggregate_state(
@@ -4979,6 +4979,9 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(repaired.final_answer, "target share is 80%.")
         self.assertEqual(repaired.aggregate_projection["calculation_result"]["formatted_result"], "target share is 80%.")
+        self.assertIs(repaired, aggregate_state)
+        self.assertIs(repaired.selected_claim_ids, aggregate_state.selected_claim_ids)
+        self.assertEqual(repaired.selected_claim_ids, ["ev_stale"])
 
     def test_stale_projection_repair_preserves_complete_multi_operand_ratio_answer(self) -> None:
         ratio_result = {

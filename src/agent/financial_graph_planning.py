@@ -2279,13 +2279,17 @@ class FinancialAgentPlanningMixin:
                 }
             ]
         if hasattr(self, "_repair_stale_calculation_result_from_operands"):
-            calculation_operands, calculation_plan, calculation_result = self._repair_stale_calculation_result_from_operands(
+            stale_repair = self._repair_stale_calculation_result_from_operands(
                 state,
                 operands=[dict(item) for item in calculation_operands if isinstance(item, dict)],
                 plan=calculation_plan,
                 calculation_result=calculation_result,
             )
-            if calculation_result.get("stale_result_repaired_from_operands"):
+            calculation_operands = stale_repair.calculation_operands
+            calculation_plan = stale_repair.calculation_plan
+            calculation_result = stale_repair.calculation_result
+            if stale_repair.repair_applied:
+                selected_claim_ids = list(stale_repair.selected_evidence_ids)
                 repaired_answer = _normalise_spaces(
                     str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
                 )

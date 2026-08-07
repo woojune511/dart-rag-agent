@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Sequence
 
 from src.agent import financial_answer_slots
 from src.agent.financial_aggregate_state import (
@@ -198,6 +198,7 @@ from src.agent.financial_task_artifacts import (
     operand_set_artifact_update as _build_operand_set_artifact_update,
     project_task_artifact_trace as _project_task_artifact_trace,
     reflection_report_artifact_update as _build_reflection_report_artifact_update,
+    synchronize_calculation_result_artifact as _synchronize_calculation_result_artifact,
     supersede_task_with_aggregate_result as _supersede_task_with_aggregate_result,
 )
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
@@ -271,6 +272,29 @@ class _CalculationCandidateProjection(NamedTuple):
     status: str
     reason: str
     calculation_operands: tuple[Dict[str, Any], ...]
+    calculation_plan: Dict[str, Any]
+    calculation_result: Dict[str, Any]
+    selected_evidence_ids: tuple[str, ...]
+
+
+_StaleCalculationRepairReason = Literal[
+    "status_not_ok",
+    "mode_not_single_value",
+    "missing_formula",
+    "same_slot",
+    "preparation_failed",
+    "current",
+    "expected_value_unavailable",
+    "current_value_unavailable",
+    "projection_failed",
+    "repaired",
+]
+
+
+class _StaleCalculationRepairResult(NamedTuple):
+    repair_applied: bool
+    reason: _StaleCalculationRepairReason
+    calculation_operands: List[Dict[str, Any]]
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]
     selected_evidence_ids: tuple[str, ...]
@@ -6207,17 +6231,13 @@ class FinancialAgentCalculationMixin:
         self,
         state: FinancialAgentState,
         aggregate_projection: Dict[str, Any],
-    ) -> tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
-        aggregate_projection = {
-            **dict(aggregate_projection),
-            "calculation_operands": [
-                dict(row)
-                for row in list(aggregate_projection.get("calculation_operands") or [])
-                if isinstance(row, dict)
-            ],
-            "calculation_plan": dict(aggregate_projection.get("calculation_plan") or {}),
-            "calculation_result": dict(aggregate_projection.get("calculation_result") or {}),
-        }
+    ) -> tuple[Dict[str, Any], _StaleCalculationRepairResult]:
+        calculation_operands = [
+            dict(row)
+            for row in list(aggregate_projection.get("calculation_operands") or [])
+            if isinstance(row, dict)
+        ]
+        calculation_plan = dict(aggregate_projection.get("calculation_plan") or {})
         calculation_result = dict(aggregate_projection.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         repair_state = {
@@ -6228,17 +6248,130 @@ class FinancialAgentCalculationMixin:
                 "metric_label": answer_slots.get("metric_label"),
             },
         }
-        operands, plan, repaired_result = self._repair_stale_calculation_result_from_operands(
+        stale_repair = self._repair_stale_calculation_result_from_operands(
             repair_state,
-            operands=[dict(row) for row in list(aggregate_projection.get("calculation_operands") or [])],
-            plan=dict(aggregate_projection.get("calculation_plan") or {}),
+            operands=calculation_operands,
+            plan=calculation_plan,
             calculation_result=calculation_result,
         )
-        if repaired_result.get("stale_result_repaired_from_operands"):
-            aggregate_projection["calculation_operands"] = operands
-            aggregate_projection["calculation_plan"] = plan
-            aggregate_projection["calculation_result"] = repaired_result
-        return aggregate_projection, operands, plan, repaired_result
+        if not stale_repair.repair_applied:
+            return aggregate_projection, stale_repair
+        repaired_projection = {
+            **dict(aggregate_projection),
+            "calculation_operands": stale_repair.calculation_operands,
+            "calculation_plan": stale_repair.calculation_plan,
+            "calculation_result": stale_repair.calculation_result,
+        }
+        return repaired_projection, stale_repair
+
+    def _stale_repair_provenance_refs(self, payload: Dict[str, Any]) -> set[str]:
+        calculation_result = dict(payload.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or payload.get("answer_slots") or {})
+        calculation_operands = [
+            dict(row)
+            for row in list(payload.get("calculation_operands") or [])
+            if isinstance(row, dict)
+        ]
+        return set(
+            _clean_source_row_ids(
+                [
+                    payload.get("selected_claim_ids"),
+                    payload.get("source_row_id"),
+                    payload.get("source_row_ids"),
+                    payload.get("source_evidence_ids"),
+                    calculation_result.get("source_row_id"),
+                    calculation_result.get("source_row_ids"),
+                    calculation_result.get("source_evidence_ids"),
+                    answer_slots.get("source_row_id"),
+                    answer_slots.get("source_row_ids"),
+                    answer_slots.get("source_evidence_ids"),
+                    *[
+                        value
+                        for operand in calculation_operands
+                        for value in (
+                            operand.get("evidence_id"),
+                            operand.get("source_row_id"),
+                            operand.get("source_row_ids"),
+                            operand.get("source_claim_ids"),
+                        )
+                    ],
+                ]
+            )
+        )
+
+    def _selected_claim_ids_after_stale_aggregate_repair(
+        self,
+        *,
+        aggregate_state: _AggregateSynthesisState,
+        stale_repair: _StaleCalculationRepairResult,
+        evidence_items: List[Dict[str, Any]],
+    ) -> List[str]:
+        repaired_slots = dict(stale_repair.calculation_result.get("answer_slots") or {})
+        target_operation = _normalise_spaces(
+            str(repaired_slots.get("operation_family") or "")
+        ).lower()
+        target_metric = _normalise_spaces(
+            str(repaired_slots.get("metric_label") or "")
+        ).casefold()
+        superseded_claim_ids: set[str] = set()
+        matching_rows: List[Dict[str, Any]] = []
+        if target_operation and target_metric:
+            for row in aggregate_state.ordered_results:
+                row_result = dict(row.get("calculation_result") or {})
+                row_slots = dict(row_result.get("answer_slots") or row.get("answer_slots") or {})
+                row_metric = _normalise_spaces(
+                    str(row.get("metric_label") or row_slots.get("metric_label") or "")
+                ).casefold()
+                if (
+                    self._aggregate_result_operation_family(row) != target_operation
+                    or row_metric != target_metric
+                ):
+                    continue
+                matching_rows.append(row)
+
+        projection_refs = self._stale_repair_provenance_refs(
+            aggregate_state.aggregate_projection
+        )
+        overlapping_rows = [
+            row
+            for row in matching_rows
+            if projection_refs.intersection(self._stale_repair_provenance_refs(row))
+        ]
+        target_rows: List[Dict[str, Any]] = []
+        if len(overlapping_rows) == 1:
+            target_rows = overlapping_rows
+        elif not overlapping_rows and len(matching_rows) == 1:
+            target_rows = matching_rows
+        for row in target_rows:
+            superseded_claim_ids.update(
+                str(claim_id).strip()
+                for claim_id in (row.get("selected_claim_ids") or [])
+                if str(claim_id).strip()
+            )
+
+        evidence_ids = {
+            str(item.get("evidence_id") or "").strip()
+            for item in evidence_items
+            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+        }
+        repaired_claim_ids = [
+            claim_id
+            for claim_id in stale_repair.selected_evidence_ids
+            if claim_id in evidence_ids
+        ]
+        return list(
+            dict.fromkeys(
+                [
+                    *[
+                        str(claim_id).strip()
+                        for claim_id in aggregate_state.selected_claim_ids
+                        if str(claim_id).strip()
+                        and str(claim_id).strip() not in superseded_claim_ids
+                    ],
+                    *repaired_claim_ids,
+                ]
+            )
+        )
 
     def _apply_stale_projection_repair_to_aggregate_state(
         self,
@@ -6248,14 +6381,15 @@ class FinancialAgentCalculationMixin:
         evidence_items: List[Dict[str, Any]],
         prefer_compact_ratio_answer: bool = False,
     ) -> _AggregateSynthesisState:
-        aggregate_projection, repaired_operands, repaired_plan, repaired_result = (
-            self._repair_stale_aggregate_projection_result(
-                state,
-                aggregate_state.aggregate_projection,
-            )
+        aggregate_projection, stale_repair = self._repair_stale_aggregate_projection_result(
+            state,
+            aggregate_state.aggregate_projection,
         )
-        if not repaired_result.get("stale_result_repaired_from_operands"):
-            return aggregate_state.with_updates(aggregate_projection=aggregate_projection)
+        if not stale_repair.repair_applied:
+            return aggregate_state
+        repaired_operands = stale_repair.calculation_operands
+        repaired_plan = stale_repair.calculation_plan
+        repaired_result = stale_repair.calculation_result
         if (
             self._aggregate_dependency_slot_coherence_rank_for_operands(
                 operation_family=_normalise_spaces(
@@ -6272,6 +6406,14 @@ class FinancialAgentCalculationMixin:
             == 0
         ):
             return aggregate_state
+        accepted_state = aggregate_state.with_updates(
+            aggregate_projection=aggregate_projection,
+            selected_claim_ids=self._selected_claim_ids_after_stale_aggregate_repair(
+                aggregate_state=aggregate_state,
+                stale_repair=stale_repair,
+                evidence_items=evidence_items,
+            ),
+        )
         repaired_answer = _normalise_spaces(
             str(repaired_result.get("formatted_result") or repaired_result.get("rendered_value") or "")
         )
@@ -6304,7 +6446,7 @@ class FinancialAgentCalculationMixin:
                     **repaired_result,
                     "formatted_result": aggregate_state.final_answer,
                 }
-                return aggregate_state.with_updates(aggregate_projection=aggregate_projection)
+                return accepted_state.with_updates(aggregate_projection=aggregate_projection)
             replacement_answer = self._complete_numeric_projection_replacement_answer(
                 final_answer=repaired_answer,
                 ordered_results=aggregate_state.ordered_results,
@@ -6313,7 +6455,7 @@ class FinancialAgentCalculationMixin:
             )
             if replacement_answer:
                 return self._apply_numeric_answer_to_aggregate_state(
-                    aggregate_state=aggregate_state,
+                    aggregate_state=accepted_state,
                     state=state,
                     numeric_answer=replacement_answer,
                     evidence_items=evidence_items,
@@ -6323,14 +6465,14 @@ class FinancialAgentCalculationMixin:
                 **repaired_result,
                 "formatted_result": repaired_answer,
             }
-            return aggregate_state.with_updates(
+            return accepted_state.with_updates(
                 aggregate_projection=aggregate_projection,
                 final_answer=repaired_answer,
             )
         if not repaired_answer:
-            return aggregate_state.with_updates(aggregate_projection=aggregate_projection)
+            return accepted_state
         return self._apply_numeric_answer_to_aggregate_state(
-            aggregate_state=aggregate_state.with_updates(aggregate_projection=aggregate_projection),
+            aggregate_state=accepted_state,
             state=state,
             numeric_answer=repaired_answer,
             evidence_items=evidence_items,
@@ -17178,14 +17320,24 @@ class FinancialAgentCalculationMixin:
         operands: List[Dict[str, Any]],
         plan: Dict[str, Any],
         calculation_result: Dict[str, Any],
-    ) -> tuple[List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
+    ) -> _StaleCalculationRepairResult:
+        def _unchanged(reason: _StaleCalculationRepairReason) -> _StaleCalculationRepairResult:
+            return _StaleCalculationRepairResult(
+                repair_applied=False,
+                reason=reason,
+                calculation_operands=operands,
+                calculation_plan=plan,
+                calculation_result=calculation_result,
+                selected_evidence_ids=(),
+            )
+
         if str(calculation_result.get("status") or "").strip().lower() != "ok":
-            return operands, plan, calculation_result
+            return _unchanged("status_not_ok")
         if str(plan.get("mode") or "").strip() != "single_value":
-            return operands, plan, calculation_result
+            return _unchanged("mode_not_single_value")
         formula = str(plan.get("formula") or "").strip()
         if not formula:
-            return operands, plan, calculation_result
+            return _unchanged("missing_formula")
 
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         active_subtask = dict(state.get("active_subtask") or {})
@@ -17200,7 +17352,7 @@ class FinancialAgentCalculationMixin:
         if operation_family in {"difference", "growth_rate"} and _period_comparison_operand_rows_collapse_to_same_slot(
             operands
         ):
-            return operands, plan, calculation_result
+            return _unchanged("same_slot")
 
         candidate_state = {
             **dict(state),
@@ -17222,13 +17374,13 @@ class FinancialAgentCalculationMixin:
             or execution_outcome is None
             or execution_outcome.result_value is None
         ):
-            return operands, plan, calculation_result
+            return _unchanged("preparation_failed")
         stale_assessment = assess_stale_calculation_value(
             expected_value=execution_outcome.result_value,
             calculation_result=calculation_result,
         )
         if not stale_assessment.is_stale:
-            return operands, plan, calculation_result
+            return _unchanged(stale_assessment.reason)
 
         projection = self._project_prepared_calculation_candidate(prepared)
         repaired_result = dict(projection.calculation_result)
@@ -17236,12 +17388,17 @@ class FinancialAgentCalculationMixin:
             projection.status != "ok"
             or str(repaired_result.get("status") or "").strip().lower() != "ok"
         ):
-            return operands, plan, calculation_result
+            return _unchanged("projection_failed")
         repaired_result["stale_result_repaired_from_operands"] = True
-        return (
-            [dict(row) for row in list(projection.calculation_operands or tuple(operands))],
-            dict(projection.calculation_plan or plan),
-            repaired_result,
+        return _StaleCalculationRepairResult(
+            repair_applied=True,
+            reason="repaired",
+            calculation_operands=[
+                dict(row) for row in list(projection.calculation_operands or tuple(operands))
+            ],
+            calculation_plan=dict(projection.calculation_plan or plan),
+            calculation_result=repaired_result,
+            selected_evidence_ids=tuple(projection.selected_evidence_ids),
         )
 
     def _render_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -17255,12 +17412,34 @@ class FinancialAgentCalculationMixin:
         if not calculation_result:
             return {"answer": "", "compressed_answer": "", "draft_points": []}
 
-        operands, plan, calculation_result = self._repair_stale_calculation_result_from_operands(
+        stale_repair = self._repair_stale_calculation_result_from_operands(
             state,
             operands=[dict(row) for row in operands if isinstance(row, dict)],
             plan=plan,
             calculation_result=calculation_result,
         )
+        operands = stale_repair.calculation_operands
+        plan = stale_repair.calculation_plan
+        calculation_result = stale_repair.calculation_result
+
+        def _stale_repair_provenance_update() -> Dict[str, Any]:
+            if not stale_repair.repair_applied:
+                return {}
+            selected_evidence_ids = list(stale_repair.selected_evidence_ids)
+            artifact_update = _synchronize_calculation_result_artifact(
+                tasks=list(state.get("tasks") or []),
+                artifacts=list(state.get("artifacts") or []),
+                task_id=str((state.get("active_subtask") or {}).get("task_id") or ""),
+                calculation_result=calculation_result,
+                evidence_refs=selected_evidence_ids,
+            )
+            state_update: Dict[str, Any] = {
+                "selected_claim_ids": selected_evidence_ids,
+                "kept_claim_ids": selected_evidence_ids,
+            }
+            if bool(artifact_update.get("synchronized")):
+                state_update["artifacts"] = list(artifact_update.get("artifacts") or [])
+            return state_update
 
         operation = str(plan.get("operation") or "")
         operation_family = _normalise_spaces(
@@ -17307,6 +17486,7 @@ class FinancialAgentCalculationMixin:
                     calculation_plan=plan,
                     calculation_result=calculation_result,
                 ),
+                **_stale_repair_provenance_update(),
             }
 
         CalculationRenderOutput = _calculation_render_output_model()
@@ -17353,6 +17533,7 @@ class FinancialAgentCalculationMixin:
                 calculation_plan=plan,
                 calculation_result=calculation_result,
             ),
+            **_stale_repair_provenance_update(),
         }
 
     def _verify_calculation_answer(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -19276,6 +19457,7 @@ class FinancialAgentCalculationMixin:
                 refresh_operand_evidence=True,
             )
             _sync_aggregate_locals()
+        stale_repair_evidence_items = list(aggregate_evidence_items)
         aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
             self._filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence_items,
@@ -19296,14 +19478,29 @@ class FinancialAgentCalculationMixin:
             final_answer,
         )
         _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
+        aggregate_state_before_stale_repair = mutable_state.synthesis_state
         aggregate_state = self._apply_stale_projection_repair_to_aggregate_state(
             state=state,
-            aggregate_state=mutable_state.synthesis_state,
-            evidence_items=aggregate_evidence_items,
+            aggregate_state=aggregate_state_before_stale_repair,
+            evidence_items=stale_repair_evidence_items,
             prefer_compact_ratio_answer=True,
         )
         mutable_state = mutable_state.with_synthesis_state(aggregate_state)
-        ordered_results, aggregate_projection, final_answer, selected_claim_ids = aggregate_state
+        _sync_aggregate_locals()
+        if aggregate_state is not aggregate_state_before_stale_repair:
+            aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
+                self._filter_final_aggregate_evidence_and_projection(
+                    stale_repair_evidence_items,
+                    aggregate_projection,
+                    final_answer=final_answer,
+                    selected_claim_ids=selected_claim_ids,
+                )
+            )
+            _sync_state(
+                aggregate_projection=aggregate_projection,
+                selected_claim_ids=selected_claim_ids,
+                evidence_items=aggregate_evidence_items,
+            )
         complete_projection_answer = self._complete_numeric_projection_replacement_answer(
             final_answer=final_answer,
             ordered_results=ordered_results,

@@ -20,6 +20,7 @@ __all__ = [
     "aggregate_answer_artifact_update",
     "calculation_plan_artifact_update",
     "calculation_result_artifact_update",
+    "synchronize_calculation_result_artifact",
     "next_reflection_task_id",
     "operand_set_artifact_update",
     "reconciliation_result_artifact_update",
@@ -299,6 +300,86 @@ def calculation_result_artifact_update(
         payload={"calculation_result": result},
         evidence_refs=evidence_refs,
     )
+
+
+def synchronize_calculation_result_artifact(
+    *,
+    tasks: List[Dict[str, Any]],
+    artifacts: List[Dict[str, Any]],
+    task_id: str,
+    calculation_result: Mapping[str, Any],
+    evidence_refs: Sequence[str],
+) -> Dict[str, Any]:
+    """Replace the latest attached result artifact without changing ledger cardinality."""
+
+    task_id = str(task_id or "").strip()
+    task_record = next(
+        (
+            dict(task)
+            for task in reversed(list(tasks or []))
+            if str((task or {}).get("task_id") or "").strip() == task_id
+        ),
+        {},
+    )
+    attached_artifact_ids = [
+        str(value).strip()
+        for value in (task_record.get("artifact_ids") or [])
+        if str(value).strip()
+    ]
+    result_kind = str(ArtifactKind.CALCULATION_RESULT.value)
+    target_index = -1
+    target_artifact_id = ""
+    for artifact_id in reversed(attached_artifact_ids):
+        for index in range(len(artifacts or []) - 1, -1, -1):
+            artifact = (artifacts or [])[index]
+            if str((artifact or {}).get("artifact_id") or "").strip() != artifact_id:
+                continue
+            if str((artifact or {}).get("kind") or "").strip() != result_kind:
+                continue
+            target_index = index
+            target_artifact_id = artifact_id
+            break
+        if target_index >= 0:
+            break
+    if target_index < 0:
+        return {
+            "artifacts": artifacts,
+            "artifact_id": "",
+            "synchronized": False,
+        }
+
+    result = dict(calculation_result or {})
+    updated_artifacts = [dict(item) for item in (artifacts or [])]
+    target_artifact = dict(updated_artifacts[target_index])
+    target_payload = dict(target_artifact.get("payload") or {})
+    target_artifact.update(
+        {
+            "status": str(result.get("status") or target_artifact.get("status") or "ok"),
+            "summary": str(
+                result.get("rendered_value")
+                or result.get("formatted_result")
+                or target_artifact.get("summary")
+                or ""
+            ),
+            "payload": {
+                **target_payload,
+                "calculation_result": result,
+            },
+            "evidence_refs": list(
+                dict.fromkeys(
+                    str(value).strip()
+                    for value in (evidence_refs or [])
+                    if str(value).strip()
+                )
+            ),
+        }
+    )
+    updated_artifacts[target_index] = target_artifact
+    return {
+        "artifacts": updated_artifacts,
+        "artifact_id": target_artifact_id,
+        "synchronized": True,
+    }
 
 
 def semantic_plan_artifact_update(

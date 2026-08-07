@@ -3984,13 +3984,19 @@ class OperationContractTests(unittest.TestCase):
             ) as candidate_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
-            repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
+            repair = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=raw_operands,
                 plan=plan,
                 calculation_result=stale_result,
             )
 
+        repaired_operands = repair.calculation_operands
+        repaired_plan = repair.calculation_plan
+        repaired_result = repair.calculation_result
+        self.assertTrue(repair.repair_applied)
+        self.assertEqual(repair.reason, "repaired")
+        self.assertEqual(repair.selected_evidence_ids, ("ev_result", "ev_cost"))
         recursive_execute.assert_not_called()
         canonical_execution.assert_called_once()
         candidate_preparation.assert_called_once()
@@ -4009,6 +4015,59 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(repaired_result["source_row_ids"], ["ev_result", "ev_cost"])
         self.assertEqual(result["selected_claim_ids"], ["ev_result", "ev_cost"])
         self.assertEqual(state["resolved_calculation_trace"], original_trace)
+
+        capture_state = {
+            **state,
+            "evidence_items": [
+                *state["evidence_items"],
+                {"evidence_id": "ev_stale", "claim": "stale ratio"},
+            ],
+            "selected_claim_ids": ["ev_stale"],
+            "kept_claim_ids": ["ev_stale"],
+            "tasks": [
+                {
+                    "task_id": "task_ratio",
+                    "artifact_ids": ["result:task_ratio:001"],
+                }
+            ],
+            "artifacts": [
+                {
+                    "artifact_id": "result:task_ratio:001",
+                    "task_id": "task_ratio",
+                    "kind": "calculation_result",
+                    "evidence_refs": ["ev_stale"],
+                    "payload": {"calculation_result": stale_result},
+                }
+            ],
+            "resolved_calculation_trace": {
+                "calculation_operands": raw_operands,
+                "calculation_plan": plan,
+                "calculation_result": stale_result,
+            },
+        }
+        original_capture_lists = (
+            capture_state["selected_claim_ids"],
+            capture_state["kept_claim_ids"],
+            capture_state["tasks"],
+            capture_state["artifacts"],
+        )
+        original_capture_state = json.loads(json.dumps(capture_state))
+
+        captured = agent._capture_current_subtask_result(capture_state)
+
+        self.assertEqual(captured["calculation_operands"], trace["calculation_operands"])
+        self.assertEqual(captured["calculation_result"]["source_row_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(
+            capture_state["artifacts"][0]["payload"]["calculation_result"]["source_row_ids"],
+            ["row_stale"],
+        )
+        self.assertIs(capture_state["selected_claim_ids"], original_capture_lists[0])
+        self.assertIs(capture_state["kept_claim_ids"], original_capture_lists[1])
+        self.assertIs(capture_state["tasks"], original_capture_lists[2])
+        self.assertIs(capture_state["artifacts"], original_capture_lists[3])
+        self.assertEqual(capture_state, original_capture_state)
+        self.assertEqual(captured["selected_claim_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(captured["artifact_ids"], ["result:task_ratio:001"])
 
     def test_lookup_slot_refinement_prefers_value_local_unit_over_table_unit_hint(self) -> None:
         slot = {
@@ -7823,24 +7882,36 @@ class OperationContractTests(unittest.TestCase):
             ) as candidate_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
-            first_operands, first_plan, first_result = agent._repair_stale_calculation_result_from_operands(
+            first_repair = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=operands,
                 plan=plan,
                 calculation_result=calc,
             )
-            second_operands, second_plan, second_result = agent._repair_stale_calculation_result_from_operands(
+            second_repair = agent._repair_stale_calculation_result_from_operands(
                 state,
-                operands=first_operands,
-                plan=first_plan,
-                calculation_result=first_result,
+                operands=first_repair.calculation_operands,
+                plan=first_repair.calculation_plan,
+                calculation_result=first_repair.calculation_result,
             )
 
+        first_operands = first_repair.calculation_operands
+        first_plan = first_repair.calculation_plan
+        first_result = first_repair.calculation_result
+        second_operands = second_repair.calculation_operands
+        second_plan = second_repair.calculation_plan
+        second_result = second_repair.calculation_result
         self.assertEqual(recursive_execute.call_count, 0)
         self.assertEqual(formula_evaluation.call_count, 2)
         self.assertEqual(canonical_execution.call_count, 2)
         self.assertEqual(candidate_preparation.call_count, 2)
         candidate_projection.assert_not_called()
+        self.assertFalse(first_repair.repair_applied)
+        self.assertEqual(first_repair.reason, "current")
+        self.assertEqual(first_repair.selected_evidence_ids, ())
+        self.assertFalse(second_repair.repair_applied)
+        self.assertEqual(second_repair.reason, "current")
+        self.assertEqual(second_repair.selected_evidence_ids, ())
         self.assertIs(first_operands, operands)
         self.assertIs(first_plan, plan)
         self.assertIs(first_result, calc)
@@ -7879,24 +7950,32 @@ class OperationContractTests(unittest.TestCase):
             ) as candidate_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
-            _, _, changed_result = agent._repair_stale_calculation_result_from_operands(
+            changed_repair = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=changed_operands,
                 plan=plan,
                 calculation_result=calc,
             )
-            _, _, settled_result = agent._repair_stale_calculation_result_from_operands(
+            settled_repair = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=changed_operands,
                 plan=plan,
-                calculation_result=changed_result,
+                calculation_result=changed_repair.calculation_result,
             )
 
+        changed_result = changed_repair.calculation_result
+        settled_result = settled_repair.calculation_result
         recursive_execute.assert_not_called()
         self.assertEqual(formula_evaluation.call_count, 2)
         self.assertEqual(canonical_execution.call_count, 2)
         self.assertEqual(candidate_preparation.call_count, 2)
         candidate_projection.assert_called_once()
+        self.assertTrue(changed_repair.repair_applied)
+        self.assertEqual(changed_repair.reason, "repaired")
+        self.assertEqual(changed_repair.selected_evidence_ids, ("sales_2023",))
+        self.assertFalse(settled_repair.repair_applied)
+        self.assertEqual(settled_repair.reason, "current")
+        self.assertEqual(settled_repair.selected_evidence_ids, ())
         self.assertIs(settled_result, changed_result)
         self.assertTrue(changed_result["stale_result_repaired_from_operands"])
         self.assertEqual(changed_result["result_value"], 11.5)
@@ -7908,6 +7987,190 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(plan, original_inputs["plan"])
         self.assertEqual(calc, original_inputs["result"])
         self.assertEqual(changed_operands, changed_operands_before_repair)
+
+        aggregate_input_state = {
+            "query": state["query"],
+            "tasks": [],
+            "artifacts": [],
+        }
+        stale_projection = {
+            "calculation_operands": changed_operands,
+            "calculation_plan": plan,
+            "calculation_result": calc,
+        }
+        stale_row = {
+            "task_id": "task_count_growth",
+            "metric_family": "generic_numeric",
+            "metric_label": state["active_subtask"]["metric_label"],
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "answer": calc["rendered_value"],
+            "calculation_operands": changed_operands,
+            "calculation_plan": plan,
+            "calculation_result": calc,
+            "selected_claim_ids": ["ev_stale"],
+        }
+        narrative_row = {
+            "task_id": "task_narrative",
+            "metric_family": "narrative_summary",
+            "metric_label": "market context",
+            "operation_family": "narrative_summary",
+            "status": "ok",
+            "answer": "Market context remained supported.",
+            "selected_claim_ids": ["ev_narrative"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "Market context remained supported.",
+                "source_row_ids": ["ev_narrative"],
+                "answer_slots": {"operation_family": "narrative_summary"},
+            },
+        }
+        other_metric_row = {
+            "task_id": "task_other_growth",
+            "metric_family": "generic_numeric",
+            "metric_label": "other growth metric",
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "answer": "Other growth remained supported.",
+            "selected_claim_ids": ["ev_other_metric"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "Other growth remained supported.",
+                "source_row_ids": ["ev_other_metric"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": "other growth metric",
+                },
+            },
+        }
+        other_period_row = {
+            "task_id": "task_count_growth_other_period",
+            "metric_family": "generic_numeric",
+            "metric_label": state["active_subtask"]["metric_label"],
+            "operation_family": "growth_rate",
+            "status": "ok",
+            "answer": "Earlier-period growth remained supported.",
+            "selected_claim_ids": ["ev_other_period"],
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": "Earlier-period growth remained supported.",
+                "source_row_ids": ["ev_other_period"],
+                "answer_slots": {
+                    "operation_family": "growth_rate",
+                    "metric_label": state["active_subtask"]["metric_label"],
+                    "current_period": "2021",
+                    "prior_period": "2020",
+                },
+            },
+        }
+        aggregate_evidence = [
+            {"evidence_id": "ev_narrative", "claim": "Supported market context."},
+            {"evidence_id": "ev_other_metric", "claim": "Supported other growth metric."},
+            {"evidence_id": "ev_other_period", "claim": "Supported earlier-period growth."},
+            {"evidence_id": "ev_stale", "claim": "stale growth result"},
+            {
+                "evidence_id": "sales_2023",
+                "claim": "2023 sales were 87.0 and the source-stated growth was 11.5%.",
+            },
+        ]
+        original_aggregate_inputs = json.loads(
+            json.dumps(
+                {
+                    "state": aggregate_input_state,
+                    "projection": stale_projection,
+                    "evidence": aggregate_evidence,
+                }
+            )
+        )
+        aggregate_repaired = agent._apply_stale_projection_repair_to_aggregate_state(
+            state=aggregate_input_state,
+            aggregate_state=financial_graph_calculation._AggregateSynthesisState(
+                [narrative_row, other_metric_row, other_period_row, stale_row],
+                stale_projection,
+                calc["rendered_value"],
+                ["ev_narrative", "ev_other_metric", "ev_other_period", "ev_stale"],
+            ),
+            evidence_items=aggregate_evidence,
+        )
+        aggregate_completion = agent._build_aggregate_completion_update(
+            aggregate_input_state,
+            ordered_results=aggregate_repaired.ordered_results,
+            aggregate_projection=aggregate_repaired.aggregate_projection,
+            final_answer=aggregate_repaired.final_answer,
+            selected_claim_ids=aggregate_repaired.selected_claim_ids,
+            aggregate_evidence_items=aggregate_evidence,
+            ledger_artifacts=[],
+            planner_feedback="",
+            should_replan=False,
+            replan_blocked_reason="",
+            aggregate_synthesis_debug={},
+        )
+        completion_trace = _resolve_runtime_calculation_trace(aggregate_completion)
+        aggregate_artifact = next(
+            artifact
+            for artifact in aggregate_completion["artifacts"]
+            if artifact.get("kind") == "aggregated_answer"
+        )
+
+        self.assertTrue(
+            completion_trace["calculation_result"]["stale_result_repaired_from_operands"]
+        )
+        self.assertEqual(
+            completion_trace["calculation_result"]["source_row_ids"],
+            ["sales_2023"],
+        )
+        self.assertEqual(changed_operands, changed_operands_before_repair)
+        self.assertEqual(aggregate_input_state, original_aggregate_inputs["state"])
+        self.assertEqual(stale_projection, original_aggregate_inputs["projection"])
+        self.assertEqual(aggregate_evidence, original_aggregate_inputs["evidence"])
+        # Accepted repairs must refresh final evidence selection before completion;
+        # this pure-numeric fixture drops the stale numeric reference.
+        expected_aggregate_refs = [
+            "ev_narrative",
+            "ev_other_metric",
+            "ev_other_period",
+            "sales_2023",
+        ]
+        self.assertEqual(aggregate_completion["selected_claim_ids"], expected_aggregate_refs)
+        self.assertEqual(aggregate_completion["kept_claim_ids"], expected_aggregate_refs)
+        self.assertEqual(aggregate_artifact["evidence_refs"], expected_aggregate_refs)
+
+        ambiguous_rows = [
+            {
+                "task_id": f"task_ambiguous_{suffix}",
+                "metric_family": "generic_numeric",
+                "metric_label": state["active_subtask"]["metric_label"],
+                "operation_family": "growth_rate",
+                "selected_claim_ids": [evidence_id],
+                "calculation_result": {
+                    "status": "ok",
+                    "source_row_ids": [evidence_id],
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "metric_label": state["active_subtask"]["metric_label"],
+                    },
+                },
+            }
+            for suffix, evidence_id in (("a", "ev_ambiguous_a"), ("b", "ev_ambiguous_b"))
+        ]
+        ambiguous_selected = agent._selected_claim_ids_after_stale_aggregate_repair(
+            aggregate_state=financial_graph_calculation._AggregateSynthesisState(
+                ambiguous_rows,
+                stale_projection,
+                calc["rendered_value"],
+                ["ev_ambiguous_a", "ev_ambiguous_b"],
+            ),
+            stale_repair=changed_repair,
+            evidence_items=[
+                {"evidence_id": "ev_ambiguous_a"},
+                {"evidence_id": "ev_ambiguous_b"},
+                {"evidence_id": "sales_2023"},
+            ],
+        )
+        self.assertEqual(
+            ambiguous_selected,
+            ["ev_ambiguous_a", "ev_ambiguous_b", "sales_2023"],
+        )
 
     def test_growth_rate_recovers_duplicate_prior_operand_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
