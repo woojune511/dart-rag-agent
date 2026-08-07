@@ -1502,13 +1502,18 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 )
 
                 self.assertEqual(decision.precedence, expected_precedence)
-                self.assertEqual(len(aligner_calls), 1)
-                self.assertTrue(
-                    all(row.get("alignment_marker") for row in decision.dependency_rows)
-                )
-                if expected_precedence == "dependency_first":
+                self.assertEqual(len(aligner_calls), 0 if aggregate_veto else 1)
+                if aggregate_veto:
+                    self.assertIs(decision.dependency_rows, dependency_rows)
                     self.assertTrue(
-                        all(row.get("alignment_marker") for row in decision.operand_rows)
+                        all(
+                            str(row.get("evidence_id") or "").startswith("dependency_")
+                            for row in decision.operand_rows
+                        )
+                    )
+                else:
+                    self.assertTrue(
+                        all(row.get("alignment_marker") for row in decision.dependency_rows)
                     )
 
     def test_lookup_keeps_complete_dependency_precedence(self) -> None:

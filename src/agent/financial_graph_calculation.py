@@ -15255,7 +15255,11 @@ class FinancialAgentCalculationMixin:
                         )
                     )
                 )
-                if direct_rows_have_coherent_context and ratio_direct_context_should_override_dependency:
+                if (
+                    direct_rows_have_coherent_context
+                    and ratio_direct_context_should_override_dependency
+                    and not required_prefers_aggregate_stage
+                ):
                     dependency_rows = []
                     dependency_bindings = []
                     missing_dependency_bindings = []
@@ -15666,7 +15670,12 @@ class FinancialAgentCalculationMixin:
                         required_operands=required_operands,
                     )
             complete_direct_context_blocks_dependency_remerge = False
-            if operation_family == "ratio" and required_operands and operand_rows:
+            if (
+                operation_family == "ratio"
+                and required_operands
+                and operand_rows
+                and not required_prefers_aggregate_stage
+            ):
                 sibling_context_rows = self._required_operand_rows_from_candidates(
                     evidence_items,
                     required_operands=required_operands,

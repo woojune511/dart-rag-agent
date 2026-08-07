@@ -1652,7 +1652,12 @@ def select_direct_dependency_operand_rows(
         )
 
     aligned_dependency_rows = dependency_rows
-    if operation_family == "ratio":
+    aggregate_stage_dependency_precedence = bool(
+        operation_family == "ratio"
+        and selection_input.dependency_rows_cover_required_operands
+        and selection_input.required_prefers_aggregate_stage
+    )
+    if operation_family == "ratio" and not aggregate_stage_dependency_precedence:
         aligned_dependency_rows = dependency_aligner(dependency_rows, direct_rows)
     if prefer_direct_rows_over_dependency:
         operand_rows = merge_operand_rows(

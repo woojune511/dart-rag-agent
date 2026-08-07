@@ -9385,6 +9385,157 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows_by_role["numerator_1"]["raw_unit"], "억원")
         self.assertEqual(rows_by_role["denominator_1"]["raw_unit"], "억원")
 
+    def test_ratio_aggregate_stage_dependency_precedence_survives_coherent_retrieved_context(self) -> None:
+        required_operands = [
+            {
+                "label": "expense input",
+                "concept": "expense_input",
+                "role": "numerator_1",
+                "period": "2023",
+                "binding_policy": {
+                    "prefer_aggregation_stages": ["final", "subtotal"],
+                },
+            },
+            {
+                "label": "profit base",
+                "concept": "profit_base",
+                "role": "denominator_1",
+                "period": "2023",
+            },
+        ]
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "query_type": "comparison",
+            "intent": "comparison",
+            "report_scope": {"company": "Example", "year": 2023},
+            "topic": "target ratio",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "target ratio",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+                "inputs": [
+                    {
+                        "role": "numerator_1",
+                        "concept": "expense_input",
+                        "period": "2023",
+                        "label": "expense input",
+                        "preferred_task_id": "task_expense",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                    {
+                        "role": "denominator_1",
+                        "concept": "profit_base",
+                        "period": "2023",
+                        "label": "profit base",
+                        "preferred_task_id": "task_profit",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output", "retrieval"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                self._lookup_result_row(
+                    task_id="task_expense",
+                    label="expense input",
+                    concept="expense_input",
+                    raw_value="435,542",
+                    raw_unit="백만원",
+                    normalized_value=435_542_000_000.0,
+                    source_row_id="task_output:task_expense",
+                ),
+                self._lookup_result_row(
+                    task_id="task_profit",
+                    label="profit base",
+                    concept="profit_base",
+                    raw_value="11,623",
+                    raw_unit="백만원",
+                    normalized_value=11_623_000_000.0,
+                    source_row_id="task_output:task_profit",
+                ),
+            ],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [
+                (
+                    Document(
+                        page_content=(
+                            "expense input | 2023 4,355 억원\n"
+                            "profit base | 2023 11,623 억원"
+                        ),
+                        metadata={
+                            "block_type": "table",
+                            "table_source_id": "ratio-table",
+                            "unit_hint": "억원",
+                            "year": 2023,
+                        },
+                    ),
+                    1.0,
+                )
+            ],
+            "seed_retrieved_docs": [],
+            "evidence_status": "partial",
+            "reconciliation_result": {"status": "ready"},
+            "tasks": [],
+            "artifacts": [],
+        }
+        coherent_direct_rows = [
+            {
+                "operand_id": "direct_numerator",
+                "evidence_id": "direct_ratio_table",
+                "source_row_id": "direct_numerator",
+                "source_anchor": "[Example | 2023 | table]",
+                "table_source_id": "ratio-table",
+                "label": "expense input",
+                "raw_value": "4,355",
+                "raw_unit": "억원",
+                "normalized_value": 435_500_000_000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "expense input",
+                "matched_operand_concept": "expense_input",
+                "matched_operand_role": "numerator_1",
+            },
+            {
+                "operand_id": "direct_denominator",
+                "evidence_id": "direct_ratio_table",
+                "source_row_id": "direct_denominator",
+                "source_anchor": "[Example | 2023 | table]",
+                "table_source_id": "ratio-table",
+                "label": "profit base",
+                "raw_value": "11,623",
+                "raw_unit": "억원",
+                "normalized_value": 1_162_300_000_000.0,
+                "normalized_unit": "KRW",
+                "period": "2023",
+                "matched_operand_label": "profit base",
+                "matched_operand_concept": "profit_base",
+                "matched_operand_role": "denominator_1",
+            },
+        ]
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._build_complete_ratio_operands_from_coherent_context = (
+            lambda *_args, **_kwargs: [dict(row) for row in coherent_direct_rows]
+        )
+
+        extracted = self.agent._extract_calculation_operands(state)
+        rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+
+        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "435,542")
+        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertIn(
+            "task_output:task_expense",
+            rows_by_role["numerator_1"]["source_row_ids"],
+        )
+        self.assertIn(
+            "task_output:task_profit",
+            rows_by_role["denominator_1"]["source_row_ids"],
+        )
+
     def test_ratio_coherent_table_context_overrides_mixed_table_operands(self) -> None:
         required_operands = [
             {
