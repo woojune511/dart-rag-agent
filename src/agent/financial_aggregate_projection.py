@@ -2,9 +2,190 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Sequence
 
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
+
+
+AggregateStaleRepairTargetResolution = Literal[
+    "unique_overlap",
+    "single_identity_candidate",
+    "ambiguous_target",
+    "no_target",
+]
+
+
+@dataclass(frozen=True)
+class AggregateStaleRepairProvenanceInput:
+    ordered_results: Sequence[Mapping[str, Any]]
+    aggregate_projection: Mapping[str, Any]
+    selected_claim_ids: Sequence[Any]
+    repaired_calculation_result: Mapping[str, Any]
+    repaired_selected_evidence_ids: Sequence[str]
+    evidence_items: Sequence[Mapping[str, Any]]
+
+
+@dataclass(frozen=True)
+class AggregateStaleRepairProvenanceResult:
+    selected_claim_ids: tuple[str, ...]
+    target_resolution: AggregateStaleRepairTargetResolution
+
+
+def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
+    """Return the normalized operation family projected by an aggregate row."""
+
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    operation_family = _normalise_spaces(
+        str(
+            row.get("operation_family")
+            or answer_slots.get("operation_family")
+            or (row.get("calculation_plan") or {}).get("operation")
+            or ""
+        )
+    ).lower()
+    if not operation_family:
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if metric_family.startswith("concept_"):
+            operation_family = metric_family.removeprefix("concept_")
+        elif metric_family.endswith("_ratio"):
+            operation_family = "ratio"
+        elif metric_family.endswith("_growth_rate"):
+            operation_family = "growth_rate"
+        elif metric_family.endswith("_difference"):
+            operation_family = "difference"
+        elif metric_family.endswith("_sum"):
+            operation_family = "sum"
+    operation_aliases = {
+        "divide": "ratio",
+        "division": "ratio",
+        "subtract": "difference",
+        "subtraction": "difference",
+        "add": "sum",
+        "addition": "sum",
+    }
+    return operation_aliases.get(operation_family, operation_family)
+
+
+def _aggregate_stale_repair_provenance_refs(payload: Mapping[str, Any]) -> set[str]:
+    calculation_result = dict(payload.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or payload.get("answer_slots") or {})
+    calculation_operands = [
+        dict(row)
+        for row in list(payload.get("calculation_operands") or [])
+        if isinstance(row, dict)
+    ]
+    return set(
+        _clean_source_row_ids(
+            [
+                payload.get("selected_claim_ids"),
+                payload.get("source_row_id"),
+                payload.get("source_row_ids"),
+                payload.get("source_evidence_ids"),
+                calculation_result.get("source_row_id"),
+                calculation_result.get("source_row_ids"),
+                calculation_result.get("source_evidence_ids"),
+                answer_slots.get("source_row_id"),
+                answer_slots.get("source_row_ids"),
+                answer_slots.get("source_evidence_ids"),
+                *[
+                    value
+                    for operand in calculation_operands
+                    for value in (
+                        operand.get("evidence_id"),
+                        operand.get("source_row_id"),
+                        operand.get("source_row_ids"),
+                        operand.get("source_claim_ids"),
+                    )
+                ],
+            ]
+        )
+    )
+
+
+def select_aggregate_stale_repair_provenance(
+    selection_input: AggregateStaleRepairProvenanceInput,
+) -> AggregateStaleRepairProvenanceResult:
+    """Replace only a uniquely identified stale target's selected provenance."""
+
+    repaired_slots = dict(
+        selection_input.repaired_calculation_result.get("answer_slots") or {}
+    )
+    target_operation = _normalise_spaces(
+        str(repaired_slots.get("operation_family") or "")
+    ).lower()
+    target_metric = _normalise_spaces(
+        str(repaired_slots.get("metric_label") or "")
+    ).casefold()
+    matching_rows: List[Mapping[str, Any]] = []
+    if target_operation and target_metric:
+        for row in selection_input.ordered_results:
+            row_result = dict(row.get("calculation_result") or {})
+            row_slots = dict(row_result.get("answer_slots") or row.get("answer_slots") or {})
+            row_metric = _normalise_spaces(
+                str(row.get("metric_label") or row_slots.get("metric_label") or "")
+            ).casefold()
+            if (
+                aggregate_result_operation_family(row) != target_operation
+                or row_metric != target_metric
+            ):
+                continue
+            matching_rows.append(row)
+    projection_refs = _aggregate_stale_repair_provenance_refs(
+        selection_input.aggregate_projection
+    )
+    overlapping_rows = [
+        row
+        for row in matching_rows
+        if projection_refs.intersection(_aggregate_stale_repair_provenance_refs(row))
+    ]
+    target_rows: List[Mapping[str, Any]] = []
+    target_resolution: AggregateStaleRepairTargetResolution = "no_target"
+    if len(overlapping_rows) == 1:
+        target_rows = overlapping_rows
+        target_resolution = "unique_overlap"
+    elif not overlapping_rows and len(matching_rows) == 1:
+        target_rows = matching_rows
+        target_resolution = "single_identity_candidate"
+    elif matching_rows:
+        target_resolution = "ambiguous_target"
+
+    superseded_claim_ids: set[str] = set()
+    for row in target_rows:
+        superseded_claim_ids.update(
+            str(claim_id).strip()
+            for claim_id in (row.get("selected_claim_ids") or [])
+            if str(claim_id).strip()
+        )
+
+    evidence_ids = {
+        str(item.get("evidence_id") or "").strip()
+        for item in selection_input.evidence_items
+        if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+    }
+    repaired_claim_ids = [
+        claim_id
+        for claim_id in selection_input.repaired_selected_evidence_ids
+        if claim_id in evidence_ids
+    ]
+    selected_claim_ids = tuple(
+        dict.fromkeys(
+            [
+                *[
+                    str(claim_id).strip()
+                    for claim_id in selection_input.selected_claim_ids
+                    if str(claim_id).strip()
+                    and str(claim_id).strip() not in superseded_claim_ids
+                ],
+                *repaired_claim_ids,
+            ]
+        )
+    )
+    return AggregateStaleRepairProvenanceResult(
+        selected_claim_ids=selected_claim_ids,
+        target_resolution=target_resolution,
+    )
 
 
 def aggregate_selected_claim_ids(

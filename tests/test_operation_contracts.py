@@ -8135,43 +8135,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(aggregate_completion["kept_claim_ids"], expected_aggregate_refs)
         self.assertEqual(aggregate_artifact["evidence_refs"], expected_aggregate_refs)
 
-        ambiguous_rows = [
-            {
-                "task_id": f"task_ambiguous_{suffix}",
-                "metric_family": "generic_numeric",
-                "metric_label": state["active_subtask"]["metric_label"],
-                "operation_family": "growth_rate",
-                "selected_claim_ids": [evidence_id],
-                "calculation_result": {
-                    "status": "ok",
-                    "source_row_ids": [evidence_id],
-                    "answer_slots": {
-                        "operation_family": "growth_rate",
-                        "metric_label": state["active_subtask"]["metric_label"],
-                    },
-                },
-            }
-            for suffix, evidence_id in (("a", "ev_ambiguous_a"), ("b", "ev_ambiguous_b"))
-        ]
-        ambiguous_selected = agent._selected_claim_ids_after_stale_aggregate_repair(
-            aggregate_state=financial_graph_calculation._AggregateSynthesisState(
-                ambiguous_rows,
-                stale_projection,
-                calc["rendered_value"],
-                ["ev_ambiguous_a", "ev_ambiguous_b"],
-            ),
-            stale_repair=changed_repair,
-            evidence_items=[
-                {"evidence_id": "ev_ambiguous_a"},
-                {"evidence_id": "ev_ambiguous_b"},
-                {"evidence_id": "sales_2023"},
-            ],
-        )
-        self.assertEqual(
-            ambiguous_selected,
-            ["ev_ambiguous_a", "ev_ambiguous_b", "sales_2023"],
-        )
-
     def test_growth_rate_recovers_duplicate_prior_operand_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         result = _execute_calculation_with_runtime_trace(agent,

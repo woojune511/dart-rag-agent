@@ -7,6 +7,7 @@ from src.agent import financial_calculation_execution, financial_graph_calculati
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
+    AggregateStaleRepairProvenanceInput,
     aggregate_artifact_payload,
     aggregate_completion_base_payload,
     aggregate_extend_selected_claim_ids,
@@ -15,9 +16,11 @@ from src.agent.financial_aggregate_projection import (
     aggregate_period_context_evidence_items,
     aggregate_projection_apply_override,
     aggregate_projection_for_integrity,
+    aggregate_result_operation_family,
     aggregate_selected_claim_ids,
     aggregate_source_task_ids,
     aggregate_task_status_value,
+    select_aggregate_stale_repair_provenance,
 )
 from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
 from src.agent.financial_dependency_projection import dependency_operand_can_use_source_slot
@@ -33,6 +36,32 @@ from src.agent.financial_task_artifacts import (
     semantic_plan_artifact_update,
     supersede_task_with_aggregate_result,
 )
+
+
+def _stale_provenance_row(
+    claim_id: str,
+    source_row_id: str = "",
+    *,
+    operation_family: str = "growth_rate",
+    metric_label: str = "revenue growth",
+) -> dict:
+    row = {
+        "operation_family": operation_family,
+        "metric_label": metric_label,
+        "selected_claim_ids": [claim_id],
+    }
+    if source_row_id:
+        row["calculation_result"] = {"source_row_ids": [source_row_id]}
+    return row
+
+
+def _repaired_growth_result() -> dict:
+    return {
+        "answer_slots": {
+            "operation_family": "growth_rate",
+            "metric_label": "revenue growth",
+        }
+    }
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
@@ -399,6 +428,172 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         )
 
         self.assertEqual(selected, ["ev1", "ev2", "ev3", ""])
+
+    def test_aggregate_result_operation_family_preserves_resolution_precedence(self) -> None:
+        cases = [
+            (
+                "direct",
+                {
+                    "operation_family": " SUM ",
+                    "answer_slots": {"operation_family": "ratio"},
+                    "calculation_plan": {"operation": "difference"},
+                },
+                "sum",
+            ),
+            (
+                "calculation_result_answer_slots",
+                {
+                    "calculation_result": {
+                        "answer_slots": {"operation_family": "ratio"}
+                    },
+                    "answer_slots": {"operation_family": "difference"},
+                    "calculation_plan": {"operation": "sum"},
+                },
+                "ratio",
+            ),
+            (
+                "row_answer_slots",
+                {
+                    "answer_slots": {"operation_family": "difference"},
+                    "calculation_plan": {"operation": "sum"},
+                },
+                "difference",
+            ),
+            ("calculation_plan", {"calculation_plan": {"operation": "growth_rate"}}, "growth_rate"),
+            *[
+                (f"metric_{metric_family}", {"metric_family": metric_family}, expected)
+                for metric_family, expected in (
+                    ("concept_lookup", "lookup"),
+                    ("custom_ratio", "ratio"),
+                    ("custom_growth_rate", "growth_rate"),
+                    ("custom_difference", "difference"),
+                    ("custom_sum", "sum"),
+                )
+            ],
+            *[
+                (f"alias_{alias}", {"operation_family": alias}, expected)
+                for alias, expected in (
+                    ("divide", "ratio"),
+                    (" DiViSiOn ", "ratio"),
+                    ("subtract", "difference"),
+                    ("subtraction", "difference"),
+                    ("add", "sum"),
+                    ("addition", "sum"),
+                )
+            ],
+        ]
+
+        for case_name, row, expected in cases:
+            with self.subTest(case_name=case_name):
+                self.assertEqual(aggregate_result_operation_family(row), expected)
+
+    def test_stale_repair_provenance_selects_unique_overlap_without_mutating_inputs(self) -> None:
+        source_fields = {
+            "ordered_results": [
+                _stale_provenance_row("ev_stale", "row_overlap"),
+                _stale_provenance_row("ev_other", "row_other"),
+            ],
+            "aggregate_projection": {
+                "calculation_result": {"source_row_ids": ["row_overlap"]}
+            },
+            "selected_claim_ids": ["ev_keep", "ev_stale", "ev_existing", "ev_other"],
+            "repaired_calculation_result": _repaired_growth_result(),
+            "repaired_selected_evidence_ids": [
+                "ev_new_b",
+                "ev_missing",
+                "ev_existing",
+                "ev_new_a",
+                "ev_new_b",
+            ],
+            "evidence_items": [
+                {"evidence_id": "ev_new_a", "metadata": {"rank": 1}},
+                {"evidence_id": "ev_new_b"},
+                {"evidence_id": "ev_existing"},
+            ],
+        }
+        provenance_input = AggregateStaleRepairProvenanceInput(**source_fields)
+        original_inputs = deepcopy(source_fields)
+
+        result = select_aggregate_stale_repair_provenance(provenance_input)
+
+        self.assertEqual(result.target_resolution, "unique_overlap")
+        self.assertEqual(
+            result.selected_claim_ids,
+            ("ev_keep", "ev_existing", "ev_other", "ev_new_b", "ev_new_a"),
+        )
+        for field_name, value in source_fields.items():
+            self.assertIs(getattr(provenance_input, field_name), value)
+        self.assertEqual(source_fields, original_inputs)
+
+    def test_stale_repair_provenance_keeps_ambiguous_targets(self) -> None:
+        ordered_results = [
+            _stale_provenance_row("ev_stale_a", "row_a"),
+            _stale_provenance_row("ev_stale_b", "row_b"),
+        ]
+
+        for projection_sources in (["row_a", "row_b"], ["row_projection"]):
+            with self.subTest(projection_sources=projection_sources):
+                result = select_aggregate_stale_repair_provenance(
+                    AggregateStaleRepairProvenanceInput(
+                        ordered_results=ordered_results,
+                        aggregate_projection={
+                            "calculation_result": {"source_row_ids": projection_sources}
+                        },
+                        selected_claim_ids=["ev_keep", "ev_stale_a", "ev_stale_b"],
+                        repaired_calculation_result=_repaired_growth_result(),
+                        repaired_selected_evidence_ids=["ev_new"],
+                        evidence_items=[{"evidence_id": "ev_new"}],
+                    )
+                )
+
+                self.assertEqual(result.target_resolution, "ambiguous_target")
+                self.assertEqual(
+                    result.selected_claim_ids,
+                    ("ev_keep", "ev_stale_a", "ev_stale_b", "ev_new"),
+                )
+
+    def test_stale_repair_provenance_distinguishes_single_identity_and_no_target(self) -> None:
+        cases = [
+            (
+                "single_identity_candidate",
+                [_stale_provenance_row("ev_stale", "row_candidate")],
+                _repaired_growth_result(),
+                ("ev_keep", "ev_new"),
+            ),
+            (
+                "no_target",
+                [_stale_provenance_row("ev_stale")],
+                {
+                    "operation_family": "growth_rate",
+                    "metric_label": "revenue growth",
+                    "answer_slots": {"operation_family": "growth_rate"},
+                },
+                ("ev_stale", "ev_keep", "ev_new"),
+            ),
+        ]
+
+        for (
+            expected_resolution,
+            ordered_results,
+            repaired_calculation_result,
+            expected_selected,
+        ) in cases:
+            with self.subTest(expected_resolution=expected_resolution):
+                result = select_aggregate_stale_repair_provenance(
+                    AggregateStaleRepairProvenanceInput(
+                        ordered_results=ordered_results,
+                        aggregate_projection={
+                            "calculation_result": {"source_row_ids": ["row_projection"]}
+                        },
+                        selected_claim_ids=["ev_stale", "ev_keep"],
+                        repaired_calculation_result=repaired_calculation_result,
+                        repaired_selected_evidence_ids=["ev_new"],
+                        evidence_items=[{"evidence_id": "ev_new"}],
+                    )
+                )
+
+                self.assertEqual(result.target_resolution, expected_resolution)
+                self.assertEqual(result.selected_claim_ids, expected_selected)
 
     def test_aggregate_ordered_result_source_refs_collects_nested_sources(self) -> None:
         source_refs = aggregate_ordered_result_source_refs(

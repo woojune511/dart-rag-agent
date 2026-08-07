@@ -27,6 +27,7 @@ from src.agent.financial_aggregate_state import (
     _PreparedAggregateState,
 )
 from src.agent.financial_aggregate_projection import (
+    AggregateStaleRepairProvenanceInput,
     aggregate_artifact_payload as _aggregate_artifact_payload,
     aggregate_completion_base_payload as _aggregate_completion_base_payload,
     aggregate_extend_selected_claim_ids as _aggregate_extend_selected_claim_ids,
@@ -35,8 +36,10 @@ from src.agent.financial_aggregate_projection import (
     aggregate_period_context_evidence_items as _aggregate_period_context_evidence_items,
     aggregate_projection_apply_override as _aggregate_projection_apply_override,
     aggregate_projection_for_integrity as _aggregate_projection_for_integrity,
+    aggregate_result_operation_family as _aggregate_result_operation_family,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_task_ids as _aggregate_source_task_ids,
+    select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
 )
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
@@ -6264,115 +6267,6 @@ class FinancialAgentCalculationMixin:
         }
         return repaired_projection, stale_repair
 
-    def _stale_repair_provenance_refs(self, payload: Dict[str, Any]) -> set[str]:
-        calculation_result = dict(payload.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or payload.get("answer_slots") or {})
-        calculation_operands = [
-            dict(row)
-            for row in list(payload.get("calculation_operands") or [])
-            if isinstance(row, dict)
-        ]
-        return set(
-            _clean_source_row_ids(
-                [
-                    payload.get("selected_claim_ids"),
-                    payload.get("source_row_id"),
-                    payload.get("source_row_ids"),
-                    payload.get("source_evidence_ids"),
-                    calculation_result.get("source_row_id"),
-                    calculation_result.get("source_row_ids"),
-                    calculation_result.get("source_evidence_ids"),
-                    answer_slots.get("source_row_id"),
-                    answer_slots.get("source_row_ids"),
-                    answer_slots.get("source_evidence_ids"),
-                    *[
-                        value
-                        for operand in calculation_operands
-                        for value in (
-                            operand.get("evidence_id"),
-                            operand.get("source_row_id"),
-                            operand.get("source_row_ids"),
-                            operand.get("source_claim_ids"),
-                        )
-                    ],
-                ]
-            )
-        )
-
-    def _selected_claim_ids_after_stale_aggregate_repair(
-        self,
-        *,
-        aggregate_state: _AggregateSynthesisState,
-        stale_repair: _StaleCalculationRepairResult,
-        evidence_items: List[Dict[str, Any]],
-    ) -> List[str]:
-        repaired_slots = dict(stale_repair.calculation_result.get("answer_slots") or {})
-        target_operation = _normalise_spaces(
-            str(repaired_slots.get("operation_family") or "")
-        ).lower()
-        target_metric = _normalise_spaces(
-            str(repaired_slots.get("metric_label") or "")
-        ).casefold()
-        superseded_claim_ids: set[str] = set()
-        matching_rows: List[Dict[str, Any]] = []
-        if target_operation and target_metric:
-            for row in aggregate_state.ordered_results:
-                row_result = dict(row.get("calculation_result") or {})
-                row_slots = dict(row_result.get("answer_slots") or row.get("answer_slots") or {})
-                row_metric = _normalise_spaces(
-                    str(row.get("metric_label") or row_slots.get("metric_label") or "")
-                ).casefold()
-                if (
-                    self._aggregate_result_operation_family(row) != target_operation
-                    or row_metric != target_metric
-                ):
-                    continue
-                matching_rows.append(row)
-
-        projection_refs = self._stale_repair_provenance_refs(
-            aggregate_state.aggregate_projection
-        )
-        overlapping_rows = [
-            row
-            for row in matching_rows
-            if projection_refs.intersection(self._stale_repair_provenance_refs(row))
-        ]
-        target_rows: List[Dict[str, Any]] = []
-        if len(overlapping_rows) == 1:
-            target_rows = overlapping_rows
-        elif not overlapping_rows and len(matching_rows) == 1:
-            target_rows = matching_rows
-        for row in target_rows:
-            superseded_claim_ids.update(
-                str(claim_id).strip()
-                for claim_id in (row.get("selected_claim_ids") or [])
-                if str(claim_id).strip()
-            )
-
-        evidence_ids = {
-            str(item.get("evidence_id") or "").strip()
-            for item in evidence_items
-            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-        }
-        repaired_claim_ids = [
-            claim_id
-            for claim_id in stale_repair.selected_evidence_ids
-            if claim_id in evidence_ids
-        ]
-        return list(
-            dict.fromkeys(
-                [
-                    *[
-                        str(claim_id).strip()
-                        for claim_id in aggregate_state.selected_claim_ids
-                        if str(claim_id).strip()
-                        and str(claim_id).strip() not in superseded_claim_ids
-                    ],
-                    *repaired_claim_ids,
-                ]
-            )
-        )
-
     def _apply_stale_projection_repair_to_aggregate_state(
         self,
         *,
@@ -6406,13 +6300,19 @@ class FinancialAgentCalculationMixin:
             == 0
         ):
             return aggregate_state
+        provenance_selection = _select_aggregate_stale_repair_provenance(
+            AggregateStaleRepairProvenanceInput(
+                ordered_results=aggregate_state.ordered_results,
+                aggregate_projection=aggregate_state.aggregate_projection,
+                selected_claim_ids=aggregate_state.selected_claim_ids,
+                repaired_calculation_result=stale_repair.calculation_result,
+                repaired_selected_evidence_ids=stale_repair.selected_evidence_ids,
+                evidence_items=evidence_items,
+            )
+        )
         accepted_state = aggregate_state.with_updates(
             aggregate_projection=aggregate_projection,
-            selected_claim_ids=self._selected_claim_ids_after_stale_aggregate_repair(
-                aggregate_state=aggregate_state,
-                stale_repair=stale_repair,
-                evidence_items=evidence_items,
-            ),
+            selected_claim_ids=list(provenance_selection.selected_claim_ids),
         )
         repaired_answer = _normalise_spaces(
             str(repaired_result.get("formatted_result") or repaired_result.get("rendered_value") or "")
@@ -8777,38 +8677,7 @@ class FinancialAgentCalculationMixin:
         return ""
 
     def _aggregate_result_operation_family(self, row: Dict[str, Any]) -> str:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        operation_family = _normalise_spaces(
-            str(
-                row.get("operation_family")
-                or answer_slots.get("operation_family")
-                or (row.get("calculation_plan") or {}).get("operation")
-                or ""
-            )
-        ).lower()
-        if not operation_family:
-            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-            if metric_family.startswith("concept_"):
-                operation_family = metric_family.removeprefix("concept_")
-            elif metric_family.endswith("_ratio"):
-                operation_family = "ratio"
-            elif metric_family.endswith("_growth_rate"):
-                operation_family = "growth_rate"
-            elif metric_family.endswith("_difference"):
-                operation_family = "difference"
-            elif metric_family.endswith("_sum"):
-                operation_family = "sum"
-        operation_aliases = {
-            "divide": "ratio",
-            "division": "ratio",
-            "subtract": "difference",
-            "subtraction": "difference",
-            "add": "sum",
-            "addition": "sum",
-        }
-        operation_family = operation_aliases.get(operation_family, operation_family)
-        return operation_family
+        return _aggregate_result_operation_family(row)
 
     def _aggregate_result_signature(self, row: Dict[str, Any]) -> str:
         calculation_result = dict(row.get("calculation_result") or {})
