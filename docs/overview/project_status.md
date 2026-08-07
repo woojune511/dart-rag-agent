@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-07-22
+Last updated: 2026-08-07
 
 ## Product Boundary
 
@@ -29,6 +29,9 @@ imports or an unconfigured `FinancialAgent` invocation.
 - PRs #79 through #84 completed the portfolio core simplification sequence on
   2026-07-22; PR #85 compressed the current-state and handoff documents.
 - Latest confirmed merge: PR #85, `main@f0a5145`.
+- Latest local source checkpoint: `430d1f2` on
+  `codex/finalize-five-minute-review`; the local branch has not been pushed or
+  merged.
 - Canonical public numeric contracts are `resolved_calculation_trace`, explicit
   `structured_result`, and task/artifact projections.
 - Top-level `calculation_*` compatibility mirrors are not part of the default
@@ -39,6 +42,24 @@ imports or an unconfigured `FinancialAgent` invocation.
 - Tracked benchmark outputs were reduced from 324 raw/intermediate files to 26
   compact, history-linked summaries and diagnostics. Full result bundles,
   stores, caches, and heartbeat logs are local-only.
+- Runtime routing canonical examples now live under `src/config`; the held-out
+  routing set remains under `benchmarks/golden`, and a normalized disjointness
+  contract prevents train/eval question overlap.
+- The portfolio demo fixture has a checked-in SHA-256 evidence manifest and
+  validates calculation, display, operand, source/citation, and critic-target
+  invariants before reporting `fixture_contract_ready`.
+- Benchmark JSON writes are atomic, failed runs emit a terminal failed
+  heartbeat, and `--eval-output-dir` preserves source bundles during eval-only
+  refreshes.
+- `.github/workflows/validation.yml` defines the Python 3.13 publication
+  validation path; `.python-version` is the interpreter source of truth.
+- The calculation owner slice makes the primary graph-state orchestration,
+  state-free operand-resolution, and deterministic-execution boundaries
+  explicit; dependency precedence and stale-result re-execution still require
+  consolidation. It reduces
+  `financial_graph_calculation.py` from 21,642 to 19,682 lines, while source as
+  a whole grows by 1,095 lines; this is ownership extraction and contract
+  hardening, not total code reduction.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -54,7 +75,10 @@ remains recoverable from `main@294b4ea`.
 | Query/filter/search/rerank/selection trace | `financial_retrieval_pipeline.py` |
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
-| Operand binding and calculation | deterministic calculation runtime |
+| Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
+| Operand candidate resolution | `financial_operand_resolution.py` |
+| Dependency projection and precedence decisions | `financial_dependency_projection.py`; end-to-end precedence consolidation remains open |
+| Primary plan validation and formula execution | `financial_calculation_execution.py`; stale-result re-execution migration remains open |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
 | Optional persisted report cache | configured `ReportCacheIndex` boundary |
@@ -66,29 +90,43 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 
 | Gate | Latest status |
 | --- | --- |
-| Runtime contract gate | PASS |
-| Hard structural numeric gate | PASS, 5 / 5 |
-| Concept runtime gap gate | PASS, 7 / 7 |
-| Policy-driven runtime gate | PASS |
-| Expanded structural numeric gate | PASS, 9 / 9 |
-| Plain-retrieval comparison | 5 / 9 diagnostic baseline |
+| Runtime contract gate | Recorded PASS; upstream raw bundle local-only |
+| Hard structural numeric gate | Recorded PASS, 5 / 5; upstream raw bundle local-only |
+| Concept runtime gap gate | Recorded PASS, 7 / 7; upstream raw bundle local-only |
+| Policy-driven runtime gate | Recorded PASS; upstream raw bundle local-only |
+| Expanded structural numeric gate | Recorded PASS, 9 / 9; upstream raw bundle local-only |
+| Plain-retrieval comparison | Recorded 5 / 9 diagnostic baseline; not synchronized after the latest structural repair |
 | Reflection promotion gate | READY |
 | Report-cache promotion evidence | READY, serving disabled |
 | Promotion trace materiality gate | READY |
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
-| Portfolio review gates | READY |
-| Full unittest discovery | 1,352 passed after the final reviewer walkthrough |
+| Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
+| Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
+| Calculation owner focused contracts | PASS, 62 operand/execution tests and 323 calculation/projection tests on 2026-08-07 |
+| Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
+| Full unittest discovery | PASS, 1,451 tests locally on Python 3.13 on 2026-08-07 |
+| Benchmark refresh after `430d1f2` | NOT RUN; recorded benchmark evidence predates this answer-selection contract change |
+| GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
-The structural and plain numbers are retained portfolio evidence, not a claim
-that every docs-only change reran a paid benchmark. Fresh benchmark work is
-required only when parser, ingest, store signature, retrieval behavior, or a
-material answer contract changes.
+The structural and plain numbers are retained recorded evidence, not a claim
+that every change reran a paid benchmark. Their raw result bundles are not
+checked in, so they are not independently reproducible from this checkout. The
+demo manifest only binds the compact fixture and states that limitation; it
+does not promote the fixture into proof of the upstream run. Fresh benchmark
+work is required when parser, ingest, store signature, retrieval behavior, or a
+material answer contract changes. Because `430d1f2` changes candidate conflict
+and precedence behavior, its unit/contract evidence must not be presented as a
+refreshed benchmark result.
 
 ## Reviewer Evidence Surface
 
 - Product and quick start: [README.md](../../README.md)
 - Five-minute summary: [portfolio_one_pager.md](portfolio_one_pager.md)
 - Experiment narrative: [portfolio_experiment_report.md](portfolio_experiment_report.md)
+- Demo evidence manifest:
+  [evidence_manifest.json](../../tests/fixtures/portfolio_demo/evidence_manifest.json)
+- Publication validation workflow:
+  [validation.yml](../../.github/workflows/validation.yml)
 - Runtime architecture and stop lines:
   [core_runtime_surface_refactoring_plan.md](../architecture/core_runtime_surface_refactoring_plan.md)
 - Benchmark operation and interpretation: [benchmarking.md](../evaluation/benchmarking.md)
@@ -101,9 +139,16 @@ not part of the published product surface.
 
 ## Active Blockers
 
-There is no active correctness or architecture blocker in the verified
-single-agent path. Optional MAS and cache-promotion work is intentionally
-disabled or experimental rather than an incomplete product requirement.
+There is no known unit/contract correctness blocker in the single-agent path.
+The current evidence limitation is explicit: the calculation owner slice passed
+focused and full regression tests, but its benchmark refresh has not run.
+Optional MAS and cache-promotion work is intentionally disabled or experimental
+rather than an incomplete product requirement.
+
+Phase 3 also remains architecturally open: dependency precedence is still
+composed across owners, private helper imports are broad, and stale-result repair
+retains a second formula-execution path. These are named follow-ups, not hidden
+claims that the calculation monolith is already resolved.
 
 Open work should be created only when one of these conditions is met:
 
@@ -120,12 +165,19 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-There is no planned broad cleanup phase. Open the next change only for a
-reproducible regression, a concrete caller requirement, or a specific reviewer
-explanation gap.
+The next architecture change, if continued, should select exactly one bounded
+slice: consolidate dependency precedence under one owner, or move stale-result
+re-execution behind the canonical executor. Each slice must migrate concrete
+callers and delete the old implementation before claiming progress.
 
-Do not start another broad refactor, proactive full benchmark, all-at-once test
-split, new MAS capability, or cache-serving path without a concrete blocker.
+Before publishing a new score for `430d1f2`, verify that a local store matches
+the active profile and cache signature, then prefer a monitored store-fixed
+`eval-only` refresh. If that cannot be established, keep the benchmark status
+as not run.
+
+Do not combine both architecture slices into another broad refactor or start an
+all-at-once test split, new MAS capability, or cache-serving path without a
+concrete blocker.
 Oversized tests are split only when their public contract is being changed.
 
 ## Session Handoff

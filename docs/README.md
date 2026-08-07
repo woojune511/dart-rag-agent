@@ -78,7 +78,7 @@ first-read 문서가 아니며, 필요한 근거를 추적할 때만 본다.
 | 문서 | 역할 |
 | --- | --- |
 | [../CONTEXT.md](../CONTEXT.md) | 최신 작업 상태 snapshot |
-| [../PLAN.md](../PLAN.md) | active work와 다음 작업 |
+| [../PLAN.md](../PLAN.md) | 2026-06-11 이전 historical execution plan |
 | [../DECISIONS.md](../DECISIONS.md) | append-only 설계 판단 로그 |
 | [overview/project_status.md](overview/project_status.md) | 현재 제품 경계와 gate 상태 |
 | [history/implementation_history.md](history/implementation_history.md) | core runtime 단순화 연대기 |

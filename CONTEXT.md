@@ -6,7 +6,7 @@
 > [implementation_history.md](docs/history/implementation_history.md)와
 > [experiment_history.md](docs/history/experiment_history.md)에 있다.
 
-Last updated: 2026-07-22
+Last updated: 2026-08-07
 
 ## 현재 범위
 
@@ -30,21 +30,25 @@ Last updated: 2026-07-22
 - tracked benchmark result surface는 과거 324개 raw/intermediate 파일에서
   history가 직접 참조하는 compact summary 및 작은 diagnostic 26개로 줄었다.
   전체 result bundle, store, cache, heartbeat log는 local-only다.
+- local source checkpoint `430d1f2`는 계산 경로를 graph-state adapter,
+  state-free operand resolution, dependency projection, deterministic execution
+  owner로 나눴다. 이 branch의 local commit은 아직 push/merge하지 않았다.
 
 ## 현재 검증 기준
 
 | 항목 | 상태 |
 | --- | --- |
-| Expanded structural numeric gate | PASS, 9 / 9 |
-| Plain-retrieval comparison | 5 / 9 diagnostic baseline |
-| Portfolio review gates | READY |
-| Reflection promotion gate | READY |
-| Report-cache promotion evidence | READY, serving disabled |
-| REFERENCE_NOTE capability | READY, Researcher context-only |
-| Full unittest discovery | 1,352 passed after final reviewer walkthrough |
+| Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
+| Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
+| Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
+| Calculation owner contract | focused 62개와 calculation/projection 323개 PASS; benchmark refresh 미실행 |
+| Runtime validation | Python 3.13 full unittest 1,451개 PASS; domain-term audit 217개 literal PASS |
+| Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
-현재 active correctness blocker는 없다. 문서 및 artifact surface만 바꾸는
-작업에는 fresh ingest나 benchmark refresh가 필요하지 않다.
+현재 알려진 unit/contract correctness blocker는 없다. 다만 `430d1f2`에는
+candidate conflict abstention과 dependency precedence 같은 answer-selection
+계약 변경이 포함되므로, 이전 recorded benchmark는 이 commit의 검증 근거가
+아니다. refresh 전에는 새 benchmark score claim을 만들지 않는다.
 
 ## 구현 원칙
 
@@ -66,10 +70,12 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 작업은 실제 blocker, 구체적인 caller 요구, 또는 특정 reviewer 설명
-공백이 재현될 때만 연다.
+다음 구조 작업은 dependency precedence를 한 owner로 모으거나 stale-result의
+두 번째 formula execution 경로를 canonical executor로 옮기는 bounded slice 중
+하나만 선택한다. 새 benchmark claim이 필요하면 현재 profile과 store signature를
+먼저 확인하고 monitored store-fixed `eval-only`로 갱신한다.
 
-지금은 broad runtime refactor, 전면적인 test-file 분할, 새 MAS 기능,
+지금은 두 구조 slice를 한꺼번에 묶는 broad runtime refactor, 전면적인 test-file 분할, 새 MAS 기능,
 cache serving 활성화를 시작하지 않는다. oversized test는 해당 public contract를
 실제로 수정할 때만 함께 나눈다.
 

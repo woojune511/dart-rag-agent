@@ -1,7 +1,9 @@
 # 기술 결정 로그
 
 > 이 문서는 **append-only 성격의 결정 로그**다.
-> 현재 상태와 다음 작업은 각각 `CONTEXT.md`, `PLAN.md`를 기준으로 본다.
+> 현재 상태와 다음 작업은 `CONTEXT.md`와
+> `docs/overview/project_status.md`를 기준으로 본다. `PLAN.md`는 과거 실행
+> 계획을 보존하는 historical log다.
 > 즉, 이 문서는 최신 snapshot을 유지하려고 덮어쓰지 않고,
 > 중요한 설계 판단과 그 근거를 누적 기록하는 용도로 쓴다.
 

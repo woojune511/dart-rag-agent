@@ -68,7 +68,7 @@ benchmark profile
 | --- | --- | --- |
 | 1 | [README.md](../../README.md) | 프로젝트 목적, 현재 포지셔닝 |
 | 2 | [CONTEXT.md](../../CONTEXT.md) | 현재 snapshot |
-| 3 | [PLAN.md](../../PLAN.md) | 지금 진행 중인 축 |
+| 3 | [project_status.md](project_status.md) | 현재 gate, blocker, 다음 작업 |
 | 4 | [main.py](../../main.py) | 서비스 진입점 |
 | 5 | [src/api/financial_router.py](../../src/api/financial_router.py) | API가 실제 엔진을 어떻게 호출하는지 |
 | 6 | [src/agent/financial_graph.py](../../src/agent/financial_graph.py) | single-agent 핵심 graph wiring |
@@ -76,7 +76,7 @@ benchmark profile
 | 8 | [src/processing/financial_parser.py](../../src/processing/financial_parser.py) | 문서가 chunk로 바뀌는 방식 |
 | 9 | [src/storage/vector_store.py](../../src/storage/vector_store.py) | retrieval 저장/조회 구조 |
 | 10 | [src/routing/query_router.py](../../src/routing/query_router.py) | 질문 intent routing |
-| 11 | [src/agent/mas_graph.py](../../src/agent/mas_graph.py) | MAS skeleton wiring |
+| 11 | [src/experimental/mas/](../../src/experimental/mas/) | optional MAS experiment facade |
 | 12 | [src/ops/benchmark_runner.py](../../src/ops/benchmark_runner.py) | 평가/실험 orchestration |
 | 13 | `tests/` | 실행 계약을 테스트 관점에서 확인 |
 
@@ -91,8 +91,9 @@ benchmark profile
 | `src/processing/` | XML/PDF 파싱, chunk 생성, 구조 복원 |
 | `src/storage/` | Chroma + BM25 + metadata filtering + embedding runtime |
 | `src/routing/` | 질문 의도 분류, format preference, semantic/LLM fallback |
-| `src/agent/` | 실제 분석 런타임과 MAS skeleton |
-| `src/agent/nodes/` | MAS worker / orchestrator / critic adapters |
+| `src/agent/` | 실제 single-agent 분석 런타임 |
+| `src/experimental/mas/` | optional MAS graph, types, node facade |
+| `src/agent/nodes/` | MAS 호환 worker / orchestrator / critic adapters |
 | `src/config/` | runtime contract, retrieval policy, ontology |
 | `src/ops/` | benchmark, evaluator, replay, debug 도구 |
 | `src/schema/` | parser가 사용하는 table/value schema |
@@ -123,6 +124,9 @@ benchmark profile
 - `src/agent/financial_graph_evidence.py`
 - `src/agent/financial_graph_calculation.py`
 - `src/agent/financial_graph_reconciliation.py`
+- `src/agent/financial_operand_resolution.py`
+- `src/agent/financial_dependency_projection.py`
+- `src/agent/financial_calculation_execution.py`
 
 ---
 
@@ -191,8 +195,8 @@ MAS 쪽은 실서비스 기본 경로와 별개로 이해하는 게 낫다.
 
 ### 핵심 파일
 
-- [src/agent/mas_graph.py](../../src/agent/mas_graph.py)
-- [src/agent/mas_types.py](../../src/agent/mas_types.py)
+- [src/experimental/mas/graph.py](../../src/experimental/mas/graph.py)
+- [src/experimental/mas/types.py](../../src/experimental/mas/types.py)
 - [src/agent/nodes/orchestrator_node.py](../../src/agent/nodes/orchestrator_node.py)
 - [src/agent/nodes/analyst_node.py](../../src/agent/nodes/analyst_node.py)
 - [src/agent/nodes/researcher_node.py](../../src/agent/nodes/researcher_node.py)
@@ -222,7 +226,7 @@ original_query
 | 파일 | 왜 중요한가 |
 | --- | --- |
 | [src/agent/financial_graph_models.py](../../src/agent/financial_graph_models.py) | single-agent state와 structured output schema |
-| [src/agent/mas_types.py](../../src/agent/mas_types.py) | MAS task/artifact/evidence ledger schema |
+| [src/experimental/mas/types.py](../../src/experimental/mas/types.py) | MAS task/artifact/evidence ledger schema |
 | [src/config/runtime_contract.py](../../src/config/runtime_contract.py) | runtime contract |
 | [docs/architecture/agent_runtime_contract.md](../architecture/agent_runtime_contract.md) | 구현 단위 계약 해설 |
 
@@ -337,9 +341,9 @@ BM25 fallback, cache, transient error 처리까지 한 번에 이해하려고 �
 
 ### 4회차: 40분
 
-- mas_graph.py
-- mas_types.py
-- nodes/*
+- src/experimental/mas/graph.py
+- src/experimental/mas/types.py
+- src/agent/nodes/*
 
 목표: “single-agent 자산을 MAS로 어떻게 감쌌는가”를 안다.
 
