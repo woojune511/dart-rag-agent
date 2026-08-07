@@ -15,6 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_calculation_execution
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
@@ -3921,6 +3922,49 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(operands["numerator"]["source_raw_unit"], "천원")
         self.assertEqual(operands["numerator"]["unit_normalization_repair_source"], "table_metadata_unit_hint")
         self.assertAlmostEqual(trace["calculation_result"]["result_value"], 3.5)
+        raw_operands = state["resolved_calculation_trace"]["calculation_operands"]
+        plan = state["resolved_calculation_trace"]["calculation_plan"]
+        original_trace = json.loads(json.dumps(state["resolved_calculation_trace"]))
+        stale_result = {
+            "status": "ok",
+            "result_value": 0.0,
+            "result_unit": "times",
+            "rendered_value": "0 times",
+            "source_row_ids": ["row_stale"],
+            "answer_slots": {"operation_family": "ratio"},
+        }
+
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "_safe_eval_formula",
+                wraps=financial_calculation_execution._safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
+            repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=raw_operands,
+                plan=plan,
+                calculation_result=stale_result,
+            )
+
+        recursive_execute.assert_called_once()
+        self.assertEqual(
+            [call.args for call in formula_evaluation.call_args_list],
+            [
+                ("A / B", {"A": 3_500_000.0, "B": 1_000_000_000.0}),
+                ("A / B", {"A": 3_500_000_000.0, "B": 1_000_000_000.0}),
+            ],
+        )
+        self.assertEqual(repaired_operands, trace["calculation_operands"])
+        self.assertEqual(repaired_plan, trace["calculation_plan"])
+        repaired_without_marker = dict(repaired_result)
+        repaired_without_marker.pop("stale_result_repaired_from_operands")
+        self.assertEqual(repaired_without_marker, trace["calculation_result"])
+        self.assertEqual(repaired_result["source_row_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(result["selected_claim_ids"], ["ev_result", "ev_cost"])
+        self.assertEqual(state["resolved_calculation_trace"], original_trace)
 
     def test_lookup_slot_refinement_prefers_value_local_unit_over_table_unit_hint(self) -> None:
         slot = {
@@ -7666,7 +7710,14 @@ class OperationContractTests(unittest.TestCase):
             json.dumps({"operands": operands, "plan": plan, "result": calc})
         )
 
-        with patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute:
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "_safe_eval_formula",
+                wraps=financial_calculation_execution._safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
             first_operands, first_plan, first_result = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=operands,
@@ -7681,6 +7732,7 @@ class OperationContractTests(unittest.TestCase):
             )
 
         self.assertEqual(recursive_execute.call_count, 0)
+        self.assertEqual(formula_evaluation.call_count, 2)
         self.assertIs(first_result, calc)
         self.assertIs(second_result, first_result)
         self.assertEqual(second_result, calc)
@@ -7692,7 +7744,14 @@ class OperationContractTests(unittest.TestCase):
         changed_operands = [dict(row) for row in operands]
         changed_operands[0].update(raw_value="90.0", normalized_value=900000.0)
         changed_operands_before_repair = json.loads(json.dumps(changed_operands))
-        with patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute:
+        with (
+            patch.object(
+                financial_calculation_execution,
+                "_safe_eval_formula",
+                wraps=financial_calculation_execution._safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
             _, _, changed_result = agent._repair_stale_calculation_result_from_operands(
                 state,
                 operands=changed_operands,
@@ -7707,6 +7766,7 @@ class OperationContractTests(unittest.TestCase):
             )
 
         recursive_execute.assert_called_once()
+        self.assertEqual(formula_evaluation.call_count, 3)
         self.assertIs(settled_result, changed_result)
         self.assertTrue(changed_result["stale_result_repaired_from_operands"])
         self.assertEqual(changed_result["result_value"], 11.5)

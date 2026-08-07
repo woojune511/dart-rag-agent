@@ -2,7 +2,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.agent import financial_graph_calculation
+from src.agent import financial_calculation_execution, financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
@@ -1149,6 +1149,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "assess_stale_calculation_result",
                 wraps=financial_graph_calculation.assess_stale_calculation_result,
             ) as freshness_assessment,
+            patch.object(
+                financial_calculation_execution,
+                "_safe_eval_formula",
+                wraps=financial_calculation_execution._safe_eval_formula,
+            ) as formula_evaluation,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
@@ -1165,6 +1170,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             operands=operands,
             variable_bindings=plan["variable_bindings"],
             calculation_result=stale_result,
+        )
+        self.assertEqual(formula_evaluation.call_count, 2)
+        self.assertEqual(
+            [call.args for call in formula_evaluation.call_args_list],
+            [("A - B", {"A": 1000.0, "B": 250.0})] * 2,
         )
         recursive_execute.assert_called_once()
         recursive_state = recursive_execute.call_args.args[0]
@@ -1186,6 +1196,55 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         repaired_without_marker.pop("stale_result_repaired_from_operands")
         self.assertEqual(repaired_without_marker, primary_trace["calculation_result"])
         self.assertTrue(repaired_result["stale_result_repaired_from_operands"])
+
+    def test_stale_repair_keeps_inputs_for_failure_and_indeterminate_assessment(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operands = [{"operand_id": "op_a", "normalized_value": 1.0}]
+        plan = {
+            "mode": "single_value",
+            "formula": "A",
+            "variable_bindings": [{"variable": "A", "operand_id": "missing"}],
+        }
+        indeterminate_result = {"status": "ok", "result_value": 1.0}
+        failed_result = {"status": "parse_error", "result_value": None}
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "assess_stale_calculation_result",
+                wraps=financial_graph_calculation.assess_stale_calculation_result,
+            ) as freshness_assessment,
+            patch.object(
+                financial_calculation_execution,
+                "_safe_eval_formula",
+                wraps=financial_calculation_execution._safe_eval_formula,
+            ) as formula_evaluation,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
+            indeterminate = agent._repair_stale_calculation_result_from_operands(
+                {},
+                operands=operands,
+                plan=plan,
+                calculation_result=indeterminate_result,
+            )
+            failed = agent._repair_stale_calculation_result_from_operands(
+                {},
+                operands=operands,
+                plan=plan,
+                calculation_result=failed_result,
+            )
+
+        freshness_assessment.assert_called_once()
+        formula_evaluation.assert_not_called()
+        recursive_execute.assert_not_called()
+        self.assertEqual(indeterminate, (operands, plan, indeterminate_result))
+        self.assertEqual(failed, (operands, plan, failed_result))
+        self.assertIs(indeterminate[0], operands)
+        self.assertIs(indeterminate[1], plan)
+        self.assertIs(indeterminate[2], indeterminate_result)
+        self.assertIs(failed[0], operands)
+        self.assertIs(failed[1], plan)
+        self.assertIs(failed[2], failed_result)
 
     def test_dependency_alignment_keeps_complete_direct_difference_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
