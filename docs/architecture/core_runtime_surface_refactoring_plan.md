@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-07
+Last revised: 2026-08-08
 
 This is the completed execution record for reducing repository complexity while
 preserving the verified financial QA behavior. Git history,
@@ -391,6 +391,28 @@ unchanged; tests add `32` lines, and the whole commit is `+41/-9`, net `+32`.
 This fixes the incomplete-plan unit-policy bug, but it does not establish full
 evaluation/exception-order parity for every malformed difference input.
 
+Behavior fix `8296eb1` separately blocks a stale-parent trace override. Parent
+`structured_result` or `subtask_results` can no longer replace the explicit
+dependency recalculation trace before candidate preparation. The dependency
+owner changes from `2,833` to `2,835` lines (`+2`); the regression test adds `63`
+lines, and the whole commit is net `+65`. This is a correctness fix, not part of
+the following mechanical relocation.
+
+Structural commit `ea84921` then removes the dependency synthetic-state helper
+and raw-plan builder callback while preserving supported scalar behavior. The
+graph skips raw construction for an existing executable plan and constructs it
+once for an invalid or absent plan, passes that explicit raw plan to the
+dependency owner, runs a direct `_CalculationCandidateInput`, and supplies ratio
+formatting with the active task and the same pre-candidate operands. Result/order,
+input immutability, and failure/no-op identity remain unchanged. The graph changes
+from `19,786` to `19,828` lines (`+75/-33`, net `+42`) and the dependency owner
+from `2,835` to `2,796` (`+3/-42`, net `-39`). Production source is `+78/-75`,
+net `+3`; tests are `+167/-90`, net `+77`; the whole commit is `+245/-165`, net
+`+80`. These figures show a bounded callback/state cleanup, not total-code
+reduction, broad performance improvement, dependency-owner completion, or Phase
+3 completion. Primary state/artifact projection, repair acceptance, and
+absolute-ratio orchestration remain graph-owned.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -419,13 +441,18 @@ targeted contracts, `107` focused owner/aggregate tests, all `564` affected test
 the same `217`-literal audit, and full discovery over `1,478` tests passed.
 After `ec93f8a`, `4` targeted/adjacent tests and all `29` execution-module tests
 passed; the unique affected matrix contained `593` passing tests, and the same
-`217`-literal audit and full discovery over `1,479` tests passed. Benchmark refresh
+`217`-literal audit and full discovery over `1,479` tests passed. After
+`8296eb1`, `4` targeted tests, the same audit, and full discovery over `1,480`
+tests passed. After `ea84921`, `3` targeted contracts, all `615` affected tests,
+the same audit, and full discovery over `1,479` tests passed. Benchmark refresh
 has not run for these latest changes.
 
 Phase 3 remains open for these follow-ups:
 
-- separate the dependency synthetic-state and ratio-formatter coupling, including
-  its remaining raw-plan builder callback, behind a bounded contract;
+- characterize reused abnormal dependency `time_series` executable plans and the
+  state-projector exception boundary before deciding whether they are supported;
+- if that abnormal path is not a supported contract, continue with the next
+  bounded repair cluster without folding in a behavior change;
 - keep broader task/artifact ledger synchronization as a separately specified
   contract rather than inferring it from the three repaired caller surfaces;
 - move the remaining deterministic/LLM fallback and aggregate precedence

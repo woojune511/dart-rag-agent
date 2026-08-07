@@ -265,7 +265,9 @@ lookup surface matching, retry query 생성이다.
   state로 투영하는 graph adapter다.
 - `_run_calculation_candidate(state)`: strict calculation trace에서 graph-private
   typed `_CalculationCandidateRun`을 만들고 candidate preparation과 deterministic
-  result projection까지만 수행한다. state/ledger projection은 하지 않는다.
+  result projection까지만 수행한다. `_run_calculation_candidate_input()`은 이미
+  구성된 typed input에 같은 pipeline을 적용한다. 둘 다 state/ledger projection은
+  하지 않는다.
 - `_execute_calculation(state)`: 검증된 operand id/binding을 execution owner에
   넘기고 typed outcome을 calculation trace와 artifact에 반영한다. primary
   graph-node adapter로서 `_run_calculation_candidate()` 뒤 기존 state/ledger
@@ -300,7 +302,9 @@ state-free owner 경계:
   없으면서 late rows가 비었을 때만 post-main selected snapshot, active dependency
   snapshot 순서로 shallow-copy 보존한다. late/finalization reason은 owner contract
   필드이며 현재 runtime trace 필드는 아니다. override에는 explicit reason과
-  양쪽 provenance가 필요하다.
+  양쪽 provenance가 필요하다. Dependency recalculation plan rebuild는 graph가
+  만든 explicit raw plan만 받아 기존 executable plan reuse 또는 fallback을
+  결정하며 graph-state나 builder callback을 받지 않는다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -326,10 +330,11 @@ graph adapter에 남은 orchestration 역할군:
 - period alignment
 - source-visible display 보존
 - graph-private typed candidate preparation/result/state projection seam.
-  dependency·period의 contract-valid scalar recovery는 typed candidate projection의
-  operands, plan, result만 직접 소비하므로 내부 `_execute_calculation()`과 strict
-  trace 재조회, 버려지는 state/ledger projection을 만들지 않는다. 결과/order,
-  입력 불변성, failure/no-op identity는 유지한다.
+  dependency recovery는 explicit `_CalculationCandidateInput`을 직접 실행하고,
+  period recovery는 기존 state wrapper를 통해 같은 typed projection을 소비한다.
+  두 contract-valid scalar 경로 모두 내부 `_execute_calculation()`과 버려지는
+  state/ledger projection을 만들지 않는다. Dependency 경로는 strict trace를
+  재조회하지 않으며 결과/order, 입력 불변성, failure/no-op identity를 유지한다.
 - deterministic difference/growth planning의 thin state/query adapter와 primary
   planner의 runtime/task/artifact projection. `ec93f8a` 뒤 adapter는 complete
   plan을 먼저 만들고 percent-point policy를 평가한다. eligible `%p` query와 두
@@ -339,6 +344,11 @@ graph adapter에 남은 orchestration 역할군:
   `not_applicable` 경로는 builder를 다시 호출하지 않은 채 기존 fallback으로
   이어진다. 이 parity 경계는 supported, contract-valid 입력에 한정되며 malformed
   difference 입력의 query-policy 평가/예외 순서 전체를 보장하지 않는다.
+- dependency recalculation의 lazy raw-plan adapter. 기존 plan이 executable이면 raw
+  builder 호출은 0회이고 invalid/absent이면 1회다. selected plan과 updated operands는
+  direct candidate input으로 전달되고, ratio formatter는 active task와 같은
+  pre-candidate operands를 explicit override로 받는다. Parent aggregate surface를
+  다시 읽는 synthetic recalculation state와 raw-plan callback은 없다.
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
   stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
   same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
@@ -347,12 +357,21 @@ graph adapter에 남은 orchestration 역할군:
   밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
 - 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
   acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
-- dependency synthetic state와 ratio formatter 결합 및 raw-plan builder callback.
-  재사용된 비정상 dependency `time_series` plan의 full exception parity는 현재
-  recovery claim 밖이다.
+- 재사용된 비정상 dependency `time_series` executable plan의 candidate와
+  state-projector exception parity. 현재 supported scalar recovery claim 밖이다.
 - absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
 - narrative context preservation
+
+이 dependency 경계는 두 commit으로 분리됐다. Behavior fix `8296eb1`은 stale parent
+`structured_result`/`subtask_results`의 explicit trace override를 막았고 targeted
+4개, 217-literal audit, full 1,480개 테스트가 통과했다. Behavior-preserving
+structural cleanup `ea84921`은 synthetic helper/callback을 제거했으며 graph
+19,786→19,828줄(`+75/-33`), dependency owner 2,835→2,796줄(`+3/-42`), source
+net `+3`, tests net `+77`, whole net `+80`이다. Targeted 3개, affected 615개,
+같은 audit와 full 1,479개 테스트가 통과했다. Benchmark refresh는 실행하지 않았다.
+Primary state/artifact projection, repair acceptance, absolute-ratio orchestration과
+Phase 3는 여전히 graph/open 경계다.
 
 ## 9. Projection And Helper Modules
 

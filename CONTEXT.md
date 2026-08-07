@@ -6,7 +6,7 @@
 > [implementation_history.md](docs/history/implementation_history.md)와
 > [experiment_history.md](docs/history/experiment_history.md)에 있다.
 
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 ## 현재 범위
 
@@ -64,10 +64,20 @@ Last updated: 2026-08-07
   adapter 및 primary full state/artifact projection을 유지한다. period recovery의
   ready/guarded 경로는 selected plan을 직접 소비해 planner/artifact/runtime
   projection을 만들지 않고, not-applicable 경로는 builder를 다시 호출하지 않은 채
-  기존 fallback으로 이어진다. dependency recovery의 raw-plan callback은 남아 있다.
+  기존 fallback으로 이어진다.
   별도 behavior fix `ec93f8a`는 complete plan을 만든 뒤 percent-point policy를
   평가하도록 adapter를 고쳤다. eligible `%p` query와 두 `PERCENT` operand는 복사된
   plan의 `result_unit="%p"`를 받고, non-eligible/no-plan 경로는 유지된다.
+  별도 behavior fix `8296eb1`은 parent `structured_result`/`subtask_results`가
+  explicit dependency recalculation trace를 override하던 P1을 막는다. 이어진
+  behavior-preserving structural cleanup `ea84921`은 기존 executable plan이면 raw
+  builder를 호출하지 않고, invalid/absent plan이면 raw plan을 한 번만 만든다. graph는
+  그 explicit raw plan과 pre-candidate operands를 direct `_CalculationCandidateInput`에
+  넘기고 ratio formatter에는 active task와 같은 operands를 명시적으로 전달한다.
+  dependency synthetic-state helper와 raw-plan callback은 삭제됐지만 primary
+  state/artifact projection, repair acceptance와 absolute-ratio orchestration은 graph에
+  남아 있다. 재사용된 비정상 dependency `time_series` plan의 state-projector 예외
+  parity는 이 supported scalar cleanup의 보장 범위가 아니다.
 
 ## 현재 검증 기준
 
@@ -79,6 +89,8 @@ Last updated: 2026-08-07
 | Latest aggregate provenance owner contract | affected regression 564개 PASS; benchmark refresh 미실행 |
 | Latest deterministic operation-plan owner contract | targeted 4개, focused owner+aggregate 107개, affected regression 564개 PASS; benchmark refresh 미실행 |
 | Latest percent-point plan-unit fix | targeted/adjacent 4개, execution module 29개, unique affected 593개 PASS; benchmark refresh 미실행 |
+| Latest dependency trace-isolation fix | targeted 4개, full unittest 1,480개 PASS; benchmark refresh 미실행 |
+| Latest dependency recalculation cleanup | targeted 3개, affected regression 615개 PASS; benchmark refresh 미실행 |
 | Runtime validation | full unittest 1,479개 PASS; domain-term audit 217개 literal PASS |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
@@ -121,6 +133,15 @@ plan의 state-projector exception parity까지 보장하는 변경도 아니다.
 고쳤다. graph diff는 `+9/-9`로 line-neutral이고 tests는 `+32/-0`, whole commit은
 `+41/-9`, net `+32`줄이다. 이 fix는 eligible `%p` unit을 복구하지만 malformed
 difference 입력 전체의 평가/예외 순서 parity를 주장하지 않는다.
+별도 behavior fix `8296eb1`은 dependency owner를 2,833→2,835줄(`+2`)로 바꾸고
+회귀 테스트 63줄을 더해 whole commit net `+65`줄이다. targeted 4개, 217-literal
+audit, full 1,480개 테스트가 통과했다. 이어진 structural cleanup `ea84921`은 graph를
+19,786→19,828줄(`+75/-33`, net `+42`), dependency owner를
+2,835→2,796줄(`+3/-42`, net `-39`)로 바꿔 source는 `+78/-75`, net `+3`줄이다.
+tests는 `+167/-90`, net `+77`줄이고 whole commit은 `+245/-165`, net `+80`줄이다.
+targeted 3개, affected 615개, 같은 audit와 full 1,479개 테스트가 통과했다. 이 수치는
+behavior fix와 supported scalar 구조 정리의 경계이며 broad performance, total-code
+reduction, dependency owner 완료 또는 Phase 3 완료 주장이 아니다.
 이 변경들에 대한 benchmark refresh는 실행하지 않았으므로, 이전
 recorded benchmark를 검증 근거로 삼거나 새 score claim을 만들지 않는다.
 
@@ -144,11 +165,13 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 구조 작업은 dependency synthetic state와 ratio formatter 결합 및 남아 있는
-raw-plan callback을 characterization한 뒤 정리하는 bounded slice다. 전체 ledger
-sync, aggregate precedence, 남은 deterministic/LLM fallback, private facade/API
-mesh는 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면 현재 profile과
-store signature를 먼저 확인하고 monitored store-fixed `eval-only`로 갱신한다.
+다음 구조 작업은 재사용된 비정상 dependency `time_series` executable plan의
+candidate/exception 동작을 먼저 characterization하는 bounded slice다. 그 경로가
+supported contract가 아니라면 새 behavior를 섞지 않고 다음 bounded repair cluster로
+넘어간다. 전체 ledger sync, aggregate precedence, 남은 deterministic/LLM fallback,
+graph-owned artifact/absolute-ratio orchestration과 private facade/API mesh는 별도
+follow-up으로 유지한다. 새 benchmark claim이 필요하면 현재 profile과 store
+signature를 먼저 확인하고 monitored store-fixed `eval-only`로 갱신한다.
 
 지금은 두 구조 slice를 한꺼번에 묶는 broad runtime refactor, 전면적인 test-file 분할, 새 MAS 기능,
 cache serving 활성화를 시작하지 않는다. oversized test는 해당 public contract를

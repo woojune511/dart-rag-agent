@@ -614,12 +614,13 @@ The graph adapter contains a graph-private typed calculation-candidate seam. It
 separates candidate preparation and canonical execution, deterministic result
 projection, and graph-state/ledger projection. `_CalculationCandidateRun` and
 `_run_calculation_candidate()` expose the prepared candidate and deterministic
-projection together. The primary `_execute_calculation()` graph-node adapter
-still applies the existing state/ledger projector. Dependency and period
-recovery instead consume only the candidate projection's operands, plan, and
-result copies for contract-valid scalar recalculation. This is an internal graph
-decomposition, not a move of preparation or result projection into the execution
-owner.
+projection together, while `_run_calculation_candidate_input()` accepts the same
+graph-private pipeline input without resolving a graph-state trace first. The
+primary `_execute_calculation()` graph-node adapter still applies the existing
+state/ledger projector. Dependency and period recovery instead consume only the
+candidate projection's operands, plan, and result copies for contract-valid
+scalar recalculation. This is an internal graph decomposition, not a move of
+preparation or result projection into the execution owner.
 
 The execution module owns the typed, state-free value-only stale-result
 assessment. `StaleCalculationValueAssessment` compares a canonical value from a
@@ -655,20 +656,42 @@ those sequencing responsibilities.
 These projections do not change numeric freshness or repair acceptance, and they
 are not a claim that the whole task/artifact ledger is synchronized. The
 dependency and period scalar recovery callers no longer invoke the internal
-`_execute_calculation()` wrapper, re-read its strict trace, or create a
-state/ledger projection that they discard. Their result, operand order, plan,
-input immutability, and failure/no-op identity contracts remain unchanged. For
-period recovery, a ready or guarded deterministic decision supplies its selected
-plan directly, so those branches create no planner/artifact/runtime projection.
+`_execute_calculation()` wrapper or create a state/ledger projection that they
+discard. Dependency recovery also no longer constructs and re-reads a strict
+trace; period recovery retains the graph-state candidate wrapper. Their result,
+operand order, plan, input immutability, and failure/no-op identity contracts
+remain unchanged. For period recovery, a ready or guarded deterministic decision
+supplies its selected plan directly, so those branches create no
+planner/artifact/runtime projection.
 A `not_applicable` decision enters the existing fallback continuation without
-rebuilding the deterministic plan. Dependency recovery still couples its
-synthetic state to ratio formatting and retains the raw-plan builder callback. A
-reused abnormal dependency `time_series` plan is outside the claimed full
-exception-parity boundary. The owner-move parity claim covers supported,
-contract-valid inputs; malformed difference inputs can still expose a different
-query-policy evaluation or exception order. Assessment reasons are owner-contract
-outputs, not runtime trace fields. This boundary does not establish a single
-end-to-end calculation owner or complete Phase 3.
+rebuilding the deterministic plan.
+
+Behavior fix `8296eb1` separately prevents stale parent `structured_result` or
+`subtask_results` surfaces from overriding the explicit dependency recalculation
+trace. Structural cleanup `ea84921` then removes that synthetic-state helper and
+the raw-plan builder callback without changing supported scalar behavior. An
+existing executable plan is reused without calling the raw builder; an invalid or
+absent plan triggers one raw construction, and the dependency owner receives that
+explicit plan for reuse or fallback. The graph sends the selected plan, updated
+operands, active task, query, and evidence directly through
+`_CalculationCandidateInput`. Ratio formatting receives the active task and the
+same pre-candidate operands explicitly, so it does not resolve stale parent trace
+surfaces. Failure and no-op paths preserve the original ordered-result identity.
+
+The two commits remain separate validation boundaries. `8296eb1` changes the
+dependency owner from 2,833 to 2,835 lines (`+2`), adds 63 test lines, and is net
+`+65` overall; it passed 4 targeted tests, the 217-literal audit, and full
+discovery over 1,480 tests. `ea84921` changes the graph from 19,786 to 19,828
+lines (`+75/-33`) and the dependency owner from 2,835 to 2,796 (`+3/-42`), for
+source `+78/-75`, tests `+167/-90`, and whole `+245/-165`; it passed 3 targeted
+and 615 affected tests, the same audit, and full discovery over 1,479 tests.
+Benchmark refresh was not run. A reused abnormal
+dependency `time_series` plan is still outside the claimed state-projector
+exception-parity boundary. Supported scalar cleanup does not move the primary
+state/artifact projector, repair acceptance, or absolute-ratio orchestration out
+of the graph. Assessment reasons are owner-contract outputs, not runtime trace
+fields. This boundary does not establish broad performance or total-code
+reduction, a single end-to-end calculation owner, or complete Phase 3.
 
 ## 9. Aggregate Subtask Projection
 
