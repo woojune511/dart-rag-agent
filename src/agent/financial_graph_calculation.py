@@ -49,6 +49,7 @@ from src.agent.financial_calculation_execution import (
 )
 from src.agent.financial_dependency_projection import (
     LateDependencyRemergeInput,
+    LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
@@ -76,6 +77,7 @@ from src.agent.financial_dependency_projection import (
     replace_lookup_primary_slot,
     resolve_dependency_producer_scope,
     resolve_late_dependency_remerge,
+    resolve_late_operand_finalization,
     resolve_main_operand_precedence,
     source_task_id_for_dependency_operand,
     summarize_dependency_bindings,
@@ -15602,26 +15604,26 @@ class FinancialAgentCalculationMixin:
             )
             operand_rows = late_dependency_remerge.operand_rows
             percent_point_operand_filter_applied = _is_percent_point_difference_query(query)
-            if percent_point_operand_filter_applied:
-                operand_rows = [
-                    row for row in operand_rows
-                    if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
-                ]
+            late_operand_finalization = resolve_late_operand_finalization(
+                LateOperandFinalizationInput(
+                    operand_rows=operand_rows,
+                    direct_structured_rows=direct_structured_rows,
+                    dependency_rows=dependency_rows,
+                    required_normalized_unit=(
+                        "PERCENT" if percent_point_operand_filter_applied else None
+                    ),
+                )
+            )
+            operand_rows = late_operand_finalization.operand_rows
+            preserved_operand_source = late_operand_finalization.preserved_operand_source
+            if late_operand_finalization.operand_filter_applied:
                 logger.info("[calc_operands] percent-diff operand filtering retained=%s", len(operand_rows))
-            preserved_operand_source = ""
-            if not operand_rows and not percent_point_operand_filter_applied:
-                if direct_structured_rows:
-                    operand_rows = [dict(row) for row in direct_structured_rows]
-                    preserved_operand_source = "structured_rows"
-                elif dependency_rows:
-                    operand_rows = [dict(row) for row in dependency_rows]
-                    preserved_operand_source = "dependency_outputs"
-                if preserved_operand_source:
-                    logger.info(
-                        "[calc_operands] preserved %s fallback operands from %s",
-                        len(operand_rows),
-                        preserved_operand_source,
-                    )
+            if preserved_operand_source:
+                logger.info(
+                    "[calc_operands] preserved %s fallback operands from %s",
+                    len(operand_rows),
+                    preserved_operand_source,
+                )
             merged_coverage = extracted.coverage
             if direct_structured_rows and operand_rows and required_operands:
                 merged_coverage = (

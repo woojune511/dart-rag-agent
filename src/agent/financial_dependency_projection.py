@@ -46,6 +46,20 @@ LateDependencyRemergeReason = Literal[
     "complete_direct_context",
 ]
 
+LateOperandFinalizationReason = Literal[
+    "normalized_unit_filtered",
+    "operand_rows_retained",
+    "structured_rows_preserved",
+    "dependency_rows_preserved",
+    "no_operand_rows",
+]
+
+OperandPreservationSource = Literal[
+    "",
+    "structured_rows",
+    "dependency_outputs",
+]
+
 
 @dataclass(frozen=True)
 class DirectDependencySelectionInput:
@@ -137,6 +151,26 @@ class LateDependencyRemergeResult:
     complete_direct_context_blocks_dependency_remerge: bool
     dependency_remerge_applied: bool
     dependency_remerge_reason: LateDependencyRemergeReason
+
+
+@dataclass(frozen=True)
+class LateOperandFinalizationInput:
+    """State-free inputs for filtered late operand preservation."""
+
+    operand_rows: List[Dict[str, Any]]
+    direct_structured_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    required_normalized_unit: Optional[str]
+
+
+@dataclass(frozen=True)
+class LateOperandFinalizationResult:
+    """Inspectable result of filtered late operand preservation."""
+
+    operand_rows: List[Dict[str, Any]]
+    operand_filter_applied: bool
+    preserved_operand_source: OperandPreservationSource
+    finalization_reason: LateOperandFinalizationReason
 
 
 OperandResolutionAction = Literal["keep_current", "use_candidate"]
@@ -1358,6 +1392,45 @@ def resolve_late_dependency_remerge(
         ),
         dependency_remerge_applied=dependency_remerge_applied,
         dependency_remerge_reason=dependency_remerge_reason,
+    )
+
+
+def resolve_late_operand_finalization(
+    finalization_input: LateOperandFinalizationInput,
+) -> LateOperandFinalizationResult:
+    """Apply an optional normalized-unit filter before empty-row preservation."""
+
+    operand_rows = finalization_input.operand_rows
+    required_normalized_unit = finalization_input.required_normalized_unit
+    operand_filter_applied = required_normalized_unit is not None
+    preserved_operand_source: OperandPreservationSource = ""
+
+    if operand_filter_applied:
+        operand_rows = [
+            row
+            for row in operand_rows
+            if str(row.get("normalized_unit") or "") == required_normalized_unit
+            and row.get("normalized_value") is not None
+        ]
+        finalization_reason: LateOperandFinalizationReason = "normalized_unit_filtered"
+    elif operand_rows:
+        finalization_reason = "operand_rows_retained"
+    elif finalization_input.direct_structured_rows:
+        operand_rows = [dict(row) for row in finalization_input.direct_structured_rows]
+        preserved_operand_source = "structured_rows"
+        finalization_reason = "structured_rows_preserved"
+    elif finalization_input.dependency_rows:
+        operand_rows = [dict(row) for row in finalization_input.dependency_rows]
+        preserved_operand_source = "dependency_outputs"
+        finalization_reason = "dependency_rows_preserved"
+    else:
+        finalization_reason = "no_operand_rows"
+
+    return LateOperandFinalizationResult(
+        operand_rows=operand_rows,
+        operand_filter_applied=operand_filter_applied,
+        preserved_operand_source=preserved_operand_source,
+        finalization_reason=finalization_reason,
     )
 
 

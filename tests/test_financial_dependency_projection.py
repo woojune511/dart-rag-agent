@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from src.agent.financial_dependency_projection import (
     DirectDependencySelectionInput,
     LateDependencyRemergeInput,
+    LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
     align_dependency_rows_with_sibling_direct_context,
     decide_task_output_operand_resolution,
@@ -14,6 +15,7 @@ from src.agent.financial_dependency_projection import (
     period_comparison_direct_rows_conflict_with_dependency_outputs,
     prefer_complete_ratio_direct_context_rows,
     resolve_late_dependency_remerge,
+    resolve_late_operand_finalization,
     resolve_main_operand_precedence,
     resolve_dependency_producer_scope,
     select_direct_dependency_operand_rows,
@@ -513,6 +515,134 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         }
         values.update(overrides)
         return LateDependencyRemergeInput(**values)
+
+    def _late_finalization_input(
+        self,
+        operand_rows: List[Dict[str, Any]],
+        direct_structured_rows: List[Dict[str, Any]],
+        dependency_rows: List[Dict[str, Any]],
+        **overrides: Any,
+    ) -> LateOperandFinalizationInput:
+        values: Dict[str, Any] = {
+            "operand_rows": operand_rows,
+            "direct_structured_rows": direct_structured_rows,
+            "dependency_rows": dependency_rows,
+            "required_normalized_unit": None,
+        }
+        values.update(overrides)
+        return LateOperandFinalizationInput(**values)
+
+    def test_late_finalization_percent_filter_preserves_eligible_order_and_row_identity(self) -> None:
+        _required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        operand_rows = [
+            {**direct_rows[0], "normalized_unit": "PERCENT"},
+            dict(direct_rows[1]),
+            {**dependency_rows[0], "evidence_id": "percent_2", "normalized_unit": "PERCENT"},
+        ]
+        owner_input = self._late_finalization_input(
+            operand_rows,
+            direct_rows,
+            dependency_rows,
+            required_normalized_unit="PERCENT",
+        )
+        input_snapshot = deepcopy(owner_input)
+
+        result = resolve_late_operand_finalization(owner_input)
+
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.operand_rows],
+            ["direct_1", "percent_2"],
+        )
+        self.assertIs(result.operand_rows[0], operand_rows[0])
+        self.assertIs(result.operand_rows[1], operand_rows[2])
+        self.assertTrue(result.operand_filter_applied)
+        self.assertEqual(result.preserved_operand_source, "")
+        self.assertEqual(result.finalization_reason, "normalized_unit_filtered")
+        self.assertEqual(owner_input, input_snapshot)
+
+    def test_late_finalization_empty_percent_filter_blocks_all_preservation(self) -> None:
+        _required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+
+        result = resolve_late_operand_finalization(
+            self._late_finalization_input(
+                direct_rows,
+                direct_rows,
+                dependency_rows,
+                required_normalized_unit="PERCENT",
+            )
+        )
+
+        self.assertEqual(result.operand_rows, [])
+        self.assertTrue(result.operand_filter_applied)
+        self.assertEqual(result.preserved_operand_source, "")
+        self.assertEqual(result.finalization_reason, "normalized_unit_filtered")
+
+    def test_late_finalization_existing_rows_preserve_list_identity(self) -> None:
+        _required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+
+        result = resolve_late_operand_finalization(
+            self._late_finalization_input(direct_rows, direct_rows, dependency_rows)
+        )
+
+        self.assertIs(result.operand_rows, direct_rows)
+        self.assertFalse(result.operand_filter_applied)
+        self.assertEqual(result.preserved_operand_source, "")
+        self.assertEqual(result.finalization_reason, "operand_rows_retained")
+
+    def test_late_finalization_empty_rows_preserve_direct_shallow_copies(self) -> None:
+        _required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        direct_rows[0]["metadata"] = {"token": "shared"}
+        input_snapshot = deepcopy(direct_rows)
+
+        result = resolve_late_operand_finalization(
+            self._late_finalization_input([], direct_rows, dependency_rows)
+        )
+
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.operand_rows],
+            ["direct_1", "direct_2"],
+        )
+        self.assertIsNot(result.operand_rows, direct_rows)
+        self.assertTrue(
+            all(result_row is not direct_row for result_row, direct_row in zip(result.operand_rows, direct_rows))
+        )
+        self.assertIs(result.operand_rows[0]["metadata"], direct_rows[0]["metadata"])
+        self.assertEqual(result.preserved_operand_source, "structured_rows")
+        self.assertEqual(result.finalization_reason, "structured_rows_preserved")
+        self.assertEqual(direct_rows, input_snapshot)
+
+    def test_late_finalization_empty_direct_rows_preserve_dependency_copies(self) -> None:
+        _required_operands, _direct_rows, dependency_rows = self._source_selection_fixture()
+
+        result = resolve_late_operand_finalization(
+            self._late_finalization_input([], [], dependency_rows)
+        )
+
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.operand_rows],
+            ["dependency_1", "dependency_2"],
+        )
+        self.assertIsNot(result.operand_rows, dependency_rows)
+        self.assertTrue(
+            all(
+                result_row is not dependency_row
+                for result_row, dependency_row in zip(result.operand_rows, dependency_rows)
+            )
+        )
+        self.assertEqual(result.preserved_operand_source, "dependency_outputs")
+        self.assertEqual(result.finalization_reason, "dependency_rows_preserved")
+
+    def test_late_finalization_all_empty_preserves_operand_identity_and_reason(self) -> None:
+        operand_rows: List[Dict[str, Any]] = []
+
+        result = resolve_late_operand_finalization(
+            self._late_finalization_input(operand_rows, [], [])
+        )
+
+        self.assertIs(result.operand_rows, operand_rows)
+        self.assertFalse(result.operand_filter_applied)
+        self.assertEqual(result.preserved_operand_source, "")
+        self.assertEqual(result.finalization_reason, "no_operand_rows")
 
     def test_late_remerge_complete_coherent_context_blocks_dependency(self) -> None:
         required_operands, direct_rows, dependency_rows = self._source_selection_fixture()

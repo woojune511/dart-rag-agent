@@ -9873,10 +9873,17 @@ class SubtaskLoopTests(unittest.TestCase):
 
         late_owner_results = []
         original_late_owner = financial_graph_calculation.resolve_late_dependency_remerge
+        finalization_results = []
+        original_finalization_owner = financial_graph_calculation.resolve_late_operand_finalization
 
         def _record_late_owner(owner_input):
             result = original_late_owner(owner_input)
             late_owner_results.append(result)
+            return result
+
+        def _record_finalization_owner(owner_input):
+            result = original_finalization_owner(owner_input)
+            finalization_results.append(result)
             return result
 
         financial_graph_calculation.resolve_late_dependency_remerge = _record_late_owner
@@ -9886,7 +9893,17 @@ class SubtaskLoopTests(unittest.TestCase):
                 **state,
                 "query": f"{state['query']} in %p",
             }
-            percent_point_extracted = self.agent._extract_calculation_operands(percent_point_state)
+            financial_graph_calculation.resolve_late_operand_finalization = (
+                _record_finalization_owner
+            )
+            try:
+                percent_point_extracted = self.agent._extract_calculation_operands(
+                    percent_point_state
+                )
+            finally:
+                financial_graph_calculation.resolve_late_operand_finalization = (
+                    original_finalization_owner
+                )
         finally:
             financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
@@ -9908,6 +9925,10 @@ class SubtaskLoopTests(unittest.TestCase):
             )
         )
         self.assertEqual(percent_point_rows, [])
+        self.assertEqual(len(finalization_results), 1)
+        self.assertTrue(finalization_results[0].operand_filter_applied)
+        self.assertEqual(finalization_results[0].preserved_operand_source, "")
+        self.assertEqual(finalization_results[0].finalization_reason, "normalized_unit_filtered")
         self.assertFalse(
             any(
                 str(source_id or "").startswith("task_output:")
