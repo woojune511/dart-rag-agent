@@ -1146,9 +1146,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_calculation,
-                "_safe_eval_formula",
-                wraps=financial_graph_calculation._safe_eval_formula,
-            ) as direct_safe_eval,
+                "assess_stale_calculation_result",
+                wraps=financial_graph_calculation.assess_stale_calculation_result,
+            ) as freshness_assessment,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
@@ -1160,7 +1160,12 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         self.assertEqual(repaired_operands, operands)
         self.assertEqual(repaired_plan, plan)
-        direct_safe_eval.assert_called_once_with("A - B", {"A": 1000.0, "B": 250.0})
+        freshness_assessment.assert_called_once_with(
+            formula="A - B",
+            operands=operands,
+            variable_bindings=plan["variable_bindings"],
+            calculation_result=stale_result,
+        )
         recursive_execute.assert_called_once()
         recursive_state = recursive_execute.call_args.args[0]
         self.assertEqual(recursive_state["tasks"], [])

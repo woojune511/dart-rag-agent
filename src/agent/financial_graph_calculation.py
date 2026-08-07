@@ -39,6 +39,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_task_ids as _aggregate_source_task_ids,
 )
 from src.agent.financial_calculation_execution import (
+    assess_stale_calculation_result,
     build_failed_calculation_result,
     build_scalar_calculation_state,
     build_scalar_calculation_result,
@@ -127,7 +128,6 @@ from src.agent.financial_graph_model_loaders import (
 )
 from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
-from src.agent.financial_formula_eval import _safe_eval_formula
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     _is_ratio_percent_query,
@@ -17015,46 +17015,13 @@ class FinancialAgentCalculationMixin:
         formula = str(plan.get("formula") or "").strip()
         if not formula:
             return operands, plan, calculation_result
-        operands_by_id = {
-            str(row.get("operand_id") or "").strip(): dict(row)
-            for row in operands
-            if str(row.get("operand_id") or "").strip()
-        }
-        env: Dict[str, float] = {}
-        for binding in list(plan.get("variable_bindings") or []):
-            variable = str((binding or {}).get("variable") or "").strip()
-            operand_id = str((binding or {}).get("operand_id") or "").strip()
-            operand = operands_by_id.get(operand_id)
-            if not variable or operand is None:
-                return operands, plan, calculation_result
-            try:
-                env[variable] = float(operand.get("normalized_value"))
-            except (TypeError, ValueError):
-                return operands, plan, calculation_result
-        if not env:
-            return operands, plan, calculation_result
-        try:
-            expected_value = float(_safe_eval_formula(formula, env))
-        except Exception:
-            return operands, plan, calculation_result
-        derived_metrics = calculation_result.get("derived_metrics")
-        formula_result_value = (
-            derived_metrics.get("formula_result_value")
-            if (
-                isinstance(derived_metrics, dict)
-                and derived_metrics.get("source_stated_result_used") is True
-            )
-            else None
+        stale_assessment = assess_stale_calculation_result(
+            formula=formula,
+            operands=operands,
+            variable_bindings=list(plan.get("variable_bindings") or []),
+            calculation_result=calculation_result,
         )
-        try:
-            current_value = float(formula_result_value)
-        except Exception:
-            try:
-                current_value = float(calculation_result.get("result_value"))
-            except Exception:
-                return operands, plan, calculation_result
-        tolerance = max(1e-6, abs(expected_value) * 1e-9)
-        if abs(expected_value - current_value) <= tolerance:
+        if not stale_assessment.is_stale:
             return operands, plan, calculation_result
 
         answer_slots = dict(calculation_result.get("answer_slots") or {})

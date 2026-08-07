@@ -28,6 +28,16 @@ CalculationExecutionStatus = Literal[
     "parse_error",
 ]
 
+StaleCalculationAssessmentReason = Literal[
+    "stale",
+    "current",
+    "invalid_binding",
+    "invalid_binding_value",
+    "no_bindings",
+    "formula_evaluation_failed",
+    "current_value_unavailable",
+]
+
 
 @dataclass(frozen=True)
 class CalculationExecutionOutcome:
@@ -41,6 +51,94 @@ class CalculationExecutionOutcome:
     ordered_operands: Tuple[Dict[str, Any], ...]
     selected_evidence_ids: Tuple[str, ...]
     yoy_growth_rates: Tuple[Any, ...] = ()
+
+
+@dataclass(frozen=True)
+class StaleCalculationAssessment:
+    """State-free comparison between bound operands and a projected result."""
+
+    is_stale: bool
+    reason: StaleCalculationAssessmentReason
+    expected_value: Optional[float] = None
+    current_value: Optional[float] = None
+    tolerance: Optional[float] = None
+
+
+def assess_stale_calculation_result(
+    *,
+    formula: str,
+    operands: Sequence[Dict[str, Any]],
+    variable_bindings: Sequence[Dict[str, Any]],
+    calculation_result: Mapping[str, Any],
+) -> StaleCalculationAssessment:
+    """Assess whether a projected scalar result disagrees with its bound operands."""
+
+    operands_by_id = {
+        str(row.get("operand_id") or "").strip(): dict(row)
+        for row in operands
+        if str(row.get("operand_id") or "").strip()
+    }
+    env: Dict[str, float] = {}
+    for binding in list(variable_bindings or []):
+        variable = str((binding or {}).get("variable") or "").strip()
+        operand_id = str((binding or {}).get("operand_id") or "").strip()
+        operand = operands_by_id.get(operand_id)
+        if not variable or operand is None:
+            return StaleCalculationAssessment(
+                is_stale=False,
+                reason="invalid_binding",
+            )
+        try:
+            env[variable] = float(operand.get("normalized_value"))
+        except (TypeError, ValueError):
+            return StaleCalculationAssessment(
+                is_stale=False,
+                reason="invalid_binding_value",
+            )
+    if not env:
+        return StaleCalculationAssessment(
+            is_stale=False,
+            reason="no_bindings",
+        )
+
+    try:
+        expected_value = float(_safe_eval_formula(formula, env))
+    except Exception:
+        return StaleCalculationAssessment(
+            is_stale=False,
+            reason="formula_evaluation_failed",
+        )
+
+    derived_metrics = calculation_result.get("derived_metrics")
+    formula_result_value = (
+        derived_metrics.get("formula_result_value")
+        if (
+            isinstance(derived_metrics, dict)
+            and derived_metrics.get("source_stated_result_used") is True
+        )
+        else None
+    )
+    try:
+        current_value = float(formula_result_value)
+    except Exception:
+        try:
+            current_value = float(calculation_result.get("result_value"))
+        except Exception:
+            return StaleCalculationAssessment(
+                is_stale=False,
+                reason="current_value_unavailable",
+                expected_value=expected_value,
+            )
+
+    tolerance = max(1e-6, abs(expected_value) * 1e-9)
+    is_stale = not (abs(expected_value - current_value) <= tolerance)
+    return StaleCalculationAssessment(
+        is_stale=is_stale,
+        reason="stale" if is_stale else "current",
+        expected_value=expected_value,
+        current_value=current_value,
+        tolerance=tolerance,
+    )
 
 
 def guard_operation_plan(
