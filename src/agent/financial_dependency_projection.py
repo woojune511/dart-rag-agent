@@ -2022,6 +2022,8 @@ def build_dependency_recalculation_state(
             "calculation_plan": calculation_plan,
             "calculation_result": dict(calculation_result),
         },
+        "structured_result": {},
+        "subtask_results": [],
         "tasks": [],
         "artifacts": [],
     }
