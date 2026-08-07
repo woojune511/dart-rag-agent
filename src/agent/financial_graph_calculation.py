@@ -48,6 +48,7 @@ from src.agent.financial_calculation_execution import (
     guard_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
+    DirectDependencySelectionInput,
     apply_absolute_ratio_magnitude_if_requested,
     align_dependency_rows_with_sibling_direct_context,
     align_lookup_result_units_from_peer_source_slots,
@@ -56,6 +57,7 @@ from src.agent.financial_dependency_projection import (
     build_dependency_recalculation_state,
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
+    dependency_binding_identity,
     dependency_lookup_slot_match_score,
     dependency_operand_from_answer_slot,
     dependency_operand_can_use_source_slot,
@@ -65,27 +67,26 @@ from src.agent.financial_dependency_projection import (
     dependency_projection_slot_differs_from_operand,
     dependency_ratio_role_group,
     derive_dependency_operands_from_source_task_slots,
+    direct_rows_resolved_dependency_keys,
     fill_missing_ratio_dependency_operands,
     filter_direct_rows_by_dependency_producer_scope,
     lookup_primary_slot,
-    period_comparison_direct_rows_conflict_with_dependency_outputs,
     prefer_complete_ratio_direct_context_rows,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
     rebuild_dependency_calculation_plan,
     replace_lookup_primary_slot,
     resolve_dependency_producer_scope,
+    select_direct_dependency_operand_rows,
     source_task_id_for_dependency_operand,
+    summarize_dependency_bindings,
 )
 from src.agent.financial_operand_resolution import (
-    DirectDependencySelectionInput,
     _canonical_structured_reconciliation_id,
     _canonicalize_structured_operand_reconciliation_refs,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
-    dependency_binding_identity,
     direct_lookup_row_is_ambiguous_context_table,
-    direct_rows_resolved_dependency_keys,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
     _evidence_surface_contains_segment_label,
@@ -106,8 +107,6 @@ from src.agent.financial_operand_resolution import (
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
-    select_direct_dependency_operand_rows,
-    summarize_dependency_bindings,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
@@ -15282,10 +15281,6 @@ class FinancialAgentCalculationMixin:
                 ),
                 required_prefers_aggregate_stage=required_prefers_aggregate_stage,
             ),
-            period_conflict_detector=(
-                period_comparison_direct_rows_conflict_with_dependency_outputs
-            ),
-            dependency_aligner=align_dependency_rows_with_sibling_direct_context,
         )
         direct_structured_rows = source_selection.operand_rows
         dependency_rows = source_selection.dependency_rows

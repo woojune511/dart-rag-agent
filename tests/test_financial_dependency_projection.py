@@ -1,13 +1,19 @@
 import unittest
 from copy import deepcopy
+from typing import Any, Dict, List
 
 from src.agent.financial_dependency_projection import (
+    DirectDependencySelectionInput,
     align_dependency_rows_with_sibling_direct_context,
     decide_task_output_operand_resolution,
+    dependency_binding_identity,
+    direct_rows_resolved_dependency_keys,
     filter_direct_rows_by_dependency_producer_scope,
     period_comparison_direct_rows_conflict_with_dependency_outputs,
     prefer_complete_ratio_direct_context_rows,
     resolve_dependency_producer_scope,
+    select_direct_dependency_operand_rows,
+    summarize_dependency_bindings,
 )
 
 
@@ -188,6 +194,153 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         self.assertEqual(bindings, original_bindings)
         self.assertEqual(operand_rows, original_rows)
 
+    def test_dependency_binding_summary_preserves_schema_and_copy_contract(self) -> None:
+        current_binding = {
+            "label": " Target ",
+            "role": "Current_Period",
+        }
+        first_prior_binding = {
+            "label": "target",
+            "role": "prior_period",
+            "metadata": {"source": "first"},
+        }
+        blank_binding = {"label": " ", "role": ""}
+        second_prior_binding = {
+            "label": "target",
+            "role": "prior_period",
+            "metadata": {"source": "second"},
+        }
+        bindings = [
+            current_binding,
+            first_prior_binding,
+            blank_binding,
+            second_prior_binding,
+        ]
+        rows = [
+            {
+                "matched_operand_label": "Target",
+                "matched_operand_role": "Current_Period",
+            },
+            {},
+        ]
+        bindings_before = deepcopy(bindings)
+        rows_before = deepcopy(rows)
+
+        summary = summarize_dependency_bindings(bindings, rows)
+
+        self.assertEqual(
+            summary["binding_keys"],
+            {("Target", "Current_Period"), ("target", "prior_period")},
+        )
+        self.assertEqual(
+            summary["resolved_keys"],
+            {("Target", "Current_Period"), ("", "")},
+        )
+        self.assertEqual(
+            summary["missing_bindings"],
+            [first_prior_binding, second_prior_binding],
+        )
+        self.assertIsNot(summary["missing_bindings"][0], first_prior_binding)
+        self.assertIs(
+            summary["missing_bindings"][0]["metadata"],
+            first_prior_binding["metadata"],
+        )
+        self.assertEqual(summary["binding_count"], 4)
+        self.assertEqual(summary["resolved_binding_count"], 2)
+        self.assertTrue(summary["has_bindings"])
+        self.assertTrue(summary["has_rows"])
+        self.assertFalse(summary["all_resolved"])
+        self.assertEqual(bindings, bindings_before)
+        self.assertEqual(rows, rows_before)
+        summary["missing_bindings"][0]["label"] = "mutated"
+        self.assertEqual(first_prior_binding["label"], "target")
+
+    def test_dependency_binding_summary_all_resolved_truth_table(self) -> None:
+        binding = {"label": "target", "role": "current_period"}
+        row = {
+            "matched_operand_label": "target",
+            "matched_operand_role": "current_period",
+        }
+        cases = [
+            ("empty", [], [], 0, 0, False, False, False),
+            ("binding without row", [binding], [], 1, 0, True, False, False),
+            ("resolved", [binding], [row], 1, 1, True, True, True),
+            (
+                "duplicate bindings",
+                [binding, dict(binding)],
+                [row],
+                2,
+                2,
+                True,
+                True,
+                True,
+            ),
+            (
+                "blank binding and row",
+                [{"label": "", "role": ""}],
+                [{}],
+                1,
+                1,
+                True,
+                True,
+                True,
+            ),
+        ]
+
+        for (
+            name,
+            bindings,
+            rows,
+            binding_count,
+            resolved_count,
+            has_bindings,
+            has_rows,
+            all_resolved,
+        ) in cases:
+            with self.subTest(name=name):
+                summary = summarize_dependency_bindings(bindings, rows)
+                self.assertEqual(summary["binding_count"], binding_count)
+                self.assertEqual(summary["resolved_binding_count"], resolved_count)
+                self.assertEqual(summary["has_bindings"], has_bindings)
+                self.assertEqual(summary["has_rows"], has_rows)
+                self.assertEqual(summary["all_resolved"], all_resolved)
+
+    def test_direct_rows_resolve_canonical_dependency_keys_via_matcher(self) -> None:
+        current_binding = {
+            "label": " target ",
+            "concept": "target_concept",
+            "role": "current_period",
+            "period_hint": "2023",
+            "unit_family": "KRW",
+        }
+        bindings = [
+            current_binding,
+            dict(current_binding),
+            {**current_binding, "role": "prior_period"},
+            {"label": "", "role": ""},
+        ]
+        rows = [
+            {
+                "label": "unrelated surface",
+                "matched_operand_concept": "target_concept",
+                "matched_operand_role": "current_period",
+                "period": "2023",
+                "normalized_unit": "KRW",
+            }
+        ]
+        bindings_before = deepcopy(bindings)
+        rows_before = deepcopy(rows)
+
+        resolved_keys = direct_rows_resolved_dependency_keys(bindings, rows)
+
+        self.assertEqual(
+            dependency_binding_identity(current_binding),
+            ("target", "current_period"),
+        )
+        self.assertEqual(resolved_keys, {("target", "current_period")})
+        self.assertEqual(bindings, bindings_before)
+        self.assertEqual(rows, rows_before)
+
     def _task_output_row(self, **overrides):
         row = {
             "dependency_resolved": True,
@@ -213,6 +366,292 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         }
         row.update(overrides)
         return row
+
+    def _source_operand_row(
+        self,
+        candidate_id: str,
+        *,
+        label: str,
+        role: str,
+        value: float,
+        table_source_id: str,
+        source_row_ids: List[str] | None = None,
+        dependency_resolved: bool = False,
+        source_task_id: str = "",
+    ) -> Dict[str, Any]:
+        return {
+            "evidence_id": candidate_id,
+            "source_row_id": candidate_id,
+            "source_row_ids": list(source_row_ids or [candidate_id]),
+            "label": label,
+            "matched_operand_label": label,
+            "matched_operand_role": role,
+            "raw_value": str(value),
+            "raw_unit": "unit",
+            "normalized_value": value,
+            "normalized_unit": "KRW",
+            "table_source_id": table_source_id,
+            "dependency_resolved": dependency_resolved,
+            "source_task_id": source_task_id,
+        }
+
+    def _source_selection_fixture(
+        self,
+        *,
+        roles: tuple[str, str] = ("numerator_1", "denominator_1"),
+        labels: tuple[str, str] = ("target", "base"),
+        direct_values: tuple[float, float] = (80.0, 40.0),
+        dependency_values: tuple[float, float] = (100.0, 50.0),
+    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+        required_operands = [
+            {"label": label, "role": role, "required": True}
+            for label, role in zip(labels, roles)
+        ]
+        direct_rows = [
+            self._source_operand_row(
+                f"direct_{index}",
+                label=label,
+                role=role,
+                value=value,
+                table_source_id="direct_table",
+            )
+            for index, (label, role, value) in enumerate(
+                zip(labels, roles, direct_values),
+                start=1,
+            )
+        ]
+        dependency_rows = [
+            self._source_operand_row(
+                f"dependency_{index}",
+                label=label,
+                role=role,
+                value=value,
+                table_source_id="dependency_table",
+                source_row_ids=[f"task_output:task_{index}"],
+                dependency_resolved=True,
+                source_task_id=f"task_{index}",
+            )
+            for index, (label, role, value) in enumerate(
+                zip(labels, roles, dependency_values),
+                start=1,
+            )
+        ]
+        return required_operands, direct_rows, dependency_rows
+
+    def _source_selection_input(
+        self,
+        required_operands: List[Dict[str, Any]],
+        direct_rows: List[Dict[str, Any]],
+        dependency_rows: List[Dict[str, Any]],
+        **overrides: Any,
+    ) -> DirectDependencySelectionInput:
+        values: Dict[str, Any] = {
+            "operation_family": "ratio",
+            "required_operands": required_operands,
+            "direct_rows": direct_rows,
+            "dependency_rows": dependency_rows,
+            "desired_consolidation_scope": "unknown",
+            "reconciliation_evidence_present": False,
+            "direct_rows_cover_required_operands": True,
+            "dependency_rows_cover_required_operands": True,
+            "direct_rows_have_coherent_context": True,
+            "retrieved_ratio_context_recovered": False,
+            "ratio_direct_context_should_override_dependency": False,
+            "required_prefers_aggregate_stage": False,
+        }
+        values.update(overrides)
+        return DirectDependencySelectionInput(**values)
+
+    def test_direct_dependency_precedence_no_dependency_preserves_identity(self) -> None:
+        required_operands, direct_rows, _dependency_rows = self._source_selection_fixture()
+        dependency_rows: List[Dict[str, Any]] = []
+        direct_snapshot = deepcopy(direct_rows)
+
+        decision = select_direct_dependency_operand_rows(
+            self._source_selection_input(
+                required_operands,
+                direct_rows,
+                dependency_rows,
+            )
+        )
+
+        self.assertIs(decision.operand_rows, direct_rows)
+        self.assertIs(decision.dependency_rows, dependency_rows)
+        self.assertEqual(decision.precedence, "no_dependency")
+        self.assertFalse(decision.dependency_merge_applied)
+        self.assertEqual(direct_rows, direct_snapshot)
+
+        ratio_decision = select_direct_dependency_operand_rows(
+            self._source_selection_input(
+                required_operands,
+                direct_rows,
+                dependency_rows,
+                retrieved_ratio_context_recovered=True,
+                ratio_direct_context_should_override_dependency=True,
+            )
+        )
+
+        self.assertIs(ratio_decision.operand_rows, direct_rows)
+        self.assertTrue(ratio_decision.prefer_direct_rows_over_dependency)
+
+    def test_period_conflict_requires_reconciliation_to_prefer_direct(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture(
+            roles=("current_period", "prior_period"),
+            labels=("current", "prior"),
+            direct_values=(120.0, 100.0),
+            dependency_values=(90.0, 70.0),
+        )
+
+        for reconciliation_present, expected_precedence, expected_prefix in (
+            (False, "dependency_first", "dependency_"),
+            (True, "direct_first", "direct_"),
+        ):
+            with self.subTest(reconciliation_present=reconciliation_present):
+                decision = select_direct_dependency_operand_rows(
+                    self._source_selection_input(
+                        required_operands,
+                        direct_rows,
+                        dependency_rows,
+                        operation_family="growth_rate",
+                        reconciliation_evidence_present=reconciliation_present,
+                    )
+                )
+
+                self.assertEqual(decision.precedence, expected_precedence)
+                self.assertTrue(
+                    all(
+                        str(row.get("evidence_id") or "").startswith(expected_prefix)
+                        for row in decision.operand_rows
+                    )
+                )
+                self.assertEqual(
+                    decision.period_dependency_blocks_direct_context,
+                    not reconciliation_present,
+                )
+
+    def test_ratio_context_and_aggregation_veto_are_distinct(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+
+        for reconciliation_present, retrieved_context, aggregate_veto, expected_precedence in (
+            (False, True, False, "direct_first"),
+            (True, False, False, "direct_first"),
+            (True, False, True, "dependency_first"),
+        ):
+            with self.subTest(
+                reconciliation_present=reconciliation_present,
+                retrieved_context=retrieved_context,
+                aggregate_veto=aggregate_veto,
+            ):
+                decision = select_direct_dependency_operand_rows(
+                    self._source_selection_input(
+                        required_operands,
+                        direct_rows,
+                        dependency_rows,
+                        reconciliation_evidence_present=reconciliation_present,
+                        retrieved_ratio_context_recovered=retrieved_context,
+                        ratio_direct_context_should_override_dependency=retrieved_context,
+                        required_prefers_aggregate_stage=aggregate_veto,
+                    )
+                )
+
+                self.assertEqual(decision.precedence, expected_precedence)
+                if aggregate_veto:
+                    self.assertIs(decision.dependency_rows, dependency_rows)
+                    self.assertTrue(
+                        all(
+                            str(row.get("evidence_id") or "").startswith("dependency_")
+                            for row in decision.operand_rows
+                        )
+                    )
+                    self.assertTrue(
+                        all(
+                            "sibling_table_context_realignment_blocked" not in row
+                            and "sibling_table_context_realigned" not in row
+                            for row in decision.dependency_rows
+                        )
+                    )
+                else:
+                    self.assertIsNot(decision.dependency_rows, dependency_rows)
+
+    def test_lookup_keeps_complete_dependency_precedence(self) -> None:
+        required_operands = [{"label": "target", "role": "primary_value", "required": True}]
+        direct_rows = [
+            self._source_operand_row(
+                "direct_lookup",
+                label="target",
+                role="primary_value",
+                value=80.0,
+                table_source_id="direct_table",
+            )
+        ]
+        dependency_rows = [
+            self._source_operand_row(
+                "dependency_lookup",
+                label="target",
+                role="primary_value",
+                value=100.0,
+                table_source_id="dependency_table",
+                source_row_ids=["task_output:task_lookup"],
+                dependency_resolved=True,
+                source_task_id="task_lookup",
+            )
+        ]
+
+        decision = select_direct_dependency_operand_rows(
+            self._source_selection_input(
+                required_operands,
+                direct_rows,
+                dependency_rows,
+                operation_family="lookup",
+                reconciliation_evidence_present=True,
+            )
+        )
+
+        self.assertEqual(decision.precedence, "dependency_first")
+        self.assertEqual(
+            [row.get("evidence_id") for row in decision.operand_rows],
+            ["dependency_lookup"],
+        )
+
+    def test_requested_scope_filter_preserves_merge_order_and_input_immutability(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        direct_rows = [
+            {
+                **direct_rows[1],
+                "consolidation_scope": "unknown",
+            }
+        ]
+        dependency_rows = [
+            {
+                **dependency_rows[0],
+                "consolidation_scope": "consolidated",
+            },
+            {
+                **dependency_rows[1],
+                "consolidation_scope": "separate",
+            },
+        ]
+        direct_snapshot = deepcopy(direct_rows)
+        dependency_snapshot = deepcopy(dependency_rows)
+
+        decision = select_direct_dependency_operand_rows(
+            self._source_selection_input(
+                required_operands,
+                direct_rows,
+                dependency_rows,
+                operation_family="lookup",
+                desired_consolidation_scope="consolidated",
+                direct_rows_cover_required_operands=False,
+            )
+        )
+
+        self.assertEqual(
+            [row.get("evidence_id") for row in decision.operand_rows],
+            ["dependency_1"],
+        )
+        self.assertEqual(direct_rows, direct_snapshot)
+        self.assertEqual(dependency_rows, dependency_snapshot)
+        self.assertIsNot(decision.operand_rows[0], dependency_rows[0])
 
     def test_preferred_stage_mismatch_keeps_task_output_with_reason(self) -> None:
         current = self._task_output_row(

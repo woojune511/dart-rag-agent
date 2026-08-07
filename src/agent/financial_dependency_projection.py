@@ -11,6 +11,7 @@ from src.agent.financial_numeric_surface import extract_numeric_surface_candidat
 from src.agent.financial_operand_resolution import (
     merge_operand_rows,
     _missing_required_operands,
+    operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
     operand_row_source_ids,
     operand_row_values_differ,
@@ -25,6 +26,44 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, OPERAND_CANDIDATE_SCORING_POLICY
+
+
+OperandSourcePrecedence = Literal[
+    "no_dependency",
+    "direct_first",
+    "dependency_first",
+]
+
+
+@dataclass(frozen=True)
+class DirectDependencySelectionInput:
+    """State-free inputs for direct versus dependency source precedence."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    direct_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    desired_consolidation_scope: str
+    reconciliation_evidence_present: bool
+    direct_rows_cover_required_operands: bool
+    dependency_rows_cover_required_operands: bool
+    direct_rows_have_coherent_context: bool
+    retrieved_ratio_context_recovered: bool
+    ratio_direct_context_should_override_dependency: bool
+    required_prefers_aggregate_stage: bool
+
+
+@dataclass(frozen=True)
+class DirectDependencySelection:
+    """Inspectable source-set precedence and merged operand rows."""
+
+    operand_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    precedence: OperandSourcePrecedence
+    dependency_merge_applied: bool
+    prefer_direct_rows_over_dependency: bool
+    direct_period_context_conflict: bool
+    period_dependency_blocks_direct_context: bool
 
 
 OperandResolutionAction = Literal["keep_current", "use_candidate"]
@@ -70,6 +109,68 @@ class DependencyProducerScope:
     producer_task: Dict[str, Any]
     preferred_statement_types: Tuple[str, ...]
     preferred_sections: Tuple[str, ...]
+
+
+def dependency_binding_identity(binding: Dict[str, Any]) -> Tuple[str, str]:
+    return (
+        _normalise_spaces(str(binding.get("label") or "")),
+        _normalise_spaces(str(binding.get("role") or "")),
+    )
+
+
+def summarize_dependency_bindings(
+    bindings: List[Dict[str, Any]],
+    rows: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """Summarize dependency coverage without mutating the source lists."""
+
+    binding_keys = {
+        dependency_binding_identity(binding)
+        for binding in bindings
+        if any(dependency_binding_identity(binding))
+    }
+    resolved_keys = {
+        (
+            _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+            _normalise_spaces(str(row.get("matched_operand_role") or "")),
+        )
+        for row in rows
+    }
+    missing_bindings = [
+        dict(binding)
+        for binding in bindings
+        if dependency_binding_identity(binding) not in resolved_keys
+    ]
+    resolved_binding_count = max(len(bindings) - len(missing_bindings), 0)
+    return {
+        "bindings": bindings,
+        "rows": rows,
+        "binding_keys": binding_keys,
+        "resolved_keys": resolved_keys,
+        "missing_bindings": missing_bindings,
+        "binding_count": len(bindings),
+        "resolved_binding_count": resolved_binding_count,
+        "has_bindings": bool(bindings),
+        "has_rows": bool(rows),
+        "all_resolved": bool(bindings) and not missing_bindings and bool(rows),
+    }
+
+
+def direct_rows_resolved_dependency_keys(
+    bindings: List[Dict[str, Any]],
+    operand_rows: List[Dict[str, Any]],
+) -> set[Tuple[str, str]]:
+    resolved_keys: set[Tuple[str, str]] = set()
+    for binding in bindings:
+        binding_key = dependency_binding_identity(binding)
+        if not any(binding_key):
+            continue
+        if any(
+            _operand_row_matches_requirement(row, binding)
+            for row in (operand_rows or [])
+        ):
+            resolved_keys.add(binding_key)
+    return resolved_keys
 
 
 def _complete_period_context_can_use_candidate(
@@ -465,6 +566,109 @@ def prefer_complete_ratio_direct_context_rows(
         preferred,
         [],
         required_operands=required_operands,
+    )
+
+
+def select_direct_dependency_operand_rows(
+    selection_input: DirectDependencySelectionInput,
+) -> DirectDependencySelection:
+    """Resolve source-set precedence without reading or mutating graph state."""
+
+    direct_rows = selection_input.direct_rows
+    dependency_rows = selection_input.dependency_rows
+    operation_family = selection_input.operation_family
+    direct_period_context_conflict = bool(
+        operation_family in {"difference", "growth_rate"}
+        and selection_input.dependency_rows_cover_required_operands
+        and selection_input.direct_rows_cover_required_operands
+        and selection_input.direct_rows_have_coherent_context
+        and not selection_input.reconciliation_evidence_present
+        and period_comparison_direct_rows_conflict_with_dependency_outputs(
+            dependency_rows,
+            direct_rows,
+        )
+    )
+    period_dependency_blocks_direct_context = bool(
+        operation_family in {"difference", "growth_rate"}
+        and selection_input.dependency_rows_cover_required_operands
+        and direct_period_context_conflict
+    )
+    prefer_direct_rows_over_dependency = bool(
+        operation_family in {"ratio", "difference", "growth_rate"}
+        and selection_input.direct_rows_cover_required_operands
+        and not period_dependency_blocks_direct_context
+        and (
+            selection_input.reconciliation_evidence_present
+            or (
+                operation_family in {"difference", "growth_rate"}
+                and selection_input.direct_rows_have_coherent_context
+            )
+            or (
+                operation_family == "ratio"
+                and selection_input.direct_rows_have_coherent_context
+                and selection_input.retrieved_ratio_context_recovered
+                and selection_input.ratio_direct_context_should_override_dependency
+            )
+        )
+        and not (
+            operation_family == "ratio"
+            and selection_input.dependency_rows_cover_required_operands
+            and selection_input.required_prefers_aggregate_stage
+        )
+    )
+
+    if not dependency_rows:
+        return DirectDependencySelection(
+            operand_rows=direct_rows,
+            dependency_rows=dependency_rows,
+            precedence="no_dependency",
+            dependency_merge_applied=False,
+            prefer_direct_rows_over_dependency=prefer_direct_rows_over_dependency,
+            direct_period_context_conflict=direct_period_context_conflict,
+            period_dependency_blocks_direct_context=period_dependency_blocks_direct_context,
+        )
+
+    aligned_dependency_rows = dependency_rows
+    aggregate_stage_dependency_precedence = bool(
+        operation_family == "ratio"
+        and selection_input.dependency_rows_cover_required_operands
+        and selection_input.required_prefers_aggregate_stage
+    )
+    if operation_family == "ratio" and not aggregate_stage_dependency_precedence:
+        aligned_dependency_rows = align_dependency_rows_with_sibling_direct_context(
+            dependency_rows,
+            direct_rows,
+        )
+    if prefer_direct_rows_over_dependency:
+        operand_rows = merge_operand_rows(
+            direct_rows,
+            aligned_dependency_rows,
+            required_operands=selection_input.required_operands,
+        )
+        precedence: OperandSourcePrecedence = "direct_first"
+    else:
+        operand_rows = merge_operand_rows(
+            aligned_dependency_rows,
+            direct_rows,
+            required_operands=selection_input.required_operands,
+        )
+        precedence = "dependency_first"
+    operand_rows = [
+        row
+        for row in operand_rows
+        if not operand_row_conflicts_requested_scope(
+            row,
+            selection_input.desired_consolidation_scope,
+        )
+    ]
+    return DirectDependencySelection(
+        operand_rows=operand_rows,
+        dependency_rows=aligned_dependency_rows,
+        precedence=precedence,
+        dependency_merge_applied=True,
+        prefer_direct_rows_over_dependency=prefer_direct_rows_over_dependency,
+        direct_period_context_conflict=direct_period_context_conflict,
+        period_dependency_blocks_direct_context=period_dependency_blocks_direct_context,
     )
 
 

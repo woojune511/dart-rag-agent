@@ -279,17 +279,22 @@ lookup surface matching, retry query 생성이다.
 
 state-free owner 경계:
 
-- `financial_operand_resolution.py`: candidate matching, grounding, selection,
-  merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면 abstain하고 값이
-  동등한 tie만 stable key로 선택한다.
-- `financial_dependency_projection.py`: state-free dependency projection과
-  precedence-decision primitive. graph adapter가 아직 end-to-end precedence의
-  일부를 조립하며, override에는 explicit reason과 양쪽 provenance가 필요하다.
+- `financial_operand_resolution.py`: candidate matching, grounding, generic
+  candidate selection, merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면
+  abstain하고 값이 동등한 tie만 stable key로 선택한다.
+- `financial_dependency_projection.py`: dependency-binding summary, state-free
+  dependency projection, direct-versus-dependency source-set selector. selector는
+  co-located period-conflict/alignment 결정을 직접 호출하며 callback seam을 두지
+  않는다. graph adapter에는 main/fallback/aggregate precedence orchestration이
+  남아 있고, override에는 explicit reason과 양쪽 provenance가 필요하다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다.
 
 graph adapter에 남은 orchestration 역할군:
 
+- main operand path와 selector input 구성
+- fallback recovery와 late dependency re-merge
+- aggregate projection/repair sequencing
 - unit conversion/repair
 - period alignment
 - source-visible display 보존
@@ -330,8 +335,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 ### Extracted calculation helpers
 
 - `financial_answer_slots.py`: answer slot payload construction
-- `financial_operand_resolution.py`: state-free operand candidate resolution
-- `financial_dependency_projection.py`: dependency projection and precedence-decision primitives
+- `financial_operand_resolution.py`: state-free generic operand candidate resolution
+- `financial_dependency_projection.py`: dependency-binding summary, dependency projection, and source-set selector
 - `financial_calculation_execution.py`: plan validation and typed execution outcome
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection

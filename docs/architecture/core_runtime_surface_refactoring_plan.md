@@ -217,29 +217,42 @@ Current owner-extraction slice:
   orchestrator: it decides when calculation owners run and projects their
   results into trace, task, and artifact state;
 - `financial_operand_resolution.py` owns state-free operand candidate matching,
-  grounding, selection, and merge behavior;
-- `financial_dependency_projection.py` owns state-free dependency projection and
-  precedence-decision primitives, including an explicit reason and provenance
-  contract; the graph adapter still composes part of the end-to-end precedence
-  path;
+  grounding, generic candidate selection, and merge behavior;
+- `financial_dependency_projection.py` owns dependency-binding summaries,
+  state-free dependency projection, and the direct-versus-dependency source-set
+  selector, including an explicit reason and provenance contract;
 - `financial_calculation_execution.py` validates ordered operand ids and variable
   bindings against the operand set, then returns a typed execution outcome for
   the graph adapter to project;
 - candidate selection is invariant to input order: tied conflicting values
   abstain, while equivalent ties use a stable selection rule.
 
-This slice changes `financial_graph_calculation.py` from `21,642` to `19,682`
-lines (`-1,960`), while the source diff as a whole is `+1,095` lines. Report it
-as owner extraction and deterministic contract hardening, not as code reduction.
+The bounded selector co-location removes the graph-injected callback seam: the
+source-set selector now invokes its co-located period-conflict and
+sibling-alignment decisions directly. This is not end-to-end precedence
+consolidation. `financial_graph_calculation.py` still orchestrates the main
+operand path, fallback recovery and late dependency re-merge, and aggregate
+repair paths.
+
+The earlier calculation owner-extraction slice changed
+`financial_graph_calculation.py` from `21,642` to `19,682` lines (`-1,960`),
+while its source diff as a whole was `+1,095` lines. After the later precedence
+fix and selector co-location, the current graph adapter is `19,686` lines. The
+co-location itself is a `-7` source-line move across the three owner/caller
+files, not a product-runtime or broad code-reduction claim.
 
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
-is contract and regression evidence, not a refreshed benchmark claim.
+was the earlier extraction evidence. The later precedence fix and selector
+co-location passed `68` focused owner/graph contracts, the same `217`-literal
+audit, and full discovery over `1,452` unit tests. These are contract and
+regression evidence, not a refreshed benchmark claim.
 
 Phase 3 remains open for these follow-ups:
 
-- give dependency precedence one implementation owner across every caller;
+- move the remaining graph-composed main, fallback, and aggregate precedence
+  orchestration behind named owner contracts;
 - reduce the remaining private-API mesh;
 - remove the stale-result second execution path after caller migration;
 - extract the remaining extraction and aggregate repair clusters behind named
