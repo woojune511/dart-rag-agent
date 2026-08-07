@@ -324,7 +324,15 @@ def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class CalculationResult(_DeferredBaseModel):
-    status: Literal["ok", "insufficient_operands", "zero_division", "unsupported_operation", "unit_mismatch", "parse_error"] = Field(
+    status: Literal[
+        "ok",
+        "insufficient_operands",
+        "zero_division",
+        "unsupported_operation",
+        "unit_mismatch",
+        "scale_mismatch",
+        "parse_error",
+    ] = Field(
         description="계산 수행 상태"
     )
     result_value: Optional[float] = Field(default=None, description="정규화 단위 기준 계산 결과")

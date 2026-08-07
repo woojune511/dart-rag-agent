@@ -61,6 +61,7 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_surface_contracts import (
     _operand_needles,
+    _operand_segment_label,
     _operand_surface_contract,
     _text_has_contract_term,
     _text_has_negative_surface,
@@ -2233,11 +2234,6 @@ def _task_binding_period_hint(
     return ""
 
 
-def _task_binding_segment_label(operand: Dict[str, Any]) -> str:
-    binding_policy = dict(operand.get("binding_policy") or {})
-    return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
-
-
 def _task_output_slots_for_dependency(
     task: Dict[str, Any],
     *,
@@ -2258,7 +2254,7 @@ def _task_output_slots_for_dependency(
                 "concept": concept,
                 "period": _task_binding_period_hint(dict(operand), task=task, report_scope=report_scope),
                 "label": _normalise_spaces(str(operand.get("label") or task.get("metric_label") or "")),
-                "segment_label": _task_binding_segment_label(dict(operand)),
+                "segment_label": _operand_segment_label(dict(operand)),
                 "binding_policy": dict(operand.get("binding_policy") or {}),
             }
         )
@@ -2287,7 +2283,7 @@ def _task_input_bindings_for_dependency(
                 "preferred_task_id": "",
                 "source_slot": "primary_value",
                 "source_preference": ["retrieval"],
-                "segment_label": _task_binding_segment_label(dict(operand)),
+                "segment_label": _operand_segment_label(dict(operand)),
                 "binding_policy": dict(operand.get("binding_policy") or {}),
             }
         )
@@ -3872,177 +3868,6 @@ def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand
     return _text_has_negative_surface(str(candidate.get("text") or ""), operand)
 
 
-def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    operand_concept = _normalise_spaces(str(operand.get("concept") or ""))
-    row_concepts = [
-        _normalise_spaces(str(row.get("matched_operand_concept") or "")),
-        _normalise_spaces(str(row.get("concept") or "")),
-    ]
-    if operand_concept and any(row_concept and row_concept != operand_concept for row_concept in row_concepts):
-        return True
-
-    operand_period_text = " ".join(
-        str(value or "")
-        for value in (
-            operand.get("period"),
-            operand.get("period_hint"),
-            operand.get("label"),
-            operand.get("name"),
-        )
-    )
-    row_period_text = " ".join(
-        str(value or "")
-        for value in (
-            row.get("period"),
-            row.get("label"),
-            row.get("matched_operand_label"),
-        )
-    )
-    operand_years = set(re.findall(r"20\d{2}", operand_period_text))
-    row_years = set(re.findall(r"20\d{2}", row_period_text))
-    if str(row.get("period_source") or "").strip() == "evidence_surface":
-        row_period_years = set(re.findall(r"20\d{2}", str(row.get("period") or "")))
-        if operand_years and row_period_years and operand_years.isdisjoint(row_period_years):
-            return True
-    if operand_years and row_years and operand_years.isdisjoint(row_years):
-        return True
-
-    normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
-    expects_liability = any("부채" in needle for needle in normalized_needles)
-    authoritative_surfaces = [
-        str(row.get("matched_operand_label") or "").strip(),
-        str(row.get("label") or "").strip(),
-    ]
-    authoritative_surfaces = [surface for surface in authoritative_surfaces if surface]
-    row_unit_family = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
-    if not row_unit_family:
-        _value, row_unit_family = _normalise_operand_value(
-            str(row.get("raw_value") or ""),
-            str(row.get("raw_unit") or ""),
-        )
-        row_unit_family = _normalise_spaces(str(row_unit_family or "")).upper()
-    operand_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
-    operand_label = _normalise_spaces(str(operand.get("label") or ""))
-    if row_unit_family == "PERCENT" and operand_unit_family in {"KRW", "CURRENCY", "MONEY", "AMOUNT"}:
-        return True
-    if row_unit_family in {"KRW", "CURRENCY", "MONEY", "AMOUNT"} and operand_unit_family == "PERCENT":
-        return True
-    if (
-        row_unit_family == "PERCENT"
-        and operand_unit_family != "PERCENT"
-        and not _label_implies_percent_metric(operand_label)
-        and any(_label_implies_percent_metric(surface) for surface in authoritative_surfaces)
-    ):
-        return True
-
-    if not expects_liability and any("부채" in _normalise_spaces(surface) for surface in authoritative_surfaces):
-        return True
-
-    contract = _operand_surface_contract(operand)
-    if not contract:
-        return False
-
-    if any(_text_has_negative_surface(surface, operand) for surface in authoritative_surfaces):
-        return True
-    return False
-
-
-def _operand_row_matches_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:
-    if _operand_row_conflicts_with_requirement(row, operand):
-        return False
-
-    bound_role = str(row.get("matched_operand_role") or "").strip()
-    operand_role = str(operand.get("role") or "").strip()
-    if bound_role and operand_role and _normalise_spaces(bound_role) != _normalise_spaces(operand_role):
-        return False
-
-    bound_label = str(row.get("matched_operand_label") or "").strip()
-    operand_label = str(operand.get("label") or "").strip()
-    if bound_label and operand_label and _normalise_spaces(bound_label) == _normalise_spaces(operand_label):
-        return True
-
-    bound_concept = str(row.get("matched_operand_concept") or "").strip()
-    operand_concept = str(operand.get("concept") or "").strip()
-    if bound_concept and operand_concept and _normalise_spaces(bound_concept) == _normalise_spaces(operand_concept):
-        return True
-
-    surfaces = [
-        str(row.get("label") or "").strip(),
-        str(row.get("source_anchor") or "").strip(),
-    ]
-    return any(_operand_text_match(surface, operand) for surface in surfaces if surface)
-
-
-def _missing_required_operands(
-    required_operands: List[Dict[str, Any]],
-    operand_rows: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    missing: List[Dict[str, Any]] = []
-    for operand in required_operands:
-        if any(_operand_row_matches_requirement(row, operand) for row in operand_rows):
-            continue
-        missing.append(dict(operand))
-    return missing
-
-
-def _merge_operand_rows(
-    preferred_rows: List[Dict[str, Any]],
-    supplemental_rows: List[Dict[str, Any]],
-    *,
-    required_operands: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    """Keep trusted rows first and only fill still-missing operands from fallback."""
-    merged: List[Dict[str, Any]] = [dict(row) for row in preferred_rows]
-    if not supplemental_rows:
-        return merged
-
-    remaining_required = _missing_required_operands(required_operands, merged) if required_operands else []
-    seen_keys: set[tuple[str, str, str]] = {
-        (
-            _normalise_spaces(str(row.get("label") or "")),
-            _normalise_spaces(str(row.get("period") or "")),
-            _normalise_spaces(str(row.get("source_anchor") or "")),
-        )
-        for row in merged
-    }
-    def _required_key(operand: Dict[str, Any]) -> tuple[str, str, str]:
-        return (
-            _normalise_spaces(str(operand.get("label") or "")),
-            _normalise_spaces(str(operand.get("role") or "")),
-            _normalise_spaces(str(operand.get("period") or operand.get("period_hint") or "")),
-        )
-
-    covered_required: set[tuple[str, str, str]] = set()
-
-    for row in supplemental_rows:
-        candidate = dict(row)
-        row_key = (
-            _normalise_spaces(str(candidate.get("label") or "")),
-            _normalise_spaces(str(candidate.get("period") or "")),
-            _normalise_spaces(str(candidate.get("source_anchor") or "")),
-        )
-        if row_key in seen_keys:
-            continue
-
-        matched_operand: Optional[Dict[str, Any]] = None
-        for operand in remaining_required:
-            required_key = _required_key(operand)
-            if required_key in covered_required:
-                continue
-            if _operand_row_matches_requirement(candidate, operand):
-                matched_operand = operand
-                covered_required.add(required_key)
-                break
-
-        if matched_operand is None and required_operands:
-            continue
-
-        seen_keys.add(row_key)
-        merged.append(candidate)
-
-    return merged
-
-
 def _aggregate_like_row_stage(label: str) -> str:
     compact = re.sub(r"\s+", "", _normalise_spaces(str(label or "")))
     if not compact:
@@ -4819,11 +4644,6 @@ def _candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
         if re.search(str(pattern), normalized_context):
             return "separate"
     return explicit or "unknown"
-
-
-def _operand_segment_label(operand: Dict[str, Any]) -> str:
-    binding_policy = dict(operand.get("binding_policy") or {})
-    return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
 
 
 def _candidate_segment_surfaces(candidate: Dict[str, Any], *, strict: bool = False) -> List[str]:

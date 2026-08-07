@@ -2,14 +2,77 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Sequence
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.schema.runtime_enums import ArtifactKind
 
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState, ReflectionAction, ReflectionReport
 
 
+def reflection_synthesis_source_ids_from_task_outputs(
+    *,
+    active_subtask: Mapping[str, Any],
+    subtask_results: Sequence[Mapping[str, Any]],
+    artifacts: Sequence[Mapping[str, Any]],
+) -> List[str]:
+    active_subtask = dict(active_subtask or {})
+    preferred_task_ids: List[str] = []
+    for binding in active_subtask.get("inputs") or []:
+        if not isinstance(binding, dict):
+            continue
+        source_preference = [
+            _normalise_spaces(str(item or "")).lower()
+            for item in (binding.get("source_preference") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
+        if "task_output" in source_preference and preferred_task_id:
+            preferred_task_ids.append(preferred_task_id)
+    if not preferred_task_ids:
+        preferred_task_ids = [
+            _normalise_spaces(str(item or ""))
+            for item in (active_subtask.get("depends_on") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+
+    preferred_task_ids = list(dict.fromkeys(preferred_task_ids))
+    if not preferred_task_ids:
+        return []
+
+    artifacts_by_id = {
+        str(artifact.get("artifact_id") or "").strip(): dict(artifact)
+        for artifact in (artifacts or [])
+        if isinstance(artifact, dict) and str(artifact.get("artifact_id") or "").strip()
+    }
+    result_by_task_id = {
+        str(row.get("task_id") or "").strip(): dict(row)
+        for row in (subtask_results or [])
+        if isinstance(row, dict) and str(row.get("task_id") or "").strip()
+    }
+
+    source_ids: List[str] = []
+    for task_id in preferred_task_ids:
+        result_row = result_by_task_id.get(task_id)
+        if not result_row:
+            continue
+        artifact_ids = [
+            str(item).strip()
+            for item in (result_row.get("artifact_ids") or [])
+            if str(item).strip()
+        ]
+        result_artifact_ids = [
+            artifact_id
+            for artifact_id in artifact_ids
+            if str(artifacts_by_id.get(artifact_id, {}).get("kind") or "").strip()
+            == ArtifactKind.CALCULATION_RESULT.value
+        ]
+        source_ids.extend(result_artifact_ids or artifact_ids)
+        if not artifact_ids and result_row.get("calculation_result"):
+            source_ids.append(f"task_output:{task_id}")
+
+    return list(dict.fromkeys(item for item in source_ids if item))
 def reflection_action_from_plan(
     reflection_plan: Dict[str, Any],
     *,

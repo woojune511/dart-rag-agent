@@ -15,6 +15,11 @@ def _operand_needles(operand: Dict[str, Any]) -> List[str]:
     return [needle for needle in [label, *aliases] if needle]
 
 
+def _operand_segment_label(operand: Dict[str, Any]) -> str:
+    binding_policy = dict(operand.get("binding_policy") or {})
+    return _normalise_spaces(str(binding_policy.get("segment_label") or ""))
+
+
 def _operand_surface_contract(operand: Dict[str, Any]) -> Dict[str, List[str]]:
     explicit_contract = dict(operand.get("surface_contract") or {})
     if explicit_contract:

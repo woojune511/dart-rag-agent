@@ -545,6 +545,36 @@ focused operand retrieval even when primary operand coverage is complete. This
 prevents a numeric-only child answer from starving the final aggregate answer of
 the narrative evidence required by the user query.
 
+### Deterministic Calculation Ownership And Selection
+
+`financial_graph_calculation.py` is the graph-state adapter and orchestrator for
+calculation. It may read and mutate graph state, decide when an owner runs, and
+project owner results, but it must delegate state-free operand resolution and
+formula execution to their owner modules.
+
+`financial_operand_resolution.py` owns state-free candidate matching, grounding,
+selection, and merge behavior. Selection must be invariant to candidate input
+order. If equally ranked candidates carry conflicting normalized values, the
+resolver must abstain instead of selecting whichever candidate arrived first.
+If tied candidates are value-equivalent, it may select one through a stable
+provenance and candidate-identity ordering.
+
+`financial_dependency_projection.py` owns state-free dependency projection and
+precedence-decision primitives. The graph adapter currently composes some of
+those primitives with operand-resolution callbacks, so consolidating the whole
+precedence path under one owner remains follow-up work. Even during that
+migration, a task output may override a direct row only through an explicit
+decision reason and provenance record. The decision must retain the current and
+candidate source identities needed to inspect value, materiality, anchor, and
+scope conflicts; list order must never act as an implicit override rule.
+
+`financial_calculation_execution.py` owns plan validation and state-free
+execution. Before execution it must validate `ordered_operand_ids` and
+`variable_bindings` against the available operand-id set and the operation's
+required roles. It returns a typed `CalculationExecutionOutcome` and does not
+mutate graph state. The graph adapter projects that outcome into
+`resolved_calculation_trace`, `structured_result`, and the task/artifact ledger.
+
 ## 9. Aggregate Subtask Projection
 
 Aggregate answers must keep child task provenance visible after the final

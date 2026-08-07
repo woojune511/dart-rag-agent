@@ -1,11 +1,13 @@
 """
 Calculation mixin for the financial graph agent.
 
-This module owns the structured numeric path after reconciliation:
-- extract normalized operands
-- plan the calculation formula
-- execute and verify the numeric result
+This module adapts graph state across the structured numeric path:
+- orchestrate operand resolution, planning, and deterministic execution owners
+- project execution outcomes into canonical trace and artifact state
 - advance or aggregate multi-subtask calculations
+
+State-free matching and execution policy belong to their dedicated owner modules;
+remaining repair paths stay here only until their callers and old bodies migrate.
 """
 
 from __future__ import annotations
@@ -13,7 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, NamedTuple, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Sequence
 
 from src.agent import financial_answer_slots
 from src.agent.financial_aggregate_state import (
@@ -42,10 +44,12 @@ from src.agent.financial_calculation_execution import (
     build_scalar_calculation_result,
     build_success_calculation_state_payload,
     build_time_series_calculation_result,
-    time_series_yoy_growth_rates,
+    execute_prepared_calculation_plan,
+    guard_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
+    align_dependency_rows_with_sibling_direct_context,
     align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
     build_dependency_recalculated_row,
@@ -62,23 +66,55 @@ from src.agent.financial_dependency_projection import (
     dependency_ratio_role_group,
     derive_dependency_operands_from_source_task_slots,
     fill_missing_ratio_dependency_operands,
+    filter_direct_rows_by_dependency_producer_scope,
     lookup_primary_slot,
+    period_comparison_direct_rows_conflict_with_dependency_outputs,
+    prefer_complete_ratio_direct_context_rows,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
     rebuild_dependency_calculation_plan,
     replace_lookup_primary_slot,
+    resolve_dependency_producer_scope,
     source_task_id_for_dependency_operand,
+)
+from src.agent.financial_operand_resolution import (
+    DirectDependencySelectionInput,
+    _canonical_structured_reconciliation_id,
+    _canonicalize_structured_operand_reconciliation_refs,
+    collect_retrieval_context_docs,
+    collect_retrieved_operand_evidence_candidates,
+    dependency_binding_identity,
+    direct_lookup_row_is_ambiguous_context_table,
+    direct_rows_resolved_dependency_keys,
+    _evidence_item_for_operand_row,
+    _evidence_items_by_id,
+    _evidence_surface_contains_segment_label,
+    evidence_item_conflicts_requested_scope,
+    _filter_operand_rows_by_required_surface_contract,
+    _llm_lookup_operand_has_direct_support,
+    merge_operand_rows,
+    _missing_required_operands,
+    _operand_row_display_unit_set,
+    _operand_rows_conflict_by_required_role,
+    _operand_rows_have_single_table_context,
+    _operand_row_has_direct_evidence_surface,
+    _operand_slot_has_evidence_surface_match,
+    operand_row_conflicts_requested_scope,
+    _operand_row_matches_requirement,
+    _operand_row_satisfies_required_surface_contract,
+    _period_comparison_operand_rows_collapse_to_same_slot,
+    _ratio_operand_rows_collapse_to_same_slot,
+    operand_row_values_differ,
+    operand_row_values_materially_conflict,
+    select_direct_dependency_operand_rows,
+    summarize_dependency_bindings,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
     _infer_concept_ratio_result_unit,
-    _merge_operand_rows,
-    _missing_required_operands,
     _operand_period_focus,
     _operand_prefers_aggregate_value_role,
-    _operand_row_matches_requirement,
-    _operand_segment_label,
     _resolve_candidate_local_unit_hint,
     _scoped_surface_affinity_priority,
     _select_aggregate_structured_cell,
@@ -108,7 +144,11 @@ from src.agent.financial_runtime_normalization import (
     _normalise_spaces,
     _parse_number_text,
 )
-from src.agent.financial_scope_policies import _desired_consolidation_scope, _extract_period_sort_key
+from src.agent.financial_scope_policies import (
+    _desired_consolidation_scope,
+    _extract_period_sort_key,
+    known_consolidation_scope_value,
+)
 from src.agent.financial_text_surface import _strip_rerank_metadata, _tokenize_terms
 from src.agent.financial_runtime_trace import (
     _collect_nested_result_evidence,
@@ -119,10 +159,12 @@ from src.agent.financial_runtime_trace import (
 from src.agent.financial_reflection_projection import (
     reflection_action_from_plan as _reflection_action_from_plan,
     reflection_report_from_action as _reflection_report_from_action,
+    reflection_synthesis_source_ids_from_task_outputs,
     task_artifact_integrity_feedback as _task_artifact_integrity_feedback,
 )
 from src.agent.financial_surface_contracts import (
     _operand_needles,
+    _operand_segment_label,
     _text_has_negative_surface,
     _text_has_positive_surface,
 )
@@ -138,6 +180,7 @@ from src.agent.financial_numeric_surface import (
     evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
+    numeric_candidates_with_spans_from_surface,
     numeric_evidence_relevance_score,
     numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
@@ -152,6 +195,7 @@ from src.agent.financial_text_surface import (
 from src.agent.financial_task_artifacts import (
     aggregate_answer_artifact_update as _build_aggregate_answer_artifact_update,
     calculation_plan_artifact_update as _build_calculation_plan_artifact_update,
+    next_reflection_task_id,
     operand_set_artifact_update as _build_operand_set_artifact_update,
     project_task_artifact_trace as _project_task_artifact_trace,
     reflection_report_artifact_update as _build_reflection_report_artifact_update,
@@ -242,267 +286,6 @@ def _calculation_debug_state_update(
 def _clear_calculation_debug_state() -> Dict[str, Any]:
     """Clear the optional calculation diagnostic scratch field between attempts."""
     return {CALCULATION_DEBUG_TRACE_FIELD: {}}
-
-
-def _evidence_item_conflicts_requested_scope(
-    item: Dict[str, Any],
-    desired_consolidation_scope: str,
-) -> bool:
-    desired_scope = _normalise_spaces(str(desired_consolidation_scope or "unknown"))
-    if desired_scope == "unknown":
-        return False
-    metadata = dict((item or {}).get("metadata") or {})
-    metadata_scope = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
-    if metadata_scope == desired_scope:
-        return False
-    scope_policy = dict(CONSOLIDATION_SCOPE_POLICY.get("context_markers") or {})
-    consolidated_markers = tuple(
-        str(marker).lower() for marker in (scope_policy.get("consolidated") or ()) if str(marker)
-    )
-    separate_markers = tuple(str(marker).lower() for marker in (scope_policy.get("separate") or ()) if str(marker))
-    context_text = _normalise_spaces(
-        " ".join(
-            str(value or "")
-            for value in (
-                metadata.get("section_path"),
-                metadata.get("section"),
-                metadata.get("local_heading"),
-                metadata.get("table_context"),
-                metadata.get("caption"),
-                metadata.get("table_summary_text"),
-                metadata.get("table_header_context"),
-                item.get("source_context"),
-                item.get("claim"),
-                item.get("quote_span"),
-                item.get("raw_row_text"),
-            )
-            if str(value or "").strip()
-        )
-    ).lower()
-    has_consolidated_context = bool(
-        consolidated_markers and any(marker in context_text for marker in consolidated_markers)
-    )
-    has_separate_context = bool(separate_markers and any(marker in context_text for marker in separate_markers))
-    if desired_scope == "consolidated":
-        if metadata_scope == "separate":
-            return True
-        if has_consolidated_context:
-            return False
-        return has_separate_context
-    if desired_scope == "separate":
-        if metadata_scope == "consolidated":
-            return True
-        if has_separate_context:
-            return False
-        return has_consolidated_context
-    return False
-
-
-def _operand_row_conflicts_requested_scope(
-    row: Dict[str, Any],
-    desired_consolidation_scope: str,
-) -> bool:
-    desired_scope = _normalise_spaces(str(desired_consolidation_scope or "unknown"))
-    if desired_scope == "unknown":
-        return False
-    scope = _normalise_spaces(str((row or {}).get("consolidation_scope") or "unknown"))
-    if scope == desired_scope:
-        return False
-    if desired_scope == "consolidated":
-        return scope == "separate"
-    if desired_scope == "separate":
-        return scope == "consolidated"
-    return False
-
-
-def _operand_rows_have_single_table_context(rows: List[Dict[str, Any]]) -> bool:
-    contexts = {
-        _normalise_spaces(
-            str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
-        )
-        for row in rows
-        if _normalise_spaces(
-            str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
-        )
-    }
-    return len(contexts) == 1
-
-
-def _operand_row_display_unit_set(rows: List[Dict[str, Any]]) -> set[str]:
-    return {
-        _normalise_spaces(str(row.get("raw_unit") or ""))
-        for row in rows
-        if _normalise_spaces(str(row.get("raw_unit") or ""))
-    }
-
-
-def _operand_rows_conflict_by_required_role(
-    left_rows: List[Dict[str, Any]],
-    right_rows: List[Dict[str, Any]],
-    *,
-    operand_row_value_differs: Callable[[Dict[str, Any], Dict[str, Any]], bool],
-) -> bool:
-    right_by_role: Dict[str, List[Dict[str, Any]]] = {}
-    for row in right_rows:
-        role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
-        if role:
-            right_by_role.setdefault(role, []).append(row)
-    for left_row in left_rows:
-        role = _normalise_spaces(str(left_row.get("matched_operand_role") or left_row.get("role") or "")).lower()
-        if not role:
-            continue
-        for right_row in right_by_role.get(role, []):
-            if operand_row_value_differs(left_row, right_row):
-                return True
-    return False
-
-
-def _required_operand_context_terms(required_operands: Sequence[Dict[str, Any]]) -> List[str]:
-    terms: List[str] = []
-    for operand in required_operands:
-        for needle in _operand_needles(dict(operand)):
-            normalized = _normalise_spaces(re.sub(rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+", "", needle))
-            if not normalized:
-                continue
-            terms.append(normalized)
-            tokens = normalized.split()
-            if len(tokens) >= 2:
-                terms.append(" ".join(tokens[:-1]))
-    expanded: List[str] = []
-    for term in terms:
-        expanded.append(term)
-        if re.search(r"[가-힣]", term) and " " in term:
-            expanded.append(re.sub(r"\s+", "", term))
-    return list(dict.fromkeys(item for item in expanded if item))
-
-
-def _text_has_any_context_term(text: str, terms: Sequence[str]) -> bool:
-    normalized = _normalise_spaces(text)
-    compact = re.sub(r"\s+", "", normalized)
-    return any(
-        term in normalized or re.sub(r"\s+", "", term) in compact
-        for term in terms
-        if term
-    )
-
-
-def _synthesized_calculation_doc_item(
-    doc: Any,
-    *,
-    index: int,
-    evidence_id: str,
-    desired_consolidation_scope: str,
-    build_source_anchor: Callable[[Dict[str, Any]], str],
-) -> Optional[Dict[str, Any]]:
-    metadata = dict(getattr(doc, "metadata", {}) or {})
-    anchor = build_source_anchor(metadata)
-    text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-    if not text:
-        return None
-    display_text = _strip_rerank_metadata(text) or text
-    provisional_item = {"metadata": metadata, "source_anchor": anchor, "claim": text}
-    if _evidence_item_conflicts_requested_scope(provisional_item, desired_consolidation_scope):
-        return None
-    claim = display_text[:1200]
-    return {
-        "evidence_id": evidence_id,
-        "source_anchor": anchor,
-        "claim": claim,
-        "quote_span": claim[:240],
-        "support_level": "direct",
-        "question_relevance": "high",
-        "allowed_terms": [],
-        "metadata": metadata,
-        "_candidate_index": index,
-    }
-
-
-def _synthesis_source_ids_from_task_outputs(state: FinancialAgentState) -> List[str]:
-    active_subtask = dict(state.get("active_subtask") or {})
-    preferred_task_ids: List[str] = []
-    for binding in active_subtask.get("inputs") or []:
-        if not isinstance(binding, dict):
-            continue
-        source_preference = [
-            _normalise_spaces(str(item or "")).lower()
-            for item in (binding.get("source_preference") or [])
-            if _normalise_spaces(str(item or ""))
-        ]
-        preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
-        if "task_output" in source_preference and preferred_task_id:
-            preferred_task_ids.append(preferred_task_id)
-    if not preferred_task_ids:
-        preferred_task_ids = [
-            _normalise_spaces(str(item or ""))
-            for item in (active_subtask.get("depends_on") or [])
-            if _normalise_spaces(str(item or ""))
-        ]
-
-    preferred_task_ids = list(dict.fromkeys(preferred_task_ids))
-    if not preferred_task_ids:
-        return []
-
-    artifacts_by_id = {
-        str(artifact.get("artifact_id") or "").strip(): dict(artifact)
-        for artifact in (state.get("artifacts") or [])
-        if isinstance(artifact, dict) and str(artifact.get("artifact_id") or "").strip()
-    }
-    result_by_task_id = {
-        str(row.get("task_id") or "").strip(): dict(row)
-        for row in (state.get("subtask_results") or [])
-        if isinstance(row, dict) and str(row.get("task_id") or "").strip()
-    }
-
-    source_ids: List[str] = []
-    for task_id in preferred_task_ids:
-        result_row = result_by_task_id.get(task_id)
-        if not result_row:
-            continue
-        artifact_ids = [
-            str(item).strip()
-            for item in (result_row.get("artifact_ids") or [])
-            if str(item).strip()
-        ]
-        result_artifact_ids = [
-            artifact_id
-            for artifact_id in artifact_ids
-            if str(artifacts_by_id.get(artifact_id, {}).get("kind") or "").strip()
-            == ArtifactKind.CALCULATION_RESULT.value
-        ]
-        source_ids.extend(result_artifact_ids or artifact_ids)
-        if not artifact_ids and result_row.get("calculation_result"):
-            source_ids.append(f"task_output:{task_id}")
-
-    return list(dict.fromkeys(item for item in source_ids if item))
-
-
-def _next_reflection_task_id(
-    state: FinancialAgentState,
-    *,
-    target_task_id: str,
-    current_count: int,
-) -> str:
-    target = _normalise_spaces(str(target_task_id or "")) or "global"
-    prefix = f"reflection:{target}:"
-    used_indexes: set[int] = set()
-    pattern = re.compile(rf"^{re.escape(prefix)}(\d+)(?::report)?$")
-    for task in state.get("tasks") or []:
-        if not isinstance(task, dict):
-            continue
-        match = pattern.match(str(task.get("task_id") or "").strip())
-        if match:
-            used_indexes.add(int(match.group(1)))
-    for artifact in state.get("artifacts") or []:
-        if not isinstance(artifact, dict):
-            continue
-        for value in (artifact.get("task_id"), artifact.get("artifact_id")):
-            match = pattern.match(str(value or "").strip())
-            if match:
-                used_indexes.add(int(match.group(1)))
-    next_index = max(int(current_count or 0) + 1, 1)
-    while next_index in used_indexes:
-        next_index += 1
-    return f"{prefix}{next_index:03d}"
 
 
 def _has_duplicate_direct_lookup_rejection(state: FinancialAgentState) -> bool:
@@ -615,45 +398,6 @@ class FinancialAgentCalculationMixin:
                 existing_ids.add(evidence_id)
             combined.append(dict(item))
         return combined
-
-    def _evidence_items_by_id(self, evidence_items: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        return {
-            str(item.get("evidence_id") or "").strip(): dict(item)
-            for item in evidence_items
-            if str(item.get("evidence_id") or "").strip()
-        }
-
-    @staticmethod
-    def _known_consolidation_scope_value(*values: Any) -> str:
-        policy_values = {
-            str(scope): tuple(str(marker).lower() for marker in (markers or ()) if str(marker))
-            for scope, markers in dict(CONSOLIDATION_SCOPE_POLICY.get("metadata_values") or {}).items()
-        }
-        for value in values:
-            scope = _normalise_spaces(str(value or "")).lower()
-            if not scope:
-                continue
-            if scope in {"consolidated", "separate"}:
-                return scope
-            exact_scope = next(
-                (
-                    candidate_scope
-                    for candidate_scope, markers in policy_values.items()
-                    if scope in markers
-                ),
-                "",
-            )
-            if exact_scope:
-                return exact_scope
-            marker_matches = [
-                (len(marker), candidate_scope)
-                for candidate_scope, markers in policy_values.items()
-                for marker in markers
-                if marker and marker in scope
-            ]
-            if marker_matches:
-                return max(marker_matches)[1]
-        return ""
 
     def _enrich_reconciliation_artifact_refs(
         self,
@@ -2308,10 +2052,11 @@ class FinancialAgentCalculationMixin:
                     evidence,
                     index=1,
                 )
-                if state is not None and self._lookup_direct_row_is_ambiguous_context_table(
+                if state is not None and direct_lookup_row_is_ambiguous_context_table(
                     row,
                     evidence,
-                    state=state,
+                    query=str(state.get("query") or ""),
+                    active_subtask=dict(state.get("active_subtask") or {}),
                     required_operands=[operand],
                 ):
                     row = {}
@@ -2346,10 +2091,11 @@ class FinancialAgentCalculationMixin:
                 table_label_score = 0.0
             if table_label_score > 0:
                 table_label_score += _context_scope_score(evidence)
-            if state is not None and self._lookup_direct_row_is_ambiguous_context_table(
+            if state is not None and direct_lookup_row_is_ambiguous_context_table(
                 table_label_slot,
                 evidence,
-                state=state,
+                query=str(state.get("query") or ""),
+                active_subtask=dict(state.get("active_subtask") or {}),
                 required_operands=[operand],
             ):
                 table_label_slot = {}
@@ -2407,7 +2153,7 @@ class FinancialAgentCalculationMixin:
         if operation_family not in {"lookup", "single_value", "ratio"} or not required_operands:
             return direct_structured_rows
 
-        evidence_by_id = self._evidence_items_by_id(evidence_items)
+        evidence_by_id = _evidence_items_by_id(evidence_items)
         refined_rows = [dict(row) for row in direct_structured_rows]
 
         for operand in [dict(item) for item in required_operands]:
@@ -2439,7 +2185,7 @@ class FinancialAgentCalculationMixin:
             if not preferred_slot:
                 continue
             current_score = 0.0
-            current_evidence = self._evidence_item_for_operand_row(current, evidence_by_id)
+            current_evidence = _evidence_item_for_operand_row(current, evidence_by_id)
             if current_evidence:
                 current_score = self._direct_structured_lookup_evidence_score(operand, current_evidence)
             preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
@@ -2539,7 +2285,7 @@ class FinancialAgentCalculationMixin:
                 if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
             }
             for item in self._ratio_operand_context_evidence_from_docs(context_docs, max_docs=64):
-                if _evidence_item_conflicts_requested_scope(item, desired_scope):
+                if evidence_item_conflicts_requested_scope(item, desired_scope):
                     continue
                 evidence_id = str(item.get("evidence_id") or "").strip()
                 if evidence_id and evidence_id in existing_ids:
@@ -2549,7 +2295,7 @@ class FinancialAgentCalculationMixin:
                 evidence_pool.append(dict(item))
         if not evidence_pool:
             return ordered_results
-        evidence_by_id = self._evidence_items_by_id(evidence_pool)
+        evidence_by_id = _evidence_items_by_id(evidence_pool)
 
         desired_scope = _desired_consolidation_scope(
             str(state.get("query") or ""),
@@ -2561,7 +2307,7 @@ class FinancialAgentCalculationMixin:
             preferred_slot: Dict[str, Any],
             preferred_evidence: Optional[Dict[str, Any]],
         ) -> bool:
-            current_evidence = self._evidence_item_for_operand_row(current_slot, evidence_by_id)
+            current_evidence = _evidence_item_for_operand_row(current_slot, evidence_by_id)
             return lookup_recovery_value_refinement_allowed(
                 current_slot,
                 preferred_slot,
@@ -2571,14 +2317,13 @@ class FinancialAgentCalculationMixin:
                 operand=operand,
                 recovered_slot_matches_primary_label=_recovered_slot_has_primary_label_match,
                 direct_structured_lookup_evidence_score=self._direct_structured_lookup_evidence_score,
-                operand_rows_materially_conflict=self._operand_row_values_materially_conflict,
+                operand_rows_materially_conflict=operand_row_values_materially_conflict,
             )
 
         def _normalize_lookup_slot_unit(slot: Dict[str, Any]) -> Dict[str, Any]:
             return normalize_lookup_slot_unit(
                 slot,
                 evidence_by_id=evidence_by_id,
-                evidence_item_for_operand_row=self._evidence_item_for_operand_row,
                 coerce_operand_unit_from_evidence=self._coerce_operand_unit_from_evidence,
             )
 
@@ -2593,7 +2338,7 @@ class FinancialAgentCalculationMixin:
             preferred_slot: Dict[str, Any],
             preferred_evidence: Optional[Dict[str, Any]],
         ) -> bool:
-            return self._operand_slot_has_evidence_surface_match(
+            return _operand_slot_has_evidence_surface_match(
                 preferred_slot,
                 preferred_evidence,
                 operand,
@@ -2650,7 +2395,6 @@ class FinancialAgentCalculationMixin:
                         state=state,
                         normalize_slot=_normalize_lookup_slot_unit,
                         lookup_result_builder=_lookup_result_from_slot,
-                        evidence_item_for_operand_row=self._evidence_item_for_operand_row,
                         direct_structured_lookup_evidence_score=self._direct_structured_lookup_evidence_score,
                         best_direct_lookup_slot=self._best_direct_lookup_slot_from_evidence_pool,
                         preferred_slot_has_evidence_surface_match=_preferred_slot_has_evidence_surface_match,
@@ -2676,10 +2420,11 @@ class FinancialAgentCalculationMixin:
                     if not _recovered_slot_has_primary_label_match(recovered_slot):
                         recovered_slot = {}
                         continue
-                    if self._lookup_direct_row_is_ambiguous_context_table(
+                    if direct_lookup_row_is_ambiguous_context_table(
                         recovered_slot,
                         evidence_item,
-                        state=state,
+                        query=str(state.get("query") or ""),
+                        active_subtask=dict(state.get("active_subtask") or {}),
                         required_operands=[operand],
                     ):
                         recovered_slot = {}
@@ -2712,7 +2457,7 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        evidence_by_id = self._evidence_items_by_id(evidence_items)
+        evidence_by_id = _evidence_items_by_id(evidence_items)
         if not evidence_by_id:
             return ordered_results
 
@@ -2731,7 +2476,7 @@ class FinancialAgentCalculationMixin:
                 continue
             raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
             raw_unit = _normalise_spaces(str(primary_slot.get("raw_unit") or ""))
-            evidence_item = self._evidence_item_for_operand_row(primary_slot, evidence_by_id)
+            evidence_item = _evidence_item_for_operand_row(primary_slot, evidence_by_id)
             if not raw_value or not evidence_item:
                 aligned_results.append(row)
                 continue
@@ -2893,7 +2638,7 @@ class FinancialAgentCalculationMixin:
                     return False
                 if not _operand_rows_have_single_table_context(rows):
                     return False
-                if self._period_comparison_operand_rows_collapse_to_same_slot(rows):
+                if _period_comparison_operand_rows_collapse_to_same_slot(rows):
                     return False
                 for operand_row in rows:
                     source_ids = _clean_source_row_ids(
@@ -2959,7 +2704,7 @@ class FinancialAgentCalculationMixin:
                     source_task_id_for_operand=_source_task_id_for_operand,
                 )
                 changed = changed or filled_any
-                if operation_family == "ratio" and self._ratio_operand_rows_collapse_to_same_slot(updated_operands):
+                if operation_family == "ratio" and _ratio_operand_rows_collapse_to_same_slot(updated_operands):
                     return row
             if not changed:
                 return row
@@ -7958,31 +7703,23 @@ class FinancialAgentCalculationMixin:
         if not input_bindings:
             return []
 
+        producer_tasks = [
+            *list(state.get("calc_subtasks") or []),
+            *list(dict(state.get("semantic_plan") or {}).get("tasks") or []),
+        ]
         sibling_rows = {
             str(row.get("task_id") or "").strip(): dict(row)
             for row in (state.get("subtask_results") or [])
             if str(row.get("task_id") or "").strip()
         }
-        evidence_by_id = {
-            str(item.get("evidence_id") or "").strip(): dict(item)
+        dependency_evidence_items = [
+            item
             for row in sibling_rows.values()
             for item in list(row.get("runtime_evidence") or [])
-            if str(item.get("evidence_id") or "").strip()
-        }
-        evidence_by_id.update(
-            {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in list(state.get("evidence_items") or [])
-                if str(item.get("evidence_id") or "").strip()
-            }
-        )
-        evidence_by_id.update(
-            {
-                str(item.get("evidence_id") or "").strip(): dict(item)
-                for item in list(state.get("runtime_evidence") or [])
-                if str(item.get("evidence_id") or "").strip()
-            }
-        )
+        ]
+        dependency_evidence_items.extend(list(state.get("evidence_items") or []))
+        dependency_evidence_items.extend(list(state.get("runtime_evidence") or []))
+        evidence_by_id = _evidence_items_by_id(dependency_evidence_items)
         evidence_pool = list(evidence_by_id.values())
         dependency_rows: List[Dict[str, Any]] = []
         for index, binding in enumerate(input_bindings, start=1):
@@ -7999,7 +7736,7 @@ class FinancialAgentCalculationMixin:
             sibling_row = sibling_rows.get(preferred_task_id)
             if not sibling_row:
                 continue
-            sibling_evidence_by_id = self._evidence_items_by_id(
+            sibling_evidence_by_id = _evidence_items_by_id(
                 [dict(item) for item in (sibling_row.get("runtime_evidence") or []) if isinstance(item, dict)]
             )
             sibling_result = dict(sibling_row.get("calculation_result") or {})
@@ -8007,8 +7744,12 @@ class FinancialAgentCalculationMixin:
             source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
             source_slot = dict(answer_slots.get(source_slot_name) or {})
             source_slot_from_answer_slots = self._answer_slot_has_material(source_slot)
+            producer_scope = resolve_dependency_producer_scope(
+                binding,
+                producer_tasks=producer_tasks,
+            )
             if not self._answer_slot_has_material(source_slot):
-                producer_task = self._producer_task_for_dependency_binding(state, binding)
+                producer_task = dict(producer_scope.producer_task)
                 if not producer_task:
                     producer_task = {
                         "task_id": preferred_task_id,
@@ -8063,10 +7804,10 @@ class FinancialAgentCalculationMixin:
             if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row, state=state):
                 continue
             source_slot_from_answer_slots = True
-            current_evidence = self._evidence_item_for_operand_row(
+            current_evidence = _evidence_item_for_operand_row(
                 source_slot,
                 sibling_evidence_by_id,
-            ) or self._evidence_item_for_operand_row(source_slot, evidence_by_id)
+            ) or _evidence_item_for_operand_row(source_slot, evidence_by_id)
             current_metadata = dict((current_evidence or {}).get("metadata") or {})
             current_score = (
                 self._direct_structured_lookup_evidence_score(binding, current_evidence)
@@ -8077,15 +7818,15 @@ class FinancialAgentCalculationMixin:
             preferred_score = 0.0
 
             def _candidate_slot_scope_conflicts_current(slot: Dict[str, Any]) -> bool:
-                current_scope = self._known_consolidation_scope_value(
+                current_scope = known_consolidation_scope_value(
                     source_slot.get("consolidation_scope"),
                     current_metadata.get("consolidation_scope"),
                 )
                 if not current_scope:
                     return False
-                candidate_evidence = self._evidence_item_for_operand_row(slot, evidence_by_id)
+                candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
                 candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
-                candidate_scope = self._known_consolidation_scope_value(
+                candidate_scope = known_consolidation_scope_value(
                     slot.get("consolidation_scope"),
                     candidate_metadata.get("consolidation_scope"),
                 )
@@ -8103,7 +7844,7 @@ class FinancialAgentCalculationMixin:
                     candidate_slot = {}
                     candidate_score = 0.0
                 def _candidate_slot_has_sibling_input_context(slot: Dict[str, Any]) -> bool:
-                    candidate_evidence = self._evidence_item_for_operand_row(slot, evidence_by_id)
+                    candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
                     if not candidate_evidence:
                         return False
                     candidate_metadata = dict(candidate_evidence.get("metadata") or {})
@@ -8122,9 +7863,9 @@ class FinancialAgentCalculationMixin:
                     if not table_surface:
                         return False
                     table_surface_compact = re.sub(r"\s+", "", table_surface)
-                    binding_identity = self._dependency_binding_identity(binding)
+                    binding_identity = dependency_binding_identity(binding)
                     for other_binding in input_bindings:
-                        other_identity = self._dependency_binding_identity(other_binding)
+                        other_identity = dependency_binding_identity(other_binding)
                         if other_identity == binding_identity:
                             continue
                         sibling_surfaces = [
@@ -8177,19 +7918,19 @@ class FinancialAgentCalculationMixin:
                     and abs(float(source_raw_number) - float(preferred_raw_number)) <= 1e-6
                 )
                 candidate_value_compatible_with_task_output = bool(
-                    candidate_slot and not self._operand_row_values_materially_conflict(source_slot, candidate_slot)
+                    candidate_slot and not operand_row_values_materially_conflict(source_slot, candidate_slot)
                 )
 
                 def _sibling_candidate_can_repair_task_output(slot: Dict[str, Any]) -> bool:
                     if not slot or not candidate_has_sibling_context:
                         return False
-                    candidate_evidence = self._evidence_item_for_operand_row(slot, evidence_by_id)
+                    candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
                     current_evidence_id = _normalise_spaces(str((current_evidence or {}).get("evidence_id") or ""))
                     candidate_evidence_id = _normalise_spaces(str((candidate_evidence or {}).get("evidence_id") or ""))
                     if (
                         current_evidence_id
                         and current_evidence_id == candidate_evidence_id
-                        and self._operand_slot_has_evidence_surface_match(
+                        and _operand_slot_has_evidence_surface_match(
                             slot,
                             candidate_evidence,
                             binding,
@@ -8217,7 +7958,7 @@ class FinancialAgentCalculationMixin:
                                 and re.search(fiscal_period_presence_pattern, header_text)
                             )
                         )
-                        if has_period_table_surface and self._operand_slot_has_evidence_surface_match(
+                        if has_period_table_surface and _operand_slot_has_evidence_surface_match(
                             slot,
                             candidate_evidence,
                             binding,
@@ -8294,7 +8035,7 @@ class FinancialAgentCalculationMixin:
                     preferred_slot = {}
                     preferred_score = 0.0
             if preferred_slot and preferred_score > current_score:
-                preferred_evidence = self._evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+                preferred_evidence = _evidence_item_for_operand_row(preferred_slot, evidence_by_id)
                 preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
                 current_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
                 preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
@@ -8314,7 +8055,7 @@ class FinancialAgentCalculationMixin:
                     or preferred_unit != current_unit
                     or normalized_differs
                 ):
-                    preferred_surface_matches = self._operand_slot_has_evidence_surface_match(
+                    preferred_surface_matches = _operand_slot_has_evidence_surface_match(
                         preferred_slot,
                         preferred_evidence,
                         binding,
@@ -8399,10 +8140,10 @@ class FinancialAgentCalculationMixin:
                 matched_operand_candidate.get("source_row_ids"),
                 sibling_result.get("source_row_ids"),
             ])
-            selected_evidence = self._evidence_item_for_operand_row(
+            selected_evidence = _evidence_item_for_operand_row(
                 source_slot,
                 sibling_evidence_by_id,
-            ) or self._evidence_item_for_operand_row(source_slot, evidence_by_id)
+            ) or _evidence_item_for_operand_row(source_slot, evidence_by_id)
             selected_metadata = dict((selected_evidence or current_evidence or {}).get("metadata") or {})
             source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
             if not source_anchor and selected_evidence:
@@ -8447,7 +8188,7 @@ class FinancialAgentCalculationMixin:
                     str(
                         source_slot.get("consolidation_scope")
                         or matched_operand_candidate.get("consolidation_scope")
-                        or self._known_consolidation_scope_value(selected_metadata.get("consolidation_scope"))
+                        or known_consolidation_scope_value(selected_metadata.get("consolidation_scope"))
                         or selected_metadata.get("consolidation_scope")
                         or ""
                     )
@@ -8489,6 +8230,7 @@ class FinancialAgentCalculationMixin:
             structured_provenance = self._structured_graph_provenance_for_dependency_operand(
                 state,
                 binding=binding,
+                preferred_statement_types=producer_scope.preferred_statement_types,
                 row=dependency_row,
             )
             if structured_provenance:
@@ -8565,7 +8307,7 @@ class FinancialAgentCalculationMixin:
                     value = _normalise_spaces(str(structured_provenance.get(key) or ""))
                     if value:
                         dependency_row[key] = value
-            source_evidence = self._evidence_item_for_operand_row(dependency_row, evidence_by_id)
+            source_evidence = _evidence_item_for_operand_row(dependency_row, evidence_by_id)
             dependency_rows.append(self._coerce_operand_row_from_evidence(dependency_row, source_evidence))
         return dependency_rows
 
@@ -8574,6 +8316,7 @@ class FinancialAgentCalculationMixin:
         state: FinancialAgentState,
         *,
         binding: Dict[str, Any],
+        preferred_statement_types: Sequence[str],
         row: Dict[str, Any],
     ) -> Dict[str, Any]:
         graph = getattr(getattr(self, "vsm", None), "_structure_graph", {}) or {}
@@ -8591,7 +8334,7 @@ class FinancialAgentCalculationMixin:
         raw_value_variants = {item for item in raw_value_variants if item}
         report_scope = dict(state.get("report_scope") or {})
         desired_scope = _desired_consolidation_scope(str(state.get("query") or ""), report_scope)
-        preferred_statement_types = set(self._producer_statement_types_for_dependency_binding(state, binding))
+        preferred_statement_type_set = set(preferred_statement_types)
         scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
         note_markers = tuple(str(item).lower() for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
         best_payload: Dict[str, Any] = {}
@@ -8625,9 +8368,9 @@ class FinancialAgentCalculationMixin:
                 continue
             score = 10
             statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
-            if statement_type and statement_type in preferred_statement_types:
+            if statement_type and statement_type in preferred_statement_type_set:
                 score += 6
-            elif preferred_statement_types and statement_type == "notes":
+            elif preferred_statement_type_set and statement_type == "notes":
                 score -= 4
             if node_scope and node_scope == desired_scope:
                 score += 4
@@ -8650,17 +8393,6 @@ class FinancialAgentCalculationMixin:
             best_payload = payload
             best_score = score
         return best_payload
-
-    def _active_retry_strategy(self, state: FinancialAgentState) -> str:
-        for candidate in (
-            state.get("retry_strategy"),
-            dict(state.get("reconciliation_result") or {}).get("retry_strategy"),
-            dict(state.get("reflection_plan") or {}).get("retry_strategy"),
-        ):
-            cleaned = _normalise_spaces(str(candidate or "")).lower()
-            if cleaned:
-                return cleaned
-        return ""
 
     def _task_prefers_sibling_output_synthesis(self, state: FinancialAgentState) -> bool:
         active_subtask = dict(state.get("active_subtask") or {})
@@ -8696,227 +8428,9 @@ class FinancialAgentCalculationMixin:
         return bindings
 
     def _dependency_binding_resolution_state(self, state: FinancialAgentState) -> Dict[str, Any]:
-        dependency_bindings = self._task_output_input_bindings(state)
-        dependency_rows = self._build_dependency_operand_rows(state)
-        dependency_binding_keys = {
-            self._dependency_binding_identity(binding)
-            for binding in dependency_bindings
-            if any(self._dependency_binding_identity(binding))
-        }
-        resolved_dependency_keys = {
-            (
-                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
-                _normalise_spaces(str(row.get("matched_operand_role") or "")),
-            )
-            for row in dependency_rows
-        }
-        missing_dependency_bindings = [
-            dict(binding)
-            for binding in dependency_bindings
-            if self._dependency_binding_identity(binding) not in resolved_dependency_keys
-        ]
-        resolved_binding_count = max(len(dependency_bindings) - len(missing_dependency_bindings), 0)
-        return {
-            "bindings": dependency_bindings,
-            "rows": dependency_rows,
-            "binding_keys": dependency_binding_keys,
-            "resolved_keys": resolved_dependency_keys,
-            "missing_bindings": missing_dependency_bindings,
-            "binding_count": len(dependency_bindings),
-            "resolved_binding_count": resolved_binding_count,
-            "has_bindings": bool(dependency_bindings),
-            "has_rows": bool(dependency_rows),
-            "all_resolved": bool(dependency_bindings) and not missing_dependency_bindings and bool(dependency_rows),
-        }
-
-    def _direct_rows_resolved_dependency_keys(
-        self,
-        bindings: List[Dict[str, Any]],
-        operand_rows: List[Dict[str, Any]],
-    ) -> set[tuple[str, str]]:
-        resolved_keys: set[tuple[str, str]] = set()
-        for binding in bindings:
-            binding_key = self._dependency_binding_identity(binding)
-            if not any(binding_key):
-                continue
-            if any(_operand_row_matches_requirement(row, binding) for row in (operand_rows or [])):
-                resolved_keys.add(binding_key)
-        return resolved_keys
-
-    def _producer_task_for_dependency_binding(
-        self,
-        state: FinancialAgentState,
-        binding: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
-        if not preferred_task_id:
-            return {}
-        for task in list(state.get("calc_subtasks") or []):
-            task_row = dict(task or {})
-            if _normalise_spaces(str(task_row.get("task_id") or "")) == preferred_task_id:
-                return task_row
-        for task in list((dict(state.get("semantic_plan") or {}).get("tasks") or [])):
-            task_row = dict(task or {})
-            if _normalise_spaces(str(task_row.get("task_id") or "")) == preferred_task_id:
-                return task_row
-        return {}
-
-    def _producer_statement_types_for_dependency_binding(
-        self,
-        state: FinancialAgentState,
-        binding: Dict[str, Any],
-    ) -> List[str]:
-        producer_task = self._producer_task_for_dependency_binding(state, binding)
-        if not producer_task:
-            return []
-        preferred_types: List[str] = []
-        binding_role = _normalise_spaces(str(binding.get("role") or ""))
-        binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
-        for operand in list(producer_task.get("required_operands") or []):
-            operand_row = dict(operand or {})
-            operand_role = _normalise_spaces(str(operand_row.get("role") or ""))
-            operand_concept = _normalise_spaces(str(operand_row.get("concept") or ""))
-            if binding_role and operand_role and binding_role != operand_role:
-                continue
-            if binding_concept and operand_concept and binding_concept != operand_concept:
-                continue
-            preferred_types.extend(
-                _normalise_spaces(str(item))
-                for item in list(operand_row.get("preferred_statement_types") or [])
-                if _normalise_spaces(str(item))
-            )
-        preferred_types.extend(
-            _normalise_spaces(str(item))
-            for item in list(producer_task.get("preferred_statement_types") or [])
-            if _normalise_spaces(str(item))
-        )
-        return list(dict.fromkeys(preferred_types))
-
-    def _producer_sections_for_dependency_binding(
-        self,
-        state: FinancialAgentState,
-        binding: Dict[str, Any],
-    ) -> List[str]:
-        producer_task = self._producer_task_for_dependency_binding(state, binding)
-        if not producer_task:
-            return []
-        preferred_sections: List[str] = []
-        binding_role = _normalise_spaces(str(binding.get("role") or ""))
-        binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
-        for operand in list(producer_task.get("required_operands") or []):
-            operand_row = dict(operand or {})
-            operand_role = _normalise_spaces(str(operand_row.get("role") or ""))
-            operand_concept = _normalise_spaces(str(operand_row.get("concept") or ""))
-            if binding_role and operand_role and binding_role != operand_role:
-                continue
-            if binding_concept and operand_concept and binding_concept != operand_concept:
-                continue
-            preferred_sections.extend(
-                _normalise_spaces(str(item))
-                for item in list(operand_row.get("preferred_sections") or [])
-                if _normalise_spaces(str(item))
-            )
-        preferred_sections.extend(
-            _normalise_spaces(str(item))
-            for item in list(producer_task.get("preferred_sections") or [])
-            if _normalise_spaces(str(item))
-        )
-        return list(dict.fromkeys(preferred_sections))
-
-    def _dependency_row_violates_producer_scope(
-        self,
-        row: Dict[str, Any],
-        *,
-        preferred_statement_types: List[str],
-        preferred_sections: List[str],
-    ) -> tuple[bool, str]:
-        row_statement_type = _normalise_spaces(str(row.get("statement_type") or ""))
-        if (
-            preferred_statement_types
-            and row_statement_type
-            and row_statement_type not in preferred_statement_types
-        ):
-            return True, "statement_type"
-
-        row_scope_text = _normalise_spaces(
-            " ".join(
-                str(row.get(key) or "")
-                for key in ("source_anchor", "table_source_id", "source_context")
-            )
-        ).lower()
-        if not row_scope_text:
-            return False, ""
-        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-        note_markers = tuple(str(item).lower() for item in (scoring_policy.get("note_context_markers") or ()) if str(item))
-        row_is_note_scoped = any(marker in row_scope_text for marker in note_markers) or "note" in row_scope_text
-        producer_allows_notes = (
-            "notes" in preferred_statement_types
-            or any(
-                any(marker in _normalise_spaces(str(section)).lower() for marker in note_markers)
-                or "note" in _normalise_spaces(str(section)).lower()
-                for section in preferred_sections
-            )
-        )
-        if row_is_note_scoped and not producer_allows_notes:
-            return True, "section_scope"
-        return False, ""
-
-    def _filter_direct_rows_by_dependency_producer_scope(
-        self,
-        state: FinancialAgentState,
-        *,
-        bindings: List[Dict[str, Any]],
-        operand_rows: List[Dict[str, Any]],
-    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        if not bindings or not operand_rows:
-            return list(operand_rows or []), []
-        filtered_rows: List[Dict[str, Any]] = []
-        rejected_rows: List[Dict[str, Any]] = []
-        for row in list(operand_rows or []):
-            row_data = dict(row or {})
-            matching_binding = next(
-                (
-                    dict(binding)
-                    for binding in bindings
-                    if _operand_row_matches_requirement(row_data, dict(binding))
-                ),
-                {},
-            )
-            if not matching_binding:
-                filtered_rows.append(row_data)
-                continue
-            preferred_statement_types = self._producer_statement_types_for_dependency_binding(
-                state,
-                matching_binding,
-            )
-            preferred_sections = self._producer_sections_for_dependency_binding(
-                state,
-                matching_binding,
-            )
-            violates_scope, reject_reason = self._dependency_row_violates_producer_scope(
-                row_data,
-                preferred_statement_types=preferred_statement_types,
-                preferred_sections=preferred_sections,
-            )
-            if violates_scope:
-                rejected_rows.append(
-                    {
-                        "binding": matching_binding,
-                        "row": row_data,
-                        "reject_reason": reject_reason,
-                        "preferred_statement_types": preferred_statement_types,
-                        "preferred_sections": preferred_sections,
-                        "row_statement_type": _normalise_spaces(str(row_data.get("statement_type") or "")),
-                    }
-                )
-                continue
-            filtered_rows.append(row_data)
-        return filtered_rows, rejected_rows
-
-    def _dependency_binding_identity(self, binding: Dict[str, Any]) -> tuple[str, str]:
-        return (
-            _normalise_spaces(str(binding.get("label") or "")),
-            _normalise_spaces(str(binding.get("role") or "")),
+        return summarize_dependency_bindings(
+            self._task_output_input_bindings(state),
+            self._build_dependency_operand_rows(state),
         )
 
     def _material_gap_feedback_for_subtask_result(self, row: Dict[str, Any]) -> str:
@@ -9185,7 +8699,7 @@ class FinancialAgentCalculationMixin:
             slot = self._aggregate_row_primary_answer_slot(dict(row))
             if not slot:
                 continue
-            scope = self._known_consolidation_scope_value(
+            scope = known_consolidation_scope_value(
                 slot.get("consolidation_scope"),
                 row.get("consolidation_scope"),
             )
@@ -9631,7 +9145,7 @@ class FinancialAgentCalculationMixin:
             denominator_task_id,
             "denominator_1",
         )
-        if self._ratio_operand_rows_collapse_to_same_slot([numerator_slot, denominator_slot]):
+        if _ratio_operand_rows_collapse_to_same_slot([numerator_slot, denominator_slot]):
             return ""
         numerator_value = financial_answer_slots.coerce_slot_numeric(numerator_slot.get("normalized_value"))
         denominator_value = financial_answer_slots.coerce_slot_numeric(denominator_slot.get("normalized_value"))
@@ -9759,7 +9273,7 @@ class FinancialAgentCalculationMixin:
             if operation_family == "ratio" and source_slots and source_task_ids:
                 source_scope = next(
                     (
-                        self._known_consolidation_scope_value(source_slots.get(task_id, {}).get("consolidation_scope"))
+                        known_consolidation_scope_value(source_slots.get(task_id, {}).get("consolidation_scope"))
                         for task_id in source_task_ids
                         if source_slots.get(task_id)
                     ),
@@ -9767,7 +9281,7 @@ class FinancialAgentCalculationMixin:
                 )
                 if source_scope:
                     saw_source_scope = True
-                    operand_scope = self._known_consolidation_scope_value(operand.get("consolidation_scope"))
+                    operand_scope = known_consolidation_scope_value(operand.get("consolidation_scope"))
                     if operand_scope and operand_scope != source_scope:
                         return 2 if saw_source_slot else 1, 0
         return 2 if saw_source_slot else 1, 2 if saw_source_scope else 1
@@ -11653,29 +11167,6 @@ class FinancialAgentCalculationMixin:
         updated["period_source"] = "evidence_surface"
         return updated
 
-    def _evidence_item_for_operand_row(
-        self,
-        row: Dict[str, Any],
-        evidence_by_id: Dict[str, Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        candidate_ids = _clean_source_row_ids([
-            row.get("evidence_id"),
-            row.get("source_row_id"),
-            row.get("source_row_ids"),
-        ])
-        for candidate_id in [item for item in candidate_ids if item]:
-            evidence_item = evidence_by_id.get(candidate_id)
-            if evidence_item:
-                return evidence_item
-            evidence_item = evidence_by_id.get(f"recon::{candidate_id}")
-            if evidence_item:
-                return evidence_item
-            if candidate_id.startswith("recon::"):
-                evidence_item = evidence_by_id.get(candidate_id.removeprefix("recon::"))
-                if evidence_item:
-                    return evidence_item
-        return None
-
     def _coerce_operand_row_from_evidence(
         self,
         row: Dict[str, Any],
@@ -12782,7 +12273,7 @@ class FinancialAgentCalculationMixin:
         evidence_pool = [dict(item) for item in (evidence_items or []) if isinstance(item, dict)]
         if not evidence_pool:
             return self._align_ratio_operand_units_with_shared_table_context(ordered_operands)
-        evidence_by_id = self._evidence_items_by_id(evidence_pool)
+        evidence_by_id = _evidence_items_by_id(evidence_pool)
 
         def _row_as_operand(row: Dict[str, Any]) -> Dict[str, Any]:
             return {
@@ -12804,7 +12295,7 @@ class FinancialAgentCalculationMixin:
             ]
 
         def _candidate_has_other_operand_context(slot: Dict[str, Any], current_row: Dict[str, Any]) -> bool:
-            candidate_evidence = self._evidence_item_for_operand_row(slot, evidence_by_id)
+            candidate_evidence = _evidence_item_for_operand_row(slot, evidence_by_id)
             if not candidate_evidence:
                 return False
             metadata = dict(candidate_evidence.get("metadata") or {})
@@ -12838,7 +12329,7 @@ class FinancialAgentCalculationMixin:
             for other_row in ordered_operands:
                 if current_id and str(other_row.get("operand_id") or "") == current_id:
                     continue
-                scope = self._known_consolidation_scope_value(other_row.get("consolidation_scope"))
+                scope = known_consolidation_scope_value(other_row.get("consolidation_scope"))
                 if scope:
                     scopes.add(scope)
             return scopes
@@ -12872,13 +12363,13 @@ class FinancialAgentCalculationMixin:
             if candidate_identity_surface and not _operand_text_match(candidate_identity_surface, operand):
                 aligned.append(current_row)
                 continue
-            candidate_evidence = self._evidence_item_for_operand_row(candidate_slot, evidence_by_id)
+            candidate_evidence = _evidence_item_for_operand_row(candidate_slot, evidence_by_id)
             candidate_metadata = dict((candidate_evidence or {}).get("metadata") or {})
-            candidate_scope = self._known_consolidation_scope_value(
+            candidate_scope = known_consolidation_scope_value(
                 candidate_slot.get("consolidation_scope"),
                 candidate_metadata.get("consolidation_scope"),
             )
-            current_scope = self._known_consolidation_scope_value(current_row.get("consolidation_scope"))
+            current_scope = known_consolidation_scope_value(current_row.get("consolidation_scope"))
             peer_scopes = _peer_consolidation_scopes(current_row)
             if (
                 candidate_scope
@@ -12910,7 +12401,7 @@ class FinancialAgentCalculationMixin:
                     candidate_metadata.get("table_row_labels_text"),
                     candidate_metadata.get("table_value_labels_text"),
                 )
-                if not self._evidence_surface_contains_segment_label(segment_label, candidate_segment_surfaces):
+                if not _evidence_surface_contains_segment_label(segment_label, candidate_segment_surfaces):
                     aligned.append(current_row)
                     continue
             if not _candidate_has_other_operand_context(candidate_slot, current_row):
@@ -12959,487 +12450,6 @@ class FinancialAgentCalculationMixin:
             unit_aligned = self._align_ratio_operand_units_with_shared_table_context(aligned)
             return unit_aligned
         return self._align_ratio_operand_units_with_shared_table_context(ordered_operands)
-
-    def _operand_row_source_id_set(self, row: Dict[str, Any]) -> set[str]:
-        return {
-            source_id
-            for source_id in _clean_source_row_ids([
-                row.get("evidence_id"),
-                row.get("source_row_id"),
-                row.get("source_row_ids"),
-            ])
-            if source_id
-        }
-
-    def _operand_row_value_differs(self, left: Dict[str, Any], right: Dict[str, Any]) -> bool:
-        left_value = left.get("normalized_value")
-        right_value = right.get("normalized_value")
-        try:
-            if left_value is not None and right_value is not None:
-                return abs(float(left_value) - float(right_value)) > 1e-6
-        except (TypeError, ValueError):
-            pass
-        left_raw = _normalise_spaces(str(left.get("raw_value") or ""))
-        right_raw = _normalise_spaces(str(right.get("raw_value") or ""))
-        if left_raw and right_raw:
-            return left_raw != right_raw
-        return left_value != right_value
-
-    def _operand_row_values_materially_conflict(self, left: Dict[str, Any], right: Dict[str, Any]) -> bool:
-        left_value = left.get("normalized_value")
-        right_value = right.get("normalized_value")
-        try:
-            if left_value is not None and right_value is not None:
-                left_float = float(left_value)
-                right_float = float(right_value)
-                tolerance = max(max(abs(left_float), abs(right_float), 1.0) * 5e-4, 1e-6)
-                return abs(left_float - right_float) > tolerance
-        except (TypeError, ValueError):
-            pass
-        return self._operand_row_value_differs(left, right)
-
-    def _canonical_structured_reconciliation_id(self, value: Any) -> str:
-        source_id = _normalise_spaces(str(value or ""))
-        if not source_id.startswith("recon::"):
-            return source_id
-        stripped = source_id.removeprefix("recon::")
-        if stripped and not stripped.endswith("::raw_row") and any(
-            marker in stripped
-            for marker in ("::value:", "::rowrec:", "::colrec:")
-        ):
-            return stripped
-        return source_id
-
-    def _canonicalize_structured_operand_reconciliation_refs(
-        self,
-        row: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        updated = dict(row)
-        for key in ("evidence_id", "source_row_id"):
-            canonical = self._canonical_structured_reconciliation_id(updated.get(key))
-            if canonical:
-                updated[key] = canonical
-        source_row_ids = _clean_source_row_ids(updated.get("source_row_ids") or [])
-        canonical_source_ids = [
-            self._canonical_structured_reconciliation_id(source_id)
-            for source_id in source_row_ids
-        ]
-        canonical_source_ids = [source_id for source_id in canonical_source_ids if source_id]
-        if canonical_source_ids:
-            updated["source_row_ids"] = list(dict.fromkeys(canonical_source_ids))
-        return updated
-
-    def _operand_slot_has_evidence_surface_match(
-        self,
-        slot: Dict[str, Any],
-        evidence_item: Optional[Dict[str, Any]],
-        operand: Dict[str, Any],
-        *,
-        metric_label: str = "",
-    ) -> bool:
-        matched_line_label = _normalise_spaces(str(slot.get("_matched_line_label") or ""))
-        if matched_line_label:
-            operand_surfaces = [
-                _normalise_spaces(str(value or ""))
-                for value in (
-                    operand.get("label"),
-                    metric_label,
-                    *list(operand.get("aliases") or []),
-                )
-                if _normalise_spaces(str(value or ""))
-            ]
-            matched_compact = re.sub(r"\s+", "", matched_line_label)
-            if _operand_text_match(matched_line_label, operand) or any(
-                matched_line_label in surface
-                or (matched_compact and matched_compact in re.sub(r"\s+", "", surface))
-                for surface in operand_surfaces
-            ):
-                return True
-        if not evidence_item:
-            return False
-        metadata = dict(evidence_item.get("metadata") or {})
-        surface_parts: List[str] = [
-            str(evidence_item.get(key) or "")
-            for key in ("claim", "quote_span", "raw_row_text", "source_context")
-        ]
-        surface_parts.extend(
-            str(metadata.get(key) or "")
-            for key in (
-                "row_label",
-                "semantic_label",
-                "aggregate_label",
-                "table_value_labels_text",
-                "row_text",
-                "table_row_labels_text",
-            )
-        )
-        for key in ("semantic_aliases", "row_headers"):
-            surface_parts.extend(str(item or "") for item in (metadata.get(key) or []))
-        for cell in list(metadata.get("structured_cells") or []):
-            cell_data = dict(cell or {})
-            surface_parts.append(str(cell_data.get("aggregate_label") or ""))
-            surface_parts.extend(str(item or "") for item in (cell_data.get("column_headers") or []))
-        evidence_surface = _normalise_spaces(" ".join(part for part in surface_parts if str(part).strip()))
-        if not evidence_surface:
-            return False
-        return _operand_text_match(evidence_surface, operand) or _text_has_positive_surface(evidence_surface, operand)
-
-    def _task_output_operand_row_should_keep_value(
-        self,
-        row: Dict[str, Any],
-        replacement: Dict[str, Any],
-    ) -> bool:
-        if not row.get("dependency_resolved"):
-            return False
-        if not _normalise_spaces(str(row.get("source_task_id") or "")):
-            return False
-        if not self._operand_row_value_differs(row, replacement):
-            return False
-        if not self._operand_row_values_materially_conflict(row, replacement):
-            return False
-        repair_source = _normalise_spaces(str(row.get("unit_normalization_repair_source") or ""))
-        source_raw_unit = _normalise_spaces(str(row.get("source_raw_unit") or ""))
-        replacement_raw_unit = _normalise_spaces(str(replacement.get("raw_unit") or ""))
-        if repair_source == "alternate_table_krw_surface" and not source_raw_unit and replacement_raw_unit:
-            return False
-        row_source_ids = self._operand_row_source_id_set(row)
-        task_output_backed = any(source_id.startswith("task_output:") for source_id in row_source_ids)
-        row_anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
-        replacement_anchor = _normalise_spaces(str(replacement.get("source_anchor") or ""))
-        anchor_conflicts = bool(row_anchor and replacement_anchor and row_anchor != replacement_anchor)
-        row_scope = self._known_consolidation_scope_value(row.get("consolidation_scope"))
-        replacement_scope = self._known_consolidation_scope_value(replacement.get("consolidation_scope"))
-        scope_conflicts = bool(row_scope and replacement_scope and row_scope != replacement_scope)
-        if not (task_output_backed or anchor_conflicts or scope_conflicts):
-            return False
-        replacement_source_ids = self._operand_row_source_id_set(replacement)
-        binding_policy = dict(row.get("binding_policy") or {})
-        preferred_stages = {
-            _normalise_spaces(str(item))
-            for item in (binding_policy.get("prefer_aggregation_stages") or [])
-            if _normalise_spaces(str(item))
-        }
-        if preferred_stages:
-            replacement_stage = _normalise_spaces(str(replacement.get("aggregation_stage") or ""))
-            if replacement_stage not in preferred_stages:
-                return True
-        if row_source_ids.intersection(replacement_source_ids) and not (anchor_conflicts or scope_conflicts):
-            return False
-        return True
-
-    def _period_comparison_direct_rows_conflict_with_dependency_outputs(
-        self,
-        dependency_rows: List[Dict[str, Any]],
-        direct_rows: List[Dict[str, Any]],
-    ) -> bool:
-        if not dependency_rows or not direct_rows:
-            return False
-        period_roles = {"current_period", "prior_period", "minuend", "subtrahend"}
-
-        def _role(row: Dict[str, Any]) -> str:
-            return _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
-
-        direct_by_role: Dict[str, List[Dict[str, Any]]] = {}
-        context_period_roles: Dict[str, set[str]] = {}
-        for row in direct_rows:
-            role = _role(row)
-            if role in period_roles:
-                direct_by_role.setdefault(role, []).append(dict(row))
-                table_id = _normalise_spaces(str(row.get("table_source_id") or ""))
-                if table_id:
-                    context_period_roles.setdefault(table_id, set()).add(role)
-        if not direct_by_role:
-            return False
-
-        def _complete_period_context_can_override_task_output(
-            dependency_row: Dict[str, Any],
-            direct_row: Dict[str, Any],
-        ) -> bool:
-            dependency_source_ids = self._operand_row_source_id_set(dependency_row)
-            if not any(source_id.startswith("task_output:") for source_id in dependency_source_ids):
-                return False
-            direct_source_ids = self._operand_row_source_id_set(direct_row)
-            if not any(source_id and not source_id.startswith("task_output:") for source_id in direct_source_ids):
-                direct_source_id = _normalise_spaces(str(direct_row.get("source_row_id") or ""))
-                if not direct_source_id or direct_source_id.startswith("task_output:"):
-                    return False
-            dependency_unit = _normalise_spaces(str(dependency_row.get("normalized_unit") or "")).upper()
-            direct_unit = _normalise_spaces(str(direct_row.get("normalized_unit") or "")).upper()
-            if not dependency_unit or dependency_unit == "UNKNOWN" or dependency_unit != direct_unit:
-                return False
-            repair_source = _normalise_spaces(str(dependency_row.get("unit_normalization_repair_source") or ""))
-            if repair_source == "alternate_table_krw_surface":
-                return True
-            try:
-                dependency_value = abs(float(dependency_row.get("normalized_value")))
-                direct_value = abs(float(direct_row.get("normalized_value")))
-            except (TypeError, ValueError):
-                return False
-            if min(dependency_value, direct_value) <= 0:
-                return False
-            return max(dependency_value, direct_value) / min(dependency_value, direct_value) >= 100.0
-
-        for dependency_row in dependency_rows:
-            role = _role(dependency_row)
-            if role not in period_roles:
-                continue
-            for direct_row in direct_by_role.get(role, []):
-                table_id = _normalise_spaces(str(direct_row.get("table_source_id") or ""))
-                if (
-                    table_id
-                    and len(context_period_roles.get(table_id, set())) >= 2
-                    and _complete_period_context_can_override_task_output(dependency_row, direct_row)
-                ):
-                    continue
-                if self._task_output_operand_row_should_keep_value(dependency_row, direct_row):
-                    return True
-        return False
-
-    def _complete_ratio_context_can_override_task_output(
-        self,
-        row: Dict[str, Any],
-        replacement: Dict[str, Any],
-        *,
-        direct_has_coherent_context: bool,
-    ) -> bool:
-        if not direct_has_coherent_context:
-            return False
-        row_source_ids = self._operand_row_source_id_set(row)
-        if not (
-            row.get("dependency_resolved")
-            or _normalise_spaces(str(row.get("source_task_id") or ""))
-            or any(source_id.startswith("task_output:") for source_id in row_source_ids)
-        ):
-            return False
-        render_policy = dict(CALCULATION_RENDER_POLICY)
-        krw_unit = _normalise_spaces(str(render_policy.get("krw_normalized_unit") or "")).upper()
-        if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() != krw_unit:
-            return False
-        if _normalise_spaces(str(replacement.get("normalized_unit") or "")).upper() != krw_unit:
-            return False
-        row_table_id = _normalise_spaces(str(row.get("table_source_id") or ""))
-        replacement_table_id = _normalise_spaces(str(replacement.get("table_source_id") or ""))
-        if row_table_id and row_table_id == replacement_table_id:
-            row_source_ids = self._operand_row_source_id_set(row)
-            replacement_source_ids = self._operand_row_source_id_set(replacement)
-            replacement_has_direct_source = any(
-                source_id and not source_id.startswith("task_output:")
-                for source_id in replacement_source_ids
-            )
-            if replacement_has_direct_source and any(
-                source_id.startswith("task_output:") for source_id in row_source_ids
-            ):
-                return True
-        row_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
-        replacement_unit = _normalise_spaces(str(replacement.get("raw_unit") or ""))
-        if not row_unit or not replacement_unit or row_unit == replacement_unit:
-            return False
-        krw_unit_scales = {
-            _normalise_spaces(str(unit or "")): float(scale)
-            for unit, scale in dict(render_policy.get("krw_display_unit_scales") or {}).items()
-            if _normalise_spaces(str(unit or ""))
-        }
-        row_scale = krw_unit_scales.get(row_unit)
-        replacement_scale = krw_unit_scales.get(replacement_unit)
-        if not row_scale or not replacement_scale:
-            return False
-        scale_distortion = max(row_scale, replacement_scale) / min(row_scale, replacement_scale)
-        if scale_distortion < 100.0:
-            return False
-        row_raw = re.sub(r"[,\s()]", "", str(row.get("raw_value") or ""))
-        replacement_raw = re.sub(r"[,\s()]", "", str(replacement.get("raw_value") or ""))
-        if row_raw and replacement_raw and row_raw == replacement_raw:
-            return True
-        try:
-            row_value = abs(float(row.get("normalized_value")))
-            replacement_value = abs(float(replacement.get("normalized_value")))
-        except (TypeError, ValueError):
-            return False
-        if min(row_value, replacement_value) <= 0:
-            return False
-        value_distortion = max(row_value, replacement_value) / min(row_value, replacement_value)
-        return value_distortion >= scale_distortion * 0.95
-
-    def _align_dependency_rows_with_sibling_direct_context(
-        self,
-        dependency_rows: List[Dict[str, Any]],
-        direct_rows: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        if not dependency_rows or len(direct_rows) < 2:
-            return dependency_rows
-
-        def _row_binding_key(row: Dict[str, Any]) -> tuple[str, str]:
-            return (
-                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
-                _normalise_spaces(str(row.get("matched_operand_role") or "")),
-            )
-
-        def _context_key(row: Dict[str, Any]) -> str:
-            return _normalise_spaces(
-                str(row.get("table_source_id") or row.get("evidence_id") or row.get("source_row_id") or "")
-            )
-
-        context_roles: Dict[str, set[str]] = {}
-        for row in direct_rows:
-            key = _context_key(row)
-            role = _normalise_spaces(str(row.get("matched_operand_role") or ""))
-            if not key or not role:
-                continue
-            context_roles.setdefault(key, set()).add(role)
-
-        aligned: List[Dict[str, Any]] = []
-        changed = False
-        for dependency_row in dependency_rows:
-            dep_key = _row_binding_key(dependency_row)
-            if not any(dep_key):
-                aligned.append(dependency_row)
-                continue
-            candidates = [
-                dict(row)
-                for row in direct_rows
-                if _row_binding_key(row) == dep_key
-                and _context_key(row)
-                and len(context_roles.get(_context_key(row), set())) >= 2
-            ]
-            if not candidates:
-                aligned.append(dependency_row)
-                continue
-            candidate = candidates[0]
-            if not self._operand_row_value_differs(dependency_row, candidate):
-                aligned.append(dependency_row)
-                continue
-            direct_has_coherent_context = bool(len(context_roles.get(_context_key(candidate), set())) >= 2)
-            if (
-                self._task_output_operand_row_should_keep_value(dependency_row, candidate)
-                and not self._complete_ratio_context_can_override_task_output(
-                    dependency_row,
-                    candidate,
-                    direct_has_coherent_context=direct_has_coherent_context,
-                )
-            ):
-                aligned.append(
-                    {
-                        **dependency_row,
-                        "sibling_table_context_realignment_blocked": True,
-                        "sibling_table_context_realignment_blocked_reason": "task_output_value_provenance_mismatch",
-                    }
-                )
-                changed = True
-                continue
-            aligned.append(
-                {
-                    **dependency_row,
-                    "evidence_id": candidate.get("evidence_id") or dependency_row.get("evidence_id"),
-                    "source_row_id": candidate.get("source_row_id") or candidate.get("evidence_id") or dependency_row.get("source_row_id"),
-                    "source_row_ids": _clean_source_row_ids([
-                        candidate.get("source_row_id"),
-                        candidate.get("source_row_ids"),
-                    ]),
-                    "source_anchor": candidate.get("source_anchor") or dependency_row.get("source_anchor"),
-                    "label": candidate.get("label") or dependency_row.get("label"),
-                    "raw_value": candidate.get("raw_value"),
-                    "raw_unit": candidate.get("raw_unit"),
-                    "normalized_value": candidate.get("normalized_value"),
-                    "normalized_unit": candidate.get("normalized_unit"),
-                    "period": candidate.get("period") or dependency_row.get("period"),
-                    "statement_type": candidate.get("statement_type") or dependency_row.get("statement_type"),
-                    "consolidation_scope": candidate.get("consolidation_scope") or dependency_row.get("consolidation_scope"),
-                    "table_source_id": candidate.get("table_source_id") or dependency_row.get("table_source_id"),
-                    "sibling_table_context_realigned": True,
-                }
-            )
-            changed = True
-        return aligned if changed else dependency_rows
-
-    def _prefer_complete_ratio_direct_context_rows(
-        self,
-        *,
-        operand_rows: List[Dict[str, Any]],
-        direct_rows: List[Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        if not operand_rows or not direct_rows or not required_operands:
-            return operand_rows
-        if _missing_required_operands(required_operands, direct_rows):
-            return operand_rows
-
-        def _row_key(row: Dict[str, Any]) -> tuple[str, str]:
-            return (
-                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
-                _normalise_spaces(str(row.get("matched_operand_role") or "")),
-            )
-
-        direct_by_key = {
-            _row_key(row): dict(row)
-            for row in direct_rows
-            if all(_row_key(row))
-        }
-        if not direct_by_key:
-            return operand_rows
-
-        def _context_key(row: Dict[str, Any]) -> tuple[str, str]:
-            table_id = _normalise_spaces(str(row.get("table_source_id") or row.get("source_table_id") or ""))
-            if table_id:
-                return ("table", table_id)
-            anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
-            if anchor:
-                return ("anchor", anchor)
-            return ("", "")
-
-        direct_contexts = {
-            _context_key(row)
-            for row in direct_rows
-            if any(_context_key(row))
-        }
-        direct_has_coherent_context = len(direct_contexts) == 1
-
-        changed = False
-        preferred: List[Dict[str, Any]] = []
-        seen_keys: set[tuple[str, str]] = set()
-        for row in operand_rows:
-            row_key = _row_key(row)
-            replacement = direct_by_key.get(row_key)
-            if (
-                replacement
-                and self._task_output_operand_row_should_keep_value(row, replacement)
-                and not self._complete_ratio_context_can_override_task_output(
-                    row,
-                    replacement,
-                    direct_has_coherent_context=direct_has_coherent_context,
-                )
-            ):
-                preferred.append(
-                    {
-                        **row,
-                        "complete_ratio_direct_context_preference_blocked": True,
-                        "complete_ratio_direct_context_preference_blocked_reason": "task_output_value_provenance_mismatch",
-                    }
-                )
-                changed = True
-                if all(row_key):
-                    seen_keys.add(row_key)
-                continue
-            if replacement and (direct_has_coherent_context or bool(row.get("dependency_resolved"))):
-                preferred.append(replacement)
-                changed = True
-            else:
-                preferred.append(row)
-            if all(row_key):
-                seen_keys.add(row_key)
-
-        for row_key, replacement in direct_by_key.items():
-            if row_key in seen_keys:
-                continue
-            preferred.append(replacement)
-            changed = True
-
-        if not changed:
-            return operand_rows
-        return _merge_operand_rows(
-            preferred,
-            [],
-            required_operands=required_operands,
-        )
 
     def _build_complete_ratio_operands_from_coherent_context(
         self,
@@ -13505,9 +12515,9 @@ class FinancialAgentCalculationMixin:
                 direct_rows.append(best_row)
             if _missing_required_operands(required_operands, direct_rows):
                 return []
-            if self._ratio_operand_rows_collapse_to_same_slot(direct_rows):
+            if _ratio_operand_rows_collapse_to_same_slot(direct_rows):
                 return []
-            return _merge_operand_rows(
+            return merge_operand_rows(
                 direct_rows,
                 [],
                 required_operands=required_operands,
@@ -13527,7 +12537,7 @@ class FinancialAgentCalculationMixin:
                     require_direct_support=True,
                 )
             else:
-                rows = self._filter_operand_rows_by_required_surface_contract(
+                rows = _filter_operand_rows_by_required_surface_contract(
                     rows,
                     group_items,
                     required_operands,
@@ -13535,7 +12545,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(required_operands, rows):
                 continue
-            if self._ratio_operand_rows_collapse_to_same_slot(rows):
+            if _ratio_operand_rows_collapse_to_same_slot(rows):
                 continue
             unit_count = len(
                 {
@@ -13687,7 +12697,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(required_operands, rows):
                 continue
-            if self._period_comparison_operand_rows_collapse_to_same_slot(rows):
+            if _period_comparison_operand_rows_collapse_to_same_slot(rows):
                 continue
             surface = _group_surface(group_items)
             score = float(len(rows) * 100)
@@ -13898,36 +12908,6 @@ class FinancialAgentCalculationMixin:
             )
             changed = True
         return updated_results if changed else ordered_results
-
-    def _retrieval_context_docs(
-        self,
-        retrieved_docs: List[Any],
-        seed_retrieved_docs: List[Any],
-        *,
-        seed_limit: int,
-    ) -> List[Any]:
-        context_docs = list(retrieved_docs or [])
-        seen_doc_ids: set[str] = set()
-        for doc_score in context_docs:
-            doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
-            metadata = dict(getattr(doc, "metadata", {}) or {})
-            doc_id = _normalise_spaces(
-                str(metadata.get("chunk_uid") or metadata.get("chunk_id") or getattr(doc, "id", "") or "")
-            )
-            if doc_id:
-                seen_doc_ids.add(doc_id)
-        for doc_score in list(seed_retrieved_docs or [])[:seed_limit]:
-            doc = doc_score[0] if isinstance(doc_score, tuple) else doc_score
-            metadata = dict(getattr(doc, "metadata", {}) or {})
-            doc_id = _normalise_spaces(
-                str(metadata.get("chunk_uid") or metadata.get("chunk_id") or getattr(doc, "id", "") or "")
-            )
-            if doc_id and doc_id in seen_doc_ids:
-                continue
-            if doc_id:
-                seen_doc_ids.add(doc_id)
-            context_docs.append(doc_score)
-        return context_docs
 
     def _ratio_operand_context_evidence_from_docs(
         self,
@@ -14442,77 +13422,6 @@ class FinancialAgentCalculationMixin:
             return formatted_result
         return rendered_value
 
-    def _numeric_candidates_with_spans_from_surface(
-        self,
-        surface: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
-        text = str(surface or "")
-        if not text:
-            return []
-        render_policy = dict(CALCULATION_RENDER_POLICY)
-        unit_scale = {
-            str(unit): float(scale)
-            for unit, scale in dict(render_policy.get("krw_display_unit_scales") or {}).items()
-            if str(unit)
-        }
-        percent_units = [
-            str(unit)
-            for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())
-            if str(unit)
-        ]
-        unit_terms = sorted([*unit_scale.keys(), *percent_units], key=len, reverse=True)
-        unit_pattern = "|".join(re.escape(unit) for unit in unit_terms)
-        pattern = re.compile(
-            rf"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)(?:\s*(?P<unit>{unit_pattern}))?"
-            if unit_pattern
-            else r"(?P<value>\(?-?\d[\d,]*(?:\.\d+)?\)?)"
-        )
-        metadata = dict(metadata or {})
-        context_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
-        if context_unit not in unit_scale:
-            context_unit = next((unit for unit in unit_terms if unit in unit_scale and unit in text), "")
-        candidates: List[Dict[str, Any]] = []
-        for match in pattern.finditer(text):
-            raw_value = match.group("value")
-            parsed = _parse_number_text(raw_value)
-            if parsed is None:
-                continue
-            unit = _normalise_spaces(str(match.groupdict().get("unit") or ""))
-            digit_count = len(re.sub(r"\D", "", raw_value))
-            if not unit and digit_count == 4 and 1900 <= abs(parsed) <= 2100:
-                continue
-            normalized_value = parsed
-            normalized_unit = ""
-            display_step = 1.0
-            if unit in unit_scale:
-                normalized_value = parsed * unit_scale[unit]
-                normalized_unit = "KRW"
-                display_step = unit_scale[unit]
-            elif not unit and context_unit in unit_scale:
-                if digit_count < 4 and "," not in raw_value:
-                    continue
-                normalized_value = parsed * unit_scale[context_unit]
-                normalized_unit = "KRW"
-                unit = context_unit
-                display_step = unit_scale[context_unit]
-            elif unit in percent_units:
-                normalized_unit = "PERCENT"
-            candidates.append(
-                {
-                    "kind": "currency" if normalized_unit == "KRW" else "percent" if normalized_unit == "PERCENT" else "generic",
-                    "value": normalized_value,
-                    "normalized_value": normalized_value,
-                    "normalized_unit": normalized_unit,
-                    "value_text": raw_value,
-                    "unit": unit,
-                    "unit_text": unit,
-                    "display_step": display_step,
-                    "span": [match.start("value"), match.end("value")],
-                }
-            )
-        return candidates
-
     def _repair_collapsed_ratio_trace_from_evidence(
         self,
         state: FinancialAgentState,
@@ -14657,7 +13566,7 @@ class FinancialAgentCalculationMixin:
                     candidate
                     for candidate in [
                         *extract_numeric_surface_candidates(surface),
-                        *self._numeric_candidates_with_spans_from_surface(surface, metadata),
+                        *numeric_candidates_with_spans_from_surface(surface, metadata),
                     ]
                     if candidate.get("normalized_value") is not None or candidate.get("value") is not None
                 ]
@@ -14862,7 +13771,7 @@ class FinancialAgentCalculationMixin:
             ]
             if isinstance(item, dict)
         ]
-        context_docs = self._retrieval_context_docs(
+        context_docs = collect_retrieval_context_docs(
             list(state.get("retrieved_docs") or []),
             list(state.get("seed_retrieved_docs") or []),
             seed_limit=48,
@@ -15288,75 +14197,6 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
-    def _operand_row_groups_collapse_to_same_slot(self, role_groups: List[List[Dict[str, Any]]]) -> bool:
-        if not all(role_groups):
-            return False
-
-        def _row_has_material(row: Dict[str, Any]) -> bool:
-            return bool(
-                _normalise_spaces(
-                    str(row.get("raw_value") or row.get("normalized_value") or row.get("rendered_value") or "")
-                )
-            )
-
-        def _row_identity(row: Dict[str, Any]) -> tuple[str, str, str]:
-            source_ids = "|".join(
-                _clean_source_row_ids([row.get("evidence_id"), row.get("source_row_id"), row.get("source_row_ids")])
-            )
-            normalized_value = row.get("normalized_value")
-            try:
-                normalized_text = f"{float(normalized_value):.6f}" if normalized_value is not None else ""
-            except (TypeError, ValueError):
-                normalized_text = _normalise_spaces(str(normalized_value or ""))
-            raw_text = _normalise_spaces(str(row.get("raw_value") or row.get("rendered_value") or ""))
-            return source_ids, normalized_text, raw_text
-
-        left_identities = {_row_identity(row) for row in role_groups[0] if _row_has_material(row)}
-        right_identities = {_row_identity(row) for row in role_groups[1] if _row_has_material(row)}
-        if not left_identities or not right_identities:
-            return False
-        for source_ids, normalized_text, raw_text in left_identities:
-            if not source_ids:
-                continue
-            if (source_ids, normalized_text, raw_text) in right_identities:
-                return True
-            if any(
-                right_source_ids == source_ids
-                and bool(normalized_text or raw_text)
-                and (right_normalized == normalized_text or right_raw == raw_text)
-                for right_source_ids, right_normalized, right_raw in right_identities
-            ):
-                return True
-        return False
-
-    def _ratio_operand_rows_collapse_to_same_slot(self, rows: List[Dict[str, Any]]) -> bool:
-        return self._operand_row_groups_collapse_to_same_slot([
-            [
-                dict(row)
-                for row in rows or []
-                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")).startswith("numerator")
-            ],
-            [
-                dict(row)
-                for row in rows or []
-                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")).startswith("denominator")
-            ],
-        ])
-
-    def _period_comparison_operand_rows_collapse_to_same_slot(self, rows: List[Dict[str, Any]]) -> bool:
-        return self._operand_row_groups_collapse_to_same_slot([
-            [
-                dict(row)
-                for row in rows or []
-                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")) in {"current_period", "minuend"}
-            ],
-            [
-                dict(row)
-                for row in rows or []
-                if _normalise_spaces(str((row or {}).get("matched_operand_role") or "")) in {"prior_period", "subtrahend"}
-            ],
-        ])
-
     def _ratio_components_are_complete(self, calculation_result: Dict[str, Any]) -> bool:
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         components_by_group = dict(answer_slots.get("components_by_group") or {})
@@ -15632,310 +14472,6 @@ class FinancialAgentCalculationMixin:
         )
         return bool(query_text and markers and any(marker in query_text for marker in markers))
 
-    def _llm_lookup_operand_has_direct_support(
-        self,
-        row: Dict[str, Any],
-        evidence_item: Optional[Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-    ) -> bool:
-        """Reject lookup operands that are inferred from aggregate prose, not directly stated."""
-        if not required_operands:
-            return True
-
-        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
-        if not raw_value:
-            return False
-
-        matching_operand = next(
-            (
-                operand
-                for operand in required_operands
-                if _operand_row_matches_requirement(row, operand)
-            ),
-            None,
-        )
-        if matching_operand is None:
-            return False
-
-        binding_policy = dict(matching_operand.get("binding_policy") or {})
-        requires_surface_contract = bool(
-            binding_policy.get("require_surface_contract_for_direct_match")
-            or binding_policy.get("require_surface_contract_for_direct_lookup")
-        )
-        if not evidence_item:
-            return False if requires_surface_contract else bool(str(row.get("source_anchor") or "").strip())
-
-        support_raw_value = raw_value
-        unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
-        inline_unit_match = re.fullmatch(
-            str(unit_policy.get("inline_value_unit_pattern") or ""),
-            raw_value,
-        )
-        if inline_unit_match:
-            support_raw_value = _normalise_spaces(str(inline_unit_match.group("value") or raw_value))
-        raw_compact = re.sub(r"[\s,]", "", support_raw_value)
-        if not raw_compact:
-            return False
-
-        def _text_supports_operand(text: str) -> bool:
-            evidence_text = _normalise_spaces(text)
-            if not evidence_text:
-                return False
-            surface_operand = matching_operand
-            positive_surface_match = _text_has_positive_surface(evidence_text, surface_operand)
-            if requires_surface_contract and not positive_surface_match:
-                return False
-            if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
-                periodless_label = _normalise_spaces(
-                    re.sub(
-                        rf"^{KOREAN_PERIOD_PREFIX_RE_FRAGMENT}\s+",
-                        "",
-                        str(matching_operand.get("label") or ""),
-                    )
-                )
-                if periodless_label and periodless_label != str(matching_operand.get("label") or ""):
-                    surface_operand = dict(matching_operand)
-                    surface_operand["label"] = periodless_label
-                    positive_surface_match = _text_has_positive_surface(evidence_text, surface_operand)
-            if requires_surface_contract and not positive_surface_match:
-                return False
-            if not (positive_surface_match or _operand_text_match(evidence_text, surface_operand)):
-                return False
-            if _text_has_negative_surface(evidence_text, surface_operand):
-                return False
-            for match in re.finditer(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", evidence_text):
-                if re.sub(r"[\s,]", "", match.group(0)) == raw_compact:
-                    return True
-            return False
-
-        direct_text = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for value in (
-                    evidence_item.get("claim"),
-                    evidence_item.get("quote_span"),
-                    evidence_item.get("raw_row_text"),
-                )
-            )
-        )
-        if direct_text:
-            return _text_supports_operand(direct_text)
-
-        source_context = _normalise_spaces(str(evidence_item.get("source_context") or ""))
-        if source_context:
-            if _text_supports_operand(source_context):
-                return True
-        return self._operand_row_has_direct_evidence_surface(row, evidence_item, matching_operand)
-
-    def _operand_row_has_direct_evidence_surface(
-        self,
-        row: Dict[str, Any],
-        evidence_item: Optional[Dict[str, Any]],
-        operand: Dict[str, Any],
-    ) -> bool:
-        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
-        if not raw_value or not evidence_item:
-            return False
-        raw_compact = re.sub(r"[\s,()]", "", raw_value)
-        if not raw_compact:
-            return False
-
-        metadata = dict(evidence_item.get("metadata") or {})
-        surfaces: List[str] = []
-        surfaces.extend(
-            str(evidence_item.get(key) or "")
-            for key in ("claim", "quote_span", "raw_row_text", "source_context")
-        )
-        surfaces.extend(
-            str(metadata.get(key) or "")
-            for key in (
-                "row_text",
-                "table_value_labels_text",
-                "table_row_labels_text",
-                "semantic_label",
-                "row_label",
-            )
-        )
-
-        def _append_record_surfaces(records: Any) -> None:
-            for record in records if isinstance(records, list) else []:
-                if not isinstance(record, dict):
-                    continue
-                label_parts = [
-                    str(record.get("semantic_label") or ""),
-                    str(record.get("row_label") or ""),
-                    " ".join(str(item) for item in (record.get("row_headers") or [])),
-                    " ".join(str(item) for item in (record.get("semantic_aliases") or [])),
-                ]
-                for cell in list(record.get("cells") or []):
-                    if not isinstance(cell, dict):
-                        continue
-                    surfaces.append(
-                        _normalise_spaces(
-                            " ".join(
-                                [
-                                    *label_parts,
-                                    " ".join(str(item) for item in (cell.get("column_headers") or [])),
-                                    str(cell.get("value_text") or ""),
-                                    str(cell.get("unit_hint") or ""),
-                                ]
-                            )
-                        )
-                    )
-                value_text = str(record.get("value_text") or "")
-                if value_text:
-                    surfaces.append(_normalise_spaces(" ".join([*label_parts, value_text, str(record.get("unit_hint") or "")])))
-
-        for key in ("table_row_records_json", "table_value_records_json"):
-            payload = str(metadata.get(key) or "").strip()
-            if not payload:
-                continue
-            try:
-                records = json.loads(payload)
-            except json.JSONDecodeError:
-                continue
-            _append_record_surfaces(records)
-
-        table_object_payload = str(metadata.get("table_object_json") or "").strip()
-        if table_object_payload:
-            try:
-                table_object = json.loads(table_object_payload)
-            except json.JSONDecodeError:
-                table_object = {}
-            if isinstance(table_object, dict):
-                _append_record_surfaces(table_object.get("rows") or [])
-                _append_record_surfaces(table_object.get("values") or [])
-
-        def _surface_supports_operand_value(surface: str) -> bool:
-            normalized = _normalise_spaces(surface)
-            if not normalized:
-                return False
-            lines = [normalized, *[_normalise_spaces(line) for line in normalized.splitlines()]]
-            for line in lines:
-                if not line:
-                    continue
-                if raw_compact not in re.sub(r"[\s,()]", "", line):
-                    continue
-                if _text_has_negative_surface(line, operand):
-                    continue
-                if _text_has_positive_surface(line, operand) or _operand_text_match(line, operand):
-                    return True
-            return False
-
-        return any(_surface_supports_operand_value(surface) for surface in surfaces if surface)
-
-    def _evidence_surface_contains_segment_label(
-        self,
-        segment_label: str,
-        surfaces: Sequence[Any],
-    ) -> bool:
-        segment_variants = [
-            _normalise_spaces(re.sub(r"^\W+|\W+$", " ", variant))
-            for variant in _surface_match_variants(segment_label)
-        ]
-        segment_variants = list(dict.fromkeys(variant for variant in segment_variants if variant))
-        if not segment_variants:
-            return True
-
-        affinity_policy = dict(STRUCTURED_CELL_AFFINITY_POLICY)
-        scope_terms = [
-            _normalise_spaces(str(term))
-            for term in (affinity_policy.get("entity_surface_drop_terms") or ())
-            if _normalise_spaces(str(term))
-        ]
-        for surface_value in surfaces:
-            surface = _normalise_spaces(str(surface_value or ""))
-            if not surface:
-                continue
-            for segment in segment_variants:
-                escaped_segment = re.escape(segment)
-                if re.search(rf"(?<!\w){escaped_segment}(?!\w)", surface):
-                    return True
-                for scope_term in scope_terms:
-                    escaped_scope = re.escape(scope_term)
-                    if re.search(rf"(?<!\w){escaped_segment}\s*{escaped_scope}(?!\w)", surface):
-                        return True
-        return False
-
-    def _operand_row_satisfies_required_surface_contract(
-        self,
-        row: Dict[str, Any],
-        evidence_by_id: Dict[str, Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-        *,
-        require_direct_support: bool = False,
-    ) -> bool:
-        matching_operand = next(
-            (
-                operand
-                for operand in required_operands
-                if _operand_row_matches_requirement(row, operand)
-            ),
-            None,
-        )
-        if matching_operand is None:
-            return False
-        evidence_item = self._evidence_item_for_operand_row(row, evidence_by_id)
-        segment_label = _normalise_spaces(
-            str(
-                _operand_segment_label(matching_operand)
-                or dict(row.get("binding_policy") or {}).get("segment_label")
-                or ""
-            )
-        )
-        segment_label = _normalise_spaces(re.sub(r"^\W+|\W+$", " ", segment_label))
-        if segment_label and evidence_item:
-            metadata = dict(evidence_item.get("metadata") or {})
-            segment_surfaces = (
-                evidence_item.get("claim"),
-                evidence_item.get("quote_span"),
-                evidence_item.get("raw_row_text"),
-                evidence_item.get("source_context"),
-                metadata.get("semantic_label"),
-                metadata.get("row_label"),
-                metadata.get("aggregate_label"),
-                metadata.get("table_header_context"),
-                metadata.get("table_row_labels_text"),
-                metadata.get("table_value_labels_text"),
-            )
-            if not self._evidence_surface_contains_segment_label(segment_label, segment_surfaces):
-                return False
-        binding_policy = dict(matching_operand.get("binding_policy") or {})
-        requires_surface_contract = bool(
-            binding_policy.get("require_surface_contract_for_direct_match")
-            or binding_policy.get("require_surface_contract_for_direct_lookup")
-        )
-        if not requires_surface_contract and not require_direct_support:
-            return True
-        if requires_surface_contract:
-            return self._llm_lookup_operand_has_direct_support(row, evidence_item, [matching_operand])
-        if not evidence_item:
-            return True
-        return self._operand_row_has_direct_evidence_surface(row, evidence_item, matching_operand)
-
-    def _filter_operand_rows_by_required_surface_contract(
-        self,
-        rows: List[Dict[str, Any]],
-        evidence_items: List[Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-        *,
-        require_direct_support: bool = False,
-    ) -> List[Dict[str, Any]]:
-        if not rows or not required_operands:
-            return rows
-        evidence_by_id = self._evidence_items_by_id(evidence_items)
-        return [
-            row
-            for row in rows
-            if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-            and self._operand_row_satisfies_required_surface_contract(
-                row,
-                evidence_by_id,
-                required_operands,
-                require_direct_support=require_direct_support,
-            )
-        ]
-
     def _required_operand_rows_from_candidates(
         self,
         candidate_items: List[Dict[str, Any]],
@@ -15946,7 +14482,7 @@ class FinancialAgentCalculationMixin:
         report_scope: Dict[str, Any],
         require_direct_support: bool = False,
     ) -> List[Dict[str, Any]]:
-        return self._filter_operand_rows_by_required_surface_contract(
+        return _filter_operand_rows_by_required_surface_contract(
             self._build_required_operands_from_candidates(
                 candidate_items,
                 required_operands=required_operands,
@@ -15984,116 +14520,12 @@ class FinancialAgentCalculationMixin:
         if not fallback_rows:
             return operand_rows, missing_required
         logger.info("[calc_operands] %s operand fallback rows=%s", fallback_label, len(fallback_rows))
-        operand_rows = _merge_operand_rows(
+        operand_rows = merge_operand_rows(
             operand_rows,
             fallback_rows,
             required_operands=required_operands,
         )
         return operand_rows, _missing_required_operands(required_operands, operand_rows) if required_operands else []
-
-    def _lookup_task_requests_context_dependent_scope(
-        self,
-        state: FinancialAgentState,
-        required_operands: List[Dict[str, Any]],
-    ) -> bool:
-        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-        markers = tuple(
-            _normalise_spaces(str(item)).lower()
-            for item in (scoring_policy.get("context_dependent_lookup_scope_markers") or ())
-            if _normalise_spaces(str(item))
-        )
-        if not markers:
-            return False
-        active_subtask = dict(state.get("active_subtask") or {})
-        text_parts: List[str] = [
-            str(state.get("query") or ""),
-            str(active_subtask.get("query") or ""),
-            str(active_subtask.get("metric_label") or ""),
-        ]
-        for operand in required_operands:
-            operand_data = dict(operand or {})
-            binding_policy = dict(operand_data.get("binding_policy") or {})
-            constraints = dict(operand_data.get("constraints") or {})
-            text_parts.extend(
-                str(value or "")
-                for value in (
-                    operand_data.get("label"),
-                    operand_data.get("concept"),
-                    binding_policy.get("segment_label"),
-                    binding_policy.get("entity_label"),
-                    constraints.get("segment_scope"),
-                )
-            )
-            text_parts.extend(str(alias or "") for alias in (operand_data.get("aliases") or []))
-        task_text = _normalise_spaces(" ".join(text_parts)).lower()
-        return any(marker in task_text for marker in markers)
-
-    def _lookup_direct_row_is_ambiguous_context_table(
-        self,
-        row: Dict[str, Any],
-        evidence_item: Optional[Dict[str, Any]],
-        *,
-        state: FinancialAgentState,
-        required_operands: List[Dict[str, Any]],
-    ) -> bool:
-        if self._lookup_task_requests_context_dependent_scope(state, required_operands):
-            return False
-        if not evidence_item:
-            return False
-        metadata = dict(evidence_item.get("metadata") or {})
-        scoring_policy = dict(OPERAND_CANDIDATE_SCORING_POLICY)
-        context_table_views = {
-            _normalise_spaces(str(item)).lower()
-            for item in (scoring_policy.get("context_dependent_table_views") or ())
-            if _normalise_spaces(str(item))
-        }
-        table_view = _normalise_spaces(str(metadata.get("table_view") or "")).lower()
-        if context_table_views and table_view not in context_table_views:
-            return False
-        try:
-            min_cell_count = int(scoring_policy.get("ambiguous_lookup_min_structured_cells") or 4)
-        except (TypeError, ValueError):
-            min_cell_count = 4
-        try:
-            min_header_count = int(scoring_policy.get("ambiguous_lookup_min_distinct_column_headers") or 3)
-        except (TypeError, ValueError):
-            min_header_count = 3
-        structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
-        if len(structured_cells) < min_cell_count:
-            return False
-        scope_markers = tuple(
-            _normalise_spaces(str(item)).lower()
-            for item in (scoring_policy.get("context_dependent_lookup_scope_markers") or ())
-            if _normalise_spaces(str(item))
-        )
-        distinct_context_headers: set[str] = set()
-        for cell in structured_cells:
-            headers = [
-                _normalise_spaces(str(header)).lower()
-                for header in (cell.get("column_headers") or [])
-                if _normalise_spaces(str(header))
-            ]
-            header_text = " ".join(headers)
-            if not header_text:
-                continue
-            if scope_markers and not any(marker in header_text for marker in scope_markers):
-                continue
-            distinct_context_headers.add(header_text)
-        if len(distinct_context_headers) >= min_header_count:
-            return True
-        raw_surface = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for value in (
-                    row.get("source_context"),
-                    evidence_item.get("source_context"),
-                    evidence_item.get("claim"),
-                    evidence_item.get("quote_span"),
-                    metadata.get("table_header_context"),
-                )
-            )
-        ).lower()
-        return bool(scope_markers and any(marker in raw_surface for marker in scope_markers))
 
     def _build_deterministic_ontology_plan(
         self,
@@ -16518,29 +14950,29 @@ class FinancialAgentCalculationMixin:
                     len(evidence_items),
                 )
         if direct_structured_rows:
-            evidence_by_id = self._evidence_items_by_id(evidence_items)
+            evidence_by_id = _evidence_items_by_id(evidence_items)
             direct_structured_rows = [
                 self._coerce_operand_row_from_evidence(
                     row,
-                    self._evidence_item_for_operand_row(row, evidence_by_id),
+                    _evidence_item_for_operand_row(row, evidence_by_id),
                 )
                 for row in direct_structured_rows
             ]
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
-                if not _operand_row_conflicts_requested_scope(row, desired_consolidation_scope)
+                if not operand_row_conflicts_requested_scope(row, desired_consolidation_scope)
             ]
         direct_target_evidence_pool = [
             dict(item)
             for item in list(evidence_items) + [dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict)]
-            if isinstance(item, dict) and not _evidence_item_conflicts_requested_scope(
+            if isinstance(item, dict) and not evidence_item_conflicts_requested_scope(
                 dict(item),
                 desired_consolidation_scope,
             )
         ]
         if retrieved_docs or seed_retrieved_docs:
-            target_context_docs = self._retrieval_context_docs(
+            target_context_docs = collect_retrieval_context_docs(
                 retrieved_docs,
                 seed_retrieved_docs,
                 seed_limit=48,
@@ -16548,7 +14980,7 @@ class FinancialAgentCalculationMixin:
             direct_target_evidence_pool.extend(
                 item
                 for item in self._ratio_operand_context_evidence_from_docs(target_context_docs, max_docs=48)
-                if not _evidence_item_conflicts_requested_scope(item, desired_consolidation_scope)
+                if not evidence_item_conflicts_requested_scope(item, desired_consolidation_scope)
             )
         target_metric_row, target_metric_operand = self._direct_target_metric_operand_from_evidence(
             {
@@ -16558,12 +14990,12 @@ class FinancialAgentCalculationMixin:
             direct_target_evidence_pool,
         )
         if target_metric_row:
-            target_evidence_by_id = self._evidence_items_by_id(direct_target_evidence_pool)
+            target_evidence_by_id = _evidence_items_by_id(direct_target_evidence_pool)
             target_metric_row = self._coerce_operand_row_from_evidence(
                 target_metric_row,
-                self._evidence_item_for_operand_row(target_metric_row, target_evidence_by_id),
+                _evidence_item_for_operand_row(target_metric_row, target_evidence_by_id),
             )
-        if target_metric_row and not _operand_row_conflicts_requested_scope(
+        if target_metric_row and not operand_row_conflicts_requested_scope(
             target_metric_row,
             desired_consolidation_scope,
         ) and not self._direct_target_metric_row_conflicts_existing_units(
@@ -16599,12 +15031,12 @@ class FinancialAgentCalculationMixin:
                 "direct_target_metric_lookup_preferred": True,
             }
         if direct_structured_rows and required_operands:
-            evidence_by_id = self._evidence_items_by_id(evidence_items)
+            evidence_by_id = _evidence_items_by_id(evidence_items)
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
                 if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                and self._operand_row_satisfies_required_surface_contract(
+                and _operand_row_satisfies_required_surface_contract(
                     row,
                     evidence_by_id,
                     required_operands,
@@ -16614,32 +15046,34 @@ class FinancialAgentCalculationMixin:
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
-                if not self._lookup_direct_row_is_ambiguous_context_table(
+                if not direct_lookup_row_is_ambiguous_context_table(
                     row,
-                    self._evidence_item_for_operand_row(row, evidence_by_id),
-                    state=state,
+                    _evidence_item_for_operand_row(row, evidence_by_id),
+                    query=str(state.get("query") or ""),
+                    active_subtask=dict(state.get("active_subtask") or {}),
                     required_operands=required_operands,
                 )
             ]
         if direct_structured_rows and operation_family in {"lookup", "single_value"}:
-            evidence_by_id = self._evidence_items_by_id(evidence_items)
+            evidence_by_id = _evidence_items_by_id(evidence_items)
             if required_operands:
                 direct_structured_rows = [
                     row
                     for row in direct_structured_rows
-                    if self._llm_lookup_operand_has_direct_support(
+                    if _llm_lookup_operand_has_direct_support(
                         row,
-                        self._evidence_item_for_operand_row(row, evidence_by_id),
+                        _evidence_item_for_operand_row(row, evidence_by_id),
                         required_operands,
                     )
                 ]
             direct_structured_rows = [
                 row
                 for row in direct_structured_rows
-                if not self._lookup_direct_row_is_ambiguous_context_table(
+                if not direct_lookup_row_is_ambiguous_context_table(
                     row,
-                    self._evidence_item_for_operand_row(row, evidence_by_id),
-                    state=state,
+                    _evidence_item_for_operand_row(row, evidence_by_id),
+                    query=str(state.get("query") or ""),
+                    active_subtask=dict(state.get("active_subtask") or {}),
                     required_operands=required_operands,
                 )
             ]
@@ -16665,6 +15099,10 @@ class FinancialAgentCalculationMixin:
         dependency_resolved_keys = set(dependency_state.get("resolved_keys") or set())
         missing_dependency_bindings = list(dependency_state.get("missing_bindings") or [])
         rejected_dependency_scope_rows: List[Dict[str, Any]] = []
+        producer_tasks = [
+            *list(state.get("calc_subtasks") or []),
+            *list(dict(state.get("semantic_plan") or {}).get("tasks") or []),
+        ]
         retry_strategy = self._active_retry_strategy(state)
         synthesis_only_retry = (
             retry_strategy == "synthesize_from_task_outputs"
@@ -16687,8 +15125,8 @@ class FinancialAgentCalculationMixin:
         direct_rows_have_coherent_context = bool(
             direct_rows_cover_required_operands
             and _operand_rows_have_single_table_context(direct_structured_rows)
-            and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
-            and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
+            and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+            and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
 
         ratio_direct_context_should_override_dependency = False
@@ -16696,7 +15134,7 @@ class FinancialAgentCalculationMixin:
         if operation_family in {"difference", "growth_rate"} and required_operands:
             period_context_evidence = list(evidence_items)
             if retrieved_docs or seed_retrieved_docs:
-                period_context_docs = self._retrieval_context_docs(
+                period_context_docs = collect_retrieval_context_docs(
                     retrieved_docs,
                     seed_retrieved_docs,
                     seed_limit=48,
@@ -16704,7 +15142,7 @@ class FinancialAgentCalculationMixin:
                 period_context_evidence.extend(
                     item
                     for item in self._ratio_operand_context_evidence_from_docs(period_context_docs, max_docs=64)
-                    if not _evidence_item_conflicts_requested_scope(item, desired_consolidation_scope)
+                    if not evidence_item_conflicts_requested_scope(item, desired_consolidation_scope)
                 )
             period_context_rows = self._build_period_comparison_operands_from_table_label_context(
                 period_context_evidence,
@@ -16713,7 +15151,7 @@ class FinancialAgentCalculationMixin:
                 operation_family=operation_family,
             )
             if period_context_rows:
-                direct_structured_rows = _merge_operand_rows(
+                direct_structured_rows = merge_operand_rows(
                     period_context_rows,
                     direct_structured_rows,
                     required_operands=required_operands,
@@ -16725,8 +15163,8 @@ class FinancialAgentCalculationMixin:
                 direct_rows_have_coherent_context = bool(
                     direct_rows_cover_required_operands
                     and _operand_rows_have_single_table_context(direct_structured_rows)
-                    and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
-                    and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                    and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                    and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
                 )
                 used_period_evidence_ids = {
                     str(row.get("evidence_id") or "")
@@ -16749,7 +15187,7 @@ class FinancialAgentCalculationMixin:
             (direct_rows_cover_required_operands and not direct_rows_have_coherent_context)
             or dependency_rows_cover_required_operands
         ):
-            ratio_context_docs = self._retrieval_context_docs(
+            ratio_context_docs = collect_retrieval_context_docs(
                 retrieved_docs,
                 seed_retrieved_docs,
                 seed_limit=32,
@@ -16767,7 +15205,7 @@ class FinancialAgentCalculationMixin:
             )
             if coherent_ratio_rows:
                 retrieved_ratio_context_recovered = True
-                direct_structured_rows = _merge_operand_rows(
+                direct_structured_rows = merge_operand_rows(
                     coherent_ratio_rows,
                     [],
                     required_operands=required_operands,
@@ -16796,13 +15234,13 @@ class FinancialAgentCalculationMixin:
                 direct_rows_have_coherent_context = bool(
                     direct_rows_cover_required_operands
                     and _operand_rows_have_single_table_context(direct_structured_rows)
-                    and not self._ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
-                    and not self._period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                    and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
+                    and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
                 )
                 direct_dependency_conflicts = _operand_rows_conflict_by_required_role(
                     dependency_rows,
                     direct_structured_rows,
-                    operand_row_value_differs=self._operand_row_value_differs,
+                    operand_row_value_differs=operand_row_values_differ,
                 )
                 dependency_display_units = _operand_row_display_unit_set(dependency_rows)
                 direct_display_units = _operand_row_display_unit_set(direct_structured_rows)
@@ -16823,81 +15261,47 @@ class FinancialAgentCalculationMixin:
                     missing_dependency_bindings = []
                     dependency_resolved_keys = set()
                     dependency_rows_cover_required_operands = False
-        direct_period_context_conflicts_with_dependency = bool(
-            operation_family in {"difference", "growth_rate"}
-            and dependency_rows_cover_required_operands
-            and direct_rows_cover_required_operands
-            and direct_rows_have_coherent_context
-            and not reconciliation_evidence
-            and self._period_comparison_direct_rows_conflict_with_dependency_outputs(
-                dependency_rows,
-                direct_structured_rows,
-            )
+        source_selection = select_direct_dependency_operand_rows(
+            DirectDependencySelectionInput(
+                operation_family=operation_family,
+                required_operands=required_operands,
+                direct_rows=direct_structured_rows,
+                dependency_rows=dependency_rows,
+                desired_consolidation_scope=desired_consolidation_scope,
+                reconciliation_evidence_present=bool(reconciliation_evidence),
+                direct_rows_cover_required_operands=direct_rows_cover_required_operands,
+                dependency_rows_cover_required_operands=dependency_rows_cover_required_operands,
+                direct_rows_have_coherent_context=direct_rows_have_coherent_context,
+                retrieved_ratio_context_recovered=retrieved_ratio_context_recovered,
+                ratio_direct_context_should_override_dependency=(
+                    ratio_direct_context_should_override_dependency
+                ),
+                required_prefers_aggregate_stage=required_prefers_aggregate_stage,
+            ),
+            period_conflict_detector=(
+                period_comparison_direct_rows_conflict_with_dependency_outputs
+            ),
+            dependency_aligner=align_dependency_rows_with_sibling_direct_context,
         )
-        period_dependency_should_block_direct_context = bool(
-            operation_family in {"difference", "growth_rate"}
-            and dependency_rows_cover_required_operands
-            and direct_period_context_conflicts_with_dependency
+        direct_structured_rows = source_selection.operand_rows
+        dependency_rows = source_selection.dependency_rows
+        prefer_direct_rows_over_dependency = (
+            source_selection.prefer_direct_rows_over_dependency
         )
-        prefer_direct_rows_over_dependency = bool(
-            operation_family in {"ratio", "difference", "growth_rate"}
-            and direct_rows_cover_required_operands
-            and not period_dependency_should_block_direct_context
-            and (
-                reconciliation_evidence
-                or (
-                    operation_family in {"difference", "growth_rate"}
-                    and direct_rows_have_coherent_context
-                )
-                or (
-                    operation_family == "ratio"
-                    and direct_rows_have_coherent_context
-                    and retrieved_ratio_context_recovered
-                    and ratio_direct_context_should_override_dependency
-                )
-            )
-            and not (
-                operation_family == "ratio"
-                and dependency_rows_cover_required_operands
-                and required_prefers_aggregate_stage
-            )
-        )
-        if dependency_rows:
-            if operation_family == "ratio":
-                dependency_rows = self._align_dependency_rows_with_sibling_direct_context(
-                    dependency_rows,
-                    direct_structured_rows,
-                )
-            if prefer_direct_rows_over_dependency:
-                direct_structured_rows = _merge_operand_rows(
-                    direct_structured_rows,
-                    dependency_rows,
-                    required_operands=required_operands,
-                )
-            else:
-                direct_structured_rows = _merge_operand_rows(
-                    dependency_rows,
-                    direct_structured_rows,
-                    required_operands=required_operands,
-                )
-            direct_structured_rows = [
-                row
-                for row in direct_structured_rows
-                if not _operand_row_conflicts_requested_scope(row, desired_consolidation_scope)
-            ]
+        if source_selection.dependency_merge_applied:
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
         if dependency_bindings and direct_structured_rows and not prefer_direct_rows_over_dependency:
-            direct_structured_rows, rejected_resolved_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
-                state,
+            direct_structured_rows, rejected_resolved_dependency_scope_rows = filter_direct_rows_by_dependency_producer_scope(
                 bindings=dependency_bindings,
                 operand_rows=direct_structured_rows,
+                producer_tasks=producer_tasks,
             )
             rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
         if missing_dependency_bindings and direct_structured_rows and not prefer_direct_rows_over_dependency:
-            direct_structured_rows, rejected_missing_dependency_scope_rows = self._filter_direct_rows_by_dependency_producer_scope(
-                state,
+            direct_structured_rows, rejected_missing_dependency_scope_rows = filter_direct_rows_by_dependency_producer_scope(
                 bindings=missing_dependency_bindings,
                 operand_rows=direct_structured_rows,
+                producer_tasks=producer_tasks,
             )
             rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
         dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
@@ -16922,7 +15326,7 @@ class FinancialAgentCalculationMixin:
                 filtered_rows.append(row)
             direct_structured_rows = filtered_rows
         if direct_dependency_fill_allowed and missing_dependency_bindings and direct_structured_rows:
-            direct_resolved_keys = self._direct_rows_resolved_dependency_keys(
+            direct_resolved_keys = direct_rows_resolved_dependency_keys(
                 missing_dependency_bindings,
                 direct_structured_rows,
             )
@@ -16930,7 +15334,7 @@ class FinancialAgentCalculationMixin:
                 missing_dependency_bindings = [
                     dict(binding)
                     for binding in missing_dependency_bindings
-                    if self._dependency_binding_identity(binding) not in direct_resolved_keys
+                    if dependency_binding_identity(binding) not in direct_resolved_keys
                 ]
         has_retrieved_docs_for_dependency_fallback = bool(retrieved_docs or seed_retrieved_docs)
         has_active_reconciliation_fallback = bool(reconciliation_evidence)
@@ -16985,7 +15389,7 @@ class FinancialAgentCalculationMixin:
             }
         if direct_structured_rows:
             direct_structured_rows = [
-                self._canonicalize_structured_operand_reconciliation_refs(row)
+                _canonicalize_structured_operand_reconciliation_refs(row)
                 for row in direct_structured_rows
             ]
         # If reconciliation already found every required operand as clean
@@ -17093,151 +15497,27 @@ class FinancialAgentCalculationMixin:
             and (not evidence_items or evidence_status != "sufficient")
         )
         if should_augment_with_docs:
-            candidate_docs = list(retrieved_docs)
-            seen_candidate_doc_ids = {
-                str((getattr(doc, "metadata", {}) or {}).get("chunk_uid") or (getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-                for doc, _score in candidate_docs
-            }
-            for doc, score in seed_retrieved_docs:
-                metadata = dict(getattr(doc, "metadata", {}) or {})
-                doc_id = str(metadata.get("chunk_uid") or metadata.get("chunk_id") or "")
-                if doc_id and doc_id in seen_candidate_doc_ids:
-                    continue
-                if doc_id:
-                    seen_candidate_doc_ids.add(doc_id)
-                candidate_docs.append((doc, score))
-            synthesized_items: List[Dict[str, Any]] = []
-            synthesized_bullets: List[str] = []
-            seen_anchors = {str(item.get("source_anchor") or "") for item in evidence_items}
-            required_context_terms = _required_operand_context_terms(required_operands)
-
-            if required_operands:
-                operand_probe_items: List[Dict[str, Any]] = []
-                for candidate_index, (doc, _score) in enumerate(candidate_docs, start=1):
-                    full_text = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-                    full_text = _strip_rerank_metadata(full_text) or full_text
-                    item = _synthesized_calculation_doc_item(
-                        doc,
-                        index=candidate_index,
-                        evidence_id=f"ev_operand_doc_{candidate_index:03d}",
-                        desired_consolidation_scope=desired_consolidation_scope,
-                        build_source_anchor=self._build_source_anchor,
-                    )
-                    if item:
-                        probe_item = dict(item)
-                        probe_item["claim"] = full_text
-                        probe_item["raw_row_text"] = full_text
-                        operand_probe_items.append(probe_item)
-                operand_probe_rows = self._build_required_operands_from_candidates(
-                    operand_probe_items,
-                    required_operands=required_operands,
-                    query=query,
-                    topic=topic,
-                    report_scope=report_scope,
-                )
-                operand_evidence_ids = {
-                    str(row.get("evidence_id") or "")
-                    for row in operand_probe_rows
-                    if row.get("evidence_id")
-                }
-                if operand_evidence_ids:
-                    max_operand_docs = max(4, len(required_operands) * 2)
-                    for item in operand_probe_items:
-                        if str(item.get("evidence_id") or "") not in operand_evidence_ids:
-                            continue
-                        anchor = str(item.get("source_anchor") or "")
-                        claim = str(item.get("claim") or "")
-                        missing_terms: List[str] = []
-                        for binding in missing_dependency_bindings:
-                            missing_terms.extend(_operand_needles(dict(binding)))
-                            label = _normalise_spaces(str(binding.get("label") or ""))
-                            if label:
-                                missing_terms.append(label)
-                        missing_terms.extend(required_context_terms)
-                        missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
-                        duplicate_anchor_has_missing_term = bool(
-                            anchor in seen_anchors
-                            and missing_terms
-                            and _text_has_any_context_term(claim, missing_terms)
-                        )
-                        if anchor in seen_anchors and not duplicate_anchor_has_missing_term:
-                            continue
-                        evidence_item = dict(item)
-                        evidence_item.pop("raw_row_text", None)
-                        evidence_item.pop("_candidate_index", None)
-                        evidence_item["claim"] = claim[:1200]
-                        evidence_item["quote_span"] = claim[:240]
-                        evidence_item["raw_row_text"] = claim
-                        synthesized_items.append(evidence_item)
-                        synthesized_bullets.append(f"- {anchor} {claim[:180]} (direct)")
-                        seen_anchors.add(anchor)
-                        if len(
-                            [
-                                existing
-                                for existing in synthesized_items
-                                if str(existing.get("evidence_id") or "").startswith("ev_operand_doc_")
-                            ]
-                        ) >= max_operand_docs:
-                            break
-
-            percent_point_query = _is_percent_point_difference_query(query)
-            ratio_row_candidates = self._extract_ratio_row_candidates(candidate_docs, query, topic)
-            if ratio_row_candidates:
-                logger.info("[calc_operands] ratio row fallback candidates=%s", len(ratio_row_candidates))
-                synthesized_items.extend(ratio_row_candidates)
-                synthesized_bullets.extend(
-                    f"- {item['source_anchor']} {item.get('source_context', '')} {str(item.get('raw_row_text') or '')[:180]} (direct)"
-                    for item in ratio_row_candidates
-                )
-                seen_anchors.update(str(item.get("source_anchor") or "") for item in ratio_row_candidates)
-            if not percent_point_query:
-                component_candidates = self._extract_ratio_component_candidates(candidate_docs, query, topic)
-                if component_candidates:
-                    logger.info("[calc_operands] ratio component fallback candidates=%s", len(component_candidates))
-                    synthesized_items.extend(component_candidates)
-                    synthesized_bullets.extend(
-                        f"- {item['source_anchor']} {item.get('source_context', '')} {str(item.get('raw_row_text') or '')[:180]} (direct)"
-                        for item in component_candidates
-                    )
-                    seen_anchors.update(str(item.get("source_anchor") or "") for item in component_candidates)
-            doc_fallback_limit = 16 if missing_dependency_bindings else 8
-            for index, (doc, _score) in enumerate(candidate_docs[: min(doc_fallback_limit, len(candidate_docs))], start=1):
-                item = _synthesized_calculation_doc_item(
-                    doc,
-                    index=index,
-                    evidence_id=f"ev_doc_{index:03d}",
-                    desired_consolidation_scope=desired_consolidation_scope,
-                    build_source_anchor=self._build_source_anchor,
-                )
-                if not item:
-                    continue
-                metadata = dict(item.get("metadata") or {})
-                anchor = str(item.get("source_anchor") or "")
-                text = str(item.get("claim") or "")
-                missing_terms: List[str] = []
-                for binding in missing_dependency_bindings:
-                    missing_terms.extend(_operand_needles(dict(binding)))
-                    label = _normalise_spaces(str(binding.get("label") or ""))
-                    if label:
-                        missing_terms.append(label)
-                missing_terms.extend(required_context_terms)
-                missing_terms = [term for term in dict.fromkeys(missing_terms) if term]
-                duplicate_anchor_has_missing_term = bool(
-                    anchor in seen_anchors
-                    and missing_terms
-                    and _text_has_any_context_term(text, missing_terms)
-                )
-                if anchor in seen_anchors and not duplicate_anchor_has_missing_term:
-                    continue
-                item.pop("_candidate_index", None)
-                synthesized_items.append(item)
-                synthesized_bullets.append(f"- {anchor} {text[:180]} (direct)")
-            if synthesized_items:
-                evidence_items = evidence_items + synthesized_items
-                evidence_bullets = evidence_bullets + synthesized_bullets
+            candidate_batch = collect_retrieved_operand_evidence_candidates(
+                retrieved_docs,
+                seed_retrieved_docs,
+                existing_evidence_items=evidence_items,
+                required_operands=required_operands,
+                missing_dependency_bindings=missing_dependency_bindings,
+                query=query,
+                topic=topic,
+                report_scope=report_scope,
+                desired_consolidation_scope=desired_consolidation_scope,
+                build_source_anchor=self._build_source_anchor,
+                build_required_operands_from_candidates=self._build_required_operands_from_candidates,
+                extract_ratio_row_candidates=self._extract_ratio_row_candidates,
+                extract_ratio_component_candidates=self._extract_ratio_component_candidates,
+            )
+            if candidate_batch.evidence_items:
+                evidence_items = evidence_items + list(candidate_batch.evidence_items)
+                evidence_bullets = evidence_bullets + list(candidate_batch.evidence_bullets)
                 logger.info(
                     "[calc_operands] augmenting evidence with synthesized retrieved_docs=%s existing=%s",
-                    len(synthesized_items),
+                    len(candidate_batch.evidence_items),
                     len(state.get("evidence_items", []) or []),
                 )
         elif direct_numeric_grounding and (retrieved_docs or seed_retrieved_docs) and (not evidence_items or evidence_status != "sufficient"):
@@ -17256,10 +15536,10 @@ class FinancialAgentCalculationMixin:
                 require_direct_support=operation_family == "ratio",
             )
             if missing_dependency_bindings and deterministic_required_rows:
-                deterministic_required_rows, rejected_rows = self._filter_direct_rows_by_dependency_producer_scope(
-                    state,
+                deterministic_required_rows, rejected_rows = filter_direct_rows_by_dependency_producer_scope(
                     bindings=missing_dependency_bindings,
                     operand_rows=deterministic_required_rows,
+                    producer_tasks=producer_tasks,
                 )
                 rejected_dependency_scope_rows.extend(rejected_rows)
             if deterministic_required_rows:
@@ -17272,7 +15552,7 @@ class FinancialAgentCalculationMixin:
                         report_scope=report_scope,
                     )
                     if coherent_required_rows:
-                        deterministic_required_rows = _merge_operand_rows(
+                        deterministic_required_rows = merge_operand_rows(
                             coherent_required_rows,
                             deterministic_required_rows,
                             required_operands=required_operands,
@@ -17282,13 +15562,13 @@ class FinancialAgentCalculationMixin:
                     deterministic_required_rows,
                 )
                 if operation_family == "ratio" and deterministic_rows_cover_required:
-                    direct_structured_rows = _merge_operand_rows(
+                    direct_structured_rows = merge_operand_rows(
                         deterministic_required_rows,
                         direct_structured_rows,
                         required_operands=required_operands,
                     )
                 else:
-                    direct_structured_rows = _merge_operand_rows(
+                    direct_structured_rows = merge_operand_rows(
                         direct_structured_rows,
                         deterministic_required_rows,
                         required_operands=required_operands,
@@ -17309,11 +15589,11 @@ class FinancialAgentCalculationMixin:
                 {"query": query, "evidence": evidence_text}
             )
             operand_rows: List[Dict[str, Any]] = []
-            evidence_by_id = self._evidence_items_by_id(evidence_items)
+            evidence_by_id = _evidence_items_by_id(evidence_items)
             for index, item in enumerate(extracted.operands, start=1):
                 row = item.model_dump()
                 evidence_item = evidence_by_id.get(str(row.get("evidence_id") or "").strip())
-                if evidence_item and _evidence_item_conflicts_requested_scope(
+                if evidence_item and evidence_item_conflicts_requested_scope(
                     evidence_item,
                     desired_consolidation_scope,
                 ):
@@ -17321,7 +15601,7 @@ class FinancialAgentCalculationMixin:
                 row["operand_id"] = f"op_{index:03d}"
                 row = self._coerce_operand_row_from_evidence(row, evidence_item)
                 if operation_family in {"lookup", "single_value"} and required_operands:
-                    if not self._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands):
+                    if not _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands):
                         continue
                 operand_rows.append(row)
             if required_operands:
@@ -17329,7 +15609,7 @@ class FinancialAgentCalculationMixin:
                     row
                     for row in operand_rows
                     if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                    and self._operand_row_satisfies_required_surface_contract(
+                    and _operand_row_satisfies_required_surface_contract(
                         row,
                         evidence_by_id,
                         required_operands,
@@ -17343,7 +15623,7 @@ class FinancialAgentCalculationMixin:
                     if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
                 ]
             if direct_structured_rows and required_operands:
-                operand_rows = _merge_operand_rows(
+                operand_rows = merge_operand_rows(
                     direct_structured_rows,
                     operand_rows,
                     required_operands=required_operands,
@@ -17380,7 +15660,7 @@ class FinancialAgentCalculationMixin:
                 )
                 if fallback_rows:
                     logger.info("[calc_operands] python ratio fallback operands=%s", len(fallback_rows))
-                    operand_rows = _merge_operand_rows(
+                    operand_rows = merge_operand_rows(
                         operand_rows,
                         fallback_rows,
                         required_operands=required_operands,
@@ -17403,17 +15683,17 @@ class FinancialAgentCalculationMixin:
                     report_scope=dict(state.get("report_scope") or {}),
                 )
                 if coherent_context_rows:
-                    sibling_context_rows = _merge_operand_rows(
+                    sibling_context_rows = merge_operand_rows(
                         coherent_context_rows,
                         sibling_context_rows,
                         required_operands=required_operands,
                     )
                 if sibling_context_rows:
-                    operand_rows = self._align_dependency_rows_with_sibling_direct_context(
+                    operand_rows = align_dependency_rows_with_sibling_direct_context(
                         operand_rows,
                         sibling_context_rows,
                     )
-                    operand_rows = self._prefer_complete_ratio_direct_context_rows(
+                    operand_rows = prefer_complete_ratio_direct_context_rows(
                         operand_rows=operand_rows,
                         direct_rows=sibling_context_rows,
                         required_operands=required_operands,
@@ -17430,11 +15710,11 @@ class FinancialAgentCalculationMixin:
                     complete_direct_context_blocks_dependency_remerge = bool(
                         len(direct_contexts) == 1
                         and not _missing_required_operands(required_operands, sibling_context_rows)
-                        and not self._ratio_operand_rows_collapse_to_same_slot(sibling_context_rows)
-                        and not self._period_comparison_operand_rows_collapse_to_same_slot(sibling_context_rows)
+                        and not _ratio_operand_rows_collapse_to_same_slot(sibling_context_rows)
+                        and not _period_comparison_operand_rows_collapse_to_same_slot(sibling_context_rows)
                     )
             if dependency_rows and not prefer_direct_rows_over_dependency and not complete_direct_context_blocks_dependency_remerge:
-                operand_rows = _merge_operand_rows(
+                operand_rows = merge_operand_rows(
                     dependency_rows,
                     operand_rows,
                     required_operands=required_operands,
@@ -17513,100 +15793,6 @@ class FinancialAgentCalculationMixin:
                     calculation_result={},
                 ),
             }
-
-    def _operation_plan_guard(
-        self,
-        *,
-        plan: Dict[str, Any],
-        operands: List[Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-        operation_family: str,
-    ) -> Optional[Dict[str, Any]]:
-        """Reject executable plans that do not bind distinct required roles."""
-        family = str(operation_family or plan.get("operation") or "").strip().lower()
-        if family not in {"ratio", "difference", "growth_rate"}:
-            return None
-
-        operand_by_id = {
-            str(row.get("operand_id") or "").strip(): row
-            for row in operands
-            if str(row.get("operand_id") or "").strip()
-        }
-        ordered_ids = [
-            str(operand_id or "").strip()
-            for operand_id in (plan.get("ordered_operand_ids") or [])
-            if str(operand_id or "").strip() in operand_by_id
-        ]
-        if not ordered_ids:
-            ordered_ids = [
-                str(binding.get("operand_id") or "").strip()
-                for binding in (plan.get("variable_bindings") or [])
-                if str(binding.get("operand_id") or "").strip() in operand_by_id
-            ]
-        unique_ids = list(dict.fromkeys(ordered_ids))
-        missing_info: List[str] = []
-
-        if len(unique_ids) < 2:
-            missing_info.append("distinct_operands")
-
-        selected_rows = [operand_by_id[operand_id] for operand_id in unique_ids]
-        if family == "ratio" and required_operands:
-            missing_required = _missing_required_operands(required_operands, selected_rows)
-            missing_info.extend(
-                _normalise_spaces(str(item.get("label") or item.get("role") or item.get("concept") or "operand"))
-                for item in missing_required
-            )
-
-        if family == "ratio":
-            numerator_ids: set[str] = set()
-            denominator_ids: set[str] = set()
-            ratio_requirements = [
-                dict(item)
-                for item in required_operands
-                if str(item.get("role") or "").strip().startswith(("numerator", "denominator"))
-            ]
-            for row in selected_rows:
-                operand_id = str(row.get("operand_id") or "").strip()
-                row_role = str(row.get("matched_operand_role") or "").strip()
-                if row_role.startswith("numerator"):
-                    numerator_ids.add(operand_id)
-                elif row_role.startswith("denominator"):
-                    denominator_ids.add(operand_id)
-                elif ratio_requirements:
-                    for requirement in ratio_requirements:
-                        role = str(requirement.get("role") or "").strip()
-                        if _operand_row_matches_requirement(row, requirement):
-                            if role.startswith("numerator"):
-                                numerator_ids.add(operand_id)
-                            elif role.startswith("denominator"):
-                                denominator_ids.add(operand_id)
-
-            if not numerator_ids:
-                missing_info.append("numerator")
-            if not denominator_ids:
-                missing_info.append("denominator")
-            if numerator_ids and denominator_ids and not (numerator_ids - denominator_ids or denominator_ids - numerator_ids):
-                missing_info.append("distinct_ratio_roles")
-            if self._ratio_operand_rows_collapse_to_same_slot(selected_rows):
-                missing_info.append("distinct_ratio_roles")
-
-        if not missing_info:
-            return None
-
-        missing_info = list(dict.fromkeys(item for item in missing_info if item))
-        return {
-            "status": "incomplete",
-            "mode": "none",
-            "operation": "none",
-            "ordered_operand_ids": [],
-            "variable_bindings": [],
-            "formula": "",
-            "pairwise_formula": "",
-            "result_unit": "",
-            "operation_text": "",
-            "explanation": "operation plan does not satisfy required operand bindings",
-            "missing_info": missing_info,
-        }
 
     def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Translate normalized operands into an executable calculation plan."""
@@ -17727,7 +15913,7 @@ class FinancialAgentCalculationMixin:
 
         deterministic_operation_plan = self._build_deterministic_operation_plan(state, operands)
         if deterministic_operation_plan:
-            guarded_plan = self._operation_plan_guard(
+            guarded_plan = guard_operation_plan(
                 plan=deterministic_operation_plan,
                 operands=operands,
                 required_operands=required_operands,
@@ -17820,7 +16006,7 @@ class FinancialAgentCalculationMixin:
 
         deterministic_plan = self._build_deterministic_ontology_plan(state, operands)
         if deterministic_plan:
-            guarded_plan = self._operation_plan_guard(
+            guarded_plan = guard_operation_plan(
                 plan=deterministic_plan,
                 operands=operands,
                 required_operands=required_operands,
@@ -17953,7 +16139,7 @@ class FinancialAgentCalculationMixin:
                     plan_data["missing_info"] = self._infer_missing_info(state, operands)
             if _should_coerce_percent_point_unit(query_text, operands, plan_data):
                 plan_data["result_unit"] = "%p"
-            guarded_plan = self._operation_plan_guard(
+            guarded_plan = guard_operation_plan(
                 plan=plan_data,
                 operands=operands,
                 required_operands=required_operands,
@@ -18215,7 +16401,7 @@ class FinancialAgentCalculationMixin:
         operands: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        evidence_by_id = self._evidence_items_by_id(evidence_items)
+        evidence_by_id = _evidence_items_by_id(evidence_items)
         if not evidence_by_id:
             return operands
 
@@ -18336,7 +16522,7 @@ class FinancialAgentCalculationMixin:
             if not raw_value or raw_unit not in krw_units:
                 updated.append(next_row)
                 continue
-            evidence_item = self._evidence_item_for_operand_row(next_row, evidence_by_id)
+            evidence_item = _evidence_item_for_operand_row(next_row, evidence_by_id)
             if not evidence_item or not is_table_backed(evidence_item):
                 updated.append(next_row)
                 continue
@@ -18412,7 +16598,7 @@ class FinancialAgentCalculationMixin:
             candidate_slot.get("source_row_ids"),
         ])
         canonical_source_ids = [
-            self._canonical_structured_reconciliation_id(source_id)
+                _canonical_structured_reconciliation_id(source_id)
             for source_id in source_row_ids
         ]
         source_row_ids = list(dict.fromkeys(source_id for source_id in canonical_source_ids if source_id))
@@ -18500,7 +16686,7 @@ class FinancialAgentCalculationMixin:
             existing_unit = _normalise_spaces(str(existing_row.get("normalized_unit") or "")).upper()
             if existing_unit and existing_unit != target_unit:
                 continue
-            if not self._operand_row_value_differs(existing_row, target_metric_row):
+            if not operand_row_values_differ(existing_row, target_metric_row):
                 continue
             existing_source_ids = _clean_source_row_ids([
                 existing_row.get("evidence_id"),
@@ -18525,13 +16711,13 @@ class FinancialAgentCalculationMixin:
         )
         runtime_operands = [dict(row) for row in (runtime_trace.get("calculation_operands") or [])]
         execution_evidence_items = list(state.get("evidence_items") or []) + list(state.get("runtime_evidence") or [])
-        execution_evidence_by_id = self._evidence_items_by_id(
+        execution_evidence_by_id = _evidence_items_by_id(
             [dict(item) for item in execution_evidence_items if isinstance(item, dict)]
         )
         runtime_operands = [
             self._coerce_operand_row_from_evidence(
                 row,
-                self._evidence_item_for_operand_row(row, execution_evidence_by_id),
+                _evidence_item_for_operand_row(row, execution_evidence_by_id),
             )
             for row in runtime_operands
         ]
@@ -18598,7 +16784,7 @@ class FinancialAgentCalculationMixin:
             for item in (active_subtask.get("required_operands") or [])
             if isinstance(item, dict) and bool(item.get("required", True))
         ]
-        guarded_plan = self._operation_plan_guard(
+        guarded_plan = guard_operation_plan(
             plan={
                 **plan,
                 "ordered_operand_ids": ordered_ids,
@@ -18753,59 +16939,41 @@ class FinancialAgentCalculationMixin:
             ]
             ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
-        selected_evidence_ids = list(
-            dict.fromkeys(str(row.get("evidence_id")) for row in ordered_operands if row.get("evidence_id"))
+        execution_outcome = execute_prepared_calculation_plan(
+            mode=mode,
+            operation=operation,
+            formula=formula,
+            pairwise_formula=pairwise_formula,
+            result_unit=result_unit,
+            operands_by_id=operands,
+            ordered_operand_ids=ordered_ids,
+            variable_bindings=variable_bindings,
         )
-        units = {row.get("normalized_unit") for row in ordered_operands}
-        if len(units) != 1:
-            return _fail("unit_mismatch", f"unit families differ: {sorted(str(unit) for unit in units)}")
-        normalized_unit = str(next(iter(units)))
-        source_normalized_unit = normalized_unit
-        values = [row.get("normalized_value") for row in ordered_operands]
-        if any(value is None for value in values):
-            return _fail("parse_error", "one or more operands could not be normalized")
+        selected_evidence_ids = list(execution_outcome.selected_evidence_ids)
+        source_normalized_unit = execution_outcome.source_normalized_unit
+        if execution_outcome.status != "ok":
+            return _fail(execution_outcome.status, execution_outcome.reason)
 
-        try:
-            result_value: Optional[float]
-            derived_metrics: Dict[str, Any] = {}
-            result_series: List[Dict[str, Any]] = []
-            env: Dict[str, float] = {}
-            for binding in variable_bindings:
-                variable = str(binding.get("variable") or "").strip()
-                operand_id = str(binding.get("operand_id") or "").strip()
-                operand = operands.get(operand_id)
-                if not variable or operand is None or operand.get("normalized_value") is None:
-                    return _fail("parse_error", f"invalid variable binding: {binding}")
-                env[variable] = float(operand.get("normalized_value"))
+        ordered_operands = [dict(row) for row in execution_outcome.ordered_operands]
+        normalized_unit = execution_outcome.normalized_unit
+        result_value = execution_outcome.result_value
+        if result_value is None:
+            return _fail("parse_error", "calculation completed without a result value")
 
-            if mode == "time_series":
-                if len(variable_bindings) < 2:
-                    return _fail("insufficient_operands", "time_series needs at least 2 operands")
-                ordered_operands = sorted(
-                    [operands[str(binding.get("operand_id"))] for binding in variable_bindings],
-                    key=lambda row: _extract_period_sort_key(str(row.get("period") or "")),
-                )
-                selected_evidence_ids = list(
-                    dict.fromkeys(str(row.get("evidence_id")) for row in ordered_operands if row.get("evidence_id"))
-                )
+        if mode == "time_series":
+            try:
                 labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
                 metric_names = [re.sub(r"^\d{4}년\s*", "", label).strip() for label in labels]
                 metric_name = metric_names[0] if metric_names else "지표"
                 result_series = calculation_rendering.time_series_result_series(
                     ordered_operands=ordered_operands,
-                    normalized_unit=normalized_unit,
+                    normalized_unit=source_normalized_unit,
                 )
-                yoy_growth_rates = time_series_yoy_growth_rates(
-                    ordered_operands=ordered_operands,
-                    pairwise_formula=pairwise_formula,
-                )
-                if not formula:
-                    return _fail("parse_error", "missing trend formula")
-                result_value = _safe_eval_formula(formula, env)
+                yoy_growth_rates = list(execution_outcome.yoy_growth_rates)
                 time_series_display = calculation_rendering.time_series_result_display(
                     result_value=float(result_value),
                     result_unit=result_unit,
-                    normalized_unit=normalized_unit,
+                    normalized_unit=source_normalized_unit,
                 )
                 normalized_unit = time_series_display["normalized_unit"]
                 rendered_value = time_series_display["rendered_value"]
@@ -18833,18 +17001,10 @@ class FinancialAgentCalculationMixin:
                     query=self._calc_query(state),
                     metric_family=self._calc_metric_family(state),
                 )
-
-            if not formula:
-                return _fail("parse_error", "missing scalar formula")
-            result_value = _safe_eval_formula(formula, env)
-            if result_unit in {"%", "%p"}:
-                normalized_unit = "PERCENT"
-            elif operation == "ratio":
-                normalized_unit = "COUNT"
-        except Exception as exc:
-            if isinstance(exc, ZeroDivisionError):
-                return _fail("zero_division", str(exc))
-            return _fail("parse_error", str(exc))
+            except Exception as exc:
+                if isinstance(exc, ZeroDivisionError):
+                    return _fail("zero_division", str(exc))
+                return _fail("parse_error", str(exc))
 
         formula_result_value = result_value
         source_stated_result_used = False
@@ -18998,7 +17158,7 @@ class FinancialAgentCalculationMixin:
             active_subtask["operation_family"] = operation_family
         if metric_label:
             active_subtask["metric_label"] = metric_label
-        if operation_family in {"difference", "growth_rate"} and self._period_comparison_operand_rows_collapse_to_same_slot(
+        if operation_family in {"difference", "growth_rate"} and _period_comparison_operand_rows_collapse_to_same_slot(
             operands
         ):
             return operands, plan, calculation_result
@@ -19597,7 +17757,7 @@ class FinancialAgentCalculationMixin:
         evidence_pool: List[Dict[str, Any]] = _collect_nested_result_evidence(ordered_results)
         evidence_pool.extend(dict(item) for item in (state.get("evidence_items") or []) if isinstance(item, dict))
         evidence_pool.extend(dict(item) for item in (state.get("runtime_evidence") or []) if isinstance(item, dict))
-        evidence_by_id = self._evidence_items_by_id(evidence_pool)
+        evidence_by_id = _evidence_items_by_id(evidence_pool)
 
         def _direct_operand_source_ids(row: Dict[str, Any]) -> set[str]:
             operands = [
@@ -19690,23 +17850,24 @@ class FinancialAgentCalculationMixin:
             )
             if not preferred_slot:
                 return source_slot
-            preferred_evidence = self._evidence_item_for_operand_row(preferred_slot, evidence_by_id)
-            source_evidence = self._evidence_item_for_operand_row(source_slot, evidence_by_id)
-            if self._lookup_direct_row_is_ambiguous_context_table(
+            preferred_evidence = _evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+            source_evidence = _evidence_item_for_operand_row(source_slot, evidence_by_id)
+            if direct_lookup_row_is_ambiguous_context_table(
                 preferred_slot,
                 preferred_evidence,
-                state=state,
+                query=str(state.get("query") or ""),
+                active_subtask=dict(state.get("active_subtask") or {}),
                 required_operands=[binding],
             ):
                 return source_slot
-            if not self._operand_slot_has_evidence_surface_match(
+            if not _operand_slot_has_evidence_surface_match(
                 preferred_slot,
                 preferred_evidence,
                 binding,
                     metric_label=_normalise_spaces(str(binding.get("label") or "")),
                 ):
                     return source_slot
-            if not self._operand_row_values_materially_conflict(source_slot, preferred_slot):
+            if not operand_row_values_materially_conflict(source_slot, preferred_slot):
                 return source_slot
             source_slot_ids = set(
                 _clean_source_row_ids([
@@ -19722,7 +17883,7 @@ class FinancialAgentCalculationMixin:
             )
             if source_slot_ids and preferred_slot_ids and source_slot_ids.isdisjoint(preferred_slot_ids):
                 return source_slot
-            if source_evidence and self._operand_slot_has_evidence_surface_match(
+            if source_evidence and _operand_slot_has_evidence_surface_match(
                 source_slot,
                 source_evidence,
                 binding,
@@ -19821,7 +17982,7 @@ class FinancialAgentCalculationMixin:
                         continue
                     matched_operand_candidate = operand_candidate
                     break
-                if matched_operand_candidate and self._operand_row_values_materially_conflict(
+                if matched_operand_candidate and operand_row_values_materially_conflict(
                     source_slot,
                     matched_operand_candidate,
                 ):
@@ -19910,7 +18071,7 @@ class FinancialAgentCalculationMixin:
                 )
             if _missing_required_operands(bindings, dependency_rows):
                 continue
-            if self._ratio_operand_rows_collapse_to_same_slot(dependency_rows):
+            if _ratio_operand_rows_collapse_to_same_slot(dependency_rows):
                 continue
             numerator_rows = [
                 dict(row)
@@ -20067,7 +18228,7 @@ class FinancialAgentCalculationMixin:
         ]
         if not ratio_tasks:
             return ordered_results
-        context_docs = self._retrieval_context_docs(
+        context_docs = collect_retrieval_context_docs(
             list(state.get("retrieved_docs") or []),
             list(state.get("seed_retrieved_docs") or []),
             seed_limit=32,
@@ -20102,7 +18263,7 @@ class FinancialAgentCalculationMixin:
             )
             if _missing_required_operands(context_required_operands, context_rows):
                 continue
-            if self._ratio_operand_rows_collapse_to_same_slot(context_rows):
+            if _ratio_operand_rows_collapse_to_same_slot(context_rows):
                 continue
             dependency_rows: List[Dict[str, Any]] = []
             result_by_task_id = {
@@ -20178,7 +18339,7 @@ class FinancialAgentCalculationMixin:
                     if not role:
                         continue
                     for context_row in context_by_role.get(role, []):
-                        if self._operand_row_value_differs(dependency_row, context_row):
+                        if operand_row_values_differ(dependency_row, context_row):
                             dependency_context_conflicts = True
                             break
                     if dependency_context_conflicts:
@@ -21389,7 +19550,11 @@ class FinancialAgentCalculationMixin:
         if retry_strategy == "synthesize_from_task_outputs" and not any(
             str(item).strip() for item in (reflection_plan.get("synthesis_source_ids") or [])
         ):
-            synthesis_source_ids = _synthesis_source_ids_from_task_outputs(state)
+            synthesis_source_ids = reflection_synthesis_source_ids_from_task_outputs(
+                active_subtask=dict(state.get("active_subtask") or {}),
+                subtask_results=list(state.get("subtask_results") or []),
+                artifacts=list(state.get("artifacts") or []),
+            )
             if synthesis_source_ids:
                 reflection_plan["synthesis_source_ids"] = synthesis_source_ids
         reflection_action = _reflection_action_from_plan(
@@ -21404,8 +19569,9 @@ class FinancialAgentCalculationMixin:
         )
         active_subtask = dict(state.get("active_subtask") or {})
         target_task_id = str(active_subtask.get("task_id") or "").strip()
-        reflection_task_id = _next_reflection_task_id(
-            state,
+        reflection_task_id = next_reflection_task_id(
+            tasks=list(state.get("tasks") or []),
+            artifacts=list(state.get("artifacts") or []),
             target_task_id=target_task_id,
             current_count=current_count,
         )
@@ -21470,132 +19636,6 @@ class FinancialAgentCalculationMixin:
                 calculation_result={},
             ),
         }
-
-    def _route_after_prepare_retry(self, state: FinancialAgentState) -> str:
-        if self._active_retry_strategy(state) == "synthesize_from_task_outputs":
-            return "operand_extractor"
-        return "retrieve"
-
-    def _route_after_expand(self, state: FinancialAgentState) -> str:
-        active_subtask = dict(state.get("active_subtask") or {})
-        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
-        if active_operation == "narrative_summary":
-            return "evidence"
-        if list(state.get("calc_subtasks") or []):
-            if active_operation in {"lookup", "single_value"}:
-                return "numeric_extractor"
-            return "evidence"
-        intent = state.get("intent") or state.get("query_type", "qa")
-        if intent == "numeric_fact":
-            return "numeric_extractor"
-        return "evidence"
-
-    def _route_after_numeric_extractor(self, state: FinancialAgentState) -> str:
-        if list(state.get("calc_subtasks") or []):
-            active_subtask = dict(state.get("active_subtask") or {})
-            active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
-            evidence_status = str(state.get("evidence_status") or "").strip().lower()
-            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
-            if active_operation in {"lookup", "single_value"} and evidence_status == "missing" and has_retrieved_docs:
-                return "reconcile_plan"
-            return "advance_subtask"
-        return "cite"
-
-    def _route_after_evidence(self, state: FinancialAgentState) -> str:
-        active_subtask = dict(state.get("active_subtask") or {})
-        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
-        if active_operation == "narrative_summary":
-            return "compress"
-        if list(state.get("calc_subtasks") or []):
-            return "reconcile_plan"
-        intent = state.get("intent") or state.get("query_type", "qa")
-        if intent in {"comparison", "trend"}:
-            return "reconcile_plan"
-        return "compress"
-
-    def _route_after_reconcile_plan(self, state: FinancialAgentState) -> str:
-        result = dict(state.get("reconciliation_result") or {})
-        status = str(result.get("status") or "ready")
-        retry_strategy = _normalise_spaces(str(result.get("retry_strategy") or "")).lower()
-        if status == "ready":
-            return "operand_extractor"
-        if retry_strategy == "synthesize_from_task_outputs":
-            return "operand_extractor"
-        if status == "retry_retrieval":
-            return "retrieve"
-        if status == "insufficient_operands":
-            active_subtask = dict(state.get("active_subtask") or {})
-            required_operands = [
-                item
-                for item in (active_subtask.get("required_operands") or [])
-                if isinstance(item, dict) and bool(item.get("required", True))
-            ]
-            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
-            if required_operands and has_retrieved_docs and not _requires_direct_numeric_grounding(active_subtask):
-                return "operand_extractor"
-        return "advance_subtask"
-
-    def _route_after_advance_subtask(self, state: FinancialAgentState) -> str:
-        if bool(state.get("subtask_loop_complete")):
-            return "aggregate_subtasks"
-        active_subtask = dict(state.get("active_subtask") or {})
-        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
-        if active_operation in {"lookup", "single_value", "narrative_summary"}:
-            return "retrieve"
-        return "reconcile_plan"
-
-    def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
-        semantic_status = _normalise_spaces(
-            str((state.get("semantic_plan") or {}).get("status") or "")
-        ).lower()
-        if semantic_status == "narrative_policy_exclusive":
-            return "cite"
-        planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
-        if (
-            planner_feedback
-            and int(state.get("plan_loop_count") or 0) < 2
-            and not _normalise_spaces(str(state.get("replan_blocked_reason") or ""))
-        ):
-            return "pre_calc_planner"
-        return "cite"
-
-    def _route_after_validate(self, state: FinancialAgentState) -> str:
-        active_subtask = dict(state.get("active_subtask") or {})
-        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary" and list(state.get("calc_subtasks") or []):
-            return "advance_subtask"
-        return "cite"
-
-    def _route_after_formula_planner(self, state: FinancialAgentState) -> str:
-        if not self._is_reflection_eligible(state):
-            return "calculator"
-        if int(state.get("reflection_count") or 0) >= 1:
-            return "calculator"
-        plan = dict(
-            _resolve_runtime_calculation_trace(
-                dict(state),
-                allow_legacy_top_level=False,
-            ).get("calculation_plan") or {}
-        )
-        status = str(plan.get("status") or "ok").lower()
-        if status == "incomplete":
-            return "reflection_replan"
-        return "calculator"
-
-    def _route_after_calculator(self, state: FinancialAgentState) -> str:
-        if not self._is_reflection_eligible(state):
-            return "calc_render"
-        if int(state.get("reflection_count") or 0) >= 1:
-            return "calc_render"
-        result = dict(
-            _resolve_runtime_calculation_trace(
-                dict(state),
-                allow_legacy_top_level=False,
-            ).get("calculation_result") or {}
-        )
-        status = str(result.get("status") or "")
-        if status in {"insufficient_operands", "parse_error"}:
-            return "reflection_replan"
-        return "calc_render"
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
         seen = set()

@@ -30,6 +30,7 @@ if TYPE_CHECKING:
         RuntimeCalculationTrace,
     )
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+from src.agent.financial_operation_policies import _requires_direct_numeric_grounding
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, SECTION_BIAS_BY_QUERY_TYPE
 
@@ -60,6 +61,7 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import (
     _attach_runtime_projection_metadata,
     _build_aggregate_calculation_projection,
+    _resolve_runtime_calculation_trace,
     _structured_result_subtask_rows_and_answer,
 )
 from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
@@ -697,6 +699,147 @@ class FinancialAgent(
         if llm is None:
             raise ValueError(f"LLM route '{phase}' is not initialized.")
         return llm
+
+    def _active_retry_strategy(self, state: FinancialAgentState) -> str:
+        for candidate in (
+            state.get("retry_strategy"),
+            dict(state.get("reconciliation_result") or {}).get("retry_strategy"),
+            dict(state.get("reflection_plan") or {}).get("retry_strategy"),
+        ):
+            cleaned = _normalise_spaces(str(candidate or "")).lower()
+            if cleaned:
+                return cleaned
+        return ""
+
+    def _is_reflection_eligible(self, state: FinancialAgentState) -> bool:
+        intent = state.get("intent") or state.get("query_type", "qa")
+        return intent in {"comparison", "trend"}
+
+    def _route_after_prepare_retry(self, state: FinancialAgentState) -> str:
+        if self._active_retry_strategy(state) == "synthesize_from_task_outputs":
+            return "operand_extractor"
+        return "retrieve"
+
+    def _route_after_expand(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation == "narrative_summary":
+            return "evidence"
+        if list(state.get("calc_subtasks") or []):
+            if active_operation in {"lookup", "single_value"}:
+                return "numeric_extractor"
+            return "evidence"
+        intent = state.get("intent") or state.get("query_type", "qa")
+        if intent == "numeric_fact":
+            return "numeric_extractor"
+        return "evidence"
+
+    def _route_after_numeric_extractor(self, state: FinancialAgentState) -> str:
+        if list(state.get("calc_subtasks") or []):
+            active_subtask = dict(state.get("active_subtask") or {})
+            active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+            evidence_status = str(state.get("evidence_status") or "").strip().lower()
+            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
+            if active_operation in {"lookup", "single_value"} and evidence_status == "missing" and has_retrieved_docs:
+                return "reconcile_plan"
+            return "advance_subtask"
+        return "cite"
+
+    def _route_after_evidence(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation == "narrative_summary":
+            return "compress"
+        if list(state.get("calc_subtasks") or []):
+            return "reconcile_plan"
+        intent = state.get("intent") or state.get("query_type", "qa")
+        if intent in {"comparison", "trend"}:
+            return "reconcile_plan"
+        return "compress"
+
+    def _route_after_reconcile_plan(self, state: FinancialAgentState) -> str:
+        result = dict(state.get("reconciliation_result") or {})
+        status = str(result.get("status") or "ready")
+        retry_strategy = _normalise_spaces(str(result.get("retry_strategy") or "")).lower()
+        if status == "ready":
+            return "operand_extractor"
+        if retry_strategy == "synthesize_from_task_outputs":
+            return "operand_extractor"
+        if status == "retry_retrieval":
+            return "retrieve"
+        if status == "insufficient_operands":
+            active_subtask = dict(state.get("active_subtask") or {})
+            required_operands = [
+                item
+                for item in (active_subtask.get("required_operands") or [])
+                if isinstance(item, dict) and bool(item.get("required", True))
+            ]
+            has_retrieved_docs = bool(state.get("retrieved_docs") or state.get("seed_retrieved_docs"))
+            if required_operands and has_retrieved_docs and not _requires_direct_numeric_grounding(active_subtask):
+                return "operand_extractor"
+        return "advance_subtask"
+
+    def _route_after_advance_subtask(self, state: FinancialAgentState) -> str:
+        if bool(state.get("subtask_loop_complete")):
+            return "aggregate_subtasks"
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_operation = str(active_subtask.get("operation_family") or "").strip().lower()
+        if active_operation in {"lookup", "single_value", "narrative_summary"}:
+            return "retrieve"
+        return "reconcile_plan"
+
+    def _route_after_aggregate_subtasks(self, state: FinancialAgentState) -> str:
+        semantic_status = _normalise_spaces(
+            str((state.get("semantic_plan") or {}).get("status") or "")
+        ).lower()
+        if semantic_status == "narrative_policy_exclusive":
+            return "cite"
+        planner_feedback = _normalise_spaces(str(state.get("planner_feedback") or ""))
+        if (
+            planner_feedback
+            and int(state.get("plan_loop_count") or 0) < 2
+            and not _normalise_spaces(str(state.get("replan_blocked_reason") or ""))
+        ):
+            return "pre_calc_planner"
+        return "cite"
+
+    def _route_after_validate(self, state: FinancialAgentState) -> str:
+        active_subtask = dict(state.get("active_subtask") or {})
+        if str(active_subtask.get("operation_family") or "").strip().lower() == "narrative_summary" and list(state.get("calc_subtasks") or []):
+            return "advance_subtask"
+        return "cite"
+
+    def _route_after_formula_planner(self, state: FinancialAgentState) -> str:
+        if not self._is_reflection_eligible(state):
+            return "calculator"
+        if int(state.get("reflection_count") or 0) >= 1:
+            return "calculator"
+        plan = dict(
+            _resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            ).get("calculation_plan") or {}
+        )
+        status = str(plan.get("status") or "ok").lower()
+        if status == "incomplete":
+            return "reflection_replan"
+        return "calculator"
+
+    def _route_after_calculator(self, state: FinancialAgentState) -> str:
+        if not self._is_reflection_eligible(state):
+            return "calc_render"
+        if int(state.get("reflection_count") or 0) >= 1:
+            return "calc_render"
+        result = dict(
+            _resolve_runtime_calculation_trace(
+                dict(state),
+                allow_legacy_top_level=False,
+            ).get("calculation_result") or {}
+        )
+        status = str(result.get("status") or "")
+        if status in {"insufficient_operands", "parse_error"}:
+            return "reflection_replan"
+        return "calc_render"
 
     def _build_graph(self):
         """Wire the LangGraph state machine.

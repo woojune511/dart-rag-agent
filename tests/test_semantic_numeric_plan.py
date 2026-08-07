@@ -18,7 +18,9 @@ from src.agent.financial_graph_helpers import (
     _build_semantic_numeric_plan,
     _extract_segment_labels_from_query,
     _infer_period_focus,
-    _merge_operand_rows,
+)
+from src.agent.financial_operand_resolution import (
+    merge_operand_rows,
     _missing_required_operands,
 )
 from src.agent.financial_row_surfaces import (
@@ -2387,7 +2389,7 @@ class SemanticNumericPlanTests(unittest.TestCase):
         ]
 
         missing = _missing_required_operands(required_operands, direct_rows)
-        merged = _merge_operand_rows(
+        merged = merge_operand_rows(
             direct_rows,
             fallback_rows,
             required_operands=required_operands,

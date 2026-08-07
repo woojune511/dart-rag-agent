@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -12,12 +13,14 @@ from src.agent.financial_artifact_contracts import (
     payload_missing_contract,
     reconciliation_result_status,
 )
+from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.schema.runtime_enums import ArtifactKind, TaskKind, TaskStatus
 
 __all__ = [
     "aggregate_answer_artifact_update",
     "calculation_plan_artifact_update",
     "calculation_result_artifact_update",
+    "next_reflection_task_id",
     "operand_set_artifact_update",
     "reconciliation_result_artifact_update",
     "reflection_report_artifact_update",
@@ -25,6 +28,36 @@ __all__ = [
     "supersede_task_with_aggregate_result",
     "project_task_artifact_trace",
 ]
+
+
+def next_reflection_task_id(
+    *,
+    tasks: Sequence[Mapping[str, Any]],
+    artifacts: Sequence[Mapping[str, Any]],
+    target_task_id: str,
+    current_count: int,
+) -> str:
+    target = _normalise_spaces(str(target_task_id or "")) or "global"
+    prefix = f"reflection:{target}:"
+    used_indexes: set[int] = set()
+    pattern = re.compile(rf"^{re.escape(prefix)}(\d+)(?::report)?$")
+    for task in tasks or []:
+        if not isinstance(task, Mapping):
+            continue
+        match = pattern.match(str(task.get("task_id") or "").strip())
+        if match:
+            used_indexes.add(int(match.group(1)))
+    for artifact in artifacts or []:
+        if not isinstance(artifact, Mapping):
+            continue
+        for value in (artifact.get("task_id"), artifact.get("artifact_id")):
+            match = pattern.match(str(value or "").strip())
+            if match:
+                used_indexes.add(int(match.group(1)))
+    next_index = max(int(current_count or 0) + 1, 1)
+    while next_index in used_indexes:
+        next_index += 1
+    return f"{prefix}{next_index:03d}"
 
 
 @lru_cache(maxsize=1)

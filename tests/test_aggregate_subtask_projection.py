@@ -16,7 +16,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_task_ids,
     aggregate_task_status_value,
 )
-from src.agent.financial_graph_calculation import _evidence_item_conflicts_requested_scope
+from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
 from src.agent.financial_dependency_projection import dependency_operand_can_use_source_slot
 from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
@@ -1732,8 +1732,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             }
         }
 
-        self.assertFalse(_evidence_item_conflicts_requested_scope(matching_context, "consolidated"))
-        self.assertTrue(_evidence_item_conflicts_requested_scope(opposing_context, "consolidated"))
+        self.assertFalse(evidence_item_conflicts_requested_scope(matching_context, "consolidated"))
+        self.assertTrue(evidence_item_conflicts_requested_scope(opposing_context, "consolidated"))
 
     def test_lookup_preference_uses_requested_scope_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -2826,76 +2826,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         self.assertFalse(agent._ratio_components_are_complete(calculation_result))
 
-    def test_ratio_operand_rows_collapse_when_roles_share_source_value(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        rows = [
-            {
-                "matched_operand_role": "numerator_1",
-                "matched_operand_label": "segment revenue",
-                "raw_value": "100",
-                "raw_unit": "million",
-                "normalized_value": 100_000_000.0,
-                "evidence_id": "row_total",
-                "source_row_id": "row_total",
-            },
-            {
-                "matched_operand_role": "denominator_1",
-                "matched_operand_label": "total revenue",
-                "raw_value": "100",
-                "raw_unit": "million",
-                "normalized_value": 100_000_000.0,
-                "evidence_id": "row_total",
-                "source_row_id": "row_total",
-            },
-        ]
-
-        self.assertTrue(agent._ratio_operand_rows_collapse_to_same_slot(rows))
-
-    def test_operation_plan_guard_rejects_ratio_roles_sharing_source_value(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        operands = [
-            {
-                "operand_id": "op_num",
-                "matched_operand_role": "numerator_1",
-                "matched_operand_label": "segment operating income",
-                "raw_value": "100",
-                "raw_unit": "million",
-                "normalized_value": 100_000_000.0,
-                "evidence_id": "row_same",
-            },
-            {
-                "operand_id": "op_den",
-                "matched_operand_role": "denominator_1",
-                "matched_operand_label": "total operating income",
-                "raw_value": "100",
-                "raw_unit": "million",
-                "normalized_value": 100_000_000.0,
-                "evidence_id": "row_same",
-            },
-        ]
-        plan = {
-            "operation": "ratio",
-            "ordered_operand_ids": ["op_num", "op_den"],
-            "variable_bindings": [
-                {"variable": "A", "operand_id": "op_num"},
-                {"variable": "B", "operand_id": "op_den"},
-            ],
-        }
-        required_operands = [
-            {"label": "segment operating income", "role": "numerator_1", "required": True},
-            {"label": "total operating income", "role": "denominator_1", "required": True},
-        ]
-
-        guarded_plan = agent._operation_plan_guard(
-            plan=plan,
-            operands=operands,
-            required_operands=required_operands,
-            operation_family="ratio",
-        )
-
-        self.assertIsNotNone(guarded_plan)
-        self.assertIn("distinct_ratio_roles", guarded_plan["missing_info"])
-
     def test_ratio_dependency_source_slot_requires_role_target_match(self) -> None:
         operand = {
             "matched_operand_role": "denominator_1",
@@ -3586,8 +3516,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ]
 
         agent._build_required_operands_from_candidates = build_rows
-        agent._filter_operand_rows_by_required_surface_contract = lambda rows, *_args, **_kwargs: rows
-
         rows = agent._build_complete_ratio_operands_from_coherent_context(
             evidence_items,
             required_operands=required_operands,

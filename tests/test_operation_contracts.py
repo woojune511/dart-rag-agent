@@ -37,11 +37,17 @@ from src.agent.financial_graph_helpers import (
     _score_operand_candidate,
     _extract_generic_operand_labels,
     _operand_target_years,
-    _operand_row_matches_requirement,
     _order_concept_specs_by_query,
     _resolve_candidate_local_unit_hint,
 )
 from src.agent.financial_graph_evidence import _prioritize_candidate_items
+from src.agent.financial_operand_resolution import (
+    _evidence_item_for_operand_row,
+    _filter_operand_rows_by_required_surface_contract,
+    _llm_lookup_operand_has_direct_support,
+    _operand_row_matches_requirement,
+    _operand_row_satisfies_required_surface_contract,
+)
 from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
@@ -267,7 +273,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual([item["evidence_id"] for item in projected], ["ev_001", "ev_002"])
 
     def test_lookup_operand_rejects_unlabeled_aggregate_claim(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 DX 매출액",
             "raw_value": "638,217",
@@ -289,11 +294,10 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertFalse(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_lookup_operand_rejects_inferred_sum_claim(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 SDC 매출액",
             "raw_value": "434,327",
@@ -315,11 +319,10 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertFalse(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_lookup_operand_accepts_direct_labeled_claim(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 SDC 매출액",
             "raw_value": "291,578",
@@ -341,11 +344,10 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertTrue(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_lookup_operand_rejects_label_from_broad_context_only(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "2024년 target metric",
             "raw_value": "451,284",
@@ -368,7 +370,7 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertFalse(
-            agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
+            _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands)
         )
 
     def test_required_operand_builder_does_not_steal_other_operand_row_from_context(self) -> None:
@@ -406,7 +408,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(by_role["addend_b"]["raw_value"], "222")
 
     def test_ratio_operand_rejects_bound_label_without_source_surface_support(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
             {
                 "label": "target denominator",
@@ -454,7 +455,7 @@ class OperationContractTests(unittest.TestCase):
         supported_row["source_row_id"] = "ev_supported"
 
         self.assertFalse(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 mislabeled_row,
                 evidence_by_id,
                 required_operands,
@@ -462,7 +463,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 supported_row,
                 evidence_by_id,
                 required_operands,
@@ -471,7 +472,6 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_ratio_surface_filter_checks_structured_table_value_surface(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
             {
                 "label": "target numerator",
@@ -546,7 +546,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        filtered = agent._filter_operand_rows_by_required_surface_contract(
+        filtered = _filter_operand_rows_by_required_surface_contract(
             candidate_rows,
             evidence_items,
             required_operands,
@@ -557,7 +557,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
 
     def test_segment_surface_contract_rejects_metric_prefix_false_positive(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         required_operands = [
             {
                 "label": "매출액",
@@ -609,7 +608,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 broad_row,
                 evidence_by_id,
                 required_operands,
@@ -617,7 +616,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            agent._operand_row_satisfies_required_surface_contract(
+            _operand_row_satisfies_required_surface_contract(
                 segment_row,
                 evidence_by_id,
                 required_operands,
@@ -662,7 +661,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(ranked[0]["evidence_id"], "ev_direct_customer_revenue")
 
     def test_operating_margin_drag_numerator_requires_exact_surface_contract(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         ontology = FinancialOntologyManager(Path("src/config/financial_ontology.json"))
         required_operands = [
             row
@@ -719,7 +717,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        filtered = agent._filter_operand_rows_by_required_surface_contract(
+        filtered = _filter_operand_rows_by_required_surface_contract(
             candidate_rows,
             evidence_items,
             required_operands,
@@ -3806,7 +3804,7 @@ class OperationContractTests(unittest.TestCase):
             }
         }
 
-        evidence_item = agent._evidence_item_for_operand_row(row, evidence_by_id)
+        evidence_item = _evidence_item_for_operand_row(row, evidence_by_id)
         coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
 
         self.assertEqual(coerced["raw_unit"], "억원")
@@ -4038,7 +4036,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertNotIn("29.93%", answer)
 
     def test_lookup_direct_support_accepts_raw_value_with_embedded_unit(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         row = {
             "label": "첨단제조 생산세액공제",
             "matched_operand_label": "첨단제조 생산세액공제",
@@ -4058,7 +4055,7 @@ class OperationContractTests(unittest.TestCase):
             }
         ]
 
-        self.assertTrue(agent._llm_lookup_operand_has_direct_support(row, evidence_item, required_operands))
+        self.assertTrue(_llm_lookup_operand_has_direct_support(row, evidence_item, required_operands))
 
     def test_difference_renderer_prefers_slot_contract_over_llm_rendering(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7077,33 +7074,6 @@ class OperationContractTests(unittest.TestCase):
         calc = _resolve_runtime_calculation_trace(execution_result)["calculation_result"]
         self.assertEqual(calc["status"], "scale_mismatch")
         self.assertEqual(calc["rendered_value"], "")
-
-    def test_dependency_aggregate_policy_blocks_detail_context_replacement(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        row = {
-            "dependency_resolved": True,
-            "source_task_id": "task_revenue",
-            "evidence_id": "task_output:task_revenue",
-            "source_row_ids": ["task_output:task_revenue", "summary_total_value"],
-            "matched_operand_label": "매출액",
-            "matched_operand_role": "denominator",
-            "raw_value": "2,176,431,531",
-            "normalized_value": 2176431531000.0,
-            "aggregation_stage": "final",
-            "binding_policy": {"prefer_aggregation_stages": ["final", "subtotal"]},
-        }
-        replacement = {
-            "evidence_id": "segment_detail_value",
-            "source_row_ids": ["segment_detail_value", "summary_total_value"],
-            "matched_operand_label": "매출액",
-            "matched_operand_role": "denominator",
-            "raw_value": "1,873,430,064",
-            "normalized_value": 1873430064000.0,
-            "value_role": "detail",
-            "aggregation_stage": "none",
-        }
-
-        self.assertTrue(agent._task_output_operand_row_should_keep_value(row, replacement))
 
     def test_formula_planner_prefers_resolved_runtime_trace_over_stale_flat_fields(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

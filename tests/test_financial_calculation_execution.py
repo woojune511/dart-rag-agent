@@ -1,16 +1,403 @@
 import unittest
+from copy import deepcopy
+from unittest.mock import patch
 
 from src.agent.financial_calculation_execution import (
+    CalculationExecutionOutcome,
     build_failed_calculation_result,
     build_scalar_calculation_result,
     build_scalar_calculation_state,
     build_success_calculation_state_payload,
     build_time_series_calculation_result,
+    execute_prepared_calculation_plan,
+    guard_operation_plan,
     time_series_yoy_growth_rates,
 )
+from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_models import CalculationResult
 
 
 class FinancialCalculationExecutionTests(unittest.TestCase):
+    def test_guard_operation_plan_accepts_distinct_ratio_bindings(self) -> None:
+        guarded_plan = guard_operation_plan(
+            plan={
+                "operation": "ratio",
+                "ordered_operand_ids": ["op_num", "op_den"],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "op_num"},
+                    {"variable": "B", "operand_id": "op_den"},
+                ],
+            },
+            operands=[
+                {
+                    "operand_id": "op_num",
+                    "matched_operand_role": "numerator_1",
+                    "matched_operand_label": "segment operating income",
+                    "normalized_value": 100.0,
+                    "evidence_id": "row_num",
+                },
+                {
+                    "operand_id": "op_den",
+                    "matched_operand_role": "denominator_1",
+                    "matched_operand_label": "total operating income",
+                    "normalized_value": 200.0,
+                    "evidence_id": "row_den",
+                },
+            ],
+            required_operands=[
+                {"label": "segment operating income", "role": "numerator_1", "required": True},
+                {"label": "total operating income", "role": "denominator_1", "required": True},
+            ],
+            operation_family="ratio",
+        )
+
+        self.assertIsNone(guarded_plan)
+
+    def test_guard_operation_plan_uses_variable_bindings_when_ordered_ids_are_absent(self) -> None:
+        guarded_plan = guard_operation_plan(
+            plan={
+                "operation": "difference",
+                "ordered_operand_ids": [],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "current"},
+                    {"variable": "B", "operand_id": "prior"},
+                ],
+            },
+            operands=[
+                {"operand_id": "current", "normalized_value": 30.0},
+                {"operand_id": "prior", "normalized_value": 20.0},
+            ],
+            required_operands=[],
+            operation_family="difference",
+        )
+
+        self.assertIsNone(guarded_plan)
+
+    def test_guard_operation_plan_rejects_ratio_roles_sharing_source_value(self) -> None:
+        guarded_plan = guard_operation_plan(
+            plan={
+                "operation": "ratio",
+                "ordered_operand_ids": ["op_num", "op_den"],
+                "variable_bindings": [
+                    {"variable": "A", "operand_id": "op_num"},
+                    {"variable": "B", "operand_id": "op_den"},
+                ],
+            },
+            operands=[
+                {
+                    "operand_id": "op_num",
+                    "matched_operand_role": "numerator_1",
+                    "matched_operand_label": "segment operating income",
+                    "raw_value": "100",
+                    "raw_unit": "million",
+                    "normalized_value": 100_000_000.0,
+                    "evidence_id": "row_same",
+                },
+                {
+                    "operand_id": "op_den",
+                    "matched_operand_role": "denominator_1",
+                    "matched_operand_label": "total operating income",
+                    "raw_value": "100",
+                    "raw_unit": "million",
+                    "normalized_value": 100_000_000.0,
+                    "evidence_id": "row_same",
+                },
+            ],
+            required_operands=[
+                {"label": "segment operating income", "role": "numerator_1", "required": True},
+                {"label": "total operating income", "role": "denominator_1", "required": True},
+            ],
+            operation_family="ratio",
+        )
+
+        self.assertEqual(
+            guarded_plan,
+            {
+                "status": "incomplete",
+                "mode": "none",
+                "operation": "none",
+                "ordered_operand_ids": [],
+                "variable_bindings": [],
+                "formula": "",
+                "pairwise_formula": "",
+                "result_unit": "",
+                "operation_text": "",
+                "explanation": "operation plan does not satisfy required operand bindings",
+                "missing_info": ["distinct_ratio_roles"],
+            },
+        )
+
+    def test_calculation_result_schema_accepts_runtime_scale_mismatch_status(self) -> None:
+        result = CalculationResult(status="scale_mismatch")
+
+        self.assertEqual(result.status, "scale_mismatch")
+
+    def test_execute_prepared_calculation_plan_runs_scalar_formula_without_graph_state(self) -> None:
+        outcome = execute_prepared_calculation_plan(
+            mode="single_value",
+            operation="subtract",
+            formula="A - B",
+            pairwise_formula="",
+            result_unit="KRW",
+            operands_by_id={
+                "current": {
+                    "operand_id": "current",
+                    "normalized_value": 30.0,
+                    "normalized_unit": "KRW",
+                    "evidence_id": "ev_current",
+                },
+                "prior": {
+                    "operand_id": "prior",
+                    "normalized_value": 20.0,
+                    "normalized_unit": "KRW",
+                    "evidence_id": "ev_prior",
+                },
+                "distractor": {
+                    "operand_id": "distractor",
+                    "normalized_value": 999.0,
+                    "normalized_unit": "KRW",
+                    "evidence_id": "ev_distractor",
+                },
+            },
+            ordered_operand_ids=["current", "prior"],
+            variable_bindings=[
+                {"variable": "A", "operand_id": "current"},
+                {"variable": "B", "operand_id": "prior"},
+            ],
+        )
+
+        self.assertEqual(outcome.status, "ok")
+        self.assertEqual(outcome.result_value, 10.0)
+        self.assertEqual(outcome.normalized_unit, "KRW")
+        self.assertEqual(outcome.source_normalized_unit, "KRW")
+        self.assertEqual(outcome.selected_evidence_ids, ("ev_current", "ev_prior"))
+
+    def test_execute_prepared_calculation_plan_rejects_divergent_operand_sets_without_mutation(
+        self,
+    ) -> None:
+        operands_by_id = {
+            "left": {
+                "operand_id": "left",
+                "normalized_value": 30.0,
+                "normalized_unit": "KRW",
+                "evidence_id": "ev_left",
+            },
+            "right": {
+                "operand_id": "right",
+                "normalized_value": 2.0,
+                "normalized_unit": "COUNT",
+                "evidence_id": "ev_right",
+            },
+        }
+        ordered_operand_ids = ["left"]
+        variable_bindings = [
+            {"variable": "A", "operand_id": "left"},
+            {"variable": "B", "operand_id": "right"},
+        ]
+        original_operands = deepcopy(operands_by_id)
+        original_ordered_ids = list(ordered_operand_ids)
+        original_bindings = deepcopy(variable_bindings)
+
+        outcome = execute_prepared_calculation_plan(
+            mode="single_value",
+            operation="sum",
+            formula="A + B",
+            pairwise_formula="",
+            result_unit="",
+            operands_by_id=operands_by_id,
+            ordered_operand_ids=ordered_operand_ids,
+            variable_bindings=variable_bindings,
+        )
+
+        self.assertEqual(outcome.status, "parse_error")
+        self.assertEqual(operands_by_id, original_operands)
+        self.assertEqual(ordered_operand_ids, original_ordered_ids)
+        self.assertEqual(variable_bindings, original_bindings)
+
+    def test_graph_adapter_projects_executor_failures_only_to_canonical_trace(self) -> None:
+        statuses = (
+            "insufficient_operands",
+            "unit_mismatch",
+            "zero_division",
+            "parse_error",
+        )
+        operand = {
+            "operand_id": "value",
+            "evidence_id": "ev_value",
+            "label": "value",
+            "raw_value": "10",
+            "raw_unit": "",
+            "normalized_value": 10.0,
+            "normalized_unit": "COUNT",
+            "matched_operand_role": "primary_value",
+        }
+        plan = {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "lookup",
+            "ordered_operand_ids": ["value"],
+            "variable_bindings": [{"variable": "A", "operand_id": "value"}],
+            "formula": "A",
+            "pairwise_formula": "",
+            "result_unit": "",
+        }
+        state = {
+            "query": "Return the supported value.",
+            "active_subtask": {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "metric_label": "value",
+                "operation_family": "lookup",
+            },
+            "resolved_calculation_trace": {
+                "calculation_operands": [operand],
+                "calculation_plan": plan,
+                "calculation_result": {},
+            },
+            "evidence_items": [],
+            "runtime_evidence": [],
+            "tasks": [],
+            "artifacts": [],
+        }
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        for status in statuses:
+            with self.subTest(status=status):
+                original_state = deepcopy(state)
+                execution_outcome = CalculationExecutionOutcome(
+                    status=status,
+                    reason=f"{status} from deterministic executor",
+                    result_value=None,
+                    normalized_unit="",
+                    source_normalized_unit="COUNT",
+                    ordered_operands=(deepcopy(operand),),
+                    selected_evidence_ids=("ev_value",),
+                )
+                with patch(
+                    "src.agent.financial_graph_calculation.execute_prepared_calculation_plan",
+                    return_value=execution_outcome,
+                ) as executor:
+                    result = agent._execute_calculation(state)
+
+                executor.assert_called_once()
+                trace = result["resolved_calculation_trace"]
+                self.assertEqual(trace["calculation_result"]["status"], status)
+                self.assertEqual(
+                    trace["calculation_result"]["explanation"],
+                    execution_outcome.reason,
+                )
+                self.assertEqual(trace["calculation_plan"], plan)
+                self.assertEqual(result["selected_claim_ids"], ["ev_value"])
+                self.assertNotIn("calculation_operands", result)
+                self.assertNotIn("calculation_plan", result)
+                self.assertNotIn("calculation_result", result)
+                self.assertEqual(state, original_state)
+
+    def test_execute_prepared_calculation_plan_sorts_time_series_and_projects_growth_rates(self) -> None:
+        outcome = execute_prepared_calculation_plan(
+            mode="time_series",
+            operation="time_series_trend",
+            formula="CURRENT - PRIOR",
+            pairwise_formula="((CURR - PREV) / PREV) * 100",
+            result_unit="KRW",
+            operands_by_id={
+                "current": {
+                    "operand_id": "current",
+                    "period": "2024",
+                    "normalized_value": 115.0,
+                    "normalized_unit": "KRW",
+                    "evidence_id": "ev_current",
+                },
+                "prior": {
+                    "operand_id": "prior",
+                    "period": "2023",
+                    "normalized_value": 100.0,
+                    "normalized_unit": "KRW",
+                    "evidence_id": "ev_prior",
+                },
+            },
+            ordered_operand_ids=["current", "prior"],
+            variable_bindings=[
+                {"variable": "CURRENT", "operand_id": "current"},
+                {"variable": "PRIOR", "operand_id": "prior"},
+            ],
+        )
+
+        self.assertEqual(outcome.status, "ok")
+        self.assertEqual(outcome.result_value, 15.0)
+        self.assertEqual([row["period"] for row in outcome.ordered_operands], ["2023", "2024"])
+        self.assertEqual(outcome.selected_evidence_ids, ("ev_prior", "ev_current"))
+        self.assertEqual(outcome.yoy_growth_rates, (None, 15.0))
+
+    def test_execute_prepared_calculation_plan_rejects_mixed_unit_families(self) -> None:
+        outcome = execute_prepared_calculation_plan(
+            mode="single_value",
+            operation="ratio",
+            formula="(A / B) * 100",
+            pairwise_formula="",
+            result_unit="%",
+            operands_by_id={
+                "numerator": {
+                    "normalized_value": 10.0,
+                    "normalized_unit": "KRW",
+                    "evidence_id": "ev_numerator",
+                },
+                "denominator": {
+                    "normalized_value": 20.0,
+                    "normalized_unit": "COUNT",
+                    "evidence_id": "ev_denominator",
+                },
+            },
+            ordered_operand_ids=["numerator", "denominator"],
+            variable_bindings=[
+                {"variable": "A", "operand_id": "numerator"},
+                {"variable": "B", "operand_id": "denominator"},
+            ],
+        )
+
+        self.assertEqual(outcome.status, "unit_mismatch")
+        self.assertIn("unit families differ", outcome.reason)
+        self.assertIsNone(outcome.result_value)
+        self.assertEqual(outcome.selected_evidence_ids, ("ev_numerator", "ev_denominator"))
+
+    def test_execute_prepared_calculation_plan_classifies_zero_division(self) -> None:
+        outcome = execute_prepared_calculation_plan(
+            mode="single_value",
+            operation="ratio",
+            formula="A / B",
+            pairwise_formula="",
+            result_unit="%",
+            operands_by_id={
+                "numerator": {"normalized_value": 10.0, "normalized_unit": "KRW"},
+                "denominator": {"normalized_value": 0.0, "normalized_unit": "KRW"},
+            },
+            ordered_operand_ids=["numerator", "denominator"],
+            variable_bindings=[
+                {"variable": "A", "operand_id": "numerator"},
+                {"variable": "B", "operand_id": "denominator"},
+            ],
+        )
+
+        self.assertEqual(outcome.status, "zero_division")
+        self.assertIsNone(outcome.result_value)
+
+    def test_execute_prepared_calculation_plan_requires_scalar_formula(self) -> None:
+        outcome = execute_prepared_calculation_plan(
+            mode="single_value",
+            operation="lookup",
+            formula="",
+            pairwise_formula="",
+            result_unit="KRW",
+            operands_by_id={
+                "value": {"normalized_value": 10.0, "normalized_unit": "KRW"},
+            },
+            ordered_operand_ids=["value"],
+            variable_bindings=[{"variable": "A", "operand_id": "value"}],
+        )
+
+        self.assertEqual(outcome.status, "parse_error")
+        self.assertEqual(outcome.reason, "missing scalar formula")
+
     def test_build_failed_calculation_result_uses_missing_primary_slot_without_operands(self) -> None:
         result = build_failed_calculation_result(
             active_subtask={

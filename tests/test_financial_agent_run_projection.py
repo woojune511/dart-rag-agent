@@ -1,7 +1,10 @@
 import unittest
+from copy import deepcopy
 from types import SimpleNamespace
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
+from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 from src.agent.financial_graph_state import AgentAnswer, DebugBundle, FinancialAgentState, ReviewTrace
 from src.agent.financial_graph_state import (
     CalculationState,
@@ -59,12 +62,298 @@ class _PhaseUsageGraph:
 
 
 class FinancialAgentRunProjectionTests(unittest.TestCase):
+    def test_graph_shell_owns_conditional_route_methods(self) -> None:
+        route_methods = {
+            "_route_after_prepare_retry",
+            "_route_after_expand",
+            "_route_after_numeric_extractor",
+            "_route_after_evidence",
+            "_route_after_reconcile_plan",
+            "_route_after_advance_subtask",
+            "_route_after_aggregate_subtasks",
+            "_route_after_validate",
+            "_route_after_formula_planner",
+            "_route_after_calculator",
+        }
+
+        self.assertTrue(route_methods.issubset(FinancialAgent.__dict__))
+        self.assertTrue(route_methods.isdisjoint(FinancialAgentCalculationMixin.__dict__))
+        self.assertIn("_active_retry_strategy", FinancialAgent.__dict__)
+        self.assertNotIn("_active_retry_strategy", FinancialAgentCalculationMixin.__dict__)
+        self.assertIn("_is_reflection_eligible", FinancialAgent.__dict__)
+        self.assertNotIn("_is_reflection_eligible", FinancialAgentReconciliationMixin.__dict__)
+
+    def test_graph_shell_route_matrix_preserves_branch_precedence_and_canonical_trace_boundary(self) -> None:
+        canonical_incomplete_plan = {
+            "resolved_calculation_trace": {"calculation_plan": {"status": "incomplete"}}
+        }
+        canonical_ok_plan = {
+            "resolved_calculation_trace": {"calculation_plan": {"status": "ok"}}
+        }
+        canonical_insufficient_result = {
+            "resolved_calculation_trace": {"calculation_result": {"status": "insufficient_operands"}}
+        }
+        canonical_parse_error_result = {
+            "resolved_calculation_trace": {"calculation_result": {"status": "parse_error"}}
+        }
+        canonical_ok_result = {
+            "resolved_calculation_trace": {"calculation_result": {"status": "ok"}}
+        }
+        cases = [
+            (
+                "prepare_synthesis",
+                "_route_after_prepare_retry",
+                {"retry_strategy": "synthesize_from_task_outputs"},
+                "operand_extractor",
+            ),
+            ("prepare_default", "_route_after_prepare_retry", {}, "retrieve"),
+            (
+                "expand_narrative_priority",
+                "_route_after_expand",
+                {"active_subtask": {"operation_family": "narrative_summary"}, "calc_subtasks": [{}]},
+                "evidence",
+            ),
+            (
+                "expand_loop_lookup",
+                "_route_after_expand",
+                {"active_subtask": {"operation_family": "lookup"}, "calc_subtasks": [{}]},
+                "numeric_extractor",
+            ),
+            (
+                "expand_loop_arithmetic",
+                "_route_after_expand",
+                {"active_subtask": {"operation_family": "ratio"}, "calc_subtasks": [{}]},
+                "evidence",
+            ),
+            ("expand_numeric", "_route_after_expand", {"intent": "numeric_fact"}, "numeric_extractor"),
+            ("expand_default", "_route_after_expand", {}, "evidence"),
+            (
+                "numeric_lookup_missing_with_docs",
+                "_route_after_numeric_extractor",
+                {
+                    "active_subtask": {"operation_family": "lookup"},
+                    "calc_subtasks": [{}],
+                    "evidence_status": "missing",
+                    "retrieved_docs": ["doc"],
+                },
+                "reconcile_plan",
+            ),
+            (
+                "numeric_loop_default",
+                "_route_after_numeric_extractor",
+                {"active_subtask": {"operation_family": "ratio"}, "calc_subtasks": [{}]},
+                "advance_subtask",
+            ),
+            ("numeric_no_loop", "_route_after_numeric_extractor", {}, "cite"),
+            (
+                "evidence_narrative_priority",
+                "_route_after_evidence",
+                {"active_subtask": {"operation_family": "narrative_summary"}, "calc_subtasks": [{}]},
+                "compress",
+            ),
+            ("evidence_loop", "_route_after_evidence", {"calc_subtasks": [{}]}, "reconcile_plan"),
+            ("evidence_comparison", "_route_after_evidence", {"intent": "comparison"}, "reconcile_plan"),
+            ("evidence_default", "_route_after_evidence", {}, "compress"),
+            (
+                "reconcile_ready",
+                "_route_after_reconcile_plan",
+                {"reconciliation_result": {"status": "ready"}},
+                "operand_extractor",
+            ),
+            (
+                "reconcile_synthesis_override",
+                "_route_after_reconcile_plan",
+                {"reconciliation_result": {"status": "insufficient_operands", "retry_strategy": "synthesize_from_task_outputs"}},
+                "operand_extractor",
+            ),
+            (
+                "reconcile_retry",
+                "_route_after_reconcile_plan",
+                {"reconciliation_result": {"status": "retry_retrieval"}},
+                "retrieve",
+            ),
+            (
+                "reconcile_insufficient_fillable",
+                "_route_after_reconcile_plan",
+                {
+                    "reconciliation_result": {"status": "insufficient_operands"},
+                    "active_subtask": {
+                        "operation_family": "narrative_summary",
+                        "required_operands": [{"label": "value"}],
+                    },
+                    "retrieved_docs": ["doc"],
+                },
+                "operand_extractor",
+            ),
+            (
+                "reconcile_insufficient_direct_grounding",
+                "_route_after_reconcile_plan",
+                {
+                    "reconciliation_result": {"status": "insufficient_operands"},
+                    "active_subtask": {
+                        "operation_family": "lookup",
+                        "required_operands": [{"label": "value"}],
+                    },
+                    "retrieved_docs": ["doc"],
+                },
+                "advance_subtask",
+            ),
+            (
+                "reconcile_default",
+                "_route_after_reconcile_plan",
+                {"reconciliation_result": {"status": "stopped"}},
+                "advance_subtask",
+            ),
+            (
+                "advance_complete",
+                "_route_after_advance_subtask",
+                {"subtask_loop_complete": True},
+                "aggregate_subtasks",
+            ),
+            (
+                "advance_lookup",
+                "_route_after_advance_subtask",
+                {"active_subtask": {"operation_family": "lookup"}},
+                "retrieve",
+            ),
+            (
+                "advance_arithmetic",
+                "_route_after_advance_subtask",
+                {"active_subtask": {"operation_family": "ratio"}},
+                "reconcile_plan",
+            ),
+            (
+                "aggregate_exclusive_priority",
+                "_route_after_aggregate_subtasks",
+                {
+                    "semantic_plan": {"status": "narrative_policy_exclusive"},
+                    "planner_feedback": "retry",
+                },
+                "cite",
+            ),
+            (
+                "aggregate_feedback",
+                "_route_after_aggregate_subtasks",
+                {"planner_feedback": "retry", "plan_loop_count": 0},
+                "pre_calc_planner",
+            ),
+            (
+                "aggregate_blocked",
+                "_route_after_aggregate_subtasks",
+                {"planner_feedback": "retry", "replan_blocked_reason": "blocked"},
+                "cite",
+            ),
+            ("aggregate_default", "_route_after_aggregate_subtasks", {}, "cite"),
+            (
+                "validate_narrative_loop",
+                "_route_after_validate",
+                {"active_subtask": {"operation_family": "narrative_summary"}, "calc_subtasks": [{}]},
+                "advance_subtask",
+            ),
+            ("validate_default", "_route_after_validate", {}, "cite"),
+            (
+                "formula_ineligible",
+                "_route_after_formula_planner",
+                {"intent": "qa", **canonical_incomplete_plan},
+                "calculator",
+            ),
+            (
+                "formula_retry_exhausted",
+                "_route_after_formula_planner",
+                {"intent": "comparison", "reflection_count": 1, **canonical_incomplete_plan},
+                "calculator",
+            ),
+            (
+                "formula_canonical_incomplete",
+                "_route_after_formula_planner",
+                {"intent": "comparison", "calculation_plan": {"status": "ok"}, **canonical_incomplete_plan},
+                "reflection_replan",
+            ),
+            (
+                "formula_ignores_legacy_incomplete",
+                "_route_after_formula_planner",
+                {"intent": "comparison", "calculation_plan": {"status": "incomplete"}, **canonical_ok_plan},
+                "calculator",
+            ),
+            (
+                "calculator_ineligible",
+                "_route_after_calculator",
+                {"intent": "qa", **canonical_insufficient_result},
+                "calc_render",
+            ),
+            (
+                "calculator_retry_exhausted",
+                "_route_after_calculator",
+                {"intent": "comparison", "reflection_count": 1, **canonical_insufficient_result},
+                "calc_render",
+            ),
+            (
+                "calculator_canonical_insufficient",
+                "_route_after_calculator",
+                {"intent": "comparison", "calculation_result": {"status": "ok"}, **canonical_insufficient_result},
+                "reflection_replan",
+            ),
+            (
+                "calculator_canonical_parse_error",
+                "_route_after_calculator",
+                {"intent": "trend", **canonical_parse_error_result},
+                "reflection_replan",
+            ),
+            (
+                "calculator_ignores_legacy_error",
+                "_route_after_calculator",
+                {"intent": "comparison", "calculation_result": {"status": "parse_error"}, **canonical_ok_result},
+                "calc_render",
+            ),
+        ]
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        for name, method_name, state, expected in cases:
+            with self.subTest(name=name):
+                original = deepcopy(state)
+                self.assertEqual(getattr(agent, method_name)(state), expected)
+                self.assertEqual(state, original)
+
     def test_build_graph_resolves_state_type_hints_for_langgraph_routes(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
 
         graph = FinancialAgent._build_graph(agent)
 
         self.assertIsNotNone(graph)
+        conditional_edges = {
+            (edge.source, edge.target)
+            for edge in graph.get_graph().edges
+            if edge.conditional
+        }
+        self.assertEqual(
+            conditional_edges,
+            {
+                ("expand", "numeric_extractor"),
+                ("expand", "evidence"),
+                ("numeric_extractor", "reconcile_plan"),
+                ("numeric_extractor", "advance_subtask"),
+                ("numeric_extractor", "cite"),
+                ("evidence", "reconcile_plan"),
+                ("evidence", "compress"),
+                ("reconcile_plan", "operand_extractor"),
+                ("reconcile_plan", "retrieve"),
+                ("reconcile_plan", "advance_subtask"),
+                ("formula_planner", "reflection_replan"),
+                ("formula_planner", "calculator"),
+                ("prepare_retry", "operand_extractor"),
+                ("prepare_retry", "retrieve"),
+                ("calculator", "reflection_replan"),
+                ("calculator", "calc_render"),
+                ("advance_subtask", "reconcile_plan"),
+                ("advance_subtask", "retrieve"),
+                ("advance_subtask", "evidence"),
+                ("advance_subtask", "aggregate_subtasks"),
+                ("aggregate_subtasks", "pre_calc_planner"),
+                ("aggregate_subtasks", "cite"),
+                ("validate", "advance_subtask"),
+                ("validate", "cite"),
+            },
+        )
 
     def test_state_typing_keeps_debug_surface_optional_without_flat_calculation_mirrors(self) -> None:
         self.assertIn("answer", AgentAnswer.__optional_keys__)

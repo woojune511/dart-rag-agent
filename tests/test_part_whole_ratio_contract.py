@@ -16,6 +16,10 @@ from src.agent.financial_graph_helpers import (
     _build_semantic_numeric_plan,
     _candidate_satisfies_direct_acceptance_contract,
 )
+from src.agent.financial_operand_resolution import (
+    _llm_lookup_operand_has_direct_support,
+    _operand_row_satisfies_required_surface_contract,
+)
 
 
 class PartWholeRatioContractTests(unittest.TestCase):
@@ -139,7 +143,6 @@ class PartWholeRatioContractTests(unittest.TestCase):
         self.assertEqual(coerced["normalized_unit"], "KRW")
 
     def test_lookup_direct_support_requires_positive_surface_contract(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",
             "concept": "capitalized_development_cost",
@@ -173,8 +176,8 @@ class PartWholeRatioContractTests(unittest.TestCase):
         }
         contracted_row = {**broad_row, "raw_value": "181,624,107", "normalized_value": 181624107000.0}
 
-        self.assertFalse(agent._llm_lookup_operand_has_direct_support(broad_row, broad_evidence, [operand]))
-        self.assertTrue(agent._llm_lookup_operand_has_direct_support(contracted_row, contracted_evidence, [operand]))
+        self.assertFalse(_llm_lookup_operand_has_direct_support(broad_row, broad_evidence, [operand]))
+        self.assertTrue(_llm_lookup_operand_has_direct_support(contracted_row, contracted_evidence, [operand]))
 
     def test_direct_lookup_score_requires_positive_surface_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -304,7 +307,6 @@ class PartWholeRatioContractTests(unittest.TestCase):
         self.assertIn("ev_strong", rows[0]["source_row_ids"])
 
     def test_required_surface_contract_applies_to_ratio_operand_rows(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",
             "concept": "capitalized_development_cost",
@@ -346,10 +348,10 @@ class PartWholeRatioContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            agent._operand_row_satisfies_required_surface_contract(broad_row, evidence_by_id, [operand])
+            _operand_row_satisfies_required_surface_contract(broad_row, evidence_by_id, [operand])
         )
         self.assertTrue(
-            agent._operand_row_satisfies_required_surface_contract(contracted_row, evidence_by_id, [operand])
+            _operand_row_satisfies_required_surface_contract(contracted_row, evidence_by_id, [operand])
         )
 
     def test_lookup_recovery_replaces_same_raw_value_when_unit_differs(self) -> None:

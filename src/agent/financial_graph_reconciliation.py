@@ -2040,10 +2040,6 @@ class FinancialAgentReconciliationMixin:
             )
         return supplemented[:6]
 
-    def _is_reflection_eligible(self, state: FinancialAgentState) -> bool:
-        intent = state.get("intent") or state.get("query_type", "qa")
-        return intent in {"comparison", "trend"}
-
     def _infer_missing_info(self, state: FinancialAgentState, operands: Optional[List[Dict[str, Any]]] = None) -> List[str]:
         query = self._calc_query(state)
         topic = self._calc_topic(state)

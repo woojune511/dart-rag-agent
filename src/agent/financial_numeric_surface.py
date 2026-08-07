@@ -126,6 +126,61 @@ def _numeric_surface_candidate_from_match(
     return {}
 
 
+def numeric_candidates_with_spans_from_surface(
+    surface: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    text = str(surface or "")
+    if not text:
+        return []
+    unit_scale, percent_units, unit_terms = _numeric_unit_terms()
+    pattern = _numeric_surface_pattern(unit_terms)
+    metadata = dict(metadata or {})
+    context_unit = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+    if context_unit not in unit_scale:
+        context_unit = next((unit for unit in unit_terms if unit in unit_scale and unit in text), "")
+    candidates: List[Dict[str, Any]] = []
+    for match in pattern.finditer(text):
+        raw_value = match.group("value")
+        parsed = _parse_number_text(raw_value)
+        if parsed is None:
+            continue
+        unit = _normalise_spaces(str(match.groupdict().get("unit") or ""))
+        digit_count = len(re.sub(r"\D", "", raw_value))
+        if not unit and digit_count == 4 and 1900 <= abs(parsed) <= 2100:
+            continue
+        normalized_value = parsed
+        normalized_unit = ""
+        display_step = 1.0
+        if unit in unit_scale:
+            normalized_value = parsed * unit_scale[unit]
+            normalized_unit = "KRW"
+            display_step = unit_scale[unit]
+        elif not unit and context_unit in unit_scale:
+            if digit_count < 4 and "," not in raw_value:
+                continue
+            normalized_value = parsed * unit_scale[context_unit]
+            normalized_unit = "KRW"
+            unit = context_unit
+            display_step = unit_scale[context_unit]
+        elif unit in percent_units:
+            normalized_unit = "PERCENT"
+        candidates.append(
+            {
+                "kind": "currency" if normalized_unit == "KRW" else "percent" if normalized_unit == "PERCENT" else "generic",
+                "value": normalized_value,
+                "normalized_value": normalized_value,
+                "normalized_unit": normalized_unit,
+                "value_text": raw_value,
+                "unit": unit,
+                "unit_text": unit,
+                "display_step": display_step,
+                "span": [match.start("value"), match.end("value")],
+            }
+        )
+    return candidates
+
+
 def extract_numeric_surface_candidates(text: str) -> List[Dict[str, Any]]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
     unit_scale, percent_units, unit_terms = _numeric_unit_terms()

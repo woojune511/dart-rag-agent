@@ -177,9 +177,10 @@ Completion conditions:
 
 ### Phase 3: Converge on one calculation path
 
-Status: the first slice was merged in PR #80 on 2026-07-22 and the second slice
-was merged in PR #81 on the same date. Both changes tighten public projection
-ownership without splitting calculation helpers by file size.
+Status: in progress. The first slice was merged in PR #80 on 2026-07-22 and the
+second slice was merged in PR #81 on the same date. Both changes tighten public
+projection ownership without splitting calculation helpers by file size. The
+current owner-extraction slice does not complete Phase 3.
 
 Completed first slice:
 
@@ -210,6 +211,40 @@ focused calculation projection suite passed `625` tests, full unit test
 discovery passed `1348` tests, and `git diff --check` passed. No benchmark
 refresh was required because retrieval and calculation behavior did not change.
 
+Current owner-extraction slice:
+
+- `financial_graph_calculation.py` remains the graph-state adapter and
+  orchestrator: it decides when calculation owners run and projects their
+  results into trace, task, and artifact state;
+- `financial_operand_resolution.py` owns state-free operand candidate matching,
+  grounding, selection, and merge behavior;
+- `financial_dependency_projection.py` owns state-free dependency projection and
+  precedence-decision primitives, including an explicit reason and provenance
+  contract; the graph adapter still composes part of the end-to-end precedence
+  path;
+- `financial_calculation_execution.py` validates ordered operand ids and variable
+  bindings against the operand set, then returns a typed execution outcome for
+  the graph adapter to project;
+- candidate selection is invariant to input order: tied conflicting values
+  abstain, while equivalent ties use a stable selection rule.
+
+This slice changes `financial_graph_calculation.py` from `21,642` to `19,682`
+lines (`-1,960`), while the source diff as a whole is `+1,095` lines. Report it
+as owner extraction and deterministic contract hardening, not as code reduction.
+
+Validation for this slice: `62` focused operand/execution contract tests, `323`
+focused calculation/projection tests, the runtime domain-language audit over
+`217` reviewed literals, and full discovery over `1,451` unit tests passed. This
+is contract and regression evidence, not a refreshed benchmark claim.
+
+Phase 3 remains open for these follow-ups:
+
+- give dependency precedence one implementation owner across every caller;
+- reduce the remaining private-API mesh;
+- remove the stale-result second execution path after caller migration;
+- extract the remaining extraction and aggregate repair clusters behind named
+  contracts.
+
 The canonical path is:
 
 ```text
@@ -219,6 +254,8 @@ OperandResolver -> FormulaExecutor -> AnswerRenderer -> Verifier
 Use existing owner modules before adding new ones:
 
 - `financial_answer_slots.py`
+- `financial_operand_resolution.py`
+- `financial_dependency_projection.py`
 - `financial_calculation_execution.py`
 - `financial_graph_calculation_rendering.py`
 - `financial_runtime_trace.py`

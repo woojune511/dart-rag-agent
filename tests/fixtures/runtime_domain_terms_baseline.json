@@ -47,13 +47,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_operand_resolution.py",
       "text": "[가-힣]",
       "category": "regex_or_pattern",
-      "fingerprint": "7eedf3c80dbfb201",
+      "fingerprint": "bbba77568ba251b3",
       "count": 1,
       "first_lines": [
-        10444
+        143
       ]
     },
     {
@@ -616,12 +616,21 @@
       "text": "부채",
       "category": "runtime_literal",
       "fingerprint": "3df3bf753756b486",
-      "count": 4,
+      "count": 2,
       "first_lines": [
-        6107,
-        6118,
-        6170,
-        6197
+        3848,
+        3859
+      ]
+    },
+    {
+      "path": "src/agent/financial_operand_resolution.py",
+      "text": "부채",
+      "category": "runtime_literal",
+      "fingerprint": "a34a993699f396a8",
+      "count": 2,
+      "first_lines": [
+        235,
+        262
       ]
     },
     {

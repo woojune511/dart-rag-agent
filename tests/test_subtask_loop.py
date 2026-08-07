@@ -16,6 +16,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_graph_calculation
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
@@ -3469,66 +3470,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotEqual(by_role["numerator_1"]["raw_value"], "259,611")
         self.assertNotEqual(by_role["denominator_1"]["raw_value"], "12,966,955")
 
-    def test_period_comparison_allows_direct_rows_over_weak_unit_repaired_task_output(self) -> None:
-        dependency_rows = [
-            {
-                "matched_operand_role": "current_period",
-                "label": "selected metric",
-                "raw_value": "3,146,409",
-                "raw_unit": "백만원",
-                "normalized_value": 3_146_409_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "task_output:current",
-                "source_row_ids": ["task_output:current", "current_cell"],
-                "source_task_id": "current",
-                "dependency_resolved": True,
-            },
-            {
-                "matched_operand_role": "prior_period",
-                "label": "selected metric",
-                "raw_value": "54",
-                "raw_unit": "백만원",
-                "normalized_value": 54_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "task_output:prior",
-                "source_row_ids": ["task_output:prior", "weak_cell"],
-                "source_task_id": "prior",
-                "dependency_resolved": True,
-                "source_raw_unit": "",
-                "source_normalized_value": 54.0,
-                "unit_normalization_repair_source": "alternate_table_krw_surface",
-            },
-        ]
-        direct_rows = [
-            {
-                "matched_operand_role": "current_period",
-                "label": "selected metric",
-                "raw_value": "3,146,409",
-                "raw_unit": "백만원",
-                "normalized_value": 3_146_409_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "table_current",
-                "table_source_id": "period_table",
-            },
-            {
-                "matched_operand_role": "prior_period",
-                "label": "selected metric",
-                "raw_value": "1,847,775",
-                "raw_unit": "백만원",
-                "normalized_value": 1_847_775_000_000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "table_prior",
-                "table_source_id": "period_table",
-            },
-        ]
-
-        conflicts = self.agent._period_comparison_direct_rows_conflict_with_dependency_outputs(
-            dependency_rows,
-            direct_rows,
-        )
-
-        self.assertFalse(conflicts)
-
     def test_task_output_ratio_can_replace_conflicting_retrieved_context_without_inputs(self) -> None:
         numerator_row = self._lookup_result_row(
             task_id="task_numerator",
@@ -3730,10 +3671,10 @@ class SubtaskLoopTests(unittest.TestCase):
                 "metadata": {"table_value_labels_text": "목표값 100\n기준값 1,000"},
             },
         ]
-        original_context_docs = self.agent._retrieval_context_docs
+        original_context_docs = financial_graph_calculation.collect_retrieval_context_docs
         original_context_evidence = self.agent._ratio_operand_context_evidence_from_docs
         original_build_context = self.agent._build_complete_ratio_operands_from_coherent_context
-        self.agent._retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
+        financial_graph_calculation.collect_retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
         self.agent._ratio_operand_context_evidence_from_docs = lambda *_args, **_kwargs: context_evidence
         self.agent._build_complete_ratio_operands_from_coherent_context = lambda *_args, **_kwargs: context_rows
         try:
@@ -3784,7 +3725,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 },
             )
         finally:
-            self.agent._retrieval_context_docs = original_context_docs
+            financial_graph_calculation.collect_retrieval_context_docs = original_context_docs
             self.agent._ratio_operand_context_evidence_from_docs = original_context_evidence
             self.agent._build_complete_ratio_operands_from_coherent_context = original_build_context
 
@@ -6723,36 +6664,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("84.3%", promoted[0]["answer"])
         self.assertNotIn("76.08%", promoted[0]["answer"])
 
-    def test_period_comparison_rows_detect_same_source_value_collapse(self) -> None:
-        current_row = {
-            "matched_operand_role": "current_period",
-            "source_row_id": "row_income",
-            "source_row_ids": ["row_income"],
-            "raw_value": "1,000",
-            "normalized_value": 1000.0,
-            "period": "2023",
-        }
-        stale_prior_row = {
-            "matched_operand_role": "prior_period",
-            "source_row_id": "row_income",
-            "source_row_ids": ["row_income"],
-            "raw_value": "1,000",
-            "normalized_value": 1000.0,
-            "period": "2022",
-        }
-        real_prior_row = {
-            **stale_prior_row,
-            "raw_value": "700",
-            "normalized_value": 700.0,
-        }
-
-        self.assertTrue(
-            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, stale_prior_row])
-        )
-        self.assertFalse(
-            self.agent._period_comparison_operand_rows_collapse_to_same_slot([current_row, real_prior_row])
-        )
-
     def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
         current_growth = {
             "task_id": "task_growth",
@@ -7825,7 +7736,6 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
-        self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
 
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
@@ -7940,7 +7850,6 @@ class SubtaskLoopTests(unittest.TestCase):
                 "metadata": {"statement_type": "income_statement"},
             },
         ]
-        self.agent._llm_lookup_operand_has_direct_support = lambda *_args, **_kwargs: True
 
         extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
@@ -16131,283 +16040,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows[0]["normalized_value"], 2546649000000.0)
         self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_current", "ev_current"])
 
-    def test_dependency_alignment_preserves_task_output_when_direct_value_has_distinct_provenance(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "100",
-                "raw_unit": "unit",
-                "normalized_value": 100.0,
-                "normalized_unit": "COUNT",
-                "source_task_id": "task_lookup",
-                "source_row_id": "task_output:task_lookup",
-                "source_row_ids": ["task_output:task_lookup", "ev_lookup"],
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_direct_num",
-                "source_row_id": "ev_direct_num",
-                "source_row_ids": ["ev_direct_num"],
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "80",
-                "raw_unit": "unit",
-                "normalized_value": 80.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "40",
-                "raw_unit": "unit",
-                "normalized_value": 40.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "100")
-        self.assertEqual(rows[0]["normalized_value"], 100.0)
-        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup", "ev_lookup"])
-        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
-        self.assertNotIn("sibling_table_context_realigned", rows[0])
-
-    def test_dependency_alignment_preserves_task_output_only_row_when_direct_value_conflicts(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "120",
-                "raw_unit": "unit",
-                "normalized_value": 120.0,
-                "normalized_unit": "COUNT",
-                "source_task_id": "task_lookup",
-                "source_row_id": "task_output:task_lookup",
-                "source_row_ids": ["task_output:task_lookup"],
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_direct_num",
-                "source_row_id": "ev_direct_num",
-                "source_row_ids": ["ev_direct_num"],
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "70",
-                "raw_unit": "unit",
-                "normalized_value": 70.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "30",
-                "raw_unit": "unit",
-                "normalized_value": 30.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "120")
-        self.assertEqual(rows[0]["normalized_value"], 120.0)
-        self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_lookup"])
-        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
-        self.assertNotIn("sibling_table_context_realigned", rows[0])
-
-    def test_dependency_alignment_preserves_source_task_row_when_shared_id_has_conflicting_anchor(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "120",
-                "raw_unit": "unit",
-                "normalized_value": 120.0,
-                "normalized_unit": "COUNT",
-                "source_task_id": "task_lookup",
-                "source_row_id": "ev_shared",
-                "source_row_ids": ["ev_shared"],
-                "source_anchor": "source task table",
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_shared",
-                "source_row_id": "ev_shared",
-                "source_row_ids": ["ev_shared"],
-                "source_anchor": "direct sibling table",
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "70",
-                "raw_unit": "unit",
-                "normalized_value": 70.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "source_anchor": "direct sibling table",
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "30",
-                "raw_unit": "unit",
-                "normalized_value": 30.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "120")
-        self.assertEqual(rows[0]["normalized_value"], 120.0)
-        self.assertEqual(rows[0]["source_anchor"], "source task table")
-        self.assertTrue(rows[0]["sibling_table_context_realignment_blocked"])
-        self.assertNotIn("sibling_table_context_realigned", rows[0])
-
-    def test_dependency_alignment_realigns_task_output_to_same_table_component_row(self) -> None:
-        dependency_rows = [
-            {
-                "label": "short-term borrowings",
-                "matched_operand_label": "short-term borrowings",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "9,857,189",
-                "raw_unit": "백만원",
-                "normalized_value": 9857189000000.0,
-                "normalized_unit": "KRW",
-                "source_task_id": "task_short",
-                "source_row_id": "task_output:task_short",
-                "source_row_ids": ["task_output:task_short", "ev_subtotal", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "row_short",
-                "source_row_id": "row_short",
-                "source_row_ids": ["row_short", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "label": "short-term borrowings",
-                "matched_operand_label": "short-term borrowings",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "4,145,647",
-                "raw_unit": "백만원",
-                "normalized_value": 4145647000000.0,
-                "normalized_unit": "KRW",
-            },
-            {
-                "evidence_id": "row_long",
-                "source_row_id": "row_long",
-                "source_row_ids": ["row_long", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "label": "long-term borrowings",
-                "matched_operand_label": "long-term borrowings",
-                "matched_operand_role": "numerator_2",
-                "raw_value": "10,121,033",
-                "raw_unit": "백만원",
-                "normalized_value": 10121033000000.0,
-                "normalized_unit": "KRW",
-            },
-            {
-                "evidence_id": "row_bond",
-                "source_row_id": "row_bond",
-                "source_row_ids": ["row_bond", "chunk_table"],
-                "table_source_id": "table_borrowings",
-                "label": "bonds",
-                "matched_operand_label": "bonds",
-                "matched_operand_role": "numerator_3",
-                "raw_value": "9,490,410",
-                "raw_unit": "백만원",
-                "normalized_value": 9490410000000.0,
-                "normalized_unit": "KRW",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "4,145,647")
-        self.assertEqual(rows[0]["source_row_id"], "row_short")
-        self.assertTrue(rows[0]["sibling_table_context_realigned"])
-
-    def test_period_comparison_complete_direct_context_does_not_block_dependency(self) -> None:
-        dependency_rows = [
-            {
-                "label": "prior metric",
-                "matched_operand_label": "metric",
-                "matched_operand_role": "prior_period",
-                "raw_value": "54",
-                "raw_unit": "백만원",
-                "normalized_value": 54000000.0,
-                "normalized_unit": "KRW",
-                "source_task_id": "task_prior",
-                "source_row_id": "task_output:task_prior",
-                "source_row_ids": ["task_output:task_prior", "ev_note"],
-                "dependency_resolved": True,
-            }
-        ]
-        direct_rows = [
-            {
-                "label": "current metric",
-                "matched_operand_label": "metric",
-                "matched_operand_role": "current_period",
-                "raw_value": "3,146,409",
-                "raw_unit": "백만원",
-                "normalized_value": 3146409000000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "row_current",
-                "source_row_ids": ["row_current"],
-                "table_source_id": "period_table",
-            },
-            {
-                "label": "prior metric",
-                "matched_operand_label": "metric",
-                "matched_operand_role": "prior_period",
-                "raw_value": "1,847,775",
-                "raw_unit": "백만원",
-                "normalized_value": 1847775000000.0,
-                "normalized_unit": "KRW",
-                "source_row_id": "row_prior",
-                "source_row_ids": ["row_prior"],
-                "table_source_id": "period_table",
-            },
-        ]
-
-        self.assertFalse(
-            self.agent._period_comparison_direct_rows_conflict_with_dependency_outputs(
-                dependency_rows,
-                direct_rows,
-            )
-        )
-
     def test_period_comparison_table_context_prefers_pure_period_columns_over_change_columns(self) -> None:
         required_operands = [
             {
@@ -16471,56 +16103,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows_by_role["current_period"]["raw_value"], "300")
         self.assertEqual(rows_by_role["prior_period"]["raw_value"], "100")
         self.assertEqual(rows_by_role["prior_period"]["source_row_id"], "ev_pure_period")
-
-    def test_dependency_alignment_still_realigns_unanchored_row_to_complete_direct_context(self) -> None:
-        dependency_rows = [
-            {
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "100",
-                "raw_unit": "unit",
-                "normalized_value": 100.0,
-                "normalized_unit": "COUNT",
-                "source_row_id": "ev_lookup",
-                "source_row_ids": ["ev_lookup"],
-            }
-        ]
-        direct_rows = [
-            {
-                "evidence_id": "ev_direct_num",
-                "source_row_id": "ev_direct_num",
-                "source_row_ids": ["ev_direct_num"],
-                "table_source_id": "table_a",
-                "label": "target value",
-                "matched_operand_label": "target value",
-                "matched_operand_role": "numerator_1",
-                "raw_value": "80",
-                "raw_unit": "unit",
-                "normalized_value": 80.0,
-                "normalized_unit": "COUNT",
-            },
-            {
-                "evidence_id": "ev_direct_den",
-                "source_row_id": "ev_direct_den",
-                "source_row_ids": ["ev_direct_den"],
-                "table_source_id": "table_a",
-                "label": "base value",
-                "matched_operand_label": "base value",
-                "matched_operand_role": "denominator_1",
-                "raw_value": "40",
-                "raw_unit": "unit",
-                "normalized_value": 40.0,
-                "normalized_unit": "COUNT",
-            },
-        ]
-
-        rows = self.agent._align_dependency_rows_with_sibling_direct_context(dependency_rows, direct_rows)
-
-        self.assertEqual(rows[0]["raw_value"], "80")
-        self.assertEqual(rows[0]["normalized_value"], 80.0)
-        self.assertEqual(rows[0]["source_row_ids"], ["ev_direct_num"])
-        self.assertTrue(rows[0]["sibling_table_context_realigned"])
 
     def test_aggregate_dependency_coherence_infers_source_task_from_matching_slot(self) -> None:
         source_slots = {

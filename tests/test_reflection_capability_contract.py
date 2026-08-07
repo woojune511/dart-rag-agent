@@ -1,5 +1,9 @@
 import unittest
+from copy import deepcopy
 
+import src.agent.financial_graph_calculation as financial_graph_calculation
+import src.agent.financial_reflection_projection as financial_reflection_projection
+import src.agent.financial_task_artifacts as financial_task_artifacts
 from src.agent.financial_reflection_projection import (
     reflection_action_from_plan,
     reflection_report_from_action,
@@ -17,6 +21,136 @@ class _ReflectionHarness(FinancialAgentReconciliationMixin):
 
 
 class ReflectionCapabilityContractTests(unittest.TestCase):
+    def test_retry_preparation_helpers_have_projection_and_ledger_owners(self) -> None:
+        self.assertTrue(
+            hasattr(
+                financial_reflection_projection,
+                "reflection_synthesis_source_ids_from_task_outputs",
+            )
+        )
+        self.assertTrue(hasattr(financial_task_artifacts, "next_reflection_task_id"))
+        self.assertFalse(
+            hasattr(financial_graph_calculation, "_synthesis_source_ids_from_task_outputs")
+        )
+        self.assertFalse(hasattr(financial_graph_calculation, "_next_reflection_task_id"))
+
+    def test_synthesis_source_selection_preserves_precedence_and_fallbacks_without_mutation(
+        self,
+    ) -> None:
+        state = {
+            "active_subtask": {
+                "depends_on": ["task_ignored"],
+                "inputs": [
+                    {
+                        "preferred_task_id": " task_2 ",
+                        "source_preference": [" retrieval ", " TASK_OUTPUT "],
+                    },
+                    {
+                        "preferred_task_id": "task_2",
+                        "source_preference": ["task_output"],
+                    },
+                    {
+                        "preferred_task_id": "task_3",
+                        "source_preference": ["task_output"],
+                    },
+                ],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_2",
+                    "artifact_ids": ["operand_2", "result_2"],
+                    "calculation_result": {"status": "ok"},
+                },
+                {
+                    "task_id": "task_3",
+                    "artifact_ids": [],
+                    "calculation_result": {"status": "ok"},
+                },
+                {
+                    "task_id": "task_ignored",
+                    "artifact_ids": ["result_ignored"],
+                    "calculation_result": {"status": "ok"},
+                },
+            ],
+            "artifacts": [
+                {"artifact_id": "operand_2", "kind": "operand_set"},
+                {"artifact_id": "result_2", "kind": "calculation_result"},
+                {"artifact_id": "result_ignored", "kind": "calculation_result"},
+            ],
+        }
+        original = deepcopy(state)
+
+        source_ids = (
+            financial_reflection_projection.reflection_synthesis_source_ids_from_task_outputs(
+                active_subtask=state["active_subtask"],
+                subtask_results=state["subtask_results"],
+                artifacts=state["artifacts"],
+            )
+        )
+
+        self.assertEqual(source_ids, ["result_2", "task_output:task_3"])
+        self.assertEqual(state, original)
+
+        fallback_state = {
+            "active_subtask": {
+                "depends_on": ["task_4", "task_4", "missing_task"],
+                "inputs": [{"preferred_task_id": "ignored", "source_preference": ["retrieval"]}],
+            },
+            "subtask_results": [
+                {
+                    "task_id": "task_4",
+                    "artifact_ids": ["operand_4", "plan_4", "operand_4"],
+                    "calculation_result": {"status": "ok"},
+                }
+            ],
+            "artifacts": [
+                {"artifact_id": "operand_4", "kind": "operand_set"},
+                {"artifact_id": "plan_4", "kind": "calculation_plan"},
+            ],
+        }
+        fallback_original = deepcopy(fallback_state)
+
+        fallback_source_ids = (
+            financial_reflection_projection.reflection_synthesis_source_ids_from_task_outputs(
+                active_subtask=fallback_state["active_subtask"],
+                subtask_results=fallback_state["subtask_results"],
+                artifacts=fallback_state["artifacts"],
+            )
+        )
+
+        self.assertEqual(fallback_source_ids, ["operand_4", "plan_4"])
+        self.assertEqual(fallback_state, fallback_original)
+        self.assertEqual(
+            financial_reflection_projection.reflection_synthesis_source_ids_from_task_outputs(
+                active_subtask={"depends_on": ["missing_task"]},
+                subtask_results=[],
+                artifacts=[],
+            ),
+            [],
+        )
+
+    def test_next_reflection_task_id_skips_task_and_artifact_collisions(self) -> None:
+        state = {
+            "tasks": [{"task_id": "reflection:task_1:001"}],
+            "artifacts": [
+                {
+                    "task_id": "reflection:task_1:002",
+                    "artifact_id": "reflection:task_1:003:report",
+                }
+            ],
+        }
+        original = deepcopy(state)
+
+        task_id = financial_task_artifacts.next_reflection_task_id(
+            tasks=state["tasks"],
+            artifacts=state["artifacts"],
+            target_task_id=" task_1 ",
+            current_count=0,
+        )
+
+        self.assertEqual(task_id, "reflection:task_1:004")
+        self.assertEqual(state, original)
+
     def test_allowed_retry_strategies_are_bounded(self) -> None:
         self.assertEqual(
             ALLOWED_REFLECTION_RETRY_STRATEGIES,

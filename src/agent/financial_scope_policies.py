@@ -26,6 +26,40 @@ def _desired_consolidation_scope(query: str, report_scope: Dict[str, Any]) -> st
     return "unknown"
 
 
+def known_consolidation_scope_value(*values: Any) -> str:
+    """Return the canonical known scope represented by the first matching value."""
+
+    policy_values = {
+        str(scope): tuple(str(marker).lower() for marker in (markers or ()) if str(marker))
+        for scope, markers in dict(CONSOLIDATION_SCOPE_POLICY.get("metadata_values") or {}).items()
+    }
+    for value in values:
+        scope = _normalise_spaces(str(value or "")).lower()
+        if not scope:
+            continue
+        if scope in {"consolidated", "separate"}:
+            return scope
+        exact_scope = next(
+            (
+                candidate_scope
+                for candidate_scope, markers in policy_values.items()
+                if scope in markers
+            ),
+            "",
+        )
+        if exact_scope:
+            return exact_scope
+        marker_matches = [
+            (len(marker), candidate_scope)
+            for candidate_scope, markers in policy_values.items()
+            for marker in markers
+            if marker and marker in scope
+        ]
+        if marker_matches:
+            return max(marker_matches)[1]
+    return ""
+
+
 def _report_scope_source_reports(report_scope: Dict[str, Any]) -> List[Dict[str, Any]]:
     scope = dict(report_scope or {})
     rows: List[Dict[str, Any]] = []

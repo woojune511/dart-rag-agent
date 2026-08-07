@@ -4,6 +4,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional
 
 from src.config import get_financial_ontology
+from src.agent.financial_operand_resolution import _evidence_item_for_operand_row
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 
 
@@ -439,13 +440,12 @@ def normalize_lookup_slot_unit(
     slot: Dict[str, Any],
     *,
     evidence_by_id: Dict[str, Dict[str, Any]],
-    evidence_item_for_operand_row: Callable[[Dict[str, Any], Dict[str, Dict[str, Any]]], Optional[Dict[str, Any]]],
     coerce_operand_unit_from_evidence: Callable[..., str],
 ) -> Dict[str, Any]:
     updated = dict(slot)
     raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
     raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
-    evidence_item = evidence_item_for_operand_row(updated, evidence_by_id)
+    evidence_item = _evidence_item_for_operand_row(updated, evidence_by_id)
     metadata = dict((evidence_item or {}).get("metadata") or {})
     unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
     source_surface = _normalise_spaces(
@@ -523,7 +523,6 @@ def align_or_replace_successful_lookup_row(
     state: Dict[str, Any],
     normalize_slot: Callable[[Dict[str, Any]], Dict[str, Any]],
     lookup_result_builder: Callable[[Dict[str, Any], str], Dict[str, Any]],
-    evidence_item_for_operand_row: Callable[[Dict[str, Any], Dict[str, Dict[str, Any]]], Optional[Dict[str, Any]]],
     direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
     best_direct_lookup_slot: Callable[..., tuple[Dict[str, Any], float]],
     preferred_slot_has_evidence_surface_match: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], bool],
@@ -549,7 +548,7 @@ def align_or_replace_successful_lookup_row(
             "unit_aligned_from_evidence_metadata": True,
         }
 
-    current_evidence = evidence_item_for_operand_row(current_slot, evidence_by_id)
+    current_evidence = _evidence_item_for_operand_row(current_slot, evidence_by_id)
     current_score = (
         direct_structured_lookup_evidence_score(operand, current_evidence)
         if current_evidence
@@ -563,7 +562,7 @@ def align_or_replace_successful_lookup_row(
     if not preferred_slot or preferred_score <= current_score:
         return unit_aligned_row or row
 
-    preferred_evidence = evidence_item_for_operand_row(preferred_slot, evidence_by_id)
+    preferred_evidence = _evidence_item_for_operand_row(preferred_slot, evidence_by_id)
     if not preferred_slot_has_evidence_surface_match(preferred_slot, preferred_evidence):
         return unit_aligned_row or row
 

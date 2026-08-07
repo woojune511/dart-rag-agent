@@ -253,15 +253,17 @@ lookup surface matching, retry query 생성이다.
 
 ### `src/agent/financial_graph_calculation.py::FinancialAgentCalculationMixin`
 
-가장 큰 파일이다. 역할은 evidence/structured rows를 deterministic calculation으로
-닫는 것이다.
+큰 파일이지만 state-free 계산 규칙의 owner는 아니다. 이 mixin은 graph state를
+읽고 갱신하며 각 owner의 실행 시점을 정하고, 반환값을 trace/task/artifact state로
+투영하는 adapter/orchestrator다.
 
 - `_extract_calculation_operands(state)`: reconciliation direct row, evidence
-  fallback, dependency output을 합쳐 operand set을 만든다.
+  fallback, dependency output을 모아 state-free resolution owner에 넘기고 operand
+  set을 state에 반영한다.
 - `_plan_formula_calculation(state)`: operand를 executable calculation plan으로
-  바꾼다.
-- `_execute_calculation(state)`: formula family에 따라 차이, 비율, 성장률, 합산
-  등을 deterministic하게 계산한다.
+  바꾸는 graph adapter다.
+- `_execute_calculation(state)`: 검증된 operand id/binding을 execution owner에
+  넘기고 typed outcome을 calculation trace와 artifact에 반영한다.
 - `_render_calculation_answer(state)`: 계산 결과를 answer text와 answer slots로
   렌더링한다.
 - `_verify_calculation_answer(state)`: answer text, result, operands의 일관성을
@@ -275,12 +277,21 @@ lookup surface matching, retry query 생성이다.
 - `_format_citations(state)`: 마지막 citation/result payload를 정리한다.
 - `_route_after_*`: graph conditional edge를 결정한다.
 
-helper 역할군:
+state-free owner 경계:
 
-- dependency binding
+- `financial_operand_resolution.py`: candidate matching, grounding, selection,
+  merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면 abstain하고 값이
+  동등한 tie만 stable key로 선택한다.
+- `financial_dependency_projection.py`: state-free dependency projection과
+  precedence-decision primitive. graph adapter가 아직 end-to-end precedence의
+  일부를 조립하며, override에는 explicit reason과 양쪽 provenance가 필요하다.
+- `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
+  operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다.
+
+graph adapter에 남은 orchestration 역할군:
+
 - unit conversion/repair
 - period alignment
-- ratio/growth operand ordering
 - source-visible display 보존
 - stale projection 방지
 - aggregate result dedupe/ranking
@@ -319,7 +330,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 ### Extracted calculation helpers
 
 - `financial_answer_slots.py`: answer slot payload construction
-- `financial_calculation_execution.py`: deterministic result payload helpers
+- `financial_operand_resolution.py`: state-free operand candidate resolution
+- `financial_dependency_projection.py`: dependency projection and precedence-decision primitives
+- `financial_calculation_execution.py`: plan validation and typed execution outcome
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
@@ -522,11 +535,14 @@ profile 기반 실험 orchestrator다.
 8. `src/agent/financial_graph_evidence.py::FinancialAgentEvidenceMixin`
 9. `src/agent/financial_graph_reconciliation.py::FinancialAgentReconciliationMixin`
 10. `src/agent/financial_graph_calculation.py::FinancialAgentCalculationMixin`
-11. `src/agent/financial_answer_projection.py`
-12. `src/processing/financial_parser.py::FinancialParser.process_document`
-13. `src/storage/vector_store.py::VectorStoreManager.search`
-14. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
-15. MAS가 필요할 때만 `src/agent/mas_graph.py`와 `src/agent/nodes/*`
+11. `src/agent/financial_operand_resolution.py`
+12. `src/agent/financial_dependency_projection.py`
+13. `src/agent/financial_calculation_execution.py`
+14. `src/agent/financial_answer_projection.py`
+15. `src/processing/financial_parser.py::FinancialParser.process_document`
+16. `src/storage/vector_store.py::VectorStoreManager.search`
+17. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
+18. MAS가 필요할 때만 `src/agent/mas_graph.py`와 `src/agent/nodes/*`
 
 ## 18. 헷갈리지 말아야 할 경계
 

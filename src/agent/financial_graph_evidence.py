@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_helpers import (
     _build_generic_metric_aliases,
     _extract_generic_operand_labels,
-    _operand_row_matches_requirement,
     _scoped_surface_affinity_priority,
     _score_structured_cell,
 )
@@ -29,6 +28,7 @@ from src.agent.financial_graph_model_loaders import (
     _validate_answer_slots_payload,
     _validation_output_model,
 )
+from src.agent.financial_operand_resolution import _operand_row_matches_requirement
 from src.agent.financial_langchain_loaders import (
     _chat_prompt_template_from_template,
     _document,
