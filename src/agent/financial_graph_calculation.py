@@ -280,6 +280,11 @@ class _CalculationCandidateProjection(NamedTuple):
     selected_evidence_ids: tuple[str, ...]
 
 
+class _CalculationCandidateRun(NamedTuple):
+    prepared: _PreparedCalculationCandidate
+    projection: _CalculationCandidateProjection
+
+
 _StaleCalculationRepairReason = Literal[
     "status_not_ok",
     "mode_not_single_value",
@@ -2785,11 +2790,14 @@ class FinancialAgentCalculationMixin:
                 calculation_plan=calculation_plan,
                 calculation_result=dict(row.get("calculation_result") or {}),
             )
-            recalculated = self._execute_calculation(recalculation_state)
-            recalculated_trace = _resolve_runtime_calculation_trace(
-                recalculated,
-                allow_legacy_top_level=False,
-            )
+            recalculation_projection = self._run_calculation_candidate(recalculation_state).projection
+            recalculated_trace = {
+                "calculation_operands": [
+                    dict(item) for item in recalculation_projection.calculation_operands
+                ],
+                "calculation_plan": dict(recalculation_projection.calculation_plan),
+                "calculation_result": dict(recalculation_projection.calculation_result),
+            }
             recalculated_result = dict(recalculated_trace.get("calculation_result") or {})
             if _normalise_spaces(str(recalculated_result.get("status") or "")).lower() != "ok":
                 return row
@@ -12911,21 +12919,16 @@ class FinancialAgentCalculationMixin:
             if str(plan.get("status") or "").strip().lower() != "ok":
                 updated_results.append(result_row)
                 continue
-            executed = self._execute_calculation(
-                {
-                    **plan_state,
-                    "resolved_calculation_trace": {
-                        "calculation_operands": context_rows,
-                        "calculation_plan": plan,
-                        "calculation_result": {},
-                    },
-                }
-            )
-            recalculated_trace = _resolve_runtime_calculation_trace(
-                executed,
-                allow_legacy_top_level=False,
-            )
-            recalculated_result = dict(recalculated_trace.get("calculation_result") or {})
+            recalculation_state = {
+                **plan_state,
+                "resolved_calculation_trace": {
+                    "calculation_operands": context_rows,
+                    "calculation_plan": plan,
+                    "calculation_result": {},
+                },
+            }
+            recalculation_projection = self._run_calculation_candidate(recalculation_state).projection
+            recalculated_result = dict(recalculation_projection.calculation_result or {})
             if str(recalculated_result.get("status") or "").strip().lower() != "ok":
                 updated_results.append(result_row)
                 continue
@@ -12940,10 +12943,10 @@ class FinancialAgentCalculationMixin:
                     "calculation_result": recalculated_result,
                     "calculation_operands": [
                         dict(item)
-                        for item in list(recalculated_trace.get("calculation_operands") or context_rows)
+                        for item in list(recalculation_projection.calculation_operands or context_rows)
                         if isinstance(item, dict)
                     ],
-                    "calculation_plan": dict(recalculated_trace.get("calculation_plan") or plan),
+                    "calculation_plan": dict(recalculation_projection.calculation_plan or plan),
                     "source_row_ids": list(recalculated_result.get("source_row_ids") or []),
                     "period_comparison_recovered_from_table_label_context": True,
                 }
@@ -17162,8 +17165,7 @@ class FinancialAgentCalculationMixin:
             )
             return _failed_state(failed_result)
 
-    def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Execute the planned numeric operation and normalize the result."""
+    def _run_calculation_candidate(self, state: FinancialAgentState) -> _CalculationCandidateRun:
         runtime_trace = _resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
@@ -17180,7 +17182,16 @@ class FinancialAgentCalculationMixin:
         )
         prepared = self._prepare_calculation_candidate(candidate_input)
         projection = self._project_prepared_calculation_candidate(prepared)
-        return self._project_calculation_candidate_state(state, prepared, projection)
+        return _CalculationCandidateRun(prepared=prepared, projection=projection)
+
+    def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Execute the planned numeric operation and normalize the result."""
+        candidate_run = self._run_calculation_candidate(state)
+        return self._project_calculation_candidate_state(
+            state,
+            candidate_run.prepared,
+            candidate_run.projection,
+        )
 
     def _repair_stale_calculation_result_from_operands(
         self,

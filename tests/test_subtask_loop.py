@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Optional
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -5600,26 +5601,8 @@ class SubtaskLoopTests(unittest.TestCase):
             "3.5배",
         )
 
-    def test_dependency_recalculation_ignores_legacy_top_level_result(self) -> None:
-        original_execute = self.agent._execute_calculation
-        calls = []
-
-        def _legacy_only_execute(state):
-            calls.append(state)
-            runtime_trace = dict(state.get("resolved_calculation_trace") or {})
-            return {
-                "calculation_operands": list(runtime_trace.get("calculation_operands") or []),
-                "calculation_plan": dict(runtime_trace.get("calculation_plan") or {}),
-                "calculation_result": {
-                    "status": "ok",
-                    "rendered_value": "999%",
-                    "formatted_result": "legacy top-level result",
-                },
-            }
-
-        self.agent._execute_calculation = _legacy_only_execute
-        try:
-            ordered = [
+    def test_dependency_recalculation_uses_candidate_projection_without_state_execution(self) -> None:
+        ordered = [
                 {
                     "task_id": "task_numerator",
                     "metric_family": "concept_lookup",
@@ -5709,37 +5692,82 @@ class SubtaskLoopTests(unittest.TestCase):
                         "answer_slots": {"operation_family": "ratio"},
                     },
                 },
-            ]
-            state = {
-                "query": "Calculate 2023 CIR.",
-                "calc_subtasks": [
-                    {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
-                    {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
-                    {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
-                ],
-            }
-            projection = {
-                "calculation_operands": [
-                    {
-                        "operand_id": "op_001",
-                        "source_row_ids": ["task_output:task_numerator"],
-                    },
-                    {
-                        "operand_id": "op_002",
-                        "source_row_ids": ["task_output:task_denominator"],
-                    },
-                ],
-            }
+        ]
+        state = {
+            "query": "Calculate 2023 CIR.",
+            "calc_subtasks": [
+                {"task_id": "task_numerator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_denominator", "metric_family": "concept_lookup", "operation_family": "lookup"},
+                {"task_id": "task_ratio", "metric_family": "concept_ratio", "operation_family": "ratio"},
+            ],
+        }
+        projection = {
+            "calculation_operands": [
+                {
+                    "operand_id": "op_001",
+                    "source_row_ids": ["task_output:task_numerator"],
+                },
+                {
+                    "operand_id": "op_002",
+                    "source_row_ids": ["task_output:task_denominator"],
+                },
+            ],
+        }
+        original_inputs = json.loads(json.dumps([ordered, state, projection]))
+        original_rows = tuple(ordered)
+        candidate_runs = []
+        original_run = self.agent._run_calculation_candidate
 
+        def _record_candidate_run(recalculation_state):
+            candidate_runs.append(original_run(recalculation_state))
+            return candidate_runs[-1]
+
+        with (
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate",
+                side_effect=_record_candidate_run,
+            ) as run_candidate,
+            patch.object(
+                self.agent,
+                "_execute_calculation",
+                wraps=self.agent._execute_calculation,
+            ) as execute_calculation,
+            patch.object(
+                self.agent,
+                "_project_calculation_candidate_state",
+                wraps=self.agent._project_calculation_candidate_state,
+            ) as state_projection,
+        ):
             aligned = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
-        finally:
-            self.agent._execute_calculation = original_execute
 
+        run_candidate.assert_called_once()
+        execute_calculation.assert_not_called()
+        state_projection.assert_not_called()
         ratio_row = aligned[-1]
-        self.assertTrue(calls)
-        self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "0.04%")
-        self.assertNotEqual(ratio_row.get("answer"), "legacy top-level result")
-        self.assertNotIn("aligned_from_source_task_slots", ratio_row)
+        canonical_projection = candidate_runs[0].projection
+        self.assertEqual(ratio_row["calculation_operands"], list(canonical_projection.calculation_operands))
+        self.assertEqual(ratio_row["calculation_plan"], canonical_projection.calculation_plan)
+        projected_result = dict(ratio_row["calculation_result"])
+        canonical_result = dict(canonical_projection.calculation_result)
+        projected_formatted_result = projected_result.pop("formatted_result")
+        canonical_result.pop("formatted_result")
+        self.assertEqual(projected_result, canonical_result)
+        self.assertEqual(projected_formatted_result, ratio_row["answer"])
+        self.assertEqual([ordered, state, projection], original_inputs)
+        self.assertTrue(all(row is original for row, original in zip(ordered, original_rows)))
+
+        failed_run = candidate_runs[0]._replace(
+            projection=candidate_runs[0].projection._replace(
+                calculation_result={"status": "parse_error"}
+            )
+        )
+        with patch.object(
+            self.agent, "_run_calculation_candidate", return_value=failed_run
+        ) as failed_candidate_run:
+            failed = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
+        failed_candidate_run.assert_called_once()
+        self.assertIs(failed, ordered)
 
     def test_ratio_recalculation_binds_lookup_slots_by_prefixed_roles(self) -> None:
         lookup_numerator = {

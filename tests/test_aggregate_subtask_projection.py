@@ -4242,19 +4242,99 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "required_operands": required_operands,
                 }
             ],
+            "tasks": [{"task_id": "existing_task"}],
+            "artifacts": [{"artifact_id": "existing_artifact"}],
+            "selected_claim_ids": ["ev_existing"],
+            "kept_claim_ids": ["ev_existing"],
         }
 
-        rows = agent._realign_period_comparison_results_from_table_label_context(
-            ordered_results,
-            state,
-            [evidence],
+        evidence_items = [evidence]
+        original_state = deepcopy(state)
+        original_state_list_ids = tuple(
+            id(state[key])
+            for key in ("tasks", "artifacts", "selected_claim_ids", "kept_claim_ids")
         )
+        original_results = deepcopy(ordered_results)
+        original_result_rows = tuple(ordered_results)
+        original_evidence = deepcopy(evidence_items)
+        candidate_records = []
+        original_run = agent._run_calculation_candidate
+
+        def _record_candidate_run(recalculation_state):
+            candidate_records.append(original_run(recalculation_state))
+            return candidate_records[-1]
+
+        with (
+            patch.object(
+                agent,
+                "_run_calculation_candidate",
+                side_effect=_record_candidate_run,
+            ) as run_candidate,
+            patch.object(
+                agent,
+                "_execute_calculation",
+                wraps=agent._execute_calculation,
+            ) as execute_calculation,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
+        ):
+            rows = agent._realign_period_comparison_results_from_table_label_context(
+                ordered_results,
+                state,
+                evidence_items,
+            )
+
+        run_candidate.assert_called_once()
+        execute_calculation.assert_not_called()
+        state_projection.assert_not_called()
 
         result = rows[0]["calculation_result"]
+        candidate_run = candidate_records[0]
+        canonical_projection = candidate_run.projection
         self.assertEqual(result["rendered_value"], "-84.3%")
         self.assertTrue(result["derived_metrics"]["source_stated_result_used"])
         self.assertEqual(result["answer_slots"]["current_value"]["raw_value"], "409,219")
         self.assertEqual(result["answer_slots"]["prior_value"]["raw_value"], "2,600,786")
+        self.assertEqual(
+            rows[0]["calculation_operands"],
+            list(canonical_projection.calculation_operands),
+        )
+        self.assertEqual(rows[0]["calculation_plan"], canonical_projection.calculation_plan)
+        self.assertEqual(result, canonical_projection.calculation_result)
+        self.assertEqual(state, original_state)
+        self.assertEqual(
+            tuple(
+                id(state[key])
+                for key in ("tasks", "artifacts", "selected_claim_ids", "kept_claim_ids")
+            ),
+            original_state_list_ids,
+        )
+        self.assertEqual(ordered_results, original_results)
+        self.assertTrue(
+            all(current is original for current, original in zip(ordered_results, original_result_rows))
+        )
+        self.assertEqual(evidence_items, original_evidence)
+        failed_run = candidate_run._replace(
+            projection=candidate_run.projection._replace(
+                calculation_result={"status": "parse_error"},
+            )
+        )
+        with patch.object(
+            agent,
+            "_run_calculation_candidate",
+            return_value=failed_run,
+        ) as failed_candidate_run:
+            failed_rows = agent._realign_period_comparison_results_from_table_label_context(
+                ordered_results,
+                state,
+                evidence_items,
+            )
+
+        failed_candidate_run.assert_called_once()
+        self.assertIs(failed_rows, ordered_results)
 
     def test_period_comparison_realign_does_not_replace_complete_growth_slots(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -4329,13 +4409,24 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ],
         }
 
-        rows = agent._realign_period_comparison_results_from_table_label_context(
-            ordered_results,
-            state,
-            [evidence],
-        )
+        evidence_items = [evidence]
+        original_results = deepcopy(ordered_results)
+        original_result_row = ordered_results[0]
+        with patch.object(
+            agent,
+            "_run_calculation_candidate",
+            wraps=agent._run_calculation_candidate,
+        ) as run_candidate:
+            rows = agent._realign_period_comparison_results_from_table_label_context(
+                ordered_results,
+                state,
+                evidence_items,
+            )
 
+        run_candidate.assert_not_called()
         self.assertIs(rows, ordered_results)
+        self.assertIs(rows[0], original_result_row)
+        self.assertEqual(ordered_results, original_results)
         self.assertEqual(rows[0]["calculation_result"]["rendered_value"], "4.51%")
 
     def test_period_comparison_realigns_complete_growth_slots_from_source_stated_change(self) -> None:
