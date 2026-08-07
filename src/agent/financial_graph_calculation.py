@@ -44,6 +44,7 @@ from src.agent.financial_aggregate_projection import (
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
     assess_stale_calculation_value,
+    build_deterministic_operation_plan,
     build_failed_calculation_result,
     build_scalar_calculation_state,
     build_scalar_calculation_result,
@@ -51,6 +52,7 @@ from src.agent.financial_calculation_execution import (
     build_time_series_calculation_result,
     execute_prepared_calculation_plan,
     guard_operation_plan,
+    resolve_deterministic_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
     LateDependencyRemergeInput,
@@ -283,6 +285,9 @@ class _CalculationCandidateProjection(NamedTuple):
 class _CalculationCandidateRun(NamedTuple):
     prepared: _PreparedCalculationCandidate
     projection: _CalculationCandidateProjection
+
+
+_OPERATION_PLAN_DECISION_UNSET = object()
 
 
 _StaleCalculationRepairReason = Literal[
@@ -12913,9 +12918,40 @@ class FinancialAgentCalculationMixin:
                 "tasks": [],
                 "artifacts": [],
             }
-            planned = self._plan_formula_calculation(plan_state)
-            planned_trace = _resolve_runtime_calculation_trace(planned, allow_legacy_top_level=False)
-            plan = dict(planned_trace.get("calculation_plan") or {})
+            planning_trace = _resolve_runtime_calculation_trace(
+                dict(plan_state),
+                allow_legacy_top_level=False,
+            )
+            planning_operands = [
+                dict(item)
+                for item in (planning_trace.get("calculation_operands") or [])
+                if isinstance(item, dict)
+            ]
+            operation_plan_decision = resolve_deterministic_operation_plan(
+                plan=self._build_deterministic_operation_plan(plan_state, planning_operands) or {},
+                operands=planning_operands,
+                required_operands=required_operands,
+                operation_family=operation_family,
+            )
+            if operation_plan_decision.status == "ready":
+                logger.info(
+                    "[formula_plan] deterministic op-family mode=%s op=%s vars=%s",
+                    operation_plan_decision.selected_plan.get("mode"),
+                    operation_plan_decision.selected_plan.get("operation"),
+                    len(operation_plan_decision.selected_plan.get("variable_bindings") or []),
+                )
+            if operation_plan_decision.status == "not_applicable":
+                planned = self._plan_formula_calculation_from_operation_decision(
+                    plan_state,
+                    operation_plan_decision,
+                )
+                planned_trace = _resolve_runtime_calculation_trace(
+                    planned,
+                    allow_legacy_top_level=False,
+                )
+                plan = dict(planned_trace.get("calculation_plan") or {})
+            else:
+                plan = dict(operation_plan_decision.selected_plan)
             if str(plan.get("status") or "").strip().lower() != "ok":
                 updated_results.append(result_row)
                 continue
@@ -14780,99 +14816,26 @@ class FinancialAgentCalculationMixin:
     ) -> Optional[Dict[str, Any]]:
         active_subtask = dict(state.get("active_subtask") or {})
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
-        if operation_family not in {"difference", "growth_rate"}:
-            return None
-
         required_operands = [
             dict(item)
             for item in (active_subtask.get("required_operands") or [])
             if bool(item.get("required", True))
         ]
-        if not required_operands:
-            return None
-
-        matched_rows: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
-        for operand in required_operands:
-            matched_row = next((row for row in operands if _operand_row_matches_requirement(row, operand)), None)
-            if matched_row is None:
-                return None
-            matched_rows.append((operand, matched_row))
-
-        def _first_pair(role: str) -> Optional[tuple[Dict[str, Any], Dict[str, Any]]]:
-            for operand, row in matched_rows:
-                if str(operand.get("role") or "").strip() == role:
-                    return operand, row
-            return None
-
-        ordered_pairs: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
-        if operation_family == "difference":
-            left_pair = _first_pair("current_period") or _first_pair("minuend") or _first_pair("numerator")
-            right_pair = _first_pair("prior_period") or _first_pair("subtrahend") or _first_pair("denominator")
-            if left_pair and right_pair:
-                ordered_pairs = [left_pair, right_pair]
-            elif len(matched_rows) == 2:
-                ordered_pairs = matched_rows
-        else:
-            current_pair = _first_pair("current_period")
-            prior_pair = _first_pair("prior_period")
-            if current_pair and prior_pair:
-                ordered_pairs = [current_pair, prior_pair]
-
-        if len(ordered_pairs) != 2:
-            return None
-
-        variable_bindings: List[Dict[str, str]] = []
-        ordered_operand_ids: List[str] = []
-        ordered_labels: List[str] = []
-        for index, (operand, row) in enumerate(ordered_pairs):
-            operand_id = str(row.get("operand_id") or "").strip()
-            if not operand_id:
-                return None
-            variable_bindings.append({"variable": chr(ord("A") + index), "operand_id": operand_id})
-            ordered_operand_ids.append(operand_id)
-            ordered_labels.append(str(operand.get("label") or row.get("label") or "").strip())
-
         metric_label = str(active_subtask.get("metric_label") or active_subtask.get("task_id") or "").strip()
-        if operation_family == "difference":
-            result_unit = ""
-            if _should_coerce_percent_point_unit(self._calc_query(state), operands, {"operation": "subtract"}):
-                result_unit = "%p"
-            right_role = str(ordered_pairs[1][0].get("role") or "").strip()
-            right_value = ordered_pairs[1][1].get("normalized_value")
-            formula = "A - B"
-            operation_text = f"{ordered_labels[0]} - {ordered_labels[1]}"
-            explanation = f"{metric_label or 'difference'} is computed as A - B."
-            if right_role in {"subtrahend", "denominator"} and right_value is not None and float(right_value) < 0:
-                formula = "A + B"
-                operation_text = f"{ordered_labels[0]} + {ordered_labels[1]}"
-                explanation = f"{metric_label or 'difference'} uses sign-aware subtraction because B is already negative."
-            return {
-                "status": "ok",
-                "mode": "single_value",
-                "operation": "subtract",
-                "ordered_operand_ids": ordered_operand_ids,
-                "variable_bindings": variable_bindings,
-                "formula": formula,
-                "pairwise_formula": "",
-                "result_unit": result_unit,
-                "operation_text": operation_text,
-                "explanation": explanation,
-                "missing_info": [],
-            }
-
-        return {
-            "status": "ok",
-            "mode": "single_value",
-            "operation": "growth_rate",
-            "ordered_operand_ids": ordered_operand_ids,
-            "variable_bindings": variable_bindings,
-            "formula": "((A - B) / B) * 100",
-            "pairwise_formula": "",
-            "result_unit": "%",
-            "operation_text": f"({ordered_labels[0]} - {ordered_labels[1]}) / {ordered_labels[1]} * 100",
-            "explanation": f"{metric_label or 'growth rate'} is computed as ((A - B) / B) * 100.",
-            "missing_info": [],
-        }
+        difference_result_unit = ""
+        if operation_family == "difference" and _should_coerce_percent_point_unit(
+            self._calc_query(state),
+            operands,
+            {"operation": "subtract"},
+        ):
+            difference_result_unit = "%p"
+        return build_deterministic_operation_plan(
+            operation_family=operation_family,
+            required_operands=required_operands,
+            operands=operands,
+            metric_label=metric_label,
+            difference_result_unit=difference_result_unit,
+        )
 
     def _extract_calculation_operands(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Build the operand set for the current calculation subtask.
@@ -15737,6 +15700,13 @@ class FinancialAgentCalculationMixin:
 
     def _plan_formula_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Translate normalized operands into an executable calculation plan."""
+        return self._plan_formula_calculation_from_operation_decision(state)
+
+    def _plan_formula_calculation_from_operation_decision(
+        self,
+        state: FinancialAgentState,
+        operation_plan_decision: Any = _OPERATION_PLAN_DECISION_UNSET,
+    ) -> Dict[str, Any]:
         runtime_trace = _resolve_runtime_calculation_trace(
             dict(state),
             allow_legacy_top_level=False,
@@ -15852,39 +15822,42 @@ class FinancialAgentCalculationMixin:
                 ),
             }
 
-        deterministic_operation_plan = self._build_deterministic_operation_plan(state, operands)
-        if deterministic_operation_plan:
-            guarded_plan = guard_operation_plan(
-                plan=deterministic_operation_plan,
+        if operation_plan_decision is _OPERATION_PLAN_DECISION_UNSET:
+            operation_plan_decision = resolve_deterministic_operation_plan(
+                plan=self._build_deterministic_operation_plan(state, operands) or {},
                 operands=operands,
                 required_operands=required_operands,
                 operation_family=operation_family,
             )
-            if guarded_plan:
-                return {
+            if operation_plan_decision.status == "ready":
+                logger.info(
+                    "[formula_plan] deterministic op-family mode=%s op=%s vars=%s",
+                    operation_plan_decision.selected_plan.get("mode"),
+                    operation_plan_decision.selected_plan.get("operation"),
+                    len(operation_plan_decision.selected_plan.get("variable_bindings") or []),
+                )
+        if operation_plan_decision.status == "guarded":
+            guarded_plan = dict(operation_plan_decision.selected_plan)
+            return {
+                "missing_info": list(guarded_plan.get("missing_info") or []),
+                "planner_debug_trace": {
+                    "active_metric_family": metric_key,
+                    "ontology_context": "deterministic_operation_plan_guard",
+                    "llm_invoked": False,
+                    "guard_applied": True,
+                    "reason": "invalid_required_operand_bindings",
+                    "raw_plan": dict(operation_plan_decision.raw_plan),
                     "missing_info": list(guarded_plan.get("missing_info") or []),
-                    "planner_debug_trace": {
-                        "active_metric_family": metric_key,
-                        "ontology_context": "deterministic_operation_plan_guard",
-                        "llm_invoked": False,
-                        "guard_applied": True,
-                        "reason": "invalid_required_operand_bindings",
-                        "raw_plan": deterministic_operation_plan,
-                        "missing_info": list(guarded_plan.get("missing_info") or []),
-                    },
-                    **_runtime_trace_state_update(
-                        state,
-                        calculation_operands=operands,
-                        calculation_plan=guarded_plan,
-                        calculation_result={},
-                    ),
-                }
-            logger.info(
-                "[formula_plan] deterministic op-family mode=%s op=%s vars=%s",
-                deterministic_operation_plan.get("mode"),
-                deterministic_operation_plan.get("operation"),
-                len(deterministic_operation_plan.get("variable_bindings") or []),
-            )
+                },
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=operands,
+                    calculation_plan=guarded_plan,
+                    calculation_result={},
+                ),
+            }
+        if operation_plan_decision.status == "ready":
+            deterministic_operation_plan = dict(operation_plan_decision.selected_plan)
             ledger_update = self._calculation_plan_artifact_update(state, deterministic_operation_plan)
             return {
                 "missing_info": [],

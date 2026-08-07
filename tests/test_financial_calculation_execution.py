@@ -4,8 +4,10 @@ from unittest.mock import patch
 
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
+    DeterministicOperationPlanDecision,
     StaleCalculationValueAssessment,
     assess_stale_calculation_value,
+    build_deterministic_operation_plan,
     build_failed_calculation_result,
     build_scalar_calculation_result,
     build_scalar_calculation_state,
@@ -13,12 +15,124 @@ from src.agent.financial_calculation_execution import (
     build_time_series_calculation_result,
     execute_prepared_calculation_plan,
     guard_operation_plan,
+    resolve_deterministic_operation_plan,
     time_series_yoy_growth_rates,
 )
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import CalculationResult
 
 class FinancialCalculationExecutionTests(unittest.TestCase):
+    def test_build_deterministic_operation_plan_preserves_role_order_units_and_inputs(self) -> None:
+        difference_required = [
+            {"label": "cost", "role": "subtrahend"},
+            {"label": "revenue", "role": "minuend"},
+        ]
+        difference_operands = [
+            {"operand_id": "cost", "label": "cost", "normalized_value": -25.0},
+            {"operand_id": "revenue", "label": "revenue", "normalized_value": 100.0},
+        ]
+        growth_required = [
+            {"label": "prior", "role": "prior_period"},
+            {"label": "current", "role": "current_period"},
+        ]
+        growth_operands = [
+            {"operand_id": "prior", "label": "prior", "normalized_value": 100.0},
+            {"operand_id": "current", "label": "current", "normalized_value": 120.0},
+        ]
+        inputs = (difference_required, difference_operands, growth_required, growth_operands)
+        original_inputs = deepcopy(inputs)
+
+        difference = build_deterministic_operation_plan(
+            operation_family="difference",
+            required_operands=difference_required,
+            operands=difference_operands,
+            metric_label="margin change",
+            difference_result_unit="%p",
+        )
+        growth = build_deterministic_operation_plan(
+            operation_family="growth_rate",
+            required_operands=growth_required,
+            operands=growth_operands,
+            metric_label="revenue growth",
+            difference_result_unit="ignored",
+        )
+
+        self.assertEqual(
+            (difference["ordered_operand_ids"], difference["formula"], difference["result_unit"]),
+            (["revenue", "cost"], "A + B", "%p"),
+        )
+        self.assertEqual(
+            (growth["ordered_operand_ids"], growth["formula"], growth["result_unit"]),
+            (["current", "prior"], "((A - B) / B) * 100", "%"),
+        )
+        for operation_family, required_operands, operands in (
+            ("ratio", difference_required, difference_operands),
+            ("growth_rate", [], growth_operands),
+            ("growth_rate", growth_required, growth_operands[:1]),
+        ):
+            self.assertIsNone(
+                build_deterministic_operation_plan(
+                    operation_family=operation_family,
+                    required_operands=required_operands,
+                    operands=operands,
+                    metric_label="metric",
+                    difference_result_unit="",
+                )
+            )
+        self.assertEqual(inputs, original_inputs)
+
+    def test_resolve_deterministic_operation_plan_types_ready_guarded_and_not_applicable(self) -> None:
+        operands = [{"operand_id": "current"}, {"operand_id": "prior"}]
+        plan = {
+            "status": "ok",
+            "operation": "subtract",
+            "ordered_operand_ids": ["current", "prior"],
+            "variable_bindings": [
+                {"variable": "A", "operand_id": "current"},
+                {"variable": "B", "operand_id": "prior"},
+            ],
+        }
+        original_inputs = deepcopy((plan, operands))
+        ready = resolve_deterministic_operation_plan(
+            plan=plan,
+            operands=operands,
+            required_operands=[],
+            operation_family="difference",
+        )
+        invalid_plan = {
+            **plan,
+            "ordered_operand_ids": ["current"],
+            "variable_bindings": [{"variable": "A", "operand_id": "current"}],
+        }
+        guarded = resolve_deterministic_operation_plan(
+            plan=invalid_plan,
+            operands=operands,
+            required_operands=[],
+            operation_family="difference",
+        )
+        not_applicable = resolve_deterministic_operation_plan(
+            plan={},
+            operands=operands,
+            required_operands=[],
+            operation_family="difference",
+        )
+
+        self.assertEqual(ready.status, "ready")
+        self.assertEqual(ready.raw_plan, plan)
+        self.assertEqual(ready.selected_plan, plan)
+        self.assertEqual(guarded.status, "guarded")
+        self.assertEqual(guarded.raw_plan, invalid_plan)
+        self.assertEqual(guarded.selected_plan["status"], "incomplete")
+        self.assertEqual(
+            not_applicable,
+            DeterministicOperationPlanDecision(
+                status="not_applicable",
+                raw_plan={},
+                selected_plan={},
+            ),
+        )
+        self.assertEqual((plan, operands), original_inputs)
+
     def test_assess_stale_calculation_value_classifies_current_stale_and_nan_without_mutation(self) -> None:
         current_result = {"status": "ok", "result_value": 750.0}
         original_result = deepcopy(current_result)

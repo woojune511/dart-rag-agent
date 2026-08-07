@@ -35,6 +35,12 @@ StaleCalculationValueAssessmentReason = Literal[
     "current_value_unavailable",
 ]
 
+DeterministicOperationPlanDecisionStatus = Literal[
+    "not_applicable",
+    "guarded",
+    "ready",
+]
+
 
 @dataclass(frozen=True)
 class CalculationExecutionOutcome:
@@ -59,6 +65,15 @@ class StaleCalculationValueAssessment:
     expected_value: Optional[float] = None
     current_value: Optional[float] = None
     tolerance: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class DeterministicOperationPlanDecision:
+    """State-free validation outcome for a deterministic operation plan."""
+
+    status: DeterministicOperationPlanDecisionStatus
+    raw_plan: Dict[str, Any]
+    selected_plan: Dict[str, Any]
 
 
 def assess_stale_calculation_value(
@@ -201,6 +216,149 @@ def guard_operation_plan(
         "explanation": "operation plan does not satisfy required operand bindings",
         "missing_info": missing_info,
     }
+
+
+def build_deterministic_operation_plan(
+    *,
+    operation_family: str,
+    required_operands: Sequence[Mapping[str, Any]],
+    operands: Sequence[Mapping[str, Any]],
+    metric_label: str,
+    difference_result_unit: str,
+) -> Optional[Dict[str, Any]]:
+    """Build a deterministic difference or growth plan without graph state."""
+
+    family = str(operation_family or "").strip().lower()
+    if family not in {"difference", "growth_rate"}:
+        return None
+
+    required_rows = [
+        dict(item)
+        for item in required_operands
+        if bool(item.get("required", True))
+    ]
+    if not required_rows:
+        return None
+
+    operand_rows = [dict(row) for row in operands]
+    matched_rows: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
+    for operand in required_rows:
+        matched_row = next(
+            (row for row in operand_rows if _operand_row_matches_requirement(row, operand)),
+            None,
+        )
+        if matched_row is None:
+            return None
+        matched_rows.append((operand, matched_row))
+
+    def _first_pair(role: str) -> Optional[Tuple[Dict[str, Any], Dict[str, Any]]]:
+        for operand, row in matched_rows:
+            if str(operand.get("role") or "").strip() == role:
+                return operand, row
+        return None
+
+    ordered_pairs: List[Tuple[Dict[str, Any], Dict[str, Any]]] = []
+    if family == "difference":
+        left_pair = _first_pair("current_period") or _first_pair("minuend") or _first_pair("numerator")
+        right_pair = _first_pair("prior_period") or _first_pair("subtrahend") or _first_pair("denominator")
+        if left_pair and right_pair:
+            ordered_pairs = [left_pair, right_pair]
+        elif len(matched_rows) == 2:
+            ordered_pairs = matched_rows
+    else:
+        current_pair = _first_pair("current_period")
+        prior_pair = _first_pair("prior_period")
+        if current_pair and prior_pair:
+            ordered_pairs = [current_pair, prior_pair]
+
+    if len(ordered_pairs) != 2:
+        return None
+
+    variable_bindings: List[Dict[str, str]] = []
+    ordered_operand_ids: List[str] = []
+    ordered_labels: List[str] = []
+    for index, (operand, row) in enumerate(ordered_pairs):
+        operand_id = str(row.get("operand_id") or "").strip()
+        if not operand_id:
+            return None
+        variable_bindings.append(
+            {"variable": chr(ord("A") + index), "operand_id": operand_id}
+        )
+        ordered_operand_ids.append(operand_id)
+        ordered_labels.append(
+            str(operand.get("label") or row.get("label") or "").strip()
+        )
+
+    metric_display = str(metric_label or "").strip()
+    if family == "difference":
+        right_role = str(ordered_pairs[1][0].get("role") or "").strip()
+        right_value = ordered_pairs[1][1].get("normalized_value")
+        formula = "A - B"
+        operation_text = f"{ordered_labels[0]} - {ordered_labels[1]}"
+        explanation = f"{metric_display or 'difference'} is computed as A - B."
+        if right_role in {"subtrahend", "denominator"} and right_value is not None and float(right_value) < 0:
+            formula = "A + B"
+            operation_text = f"{ordered_labels[0]} + {ordered_labels[1]}"
+            explanation = (
+                f"{metric_display or 'difference'} uses sign-aware subtraction "
+                "because B is already negative."
+            )
+        return {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "subtract",
+            "ordered_operand_ids": ordered_operand_ids,
+            "variable_bindings": variable_bindings,
+            "formula": formula,
+            "pairwise_formula": "",
+            "result_unit": str(difference_result_unit or "").strip(),
+            "operation_text": operation_text,
+            "explanation": explanation,
+            "missing_info": [],
+        }
+
+    return {
+        "status": "ok",
+        "mode": "single_value",
+        "operation": "growth_rate",
+        "ordered_operand_ids": ordered_operand_ids,
+        "variable_bindings": variable_bindings,
+        "formula": "((A - B) / B) * 100",
+        "pairwise_formula": "",
+        "result_unit": "%",
+        "operation_text": f"({ordered_labels[0]} - {ordered_labels[1]}) / {ordered_labels[1]} * 100",
+        "explanation": f"{metric_display or 'growth rate'} is computed as ((A - B) / B) * 100.",
+        "missing_info": [],
+    }
+
+
+def resolve_deterministic_operation_plan(
+    *,
+    plan: Mapping[str, Any],
+    operands: Sequence[Mapping[str, Any]],
+    required_operands: Sequence[Mapping[str, Any]],
+    operation_family: str,
+) -> DeterministicOperationPlanDecision:
+    """Select a raw deterministic plan or its binding guard without graph projection."""
+
+    raw_plan = dict(plan or {})
+    if not raw_plan:
+        return DeterministicOperationPlanDecision(
+            status="not_applicable",
+            raw_plan={},
+            selected_plan={},
+        )
+    guarded_plan = guard_operation_plan(
+        plan=raw_plan,
+        operands=[dict(row) for row in operands],
+        required_operands=[dict(item) for item in required_operands],
+        operation_family=operation_family,
+    )
+    return DeterministicOperationPlanDecision(
+        status="guarded" if guarded_plan else "ready",
+        raw_plan=raw_plan,
+        selected_plan=dict(guarded_plan or raw_plan),
+    )
 
 
 def execute_prepared_calculation_plan(

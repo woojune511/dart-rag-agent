@@ -4266,6 +4266,26 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
+                financial_graph_calculation,
+                "resolve_deterministic_operation_plan",
+                wraps=financial_graph_calculation.resolve_deterministic_operation_plan,
+            ) as resolve_plan,
+            patch.object(
+                financial_graph_calculation,
+                "build_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_deterministic_operation_plan,
+            ) as build_operation_plan,
+            patch.object(
+                agent,
+                "_plan_formula_calculation_from_operation_decision",
+                wraps=agent._plan_formula_calculation_from_operation_decision,
+            ) as plan_calculation,
+            patch.object(
+                agent,
+                "_calculation_plan_artifact_update",
+                wraps=agent._calculation_plan_artifact_update,
+            ) as project_plan_artifact,
+            patch.object(
                 agent,
                 "_run_calculation_candidate",
                 side_effect=_record_candidate_run,
@@ -4287,6 +4307,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 evidence_items,
             )
 
+        resolve_plan.assert_called_once()
+        build_operation_plan.assert_called_once()
+        plan_calculation.assert_not_called()
+        project_plan_artifact.assert_not_called()
         run_candidate.assert_called_once()
         execute_calculation.assert_not_called()
         state_projection.assert_not_called()
@@ -4303,6 +4327,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             list(canonical_projection.calculation_operands),
         )
         self.assertEqual(rows[0]["calculation_plan"], canonical_projection.calculation_plan)
+        self.assertEqual(rows[0]["calculation_plan"], resolve_plan.call_args.kwargs["plan"])
         self.assertEqual(result, canonical_projection.calculation_result)
         self.assertEqual(state, original_state)
         self.assertEqual(
@@ -4317,6 +4342,30 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             all(current is original for current, original in zip(ordered_results, original_result_rows))
         )
         self.assertEqual(evidence_items, original_evidence)
+        guarded_decision = financial_calculation_execution.DeterministicOperationPlanDecision(
+            status="guarded",
+            raw_plan=dict(rows[0]["calculation_plan"]),
+            selected_plan={**rows[0]["calculation_plan"], "status": "incomplete"},
+        )
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "resolve_deterministic_operation_plan",
+                return_value=guarded_decision,
+            ) as guarded_plan,
+            patch.object(agent, "_plan_formula_calculation_from_operation_decision") as unneeded_planner,
+            patch.object(agent, "_run_calculation_candidate") as unneeded_candidate_run,
+        ):
+            planning_failed_rows = agent._realign_period_comparison_results_from_table_label_context(
+                ordered_results,
+                state,
+                evidence_items,
+            )
+
+        guarded_plan.assert_called_once()
+        unneeded_planner.assert_not_called()
+        unneeded_candidate_run.assert_not_called()
+        self.assertIs(planning_failed_rows, ordered_results)
         failed_run = candidate_run._replace(
             projection=candidate_run.projection._replace(
                 calculation_result={"status": "parse_error"},
@@ -4412,17 +4461,31 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         evidence_items = [evidence]
         original_results = deepcopy(ordered_results)
         original_result_row = ordered_results[0]
-        with patch.object(
-            agent,
-            "_run_calculation_candidate",
-            wraps=agent._run_calculation_candidate,
-        ) as run_candidate:
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "resolve_deterministic_operation_plan",
+                wraps=financial_graph_calculation.resolve_deterministic_operation_plan,
+            ) as resolve_plan,
+            patch.object(
+                agent,
+                "_plan_formula_calculation_from_operation_decision",
+                wraps=agent._plan_formula_calculation_from_operation_decision,
+            ) as plan_calculation,
+            patch.object(
+                agent,
+                "_run_calculation_candidate",
+                wraps=agent._run_calculation_candidate,
+            ) as run_candidate,
+        ):
             rows = agent._realign_period_comparison_results_from_table_label_context(
                 ordered_results,
                 state,
                 evidence_items,
             )
 
+        resolve_plan.assert_not_called()
+        plan_calculation.assert_not_called()
         run_candidate.assert_not_called()
         self.assertIs(rows, ordered_results)
         self.assertIs(rows[0], original_result_row)
