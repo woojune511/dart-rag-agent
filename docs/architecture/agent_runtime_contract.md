@@ -601,9 +601,14 @@ mutate graph state. The graph adapter projects that outcome into
 
 The graph adapter contains a graph-private typed calculation-candidate seam. It
 separates candidate preparation and canonical execution, deterministic result
-projection, and graph-state/ledger projection, while preserving the existing
-`_execute_calculation()` graph-node adapter. This is an internal decomposition,
-not a move of preparation or result projection into the execution owner.
+projection, and graph-state/ledger projection. `_CalculationCandidateRun` and
+`_run_calculation_candidate()` expose the prepared candidate and deterministic
+projection together. The primary `_execute_calculation()` graph-node adapter
+still applies the existing state/ledger projector. Dependency and period
+recovery instead consume only the candidate projection's operands, plan, and
+result copies for contract-valid scalar recalculation. This is an internal graph
+decomposition, not a move of preparation or result projection into the execution
+owner.
 
 The execution module owns the typed, state-free value-only stale-result
 assessment. `StaleCalculationValueAssessment` compares a canonical value from a
@@ -637,10 +642,17 @@ re-filter, and answer/state orchestration. Moving the pure policy does not move
 those sequencing responsibilities.
 
 These projections do not change numeric freshness or repair acceptance, and they
-are not a claim that the whole task/artifact ledger is synchronized. Dependency
-and period recovery still create state projections that their callers discard.
-Assessment reasons are owner-contract outputs, not runtime trace fields. This
-boundary does not establish a single end-to-end calculation owner.
+are not a claim that the whole task/artifact ledger is synchronized. The
+dependency and period scalar recovery callers no longer invoke the internal
+`_execute_calculation()` wrapper, re-read its strict trace, or create a
+state/ledger projection that they discard. Their result, operand order, plan,
+input immutability, and failure/no-op identity contracts remain unchanged. The
+period caller still discards the planning projection produced by
+`_plan_formula_calculation()`, and dependency recovery still couples its
+synthetic state to ratio formatting. A reused abnormal dependency `time_series`
+plan is outside the claimed full exception-parity boundary. Assessment reasons
+are owner-contract outputs, not runtime trace fields. This boundary does not
+establish a single end-to-end calculation owner.
 
 ## 9. Aggregate Subtask Projection
 

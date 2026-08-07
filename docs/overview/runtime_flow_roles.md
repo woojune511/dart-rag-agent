@@ -262,8 +262,13 @@ lookup surface matching, retry query 생성이다.
   set을 state에 반영한다.
 - `_plan_formula_calculation(state)`: operand를 executable calculation plan으로
   바꾸는 graph adapter다.
+- `_run_calculation_candidate(state)`: strict calculation trace에서 graph-private
+  typed `_CalculationCandidateRun`을 만들고 candidate preparation과 deterministic
+  result projection까지만 수행한다. state/ledger projection은 하지 않는다.
 - `_execute_calculation(state)`: 검증된 operand id/binding을 execution owner에
-  넘기고 typed outcome을 calculation trace와 artifact에 반영한다.
+  넘기고 typed outcome을 calculation trace와 artifact에 반영한다. primary
+  graph-node adapter로서 `_run_calculation_candidate()` 뒤 기존 state/ledger
+  projector를 유지한다.
 - `_render_calculation_answer(state)`: 계산 결과를 answer text와 answer slots로
   렌더링한다.
 - `_verify_calculation_answer(state)`: answer text, result, operands의 일관성을
@@ -317,7 +322,11 @@ graph adapter에 남은 orchestration 역할군:
 - unit conversion/repair
 - period alignment
 - source-visible display 보존
-- graph-private typed candidate preparation/result/state projection seam
+- graph-private typed candidate preparation/result/state projection seam.
+  dependency·period의 contract-valid scalar recovery는 typed candidate projection의
+  operands, plan, result만 직접 소비하므로 내부 `_execute_calculation()`과 strict
+  trace 재조회, 버려지는 state/ledger projection을 만들지 않는다. 결과/order,
+  입력 불변성, failure/no-op identity는 유지한다.
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
   stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
   same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
@@ -326,7 +335,10 @@ graph adapter에 남은 orchestration 역할군:
   밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
 - 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
   acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
-- dependency/period 내부 재계산의 버려지는 state projection
+- period recovery의 `_plan_formula_calculation()`이 만들고 caller가 plan만 소비하는
+  planning projection
+- dependency synthetic state와 ratio formatter 결합. 재사용된 비정상 dependency
+  `time_series` plan의 full exception parity는 현재 recovery claim 밖이다.
 - absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
 - narrative context preservation

@@ -346,6 +346,22 @@ Production source is `+197/-147`, net `+50`; the whole commit is `+392/-184`, ne
 `+208`. These numbers show owner relocation and graph reduction, not total-code
 or executed-path reduction.
 
+Structural commit `1a3979e` then adds the graph-private typed
+`_CalculationCandidateRun` and `_run_calculation_candidate()` seam. The primary
+`_execute_calculation()` graph-node adapter continues to apply the existing
+state/ledger projector. Dependency and period contract-valid scalar recovery
+consume the candidate projection's operands, plan, and result copies directly,
+removing two internal `_execute_calculation()` calls, their strict trace
+re-reads, and the state/ledger projections those callers discarded. Result and
+operand order, input immutability, and failure/no-op identity remain unchanged.
+The graph changes from `19,802` to `19,813` lines; source is `+36/-25`, net `+11`.
+Tests are `+176/-57`, net `+119`, and the whole commit is `+212/-82`, net `+130`.
+The state projector changes from one call to zero in the two characterized
+success paths. These figures are not a broad performance or total-code reduction
+claim, and a reused abnormal dependency `time_series` plan is outside the full
+exception-parity claim. The seam remains graph-private; this is not an execution
+owner move or Phase 3 completion.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -367,13 +383,17 @@ contracts were also rerun. The `217`-literal audit and full discovery over
 `1,472` tests passed on Python 3.13. After `be2e7bf`, all `560` affected-module
 tests, the same `217`-literal audit, and full discovery over `1,472` tests passed
 on Python 3.13. After `2cfa867`, all `564` affected tests, the same `217`-literal
-audit, and full discovery over `1,476` tests passed. Benchmark refresh has not run
-for these latest changes.
+audit, and full discovery over `1,476` tests passed. After `1a3979e`, `3` focused
+contracts and all `564` affected tests passed, together with the same
+`217`-literal audit and full discovery over `1,476` tests. Benchmark refresh has
+not run for these latest changes.
 
 Phase 3 remains open for these follow-ups:
 
-- characterize and then remove discarded state projection from the dependency
-  and period recovery callers in the next separate bounded slice;
+- characterize and then remove the period recovery planning projection whose
+  caller currently consumes only the plan;
+- separate the dependency synthetic-state and ratio-formatter coupling behind a
+  bounded contract;
 - keep broader task/artifact ledger synchronization as a separately specified
   contract rather than inferring it from the three repaired caller surfaces;
 - move the remaining deterministic/LLM fallback and aggregate precedence

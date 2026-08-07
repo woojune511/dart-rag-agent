@@ -149,6 +149,21 @@ to 19,802 lines (`-131`, `+15/-146`) and the owner from 195 to 376 (`+181`,
 `+392/-184`, net `+208`. This is an ownership change and graph reduction, not a
 total-code or executed-path reduction claim.
 
+Structural commit `1a3979e` adds graph-private typed
+`_CalculationCandidateRun` and `_run_calculation_candidate()`. The primary
+`_execute_calculation()` graph-node adapter retains its existing state/ledger
+projector. Dependency and period contract-valid scalar recovery consume only the
+candidate projection's operands, plan, and result copies, removing two internal
+`_execute_calculation()` calls, their strict trace re-reads, and the state/ledger
+projections those callers discarded. Result and operand order, input
+immutability, and failure/no-op identity remain unchanged. The graph changes from
+19,802 to 19,813 lines; source is `+36/-25`, net `+11`. Tests are `+176/-57`, net
+`+119`, and the whole commit is `+212/-82`, net `+130`. State projection changes
+from one call to zero in the two characterized success paths, but this is not a
+broad performance or total-code reduction claim. A reused abnormal dependency
+`time_series` plan is outside the full exception-parity claim. The seam remains
+graph-private; this is not an execution-owner move or Phase 3 completion.
+
 Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
 the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
 focused contracts, the same audit, and full discovery over 1,468 tests; after
@@ -160,7 +175,8 @@ and 2 adapter/time-series spot contracts were also rerun. The 217-literal audit
 and all 1,472 tests passed on Python 3.13. After `be2e7bf`, all 560 affected-module
 tests, the same 217-literal audit, and all 1,472 tests passed on Python 3.13.
 After `2cfa867`, all 564 affected tests, the same 217-literal audit, and all 1,476
-tests passed. Benchmark refresh remains not run.
+tests passed. After `1a3979e`, 3 focused contracts, all 564 affected tests, the
+same audit, and all 1,476 tests passed. Benchmark refresh remains not run.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -179,7 +195,7 @@ remains recoverable from `main@294b4ea`.
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
 | Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
-| Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, caller-specific stale provenance is synchronized, and broader ledger synchronization remains open |
+| Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, primary execution retains state/ledger projection, recovery callers consume typed candidate projections directly, and broader ledger synchronization remains open |
 | Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
@@ -207,8 +223,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | Latest dependency-precedence focused contracts | PASS, 53 owner/graph tests after typed finalization and coverage repair on 2026-08-07 |
 | Latest stale/candidate focused contracts | PASS, 345 unique focused tests after `f2af4f4` on 2026-08-07; core 7 and spot 2 were subset reruns |
 | Latest aggregate provenance owner affected tests | PASS, 564 tests after `2cfa867` on 2026-08-07 |
+| Latest recovery candidate projection contracts | PASS, 3 focused and 564 affected tests after `1a3979e` on 2026-08-07 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
-| Full unittest discovery | PASS, 1,476 tests locally after aggregate provenance owner relocation on 2026-08-07 |
+| Full unittest discovery | PASS, 1,476 tests locally after recovery candidate projection cleanup on 2026-08-07 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -262,8 +279,12 @@ above, but this is not whole-ledger synchronization; ambiguous refs are preserve
 and pure aggregate provenance selection now belongs to its projection owner. The
 graph still retains the 68-caller operation-family delegate, repair acceptance,
 pre-filter/re-filter sequencing, and answer/state orchestration. Dependency and
-period recovery still create state projections their callers discard, and
-absolute-ratio/trend projection boundaries remain graph-owned. These are named
+period contract-valid scalar recovery now consume candidate projections without
+discarded state/ledger projection, but period planning still creates a projection
+whose caller consumes only the plan, and dependency recovery retains its
+synthetic-state/ratio-formatter coupling. Reused abnormal dependency
+`time_series` plans are not covered by a full exception-parity claim.
+Absolute-ratio/trend projection boundaries remain graph-owned. These are named
 follow-ups, not hidden claims that the calculation monolith is resolved.
 
 Open work should be created only when one of these conditions is met:
@@ -281,12 +302,12 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should characterize the def-use,
-identity, and caller contracts for dependency and period recovery state
-projections that are currently discarded, then clean them up as one bounded
-slice. Broader ledger sync, aggregate precedence, remaining deterministic/LLM
-fallbacks, absolute-ratio/trend projection debt, and the private facade/API mesh
-remain separate follow-ups.
+The next architecture change, if continued, should characterize and remove the
+period recovery planning projection whose caller currently consumes only its
+plan. Dependency synthetic-state/ratio-formatter coupling, broader ledger sync,
+aggregate precedence, remaining deterministic/LLM fallbacks,
+absolute-ratio/trend projection debt, and the private facade/API mesh remain
+separate follow-ups.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a
