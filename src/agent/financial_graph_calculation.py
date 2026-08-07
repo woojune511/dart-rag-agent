@@ -48,9 +48,9 @@ from src.agent.financial_calculation_execution import (
     guard_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
+    LateDependencyRemergeInput,
     MainOperandPrecedenceInput,
     apply_absolute_ratio_magnitude_if_requested,
-    align_dependency_rows_with_sibling_direct_context,
     align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
     build_dependency_recalculated_row,
@@ -70,12 +70,12 @@ from src.agent.financial_dependency_projection import (
     fill_missing_ratio_dependency_operands,
     filter_direct_rows_by_dependency_producer_scope,
     lookup_primary_slot,
-    prefer_complete_ratio_direct_context_rows,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
     rebuild_dependency_calculation_plan,
     replace_lookup_primary_slot,
     resolve_dependency_producer_scope,
+    resolve_late_dependency_remerge,
     resolve_main_operand_precedence,
     source_task_id_for_dependency_operand,
     summarize_dependency_bindings,
@@ -15565,7 +15565,8 @@ class FinancialAgentCalculationMixin:
                         fallback_rows,
                         required_operands=required_operands,
                     )
-            complete_direct_context_blocks_dependency_remerge = False
+            sibling_context_rows: List[Dict[str, Any]] = []
+            coherent_context_rows: List[Dict[str, Any]] = []
             if (
                 operation_family == "ratio"
                 and required_operands
@@ -15587,43 +15588,19 @@ class FinancialAgentCalculationMixin:
                     topic=state.get("topic") or "",
                     report_scope=dict(state.get("report_scope") or {}),
                 )
-                if coherent_context_rows:
-                    sibling_context_rows = merge_operand_rows(
-                        coherent_context_rows,
-                        sibling_context_rows,
-                        required_operands=required_operands,
-                    )
-                if sibling_context_rows:
-                    operand_rows = align_dependency_rows_with_sibling_direct_context(
-                        operand_rows,
-                        sibling_context_rows,
-                    )
-                    operand_rows = prefer_complete_ratio_direct_context_rows(
-                        operand_rows=operand_rows,
-                        direct_rows=sibling_context_rows,
-                        required_operands=required_operands,
-                    )
-                    direct_contexts = {
-                        _normalise_spaces(
-                            str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
-                        )
-                        for row in sibling_context_rows
-                        if _normalise_spaces(
-                            str(row.get("table_source_id") or row.get("source_table_id") or row.get("source_anchor") or "")
-                        )
-                    }
-                    complete_direct_context_blocks_dependency_remerge = bool(
-                        len(direct_contexts) == 1
-                        and not _missing_required_operands(required_operands, sibling_context_rows)
-                        and not _ratio_operand_rows_collapse_to_same_slot(sibling_context_rows)
-                        and not _period_comparison_operand_rows_collapse_to_same_slot(sibling_context_rows)
-                    )
-            if dependency_rows and not prefer_direct_rows_over_dependency and not complete_direct_context_blocks_dependency_remerge:
-                operand_rows = merge_operand_rows(
-                    dependency_rows,
-                    operand_rows,
+            late_dependency_remerge = resolve_late_dependency_remerge(
+                LateDependencyRemergeInput(
+                    operation_family=operation_family,
                     required_operands=required_operands,
+                    operand_rows=operand_rows,
+                    dependency_rows=dependency_rows,
+                    sibling_context_rows=sibling_context_rows,
+                    coherent_context_rows=coherent_context_rows,
+                    prefer_direct_rows_over_dependency=prefer_direct_rows_over_dependency,
+                    required_prefers_aggregate_stage=required_prefers_aggregate_stage,
                 )
+            )
+            operand_rows = late_dependency_remerge.operand_rows
             if _is_percent_point_difference_query(query):
                 operand_rows = [
                     row for row in operand_rows

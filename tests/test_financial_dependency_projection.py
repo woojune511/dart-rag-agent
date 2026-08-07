@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 from src.agent.financial_dependency_projection import (
     DirectDependencySelectionInput,
+    LateDependencyRemergeInput,
     MainOperandPrecedenceInput,
     align_dependency_rows_with_sibling_direct_context,
     decide_task_output_operand_resolution,
@@ -12,6 +13,7 @@ from src.agent.financial_dependency_projection import (
     filter_direct_rows_by_dependency_producer_scope,
     period_comparison_direct_rows_conflict_with_dependency_outputs,
     prefer_complete_ratio_direct_context_rows,
+    resolve_late_dependency_remerge,
     resolve_main_operand_precedence,
     resolve_dependency_producer_scope,
     select_direct_dependency_operand_rows,
@@ -491,6 +493,140 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         }
         values.update(overrides)
         return MainOperandPrecedenceInput(**values)
+
+    def _late_remerge_input(
+        self,
+        required_operands: List[Dict[str, Any]],
+        operand_rows: List[Dict[str, Any]],
+        dependency_rows: List[Dict[str, Any]],
+        **overrides: Any,
+    ) -> LateDependencyRemergeInput:
+        values: Dict[str, Any] = {
+            "operation_family": "ratio",
+            "required_operands": required_operands,
+            "operand_rows": operand_rows,
+            "dependency_rows": dependency_rows,
+            "sibling_context_rows": [],
+            "coherent_context_rows": [],
+            "prefer_direct_rows_over_dependency": False,
+            "required_prefers_aggregate_stage": False,
+        }
+        values.update(overrides)
+        return LateDependencyRemergeInput(**values)
+
+    def test_late_remerge_complete_coherent_context_blocks_dependency(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        operand_rows = [dict(direct_rows[0])]
+        sibling_context_rows = [dict(direct_rows[0])]
+        owner_input = self._late_remerge_input(
+            required_operands,
+            operand_rows,
+            dependency_rows,
+            sibling_context_rows=sibling_context_rows,
+            coherent_context_rows=direct_rows,
+        )
+        input_snapshot = deepcopy(owner_input)
+
+        result = resolve_late_dependency_remerge(owner_input)
+
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.active_direct_context_rows],
+            ["direct_1", "direct_2"],
+        )
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.operand_rows],
+            ["direct_1", "direct_2"],
+        )
+        self.assertTrue(result.complete_direct_context_blocks_dependency_remerge)
+        self.assertFalse(result.dependency_remerge_applied)
+        self.assertEqual(result.dependency_remerge_reason, "complete_direct_context")
+        self.assertEqual(owner_input, input_snapshot)
+
+    def test_late_remerge_incomplete_context_applies_dependency_first_copy(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        operand_rows = [dict(direct_rows[0])]
+        sibling_context_rows = [dict(direct_rows[0])]
+        owner_input = self._late_remerge_input(
+            required_operands,
+            operand_rows,
+            dependency_rows,
+            sibling_context_rows=sibling_context_rows,
+        )
+        input_snapshot = deepcopy(owner_input)
+
+        result = resolve_late_dependency_remerge(owner_input)
+
+        self.assertIs(result.active_direct_context_rows, sibling_context_rows)
+        self.assertFalse(result.complete_direct_context_blocks_dependency_remerge)
+        self.assertTrue(result.dependency_remerge_applied)
+        self.assertEqual(result.dependency_remerge_reason, "dependency_remerged")
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.operand_rows],
+            ["dependency_1", "dependency_2"],
+        )
+        self.assertIsNot(result.operand_rows, dependency_rows)
+        self.assertTrue(
+            all(
+                result_row is not dependency_row
+                for result_row, dependency_row in zip(result.operand_rows, dependency_rows)
+            )
+        )
+        self.assertEqual(owner_input, input_snapshot)
+
+    def test_late_remerge_aggregate_veto_still_remerges_dependency(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        result = resolve_late_dependency_remerge(
+            self._late_remerge_input(
+                required_operands,
+                direct_rows,
+                dependency_rows,
+                sibling_context_rows=direct_rows,
+                coherent_context_rows=direct_rows,
+                required_prefers_aggregate_stage=True,
+            )
+        )
+
+        self.assertEqual(result.active_direct_context_rows, [])
+        self.assertFalse(result.complete_direct_context_blocks_dependency_remerge)
+        self.assertTrue(result.dependency_remerge_applied)
+        self.assertEqual(result.dependency_remerge_reason, "dependency_remerged")
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.operand_rows],
+            ["dependency_1", "dependency_2"],
+        )
+
+    def test_late_remerge_no_dependency_preserves_operand_identity(self) -> None:
+        required_operands, direct_rows, _dependency_rows = self._source_selection_fixture()
+        result = resolve_late_dependency_remerge(
+            self._late_remerge_input(
+                required_operands,
+                direct_rows,
+                [],
+                operation_family="difference",
+            )
+        )
+
+        self.assertIs(result.operand_rows, direct_rows)
+        self.assertEqual(result.active_direct_context_rows, [])
+        self.assertFalse(result.complete_direct_context_blocks_dependency_remerge)
+        self.assertFalse(result.dependency_remerge_applied)
+        self.assertEqual(result.dependency_remerge_reason, "no_dependency_rows")
+
+    def test_late_remerge_direct_precedence_preserves_operand_identity(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture()
+        result = resolve_late_dependency_remerge(
+            self._late_remerge_input(
+                required_operands,
+                direct_rows,
+                dependency_rows,
+                operation_family="difference",
+                prefer_direct_rows_over_dependency=True,
+            )
+        )
+
+        self.assertIs(result.operand_rows, direct_rows)
+        self.assertFalse(result.dependency_remerge_applied)
+        self.assertEqual(result.dependency_remerge_reason, "direct_precedence")
 
     def test_direct_dependency_precedence_no_dependency_preserves_identity(self) -> None:
         required_operands, direct_rows, _dependency_rows = self._source_selection_fixture()

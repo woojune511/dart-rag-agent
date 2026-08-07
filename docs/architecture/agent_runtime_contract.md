@@ -566,15 +566,24 @@ decisions directly; graph callers must not inject those decisions through
 callbacks. It also owns the typed application of that selector to the main
 operand path: final ratio override or purge, producer-scope filtering, duplicate
 guarding, and missing-binding fill are one state-free transformation with an
-inspectable result. The graph adapter still owns the context/evidence retrieval
-gates that prepare this input, retry and dependency-guard decisions, and state,
-trace, artifact, and logging projection. Fallback recovery, late dependency
-re-merge, and aggregate repair remain graph-orchestrated, so this is not a
-single-owner end-to-end precedence claim. A task output may override a direct
-row only through an explicit decision reason and provenance record. The decision
-must retain the current and candidate source identities needed to inspect value,
-materiality, anchor, and scope conflicts; list order must never act as an
-implicit override rule.
+inspectable result. Rows rejected by consolidation or dependency-producer scope
+must also be removed from the active dependency snapshot so a later fallback
+cannot reintroduce them. After the graph builds sibling and coherent evidence
+contexts, the same owner applies the late path's coherent-first context merge,
+alignment and direct-context preference, complete-context veto, and dependency
+re-merge as another typed state-free result. Its reason fields are owner-contract
+outputs; they are not currently projected as runtime trace fields.
+
+The graph adapter still owns the context/evidence builders that prepare these
+inputs, retry and dependency-guard decisions, percent-point filtering,
+empty-preservation and other deterministic/LLM fallback paths, and state, trace,
+artifact, and logging projection. Aggregate repair and stale-result execution
+also remain graph-orchestrated, so this is not a single-owner end-to-end
+precedence claim. A task output may override a direct row only through an
+explicit decision reason and provenance record. The decision must retain the
+current and candidate source identities needed to inspect value, materiality,
+anchor, and scope conflicts; list order must never act as an implicit override
+rule.
 
 `financial_calculation_execution.py` owns plan validation and state-free
 execution. Before execution it must validate `ordered_operand_ids` and

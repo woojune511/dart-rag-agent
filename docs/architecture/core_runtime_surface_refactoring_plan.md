@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-07-22
+Last revised: 2026-08-07
 
 This is the completed execution record for reducing repository complexity while
 preserving the verified financial QA behavior. Git history,
@@ -222,7 +222,9 @@ Current owner-extraction slice:
   state-free dependency projection, and the direct-versus-dependency source-set
   selector, including an explicit reason and provenance contract. It also owns
   the typed main-path application covering final ratio override or purge,
-  producer-scope filtering, duplicate guarding, and missing-binding fill;
+  producer-scope filtering, duplicate guarding, and missing-binding fill. Its
+  typed late application performs coherent-first context merge, alignment and
+  direct-context preference, complete-context veto, and dependency re-merge;
 - `financial_calculation_execution.py` validates ordered operand ids and variable
   bindings against the operand set, then returns a typed execution outcome for
   the graph adapter to project;
@@ -236,8 +238,20 @@ override or purge, selector application, producer-scope filtering, duplicate
 guard, and missing-binding fill behind the same dependency owner. The graph
 still prepares that input through context/evidence retrieval gates and owns
 retry, dependency-guard, logging, artifact, trace, and state projection.
-Fallback recovery, late dependency re-merge, and aggregate repair remain graph
-orchestration. This is not end-to-end precedence consolidation.
+Commit `b16a6c5` is a separate behavior fix: it removes consolidation- or
+producer-scope-rejected rows from the active dependency snapshot before any late
+fallback can reuse it. That fix passed `78` focused owner/graph contracts, the
+`217`-literal runtime audit, and full discovery over `1,457` unit tests.
+
+The following late-owner slice moves coherent-first direct-context merge,
+alignment and preference, the complete-context veto, and dependency re-merge
+application behind a typed state-free result. The graph still builds the sibling
+and coherent evidence contexts and owns percent-point filtering,
+empty-preservation and other deterministic/LLM fallback paths, logging,
+artifact, trace, and state projection. Aggregate repair and stale-result
+execution remain graph orchestration. This is not end-to-end precedence
+consolidation, and the typed late-decision reason is not yet a runtime trace
+field.
 
 The earlier calculation owner-extraction slice changed
 `financial_graph_calculation.py` from `21,642` to `19,682` lines (`-1,960`),
@@ -248,17 +262,29 @@ because the policy body moves into the dependency owner. Product-runtime
 behavior is intended to remain unchanged; the precedence logic is relocated
 behind one owner contract rather than removed from the executed path.
 
+The late-owner slice changes `financial_graph_calculation.py` from `19,587` to
+`19,564` lines (`-23`) and `financial_dependency_projection.py` from `2,656` to
+`2,760` lines (`+104`). The two changed source files therefore have a net
+increase of `81` lines. Product-runtime behavior is intended to remain
+unchanged; the late precedence logic is relocated, not removed from execution.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
 was the earlier extraction evidence. The typed main-path application passed `76`
 focused owner/graph contracts, the same `217`-literal audit, and full discovery
 over `1,457` unit tests. These are contract and regression evidence, not a
-refreshed benchmark claim.
+refreshed benchmark claim. After the separate `b16a6c5` behavior fix, the late
+typed application passed `78` focused owner/graph contracts, the same
+`217`-literal audit, and full discovery over `1,462` unit tests. Its benchmark
+refresh has not run.
 
 Phase 3 remains open for these follow-ups:
 
-- move the remaining fallback, late re-merge, and aggregate precedence
+- characterize whether percent-point filtering followed by empty-preservation
+  can bypass the late-owner veto or active dependency snapshot, then move that
+  bounded fallback behind a named contract;
+- move the remaining deterministic/LLM fallback and aggregate precedence
   orchestration behind named owner contracts;
 - reduce the remaining private-API mesh;
 - remove the stale-result second execution path after caller migration;

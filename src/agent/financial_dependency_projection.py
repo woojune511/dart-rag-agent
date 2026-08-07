@@ -39,6 +39,13 @@ OperandSourcePrecedence = Literal[
     "dependency_first",
 ]
 
+LateDependencyRemergeReason = Literal[
+    "dependency_remerged",
+    "no_dependency_rows",
+    "direct_precedence",
+    "complete_direct_context",
+]
+
 
 @dataclass(frozen=True)
 class DirectDependencySelectionInput:
@@ -105,6 +112,31 @@ class MainOperandPrecedenceResult:
     ratio_direct_context_should_override_dependency: bool
     ratio_direct_context_override_applied: bool
     direct_dependency_fill_allowed: bool
+
+
+@dataclass(frozen=True)
+class LateDependencyRemergeInput:
+    """State-free inputs for the graph's late dependency re-merge pass."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    operand_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    sibling_context_rows: List[Dict[str, Any]]
+    coherent_context_rows: List[Dict[str, Any]]
+    prefer_direct_rows_over_dependency: bool
+    required_prefers_aggregate_stage: bool
+
+
+@dataclass(frozen=True)
+class LateDependencyRemergeResult:
+    """Inspectable result of the graph's late dependency re-merge pass."""
+
+    operand_rows: List[Dict[str, Any]]
+    active_direct_context_rows: List[Dict[str, Any]]
+    complete_direct_context_blocks_dependency_remerge: bool
+    dependency_remerge_applied: bool
+    dependency_remerge_reason: LateDependencyRemergeReason
 
 
 OperandResolutionAction = Literal["keep_current", "use_candidate"]
@@ -1254,6 +1286,78 @@ def resolve_main_operand_precedence(
         ),
         ratio_direct_context_override_applied=ratio_direct_context_override_applied,
         direct_dependency_fill_allowed=direct_dependency_fill_allowed,
+    )
+
+
+def resolve_late_dependency_remerge(
+    remerge_input: LateDependencyRemergeInput,
+) -> LateDependencyRemergeResult:
+    """Resolve late direct-context precedence and dependency re-merge."""
+
+    operand_rows = remerge_input.operand_rows
+    active_direct_context_rows: List[Dict[str, Any]] = []
+    complete_direct_context_blocks_dependency_remerge = False
+    direct_context_allowed = bool(
+        remerge_input.operation_family == "ratio"
+        and remerge_input.required_operands
+        and operand_rows
+        and not remerge_input.required_prefers_aggregate_stage
+    )
+    if direct_context_allowed:
+        active_direct_context_rows = remerge_input.sibling_context_rows
+        if remerge_input.coherent_context_rows:
+            active_direct_context_rows = merge_operand_rows(
+                remerge_input.coherent_context_rows,
+                active_direct_context_rows,
+                required_operands=remerge_input.required_operands,
+            )
+        if active_direct_context_rows:
+            operand_rows = align_dependency_rows_with_sibling_direct_context(
+                operand_rows,
+                active_direct_context_rows,
+            )
+            operand_rows = prefer_complete_ratio_direct_context_rows(
+                operand_rows=operand_rows,
+                direct_rows=active_direct_context_rows,
+                required_operands=remerge_input.required_operands,
+            )
+            complete_direct_context_blocks_dependency_remerge = bool(
+                _operand_rows_have_single_table_context(active_direct_context_rows)
+                and not _missing_required_operands(
+                    remerge_input.required_operands,
+                    active_direct_context_rows,
+                )
+                and not _ratio_operand_rows_collapse_to_same_slot(active_direct_context_rows)
+                and not _period_comparison_operand_rows_collapse_to_same_slot(
+                    active_direct_context_rows
+                )
+            )
+
+    if not remerge_input.dependency_rows:
+        dependency_remerge_reason: LateDependencyRemergeReason = "no_dependency_rows"
+    elif remerge_input.prefer_direct_rows_over_dependency:
+        dependency_remerge_reason = "direct_precedence"
+    elif complete_direct_context_blocks_dependency_remerge:
+        dependency_remerge_reason = "complete_direct_context"
+    else:
+        dependency_remerge_reason = "dependency_remerged"
+
+    dependency_remerge_applied = dependency_remerge_reason == "dependency_remerged"
+    if dependency_remerge_applied:
+        operand_rows = merge_operand_rows(
+            remerge_input.dependency_rows,
+            operand_rows,
+            required_operands=remerge_input.required_operands,
+        )
+
+    return LateDependencyRemergeResult(
+        operand_rows=operand_rows,
+        active_direct_context_rows=active_direct_context_rows,
+        complete_direct_context_blocks_dependency_remerge=(
+            complete_direct_context_blocks_dependency_remerge
+        ),
+        dependency_remerge_applied=dependency_remerge_applied,
+        dependency_remerge_reason=dependency_remerge_reason,
     )
 
 

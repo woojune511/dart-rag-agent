@@ -7285,13 +7285,28 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        extracted = self.agent._extract_calculation_operands(state)
+        late_owner_results = []
+        original_late_owner = financial_graph_calculation.resolve_late_dependency_remerge
+
+        def _record_late_owner(owner_input):
+            result = original_late_owner(owner_input)
+            late_owner_results.append(result)
+            return result
+
+        financial_graph_calculation.resolve_late_dependency_remerge = _record_late_owner
+        try:
+            extracted = self.agent._extract_calculation_operands(state)
+        finally:
+            financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
         trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "partial")
         self.assertEqual(len(trace["calculation_operands"]), 1)
         self.assertEqual(trace["calculation_operands"][0]["matched_operand_role"], "minuend")
         self.assertEqual(extracted["artifacts"][0]["payload"]["calculation_operands"][0]["raw_value"], "10")
+        self.assertEqual(len(late_owner_results), 1)
+        self.assertTrue(late_owner_results[0].dependency_remerge_applied)
+        self.assertEqual(late_owner_results[0].dependency_remerge_reason, "dependency_remerged")
 
     def test_route_after_reconcile_plan_uses_operand_extractor_for_synthesis_strategy(self) -> None:
         route = self.agent._route_after_reconcile_plan(
@@ -9856,13 +9871,29 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._build_required_operands_from_candidates = build_required
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
 
-        extracted = self.agent._extract_calculation_operands(state)
+        late_owner_results = []
+        original_late_owner = financial_graph_calculation.resolve_late_dependency_remerge
+
+        def _record_late_owner(owner_input):
+            result = original_late_owner(owner_input)
+            late_owner_results.append(result)
+            return result
+
+        financial_graph_calculation.resolve_late_dependency_remerge = _record_late_owner
+        try:
+            extracted = self.agent._extract_calculation_operands(state)
+        finally:
+            financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual(len(late_owner_results), 1)
+        self.assertTrue(late_owner_results[0].complete_direct_context_blocks_dependency_remerge)
+        self.assertFalse(late_owner_results[0].dependency_remerge_applied)
+        self.assertEqual(late_owner_results[0].dependency_remerge_reason, "complete_direct_context")
 
     def test_growth_prior_recovery_skips_parenthesized_current_value(self) -> None:
         recovered = self.agent._recover_growth_prior_material_from_evidence(
