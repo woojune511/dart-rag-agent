@@ -334,6 +334,18 @@ from `2,367` to `2,371` (`+4`), and task artifacts from `1,047` to `1,128`
 `+792/-69`, net `+723`. This is caller-specific synchronization, not completion
 of the whole task/artifact ledger contract.
 
+Structural commit `2cfa867` then relocates the pure aggregate stale-repair
+provenance selection without changing behavior. `financial_aggregate_projection.py`
+now owns the typed state-free selection and canonical
+`aggregate_result_operation_family`; the old graph provenance bodies are deleted.
+The graph retains a one-line delegate for its 68 existing operation-family
+callers, plus repair acceptance, pre-filter snapshot, accepted re-filter, and
+answer/state orchestration. The graph changes from `19,933` to `19,802` lines
+(`-131`, `+15/-146`) and the owner from `195` to `376` (`+181`, `+182/-1`).
+Production source is `+197/-147`, net `+50`; the whole commit is `+392/-184`, net
+`+208`. These numbers show owner relocation and graph reduction, not total-code
+or executed-path reduction.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -354,15 +366,14 @@ contracts passed; the `7`-contract core subset and `2` adapter/time-series spot
 contracts were also rerun. The `217`-literal audit and full discovery over
 `1,472` tests passed on Python 3.13. After `be2e7bf`, all `560` affected-module
 tests, the same `217`-literal audit, and full discovery over `1,472` tests passed
-on Python 3.13. Benchmark refresh has not run for these latest changes.
+on Python 3.13. After `2cfa867`, all `564` affected tests, the same `217`-literal
+audit, and full discovery over `1,476` tests passed. Benchmark refresh has not run
+for these latest changes.
 
 Phase 3 remains open for these follow-ups:
 
-- mechanically move the new pure aggregate provenance selection from the graph
-  into the existing `financial_aggregate_projection.py` owner, without combining
-  it with another behavior change;
-- remove discarded state projection from the dependency and period recovery
-  callers in the following separate bounded slice;
+- characterize and then remove discarded state projection from the dependency
+  and period recovery callers in the next separate bounded slice;
 - keep broader task/artifact ledger synchronization as a separately specified
   contract rather than inferring it from the three repaired caller surfaces;
 - move the remaining deterministic/LLM fallback and aggregate precedence

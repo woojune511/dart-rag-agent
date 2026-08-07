@@ -138,6 +138,17 @@ from 2,367 to 2,371 (`+4`), and task artifacts from 1,047 to 1,128 (`+81`). The
 source diff is `+332/-50`, net `+282`; the whole commit is `+792/-69`, net `+723`.
 This is not full task/artifact ledger synchronization.
 
+The behavior-preserving `2cfa867` relocation moves pure aggregate stale-repair
+provenance selection and canonical `aggregate_result_operation_family`
+normalization into `financial_aggregate_projection.py`. The old graph provenance
+bodies are deleted. A one-line operation-family delegate remains for 68 graph
+callers, and the graph still owns repair acceptance, the pre-filter snapshot,
+accepted re-filter, and answer/state orchestration. The graph changes from 19,933
+to 19,802 lines (`-131`, `+15/-146`) and the owner from 195 to 376 (`+181`,
+`+182/-1`). Production source is `+197/-147`, net `+50`; the whole commit is
+`+392/-184`, net `+208`. This is an ownership change and graph reduction, not a
+total-code or executed-path reduction claim.
+
 Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
 the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
 focused contracts, the same audit, and full discovery over 1,468 tests; after
@@ -148,7 +159,8 @@ the same 217-literal audit, and all 1,472 tests passed on Python 3.13. The final
 and 2 adapter/time-series spot contracts were also rerun. The 217-literal audit
 and all 1,472 tests passed on Python 3.13. After `be2e7bf`, all 560 affected-module
 tests, the same 217-literal audit, and all 1,472 tests passed on Python 3.13.
-Benchmark refresh remains not run.
+After `2cfa867`, all 564 affected tests, the same 217-literal audit, and all 1,476
+tests passed. Benchmark refresh remains not run.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -168,6 +180,7 @@ remains recoverable from `main@294b4ea`.
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
 | Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
 | Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, caller-specific stale provenance is synchronized, and broader ledger synchronization remains open |
+| Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
 | Optional persisted report cache | configured `ReportCacheIndex` boundary |
@@ -193,9 +206,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
 | Latest dependency-precedence focused contracts | PASS, 53 owner/graph tests after typed finalization and coverage repair on 2026-08-07 |
 | Latest stale/candidate focused contracts | PASS, 345 unique focused tests after `f2af4f4` on 2026-08-07; core 7 and spot 2 were subset reruns |
-| Latest stale-repair provenance affected modules | PASS, 560 tests after `be2e7bf` on 2026-08-07 |
+| Latest aggregate provenance owner affected tests | PASS, 564 tests after `2cfa867` on 2026-08-07 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
-| Full unittest discovery | PASS, 1,472 tests locally on Python 3.13 after stale-repair provenance synchronization on 2026-08-07 |
+| Full unittest discovery | PASS, 1,476 tests locally after aggregate provenance owner relocation on 2026-08-07 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -246,8 +259,10 @@ are broad. The calculation candidate seam remains graph-private. Stale repair no
 longer recursively calls `_execute_calculation()`. Its render, planning-capture,
 and aggregate callers now synchronize the limited provenance surfaces described
 above, but this is not whole-ledger synchronization; ambiguous refs are preserved,
-and the new pure aggregate provenance selection remains graph-owned. Dependency
-and period recovery still create state projections their callers discard, and
+and pure aggregate provenance selection now belongs to its projection owner. The
+graph still retains the 68-caller operation-family delegate, repair acceptance,
+pre-filter/re-filter sequencing, and answer/state orchestration. Dependency and
+period recovery still create state projections their callers discard, and
 absolute-ratio/trend projection boundaries remain graph-owned. These are named
 follow-ups, not hidden claims that the calculation monolith is resolved.
 
@@ -266,15 +281,12 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should mechanically move the pure
-aggregate stale-repair provenance selection added by `be2e7bf` from the graph to
-the existing `financial_aggregate_projection.py` owner. It should preserve the
-new behavior and caller sequencing while reversing graph growth, not combine a
-second behavior fix. Cleanup of the dependency and period recovery callers that
-discard state projection comes next as a separate slice. Broader ledger sync,
-aggregate precedence, remaining deterministic/LLM fallbacks,
-absolute-ratio/trend projection debt, and the private-API mesh remain separate
-follow-ups.
+The next architecture change, if continued, should characterize the def-use,
+identity, and caller contracts for dependency and period recovery state
+projections that are currently discarded, then clean them up as one bounded
+slice. Broader ledger sync, aggregate precedence, remaining deterministic/LLM
+fallbacks, absolute-ratio/trend projection debt, and the private facade/API mesh
+remain separate follow-ups.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

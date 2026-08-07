@@ -625,12 +625,22 @@ reordering or replacing unrelated artifacts. Planning capture updates refs on
 the returned row only. Aggregate repair snapshots its evidence window before the
 first final filter, supersedes a stale provenance target only when that target is
 unique, and re-filters the snapshot after acceptance. Ambiguous target refs must
-be preserved rather than destructively removed. These projections do not change
-numeric freshness or repair acceptance, and they are not a claim that the whole
-task/artifact ledger is synchronized. Dependency and period recovery still
-create state projections that their callers discard. Assessment reasons are
-owner-contract outputs, not runtime trace fields. This boundary does not
-establish a single end-to-end calculation owner.
+be preserved rather than destructively removed.
+
+`financial_aggregate_projection.py` owns that target selection as a typed,
+state-free result together with the canonical `aggregate_result_operation_family`
+normalization used by the selection. The graph passes the original ordered rows,
+selected ids, evidence window, and pre-repair aggregate projection without
+mutating them. It retains a one-line operation-family delegate for its existing
+68 callers, plus repair acceptance, the pre-filter snapshot and accepted
+re-filter, and answer/state orchestration. Moving the pure policy does not move
+those sequencing responsibilities.
+
+These projections do not change numeric freshness or repair acceptance, and they
+are not a claim that the whole task/artifact ledger is synchronized. Dependency
+and period recovery still create state projections that their callers discard.
+Assessment reasons are owner-contract outputs, not runtime trace fields. This
+boundary does not establish a single end-to-end calculation owner.
 
 ## 9. Aggregate Subtask Projection
 

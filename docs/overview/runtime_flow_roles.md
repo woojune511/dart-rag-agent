@@ -301,6 +301,10 @@ state-free owner 경계:
   `StaleCalculationValueAssessment`를 소유한다. source-stated flag가 활성화된
   경우에는 public display 값 대신 traced formula value를 비교하며 기존 tolerance와
   NaN 동작을 유지한다.
+- `financial_aggregate_projection.py`: typed state-free stale-repair provenance
+  selection과 canonical `aggregate_result_operation_family` normalization을 소유한다.
+  unique provenance target만 supersede하고 ambiguous refs는 보존하며, input
+  sequence와 nested row identity를 변경하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -320,6 +324,8 @@ graph adapter에 남은 orchestration 역할군:
   aggregate는 pre-filter snapshot의 unique provenance target과 accepted refilter를
   동기화한다. numeric freshness/acceptance는 바꾸지 않고, ambiguous refs와 그
   밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
+- 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
+  acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
 - dependency/period 내부 재계산의 버려지는 state projection
 - absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
@@ -361,9 +367,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
 - `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
 - `financial_calculation_execution.py`: plan validation, typed execution outcome, and typed state-free value-only stale freshness assessment
-- `financial_aggregate_projection.py`: aggregate projection helpers; 다음 bounded
-  구조 slice에서 graph에 새로 생긴 pure stale-repair provenance selection을 이
-  owner로 옮기되 behavior와 caller sequencing은 바꾸지 않는다.
+- `financial_aggregate_projection.py`: aggregate projection helpers, typed
+  stale-repair provenance selection, canonical aggregate operation-family
+  normalization
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers

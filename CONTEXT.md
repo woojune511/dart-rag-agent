@@ -47,8 +47,12 @@ Last updated: 2026-08-07
   id의 최신 calculation-result artifact를, planning capture는 반환 row refs만,
   aggregate는 pre-filter evidence snapshot에서 유일한 provenance target과 accepted
   refilter를 동기화한다. ambiguous refs는 보존하며 전체 ledger synchronization을
-  완료한 것은 아니다. dependency/period 내부 재계산은 아직 버려지는 state
-  projection을 만든다.
+  완료한 것은 아니다. `2cfa867`은 이 aggregate provenance selection과 canonical
+  aggregate operation-family normalization을 typed state-free
+  `financial_aggregate_projection.py` owner로 옮겼다. graph는 기존 68개 caller를
+  위한 1-line delegate와 repair acceptance, pre-filter snapshot, accepted refilter,
+  answer/state orchestration을 유지한다. dependency/period 내부 재계산은 아직
+  버려지는 state projection을 만든다.
 
 ## 현재 검증 기준
 
@@ -57,8 +61,8 @@ Last updated: 2026-08-07
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest stale-repair provenance contract | affected 3-module regression 560개 PASS; benchmark refresh 미실행 |
-| Runtime validation | Python 3.13 full unittest 1,472개 PASS; domain-term audit 217개 literal PASS |
+| Latest aggregate provenance owner contract | affected regression 564개 PASS; benchmark refresh 미실행 |
+| Runtime validation | full unittest 1,476개 PASS; domain-term audit 217개 literal PASS |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
 현재 알려진 unit/contract correctness blocker는 없다. 별도 behavior fix
@@ -76,7 +80,12 @@ formula evaluation을 2회에서 1회로 줄였다. 이어진 behavior fix `be2e
 numeric freshness나 repair acceptance를 바꾸지 않고 render, capture, aggregate의
 accepted repair provenance를 위 범위로 동기화했다. 이 commit은 graph를
 19,736→19,933줄, graph planning을 2,367→2,371줄, task artifacts를
-1,047→1,128줄로 바꿨고 source net은 `+282`줄이다.
+1,047→1,128줄로 바꿨고 source net은 `+282`줄이다. 이어진 behavior-preserving
+relocation `2cfa867`은 graph의 old provenance body를 삭제하고 selection과 canonical
+operation-family normalization을 aggregate owner로 옮겼다. graph는
+19,933→19,802줄(`-131`), owner는 195→376줄(`+181`)이 됐으며 두 source의
+합계는 `+197/-147`, net `+50`줄이다. 이는 total code reduction이나
+executed-path reduction claim이 아니다.
 이 변경들에 대한 benchmark refresh는 실행하지 않았으므로, 이전
 recorded benchmark를 검증 근거로 삼거나 새 score claim을 만들지 않는다.
 
@@ -100,12 +109,10 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 구조 작업은 `be2e7bf`가 graph에 추가한 pure aggregate provenance selection을
-product behavior 변경 없이 `financial_aggregate_projection.py` owner로 옮겨 graph
-증가를 되돌리는 bounded slice다. 그 다음 dependency/period 내부 재계산의
-버려지는 state projection을 별도로 정리한다. 전체 ledger sync, aggregate
-precedence, 남은 deterministic/LLM fallback, private API mesh도 별도 follow-up으로
-유지한다. 새 benchmark claim이 필요하면
+다음 구조 작업은 dependency/period 내부 재계산이 만들고 caller가 버리는 state
+projection의 def-use와 identity를 먼저 characterization한 뒤 정리하는 bounded
+slice다. 전체 ledger sync, aggregate precedence, 남은 deterministic/LLM fallback,
+private facade/API mesh는 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면
 현재 profile과 store signature를 먼저 확인하고 monitored store-fixed
 `eval-only`로 갱신한다.
 
