@@ -22,6 +22,38 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import CalculationResult
 
 class FinancialCalculationExecutionTests(unittest.TestCase):
+    def test_graph_difference_plan_adapter_preserves_percent_point_unit(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        def operand(operand_id: str, role: str, value: float) -> dict:
+            return {
+                "operand_id": operand_id, "label": "margin", "matched_operand_role": role,
+                "normalized_value": value, "normalized_unit": "PERCENT",
+            }
+
+        state = {
+            "query": "calculate the margin difference in %p",
+            "active_subtask": {
+                "operation_family": "difference",
+                "required_operands": [
+                    {"label": "margin", "role": "subtrahend"},
+                    {"label": "margin", "role": "minuend"},
+                ],
+            },
+        }
+        operands = [
+            operand("prior", "subtrahend", -0.1),
+            operand("current", "minuend", 1.8),
+        ]
+        original_inputs = deepcopy((state, operands))
+
+        plan = agent._build_deterministic_operation_plan(state, operands)
+
+        self.assertEqual(
+            (plan["ordered_operand_ids"], plan["formula"], plan["result_unit"]),
+            (["current", "prior"], "A + B", "%p"),
+        )
+        self.assertEqual((state, operands), original_inputs)
+
     def test_build_deterministic_operation_plan_preserves_role_order_units_and_inputs(self) -> None:
         difference_required = [
             {"label": "cost", "role": "subtrahend"},

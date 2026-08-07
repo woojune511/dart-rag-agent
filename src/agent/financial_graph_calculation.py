@@ -14822,20 +14822,20 @@ class FinancialAgentCalculationMixin:
             if bool(item.get("required", True))
         ]
         metric_label = str(active_subtask.get("metric_label") or active_subtask.get("task_id") or "").strip()
-        difference_result_unit = ""
-        if operation_family == "difference" and _should_coerce_percent_point_unit(
-            self._calc_query(state),
-            operands,
-            {"operation": "subtract"},
-        ):
-            difference_result_unit = "%p"
-        return build_deterministic_operation_plan(
+        plan = build_deterministic_operation_plan(
             operation_family=operation_family,
             required_operands=required_operands,
             operands=operands,
             metric_label=metric_label,
-            difference_result_unit=difference_result_unit,
+            difference_result_unit="",
         )
+        if operation_family == "difference" and plan and _should_coerce_percent_point_unit(
+            self._calc_query(state),
+            operands,
+            plan,
+        ):
+            plan = {**plan, "result_unit": "%p"}
+        return plan
 
     def _extract_calculation_operands(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Build the operand set for the current calculation subtask.
