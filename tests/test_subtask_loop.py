@@ -2700,7 +2700,15 @@ class SubtaskLoopTests(unittest.TestCase):
                     },
                 ],
             },
-            "evidence_items": [],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_context",
+                    "source_anchor": "[ACME | 2023 | overview]",
+                    "claim": "Narrative context only.",
+                    "support_level": "context",
+                    "metadata": {},
+                }
+            ],
             "retrieved_docs": [],
             "seed_retrieved_docs": [],
             "reconciliation_result": {"status": "ready"},
@@ -2780,7 +2788,15 @@ class SubtaskLoopTests(unittest.TestCase):
                     ],
                 }
             ],
-            "evidence_items": [],
+            "evidence_items": [
+                {
+                    "evidence_id": "ev_context",
+                    "source_anchor": "[ACME | 2023 | overview]",
+                    "claim": "Narrative context only.",
+                    "support_level": "context",
+                    "metadata": {},
+                }
+            ],
             "retrieved_docs": [],
             "seed_retrieved_docs": [],
             "reconciliation_result": {"status": "ready"},

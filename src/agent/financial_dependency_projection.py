@@ -95,6 +95,7 @@ class MainOperandPrecedenceResult:
 
     selected_operand_rows: List[Dict[str, Any]]
     source_selection: DirectDependencySelection
+    active_dependency_rows: List[Dict[str, Any]]
     active_dependency_bindings: List[Dict[str, Any]]
     dependency_binding_keys: set[Tuple[str, str]]
     dependency_resolved_keys: set[Tuple[str, str]]
@@ -1149,33 +1150,58 @@ def resolve_main_operand_precedence(
         )
     )
     selected_operand_rows = source_selection.operand_rows
+    active_dependency_rows = source_selection.dependency_rows
+    scoped_dependency_rows = [
+        row
+        for row in active_dependency_rows
+        if not operand_row_conflicts_requested_scope(
+            row,
+            precedence_input.desired_consolidation_scope,
+        )
+    ]
+    if len(scoped_dependency_rows) != len(active_dependency_rows):
+        active_dependency_rows = scoped_dependency_rows
     rejected_dependency_scope_rows: List[Dict[str, Any]] = []
-    if (
-        active_dependency_bindings
-        and selected_operand_rows
-        and not source_selection.prefer_direct_rows_over_dependency
-    ):
-        selected_operand_rows, rejected_resolved_dependency_scope_rows = (
-            filter_direct_rows_by_dependency_producer_scope(
-                bindings=active_dependency_bindings,
-                operand_rows=selected_operand_rows,
-                producer_tasks=precedence_input.producer_tasks,
+    if active_dependency_bindings and not source_selection.prefer_direct_rows_over_dependency:
+        if selected_operand_rows:
+            selected_operand_rows, rejected_resolved_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=active_dependency_bindings,
+                    operand_rows=selected_operand_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
             )
-        )
-        rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
-    if (
-        missing_dependency_bindings
-        and selected_operand_rows
-        and not source_selection.prefer_direct_rows_over_dependency
-    ):
-        selected_operand_rows, rejected_missing_dependency_scope_rows = (
-            filter_direct_rows_by_dependency_producer_scope(
-                bindings=missing_dependency_bindings,
-                operand_rows=selected_operand_rows,
-                producer_tasks=precedence_input.producer_tasks,
+            rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
+        if active_dependency_rows:
+            filtered_dependency_rows, rejected_active_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=active_dependency_bindings,
+                    operand_rows=active_dependency_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
             )
-        )
-        rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
+            if rejected_active_dependency_scope_rows:
+                active_dependency_rows = filtered_dependency_rows
+    if missing_dependency_bindings and not source_selection.prefer_direct_rows_over_dependency:
+        if selected_operand_rows:
+            selected_operand_rows, rejected_missing_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=missing_dependency_bindings,
+                    operand_rows=selected_operand_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
+            )
+            rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
+        if active_dependency_rows:
+            filtered_dependency_rows, rejected_active_missing_dependency_scope_rows = (
+                filter_direct_rows_by_dependency_producer_scope(
+                    bindings=missing_dependency_bindings,
+                    operand_rows=active_dependency_rows,
+                    producer_tasks=precedence_input.producer_tasks,
+                )
+            )
+            if rejected_active_missing_dependency_scope_rows:
+                active_dependency_rows = filtered_dependency_rows
 
     direct_dependency_fill_allowed = bool(
         operation_family in {"difference", "growth_rate"}
@@ -1216,6 +1242,7 @@ def resolve_main_operand_precedence(
     return MainOperandPrecedenceResult(
         selected_operand_rows=selected_operand_rows,
         source_selection=source_selection,
+        active_dependency_rows=active_dependency_rows,
         active_dependency_bindings=active_dependency_bindings,
         dependency_binding_keys=dependency_binding_keys,
         dependency_resolved_keys=dependency_resolved_keys,

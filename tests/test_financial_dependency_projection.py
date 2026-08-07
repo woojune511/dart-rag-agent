@@ -737,6 +737,11 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         )
         self.assertEqual(result.source_selection.dependency_rows, [])
         self.assertIsNot(result.source_selection.dependency_rows, dependency_rows)
+        self.assertEqual(result.active_dependency_rows, [])
+        self.assertIs(
+            result.active_dependency_rows,
+            result.source_selection.dependency_rows,
+        )
         self.assertEqual(result.active_dependency_bindings, [])
         self.assertIsNot(result.active_dependency_bindings, dependency_bindings)
         self.assertEqual(result.dependency_resolved_keys, set())
@@ -791,6 +796,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         self.assertFalse(result.direct_dependency_fill_allowed)
         self.assertEqual(result.source_selection.precedence, "dependency_first")
         self.assertIs(result.source_selection.dependency_rows, dependency_rows)
+        self.assertIs(result.active_dependency_rows, dependency_rows)
         self.assertIs(result.active_dependency_bindings, dependency_bindings)
         self.assertIs(result.dependency_binding_keys, dependency_binding_keys)
         self.assertIs(result.dependency_resolved_keys, dependency_resolved_keys)
@@ -881,6 +887,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             ["dependency_current", "direct_prior"],
         )
         self.assertEqual(result.selected_operand_rows, [])
+        self.assertEqual(result.active_dependency_rows, [])
         self.assertEqual(
             [entry["row"].get("evidence_id") for entry in result.rejected_dependency_scope_rows],
             ["dependency_current", "direct_prior"],

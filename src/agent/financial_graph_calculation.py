@@ -15226,7 +15226,7 @@ class FinancialAgentCalculationMixin:
         )
         source_selection = main_precedence.source_selection
         direct_structured_rows = main_precedence.selected_operand_rows
-        dependency_rows = source_selection.dependency_rows
+        dependency_rows = main_precedence.active_dependency_rows
         dependency_bindings = main_precedence.active_dependency_bindings
         missing_dependency_bindings = main_precedence.missing_dependency_bindings
         rejected_dependency_scope_rows = main_precedence.rejected_dependency_scope_rows
