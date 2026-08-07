@@ -51,7 +51,8 @@ gate와 연결해서만 사용한다.
   plain retrieval은 prior-period borrowing table의
   `3,833,263 + 9,073,567 + 6,497,790`을 numerator로 묶었고, structural path는
   current-period table의 `4,145,647 + 10,121,033 + 9,490,410`을 보존했다.
-  최신 PR #78 refresh에서는 같은 case가 `42.02%`로 닫혔다. 핵심 교훈은
+  최신 기록 PR #78 refresh에서는 같은 case가 `42.02%`로 닫혔다. 이 실행의
+  raw artifact는 repository에 공개되어 있지 않다. 핵심 교훈은
   structural metadata만으로 끝나지 않고, period-prefixed operand label을
   table row label과 맞추는 table-label lookup과 disjoint-source operand
   protection까지 trace contract에 포함해야 한다는 점이다.
@@ -129,7 +130,10 @@ projection.
 
 ## 5. Artifact-Ledger Agent Runtime
 
-agentic workflow는 자유 채팅 transcript가 아니라 typed ledger state로 유지한다.
+single-agent `FinancialAgent` graph 내부의 agentic workflow는 자유 채팅
+transcript가 아니라 typed ledger state로 유지한다. 아래 role은 graph 내부의
+role-oriented node/state를 뜻하며, optional MAS를 제품 surface로 주장하는 표현이
+아니다.
 
 핵심 surface:
 
@@ -199,7 +203,7 @@ LLM-written chunk context를 많이 붙이는 것이 유일한 해법은 아니�
 | --- | --- | --- |
 | `plain_prefix_8000_400` | speed/cost baseline | representative runtime-contract row를 놓침 |
 | `contextual_selective_v2_prefix_2500_320` | historical quality baseline | quality reference지만 selected chunks에 LLM-written context 필요 |
-| `structural_selective_v2_prefix_2500_320` | current operating default | deterministic structural prefix로 gate 품질 유지 |
+| `structural_selective_v2_prefix_2500_320` | configured operating default | deterministic structural prefix로 기록된 gate 품질 유지 |
 
 핵심 surface:
 
@@ -213,9 +217,10 @@ LLM-written chunk context를 많이 붙이는 것이 유일한 해법은 아니�
 - 핵심은 semantic summary의 양이 아니라, 어떤 구조 신호를 어떤 chunk와
   evidence state에 남기느냐다.
 - historical hard replay에서는 ontology/runtime fixes 덕분에 plain도
-  `4 / 5` hard numeric questions를 통과했다. 최신 structural refresh는
+  `4 / 5` hard numeric questions를 통과했다. 최신 기록 structural refresh는
   9문항에서 `9 / 9` numeric PASS이고, 가장 최근 plain comparison은 `5 / 9`
-  diagnostic baseline으로 남아 있다. 현재 structural-selective claim은
+  diagnostic baseline으로 남아 있다. raw artifact는 repository에 공개되어
+  있지 않고 run별 보존 상태가 다르다. 따라서 structural-selective claim은
   broad leaderboard가 아니라 display/denominator/row-binding failure taxonomy
   and trace-contract repair story로 제시해야 한다.
 

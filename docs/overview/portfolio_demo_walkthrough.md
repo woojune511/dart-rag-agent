@@ -33,8 +33,8 @@ The default output keeps the core portfolio story in execution order:
 3. `Calculation Trace` binds source-visible operands to a deterministic
    formula and result.
 4. `Citations` and the selected source keep provenance visible.
-5. `Task/Artifact Integrity` shows that runtime work and produced artifacts
-   remain linked.
+5. `Task/Artifact Integrity` shows that the task and artifact links represented
+   in the curated fixture are internally consistent.
 6. `Critic Acceptance` records the reviewed target and explicit acceptance
    reason.
 
@@ -129,8 +129,10 @@ uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_r
 ```
 
 This command reports `review_surface_ready` only. Its output marks unit tests
-and the runtime domain-term audit as `not_run`; publication validation runs them
-separately through `.github/workflows/validation.yml`.
+and the runtime domain-term audit as `not_run`; `.github/workflows/validation.yml`
+is configured to run them separately for publication validation. A workflow
+definition is not a remote PASS; observed status lives in
+[project_status.md](project_status.md).
 
 To append the candidate-only cache handoff to the demo output explicitly:
 
@@ -147,7 +149,7 @@ insertion disabled.
 | --- | --- |
 | `src/ops/portfolio_demo.py` | Fixture projection, rendering, and CLI |
 | `src/ops/portfolio_fixture_contract.py` | Manifest binding and deterministic cross-surface validation owner |
-| `tests/fixtures/portfolio_demo/demo_payload.json` | Source-controlled runtime projection |
+| `tests/fixtures/portfolio_demo/demo_payload.json` | Source-controlled curated contract fixture |
 | `tests/fixtures/portfolio_demo/evidence_manifest.json` | SHA-256 binding, provenance limits, and claim boundary |
 | `tests/test_portfolio_demo.py` | Contract and output regression tests |
 | `src/ops/portfolio_review_gates.py` | Separate optional-system gate bundle |

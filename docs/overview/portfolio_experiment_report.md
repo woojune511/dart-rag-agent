@@ -3,9 +3,13 @@
 This report summarizes the portfolio experiment story. It does not introduce a
 new benchmark run; it packages the current repo evidence into a reviewer-facing
 case study. Historical `benchmarks/results/**` artifacts are treated as
-screening context, not as the current official quality baseline. Full raw result
-bundles remain local-only; this report, the checked-in benchmark profiles, and a
-small set of history-linked summaries are the published evidence surface.
+screening context, not as automatically current quality evidence. Raw benchmark
+bundles are not published, and the named expanded/hard bundles are not present
+in this checkout. This report, the checked-in benchmark profiles, the
+SHA-256-bound demo fixture manifest, and a small set of history-linked summaries
+are the published evidence surface. The fixture is a curated contract example
+whose upstream lineage is `not_provided`; its manifest verifies byte binding and
+internal consistency, not runtime provenance.
 
 ## Audience And Claim Boundary
 
@@ -50,11 +54,11 @@ plain retrieval-and-answer pipeline if it:
 The project compares retrieval/ingest strategies and layers a runtime contract
 over the selected evidence.
 
-| Method | Role | Current interpretation |
+| Method | Role | Interpretation |
 | --- | --- | --- |
 | `plain_prefix_8000_400` | speed/cost baseline | Cheap, but misses a representative runtime-contract row |
 | `contextual_selective_v2_prefix_2500_320` | historical quality baseline | Strong quality reference, but selected chunks need LLM-written context |
-| `structural_selective_v2_prefix_2500_320` | current operating default | Keeps gate quality with deterministic structural prefixes and no per-chunk contextualization calls |
+| `structural_selective_v2_prefix_2500_320` | configured operating default | Recorded runs kept gate quality with deterministic structural prefixes and no per-chunk contextualization calls |
 | Contract runtime | acceptance layer | Uses task/artifact ledger, critic reports, calculation trace, and final close gates |
 
 The main comparison is not "which prompt sounds better." It is whether the
@@ -63,14 +67,18 @@ and expose the trace that explains acceptance.
 
 ## Evaluation Setup
 
-Current gate evidence:
+Evidence inventory:
 
 - `curated_runtime_contract_gate`: 5 numeric/runtime canaries
 - `curated_concept_runtime_gap_gate`: 7 ontology-driven concept questions
 - `curated_policy_driven_runtime_gate`: 5 policy/narrative questions across
   4 company runs
-- publication gate: portfolio demo, cache reviewer handoff, runtime domain-term
-  audit, and unit/contract tests
+- review surface: the SHA-256-bound portfolio fixture plus optional cache,
+  reflection, `REFERENCE_NOTE`, and promotion-trace handoffs
+- publication validation: the separate CI workflow is configured to run
+  focused reviewer contracts, the runtime domain-term audit, and full unit
+  discovery on Python 3.13; its definition is not a remote PASS, and observed
+  status belongs in [project_status.md](project_status.md)
 
 Primary metrics:
 
@@ -89,17 +97,25 @@ normalization, source references, and rendered displays.
 
 ## Results
 
-| Gate / case | Result |
-| --- | --- |
-| Runtime contract gate | PASS on 5 core numeric/runtime questions |
-| Concept runtime gap gate | 7 / 7 PASS |
-| Policy-driven runtime gate | latest OpenAI-backed refresh and 2026-06-07 store-fixed replays kept core metrics at `1.000`; task/artifact integrity `ok`; error rate `0.0%` |
-| Publication gate | `portfolio_review_gates` reports `Status: ready` |
-| Focused CIR close `KAB_T1_066` | numeric `PASS`; faithfulness, completeness, context recall, retrieval hit@k, and grounded rendering correctness all `1.000` |
-| Latest expanded structural refresh | structural full-system `9 / 9` numeric PASS after PR #78 operand projection repair |
-| Plain retrieval comparison | most recent plain retrieval comparison remains `5 / 9`; use as diagnostic baseline evidence rather than a freshly synchronized final ablation |
-| Reproduced structural separators | `POS_T1_057`, `CEL_T1_013`, and `SKH_T3_080` pass structurally while the plain baseline fails |
-| Final residual closure | `KBF_T2_018` stale growth projection and `SKH_T1_060` disjoint-source operand overwrite are closed in focused replays and the final full structural replay |
+### Scoped Reviewer Contract Surface
+
+The revision and working-tree snapshot for local validation results live in
+[project_status.md](project_status.md).
+
+| Surface | Result | Boundary |
+| --- | --- | --- |
+| Demo fixture contract | Expected status: `fixture_contract_ready` after manifest and cross-surface invariant checks | Curated fixture only; upstream lineage `not_provided` |
+| Review surface aggregate | Expected status: `review_surface_ready` | Unit tests and the domain audit are explicitly `not_run` by this command |
+
+### Recorded Benchmark Evidence
+
+| Gate / case | Recorded result | Artifact and comparison boundary |
+| --- | --- | --- |
+| Latest expanded structural refresh | `curated_ablation_expanded_candidate_full_system`; recorded 2026-06-24 summary reports `9 / 9` numeric PASS after PR #78 | Named raw bundle and heartbeat are not present in this checkout |
+| Earlier expanded structural/plain comparison | `curated_ablation_expanded_candidate_full_system` vs `curated_ablation_expanded_candidate_plain_retrieval`; recorded 2026-06-10 summaries report `8 / 9` vs `5 / 9` | Named result directories are not present in this checkout; comparison predates the final PR #78 structural repair |
+| Historical hard structural/plain replay | Checked-in hard-profile pair; recorded 2026-06-10/11 summaries report `5 / 5` vs `4 / 5` | Structural raw bundle was deleted after summarization; named plain result directory is not present in this checkout |
+
+The fixture and reviewer commands do not reproduce the benchmark runs above.
 
 Representative KAB answer:
 
@@ -111,18 +127,20 @@ Both operands come from `IV. 이사의 경영진단 및 분석의견::table:3`. 
 fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 `8` agent LLM calls, and estimated runtime cost `$0.056292`.
 
-### Current Expanded Structural Refresh
+### Latest Recorded Expanded Structural Refresh
 
 After the operand projection repair in PR #78, the expanded structural
 full-system profile was rerun as a store-fixed `eval-only` refresh. This is the
-current structural quality claim for portfolio review.
+latest recorded structural quality result for portfolio review. The raw bundle
+and heartbeat are not present in this checkout, so it cannot independently
+replay or audit that recorded benchmark execution.
 
 | Metric | Structural full-system |
 | --- | ---: |
 | Numeric PASS | `9 / 9` |
 | Scope | six company runs, nine numeric/mixed questions |
 | Refresh mode | store-fixed `eval-only` |
-| Final heartbeat | `heartbeat_full9_final_after_kbf_skh_repairs_2026-06-24.jsonl` |
+| Recorded final heartbeat filename | `heartbeat_full9_final_after_kbf_skh_repairs_2026-06-24.jsonl` (not present in this checkout) |
 
 Per-question numeric final judgement:
 
@@ -167,10 +185,10 @@ but the plain profile has not been rerun under that exact code state.
 
 ### Historical Expanded Structural Ablation
 
-The expanded structural slice compares the current structural-selective runtime
-against a plain-retrieval counterpart on nine curated questions across six
-company runs. Both variants use the same questions, evaluator, retrieval
-budgets, and chunk size; the controlled difference is the retrieval
+The historical expanded structural slice compared the structural-selective
+variant against a plain-retrieval counterpart on nine curated questions across
+six company runs. Both variants used the same questions, evaluator, retrieval
+budgets, and chunk size; the controlled difference was the retrieval
 representation: structural selective chunks with deterministic prefixes versus
 plain chunks without structural prefixes.
 
@@ -189,9 +207,9 @@ Separating numeric cases:
 | `SKH_T3_080` | PASS | FAIL | Plain used the wrong gain row and answered `-37,353백만원`; structural answered `-332,236백만원`. |
 
 This historical run remains useful as a diagnostic trace source, especially for
-`SKH_T3_080`. It is no longer the active portfolio-facing result because the
-latest store-fixed structural refresh supersedes it with structural `9 / 9`
-numeric PASS.
+`SKH_T3_080`. The later recorded store-fixed structural refresh is the primary
+benchmark summary because it reports structural `9 / 9` numeric PASS; neither
+result is reproduced by the fixture-backed reviewer commands.
 
 ### Historical Hard Structural-vs-Plain Replay
 
@@ -239,14 +257,14 @@ The deterministic calculator then correctly computed the wrong operand set.
 This is not an arithmetic failure; it is a row/period binding failure that
 answer-level faithfulness alone can miss.
 
-Reproduction profiles:
+Checked-in run profiles:
 
 - `benchmarks/profiles/curated_ablation_expanded_candidate_full_system.json`
 - `benchmarks/profiles/curated_ablation_expanded_candidate_plain_retrieval.json`
 - `benchmarks/profiles/curated_ablation_structural_hard_full_system.json`
 - `benchmarks/profiles/curated_ablation_structural_hard_plain_retrieval.json`
 
-Local result bundles:
+Historical result paths recorded in prior notes (not present in this checkout):
 
 - `benchmarks/results/ablation_expanded_candidate_full_system_2026-06-10/`
 - `benchmarks/results/ablation_expanded_candidate_plain_retrieval_2026-06-10/`
@@ -273,9 +291,9 @@ Fix layer: aggregate public-answer projection now promotes the supported
 `structured_result.formatted_result` only when it covers the numeric projection
 from nested answer slots and has no untraced growth numeric material.
 
-Current status: focused store-fixed `KBF_T2_018` replay passed, and the
+Recorded status: focused store-fixed `KBF_T2_018` replay passed, and the
 follow-up nine-question expanded refresh also passed this case in both
-structural and plain variants. The fix is now part of the current ablation
+structural and plain variants. The fix is represented in the recorded ablation
 comparison rather than only a focused closure.
 
 ### `POS_T1_057`: signed cost-like operand rendered as invalid ratio
@@ -287,7 +305,7 @@ ratio (`-791.7%`).
 Fix layer: cost-like operand sign/display handling and source-unit preservation
 in ratio composition.
 
-Current status: the focused interest-coverage closure now holds in the latest
+Recorded status: the focused interest-coverage closure holds in the latest
 full structural refresh. `POS_T1_057` is a structural PASS in the refreshed
 expanded slice; the latest plain refresh still fails by rendering a
 scale-broken public answer despite recovering the internal ratio.
@@ -302,7 +320,7 @@ Fix layer: period-aware structural metadata, structured evidence selection,
 direct row/semantic-label preference, and dependency projection alignment from
 producer lookup tasks into downstream ratio tasks.
 
-Current status: closed in PR #78. Historical traces still show a clean
+Recorded status: closed in PR #78. Historical traces still show a clean
 current/prior row-binding separator, and the latest focused/full structural
 refresh now returns `42.02%` with the current-period debt and asset operands.
 The closing fix is a projection/provenance repair: exact periodless table-label
@@ -367,6 +385,8 @@ Primary evidence lives in:
 - [../evaluation/benchmarking.md](../evaluation/benchmarking.md)
 - [../history/implementation_history.md](../history/implementation_history.md)
 - [../history/experiment_history.md](../history/experiment_history.md)
+- [demo fixture evidence manifest](../../tests/fixtures/portfolio_demo/evidence_manifest.json)
+- [publication validation workflow](../../.github/workflows/validation.yml)
 
 Artifact hygiene: `benchmarks/results/**` remains local experiment output and
 should not be staged unless explicitly requested.

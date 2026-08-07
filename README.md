@@ -72,7 +72,7 @@ Numeric surfaces must agree with signed evidence values, selected rows must
 preserve source identifiers, and calculated claims must be reproducible from
 the trace.
 
-### 5. Reproducible evaluation
+### 5. Traceable evaluation
 
 The repository includes contract tests, runtime-domain-term auditing, focused
 benchmark profiles, and store-fixed eval-only workflows. Benchmark failures are
@@ -83,14 +83,16 @@ or projection layer instead of being patched with question-specific branches.
 
 | Signal | Result | Interpretation |
 | --- | ---: | --- |
-| Expanded structural numeric set | 9 / 9 PASS | Latest store-fixed full-system close after operand/provenance repairs |
-| Plain-retrieval comparison | 5 / 9 PASS | Diagnostic baseline for row, denominator, and display/unit failures |
-| Full unit test discovery | 1,350 PASS | Current baseline including provenance, retrieval-owner, and optional-boundary regressions |
-| Portfolio review gates | READY | Fixture-backed review surface is reproducible |
+| Expanded structural numeric set | recorded 9 / 9 PASS | Latest recorded store-fixed close; raw artifacts are not published with the repository |
+| Plain-retrieval comparison | recorded 5 / 9 PASS | Earlier diagnostic baseline for row, denominator, and display/unit failures |
+| Demo fixture contract | `fixture_contract_ready` | SHA-256-bound curated contract fixture passes internal cross-surface invariants; upstream lineage is not provided |
+| Review surface aggregate | `review_surface_ready` | Reviewer fixtures and optional capability handoffs pass; publication checks are separate |
+| Full unit test discovery | [current status](docs/overview/project_status.md) | The Python 3.13 workflow definition and latest local validation are tracked in one place |
 
-The structural and plain results are not presented as a freshly synchronized
-leaderboard ablation. They are engineering evidence for the observed failure
-taxonomy. See
+The structural and plain results are retained engineering records, not a freshly
+synchronized leaderboard ablation. Their raw artifacts are not checked in and
+availability varies by run. The checked-in demo fixture is a separate evidence
+surface; it does not reproduce or independently verify the benchmark runs. See
 [portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
 for the methodology and limitations.
 
@@ -111,13 +113,24 @@ Use the five minutes as follows:
 3. Scan the representative result and scope boundary in the
    [portfolio one-pager](docs/overview/portfolio_one_pager.md).
 
-The fixture-backed demo is a reproducible contract projection, not a live DART
-ingest or provider call. For deeper validation, run:
+The fixture-backed demo is a checked-in curated contract example, not a live
+DART ingest or provider call. Its
+[evidence manifest](tests/fixtures/portfolio_demo/evidence_manifest.json) binds
+the fixture bytes, declares upstream lineage as `not_provided`, and scopes what
+the command can establish. The hash proves fixture integrity, not runtime
+provenance or authenticity. For deeper review-surface validation, run:
 
 ```bash
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
 uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
 ```
+
+`portfolio_review_gates` deliberately reports only
+`review_surface_ready`; it does not run the unit suite or domain audit. The
+[CI workflow](.github/workflows/validation.yml) is configured to combine those
+checks for publication validation. A workflow definition is not a remote PASS;
+observed status belongs in
+[project_status.md](docs/overview/project_status.md).
 
 Optional deep dives:
 
@@ -132,6 +145,10 @@ Optional deep dives:
 
 The full profile is needed for ingest, Chroma, the API, benchmarks, and the full
 test suite. Provider selection also depends on the configured API keys.
+`.python-version` declares Python 3.13 as the repository reference line, and a
+contract test keeps the workflow's Python literals aligned with it. Python 3.14
+is not the publication gate and the current
+LangChain stack may emit its Pydantic-v1 compatibility warning there.
 
 ```bash
 uv run --with-requirements requirements.txt uvicorn main:app --reload --port 8000
@@ -167,6 +184,7 @@ tests/                     contract and regression tests
 docs/                      reviewer guides and internal history
 ```
 
-Internal status and experiment logs remain available for reproducibility, but
-they are not the recommended first-read path. Start with the five-minute review
-above and open a deep dive only for the question you want to inspect.
+Internal status and experiment logs remain available for audit and historical
+context, but they are not the recommended first-read path. Start with the
+five-minute review above and open a deep dive only for the question you want to
+inspect.

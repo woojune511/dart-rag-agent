@@ -9,7 +9,8 @@ TableQA SOTA result.
 
 Built a contract-driven Agentic RAG runtime for Korean DART filings that
 accepts numeric financial answers through structured evidence, deterministic
-calculation traces, critic reports, and reproducible reviewer gates.
+calculation traces, critic reports, and deterministic reviewer checks with
+explicit evidence limits.
 
 ## Three-Bullet Version
 
@@ -20,20 +21,20 @@ calculation traces, critic reports, and reproducible reviewer gates.
   intent/concept interpretation, while code handles operand binding, arithmetic,
   unit handling, dedupe, validation, and final rendering.
 - Validated the design with trace-based gates and store-fixed benchmark
-  refreshes; the latest expanded structural refresh reports `9 / 9` numeric
-  PASS across six company runs.
-- Kept the most recent plain retrieval `5 / 9` comparison as diagnostic
-  baseline evidence for display/unit, denominator, and row-binding failure
-  modes rather than as an overbroad leaderboard claim.
+  refreshes: the latest recorded expanded structural result is `9 / 9` numeric
+  PASS across six company runs, with raw artifacts not published; the older
+  plain retrieval `5 / 9` comparison remains diagnostic rather than a
+  synchronized leaderboard ablation.
 
 ## Technical Portfolio Version
 
-Implemented a contract-driven multi-agent RAG runtime for financial QA over
-DART filings. The system models Orchestrator, Analyst, Researcher, and Critic
-handoff through typed `tasks`, `artifacts`, `evidence_pool`, `critic_reports`,
-and `task_artifact_trace` state rather than free-form agent chat. Numeric
-answers are accepted only after source-backed operand binding, deterministic
-formula execution, canonical trace rendering, and artifact/critic gate checks.
+Implemented the single-agent `FinancialAgent` runtime for financial QA over DART
+filings. The runtime publishes typed `tasks`, `artifacts`, `evidence_pool`,
+`critic_reports`, and `task_artifact_trace` state rather than relying on
+free-form reasoning text. Numeric answers are accepted only after source-backed
+operand binding, deterministic formula execution, canonical trace rendering,
+and artifact/critic gate checks. Role-oriented multi-agent orchestration remains
+an optional experiment around the core product surface.
 
 ## Research-Engineering Version
 
@@ -43,8 +44,8 @@ mirrors, or missing operand provenance. Built a value-cell-first structured
 metadata and runtime-contract approach that preserves table/row context through
 retrieval, extraction, calculation, and final rendering. Evaluation uses
 trace-based numeric grounding rather than final-text exact match alone.
-In structural diagnostics, historical hard replays and the latest expanded
-refresh show the same engineering concern: relevant values can be retrieved,
+In structural diagnostics, historical hard replays and the latest recorded
+expanded refresh show the same engineering concern: relevant values can be retrieved,
 but final operand selection, sign/display handling, mixed answer composition,
 or public trace projection can still drift unless the runtime preserves
 structured traces through final rendering. The final KBF/SKH repair closed stale
@@ -55,12 +56,13 @@ benchmark-specific runtime branches.
 
 Built and evaluated an evidence-first RAG prototype for DART financial filings,
 focused on making numeric answers auditable. The project combines
-structure-aware retrieval, deterministic numeric execution, multi-agent artifact
-handoff, and reviewer-facing gates. Current results support a narrow claim:
+structure-aware retrieval, deterministic numeric execution, typed task/artifact
+state, and reviewer-facing gates. Recorded results support a narrow claim:
 structured provenance and trace-based gates make operand, unit, and period-row
-drift visible. The latest expanded structural refresh reports `9 / 9` numeric
-PASS; the plain retrieval comparison remains diagnostic baseline evidence, not
-a freshly synchronized final ablation.
+drift visible. The latest recorded expanded structural refresh reports `9 / 9`
+numeric PASS, with raw artifacts not published; the plain retrieval comparison
+remains diagnostic baseline evidence, not a freshly synchronized final
+ablation.
 
 ## Korean Short Version
 
@@ -86,6 +88,6 @@ Safer alternatives:
 - "Preserved value-cell-first structured metadata through retrieval and
   extraction"
 - "Used trace-based numeric grounding gates for acceptance"
-- "Used store-fixed benchmark refreshes as promotion gates, including a latest
-  expanded structural refresh with `9 / 9` numeric PASS and a plain-retrieval
-  `5 / 9` diagnostic baseline"
+- "Used recorded store-fixed benchmark refreshes as scoped promotion evidence,
+  including a `9 / 9` structural result whose raw artifacts are not published
+  and a non-synchronized `5 / 9` plain-retrieval diagnostic baseline"

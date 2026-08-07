@@ -11,7 +11,7 @@ is the slide structure.
 
 ## Slide 1. Title And Claim
 
-**DART Multi-Agent Financial Analysis Lab**
+**DART Financial Agentic RAG: Auditable Numeric QA**
 
 Message:
 
@@ -22,8 +22,12 @@ Message:
 
 Headline evidence:
 
-- Latest expanded structural store-fixed refresh: `9 / 9` numeric PASS.
-- Lightweight reviewer gates: `Status: ready`.
+- Latest recorded expanded structural store-fixed refresh: `9 / 9` numeric
+  PASS; raw artifacts are not published with the repository.
+- Demo fixture contract: `fixture_contract_ready`; review surface aggregate:
+  `review_surface_ready`.
+- The demo fixture is curated and SHA-256-bound; upstream runtime lineage is
+  `not_provided`.
 - Benchmark-specific runtime branches remain disabled.
 
 ## Slide 2. Problem
@@ -72,6 +76,8 @@ Message:
 - Agent communication is typed ledger state, not free-form chat.
 - Final answer text is the presentation layer; the contract is the trace behind
   it.
+- The product surface is the single-agent `FinancialAgent`; role-oriented MAS
+  orchestration remains an optional experiment.
 
 ## Slide 4. LLM Semantics, Deterministic Execution
 
@@ -117,11 +123,12 @@ Expected demo answer:
 
 Why it matters:
 
-- rejects a plausible wrong denominator row
-- recovers both operands from one MDA table
-- renders from the canonical calculation trace
-- exposes citations, operands, formula, integrity, critic acceptance, and cache
-  handoff
+- the curated fixture illustrates a trace that rejects a plausible wrong
+  denominator row
+- it carries both operands from one MDA table
+- it renders from the canonical calculation trace
+- it exposes citations, operands, formula, integrity, and critic acceptance;
+  cache handoff appears only with `--include-cache-review`
 
 Command:
 
@@ -156,14 +163,15 @@ Message:
 
 ## Slide 7. Evaluation And Gates
 
-Current structural evidence:
+Recorded benchmark evidence and validation references:
 
 | Scope | Result |
 | --- | ---: |
-| Expanded structural store-fixed eval-only | `9 / 9` numeric PASS |
-| Plain retrieval diagnostic comparison | `5 / 9` numeric PASS |
-| Runtime domain-term audit | pass |
-| Portfolio review gates | ready |
+| Latest recorded structural store-fixed eval-only | `9 / 9` numeric PASS; raw artifacts not published |
+| Plain retrieval diagnostic comparison | older `5 / 9`; not synchronized after PR #78 |
+| Runtime domain-term audit | revision and result live in [project_status.md](project_status.md) |
+| Demo fixture contract | expected `fixture_contract_ready`; curated fixture only; validation snapshot in [project_status.md](project_status.md) |
+| Portfolio review gates | expected `review_surface_ready`; unit/audit `not_run`; validation snapshot in [project_status.md](project_status.md) |
 
 Reviewer commands:
 
