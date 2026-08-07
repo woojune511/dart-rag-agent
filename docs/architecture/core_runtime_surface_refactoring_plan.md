@@ -230,11 +230,14 @@ Current owner-extraction slice:
   active-dependency-snapshot preservation;
 - `financial_calculation_execution.py` validates ordered operand ids and variable
   bindings against the operand set, then returns a typed execution outcome for
-  the graph adapter to project. It also owns value-only stale freshness
-  assessment over a canonical prepared result;
+  the graph adapter to project. It also owns state-free deterministic
+  difference/growth plan construction, the typed raw/guarded plan decision, and
+  value-only stale freshness assessment over a canonical prepared result;
 - the graph adapter contains a graph-private typed candidate seam separating
   preparation/execution, deterministic result projection, and state/ledger
-  projection. This decomposition is not an execution-owner move;
+  projection. It also retains the operation-plan state/query adapter and primary
+  runtime/task/artifact projection. This candidate decomposition is not itself an
+  execution-owner move;
 - candidate selection is invariant to input order: tied conflicting values
   abstain, while equivalent ties use a stable selection rule.
 
@@ -362,6 +365,32 @@ claim, and a reused abnormal dependency `time_series` plan is outside the full
 exception-parity claim. The seam remains graph-private; this is not an execution
 owner move or Phase 3 completion.
 
+Structural commit `af968a6` moves the state-free deterministic difference/growth
+builder and typed raw/guarded operation-plan decision into
+`financial_calculation_execution.py`. The graph retains a thin state/query adapter
+around owner construction and the difference result-unit policy, and the primary
+planner retains its full runtime and task/artifact projection. Period recovery consumes a ready or
+guarded selected plan directly, with no planner/artifact/runtime projection, while
+a `not_applicable` decision continues through the existing fallback without a
+second builder call. Dependency recovery still uses the raw-plan callback. The
+execution owner changes from `679` to `837` lines (`+158`) and the graph from
+`19,813` to `19,786` lines (`-27`, `+91/-118`). Production source is `+249/-118`,
+net `+131`; tests are `+182/-5`, net `+177`; the whole commit is `+431/-123`, net
+`+308`. Supported, contract-valid result, order, input, failure, and no-op
+contracts are preserved. Malformed difference inputs remain outside a full
+query-policy evaluation/exception-order parity claim. These figures do not
+establish total-code reduction, broad executed-path or performance improvement,
+or Phase 3 completion.
+
+Behavior fix `ec93f8a` separately corrects the pre-existing percent-point unit
+gate in that adapter. It constructs the complete plan before calling
+`_should_coerce_percent_point_unit`; an eligible `%p` query with two `PERCENT`
+operands receives a copied plan with `result_unit="%p"`, while non-eligible and
+no-plan cases remain unchanged. The graph diff is `+9/-9`, so its line count is
+unchanged; tests add `32` lines, and the whole commit is `+41/-9`, net `+32`.
+This fixes the incomplete-plan unit-policy bug, but it does not establish full
+evaluation/exception-order parity for every malformed difference input.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -385,15 +414,18 @@ tests, the same `217`-literal audit, and full discovery over `1,472` tests passe
 on Python 3.13. After `2cfa867`, all `564` affected tests, the same `217`-literal
 audit, and full discovery over `1,476` tests passed. After `1a3979e`, `3` focused
 contracts and all `564` affected tests passed, together with the same
-`217`-literal audit and full discovery over `1,476` tests. Benchmark refresh has
-not run for these latest changes.
+`217`-literal audit and full discovery over `1,476` tests. After `af968a6`, `4`
+targeted contracts, `107` focused owner/aggregate tests, all `564` affected tests,
+the same `217`-literal audit, and full discovery over `1,478` tests passed.
+After `ec93f8a`, `4` targeted/adjacent tests and all `29` execution-module tests
+passed; the unique affected matrix contained `593` passing tests, and the same
+`217`-literal audit and full discovery over `1,479` tests passed. Benchmark refresh
+has not run for these latest changes.
 
 Phase 3 remains open for these follow-ups:
 
-- characterize and then remove the period recovery planning projection whose
-  caller currently consumes only the plan;
-- separate the dependency synthetic-state and ratio-formatter coupling behind a
-  bounded contract;
+- separate the dependency synthetic-state and ratio-formatter coupling, including
+  its remaining raw-plan builder callback, behind a bounded contract;
 - keep broader task/artifact ledger synchronization as a separately specified
   contract rather than inferring it from the three repaired caller surfaces;
 - move the remaining deterministic/LLM fallback and aggregate precedence

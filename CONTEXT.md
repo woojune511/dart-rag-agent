@@ -58,7 +58,16 @@ Last updated: 2026-08-07
   operands, plan, result만 직접 소비한다. 이 두 경로의 내부
   `_execute_calculation()` 호출, strict trace 재조회, 버려지던 state/ledger
   projection은 제거됐다. 결과, 순서, 입력 불변성, failure/no-op identity는
-  유지된다.
+  유지된다. `af968a6`은 difference/growth deterministic plan builder와 raw/guarded
+  typed decision을 state-free `financial_calculation_execution.py` owner로 옮겼다.
+  graph는 state/query 해석과 percent-point result-unit policy를 적용하는 thin
+  adapter 및 primary full state/artifact projection을 유지한다. period recovery의
+  ready/guarded 경로는 selected plan을 직접 소비해 planner/artifact/runtime
+  projection을 만들지 않고, not-applicable 경로는 builder를 다시 호출하지 않은 채
+  기존 fallback으로 이어진다. dependency recovery의 raw-plan callback은 남아 있다.
+  별도 behavior fix `ec93f8a`는 complete plan을 만든 뒤 percent-point policy를
+  평가하도록 adapter를 고쳤다. eligible `%p` query와 두 `PERCENT` operand는 복사된
+  plan의 `result_unit="%p"`를 받고, non-eligible/no-plan 경로는 유지된다.
 
 ## 현재 검증 기준
 
@@ -68,8 +77,9 @@ Last updated: 2026-08-07
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
 | Latest aggregate provenance owner contract | affected regression 564개 PASS; benchmark refresh 미실행 |
-| Latest recovery candidate projection contract | focused 3개 및 affected regression 564개 PASS; benchmark refresh 미실행 |
-| Runtime validation | full unittest 1,476개 PASS; domain-term audit 217개 literal PASS |
+| Latest deterministic operation-plan owner contract | targeted 4개, focused owner+aggregate 107개, affected regression 564개 PASS; benchmark refresh 미실행 |
+| Latest percent-point plan-unit fix | targeted/adjacent 4개, execution module 29개, unique affected 593개 PASS; benchmark refresh 미실행 |
+| Runtime validation | full unittest 1,479개 PASS; domain-term audit 217개 literal PASS |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
 현재 알려진 unit/contract correctness blocker는 없다. 별도 behavior fix
@@ -100,6 +110,17 @@ commit은 `+212/-82`, net `+130`줄이다. 두 characterized success path에서 
 projector 호출은 1회에서 0회가 됐지만, 이는 broad performance improvement나
 total code reduction claim이 아니다. 재사용된 비정상 dependency `time_series`
 plan의 state-projector exception parity까지 보장하는 변경도 아니다.
+`af968a6`은 execution owner를 679→837줄(`+158`), graph를
+19,813→19,786줄(`-27`, `+91/-118`)로 바꿨다. source는 `+249/-118`, net
+`+131`줄이고 tests는 `+182/-5`, net `+177`줄이며 whole commit은
+`+431/-123`, net `+308`줄이다. supported contract-valid difference/growth 결과와
+순서, 입력 불변성은 유지하지만 malformed difference 입력의 percent-point policy
+평가 시점과 예외 순서까지 동일하다는 주장은 하지 않는다. graph 감소를 전체 code
+감소나 broad executed-path/performance 개선으로 해석하지 않는다.
+별도 `ec93f8a`는 incomplete plan으로 percent-point policy를 평가하던 기존 버그를
+고쳤다. graph diff는 `+9/-9`로 line-neutral이고 tests는 `+32/-0`, whole commit은
+`+41/-9`, net `+32`줄이다. 이 fix는 eligible `%p` unit을 복구하지만 malformed
+difference 입력 전체의 평가/예외 순서 parity를 주장하지 않는다.
 이 변경들에 대한 benchmark refresh는 실행하지 않았으므로, 이전
 recorded benchmark를 검증 근거로 삼거나 새 score claim을 만들지 않는다.
 
@@ -123,12 +144,11 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 구조 작업은 period recovery의 `_plan_formula_calculation()`이 만들고 caller가
-plan만 소비하는 planning projection을 characterization한 뒤 정리하는 bounded
-slice다. dependency synthetic state와 ratio formatter 결합, 전체 ledger sync,
-aggregate precedence, 남은 deterministic/LLM fallback, private facade/API mesh는
-별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면 현재 profile과 store
-signature를 먼저 확인하고 monitored store-fixed `eval-only`로 갱신한다.
+다음 구조 작업은 dependency synthetic state와 ratio formatter 결합 및 남아 있는
+raw-plan callback을 characterization한 뒤 정리하는 bounded slice다. 전체 ledger
+sync, aggregate precedence, 남은 deterministic/LLM fallback, private facade/API
+mesh는 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면 현재 profile과
+store signature를 먼저 확인하고 monitored store-fixed `eval-only`로 갱신한다.
 
 지금은 두 구조 slice를 한꺼번에 묶는 broad runtime refactor, 전면적인 test-file 분할, 새 MAS 기능,
 cache serving 활성화를 시작하지 않는다. oversized test는 해당 public contract를

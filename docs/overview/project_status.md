@@ -164,6 +164,32 @@ broad performance or total-code reduction claim. A reused abnormal dependency
 `time_series` plan is outside the full exception-parity claim. The seam remains
 graph-private; this is not an execution-owner move or Phase 3 completion.
 
+Structural commit `af968a6` moves state-free deterministic difference/growth plan
+construction and the typed raw/guarded decision into
+`financial_calculation_execution.py`. The graph retains a thin state/query adapter
+around owner construction and the difference result-unit policy, while the primary
+planner retains full runtime and task/artifact projection. Period recovery consumes a ready or
+guarded selected plan directly, so those branches create no
+planner/artifact/runtime projection; a `not_applicable` decision preserves the
+existing fallback without rebuilding. Dependency recovery retains its raw-plan
+callback. The execution owner changes from 679 to 837 lines (`+158`), and the
+graph from 19,813 to 19,786 lines (`-27`, `+91/-118`). Production source is
+`+249/-118`, net `+131`; tests are `+182/-5`, net `+177`; the whole commit is
+`+431/-123`, net `+308`. Result, order, input, failure, and no-op parity is claimed
+only for supported, contract-valid paths. Malformed difference inputs remain
+outside full query-policy evaluation/exception-order parity. This is not a
+total-code reduction, broad executed-path/performance improvement, or Phase 3
+completion claim.
+
+Behavior fix `ec93f8a` separately repairs the pre-existing percent-point unit gate
+in the graph adapter. The adapter now builds the complete plan before evaluating
+`_should_coerce_percent_point_unit`; an eligible `%p` query with two `PERCENT`
+operands receives a copied plan with `result_unit="%p"`. Non-eligible and no-plan
+cases are unchanged. The graph diff is `+9/-9` and line-neutral; tests add `32`
+lines, making the whole commit `+41/-9`, net `+32`. This resolves the
+incomplete-plan unit-policy bug without claiming full evaluation/exception-order
+parity for every malformed difference input.
+
 Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
 the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
 focused contracts, the same audit, and full discovery over 1,468 tests; after
@@ -176,7 +202,11 @@ and all 1,472 tests passed on Python 3.13. After `be2e7bf`, all 560 affected-mod
 tests, the same 217-literal audit, and all 1,472 tests passed on Python 3.13.
 After `2cfa867`, all 564 affected tests, the same 217-literal audit, and all 1,476
 tests passed. After `1a3979e`, 3 focused contracts, all 564 affected tests, the
-same audit, and all 1,476 tests passed. Benchmark refresh remains not run.
+same audit, and all 1,476 tests passed. After `af968a6`, 4 targeted contracts, 107
+focused owner/aggregate tests, all 564 affected tests, the same 217-literal audit,
+and all 1,478 tests passed. After `ec93f8a`, 4 targeted/adjacent tests, all 29
+execution-module tests, a unique affected matrix of 593 tests, the same audit,
+and all 1,479 tests passed. Benchmark refresh remains not run.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -195,7 +225,7 @@ remains recoverable from `main@294b4ea`.
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
 | Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
-| Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, primary execution retains state/ledger projection, recovery callers consume typed candidate projections directly, and broader ledger synchronization remains open |
+| Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter and primary runtime/task/artifact projection remain graph-owned, dependency retains a raw-plan callback, and broader ledger synchronization remains open |
 | Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
@@ -224,8 +254,10 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | Latest stale/candidate focused contracts | PASS, 345 unique focused tests after `f2af4f4` on 2026-08-07; core 7 and spot 2 were subset reruns |
 | Latest aggregate provenance owner affected tests | PASS, 564 tests after `2cfa867` on 2026-08-07 |
 | Latest recovery candidate projection contracts | PASS, 3 focused and 564 affected tests after `1a3979e` on 2026-08-07 |
+| Latest deterministic operation-plan owner contracts | PASS, 4 targeted, 107 focused owner/aggregate, and 564 affected tests after `af968a6` on 2026-08-07 |
+| Latest percent-point deterministic-plan adapter fix | PASS, 4 targeted/adjacent and 29 execution-module tests; 593 unique affected tests after `ec93f8a` on 2026-08-07 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
-| Full unittest discovery | PASS, 1,476 tests locally after recovery candidate projection cleanup on 2026-08-07 |
+| Full unittest discovery | PASS, 1,479 tests locally after the percent-point adapter fix on 2026-08-07 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -280,10 +312,13 @@ and pure aggregate provenance selection now belongs to its projection owner. The
 graph still retains the 68-caller operation-family delegate, repair acceptance,
 pre-filter/re-filter sequencing, and answer/state orchestration. Dependency and
 period contract-valid scalar recovery now consume candidate projections without
-discarded state/ledger projection, but period planning still creates a projection
-whose caller consumes only the plan, and dependency recovery retains its
-synthetic-state/ratio-formatter coupling. Reused abnormal dependency
-`time_series` plans are not covered by a full exception-parity claim.
+discarded calculation state/ledger projection. Period ready/guarded planning also
+consumes the selected plan without planner/artifact/runtime projection, and its
+not-applicable continuation does not rebuild. Dependency recovery still retains
+its synthetic-state/ratio-formatter coupling and raw-plan callback. Reused
+abnormal dependency `time_series` plans are not covered by a full exception-parity
+claim, and malformed difference inputs are outside full query-policy
+evaluation/exception-order parity.
 Absolute-ratio/trend projection boundaries remain graph-owned. These are named
 follow-ups, not hidden claims that the calculation monolith is resolved.
 
@@ -302,10 +337,9 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should characterize and remove the
-period recovery planning projection whose caller currently consumes only its
-plan. Dependency synthetic-state/ratio-formatter coupling, broader ledger sync,
-aggregate precedence, remaining deterministic/LLM fallbacks,
+The next architecture change, if continued, should characterize and separate the
+dependency synthetic-state/ratio-formatter coupling and its raw-plan callback.
+Broader ledger sync, aggregate precedence, remaining deterministic/LLM fallbacks,
 absolute-ratio/trend projection debt, and the private facade/API mesh remain
 separate follow-ups.
 

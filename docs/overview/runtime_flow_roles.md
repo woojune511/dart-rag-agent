@@ -260,8 +260,9 @@ lookup surface matching, retry query 생성이다.
 - `_extract_calculation_operands(state)`: reconciliation direct row, evidence
   fallback, dependency output을 모아 state-free resolution owner에 넘기고 operand
   set을 state에 반영한다.
-- `_plan_formula_calculation(state)`: operand를 executable calculation plan으로
-  바꾸는 graph adapter다.
+- `_plan_formula_calculation(state)`: state/query context를 state-free plan owner
+  입력으로 바꾸고, primary 경로에서는 selected plan을 runtime/task/artifact
+  state로 투영하는 graph adapter다.
 - `_run_calculation_candidate(state)`: strict calculation trace에서 graph-private
   typed `_CalculationCandidateRun`을 만들고 candidate preparation과 deterministic
   result projection까지만 수행한다. state/ledger projection은 하지 않는다.
@@ -305,7 +306,9 @@ state-free owner 경계:
   prepared canonical value와 projected result를 비교하는 typed state-free
   `StaleCalculationValueAssessment`를 소유한다. source-stated flag가 활성화된
   경우에는 public display 값 대신 traced formula value를 비교하며 기존 tolerance와
-  NaN 동작을 유지한다.
+  NaN 동작을 유지한다. supported difference/growth plan을 state-free로 만들고,
+  raw plan과 ready/guarded selected plan을 보존하는 typed
+  `DeterministicOperationPlanDecision`도 같은 owner가 반환한다.
 - `financial_aggregate_projection.py`: typed state-free stale-repair provenance
   selection과 canonical `aggregate_result_operation_family` normalization을 소유한다.
   unique provenance target만 supersede하고 ambiguous refs는 보존하며, input
@@ -327,6 +330,15 @@ graph adapter에 남은 orchestration 역할군:
   operands, plan, result만 직접 소비하므로 내부 `_execute_calculation()`과 strict
   trace 재조회, 버려지는 state/ledger projection을 만들지 않는다. 결과/order,
   입력 불변성, failure/no-op identity는 유지한다.
+- deterministic difference/growth planning의 thin state/query adapter와 primary
+  planner의 runtime/task/artifact projection. `ec93f8a` 뒤 adapter는 complete
+  plan을 먼저 만들고 percent-point policy를 평가한다. eligible `%p` query와 두
+  `PERCENT` operand에는 복사된 plan의 `result_unit="%p"`를 적용하고,
+  non-eligible/no-plan 경로는 유지한다. period recovery의 ready/guarded 경로는
+  selected plan을 직접 소비해 이 projection을 만들지 않고,
+  `not_applicable` 경로는 builder를 다시 호출하지 않은 채 기존 fallback으로
+  이어진다. 이 parity 경계는 supported, contract-valid 입력에 한정되며 malformed
+  difference 입력의 query-policy 평가/예외 순서 전체를 보장하지 않는다.
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
   stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
   same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
@@ -335,10 +347,9 @@ graph adapter에 남은 orchestration 역할군:
   밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
 - 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
   acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
-- period recovery의 `_plan_formula_calculation()`이 만들고 caller가 plan만 소비하는
-  planning projection
-- dependency synthetic state와 ratio formatter 결합. 재사용된 비정상 dependency
-  `time_series` plan의 full exception parity는 현재 recovery claim 밖이다.
+- dependency synthetic state와 ratio formatter 결합 및 raw-plan builder callback.
+  재사용된 비정상 dependency `time_series` plan의 full exception parity는 현재
+  recovery claim 밖이다.
 - absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
 - narrative context preservation
@@ -378,7 +389,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
 - `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
-- `financial_calculation_execution.py`: plan validation, typed execution outcome, and typed state-free value-only stale freshness assessment
+- `financial_calculation_execution.py`: state-free difference/growth plan
+  construction, typed raw/guarded plan decision, plan validation, typed execution
+  outcome, and typed state-free value-only stale freshness assessment
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
   normalization

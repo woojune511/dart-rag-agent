@@ -599,6 +599,17 @@ required roles. It returns a typed `CalculationExecutionOutcome` and does not
 mutate graph state. The graph adapter projects that outcome into
 `resolved_calculation_trace`, `structured_result`, and the task/artifact ledger.
 
+The same owner builds supported deterministic difference/growth plans from
+explicit inputs and returns a typed `DeterministicOperationPlanDecision` that
+keeps both the raw plan and the selected ready/guarded plan. The graph retains a
+thin adapter that reads state/query context. It first obtains the complete owner
+plan and then evaluates the percent-point result-unit policy against that plan;
+an eligible query with two `PERCENT` operands receives a copied plan whose
+`result_unit` is `%p`. A non-eligible query or missing plan is unchanged. The
+complete-plan ordering is the separate `ec93f8a` behavior fix, not part of the
+owner relocation claim. The primary planner still performs the existing runtime
+and task/artifact projection.
+
 The graph adapter contains a graph-private typed calculation-candidate seam. It
 separates candidate preparation and canonical execution, deterministic result
 projection, and graph-state/ledger projection. `_CalculationCandidateRun` and
@@ -646,13 +657,18 @@ are not a claim that the whole task/artifact ledger is synchronized. The
 dependency and period scalar recovery callers no longer invoke the internal
 `_execute_calculation()` wrapper, re-read its strict trace, or create a
 state/ledger projection that they discard. Their result, operand order, plan,
-input immutability, and failure/no-op identity contracts remain unchanged. The
-period caller still discards the planning projection produced by
-`_plan_formula_calculation()`, and dependency recovery still couples its
-synthetic state to ratio formatting. A reused abnormal dependency `time_series`
-plan is outside the claimed full exception-parity boundary. Assessment reasons
-are owner-contract outputs, not runtime trace fields. This boundary does not
-establish a single end-to-end calculation owner.
+input immutability, and failure/no-op identity contracts remain unchanged. For
+period recovery, a ready or guarded deterministic decision supplies its selected
+plan directly, so those branches create no planner/artifact/runtime projection.
+A `not_applicable` decision enters the existing fallback continuation without
+rebuilding the deterministic plan. Dependency recovery still couples its
+synthetic state to ratio formatting and retains the raw-plan builder callback. A
+reused abnormal dependency `time_series` plan is outside the claimed full
+exception-parity boundary. The owner-move parity claim covers supported,
+contract-valid inputs; malformed difference inputs can still expose a different
+query-policy evaluation or exception order. Assessment reasons are owner-contract
+outputs, not runtime trace fields. This boundary does not establish a single
+end-to-end calculation owner or complete Phase 3.
 
 ## 9. Aggregate Subtask Projection
 
