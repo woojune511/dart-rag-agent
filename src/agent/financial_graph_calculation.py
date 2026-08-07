@@ -39,6 +39,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_task_ids as _aggregate_source_task_ids,
 )
 from src.agent.financial_calculation_execution import (
+    CalculationExecutionOutcome,
     assess_stale_calculation_result,
     build_failed_calculation_result,
     build_scalar_calculation_state,
@@ -241,6 +242,38 @@ class _OperandPrecisionContext(NamedTuple):
     operand_spec: Dict[str, Any]
     raw_unit: str
     surface: str
+
+
+class _CalculationCandidateInput(NamedTuple):
+    calculation_operands: tuple[Dict[str, Any], ...]
+    calculation_plan: Dict[str, Any]
+    active_subtask: Dict[str, Any]
+    query: str
+    evidence_items: tuple[Any, ...]
+    runtime_evidence: tuple[Any, ...]
+
+
+class _PreparedCalculationCandidate(NamedTuple):
+    status: str
+    reason: str
+    calculation_operands: tuple[Dict[str, Any], ...]
+    calculation_plan: Dict[str, Any]
+    active_subtask: Dict[str, Any]
+    query: str
+    operation_family: str
+    result_unit: str
+    execution_outcome: Optional[CalculationExecutionOutcome]
+    selected_evidence_ids: tuple[str, ...]
+    source_normalized_unit: str
+
+
+class _CalculationCandidateProjection(NamedTuple):
+    status: str
+    reason: str
+    calculation_operands: tuple[Dict[str, Any], ...]
+    calculation_plan: Dict[str, Any]
+    calculation_result: Dict[str, Any]
+    selected_evidence_ids: tuple[str, ...]
 
 
 def _inline_unit_match_has_right_boundary(
@@ -16597,14 +16630,14 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
-    def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Execute the planned numeric operation and normalize the result."""
-        runtime_trace = _resolve_runtime_calculation_trace(
-            dict(state),
-            allow_legacy_top_level=False,
-        )
-        runtime_operands = [dict(row) for row in (runtime_trace.get("calculation_operands") or [])]
-        execution_evidence_items = list(state.get("evidence_items") or []) + list(state.get("runtime_evidence") or [])
+    def _prepare_calculation_candidate(
+        self,
+        candidate_input: _CalculationCandidateInput,
+    ) -> _PreparedCalculationCandidate:
+        """Prepare operands and execute one canonical calculation without state projection."""
+
+        runtime_operands = [dict(row) for row in candidate_input.calculation_operands]
+        execution_evidence_items = list(candidate_input.evidence_items) + list(candidate_input.runtime_evidence)
         execution_evidence_by_id = _evidence_items_by_id(
             [dict(item) for item in execution_evidence_items if isinstance(item, dict)]
         )
@@ -16621,9 +16654,8 @@ class FinancialAgentCalculationMixin:
         )
         runtime_operands = self._repair_krw_normalized_values_from_raw_units(runtime_operands)
         operands = {row.get("operand_id"): row for row in runtime_operands}
-        plan = dict(runtime_trace.get("calculation_plan") or {})
-        active_subtask = dict(state.get("active_subtask") or {})
-        query = self._calc_query(state)
+        plan = dict(candidate_input.calculation_plan)
+        active_subtask = dict(candidate_input.active_subtask)
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
         operation = str(plan.get("operation") or "none")
         mode = str(plan.get("mode") or "none")
@@ -16636,39 +16668,37 @@ class FinancialAgentCalculationMixin:
         pairwise_formula = str(plan.get("pairwise_formula") or "").strip()
         result_unit = str(plan.get("result_unit") or "")
         explanation = str(plan.get("explanation") or "")
-        selected_evidence_ids: List[str] = []
-        source_normalized_unit = ""
 
-        def _fail(status: str, reason: str, calculation_plan: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-            fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
-            failed_result = build_failed_calculation_result(
-                active_subtask=active_subtask,
-                operation_family=operation_family or "single_value",
-                runtime_operands=list(runtime_operands),
-                result_unit=result_unit,
-                source_normalized_unit=source_normalized_unit or "UNKNOWN",
+        def _prepared_failure(
+            status: str,
+            reason: str,
+            *,
+            calculation_plan: Optional[Dict[str, Any]] = None,
+            execution_outcome: Optional[CalculationExecutionOutcome] = None,
+        ) -> _PreparedCalculationCandidate:
+            return _PreparedCalculationCandidate(
                 status=status,
                 reason=reason,
-            )
-            return {
-                "answer": fallback,
-                "compressed_answer": fallback,
-                "selected_claim_ids": selected_evidence_ids,
-                "draft_points": [],
-                "kept_claim_ids": selected_evidence_ids,
-                "dropped_claim_ids": [],
-                "unsupported_sentences": [],
-                "sentence_checks": [],
-                **_runtime_trace_state_update(
-                    state,
-                    calculation_operands=runtime_operands,
-                    calculation_plan=calculation_plan if calculation_plan is not None else plan,
-                    calculation_result=failed_result,
+                calculation_operands=tuple(dict(row) for row in runtime_operands),
+                calculation_plan=dict(calculation_plan if calculation_plan is not None else plan),
+                active_subtask=dict(active_subtask),
+                query=candidate_input.query,
+                operation_family=operation_family,
+                result_unit=result_unit,
+                execution_outcome=execution_outcome,
+                selected_evidence_ids=tuple(
+                    execution_outcome.selected_evidence_ids if execution_outcome is not None else ()
                 ),
-            }
+                source_normalized_unit=(
+                    execution_outcome.source_normalized_unit if execution_outcome is not None else ""
+                ),
+            )
 
         if mode == "none" or not variable_bindings:
-            return _fail("insufficient_operands", explanation or "no operation or operands")
+            return _prepared_failure(
+                "insufficient_operands",
+                explanation or "no operation or operands",
+            )
 
         if not ordered_ids:
             ordered_ids = [str(binding.get("operand_id") or "") for binding in variable_bindings]
@@ -16689,7 +16719,7 @@ class FinancialAgentCalculationMixin:
             operation_family=operation_family,
         )
         if guarded_plan:
-            return _fail(
+            return _prepared_failure(
                 "insufficient_operands",
                 "operation plan does not satisfy required operand bindings",
                 calculation_plan=guarded_plan,
@@ -16715,7 +16745,7 @@ class FinancialAgentCalculationMixin:
         if operation_family == "ratio":
             aligned_ratio_operands = self._align_ratio_operands_with_sibling_table_context(
                 ordered_operands,
-                list(state.get("evidence_items") or []) + list(state.get("runtime_evidence") or []),
+                execution_evidence_items,
             )
             if aligned_ratio_operands != ordered_operands:
                 for aligned_row in aligned_ratio_operands:
@@ -16783,7 +16813,7 @@ class FinancialAgentCalculationMixin:
         if operation_family == "growth_rate":
             recovered_operands = self._recover_duplicate_growth_prior_operand(
                 ordered_operands,
-                list(state.get("evidence_items") or []),
+                list(candidate_input.evidence_items),
             )
             if recovered_operands != ordered_operands:
                 for recovered_row in recovered_operands:
@@ -16797,7 +16827,10 @@ class FinancialAgentCalculationMixin:
                 ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
             if self._growth_operand_periods_conflict(ordered_operands):
-                return _fail("insufficient_operands", "growth operands share the same period")
+                return _prepared_failure(
+                    "insufficient_operands",
+                    "growth operands share the same period",
+                )
 
         sign_normalized_operands = self._apply_operation_sign_policy(
             ordered_operands,
@@ -16831,7 +16864,6 @@ class FinancialAgentCalculationMixin:
                 dict(operands.get(str(row.get("operand_id") or "").strip()) or row)
                 for row in runtime_operands
             ]
-            ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
         execution_outcome = execute_prepared_calculation_plan(
             mode=mode,
@@ -16843,20 +16875,89 @@ class FinancialAgentCalculationMixin:
             ordered_operand_ids=ordered_ids,
             variable_bindings=variable_bindings,
         )
-        selected_evidence_ids = list(execution_outcome.selected_evidence_ids)
-        source_normalized_unit = execution_outcome.source_normalized_unit
         if execution_outcome.status != "ok":
-            return _fail(execution_outcome.status, execution_outcome.reason)
+            return _prepared_failure(
+                execution_outcome.status,
+                execution_outcome.reason,
+                execution_outcome=execution_outcome,
+            )
+        if execution_outcome.result_value is None:
+            return _prepared_failure(
+                "parse_error",
+                "calculation completed without a result value",
+                execution_outcome=execution_outcome,
+            )
+        return _PreparedCalculationCandidate(
+            status="ok",
+            reason="",
+            calculation_operands=tuple(dict(row) for row in runtime_operands),
+            calculation_plan=dict(plan),
+            active_subtask=dict(active_subtask),
+            query=candidate_input.query,
+            operation_family=operation_family,
+            result_unit=result_unit,
+            execution_outcome=execution_outcome,
+            selected_evidence_ids=tuple(execution_outcome.selected_evidence_ids),
+            source_normalized_unit=execution_outcome.source_normalized_unit,
+        )
+
+    def _project_prepared_calculation_candidate(
+        self,
+        candidate: _PreparedCalculationCandidate,
+    ) -> _CalculationCandidateProjection:
+        """Compose a deterministic calculation result without ledger or trace writes."""
+
+        plan = dict(candidate.calculation_plan)
+        active_subtask = dict(candidate.active_subtask)
+        runtime_operands = [dict(row) for row in candidate.calculation_operands]
+        operation_family = candidate.operation_family
+        operation = str(plan.get("operation") or "none")
+        mode = str(plan.get("mode") or "none")
+        formula = str(plan.get("formula") or "").strip()
+        pairwise_formula = str(plan.get("pairwise_formula") or "").strip()
+        result_unit = candidate.result_unit
+        explanation = str(plan.get("explanation") or "")
+        selected_evidence_ids = list(candidate.selected_evidence_ids)
+        source_normalized_unit = candidate.source_normalized_unit
+
+        def _failed_projection(status: str, reason: str) -> _CalculationCandidateProjection:
+            failed_result = build_failed_calculation_result(
+                active_subtask=active_subtask,
+                operation_family=operation_family or "single_value",
+                runtime_operands=list(runtime_operands),
+                result_unit=result_unit,
+                source_normalized_unit=source_normalized_unit or "UNKNOWN",
+                status=status,
+                reason=reason,
+            )
+            return _CalculationCandidateProjection(
+                status=status,
+                reason=reason,
+                calculation_operands=tuple(dict(row) for row in runtime_operands),
+                calculation_plan=dict(plan),
+                calculation_result=failed_result,
+                selected_evidence_ids=tuple(selected_evidence_ids),
+            )
+
+        execution_outcome = candidate.execution_outcome
+        if candidate.status != "ok":
+            return _failed_projection(candidate.status, candidate.reason)
+        if execution_outcome is None or execution_outcome.result_value is None:
+            return _failed_projection(
+                "parse_error",
+                "calculation completed without a result value",
+            )
 
         ordered_operands = [dict(row) for row in execution_outcome.ordered_operands]
         normalized_unit = execution_outcome.normalized_unit
         result_value = execution_outcome.result_value
-        if result_value is None:
-            return _fail("parse_error", "calculation completed without a result value")
 
         if mode == "time_series":
             try:
-                labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
+                labels = [
+                    _display_operand_label(str(row.get("label") or row.get("evidence_id") or ""))
+                    for row in ordered_operands
+                ]
                 metric_names = [re.sub(r"^\d{4}년\s*", "", label).strip() for label in labels]
                 metric_name = metric_names[0] if metric_names else "지표"
                 result_series = calculation_rendering.time_series_result_series(
@@ -16886,22 +16987,20 @@ class FinancialAgentCalculationMixin:
                     pairwise_formula=pairwise_formula,
                     explanation=explanation or str(plan.get("operation_text") or operation or mode),
                 )
-                return build_success_calculation_state_payload(
-                    state=state,
-                    calc_result=calc_result,
-                    selected_evidence_ids=selected_evidence_ids,
-                    runtime_operands=runtime_operands,
-                    calculation_plan=plan,
-                    query=self._calc_query(state),
-                    metric_family=self._calc_metric_family(state),
+                return _CalculationCandidateProjection(
+                    status="ok",
+                    reason="",
+                    calculation_operands=tuple(dict(row) for row in runtime_operands),
+                    calculation_plan=dict(plan),
+                    calculation_result=calc_result,
+                    selected_evidence_ids=tuple(selected_evidence_ids),
                 )
             except Exception as exc:
                 if isinstance(exc, ZeroDivisionError):
-                    return _fail("zero_division", str(exc))
-                return _fail("parse_error", str(exc))
+                    return _failed_projection("zero_division", str(exc))
+                return _failed_projection("parse_error", str(exc))
 
         formula_result_value = result_value
-        source_stated_result_used = False
         result_display_unit = ""
         if self._ratio_result_has_suspicious_krw_scale(
             operation_family=operation_family,
@@ -16910,12 +17009,12 @@ class FinancialAgentCalculationMixin:
             result_unit=result_unit,
             source_normalized_unit=source_normalized_unit,
         ):
-            return _fail(
+            return _failed_projection(
                 "scale_mismatch",
                 "same-unit KRW ratio produced an implausible percent result; retry with better grounded operands",
             )
-        if operation_family == "ratio" and result_value is not None and result_value < 0:
-            if self._ratio_query_requests_absolute_magnitude(query):
+        if operation_family == "ratio" and result_value < 0:
+            if self._ratio_query_requests_absolute_magnitude(candidate.query):
                 result_value = abs(float(result_value))
         if operation_family == "difference" and normalized_unit == "KRW":
             result_display_unit = calculation_rendering.adjusted_difference_source_display_unit(
@@ -16930,9 +17029,11 @@ class FinancialAgentCalculationMixin:
             operation_family=operation_family,
             ordered_operands=ordered_operands,
         )
-        rendered_value = display_state["rendered_value"]
         rendered_with_unit = display_state["rendered_with_unit"]
-        labels = [_display_operand_label(str(row.get("label") or row.get("evidence_id") or "")) for row in ordered_operands]
+        labels = [
+            _display_operand_label(str(row.get("label") or row.get("evidence_id") or ""))
+            for row in ordered_operands
+        ]
         result_series = calculation_rendering.scalar_result_series(
             ordered_operands=ordered_operands,
             source_normalized_unit=source_normalized_unit,
@@ -16949,15 +17050,6 @@ class FinancialAgentCalculationMixin:
         normalized_unit = scalar_state["normalized_unit"]
         result_unit = scalar_state["result_unit"]
         rendered_with_unit = scalar_state["rendered_with_unit"]
-        source_stated_result_used = scalar_state["source_stated_result_used"]
-        current_value = scalar_state["current_value"]
-        prior_value = scalar_state["prior_value"]
-        delta_value = scalar_state["delta_value"]
-        current_period = scalar_state["current_period"]
-        prior_period = scalar_state["prior_period"]
-        current_row = scalar_state["current_row"]
-        prior_row = scalar_state["prior_row"]
-        source_row_ids = scalar_state["source_row_ids"]
         answer_slots = financial_answer_slots.build_answer_slots(
             active_subtask=active_subtask,
             operation_family=operation_family,
@@ -16966,14 +17058,14 @@ class FinancialAgentCalculationMixin:
             result_unit=result_display_unit or result_unit,
             normalized_unit=normalized_unit,
             source_normalized_unit=source_normalized_unit,
-            current_value=current_value,
-            prior_value=prior_value,
-            delta_value=delta_value,
-            current_period=current_period,
-            prior_period=prior_period,
-            source_row_ids=source_row_ids,
-            current_row=current_row,
-            prior_row=prior_row,
+            current_value=scalar_state["current_value"],
+            prior_value=scalar_state["prior_value"],
+            delta_value=scalar_state["delta_value"],
+            current_period=scalar_state["current_period"],
+            prior_period=scalar_state["prior_period"],
+            source_row_ids=scalar_state["source_row_ids"],
+            current_row=scalar_state["current_row"],
+            prior_row=scalar_state["prior_row"],
         )
         logger.info("[calculator] op=%s result=%s", operation, rendered_with_unit)
         calc_result = build_scalar_calculation_result(
@@ -16990,15 +17082,94 @@ class FinancialAgentCalculationMixin:
             formula_result_value=float(formula_result_value),
             explanation=explanation or str(plan.get("operation_text") or operation or mode),
         )
-        return build_success_calculation_state_payload(
-            state=state,
-            calc_result=calc_result,
-            selected_evidence_ids=selected_evidence_ids,
-            runtime_operands=runtime_operands,
-            calculation_plan=plan,
-            query=self._calc_query(state),
-            metric_family=self._calc_metric_family(state),
+        return _CalculationCandidateProjection(
+            status="ok",
+            reason="",
+            calculation_operands=tuple(dict(row) for row in runtime_operands),
+            calculation_plan=dict(plan),
+            calculation_result=calc_result,
+            selected_evidence_ids=tuple(selected_evidence_ids),
         )
+
+    def _project_calculation_candidate_state(
+        self,
+        state: FinancialAgentState,
+        candidate: _PreparedCalculationCandidate,
+        projection: _CalculationCandidateProjection,
+    ) -> Dict[str, Any]:
+        """Project a candidate into graph state, including success-only ledger updates."""
+
+        operands = [dict(row) for row in projection.calculation_operands]
+        plan = dict(projection.calculation_plan)
+        calculation_result = dict(projection.calculation_result)
+        selected_evidence_ids = list(projection.selected_evidence_ids)
+
+        def _failed_state(result: Dict[str, Any]) -> Dict[str, Any]:
+            fallback = "질문에 필요한 수치를 계산할 수 있는 근거를 충분히 확보하지 못했습니다."
+            return {
+                "answer": fallback,
+                "compressed_answer": fallback,
+                "selected_claim_ids": selected_evidence_ids,
+                "draft_points": [],
+                "kept_claim_ids": selected_evidence_ids,
+                "dropped_claim_ids": [],
+                "unsupported_sentences": [],
+                "sentence_checks": [],
+                **_runtime_trace_state_update(
+                    state,
+                    calculation_operands=operands,
+                    calculation_plan=plan,
+                    calculation_result=result,
+                ),
+            }
+
+        if projection.status != "ok":
+            return _failed_state(calculation_result)
+
+        try:
+            return build_success_calculation_state_payload(
+                state=state,
+                calc_result=calculation_result,
+                selected_evidence_ids=selected_evidence_ids,
+                runtime_operands=operands,
+                calculation_plan=plan,
+                query=self._calc_query(state),
+                metric_family=self._calc_metric_family(state),
+            )
+        except Exception as exc:
+            if str(plan.get("mode") or "none") != "time_series":
+                raise
+            status = "zero_division" if isinstance(exc, ZeroDivisionError) else "parse_error"
+            failed_result = build_failed_calculation_result(
+                active_subtask=dict(candidate.active_subtask),
+                operation_family=candidate.operation_family or "single_value",
+                runtime_operands=operands,
+                result_unit=candidate.result_unit,
+                source_normalized_unit=candidate.source_normalized_unit or "UNKNOWN",
+                status=status,
+                reason=str(exc),
+            )
+            return _failed_state(failed_result)
+
+    def _execute_calculation(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Execute the planned numeric operation and normalize the result."""
+        runtime_trace = _resolve_runtime_calculation_trace(
+            dict(state),
+            allow_legacy_top_level=False,
+        )
+        candidate_input = _CalculationCandidateInput(
+            calculation_operands=tuple(
+                dict(row) for row in (runtime_trace.get("calculation_operands") or [])
+            ),
+            calculation_plan=dict(runtime_trace.get("calculation_plan") or {}),
+            active_subtask=dict(state.get("active_subtask") or {}),
+            query=self._calc_query(state),
+            evidence_items=tuple(state.get("evidence_items") or []),
+            runtime_evidence=tuple(state.get("runtime_evidence") or []),
+        )
+        prepared = self._prepare_calculation_candidate(candidate_input)
+        projection = self._project_prepared_calculation_candidate(prepared)
+        return self._project_calculation_candidate_state(state, prepared, projection)
 
     def _repair_stale_calculation_result_from_operands(
         self,
@@ -17039,30 +17210,31 @@ class FinancialAgentCalculationMixin:
         ):
             return operands, plan, calculation_result
 
-        recalculated = self._execute_calculation(
-            {
-                **dict(state),
-                "active_subtask": active_subtask,
-                "resolved_calculation_trace": {
-                    "calculation_operands": operands,
-                    "calculation_plan": plan,
-                    "calculation_result": {},
-                },
-                "tasks": [],
-                "artifacts": [],
-            }
+        candidate_state = {
+            **dict(state),
+            "active_subtask": active_subtask,
+        }
+        prepared = self._prepare_calculation_candidate(
+            _CalculationCandidateInput(
+                calculation_operands=tuple(dict(row) for row in operands),
+                calculation_plan=dict(plan),
+                active_subtask=dict(active_subtask),
+                query=self._calc_query(candidate_state),
+                evidence_items=tuple(state.get("evidence_items") or []),
+                runtime_evidence=tuple(state.get("runtime_evidence") or []),
+            )
         )
-        recalculated_trace = _resolve_runtime_calculation_trace(
-            recalculated,
-            allow_legacy_top_level=False,
-        )
-        repaired_result = dict(recalculated_trace.get("calculation_result") or {})
-        if str(repaired_result.get("status") or "").strip().lower() != "ok":
+        projection = self._project_prepared_calculation_candidate(prepared)
+        repaired_result = dict(projection.calculation_result)
+        if (
+            projection.status != "ok"
+            or str(repaired_result.get("status") or "").strip().lower() != "ok"
+        ):
             return operands, plan, calculation_result
         repaired_result["stale_result_repaired_from_operands"] = True
         return (
-            [dict(row) for row in list(recalculated_trace.get("calculation_operands") or operands)],
-            dict(recalculated_trace.get("calculation_plan") or plan),
+            [dict(row) for row in list(projection.calculation_operands or tuple(operands))],
+            dict(projection.calculation_plan or plan),
             repaired_result,
         )
 

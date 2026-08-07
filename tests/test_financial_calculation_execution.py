@@ -440,13 +440,33 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     ordered_operands=(deepcopy(operand),),
                     selected_evidence_ids=("ev_value",),
                 )
-                with patch(
-                    "src.agent.financial_graph_calculation.execute_prepared_calculation_plan",
-                    return_value=execution_outcome,
-                ) as executor:
+                with (
+                    patch(
+                        "src.agent.financial_graph_calculation.execute_prepared_calculation_plan",
+                        return_value=execution_outcome,
+                    ) as executor,
+                    patch.object(
+                        agent,
+                        "_prepare_calculation_candidate",
+                        wraps=agent._prepare_calculation_candidate,
+                    ) as candidate_preparation,
+                    patch.object(
+                        agent,
+                        "_project_prepared_calculation_candidate",
+                        wraps=agent._project_prepared_calculation_candidate,
+                    ) as candidate_projection,
+                    patch.object(
+                        agent,
+                        "_project_calculation_candidate_state",
+                        wraps=agent._project_calculation_candidate_state,
+                    ) as state_projection,
+                ):
                     result = agent._execute_calculation(state)
 
                 executor.assert_called_once()
+                candidate_preparation.assert_called_once()
+                candidate_projection.assert_called_once()
+                state_projection.assert_called_once()
                 trace = result["resolved_calculation_trace"]
                 self.assertEqual(trace["calculation_result"]["status"], status)
                 self.assertEqual(

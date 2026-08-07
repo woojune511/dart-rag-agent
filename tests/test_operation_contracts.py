@@ -15,7 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent import financial_calculation_execution
+from src.agent import financial_calculation_execution, financial_graph_calculation
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
@@ -3914,7 +3914,34 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        result = agent._execute_calculation(state)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
+        ):
+            result = agent._execute_calculation(state)
+
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
+        state_projection.assert_called_once()
         trace = result["resolved_calculation_trace"]
         operands = {row["operand_id"]: row for row in trace["calculation_operands"]}
 
@@ -3940,6 +3967,21 @@ class OperationContractTests(unittest.TestCase):
                 "_safe_eval_formula",
                 wraps=financial_calculation_execution._safe_eval_formula,
             ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
@@ -3949,7 +3991,10 @@ class OperationContractTests(unittest.TestCase):
                 calculation_result=stale_result,
             )
 
-        recursive_execute.assert_called_once()
+        recursive_execute.assert_not_called()
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
         self.assertEqual(
             [call.args for call in formula_evaluation.call_args_list],
             [
@@ -6872,8 +6917,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_time_series_success_publishes_calculation_task_artifact_contract(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = _execute_calculation_with_runtime_trace(agent,
-            {
+        state = {
                 "query": "Show the multi-period trend for target metric.",
                 "active_subtask": {
                     "task_id": "task_trend",
@@ -6931,7 +6975,35 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
-        )
+        runtime_state = _with_runtime_calculation_trace(state)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
+        ):
+            result = agent._execute_calculation(runtime_state)
+
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
+        state_projection.assert_called_once()
 
         trace = _resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
@@ -6950,6 +7022,25 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(result["tasks"][0]["kind"], "calculation")
         self.assertEqual(result["tasks"][0]["status"], "completed")
         self.assertEqual(result["tasks"][0]["artifact_ids"], ["result:task_trend:001"])
+
+        failure_state = json.loads(json.dumps(runtime_state))
+        failure_state["active_subtask"]["operation_family"] = "single_value"
+        with patch.object(
+            financial_graph_calculation,
+            "build_success_calculation_state_payload",
+            side_effect=RuntimeError("time-series projection failed"),
+        ):
+            failed = agent._execute_calculation(failure_state)
+
+        failed_trace = _resolve_runtime_calculation_trace(failed)
+        self.assertEqual(failed_trace["calculation_result"]["status"], "parse_error")
+        self.assertEqual(
+            failed_trace["calculation_result"]["explanation"],
+            "time-series projection failed",
+        )
+        self.assertEqual(failed.get("artifacts", []), [])
+        self.assertEqual(failed.get("tasks", []), [])
+        self.assertEqual(failed["selected_claim_ids"], ["ev_2021", "ev_2022", "ev_2023"])
 
     def test_ratio_recomputes_operand_scale_from_source_visible_rendered_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7716,6 +7807,21 @@ class OperationContractTests(unittest.TestCase):
                 "_safe_eval_formula",
                 wraps=financial_calculation_execution._safe_eval_formula,
             ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             first_operands, first_plan, first_result = agent._repair_stale_calculation_result_from_operands(
@@ -7733,6 +7839,9 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertEqual(recursive_execute.call_count, 0)
         self.assertEqual(formula_evaluation.call_count, 2)
+        canonical_execution.assert_not_called()
+        candidate_preparation.assert_not_called()
+        candidate_projection.assert_not_called()
         self.assertIs(first_result, calc)
         self.assertIs(second_result, first_result)
         self.assertEqual(second_result, calc)
@@ -7750,6 +7859,21 @@ class OperationContractTests(unittest.TestCase):
                 "_safe_eval_formula",
                 wraps=financial_calculation_execution._safe_eval_formula,
             ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             _, _, changed_result = agent._repair_stale_calculation_result_from_operands(
@@ -7765,8 +7889,11 @@ class OperationContractTests(unittest.TestCase):
                 calculation_result=changed_result,
             )
 
-        recursive_execute.assert_called_once()
+        recursive_execute.assert_not_called()
         self.assertEqual(formula_evaluation.call_count, 3)
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
         self.assertIs(settled_result, changed_result)
         self.assertTrue(changed_result["stale_result_repaired_from_operands"])
         self.assertEqual(changed_result["result_value"], 11.5)

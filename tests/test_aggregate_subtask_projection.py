@@ -1154,6 +1154,26 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_safe_eval_formula",
                 wraps=financial_calculation_execution._safe_eval_formula,
             ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
@@ -1176,11 +1196,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             [call.args for call in formula_evaluation.call_args_list],
             [("A - B", {"A": 1000.0, "B": 250.0})] * 2,
         )
-        recursive_execute.assert_called_once()
-        recursive_state = recursive_execute.call_args.args[0]
-        self.assertEqual(recursive_state["tasks"], [])
-        self.assertEqual(recursive_state["artifacts"], [])
-        self.assertEqual(recursive_state["resolved_calculation_trace"]["calculation_result"], {})
+        canonical_execution.assert_called_once()
+        candidate_preparation.assert_called_once()
+        candidate_projection.assert_called_once()
+        state_projection.assert_not_called()
+        recursive_execute.assert_not_called()
         self.assertEqual(primary["selected_claim_ids"], ["ev_current", "ev_adjustment"])
         self.assertEqual(stale_result["status"], primary_trace["calculation_result"]["status"])
         self.assertNotEqual(stale_result["result_value"], primary_trace["calculation_result"]["result_value"])
@@ -1219,6 +1239,26 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_safe_eval_formula",
                 wraps=financial_calculation_execution._safe_eval_formula,
             ) as formula_evaluation,
+            patch.object(
+                financial_graph_calculation,
+                "execute_prepared_calculation_plan",
+                wraps=financial_graph_calculation.execute_prepared_calculation_plan,
+            ) as canonical_execution,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_project_prepared_calculation_candidate",
+                wraps=agent._project_prepared_calculation_candidate,
+            ) as candidate_projection,
+            patch.object(
+                agent,
+                "_project_calculation_candidate_state",
+                wraps=agent._project_calculation_candidate_state,
+            ) as state_projection,
             patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
         ):
             indeterminate = agent._repair_stale_calculation_result_from_operands(
@@ -1236,6 +1276,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         freshness_assessment.assert_called_once()
         formula_evaluation.assert_not_called()
+        canonical_execution.assert_not_called()
+        candidate_preparation.assert_not_called()
+        candidate_projection.assert_not_called()
+        state_projection.assert_not_called()
         recursive_execute.assert_not_called()
         self.assertEqual(indeterminate, (operands, plan, indeterminate_result))
         self.assertEqual(failed, (operands, plan, failed_result))
