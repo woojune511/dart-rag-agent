@@ -1,6 +1,8 @@
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
+from src.agent import financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
@@ -1078,6 +1080,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         operands = [
             {
                 "operand_id": "op_a",
+                "evidence_id": "ev_current",
+                "source_row_id": "row_current",
                 "label": "current value",
                 "raw_value": "1000",
                 "raw_unit": "",
@@ -1087,6 +1091,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
             {
                 "operand_id": "op_b",
+                "evidence_id": "ev_adjustment",
+                "source_row_id": "row_adjustment",
                 "label": "adjustment",
                 "raw_value": "250",
                 "raw_unit": "",
@@ -1107,30 +1113,73 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "formula": "A - B",
             "result_unit": "",
         }
-
-        repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
-            {
-                "query": "calculate adjusted value",
-                "active_subtask": {
-                    "task_id": "task_difference",
-                    "metric_family": "concept_difference",
-                    "metric_label": "adjusted value",
-                    "operation_family": "difference",
-                },
+        state = {
+            "query": "calculate adjusted value",
+            "active_subtask": {
+                "task_id": "task_difference",
+                "metric_family": "concept_difference",
+                "metric_label": "adjusted value",
+                "operation_family": "difference",
             },
-            operands=operands,
-            plan=plan,
-            calculation_result={
-                "status": "ok",
-                "result_value": 990.0,
-                "result_unit": "",
-                "rendered_value": "990",
+        }
+        execution_state = {
+            **state,
+            "resolved_calculation_trace": {
+                "calculation_operands": operands,
+                "calculation_plan": plan,
+                "calculation_result": {},
             },
-        )
+        }
+        primary = agent._execute_calculation(execution_state)
+        primary_trace = _resolve_runtime_calculation_trace(primary, allow_legacy_top_level=False)
+        stale_result = {
+            "status": "ok",
+            "result_value": 990.0,
+            "result_unit": "",
+            "rendered_value": "990",
+            "source_row_ids": ["row_stale"],
+            "derived_metrics": {
+                "formula_result_value": 750.0,
+                "source_stated_result_used": False,
+            },
+        }
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "_safe_eval_formula",
+                wraps=financial_graph_calculation._safe_eval_formula,
+            ) as direct_safe_eval,
+            patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute,
+        ):
+            repaired_operands, repaired_plan, repaired_result = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=operands,
+                plan=plan,
+                calculation_result=stale_result,
+            )
 
         self.assertEqual(repaired_operands, operands)
         self.assertEqual(repaired_plan, plan)
+        direct_safe_eval.assert_called_once_with("A - B", {"A": 1000.0, "B": 250.0})
+        recursive_execute.assert_called_once()
+        recursive_state = recursive_execute.call_args.args[0]
+        self.assertEqual(recursive_state["tasks"], [])
+        self.assertEqual(recursive_state["artifacts"], [])
+        self.assertEqual(recursive_state["resolved_calculation_trace"]["calculation_result"], {})
+        self.assertEqual(primary["selected_claim_ids"], ["ev_current", "ev_adjustment"])
+        self.assertEqual(stale_result["status"], primary_trace["calculation_result"]["status"])
+        self.assertNotEqual(stale_result["result_value"], primary_trace["calculation_result"]["result_value"])
         self.assertEqual(repaired_result["result_value"], 750.0)
+        self.assertEqual(repaired_result["status"], primary_trace["calculation_result"]["status"])
+        self.assertEqual(repaired_result["source_row_ids"], primary_trace["calculation_result"]["source_row_ids"])
+        self.assertEqual(
+            repaired_result["source_row_ids"],
+            ["ev_current", "row_current", "ev_adjustment", "row_adjustment"],
+        )
+        self.assertNotIn("row_stale", repaired_result["source_row_ids"])
+        repaired_without_marker = dict(repaired_result)
+        repaired_without_marker.pop("stale_result_repaired_from_operands")
+        self.assertEqual(repaired_without_marker, primary_trace["calculation_result"])
         self.assertTrue(repaired_result["stale_result_repaired_from_operands"])
 
     def test_dependency_alignment_keeps_complete_direct_difference_context(self) -> None:

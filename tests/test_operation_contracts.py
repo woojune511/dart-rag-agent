@@ -7593,8 +7593,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_growth_rate_preserves_stated_source_percent_when_available(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        result = _execute_calculation_with_runtime_trace(agent,
-            {
+        state = {
                 "query": "2023년 지역 시장 판매대수의 전년 대비 성장률을 계산해 줘.",
                 "active_subtask": {
                     "task_id": "task_count_growth",
@@ -7643,7 +7642,7 @@ class OperationContractTests(unittest.TestCase):
                 "artifacts": [],
                 "tasks": [],
             }
-        )
+        result = _execute_calculation_with_runtime_trace(agent, state)
 
         trace = _resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
@@ -7661,6 +7660,64 @@ class OperationContractTests(unittest.TestCase):
         )
         self.assertEqual(calc["derived_metrics"]["formula_result_value"], 11.395646606914212)
         self.assertTrue(calc["derived_metrics"]["source_stated_result_used"])
+        operands = trace["calculation_operands"]
+        plan = trace["calculation_plan"]
+        original_inputs = json.loads(
+            json.dumps({"operands": operands, "plan": plan, "result": calc})
+        )
+
+        with patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute:
+            first_operands, first_plan, first_result = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=operands,
+                plan=plan,
+                calculation_result=calc,
+            )
+            second_operands, second_plan, second_result = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=first_operands,
+                plan=first_plan,
+                calculation_result=first_result,
+            )
+
+        self.assertEqual(recursive_execute.call_count, 0)
+        self.assertIs(first_result, calc)
+        self.assertIs(second_result, first_result)
+        self.assertEqual(second_result, calc)
+        self.assertNotIn("stale_result_repaired_from_operands", second_result)
+        self.assertEqual(operands, original_inputs["operands"])
+        self.assertEqual(plan, original_inputs["plan"])
+        self.assertEqual(calc, original_inputs["result"])
+
+        changed_operands = [dict(row) for row in operands]
+        changed_operands[0].update(raw_value="90.0", normalized_value=900000.0)
+        changed_operands_before_repair = json.loads(json.dumps(changed_operands))
+        with patch.object(agent, "_execute_calculation", wraps=agent._execute_calculation) as recursive_execute:
+            _, _, changed_result = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=changed_operands,
+                plan=plan,
+                calculation_result=calc,
+            )
+            _, _, settled_result = agent._repair_stale_calculation_result_from_operands(
+                state,
+                operands=changed_operands,
+                plan=plan,
+                calculation_result=changed_result,
+            )
+
+        recursive_execute.assert_called_once()
+        self.assertIs(settled_result, changed_result)
+        self.assertTrue(changed_result["stale_result_repaired_from_operands"])
+        self.assertEqual(changed_result["result_value"], 11.5)
+        self.assertAlmostEqual(
+            changed_result["derived_metrics"]["formula_result_value"],
+            15.23687580025608,
+        )
+        self.assertEqual(operands, original_inputs["operands"])
+        self.assertEqual(plan, original_inputs["plan"])
+        self.assertEqual(calc, original_inputs["result"])
+        self.assertEqual(changed_operands, changed_operands_before_repair)
 
     def test_growth_rate_recovers_duplicate_prior_operand_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

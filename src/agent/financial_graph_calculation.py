@@ -17035,9 +17035,24 @@ class FinancialAgentCalculationMixin:
             return operands, plan, calculation_result
         try:
             expected_value = float(_safe_eval_formula(formula, env))
-            current_value = float(calculation_result.get("result_value"))
         except Exception:
             return operands, plan, calculation_result
+        derived_metrics = calculation_result.get("derived_metrics")
+        formula_result_value = (
+            derived_metrics.get("formula_result_value")
+            if (
+                isinstance(derived_metrics, dict)
+                and derived_metrics.get("source_stated_result_used") is True
+            )
+            else None
+        )
+        try:
+            current_value = float(formula_result_value)
+        except Exception:
+            try:
+                current_value = float(calculation_result.get("result_value"))
+            except Exception:
+                return operands, plan, calculation_result
         tolerance = max(1e-6, abs(expected_value) * 1e-9)
         if abs(expected_value - current_value) <= tolerance:
             return operands, plan, calculation_result
