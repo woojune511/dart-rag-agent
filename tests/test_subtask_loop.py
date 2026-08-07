@@ -9882,18 +9882,39 @@ class SubtaskLoopTests(unittest.TestCase):
         financial_graph_calculation.resolve_late_dependency_remerge = _record_late_owner
         try:
             extracted = self.agent._extract_calculation_operands(state)
+            percent_point_state = {
+                **state,
+                "query": f"{state['query']} in %p",
+            }
+            percent_point_extracted = self.agent._extract_calculation_operands(percent_point_state)
         finally:
             financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        percent_point_rows = list(
+            _resolve_runtime_calculation_trace(percent_point_extracted).get("calculation_operands", [])
+        )
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
         self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
-        self.assertEqual(len(late_owner_results), 1)
-        self.assertTrue(late_owner_results[0].complete_direct_context_blocks_dependency_remerge)
-        self.assertFalse(late_owner_results[0].dependency_remerge_applied)
-        self.assertEqual(late_owner_results[0].dependency_remerge_reason, "complete_direct_context")
+        self.assertEqual(len(late_owner_results), 2)
+        self.assertTrue(
+            all(
+                result.complete_direct_context_blocks_dependency_remerge
+                and not result.dependency_remerge_applied
+                and result.dependency_remerge_reason == "complete_direct_context"
+                for result in late_owner_results
+            )
+        )
+        self.assertEqual(percent_point_rows, [])
+        self.assertFalse(
+            any(
+                str(source_id or "").startswith("task_output:")
+                for row in percent_point_rows
+                for source_id in row.get("source_row_ids") or []
+            )
+        )
 
     def test_growth_prior_recovery_skips_parenthesized_current_value(self) -> None:
         recovered = self.agent._recover_growth_prior_material_from_evidence(

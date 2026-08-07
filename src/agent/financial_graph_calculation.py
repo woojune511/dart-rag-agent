@@ -15601,14 +15601,15 @@ class FinancialAgentCalculationMixin:
                 )
             )
             operand_rows = late_dependency_remerge.operand_rows
-            if _is_percent_point_difference_query(query):
+            percent_point_operand_filter_applied = _is_percent_point_difference_query(query)
+            if percent_point_operand_filter_applied:
                 operand_rows = [
                     row for row in operand_rows
                     if str(row.get("normalized_unit") or "") == "PERCENT" and row.get("normalized_value") is not None
                 ]
                 logger.info("[calc_operands] percent-diff operand filtering retained=%s", len(operand_rows))
             preserved_operand_source = ""
-            if not operand_rows:
+            if not operand_rows and not percent_point_operand_filter_applied:
                 if direct_structured_rows:
                     operand_rows = [dict(row) for row in direct_structured_rows]
                     preserved_operand_source = "structured_rows"
