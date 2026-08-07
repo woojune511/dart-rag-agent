@@ -63,10 +63,16 @@ imports or an unconfigured `FinancialAgent` invocation.
   consolidation- or producer-scope-rejected dependency rows from re-entering
   through the active late snapshot. The dependency owner now also returns the
   typed late application result for coherent-first context merge,
-  alignment/preference, complete-context veto, and dependency re-merge.
-  Graph-level evidence context builders plus retry, percent-point filtering,
-  empty-preservation and other fallback paths, aggregate repair, stale-result
-  execution, and state projection remain in the adapter. The original
+  alignment/preference, complete-context veto, and dependency re-merge. The
+  separate `c6f6fdf` behavior fix makes percent-point filtering terminal, so an
+  empty filtered result cannot restore unfiltered post-main selected or active
+  dependency snapshots. The behavior-preserving `5b44875` slice moves the
+  generic normalized-unit filter and no-filter selected-first/dependency-second
+  preservation into a typed finalization result. The separate `8ebb239` behavior
+  fix recomputes empty and partial post-filter coverage. Graph-level evidence
+  context builders plus retry, the percent-point query gate, logging, coverage
+  and state projection, other fallback paths, aggregate repair, and stale-result
+  execution remain in the adapter. The original
   owner-extraction slice changed
   `financial_graph_calculation.py` from 21,642 to 19,682 lines while source as a
   whole grew by 1,095 lines. The typed main-path application changes the graph
@@ -82,6 +88,21 @@ The two source files have a net increase of 81 lines. Product-runtime behavior i
 intended to remain unchanged; this slice relocates late precedence logic rather
 than removing it from execution. Its typed reason is not currently projected to
 the runtime trace.
+
+After `c6f6fdf` moves the graph to 19,565 lines, the behavior-preserving
+`5b44875` finalization relocation changes the graph to 19,567 lines and the
+dependency owner from 2,760 to 2,833 lines, for a structural source net of 75
+lines. The separate `8ebb239` coverage fix leaves the final graph at 19,576
+lines. From the `77d5bff` baseline, the whole bounded slice changes the graph by
+12 and the owner by 73 lines, for a two-source net of 85 lines. The executed
+finalization policy moved owners; it was not removed from runtime. Neither the
+late nor finalization reason is currently projected to the runtime trace.
+
+Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
+the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
+focused contracts, the same audit, and full discovery over 1,468 tests; after
+`8ebb239`, 53 focused contracts, the same audit, and all 1,468 tests passed on
+Python 3.13. Benchmark refresh remains not run.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -99,7 +120,7 @@ remains recoverable from `main@294b4ea`.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
-| Dependency binding summary, projection, source-set selector, typed main-path application, and typed late dependency re-merge | `financial_dependency_projection.py`; percent/empty-preservation and other fallback plus aggregate precedence remain open |
+| Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
 | Primary plan validation and formula execution | `financial_calculation_execution.py`; stale-result re-execution migration remains open |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
@@ -124,10 +145,10 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest dependency-precedence focused contracts | PASS, 78 owner/graph tests after typed late application on 2026-08-07 |
+| Latest dependency-precedence focused contracts | PASS, 53 owner/graph tests after typed finalization and coverage repair on 2026-08-07 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
-| Full unittest discovery | PASS, 1,462 tests locally on Python 3.13 after typed late application on 2026-08-07 |
-| Benchmark refresh after the dependency-precedence changes | NOT RUN; recorded benchmark evidence predates the latest behavior change |
+| Full unittest discovery | PASS, 1,468 tests locally on Python 3.13 after typed finalization and coverage repair on 2026-08-07 |
+| Benchmark refresh after the dependency-precedence changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
 The structural and plain numbers are retained recorded evidence, not a claim
@@ -168,12 +189,13 @@ Optional MAS and cache-promotion work is intentionally disabled or experimental
 rather than an incomplete product requirement.
 
 Phase 3 also remains architecturally open: the dependency selector, binding
-summary, typed main-path application, and typed late re-merge are co-located,
-but the graph adapter retains context/evidence builders plus retry,
-percent-point filtering, empty-preservation and other fallback paths, aggregate
-repair, and state projection. Private helper imports are broad, and stale-result
-repair retains a second formula-execution path. These are named follow-ups, not
-hidden claims that the calculation monolith is already resolved.
+summary, typed main-path application, typed late re-merge, and typed terminal
+finalization are co-located, but the graph adapter retains context/evidence
+builders plus retry, the percent-point query gate, post-filter coverage and state
+projection, other fallback paths, and aggregate repair. Private helper imports
+are broad, and stale-result repair retains a second formula-execution path. These
+are named follow-ups, not hidden claims that the calculation monolith is already
+resolved.
 
 Open work should be created only when one of these conditions is met:
 
@@ -190,11 +212,11 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should characterize exactly one
-bounded slice: whether percent-point filtering followed by empty-preservation
-can bypass the late-owner veto or active dependency snapshot. Any fix should
-then move only that fallback behind a named contract. Aggregate precedence and
-stale-result re-execution remain separate follow-ups.
+The next architecture change, if continued, should characterize the stale-result
+second formula-execution path and move only the validated execution boundary into
+`financial_calculation_execution.execute_prepared_calculation_plan()`. Aggregate
+precedence, remaining deterministic/LLM fallbacks, and the private-API mesh
+remain separate follow-ups.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

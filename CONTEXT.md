@@ -34,9 +34,10 @@ Last updated: 2026-08-07
   checkpoint다. 정확한 commit은 `git log`로 확인하며, 이 branch는 아직
   push/merge하지 않았다. 계산 경로는 graph-state adapter, state-free operand
   resolution, dependency projection, deterministic execution owner로 나뉜다.
-  dependency owner는 main precedence와 typed late re-merge를 소유하고, graph는
-  evidence context builder와 percent/empty-preservation 및 기타 fallback,
-  aggregate/stale repair, state projection을 유지한다.
+  dependency owner는 main precedence, typed late re-merge, generic normalized-unit
+  filter와 no-filter empty preservation을 포함한 typed terminal finalization을
+  소유한다. graph는 evidence context builder, percent-point query gate, coverage와
+  logging/state projection, 기타 fallback, aggregate/stale repair를 유지한다.
 
 ## 현재 검증 기준
 
@@ -45,16 +46,17 @@ Last updated: 2026-08-07
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Calculation owner contract | typed late application focused 78개 PASS; benchmark refresh 미실행 |
-| Runtime validation | Python 3.13 full unittest 1,462개 PASS; domain-term audit 217개 literal PASS |
+| Calculation owner contract | typed terminal finalization focused 53개 PASS; benchmark refresh 미실행 |
+| Runtime validation | Python 3.13 full unittest 1,468개 PASS; domain-term audit 217개 literal PASS |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
 현재 알려진 unit/contract correctness blocker는 없다. 별도 behavior fix
-`b16a6c5`는 scope-rejected dependency의 late 재도입을 막았고, 뒤이은 late-owner
-slice는 product behavior를 바꾸려는 작업이 아니라 기존 precedence logic을
-state-free owner로 옮겼다. 이 최신 calculation change들에 대한 benchmark
-refresh는 실행하지 않았으므로, 이전 recorded benchmark를 검증 근거로 삼거나
-새 score claim을 만들지 않는다.
+`b16a6c5`는 scope-rejected dependency의 late 재도입을 막았고, `c6f6fdf`는
+terminal percent filter 뒤 unfiltered snapshot 재도입을 막았다. `5b44875`는 그
+post-late finalization을 product behavior 변경 없이 state-free owner로 옮겼고,
+별도 `8ebb239`는 필터 뒤 empty/partial coverage를 다시 계산한다. 이 최신
+calculation change들에 대한 benchmark refresh는 실행하지 않았으므로, 이전
+recorded benchmark를 검증 근거로 삼거나 새 score claim을 만들지 않는다.
 
 ## 구현 원칙
 
@@ -76,10 +78,11 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 구조 작업은 percent-point filtering 뒤 empty-preservation fallback이
-late-owner veto나 active dependency snapshot을 우회하는지 characterization하는
-bounded slice 하나다. aggregate precedence와 stale-result의 두 번째 formula
-execution 경로는 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면
+다음 구조 작업은 stale-result의 두 번째 formula execution 경로를
+characterization하고 검증된 실행 경계만
+`financial_calculation_execution.execute_prepared_calculation_plan()` owner로
+통합하는 bounded slice다. aggregate precedence, 남은 deterministic/LLM fallback,
+private API mesh는 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면
 현재 profile과 store signature를 먼저 확인하고 monitored store-fixed
 `eval-only`로 갱신한다.
 

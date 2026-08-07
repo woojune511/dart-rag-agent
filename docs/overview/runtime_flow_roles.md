@@ -289,9 +289,12 @@ state-free owner 경계:
   producer-scope filter, duplicate guard, missing-binding fill도 같은 owner가
   state-free result로 반환한다. graph가 sibling/coherent evidence context를 만든
   뒤에는 coherent-first merge, alignment/preference, complete-context veto,
-  dependency re-merge도 typed late result로 반환한다. 이 late reason은 owner
-  contract 필드이며 현재 runtime trace 필드는 아니다. override에는 explicit
-  reason과 양쪽 provenance가 필요하다.
+  dependency re-merge도 typed late result로 반환한다. terminal finalization은
+  graph가 전달한 generic `required_normalized_unit` filter를 적용하고, filter가
+  없으면서 late rows가 비었을 때만 post-main selected snapshot, active dependency
+  snapshot 순서로 shallow-copy 보존한다. late/finalization reason은 owner contract
+  필드이며 현재 runtime trace 필드는 아니다. override에는 explicit reason과
+  양쪽 provenance가 필요하다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다.
 
@@ -300,7 +303,8 @@ graph adapter에 남은 orchestration 역할군:
 - main context/evidence retrieval gate와 typed input 구성
 - retry/dependency guard, logging, trace/artifact/state projection
 - late sibling/coherent evidence context 구성
-- percent-point filter, empty-preservation, 기타 deterministic/LLM fallback
+- percent-point query gate, finalization input 구성, post-filter coverage 결정
+- 기타 deterministic/LLM fallback
 - aggregate projection/repair sequencing
 - unit conversion/repair
 - period alignment
@@ -343,7 +347,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
-- `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, and typed late dependency re-merge
+- `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
 - `financial_calculation_execution.py`: plan validation and typed execution outcome
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection

@@ -224,7 +224,10 @@ Current owner-extraction slice:
   the typed main-path application covering final ratio override or purge,
   producer-scope filtering, duplicate guarding, and missing-binding fill. Its
   typed late application performs coherent-first context merge, alignment and
-  direct-context preference, complete-context veto, and dependency re-merge;
+  direct-context preference, complete-context veto, and dependency re-merge.
+  Its typed terminal finalization applies an optional generic normalized-unit
+  filter and, only without a filter, post-main-selected-snapshot-first then
+  active-dependency-snapshot preservation;
 - `financial_calculation_execution.py` validates ordered operand ids and variable
   bindings against the operand set, then returns a typed execution outcome for
   the graph adapter to project;
@@ -246,12 +249,20 @@ fallback can reuse it. That fix passed `78` focused owner/graph contracts, the
 The following late-owner slice moves coherent-first direct-context merge,
 alignment and preference, the complete-context veto, and dependency re-merge
 application behind a typed state-free result. The graph still builds the sibling
-and coherent evidence contexts and owns percent-point filtering,
-empty-preservation and other deterministic/LLM fallback paths, logging,
-artifact, trace, and state projection. Aggregate repair and stale-result
-execution remain graph orchestration. This is not end-to-end precedence
-consolidation, and the typed late-decision reason is not yet a runtime trace
-field.
+and coherent evidence contexts. Commit `c6f6fdf` is a separate behavior fix: a
+terminal percent-point filter that removes every late row can no longer restore
+an unfiltered post-main selected or active dependency snapshot.
+
+The following `5b44875` slice moves the generic normalized-unit filter and the
+no-filter preservation order behind a typed state-free finalization result. The
+graph retains the percent-point query gate and passes only
+`required_normalized_unit`; it also retains logging, coverage, artifact, trace,
+and state projection. Commit `8ebb239` is a separate behavior fix that recomputes
+post-filter coverage so an empty result is `missing` and an incomplete required
+set is `partial`. Other deterministic/LLM fallback, aggregate repair, and
+stale-result execution remain graph orchestration. This is not end-to-end
+precedence consolidation, and the typed late/finalization reasons are not yet
+runtime trace fields.
 
 The earlier calculation owner-extraction slice changed
 `financial_graph_calculation.py` from `21,642` to `19,682` lines (`-1,960`),
@@ -268,6 +279,14 @@ The late-owner slice changes `financial_graph_calculation.py` from `19,587` to
 increase of `81` lines. Product-runtime behavior is intended to remain
 unchanged; the late precedence logic is relocated, not removed from execution.
 
+After `c6f6fdf` moves the graph to `19,565` lines, the behavior-preserving
+`5b44875` finalization relocation changes the graph to `19,567` lines (`+2`) and
+the dependency owner from `2,760` to `2,833` lines (`+73`), for a structural
+source net of `+75`. The separate `8ebb239` coverage fix leaves the final graph
+at `19,576` lines. From the `77d5bff` baseline, the whole bounded slice changes
+the graph by `+12` and the owner by `+73`, for a two-source net of `+85` lines.
+The executed finalization policy moved owners; it was not removed from runtime.
+
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
 `217` reviewed literals, and full discovery over `1,451` unit tests passed. This
@@ -276,18 +295,22 @@ focused owner/graph contracts, the same `217`-literal audit, and full discovery
 over `1,457` unit tests. These are contract and regression evidence, not a
 refreshed benchmark claim. After the separate `b16a6c5` behavior fix, the late
 typed application passed `78` focused owner/graph contracts, the same
-`217`-literal audit, and full discovery over `1,462` unit tests. Its benchmark
-refresh has not run.
+`217`-literal audit, and full discovery over `1,462` unit tests. The terminal
+filter fix `c6f6fdf` passed `3` focused contracts, the same audit, and full
+discovery over `1,462` tests. The behavior-preserving `5b44875` extraction passed
+`52` focused contracts, the same audit, and full discovery over `1,468` tests.
+After `8ebb239`, `53` focused contracts, the same audit, and full discovery over
+`1,468` tests passed on Python 3.13. Benchmark refresh has not run for these
+latest changes.
 
 Phase 3 remains open for these follow-ups:
 
-- characterize whether percent-point filtering followed by empty-preservation
-  can bypass the late-owner veto or active dependency snapshot, then move that
-  bounded fallback behind a named contract;
 - move the remaining deterministic/LLM fallback and aggregate precedence
   orchestration behind named owner contracts;
 - reduce the remaining private-API mesh;
-- remove the stale-result second execution path after caller migration;
+- characterize the stale-result second formula-execution path, then move only
+  the validated execution boundary into
+  `financial_calculation_execution.execute_prepared_calculation_plan()`;
 - extract the remaining extraction and aggregate repair clusters behind named
   contracts.
 

@@ -571,12 +571,19 @@ must also be removed from the active dependency snapshot so a later fallback
 cannot reintroduce them. After the graph builds sibling and coherent evidence
 contexts, the same owner applies the late path's coherent-first context merge,
 alignment and direct-context preference, complete-context veto, and dependency
-re-merge as another typed state-free result. Its reason fields are owner-contract
-outputs; they are not currently projected as runtime trace fields.
+re-merge as another typed state-free result. The same owner then performs a
+terminal typed finalization. The graph translates percent-point intent into a
+generic `required_normalized_unit`; the owner applies the unit/value filter
+without receiving the raw query or a callback. An active filter is terminal, so
+an empty filtered result cannot fall through to preservation. With no filter and
+no late rows, the owner preserves the post-main selected snapshot first and the
+active dependency snapshot second, retaining order through top-level shallow
+copies. Its reason fields are owner-contract outputs; they are not currently
+projected as runtime trace fields.
 
 The graph adapter still owns the context/evidence builders that prepare these
-inputs, retry and dependency-guard decisions, percent-point filtering,
-empty-preservation and other deterministic/LLM fallback paths, and state, trace,
+inputs, retry and dependency-guard decisions, the percent-point query gate,
+other deterministic/LLM fallback paths, coverage decisions, and state, trace,
 artifact, and logging projection. Aggregate repair and stale-result execution
 also remain graph-orchestrated, so this is not a single-owner end-to-end
 precedence claim. A task output may override a direct row only through an
