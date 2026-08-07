@@ -15625,7 +15625,16 @@ class FinancialAgentCalculationMixin:
                     preserved_operand_source,
                 )
             merged_coverage = extracted.coverage
-            if direct_structured_rows and operand_rows and required_operands:
+            if late_operand_finalization.operand_filter_applied:
+                if not operand_rows:
+                    merged_coverage = "missing"
+                elif required_operands:
+                    merged_coverage = (
+                        "sufficient"
+                        if not _missing_required_operands(required_operands, operand_rows)
+                        else "partial"
+                    )
+            elif direct_structured_rows and operand_rows and required_operands:
                 merged_coverage = (
                     "sufficient"
                     if not _missing_required_operands(required_operands, operand_rows)

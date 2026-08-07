@@ -9869,7 +9869,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: list(evidence_items)
         self.agent._build_required_operands_from_candidates = build_required
-        self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        self.agent.llm = _StubLLM(OperandExtraction(coverage="sufficient", operands=[]))
 
         late_owner_results = []
         original_late_owner = financial_graph_calculation.resolve_late_dependency_remerge
@@ -9906,10 +9906,20 @@ class SubtaskLoopTests(unittest.TestCase):
                 )
         finally:
             financial_graph_calculation.resolve_late_dependency_remerge = original_late_owner
+        ratio_denominator["normalized_unit"] = "PERCENT"
+        partial_percent_extracted = self.agent._extract_calculation_operands(
+            percent_point_state
+        )
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
         rows_by_role = {row["matched_operand_role"]: row for row in rows}
         percent_point_rows = list(
             _resolve_runtime_calculation_trace(percent_point_extracted).get("calculation_operands", [])
+        )
+        partial_percent_rows = list(
+            _resolve_runtime_calculation_trace(partial_percent_extracted).get(
+                "calculation_operands",
+                [],
+            )
         )
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -9925,10 +9935,24 @@ class SubtaskLoopTests(unittest.TestCase):
             )
         )
         self.assertEqual(percent_point_rows, [])
+        self.assertEqual(percent_point_extracted["evidence_status"], "missing")
+        self.assertEqual(
+            percent_point_extracted["calculation_debug_trace"]["coverage"],
+            "missing",
+        )
         self.assertEqual(len(finalization_results), 1)
         self.assertTrue(finalization_results[0].operand_filter_applied)
         self.assertEqual(finalization_results[0].preserved_operand_source, "")
         self.assertEqual(finalization_results[0].finalization_reason, "normalized_unit_filtered")
+        self.assertEqual(
+            [row.get("matched_operand_role") for row in partial_percent_rows],
+            ["denominator_1"],
+        )
+        self.assertEqual(partial_percent_extracted["evidence_status"], "partial")
+        self.assertEqual(
+            partial_percent_extracted["calculation_debug_trace"]["coverage"],
+            "partial",
+        )
         self.assertFalse(
             any(
                 str(source_id or "").startswith("task_output:")
