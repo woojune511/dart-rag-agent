@@ -297,9 +297,10 @@ state-free owner 경계:
   양쪽 provenance가 필요하다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
-  bound normalized value와 projected result를 비교하는 typed state-free
-  `StaleCalculationAssessment`를 소유한다. 이 assessment는 source-stated flag가
-  활성화된 경우에만 traced formula value를 우선하며 unit gate를 추가하지 않는다.
+  prepared canonical value와 projected result를 비교하는 typed state-free
+  `StaleCalculationValueAssessment`를 소유한다. source-stated flag가 활성화된
+  경우에는 public display 값 대신 traced formula value를 비교하며 기존 tolerance와
+  NaN 동작을 유지한다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -312,8 +313,12 @@ graph adapter에 남은 orchestration 역할군:
 - unit conversion/repair
 - period alignment
 - source-visible display 보존
-- stale applicability/same-slot guard, 두 번째 `_execute_calculation()`, caller별
-  trace/artifact projection과 미해결 ledger synchronization contract
+- graph-private typed candidate preparation/result/state projection seam
+- stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
+  stale-only result projection, caller별 provenance 및 미해결 ledger/selected-claim
+  synchronization contract
+- dependency/period 내부 재계산의 버려지는 state projection
+- absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
 - narrative context preservation
 
@@ -352,7 +357,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
 - `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
-- `financial_calculation_execution.py`: plan validation, typed execution outcome, and typed state-free stale freshness assessment
+- `financial_calculation_execution.py`: plan validation, typed execution outcome, and typed state-free value-only stale freshness assessment
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers

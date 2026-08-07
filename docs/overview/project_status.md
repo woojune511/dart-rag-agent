@@ -102,23 +102,40 @@ The separate `f0eafae` behavior fix prevents repeated stale repair when a
 source-stated display differs from formula precision but its traced formula
 value still matches the current operands. Structural commit `2496fce` moves only
 that bound-operand freshness assessment into `financial_calculation_execution.py`
-as a typed state-free result. The graph retains applicability and same-slot
-guards, the stale-triggered second `_execute_calculation()`, and caller-specific
-projection; its isolated recalculation ledger still requires an explicit
-synchronization contract. Mechanically, the graph changes from 19,591 to 19,558
-lines and the execution owner from 614 to 712 lines, for a two-source net increase
-of 65 lines. From the `73d593e` baseline, the whole stale-result bounded slice
-changes the graph from 19,576 to 19,558 lines and grows the execution owner by 98
-lines, for a two-source net increase of 80 lines. This is an ownership move, not
-removal of the duplicate formula-execution path.
+as a typed state-free result. At that checkpoint, the graph still retained the
+second `_execute_calculation()` and discarded recalculation projection.
+Mechanically, the graph changes from 19,591 to 19,558 lines and the execution
+owner from 614 to 712 lines, for a two-source net increase of 65 lines. From the
+`73d593e` baseline, the whole stale-result bounded slice changes the graph from
+19,576 to 19,558 lines and grows the execution owner by 98 lines, for a two-source
+net increase of 80 lines.
+
+Commit `406c1ef` separately characterizes stale execution snapshots. The
+behavior-preserving `c2a5e96` decomposition then creates graph-private typed
+candidate preparation, deterministic result projection, and state/ledger
+projection seams. Stale repair uses the first two directly, removing its second
+`_execute_calculation()` and discarded ledger/trace projection. The graph grows
+from 19,558 to 19,730 lines (`+172`); full discovery at that checkpoint passed
+1,473 tests. This is an internal graph decomposition, not an execution-owner move.
+
+The separate `f2af4f4` behavior fix compares freshness with the prepared canonical
+value. A raw pre-preparation value of 0.0035 that previously appeared current is
+now compared with canonical 3.5 and repaired. An actual stale repair evaluates
+the formula once instead of twice; current results still prepare and evaluate
+once, and only stale values run result projection. The execution owner changes
+from 712 to 679 lines (`-33`), the graph changes from 19,730 to 19,736 (`+6`), and
+the source net is `-27`; the whole source/test diff is net `-83` lines. This does
+not add ledger or selected-claim synchronization.
 
 Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
 the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
 focused contracts, the same audit, and full discovery over 1,468 tests; after
 `8ebb239`, 53 focused contracts, the same audit, and all 1,468 tests passed on
 Python 3.13. After `f0eafae` and `2496fce`, 29 focused stale/execution contracts,
-the same 217-literal audit, and all 1,472 tests passed on Python 3.13. Benchmark
-refresh remains not run.
+the same 217-literal audit, and all 1,472 tests passed on Python 3.13. The final
+`f2af4f4` state passed 345 unique focused contracts; the core 7-contract subset
+and 2 adapter/time-series spot contracts were also rerun. The 217-literal audit
+and all 1,472 tests passed on Python 3.13. Benchmark refresh remains not run.
 
 The Phase 5 completion change also removes chronological implementation diaries
 from this current-state document and `CONTEXT.md`. Detailed pre-compression text
@@ -137,7 +154,7 @@ remains recoverable from `main@294b4ea`.
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
 | Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
-| Primary plan validation, formula execution, and stale freshness assessment | `financial_calculation_execution.py`; graph applicability/same-slot guards, second execution, and caller projection remain open |
+| Primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; candidate preparation/result/state seams remain graph-private, and caller provenance/ledger synchronization remains open |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
 | Optional persisted report cache | configured `ReportCacheIndex` boundary |
@@ -162,9 +179,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
 | Latest dependency-precedence focused contracts | PASS, 53 owner/graph tests after typed finalization and coverage repair on 2026-08-07 |
-| Latest stale-assessment focused contracts | PASS, 29 owner/graph tests after `2496fce` on 2026-08-07 |
+| Latest stale/candidate focused contracts | PASS, 345 unique focused tests after `f2af4f4` on 2026-08-07; core 7 and spot 2 were subset reruns |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-07 |
-| Full unittest discovery | PASS, 1,472 tests locally on Python 3.13 after typed stale freshness assessment on 2026-08-07 |
+| Full unittest discovery | PASS, 1,472 tests locally on Python 3.13 after prepared-value freshness repair on 2026-08-07 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -175,7 +192,7 @@ demo manifest only binds the compact fixture and states that limitation; it
 does not promote the fixture into proof of the upstream run. Fresh benchmark
 work is required when parser, ingest, store signature, retrieval behavior, or a
 material answer contract changes. Because the latest calculation changes include
-candidate-conflict, dependency-precedence, and source-display stale-repair
+candidate-conflict, dependency-precedence, and prepared-value stale-repair
 behavior, their unit/contract evidence must not be presented as a refreshed
 benchmark result.
 
@@ -211,10 +228,12 @@ summary, typed main-path application, typed late re-merge, and typed terminal
 finalization are co-located, but the graph adapter retains context/evidence
 builders plus retry, the percent-point query gate, post-filter coverage and state
 projection, other fallback paths, and aggregate repair. Private helper imports
-are broad. Although stale freshness assessment now has a state-free owner,
-stale-result repair retains a second formula-execution path and its isolated
-ledger projection is not synchronized back as one contract. These are named
-follow-ups, not hidden claims that the calculation monolith is already resolved.
+are broad. The calculation candidate seam remains graph-private. Stale repair no
+longer recursively calls `_execute_calculation()`, but its result provenance is not
+synchronized into the ledger or selected claims as one behavior contract.
+Dependency and period recovery still create state projections their callers
+discard, and absolute-ratio/trend projection boundaries remain graph-owned. These
+are named follow-ups, not hidden claims that the calculation monolith is resolved.
 
 Open work should be created only when one of these conditions is met:
 
@@ -231,12 +250,12 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should characterize a shared
-prepared-candidate/projection boundary and verify whether it can remove the
-stale-result duplicate formula execution without changing preparation semantics.
-Ledger synchronization should remain a separate behavior contract. Aggregate
-precedence, remaining deterministic/LLM fallbacks, and the private-API mesh remain
-separate follow-ups.
+The next architecture change, if continued, should characterize stale-result
+projection provenance and ledger/selected-claim synchronization as one bounded
+behavior contract. Cleanup of the dependency and period recovery callers that
+discard state projection should remain a separate slice. Aggregate precedence,
+remaining deterministic/LLM fallbacks, absolute-ratio/trend projection debt, and
+the private-API mesh remain separate follow-ups.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

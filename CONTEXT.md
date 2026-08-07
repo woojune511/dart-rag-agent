@@ -38,9 +38,13 @@ Last updated: 2026-08-07
   filter와 no-filter empty preservation을 포함한 typed terminal finalization을
   소유한다. graph는 evidence context builder, percent-point query gate, coverage와
   logging/state projection, 기타 fallback, aggregate repair를 유지한다.
-  execution owner는 typed state-free stale freshness assessment도 소유하지만,
-  graph에는 applicability/same-slot guard, 두 번째 `_execute_calculation()`,
-  caller projection과 ledger synchronization 책임이 남아 있다.
+  graph에는 graph-private typed calculation-candidate seam이 있어 preparation,
+  result projection, state/ledger projection을 분리한다. stale repair는 이 seam으로
+  candidate를 한 번 prepare/execute하고, execution owner의 typed value-only
+  freshness assessment 뒤 stale일 때만 result를 project한다. graph에는
+  applicability/same-slot guard와 caller provenance/ledger synchronization 책임이
+  남아 있으며, dependency/period 내부 재계산은 아직 버려지는 state projection을
+  만든다.
 
 ## 현재 검증 기준
 
@@ -49,7 +53,7 @@ Last updated: 2026-08-07
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Calculation owner contract | typed stale freshness assessment focused 29개 PASS; benchmark refresh 미실행 |
+| Calculation owner contract | value-only freshness 및 candidate 경계 focused unique 345개 PASS; benchmark refresh 미실행 |
 | Runtime validation | Python 3.13 full unittest 1,472개 PASS; domain-term audit 217개 literal PASS |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
 
@@ -60,6 +64,11 @@ post-late finalization을 product behavior 변경 없이 state-free owner로 옮
 별도 `8ebb239`는 필터 뒤 empty/partial coverage를 다시 계산한다. 그 뒤
 `f0eafae`는 원문 표시값의 반복 stale repair를 막았고,
 `2496fce`는 그 freshness assessment만 state-free execution owner로 옮겼다.
+`406c1ef`는 stale 실행 snapshot을 characterization했고, `c2a5e96`은 product
+behavior를 유지하면서 shared candidate pipeline을 graph-private seam으로
+분해했다. 별도 behavior fix `f2af4f4`는 pre-preparation raw 값 `0.0035`를
+current로 오판하던 경로를 prepared canonical 값 `3.5` 기준으로 고치고 stale
+formula evaluation을 2회에서 1회로 줄였다.
 이 변경들에 대한 benchmark refresh는 실행하지 않았으므로, 이전
 recorded benchmark를 검증 근거로 삼거나 새 score claim을 만들지 않는다.
 
@@ -83,11 +92,11 @@ semantic planning, hybrid retrieval, deterministic calculation, provenance,
 task/artifact integrity, critic acceptance를 한 흐름으로 보여준다. cache와
 promotion surface는 명시적인 optional deep-validation 경로로 분리돼 있다.
 
-다음 구조 작업은 shared prepared-candidate/projection 경계를 characterization해
-stale assessment 뒤 중복 formula execution을 제거할 수 있는지 검증하는 bounded
-slice다. ledger synchronization은 별도 behavior contract로 분리하고, aggregate
-precedence, 남은 deterministic/LLM fallback, private API mesh도 별도 follow-up으로
-유지한다. 새 benchmark claim이 필요하면
+다음 구조 작업은 stale result projection의 provenance와 ledger/selected-claim
+synchronization을 별도 behavior contract로 먼저 characterization하는 bounded
+slice다. dependency/period 내부 재계산의 버려지는 state projection 정리는 그와
+섞지 않는다. aggregate precedence, 남은 deterministic/LLM fallback, private API
+mesh도 별도 follow-up으로 유지한다. 새 benchmark claim이 필요하면
 현재 profile과 store signature를 먼저 확인하고 monitored store-fixed
 `eval-only`로 갱신한다.
 

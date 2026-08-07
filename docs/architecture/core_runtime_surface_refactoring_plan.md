@@ -230,7 +230,11 @@ Current owner-extraction slice:
   active-dependency-snapshot preservation;
 - `financial_calculation_execution.py` validates ordered operand ids and variable
   bindings against the operand set, then returns a typed execution outcome for
-  the graph adapter to project;
+  the graph adapter to project. It also owns value-only stale freshness
+  assessment over a canonical prepared result;
+- the graph adapter contains a graph-private typed candidate seam separating
+  preparation/execution, deterministic result projection, and state/ledger
+  projection. This decomposition is not an execution-owner move;
 - candidate selection is invariant to input order: tied conflicting values
   abstain, while equivalent ties use a stable selection rule.
 
@@ -291,14 +295,32 @@ Commit `f0eafae` is a separate behavior fix that prevents a source-stated displa
 from being repeatedly classified as stale when its traced formula value still
 matches the current operands. The following structural commit `2496fce` moves
 only the bound-operand formula comparison and typed freshness assessment into
-`financial_calculation_execution.py`. Applicability and same-slot guards, the
-stale-triggered second `_execute_calculation()`, and caller projection remain in
-the graph. The structural move changes `financial_graph_calculation.py` from
-`19,591` to `19,558` lines (`-33`) and the execution owner from `614` to `712`
-lines (`+98`), for a two-source net of `+65`. From the `73d593e` baseline, the
-whole stale-result bounded slice changes the graph from `19,576` to `19,558`
-lines (`-18`) and the execution owner by `+98`, for a two-source net of `+80`.
-The freshness policy moved owners; the duplicate execution path was not removed.
+`financial_calculation_execution.py`. That structural checkpoint changes
+`financial_graph_calculation.py` from `19,591` to `19,558` lines (`-33`) and the
+execution owner from `614` to `712` lines (`+98`), for a two-source net of `+65`.
+From the `73d593e` baseline, the whole stale-result bounded slice changes the
+graph from `19,576` to `19,558` lines (`-18`) and the execution owner by `+98`,
+for a two-source net of `+80`.
+
+Commit `406c1ef` separately characterizes stale execution snapshots. Structural
+commit `c2a5e96` then decomposes the inline calculation path into graph-private
+typed candidate preparation, result projection, and state/ledger projection.
+Stale repair calls the preparation and result projection seam directly, removing
+its recursive `_execute_calculation()` call and discarded ledger/trace projection
+without changing product behavior. This changes the graph from `19,558` to
+`19,730` lines (`+172`); full discovery at that checkpoint passed `1,473` tests.
+The candidate seam remains graph-private and this commit does not remove the two
+formula evaluations in an actual stale repair.
+
+Behavior fix `f2af4f4` makes the prepared canonical value the freshness authority.
+A pre-preparation raw value of `0.0035` that previously appeared current is now
+compared with the prepared canonical value `3.5` and repaired. The stale path
+evaluates its formula once instead of twice. Current results still prepare and
+evaluate once, and deterministic result projection runs only for a stale value.
+The execution owner changes from `712` to `679` lines (`-33`) and the graph from
+`19,730` to `19,736` (`+6`), for a source net of `-27`; the whole source/test diff
+for this behavior slice is net `-83` lines. No ledger or selected-claim
+synchronization is added.
 
 Validation for this slice: `62` focused operand/execution contract tests, `323`
 focused calculation/projection tests, the runtime domain-language audit over
@@ -315,19 +337,23 @@ discovery over `1,462` tests. The behavior-preserving `5b44875` extraction passe
 After `8ebb239`, `53` focused contracts, the same audit, and full discovery over
 `1,468` tests passed on Python 3.13. After `f0eafae` and `2496fce`, `29` focused
 stale/execution contracts, the same `217`-literal audit, and full discovery over
-`1,472` tests passed on Python 3.13. Benchmark refresh has not run for these
-latest changes.
+`1,472` tests passed on Python 3.13. After `f2af4f4`, `345` unique focused
+contracts passed; the `7`-contract core subset and `2` adapter/time-series spot
+contracts were also rerun. The `217`-literal audit and full discovery over
+`1,472` tests passed on Python 3.13. Benchmark refresh has not run for these latest
+changes.
 
 Phase 3 remains open for these follow-ups:
 
 - move the remaining deterministic/LLM fallback and aggregate precedence
   orchestration behind named owner contracts;
 - reduce the remaining private-API mesh;
-- characterize a shared prepared-candidate/projection boundary and verify
-  whether it can remove stale-result duplicate formula execution without
-  changing preparation semantics;
-- specify ledger synchronization as a separate behavior contract rather than
-  folding it into the mechanical owner move;
+- specify stale result-projection provenance and ledger/selected-claim
+  synchronization as a separate behavior contract;
+- remove discarded state projection from the dependency and period recovery
+  callers in a separate bounded slice;
+- characterize the remaining graph-owned absolute-ratio and trend
+  projection/error boundaries before moving them;
 - extract the remaining extraction and aggregate repair clusters behind named
   contracts.
 

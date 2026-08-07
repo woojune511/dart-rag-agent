@@ -599,18 +599,31 @@ required roles. It returns a typed `CalculationExecutionOutcome` and does not
 mutate graph state. The graph adapter projects that outcome into
 `resolved_calculation_trace`, `structured_result`, and the task/artifact ledger.
 
-The same module owns the typed, state-free stale-result freshness assessment.
-`StaleCalculationAssessment` compares the formula result from bound normalized
-values with the projected result, using the traced formula value only when the
-source-stated-result flag is active. It intentionally adds no unit-family gate;
-unit validation remains part of prepared calculation execution. Invalid
-bindings, values, formulas, or projected values return typed indeterminate
-reasons and do not mutate inputs. The graph still owns the status/mode/formula
-applicability gates, the period-comparison same-slot veto, the stale-triggered
-second `_execute_calculation()` call, and caller-specific trace/artifact
-projection; ledger synchronization remains an explicit debt. Assessment reasons
-are owner-contract outputs, not runtime trace fields. This boundary does not
-establish a single formula-execution path.
+The graph adapter contains a graph-private typed calculation-candidate seam. It
+separates candidate preparation and canonical execution, deterministic result
+projection, and graph-state/ledger projection, while preserving the existing
+`_execute_calculation()` graph-node adapter. This is an internal decomposition,
+not a move of preparation or result projection into the execution owner.
+
+The execution module owns the typed, state-free value-only stale-result
+assessment. `StaleCalculationValueAssessment` compares a canonical value from a
+prepared `CalculationExecutionOutcome` with the projected result. It uses the
+traced formula value only when the source-stated-result flag is active and keeps
+the existing absolute/scaled tolerance and NaN behavior. Unavailable expected or
+current values return typed non-stale reasons without mutating inputs.
+
+The graph owns status/mode/formula applicability and the period-comparison
+same-slot veto. After those gates, stale repair prepares and executes one
+candidate, returns the original operand/plan/result identities on preparation
+failure or a current assessment, and performs deterministic result projection
+only when stale. A current result therefore still incurs one preparation and
+formula evaluation; an actual stale repair evaluates the formula once rather
+than through separate pre-preparation assessment and execution. The repair path
+does not run state/ledger projection or synchronize selected claims. Caller
+provenance and ledger synchronization remain explicit behavior debt, while
+dependency and period recovery still create state projections that their callers
+discard. Assessment reasons are owner-contract outputs, not runtime trace fields.
+This boundary does not establish a single end-to-end calculation owner.
 
 ## 9. Aggregate Subtask Projection
 
