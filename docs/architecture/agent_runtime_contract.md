@@ -563,13 +563,18 @@ one through a stable provenance and candidate-identity ordering.
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
 decisions directly; graph callers must not inject those decisions through
-callbacks. This co-location does not make the module the single owner of the
-end-to-end precedence path: the graph adapter still orchestrates the main
-operand path, fallback recovery and late re-merge, and aggregate repair paths.
-A task output may override a direct row only through an explicit decision reason
-and provenance record. The decision must retain the current and candidate source
-identities needed to inspect value, materiality, anchor, and scope conflicts;
-list order must never act as an implicit override rule.
+callbacks. It also owns the typed application of that selector to the main
+operand path: final ratio override or purge, producer-scope filtering, duplicate
+guarding, and missing-binding fill are one state-free transformation with an
+inspectable result. The graph adapter still owns the context/evidence retrieval
+gates that prepare this input, retry and dependency-guard decisions, and state,
+trace, artifact, and logging projection. Fallback recovery, late dependency
+re-merge, and aggregate repair remain graph-orchestrated, so this is not a
+single-owner end-to-end precedence claim. A task output may override a direct
+row only through an explicit decision reason and provenance record. The decision
+must retain the current and candidate source identities needed to inspect value,
+materiality, anchor, and scope conflicts; list order must never act as an
+implicit override rule.
 
 `financial_calculation_execution.py` owns plan validation and state-free
 execution. Before execution it must validate `ordered_operand_ids` and

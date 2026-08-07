@@ -12,7 +12,12 @@ from src.agent.financial_operand_resolution import (
     merge_operand_rows,
     _missing_required_operands,
     operand_row_conflicts_requested_scope,
+    _operand_row_display_unit_set,
     _operand_row_matches_requirement,
+    _operand_rows_conflict_by_required_role,
+    _operand_rows_have_single_table_context,
+    _period_comparison_operand_rows_collapse_to_same_slot,
+    _ratio_operand_rows_collapse_to_same_slot,
     operand_row_source_ids,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
@@ -64,6 +69,41 @@ class DirectDependencySelection:
     prefer_direct_rows_over_dependency: bool
     direct_period_context_conflict: bool
     period_dependency_blocks_direct_context: bool
+
+
+@dataclass(frozen=True)
+class MainOperandPrecedenceInput:
+    """State-free inputs for the graph's main dependency precedence pass."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    direct_rows: List[Dict[str, Any]]
+    dependency_rows: List[Dict[str, Any]]
+    dependency_bindings: List[Dict[str, Any]]
+    dependency_binding_keys: set[Tuple[str, str]]
+    dependency_resolved_keys: set[Tuple[str, str]]
+    missing_dependency_bindings: List[Dict[str, Any]]
+    producer_tasks: List[Dict[str, Any]]
+    desired_consolidation_scope: str
+    reconciliation_evidence_present: bool
+    retrieved_ratio_context_recovered: bool
+
+
+@dataclass(frozen=True)
+class MainOperandPrecedenceResult:
+    """Typed result of the graph's main dependency precedence pass."""
+
+    selected_operand_rows: List[Dict[str, Any]]
+    source_selection: DirectDependencySelection
+    active_dependency_bindings: List[Dict[str, Any]]
+    dependency_binding_keys: set[Tuple[str, str]]
+    dependency_resolved_keys: set[Tuple[str, str]]
+    missing_dependency_bindings: List[Dict[str, Any]]
+    rejected_dependency_scope_rows: List[Dict[str, Any]]
+    required_prefers_aggregate_stage: bool
+    ratio_direct_context_should_override_dependency: bool
+    ratio_direct_context_override_applied: bool
+    direct_dependency_fill_allowed: bool
 
 
 OperandResolutionAction = Literal["keep_current", "use_candidate"]
@@ -1020,6 +1060,174 @@ def filter_direct_rows_by_dependency_producer_scope(
             continue
         filtered_rows.append(row_data)
     return filtered_rows, rejected_rows
+
+
+def resolve_main_operand_precedence(
+    precedence_input: MainOperandPrecedenceInput,
+) -> MainOperandPrecedenceResult:
+    """Resolve the main graph path's dependency precedence without graph state."""
+
+    operation_family = precedence_input.operation_family
+    required_operands = precedence_input.required_operands
+    direct_rows = precedence_input.direct_rows
+    dependency_rows = precedence_input.dependency_rows
+    active_dependency_bindings = precedence_input.dependency_bindings
+    dependency_binding_keys = precedence_input.dependency_binding_keys
+    dependency_resolved_keys = precedence_input.dependency_resolved_keys
+    missing_dependency_bindings = precedence_input.missing_dependency_bindings
+
+    direct_rows_cover_required_operands = bool(
+        required_operands
+        and direct_rows
+        and not _missing_required_operands(required_operands, direct_rows)
+    )
+    dependency_rows_cover_required_operands = bool(
+        required_operands
+        and dependency_rows
+        and not _missing_required_operands(required_operands, dependency_rows)
+    )
+    required_prefers_aggregate_stage = any(
+        bool(dict(row.get("binding_policy") or {}).get("prefer_aggregation_stages"))
+        for row in required_operands
+    )
+    direct_rows_have_coherent_context = bool(
+        direct_rows_cover_required_operands
+        and _operand_rows_have_single_table_context(direct_rows)
+        and not _ratio_operand_rows_collapse_to_same_slot(direct_rows)
+        and not _period_comparison_operand_rows_collapse_to_same_slot(direct_rows)
+    )
+
+    ratio_direct_context_should_override_dependency = False
+    if operation_family == "ratio" and precedence_input.retrieved_ratio_context_recovered:
+        direct_dependency_conflicts = _operand_rows_conflict_by_required_role(
+            dependency_rows,
+            direct_rows,
+            operand_row_value_differs=operand_row_values_differ,
+        )
+        dependency_display_units = _operand_row_display_unit_set(dependency_rows)
+        direct_display_units = _operand_row_display_unit_set(direct_rows)
+        ratio_direct_context_should_override_dependency = bool(
+            direct_rows_have_coherent_context
+            and (
+                not dependency_rows_cover_required_operands
+                or not direct_dependency_conflicts
+                or (
+                    len(dependency_display_units) > 1
+                    and len(direct_display_units) <= 1
+                )
+            )
+        )
+
+    ratio_direct_context_override_applied = bool(
+        direct_rows_have_coherent_context
+        and ratio_direct_context_should_override_dependency
+        and not required_prefers_aggregate_stage
+    )
+    if ratio_direct_context_override_applied:
+        dependency_rows = []
+        active_dependency_bindings = []
+        missing_dependency_bindings = []
+        dependency_resolved_keys = set()
+        dependency_rows_cover_required_operands = False
+
+    source_selection = select_direct_dependency_operand_rows(
+        DirectDependencySelectionInput(
+            operation_family=operation_family,
+            required_operands=required_operands,
+            direct_rows=direct_rows,
+            dependency_rows=dependency_rows,
+            desired_consolidation_scope=precedence_input.desired_consolidation_scope,
+            reconciliation_evidence_present=precedence_input.reconciliation_evidence_present,
+            direct_rows_cover_required_operands=direct_rows_cover_required_operands,
+            dependency_rows_cover_required_operands=dependency_rows_cover_required_operands,
+            direct_rows_have_coherent_context=direct_rows_have_coherent_context,
+            retrieved_ratio_context_recovered=precedence_input.retrieved_ratio_context_recovered,
+            ratio_direct_context_should_override_dependency=(
+                ratio_direct_context_should_override_dependency
+            ),
+            required_prefers_aggregate_stage=required_prefers_aggregate_stage,
+        )
+    )
+    selected_operand_rows = source_selection.operand_rows
+    rejected_dependency_scope_rows: List[Dict[str, Any]] = []
+    if (
+        active_dependency_bindings
+        and selected_operand_rows
+        and not source_selection.prefer_direct_rows_over_dependency
+    ):
+        selected_operand_rows, rejected_resolved_dependency_scope_rows = (
+            filter_direct_rows_by_dependency_producer_scope(
+                bindings=active_dependency_bindings,
+                operand_rows=selected_operand_rows,
+                producer_tasks=precedence_input.producer_tasks,
+            )
+        )
+        rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
+    if (
+        missing_dependency_bindings
+        and selected_operand_rows
+        and not source_selection.prefer_direct_rows_over_dependency
+    ):
+        selected_operand_rows, rejected_missing_dependency_scope_rows = (
+            filter_direct_rows_by_dependency_producer_scope(
+                bindings=missing_dependency_bindings,
+                operand_rows=selected_operand_rows,
+                producer_tasks=precedence_input.producer_tasks,
+            )
+        )
+        rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
+
+    direct_dependency_fill_allowed = bool(
+        operation_family in {"difference", "growth_rate"}
+        or source_selection.prefer_direct_rows_over_dependency
+    )
+    if dependency_binding_keys and selected_operand_rows:
+        duplicate_guard_keys = dependency_resolved_keys
+        if source_selection.prefer_direct_rows_over_dependency:
+            duplicate_guard_keys = set()
+        if not direct_dependency_fill_allowed:
+            duplicate_guard_keys = dependency_binding_keys
+        filtered_rows: List[Dict[str, Any]] = []
+        for row in selected_operand_rows:
+            if bool(row.get("dependency_resolved")):
+                filtered_rows.append(row)
+                continue
+            row_key = (
+                _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
+                _normalise_spaces(str(row.get("matched_operand_role") or "")),
+            )
+            if row_key in duplicate_guard_keys:
+                continue
+            filtered_rows.append(row)
+        selected_operand_rows = filtered_rows
+
+    if direct_dependency_fill_allowed and missing_dependency_bindings and selected_operand_rows:
+        direct_resolved_keys = direct_rows_resolved_dependency_keys(
+            missing_dependency_bindings,
+            selected_operand_rows,
+        )
+        if direct_resolved_keys:
+            missing_dependency_bindings = [
+                dict(binding)
+                for binding in missing_dependency_bindings
+                if dependency_binding_identity(binding) not in direct_resolved_keys
+            ]
+
+    return MainOperandPrecedenceResult(
+        selected_operand_rows=selected_operand_rows,
+        source_selection=source_selection,
+        active_dependency_bindings=active_dependency_bindings,
+        dependency_binding_keys=dependency_binding_keys,
+        dependency_resolved_keys=dependency_resolved_keys,
+        missing_dependency_bindings=missing_dependency_bindings,
+        rejected_dependency_scope_rows=rejected_dependency_scope_rows,
+        required_prefers_aggregate_stage=required_prefers_aggregate_stage,
+        ratio_direct_context_should_override_dependency=(
+            ratio_direct_context_should_override_dependency
+        ),
+        ratio_direct_context_override_applied=ratio_direct_context_override_applied,
+        direct_dependency_fill_allowed=direct_dependency_fill_allowed,
+    )
 
 
 def _dependency_producer_task(

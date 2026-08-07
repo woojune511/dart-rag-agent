@@ -8300,6 +8300,18 @@ class SubtaskLoopTests(unittest.TestCase):
             {row["matched_operand_role"] for row in trace["calculation_operands"]},
             {"current_period", "prior_period"},
         )
+        operands_by_role = {
+            row["matched_operand_role"]: row
+            for row in trace["calculation_operands"]
+        }
+        self.assertIn(
+            "task_output:task_1",
+            operands_by_role["current_period"]["source_row_ids"],
+        )
+        self.assertEqual(
+            operands_by_role["prior_period"]["evidence_id"],
+            "value:capex:2022",
+        )
 
     def test_growth_rate_partial_direct_rows_use_reconciliation_fallback(self) -> None:
         state = {
@@ -9384,6 +9396,138 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
         self.assertEqual(rows_by_role["numerator_1"]["raw_unit"], "억원")
         self.assertEqual(rows_by_role["denominator_1"]["raw_unit"], "억원")
+
+    def test_ratio_main_owner_purges_nonconflicting_dependency_state_in_graph(self) -> None:
+        operand_specs = [
+            ("expense input", "numerator_1", 100.0, "task_expense"),
+            ("profit base", "denominator_1", 50.0, "task_profit"),
+        ]
+        required_operands = [
+            {"label": label, "role": role}
+            for label, role, _value, _task_id in operand_specs
+        ]
+        dependency_bindings = [
+            {**operand, "preferred_task_id": spec[3]}
+            for operand, spec in zip(required_operands, operand_specs)
+        ]
+
+        def _operand_row(index, source_id, *, dependency):
+            operand = required_operands[index]
+            value = operand_specs[index][2]
+            row = {
+                **operand,
+                "evidence_id": source_id,
+                "source_row_id": source_id,
+                "source_row_ids": [source_id],
+                "raw_value": f"{value:g}",
+                "raw_unit": "unit",
+                "normalized_value": value,
+                "normalized_unit": "KRW",
+                "matched_operand_label": operand["label"],
+                "matched_operand_role": operand["role"],
+            }
+            if dependency:
+                row.update(
+                    dependency_resolved=True,
+                    source_task_id=operand_specs[index][3],
+                )
+            else:
+                row.update(operand_id=source_id, table_source_id="ratio_table")
+            return row
+
+        dependency_rows = [
+            _operand_row(index, f"task_output:{spec[3]}", dependency=True)
+            for index, spec in enumerate(operand_specs)
+        ]
+        direct_ids = ["direct_ratio_numerator", "direct_ratio_denominator"]
+        coherent_direct_rows = [
+            _operand_row(index, source_id, dependency=False)
+            for index, source_id in enumerate(direct_ids)
+        ]
+        dependency_binding_keys = {
+            (operand["label"], operand["role"])
+            for operand in required_operands
+        }
+        state = {
+            "query": "Calculate the 2023 target ratio.",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "operation_family": "ratio",
+                "required_operands": required_operands,
+            },
+            "evidence_items": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+        }
+        self.agent._dependency_binding_resolution_state = lambda _state: {
+            "rows": dependency_rows,
+            "bindings": dependency_bindings,
+            "binding_keys": dependency_binding_keys,
+            "resolved_keys": {("expense input", "numerator_1")},
+            "missing_bindings": [dict(dependency_bindings[1])],
+            "all_resolved": False,
+        }
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._build_complete_ratio_operands_from_coherent_context = (
+            lambda *_args, **_kwargs: [dict(row) for row in coherent_direct_rows]
+        )
+        owner_results = []
+        original_owner = financial_graph_calculation.resolve_main_operand_precedence
+
+        def _record_owner(precedence_input):
+            result = original_owner(precedence_input)
+            owner_results.append(result)
+            return result
+
+        financial_graph_calculation.resolve_main_operand_precedence = _record_owner
+        try:
+            extracted = self.agent._extract_calculation_operands(state)
+        finally:
+            financial_graph_calculation.resolve_main_operand_precedence = original_owner
+
+        self.assertEqual(len(owner_results), 1)
+        owner_result = owner_results[0]
+        self.assertEqual(
+            (
+                owner_result.ratio_direct_context_should_override_dependency,
+                owner_result.ratio_direct_context_override_applied,
+                owner_result.source_selection.precedence,
+            ),
+            (True, True, "no_dependency"),
+        )
+        self.assertEqual(
+            (
+                owner_result.source_selection.dependency_rows,
+                owner_result.active_dependency_bindings,
+                owner_result.dependency_resolved_keys,
+                owner_result.missing_dependency_bindings,
+            ),
+            ([], [], set(), []),
+        )
+        self.assertEqual(
+            [row.get("evidence_id") for row in owner_result.selected_operand_rows],
+            direct_ids,
+        )
+
+        trace_rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
+        self.assertEqual(extracted["calculation_debug_trace"]["source"], "structured_row_direct")
+        self.assertEqual(
+            extracted["calculation_debug_trace"].get("dependency_operands") or [],
+            [],
+        )
+        self.assertEqual(
+            [row.get("evidence_id") for row in trace_rows],
+            direct_ids,
+        )
+        self.assertTrue(
+            all(
+                source_id and not source_id.startswith("task_output:")
+                for row in trace_rows
+                for source_id in row.get("source_row_ids") or []
+            )
+        )
 
     def test_ratio_aggregate_stage_dependency_precedence_survives_coherent_retrieved_context(self) -> None:
         required_operands = [

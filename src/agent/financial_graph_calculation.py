@@ -48,7 +48,7 @@ from src.agent.financial_calculation_execution import (
     guard_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
-    DirectDependencySelectionInput,
+    MainOperandPrecedenceInput,
     apply_absolute_ratio_magnitude_if_requested,
     align_dependency_rows_with_sibling_direct_context,
     align_lookup_result_units_from_peer_source_slots,
@@ -67,7 +67,6 @@ from src.agent.financial_dependency_projection import (
     dependency_projection_slot_differs_from_operand,
     dependency_ratio_role_group,
     derive_dependency_operands_from_source_task_slots,
-    direct_rows_resolved_dependency_keys,
     fill_missing_ratio_dependency_operands,
     filter_direct_rows_by_dependency_producer_scope,
     lookup_primary_slot,
@@ -77,7 +76,7 @@ from src.agent.financial_dependency_projection import (
     rebuild_dependency_calculation_plan,
     replace_lookup_primary_slot,
     resolve_dependency_producer_scope,
-    select_direct_dependency_operand_rows,
+    resolve_main_operand_precedence,
     source_task_id_for_dependency_operand,
     summarize_dependency_bindings,
 )
@@ -95,8 +94,6 @@ from src.agent.financial_operand_resolution import (
     _llm_lookup_operand_has_direct_support,
     merge_operand_rows,
     _missing_required_operands,
-    _operand_row_display_unit_set,
-    _operand_rows_conflict_by_required_role,
     _operand_rows_have_single_table_context,
     _operand_row_has_direct_evidence_surface,
     _operand_slot_has_evidence_surface_match,
@@ -15095,9 +15092,9 @@ class FinancialAgentCalculationMixin:
         dependency_state = self._dependency_binding_resolution_state(state)
         dependency_rows = list(dependency_state.get("rows") or [])
         dependency_bindings = list(dependency_state.get("bindings") or [])
+        dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
         dependency_resolved_keys = set(dependency_state.get("resolved_keys") or set())
         missing_dependency_bindings = list(dependency_state.get("missing_bindings") or [])
-        rejected_dependency_scope_rows: List[Dict[str, Any]] = []
         producer_tasks = [
             *list(state.get("calc_subtasks") or []),
             *list(dict(state.get("semantic_plan") or {}).get("tasks") or []),
@@ -15117,10 +15114,6 @@ class FinancialAgentCalculationMixin:
             and dependency_rows
             and not _missing_required_operands(required_operands, dependency_rows)
         )
-        required_prefers_aggregate_stage = any(
-            bool(dict(row.get("binding_policy") or {}).get("prefer_aggregation_stages"))
-            for row in required_operands
-        )
         direct_rows_have_coherent_context = bool(
             direct_rows_cover_required_operands
             and _operand_rows_have_single_table_context(direct_structured_rows)
@@ -15128,7 +15121,6 @@ class FinancialAgentCalculationMixin:
             and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
         )
 
-        ratio_direct_context_should_override_dependency = False
         retrieved_ratio_context_recovered = False
         if operation_family in {"difference", "growth_rate"} and required_operands:
             period_context_evidence = list(evidence_items)
@@ -15154,16 +15146,6 @@ class FinancialAgentCalculationMixin:
                     period_context_rows,
                     direct_structured_rows,
                     required_operands=required_operands,
-                )
-                direct_rows_cover_required_operands = not _missing_required_operands(
-                    required_operands,
-                    direct_structured_rows,
-                )
-                direct_rows_have_coherent_context = bool(
-                    direct_rows_cover_required_operands
-                    and _operand_rows_have_single_table_context(direct_structured_rows)
-                    and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
-                    and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
                 )
                 used_period_evidence_ids = {
                     str(row.get("evidence_id") or "")
@@ -15226,115 +15208,34 @@ class FinancialAgentCalculationMixin:
                     and str(item.get("evidence_id") or "") not in existing_evidence_ids
                 ]
                 logger.info("[calc_operands] coherent ratio context rows=%s", len(coherent_ratio_rows))
-                direct_rows_cover_required_operands = not _missing_required_operands(
-                    required_operands,
-                    direct_structured_rows,
-                )
-                direct_rows_have_coherent_context = bool(
-                    direct_rows_cover_required_operands
-                    and _operand_rows_have_single_table_context(direct_structured_rows)
-                    and not _ratio_operand_rows_collapse_to_same_slot(direct_structured_rows)
-                    and not _period_comparison_operand_rows_collapse_to_same_slot(direct_structured_rows)
-                )
-                direct_dependency_conflicts = _operand_rows_conflict_by_required_role(
-                    dependency_rows,
-                    direct_structured_rows,
-                    operand_row_value_differs=operand_row_values_differ,
-                )
-                dependency_display_units = _operand_row_display_unit_set(dependency_rows)
-                direct_display_units = _operand_row_display_unit_set(direct_structured_rows)
-                ratio_direct_context_should_override_dependency = bool(
-                    direct_rows_have_coherent_context
-                    and (
-                        not dependency_rows_cover_required_operands
-                        or not direct_dependency_conflicts
-                        or (
-                            len(dependency_display_units) > 1
-                            and len(direct_display_units) <= 1
-                        )
-                    )
-                )
-                if (
-                    direct_rows_have_coherent_context
-                    and ratio_direct_context_should_override_dependency
-                    and not required_prefers_aggregate_stage
-                ):
-                    dependency_rows = []
-                    dependency_bindings = []
-                    missing_dependency_bindings = []
-                    dependency_resolved_keys = set()
-                    dependency_rows_cover_required_operands = False
-        source_selection = select_direct_dependency_operand_rows(
-            DirectDependencySelectionInput(
+        main_precedence = resolve_main_operand_precedence(
+            MainOperandPrecedenceInput(
                 operation_family=operation_family,
                 required_operands=required_operands,
                 direct_rows=direct_structured_rows,
                 dependency_rows=dependency_rows,
+                dependency_bindings=dependency_bindings,
+                dependency_binding_keys=dependency_binding_keys,
+                dependency_resolved_keys=dependency_resolved_keys,
+                missing_dependency_bindings=missing_dependency_bindings,
+                producer_tasks=producer_tasks,
                 desired_consolidation_scope=desired_consolidation_scope,
                 reconciliation_evidence_present=bool(reconciliation_evidence),
-                direct_rows_cover_required_operands=direct_rows_cover_required_operands,
-                dependency_rows_cover_required_operands=dependency_rows_cover_required_operands,
-                direct_rows_have_coherent_context=direct_rows_have_coherent_context,
                 retrieved_ratio_context_recovered=retrieved_ratio_context_recovered,
-                ratio_direct_context_should_override_dependency=(
-                    ratio_direct_context_should_override_dependency
-                ),
-                required_prefers_aggregate_stage=required_prefers_aggregate_stage,
-            ),
+            )
         )
-        direct_structured_rows = source_selection.operand_rows
+        source_selection = main_precedence.source_selection
+        direct_structured_rows = main_precedence.selected_operand_rows
         dependency_rows = source_selection.dependency_rows
+        dependency_bindings = main_precedence.active_dependency_bindings
+        missing_dependency_bindings = main_precedence.missing_dependency_bindings
+        rejected_dependency_scope_rows = main_precedence.rejected_dependency_scope_rows
+        required_prefers_aggregate_stage = main_precedence.required_prefers_aggregate_stage
         prefer_direct_rows_over_dependency = (
             source_selection.prefer_direct_rows_over_dependency
         )
         if source_selection.dependency_merge_applied:
             logger.info("[calc_operands] dependency task-output operands=%s", len(dependency_rows))
-        if dependency_bindings and direct_structured_rows and not prefer_direct_rows_over_dependency:
-            direct_structured_rows, rejected_resolved_dependency_scope_rows = filter_direct_rows_by_dependency_producer_scope(
-                bindings=dependency_bindings,
-                operand_rows=direct_structured_rows,
-                producer_tasks=producer_tasks,
-            )
-            rejected_dependency_scope_rows.extend(rejected_resolved_dependency_scope_rows)
-        if missing_dependency_bindings and direct_structured_rows and not prefer_direct_rows_over_dependency:
-            direct_structured_rows, rejected_missing_dependency_scope_rows = filter_direct_rows_by_dependency_producer_scope(
-                bindings=missing_dependency_bindings,
-                operand_rows=direct_structured_rows,
-                producer_tasks=producer_tasks,
-            )
-            rejected_dependency_scope_rows.extend(rejected_missing_dependency_scope_rows)
-        dependency_binding_keys = set(dependency_state.get("binding_keys") or set())
-        direct_dependency_fill_allowed = operation_family in {"difference", "growth_rate"} or prefer_direct_rows_over_dependency
-        if dependency_binding_keys and direct_structured_rows:
-            duplicate_guard_keys = dependency_resolved_keys
-            if prefer_direct_rows_over_dependency:
-                duplicate_guard_keys = set()
-            if not direct_dependency_fill_allowed:
-                duplicate_guard_keys = dependency_binding_keys
-            filtered_rows: List[Dict[str, Any]] = []
-            for row in direct_structured_rows:
-                if bool(row.get("dependency_resolved")):
-                    filtered_rows.append(row)
-                    continue
-                row_key = (
-                    _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
-                    _normalise_spaces(str(row.get("matched_operand_role") or "")),
-                )
-                if row_key in duplicate_guard_keys:
-                    continue
-                filtered_rows.append(row)
-            direct_structured_rows = filtered_rows
-        if direct_dependency_fill_allowed and missing_dependency_bindings and direct_structured_rows:
-            direct_resolved_keys = direct_rows_resolved_dependency_keys(
-                missing_dependency_bindings,
-                direct_structured_rows,
-            )
-            if direct_resolved_keys:
-                missing_dependency_bindings = [
-                    dict(binding)
-                    for binding in missing_dependency_bindings
-                    if dependency_binding_identity(binding) not in direct_resolved_keys
-                ]
         has_retrieved_docs_for_dependency_fallback = bool(retrieved_docs or seed_retrieved_docs)
         has_active_reconciliation_fallback = bool(reconciliation_evidence)
         allow_dependency_retry_fallback = (

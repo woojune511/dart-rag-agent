@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 from src.agent.financial_dependency_projection import (
     DirectDependencySelectionInput,
+    MainOperandPrecedenceInput,
     align_dependency_rows_with_sibling_direct_context,
     decide_task_output_operand_resolution,
     dependency_binding_identity,
@@ -11,6 +12,7 @@ from src.agent.financial_dependency_projection import (
     filter_direct_rows_by_dependency_producer_scope,
     period_comparison_direct_rows_conflict_with_dependency_outputs,
     prefer_complete_ratio_direct_context_rows,
+    resolve_main_operand_precedence,
     resolve_dependency_producer_scope,
     select_direct_dependency_operand_rows,
     summarize_dependency_bindings,
@@ -462,6 +464,34 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         values.update(overrides)
         return DirectDependencySelectionInput(**values)
 
+    def _main_precedence_input(
+        self,
+        required_operands: List[Dict[str, Any]],
+        direct_rows: List[Dict[str, Any]],
+        dependency_rows: List[Dict[str, Any]],
+        dependency_bindings: List[Dict[str, Any]],
+        dependency_binding_keys: set[tuple[str, str]],
+        dependency_resolved_keys: set[tuple[str, str]],
+        missing_dependency_bindings: List[Dict[str, Any]],
+        **overrides: Any,
+    ) -> MainOperandPrecedenceInput:
+        values: Dict[str, Any] = {
+            "operation_family": "ratio",
+            "required_operands": required_operands,
+            "direct_rows": direct_rows,
+            "dependency_rows": dependency_rows,
+            "dependency_bindings": dependency_bindings,
+            "dependency_binding_keys": dependency_binding_keys,
+            "dependency_resolved_keys": dependency_resolved_keys,
+            "missing_dependency_bindings": missing_dependency_bindings,
+            "producer_tasks": [],
+            "desired_consolidation_scope": "unknown",
+            "reconciliation_evidence_present": False,
+            "retrieved_ratio_context_recovered": False,
+        }
+        values.update(overrides)
+        return MainOperandPrecedenceInput(**values)
+
     def test_direct_dependency_precedence_no_dependency_preserves_identity(self) -> None:
         required_operands, direct_rows, _dependency_rows = self._source_selection_fixture()
         dependency_rows: List[Dict[str, Any]] = []
@@ -652,6 +682,305 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         self.assertEqual(direct_rows, direct_snapshot)
         self.assertEqual(dependency_rows, dependency_snapshot)
         self.assertIsNot(decision.operand_rows[0], dependency_rows[0])
+
+    def test_main_precedence_ratio_override_purges_active_dependency_state_atomically(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture(
+            direct_values=(80.0, 40.0),
+            dependency_values=(100.0, 50.0),
+        )
+        dependency_rows[0]["raw_unit"] = "dependency_unit_a"
+        dependency_rows[1]["raw_unit"] = "dependency_unit_b"
+        dependency_bindings = [
+            {"label": "target", "role": "numerator_1", "preferred_task_id": "task_1"},
+            {"label": "base", "role": "denominator_1", "preferred_task_id": "task_2"},
+        ]
+        dependency_binding_keys = {
+            dependency_binding_identity(binding)
+            for binding in dependency_bindings
+        }
+        dependency_resolved_keys = {
+            dependency_binding_identity(dependency_bindings[0])
+        }
+        missing_dependency_bindings = [dict(dependency_bindings[1])]
+        precedence_input = self._main_precedence_input(
+            required_operands,
+            direct_rows,
+            dependency_rows,
+            dependency_bindings,
+            dependency_binding_keys,
+            dependency_resolved_keys,
+            missing_dependency_bindings,
+            retrieved_ratio_context_recovered=True,
+        )
+        input_snapshot = deepcopy(precedence_input)
+
+        result = resolve_main_operand_precedence(precedence_input)
+
+        self.assertNotEqual(
+            [row["normalized_value"] for row in dependency_rows],
+            [row["normalized_value"] for row in direct_rows],
+        )
+        self.assertEqual(
+            {row["raw_unit"] for row in dependency_rows},
+            {"dependency_unit_a", "dependency_unit_b"},
+        )
+        self.assertEqual({row["raw_unit"] for row in direct_rows}, {"unit"})
+        self.assertTrue(result.ratio_direct_context_should_override_dependency)
+        self.assertTrue(result.ratio_direct_context_override_applied)
+        self.assertFalse(result.required_prefers_aggregate_stage)
+        self.assertTrue(result.direct_dependency_fill_allowed)
+        self.assertEqual(result.source_selection.precedence, "no_dependency")
+        self.assertIs(result.source_selection.operand_rows, direct_rows)
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.selected_operand_rows],
+            ["direct_1", "direct_2"],
+        )
+        self.assertEqual(result.source_selection.dependency_rows, [])
+        self.assertIsNot(result.source_selection.dependency_rows, dependency_rows)
+        self.assertEqual(result.active_dependency_bindings, [])
+        self.assertIsNot(result.active_dependency_bindings, dependency_bindings)
+        self.assertEqual(result.dependency_resolved_keys, set())
+        self.assertIsNot(result.dependency_resolved_keys, dependency_resolved_keys)
+        self.assertEqual(result.missing_dependency_bindings, [])
+        self.assertIsNot(result.missing_dependency_bindings, missing_dependency_bindings)
+        self.assertIs(result.dependency_binding_keys, dependency_binding_keys)
+        self.assertEqual(result.rejected_dependency_scope_rows, [])
+        self.assertEqual(precedence_input, input_snapshot)
+
+    def test_main_precedence_aggregate_stage_veto_preserves_dependency_state_identity(self) -> None:
+        required_operands, direct_rows, dependency_rows = self._source_selection_fixture(
+            direct_values=(100.0, 50.0),
+            dependency_values=(100.0, 50.0),
+        )
+        required_operands = [
+            {
+                **operand,
+                "binding_policy": {"prefer_aggregation_stages": ["final", "subtotal"]},
+            }
+            for operand in required_operands
+        ]
+        dependency_bindings = [
+            {"label": "target", "role": "numerator_1", "preferred_task_id": "task_1"},
+            {"label": "base", "role": "denominator_1", "preferred_task_id": "task_2"},
+        ]
+        dependency_binding_keys = {
+            dependency_binding_identity(binding)
+            for binding in dependency_bindings
+        }
+        dependency_resolved_keys = set(dependency_binding_keys)
+        missing_dependency_bindings = [
+            {"label": "unfilled", "role": "denominator_2", "preferred_task_id": "task_3"}
+        ]
+        precedence_input = self._main_precedence_input(
+            required_operands,
+            direct_rows,
+            dependency_rows,
+            dependency_bindings,
+            dependency_binding_keys,
+            dependency_resolved_keys,
+            missing_dependency_bindings,
+            retrieved_ratio_context_recovered=True,
+        )
+        input_snapshot = deepcopy(precedence_input)
+
+        result = resolve_main_operand_precedence(precedence_input)
+
+        self.assertTrue(result.required_prefers_aggregate_stage)
+        self.assertTrue(result.ratio_direct_context_should_override_dependency)
+        self.assertFalse(result.ratio_direct_context_override_applied)
+        self.assertFalse(result.direct_dependency_fill_allowed)
+        self.assertEqual(result.source_selection.precedence, "dependency_first")
+        self.assertIs(result.source_selection.dependency_rows, dependency_rows)
+        self.assertIs(result.active_dependency_bindings, dependency_bindings)
+        self.assertIs(result.dependency_binding_keys, dependency_binding_keys)
+        self.assertIs(result.dependency_resolved_keys, dependency_resolved_keys)
+        self.assertIs(result.missing_dependency_bindings, missing_dependency_bindings)
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.selected_operand_rows],
+            ["dependency_1", "dependency_2"],
+        )
+        self.assertTrue(
+            all(
+                "sibling_table_context_realigned" not in row
+                and "sibling_table_context_realignment_blocked" not in row
+                for row in result.source_selection.dependency_rows
+            )
+        )
+        self.assertEqual(result.rejected_dependency_scope_rows, [])
+        self.assertEqual(precedence_input, input_snapshot)
+
+    def test_main_precedence_missing_binding_scope_pass_preserves_rejection_order(self) -> None:
+        required_operands = [
+            {"label": "current", "role": "current_period", "required": True},
+            {"label": "prior", "role": "prior_period", "required": True},
+        ]
+        dependency_rows = [
+            {
+                **self._source_operand_row(
+                    "dependency_current",
+                    label="current",
+                    role="current_period",
+                    value=120.0,
+                    table_source_id="dependency_table",
+                    source_row_ids=["task_output:task_current"],
+                    dependency_resolved=True,
+                    source_task_id="task_current",
+                ),
+                "statement_type": "cash_flow_statement",
+            }
+        ]
+        direct_rows = [
+            {
+                **self._source_operand_row(
+                    "direct_prior",
+                    label="prior",
+                    role="prior_period",
+                    value=100.0,
+                    table_source_id="direct_table",
+                ),
+                "statement_type": "income_statement",
+                "source_anchor": "Financial Statement Notes",
+            },
+        ]
+        dependency_bindings = [
+            {"label": "current", "role": "current_period", "preferred_task_id": "task_current"},
+        ]
+        missing_dependency_bindings = [
+            {"label": "prior", "role": "prior_period", "preferred_task_id": "task_prior"},
+        ]
+        dependency_binding_keys = {
+            dependency_binding_identity(binding)
+            for binding in [*dependency_bindings, *missing_dependency_bindings]
+        }
+        dependency_resolved_keys = {
+            dependency_binding_identity(dependency_bindings[0])
+        }
+        producer_tasks = [
+            {"task_id": "task_current", "preferred_statement_types": ["income_statement"]},
+            {"task_id": "task_prior", "preferred_statement_types": ["income_statement"]},
+        ]
+        precedence_input = self._main_precedence_input(
+            required_operands,
+            direct_rows,
+            dependency_rows,
+            dependency_bindings,
+            dependency_binding_keys,
+            dependency_resolved_keys,
+            missing_dependency_bindings,
+            operation_family="difference",
+            producer_tasks=producer_tasks,
+        )
+        input_snapshot = deepcopy(precedence_input)
+
+        result = resolve_main_operand_precedence(precedence_input)
+
+        self.assertEqual(result.source_selection.precedence, "dependency_first")
+        self.assertTrue(result.direct_dependency_fill_allowed)
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.source_selection.operand_rows],
+            ["dependency_current", "direct_prior"],
+        )
+        self.assertEqual(result.selected_operand_rows, [])
+        self.assertEqual(
+            [entry["row"].get("evidence_id") for entry in result.rejected_dependency_scope_rows],
+            ["dependency_current", "direct_prior"],
+        )
+        self.assertEqual(
+            [entry["reject_reason"] for entry in result.rejected_dependency_scope_rows],
+            ["statement_type", "section_scope"],
+        )
+        self.assertIs(result.missing_dependency_bindings, missing_dependency_bindings)
+        self.assertEqual(precedence_input, input_snapshot)
+
+    def test_main_precedence_duplicate_guard_removes_resolved_direct_row_after_selection(self) -> None:
+        dependency_rows = [
+            {
+                **self._source_operand_row(
+                    "dependency_current",
+                    label="current",
+                    role="current_period",
+                    value=120.0,
+                    table_source_id="dependency_table",
+                    source_row_ids=["task_output:task_current"],
+                    dependency_resolved=True,
+                    source_task_id="task_current",
+                ),
+                "source_anchor": "dependency_current_anchor",
+            }
+        ]
+        direct_rows = [
+            {
+                **self._source_operand_row(
+                    "direct_current",
+                    label="current",
+                    role="current_period",
+                    value=125.0,
+                    table_source_id="direct_current_table",
+                ),
+                "source_anchor": "direct_current_anchor",
+            },
+            {
+                **self._source_operand_row(
+                    "direct_prior",
+                    label="prior",
+                    role="prior_period",
+                    value=100.0,
+                    table_source_id="direct_prior_table",
+                ),
+                "source_anchor": "direct_prior_anchor",
+            },
+        ]
+        dependency_bindings = [
+            {"label": "current", "role": "current_period", "preferred_task_id": "task_current"},
+            {"label": "prior", "role": "prior_period", "preferred_task_id": "task_prior"},
+        ]
+        dependency_binding_keys = {
+            dependency_binding_identity(binding)
+            for binding in dependency_bindings
+        }
+        dependency_resolved_keys = {
+            dependency_binding_identity(dependency_bindings[0])
+        }
+        missing_dependency_bindings = [dict(dependency_bindings[1])]
+        precedence_input = self._main_precedence_input(
+            [],
+            direct_rows,
+            dependency_rows,
+            dependency_bindings,
+            dependency_binding_keys,
+            dependency_resolved_keys,
+            missing_dependency_bindings,
+            operation_family="growth_rate",
+        )
+        input_snapshot = deepcopy(precedence_input)
+
+        result = resolve_main_operand_precedence(precedence_input)
+
+        self.assertEqual(result.source_selection.precedence, "dependency_first")
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.source_selection.operand_rows],
+            ["dependency_current", "direct_current", "direct_prior"],
+        )
+        self.assertEqual(
+            [row.get("evidence_id") for row in result.selected_operand_rows],
+            ["dependency_current", "direct_prior"],
+        )
+        rows_by_role = {
+            row["matched_operand_role"]: row
+            for row in result.selected_operand_rows
+        }
+        self.assertEqual(
+            rows_by_role["current_period"]["source_row_ids"],
+            ["task_output:task_current"],
+        )
+        self.assertTrue(rows_by_role["current_period"]["dependency_resolved"])
+        self.assertEqual(rows_by_role["prior_period"]["evidence_id"], "direct_prior")
+        self.assertFalse(rows_by_role["prior_period"]["dependency_resolved"])
+        self.assertTrue(result.direct_dependency_fill_allowed)
+        self.assertEqual(result.missing_dependency_bindings, [])
+        self.assertIsNot(result.missing_dependency_bindings, missing_dependency_bindings)
+        self.assertEqual(result.rejected_dependency_scope_rows, [])
+        self.assertEqual(precedence_input, input_snapshot)
 
     def test_preferred_stage_mismatch_keeps_task_output_with_reason(self) -> None:
         current = self._task_output_row(

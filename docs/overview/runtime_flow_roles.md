@@ -283,16 +283,19 @@ state-free owner 경계:
   candidate selection, merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면
   abstain하고 값이 동등한 tie만 stable key로 선택한다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
-  dependency projection, direct-versus-dependency source-set selector. selector는
-  co-located period-conflict/alignment 결정을 직접 호출하며 callback seam을 두지
-  않는다. graph adapter에는 main/fallback/aggregate precedence orchestration이
-  남아 있고, override에는 explicit reason과 양쪽 provenance가 필요하다.
+  dependency projection, direct-versus-dependency source-set selector와 typed
+  main-path application. selector는 co-located period-conflict/alignment 결정을
+  직접 호출하며 callback seam을 두지 않는다. 최종 ratio override/purge,
+  producer-scope filter, duplicate guard, missing-binding fill도 같은 owner가
+  state-free result로 반환한다. override에는 explicit reason과 양쪽 provenance가
+  필요하다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다.
 
 graph adapter에 남은 orchestration 역할군:
 
-- main operand path와 selector input 구성
+- main context/evidence retrieval gate와 typed input 구성
+- retry/dependency guard, logging, trace/artifact/state projection
 - fallback recovery와 late dependency re-merge
 - aggregate projection/repair sequencing
 - unit conversion/repair
@@ -336,7 +339,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate resolution
-- `financial_dependency_projection.py`: dependency-binding summary, dependency projection, and source-set selector
+- `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, and typed main-path application
 - `financial_calculation_execution.py`: plan validation and typed execution outcome
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
