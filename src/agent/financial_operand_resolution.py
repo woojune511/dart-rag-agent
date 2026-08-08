@@ -50,6 +50,35 @@ class OperandEvidenceCandidateBatch:
     evidence_bullets: Tuple[str, ...] = ()
 
 
+RequiredOperandCandidateMergeReason = Literal[
+    "no_candidate_rows",
+    "current_operand_rows_preferred",
+    "complete_ratio_candidate_rows_preferred",
+]
+
+
+@dataclass(frozen=True)
+class RequiredOperandCandidateMergeInput:
+    """State-free inputs for required-candidate operand precedence."""
+
+    operation_family: str
+    required_operands: List[Dict[str, Any]]
+    current_operand_rows: List[Dict[str, Any]]
+    candidate_operand_rows: List[Dict[str, Any]]
+    coherent_candidate_rows: List[Dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class RequiredOperandCandidateMergeResult:
+    """Inspectable result of required-candidate operand precedence."""
+
+    selected_operand_rows: List[Dict[str, Any]]
+    merged_candidate_rows: List[Dict[str, Any]]
+    candidate_rows_cover_required: bool
+    coherent_candidate_merge_applied: bool
+    reason: RequiredOperandCandidateMergeReason
+
+
 SiblingDirectSelectionReason = Literal[
     "shared_source_context",
     "same_table_context",
@@ -1272,6 +1301,61 @@ def merge_operand_rows(
         merged.append(selected)
 
     return merged
+
+
+def resolve_required_operand_candidate_merge(
+    merge_input: RequiredOperandCandidateMergeInput,
+) -> RequiredOperandCandidateMergeResult:
+    """Merge grounded candidates without consulting or mutating graph state."""
+
+    if not merge_input.candidate_operand_rows:
+        return RequiredOperandCandidateMergeResult(
+            selected_operand_rows=merge_input.current_operand_rows,
+            merged_candidate_rows=merge_input.candidate_operand_rows,
+            candidate_rows_cover_required=False,
+            coherent_candidate_merge_applied=False,
+            reason="no_candidate_rows",
+        )
+
+    merged_candidate_rows = merge_input.candidate_operand_rows
+    coherent_candidate_merge_applied = bool(
+        merge_input.operation_family == "ratio"
+        and merge_input.coherent_candidate_rows
+    )
+    if coherent_candidate_merge_applied:
+        merged_candidate_rows = merge_operand_rows(
+            merge_input.coherent_candidate_rows,
+            merged_candidate_rows,
+            required_operands=merge_input.required_operands,
+        )
+
+    candidate_rows_cover_required = not _missing_required_operands(
+        merge_input.required_operands,
+        merged_candidate_rows,
+    )
+    if merge_input.operation_family == "ratio" and candidate_rows_cover_required:
+        preferred_operand_rows = merged_candidate_rows
+        supplemental_operand_rows = merge_input.current_operand_rows
+        reason: RequiredOperandCandidateMergeReason = (
+            "complete_ratio_candidate_rows_preferred"
+        )
+    else:
+        preferred_operand_rows = merge_input.current_operand_rows
+        supplemental_operand_rows = merged_candidate_rows
+        reason = "current_operand_rows_preferred"
+    selected_operand_rows = merge_operand_rows(
+        preferred_operand_rows,
+        supplemental_operand_rows,
+        required_operands=merge_input.required_operands,
+    )
+
+    return RequiredOperandCandidateMergeResult(
+        selected_operand_rows=selected_operand_rows,
+        merged_candidate_rows=merged_candidate_rows,
+        candidate_rows_cover_required=candidate_rows_cover_required,
+        coherent_candidate_merge_applied=coherent_candidate_merge_applied,
+        reason=reason,
+    )
 
 
 def select_sibling_direct_operand_candidate(

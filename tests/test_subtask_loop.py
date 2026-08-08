@@ -2,6 +2,7 @@ import json
 import sys
 import tempfile
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from typing import Optional
 from unittest.mock import patch
@@ -81,6 +82,30 @@ class _RecordingVectorStore:
     def search(self, query, k=4, where_filter=None):
         self.queries.append({"query": query, "k": k, "where_filter": where_filter})
         return []
+
+
+def _record_required_candidate_merges():
+    results = []
+    resolver = financial_graph_calculation.resolve_required_operand_candidate_merge
+
+    def recording_resolver(merge_input):
+        result = resolver(merge_input)
+        results.append(result)
+        return result
+
+    return results, patch.object(
+        financial_graph_calculation,
+        "resolve_required_operand_candidate_merge",
+        side_effect=recording_resolver,
+    )
+
+
+def _required_candidate_merge_contract(result):
+    return (
+        result.reason,
+        result.candidate_rows_cover_required,
+        result.coherent_candidate_merge_applied,
+    )
 
 
 class SubtaskLoopTests(unittest.TestCase):
@@ -8571,17 +8596,25 @@ class SubtaskLoopTests(unittest.TestCase):
                 ],
             )
         )
+        state_before = deepcopy(state)
 
-        extracted = self.agent._extract_calculation_operands(state)
+        candidate_merges, merge_patch = _record_required_candidate_merges()
+        with merge_patch:
+            extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(len(candidate_merges), 1)
+        self.assertEqual(
+            _required_candidate_merge_contract(candidate_merges[0]),
+            ("current_operand_rows_preferred", False, False),
+        )
         self.assertNotEqual(extracted["calculation_debug_trace"].get("source"), "dependency_binding_guard")
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(len(trace["calculation_operands"]), 2)
-        self.assertEqual(
-            {row["period"] for row in trace["calculation_operands"]},
-            {"2023", "2022"},
-        )
+        rows = trace["calculation_operands"]
+        self.assertEqual([row["evidence_id"] for row in rows], ["task_output:task_current", "recon_prior"])
+        self.assertEqual([row["period"] for row in rows], ["2023", "2022"])
+        self.assertEqual([row["raw_value"] for row in rows], ["200", "100"])
 
     def test_growth_rate_prefers_complete_reconciliation_rows_over_dependency_outputs(self) -> None:
         state = {
@@ -9204,13 +9237,24 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: list(state["evidence_items"])
         self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        state_before = deepcopy(state)
+        fallback_rows_before = deepcopy(fallback_rows)
 
-        extracted = self.agent._extract_calculation_operands(state)
+        candidate_merges, merge_patch = _record_required_candidate_merges()
+        with merge_patch:
+            extracted = self.agent._extract_calculation_operands(state)
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
-        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(state, state_before)
+        self.assertEqual(fallback_rows, fallback_rows_before)
+        self.assertEqual(len(candidate_merges), 1)
+        self.assertEqual(
+            _required_candidate_merge_contract(candidate_merges[0]),
+            ("complete_ratio_candidate_rows_preferred", True, False),
+        )
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
-        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual([row["operand_id"] for row in rows], ["fallback_numerator", "fallback_denominator"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["table_ratio"] * 2)
+        self.assertEqual([row["raw_value"] for row in rows], ["4,355", "11,623"])
 
     def test_ratio_complete_retrieved_context_replaces_partial_dependency_operand(self) -> None:
         state = {
@@ -9348,13 +9392,24 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
         self.agent._build_required_operands_from_candidates = lambda *_args, **_kwargs: list(fallback_rows)
         self.agent.llm = _StubLLM(OperandExtraction(coverage="missing", operands=[]))
+        state_before = deepcopy(state)
+        fallback_rows_before = deepcopy(fallback_rows)
 
-        extracted = self.agent._extract_calculation_operands(state)
+        candidate_merges, merge_patch = _record_required_candidate_merges()
+        with merge_patch:
+            extracted = self.agent._extract_calculation_operands(state)
         rows = list(_resolve_runtime_calculation_trace(extracted)["calculation_operands"])
-        rows_by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(state, state_before)
+        self.assertEqual(fallback_rows, fallback_rows_before)
+        self.assertEqual(len(candidate_merges), 1)
+        self.assertEqual(
+            _required_candidate_merge_contract(candidate_merges[0]),
+            ("complete_ratio_candidate_rows_preferred", True, True),
+        )
         self.assertEqual(extracted["evidence_status"], "sufficient")
-        self.assertEqual(rows_by_role["numerator_1"]["raw_value"], "4,355")
-        self.assertEqual(rows_by_role["denominator_1"]["raw_value"], "11,623")
+        self.assertEqual([row["operand_id"] for row in rows], ["fallback_numerator", "fallback_denominator"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["ev_doc_001"] * 2)
+        self.assertEqual([row["raw_value"] for row in rows], ["4,355", "11,623"])
 
     def test_ratio_complete_retrieved_context_replaces_complete_dependency_operands(self) -> None:
         state = {

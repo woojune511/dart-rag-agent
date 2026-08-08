@@ -1,7 +1,9 @@
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -13,6 +15,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
+from src.agent import financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import OperandExtraction
@@ -125,12 +128,29 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        result = self.agent._extract_calculation_operands(state)
+        state_before = deepcopy(state)
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_required_operand_candidate_merge",
+            wraps=financial_graph_calculation.resolve_required_operand_candidate_merge,
+        ) as resolve_candidate_merge:
+            result = self.agent._extract_calculation_operands(state)
         rows = list(_resolve_runtime_calculation_trace(result)["calculation_operands"])
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(resolve_candidate_merge.call_count, 1)
+        self.assertEqual(
+            [row["evidence_id"] for row in resolve_candidate_merge.call_args.args[0].candidate_operand_rows],
+            ["ev_operand_doc_001"] * 2,
+        )
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual([row["raw_value"] for row in rows], ["87.0", "78.1"])
         self.assertEqual([row["raw_unit"] for row in rows], ["\ub9cc \ub300", "\ub9cc \ub300"])
+        self.assertEqual([row["evidence_id"] for row in rows], ["ev_operand_doc_001"] * 2)
+        self.assertEqual(
+            [row["matched_operand_role"] for row in rows],
+            ["current_period", "prior_period"],
+        )
         self.assertTrue(
             any(
                 item.get("metadata", {}).get("chunk_uid") == "chunk_required_operands"

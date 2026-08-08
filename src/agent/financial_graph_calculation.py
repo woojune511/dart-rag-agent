@@ -90,6 +90,7 @@ from src.agent.financial_dependency_projection import (
     summarize_dependency_bindings,
 )
 from src.agent.financial_operand_resolution import (
+    RequiredOperandCandidateMergeInput,
     _canonical_structured_reconciliation_id,
     _canonicalize_structured_operand_reconciliation_refs,
     collect_retrieval_context_docs,
@@ -113,6 +114,7 @@ from src.agent.financial_operand_resolution import (
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
+    resolve_required_operand_candidate_merge,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
@@ -15493,6 +15495,7 @@ class FinancialAgentCalculationMixin:
                 )
                 rejected_dependency_scope_rows.extend(rejected_rows)
             if deterministic_required_rows:
+                coherent_required_rows: List[Dict[str, Any]] = []
                 if operation_family == "ratio":
                     coherent_required_rows = self._build_complete_ratio_operands_from_coherent_context(
                         evidence_items,
@@ -15501,28 +15504,17 @@ class FinancialAgentCalculationMixin:
                         topic=topic,
                         report_scope=report_scope,
                     )
-                    if coherent_required_rows:
-                        deterministic_required_rows = merge_operand_rows(
-                            coherent_required_rows,
-                            deterministic_required_rows,
-                            required_operands=required_operands,
-                        )
-                deterministic_rows_cover_required = not _missing_required_operands(
-                    required_operands,
-                    deterministic_required_rows,
+                candidate_merge = resolve_required_operand_candidate_merge(
+                    RequiredOperandCandidateMergeInput(
+                        operation_family=operation_family,
+                        required_operands=required_operands,
+                        current_operand_rows=direct_structured_rows,
+                        candidate_operand_rows=deterministic_required_rows,
+                        coherent_candidate_rows=coherent_required_rows,
+                    )
                 )
-                if operation_family == "ratio" and deterministic_rows_cover_required:
-                    direct_structured_rows = merge_operand_rows(
-                        deterministic_required_rows,
-                        direct_structured_rows,
-                        required_operands=required_operands,
-                    )
-                else:
-                    direct_structured_rows = merge_operand_rows(
-                        direct_structured_rows,
-                        deterministic_required_rows,
-                        required_operands=required_operands,
-                    )
+                direct_structured_rows = candidate_merge.selected_operand_rows
+                deterministic_required_rows = candidate_merge.merged_candidate_rows
                 logger.info(
                     "[calc_operands] deterministic required-operand rows=%s",
                     len(deterministic_required_rows),

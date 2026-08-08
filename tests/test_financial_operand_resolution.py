@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 import src.agent.financial_operand_resolution as operand_resolution
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_operand_resolution import (
+    RequiredOperandCandidateMergeInput,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
     _evidence_surface_contains_segment_label,
@@ -29,6 +30,7 @@ from src.agent.financial_operand_resolution import (
     collect_retrieved_operand_evidence_candidates,
     direct_lookup_row_is_ambiguous_context_table,
     merge_operand_rows,
+    resolve_required_operand_candidate_merge,
     select_sibling_direct_operand_candidate,
     select_supplemental_operand_candidate,
 )
@@ -954,6 +956,99 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 [row.get("evidence_id") for row in merged],
                 ["preferred_target", "supplemental_base", "supplemental_adjustment"],
             )
+
+    def test_required_candidate_merge_precedence_matrix_and_copy_contracts(self) -> None:
+        required_operands = self._merge_required_operands()[:2]
+
+        def row(candidate_id: str, role: str, value: float) -> Dict[str, Any]:
+            is_target = role == "numerator_1"
+            return _merge_operand_row(
+                candidate_id,
+                label="target" if is_target else "base",
+                concept="target_metric" if is_target else "base_metric",
+                role=role,
+                value=value,
+            )
+
+        current_target = row("current_target", "numerator_1", 100.0)
+        current_target["metadata"] = {"nested": ["current"]}
+        candidate_target = row("candidate_target", "numerator_1", 200.0)
+        candidate_base = row("candidate_base", "denominator_1", 40.0)
+        coherent_target = row("coherent_target", "numerator_1", 300.0)
+        current_first = "current_operand_rows_preferred"
+        candidate_first = "complete_ratio_candidate_rows_preferred"
+        current_rows = [current_target]
+        complete_candidates = [candidate_target, candidate_base]
+        cases = [
+            (
+                "no candidates", "growth_rate", current_rows, [], [],
+                ("current_target",), (), False, False, "no_candidate_rows",
+            ),
+            (
+                "nonratio current first", "difference", current_rows, complete_candidates, [],
+                ("current_target", "candidate_base"),
+                ("candidate_target", "candidate_base"), True, False, current_first,
+            ),
+            (
+                "partial ratio current first", "ratio", current_rows, [candidate_base], [],
+                ("current_target", "candidate_base"), ("candidate_base",),
+                False, False, current_first,
+            ),
+            (
+                "complete ratio candidates first", "ratio", current_rows, complete_candidates, [],
+                ("candidate_target", "candidate_base"),
+                ("candidate_target", "candidate_base"), True, False, candidate_first,
+            ),
+            (
+                "coherent ratio candidates first", "ratio", current_rows,
+                complete_candidates, [coherent_target],
+                ("coherent_target", "candidate_base"),
+                ("coherent_target", "candidate_base"), True, True, candidate_first,
+            ),
+        ]
+
+        for case in cases:
+            (
+                name, operation_family, current_rows, candidate_rows, coherent_rows,
+                selected_ids, merged_ids, covers_required, coherent_applied, reason,
+            ) = case
+            with self.subTest(name=name):
+                merge_input = RequiredOperandCandidateMergeInput(
+                    operation_family=operation_family,
+                    required_operands=required_operands,
+                    current_operand_rows=current_rows,
+                    candidate_operand_rows=candidate_rows,
+                    coherent_candidate_rows=coherent_rows,
+                )
+                input_before = deepcopy(merge_input)
+
+                result = resolve_required_operand_candidate_merge(merge_input)
+
+                self.assertEqual(merge_input, input_before)
+                self.assertEqual(
+                    (
+                        tuple(row["evidence_id"] for row in result.selected_operand_rows),
+                        tuple(row["evidence_id"] for row in result.merged_candidate_rows),
+                        result.candidate_rows_cover_required,
+                        result.coherent_candidate_merge_applied,
+                        result.reason,
+                    ),
+                    (selected_ids, merged_ids, covers_required, coherent_applied, reason),
+                )
+                self.assertEqual(
+                    result.merged_candidate_rows is candidate_rows,
+                    not bool(coherent_rows),
+                )
+                if not candidate_rows:
+                    self.assertIs(result.selected_operand_rows, current_rows)
+                    continue
+                self.assertIsNot(result.selected_operand_rows, current_rows)
+                if name == "nonratio current first":
+                    self.assertIsNot(result.selected_operand_rows[0], current_rows[0])
+                    self.assertIs(
+                        result.selected_operand_rows[0]["metadata"],
+                        current_rows[0]["metadata"],
+                    )
 
     def test_supplemental_selector_prefers_explicit_binding_over_loose_match(self) -> None:
         required_operand = self._merge_required_operands()[1]
