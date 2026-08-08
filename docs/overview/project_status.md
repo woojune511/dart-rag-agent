@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-08
+Last updated: 2026-08-09
 
 ## Product Boundary
 
@@ -91,13 +91,22 @@ imports or an unconfigured `FinancialAgent` invocation.
   are contract outputs, not runtime trace fields. The graph retains model
   invocation, evidence lookup, scope skip, id assignment, coercion,
   applicability, the enclosing exception boundary, and fallback orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,753 lines,
+- Ratio artifact conflict selection now has a typed state-free dependency owner.
+  It receives ordered graph-prepared artifact rows plus an already-coerced
+  recalculated value and owns status fallback, artifact numeric precedence,
+  scaled tolerance, stable first-conflict selection, and the shallow-copy
+  preservation marker. Its reason/flag are not runtime trace fields. The graph
+  retains recalculated-value coercion and invalid-value builder laziness,
+  task-artifact/ledger row construction, absolute-ratio transformation, and the
+  caller's no-change/final projection contract; a selected row is therefore not
+  guaranteed to reach final output.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,747 lines,
   `financial_operand_resolution.py` is 2,270,
-  `financial_dependency_projection.py` is 2,813, and
+  `financial_dependency_projection.py` is 2,889, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed focused 4/4 and affected 279/279
-  tests, the 217-literal runtime audit, and full discovery over 1,486/1,486 tests
+- The latest calculation checkpoint passed focused 3/3 and affected 294/294
+  tests, the 217-literal runtime audit, and full discovery over 1,487/1,487 tests
   on Python 3.13. Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -117,7 +126,7 @@ current-state document does not duplicate that commit diary.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
-| Dependency binding summary, projection, source-set selector, typed main/late/final application, and dependency recalculation plan disposition | `financial_dependency_projection.py`; graph builds explicit raw plans and retains query gates, repair acceptance, other fallback, and aggregate sequencing |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, and prepared ratio-artifact conflict selection | `financial_dependency_projection.py`; graph retains raw-plan construction, recalculated-value coercion, invalid-value artifact-builder laziness, task-artifact/ledger row construction, absolute-ratio transformation, caller projection, query gates, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
@@ -143,9 +152,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: 4/4 focused and 279/279 affected tests on 2026-08-08 |
-| Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-08 |
-| Full unittest discovery | PASS, 1,486/1,486 tests locally on 2026-08-08 |
+| Latest calculation runtime checkpoint | PASS: focused 3/3 and affected 294/294 tests on 2026-08-09 |
+| Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
+| Full unittest discovery | PASS, 1,487/1,487 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -192,7 +201,8 @@ single-calculation-path Phase 3 remains open. Dependency precedence, late merge,
 terminal finalization, required-candidate merge, direct structured acceptance,
 prepared preferred-slot adoption, recovered-context adoption, scalar plan
 disposition, post-coercion LLM operand selection, deterministic plan/execution,
-and pure aggregate provenance selection have named owners. The graph still owns
+prepared ratio-artifact conflict selection, and pure aggregate provenance
+selection have named owners. The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy, direct
 structured preference applicability, runtime evidence preparation, row
 matching/iteration, peer-unit preparation and strongest-slot scoring,
@@ -200,7 +210,8 @@ recovered-context eligibility and row/evidence construction, producer-scope filt
 construction, retry and
 query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
 exception/fallback orchestration, candidate preparation plus state/task/artifact projection, repair
-acceptance, aggregate/filter sequencing, absolute-ratio handling, and other
+acceptance, artifact/ledger row construction, recalculated-value coercion and
+caller projection, aggregate/filter sequencing, absolute-ratio handling, and other
 deterministic/LLM fallbacks. Broader ledger synchronization and the private
 helper mesh are also open. No current result supports a whole-ledger,
 end-to-end owner, total-code reduction, or broad performance claim.
@@ -220,23 +231,26 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize the prepared
-artifact-row versus recalculated-ratio conflict decision inside
-`_preferred_ratio_artifact_row_for_conflicting_recalculation`
-(`financial_graph_calculation.py:14480-14498`). Artifact lookup and row
-construction remain graph-owned; a typed state-free dependency owner should
-receive the already prepared artifact rows and recalculated result. Preserve
-numeric coercion, status/value skips, scaled tolerance, stable first-conflict
-selection, top-level copy plus preservation marker, input immutability, and the
-empty no-match result. This stop line does not move artifact ledger state or
-absolute-ratio formatting. The extraction adapter remains a 795-line graph
-adapter under the definition-to-next-definition count; do not split it by size
-alone. Remaining direct-preference preparation/scoring, aggregate
-repair/precedence selection, dependency post-candidate finalization, other ratio
-artifact/absolute orchestration, broader ledger synchronization, remaining
-fallbacks, private facade/API cleanup, and contract-aligned test co-location
-remain separate work. The Phase 3 backlog in the refactoring plan is unordered;
-this section is the authority for priority.
+The next bounded architecture work is to characterize and move only the
+query-gated negative runtime-ratio absolute-magnitude projection body inside
+`_apply_runtime_ratio_projection_for_collapsed_rows`
+(`financial_graph_calculation.py:6430-6452`) into
+`financial_aggregate_projection.py`. The graph must retain runtime-trace and
+collapsed-row eligibility, the ratio-completeness and query gates, prepared
+result/slot/primary copies, downstream dependency-coherence and answer checks,
+and artifact/final projection. Characterization must preserve the current
+`TypeError`/`ValueError` boundary, including partial updates made before a caught
+formatter error, and confirm that `RuntimeError` still propagates. This slice is
+only a typed state-free value/slot transformation; it is not a move of query
+policy, formatter ownership, aggregate orchestration, or ledger state. The
+extraction adapter remains a 795-line graph adapter under the
+definition-to-next-definition count; do not split it by size alone. Remaining
+direct-preference preparation/scoring, aggregate repair/precedence selection,
+dependency post-candidate finalization, other ratio/absolute orchestration,
+broader ledger synchronization, remaining fallbacks, private facade/API cleanup,
+and contract-aligned test co-location remain separate work. The Phase 3 backlog
+in the refactoring plan is unordered; this section is the authority for
+priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

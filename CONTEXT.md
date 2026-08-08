@@ -6,7 +6,7 @@
 > [implementation_history.md](docs/history/implementation_history.md)와
 > [experiment_history.md](docs/history/experiment_history.md)에 있다.
 
-Last updated: 2026-08-08
+Last updated: 2026-08-09
 
 ## 현재 범위
 
@@ -49,7 +49,10 @@ Last updated: 2026-08-08
   direct-first merge를 두 typed state-free seam으로 적용한다. 이 seam의 reason과
   application flag는 contract output이지 runtime trace가 아니다. Dependency owner는
   main precedence, late re-merge, terminal finalization, dependency recalculation plan
-  disposition을 소유한다.
+  disposition을 소유한다. Graph가 준비한 ordered artifact rows와 이미 coerce한
+  recalculated numeric authority에는 status fallback, artifact numeric precedence,
+  scaled tolerance, stable first-conflict selection과 shallow-copy preservation marker를
+  typed state-free result로 적용한다. 이 reason/flag도 runtime trace가 아니다.
   Executable `single_value` plan은 reuse하고 invalid/absent plan은 한 번 rebuild하며,
   executable non-`single_value` plan은 `unsupported_mode`로 해당 row를 재계산하지
   않는다. 다른 row도 바뀌지 않은 no-change 경로에서는 원본 list/row identity를
@@ -66,7 +69,9 @@ Last updated: 2026-08-08
   assignment, coercion, applicability gate, enclosing try와 fallback을 유지한다.
   Recovery logging과 ratio-recovered flag projection, retry/query gate,
   state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
-  absolute-ratio와 기타 fallback orchestration도 graph에 남는다. 전체 ledger
+  recalculated result-value coercion과 invalid-value artifact-builder skip, task-artifact
+  row construction, absolute-ratio transform, caller no-change/final projection과 기타
+  fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
 
 ## 현재 검증 기준
@@ -76,7 +81,7 @@ Last updated: 2026-08-08
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | focused 4/4, affected 279/279, full unittest 1,486/1,486 PASS |
+| Latest calculation runtime validation | focused 3/3, affected 294/294, full unittest 1,487/1,487 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

@@ -762,6 +762,22 @@ mode:
   candidate execution, or ratio formatting. When the enclosing alignment pass
   accepts no other row change, it returns the original ordered-result identity.
 
+For supported ratio recalculation, artifact precedence is split at a narrower
+boundary. The graph coerces the recalculated top-level `result_value`; an
+unavailable value returns before artifact-row construction. It then builds the
+ordered task-artifact rows from graph/ledger state. The dependency owner receives
+only those prepared rows and the already-coerced numeric authority. It applies
+outer-row status with calculation-result fallback, resolves artifact numeric
+authority in the order result value, primary normalized value, primary raw value,
+then row value, skips values within the existing scaled tolerance, and selects
+the first material conflict. A selected row is a new top-level shallow copy with
+the preservation marker and retained nested identities. The typed reason and
+flag are inspectable owner outputs, not runtime trace fields. The graph retains
+absolute-ratio transformation and caller projection. In particular, when the
+enclosing pass accepts no other alignment, its no-change identity contract can
+discard the local selected-row copy; owner selection is not a guarantee that the
+artifact row reaches final output.
+
 Failure and no-op paths preserve ordered-result identity and input immutability.
 This contract does not move primary state/artifact projection, repair acceptance,
 aggregate sequencing, or absolute-ratio orchestration out of the graph. It does

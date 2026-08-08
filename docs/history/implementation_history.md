@@ -348,6 +348,32 @@ This move deletes only the graph's two direct imports of the migrated private
 operand helpers. It is not a total-code, broad executed-path, performance,
 private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Ratio artifact conflict selection ownership
+
+- `a5e4def` moves the state-free prepared-artifact conflict loop into the
+  dependency owner. The graph still coerces the recalculated top-level result
+  value and skips artifact construction when it is unavailable, then builds the
+  ordered task-artifact rows from graph/ledger state. The typed owner receives
+  those rows and the already-coerced numeric authority, applies outer-status
+  fallback, artifact numeric-field precedence, the existing scaled tolerance,
+  and stable first-conflict selection, and returns a shallow-copied row with the
+  preservation marker. Its reason and flag are contract outputs, not runtime
+  trace fields. Absolute-ratio transformation and caller no-change/final
+  projection remain graph-owned, so a local selection is not guaranteed to
+  reach final output.
+- The graph changes from 19,753 to 19,747 lines (`+10/-16`, net -6) and the
+  dependency owner from 2,813 to 2,889 lines (`+76`). Production source is
+  `+86/-16`, net 70; tests are `+211/-24`, net 187; the whole commit is
+  `+297/-40`, net 257.
+- Validation passed focused 3/3 tests, affected 294/294 tests, the 217-literal
+  runtime audit, and full discovery over 1,487/1,487 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving state-free selector relocation, not a move of
+task-artifact/ledger construction, absolute-ratio transformation, or final
+projection and not a total-code, broad executed-path, performance, private-mesh,
+whole-ledger, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

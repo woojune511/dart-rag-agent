@@ -334,7 +334,10 @@ state-free owner 경계:
   plan과 rebuild가 필요할 때 graph가 만든 explicit raw plan을 받는다.
   Invalid/absent plan은 rebuild하고 executable `single_value` plan은 reuse하며,
   executable non-`single_value` plan은 `unsupported_mode`다. Graph-state나
-  builder callback은 받지 않는다.
+  builder callback은 받지 않는다. Graph가 준비한 ordered artifact rows와 이미
+  coerce한 recalculated ratio value에는 outer-status fallback, artifact numeric
+  precedence, scaled tolerance, stable first-conflict selection과 shallow-copy marker를
+  typed result로 적용한다. 그 reason/flag도 runtime trace가 아니다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -387,7 +390,11 @@ graph adapter에 남은 orchestration 역할군:
   formatter를 호출하지 않는다. 다른 row도 바뀌지 않은 경로는 원본 list/row
   identity를 유지한다. Supported plan은 updated operands와 함께 direct candidate
   input으로 전달되고 ratio formatter는 active task와 같은 pre-candidate
-  operands를 explicit override로 받는다.
+  operands를 explicit override로 받는다. Ratio artifact conflict에서는 graph가
+  recalculated result value를 coerce하고 invalid value면 artifact builder를 호출하지
+  않으며, task-artifact/ledger row를 준비한 뒤 owner result를 소비한다. Absolute
+  transform과 no-change/final projection은 graph에 남으므로 selected artifact가 항상
+  final output에 도달하는 계약은 아니다.
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
   stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
   same-id latest calculation-result artifact를, planning capture는 반환 row refs만,

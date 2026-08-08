@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-08
+Last revised: 2026-08-09
 
 This is the active boundary and phased plan for reducing repository complexity
 while preserving verified financial QA behavior. Detailed chronology lives in
@@ -194,7 +194,8 @@ Current calculation ownership is:
   post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
   exception/fallback orchestration, graph-private candidate preparation,
   state/task/artifact projection, repair acceptance, aggregate/filter
-  sequencing, and remaining fallbacks.
+  sequencing, recalculated ratio-value coercion, task-artifact row construction,
+  absolute-ratio and caller projection, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
   grounding, selection, and merge behavior, including coherent-first required
   candidate merge followed by complete-ratio candidate-first or current-first
@@ -212,17 +213,19 @@ Current calculation ownership is:
   are reused, invalid or absent plans rebuild once, and executable
   non-`single_value` plans are `unsupported_mode`, do not recalculate that row,
   and preserve original result identity on the enclosing no-change path before
-  builder, candidate, or formatter work.
+  builder, candidate, or formatter work. For graph-prepared artifact rows and an
+  already-coerced recalculated ratio value, it also owns typed status/numeric
+  precedence, scaled-tolerance, and stable first-conflict selection.
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection and canonical aggregate operation-family normalization.
 
-At the latest checkpoint, the graph is 19,753 lines, the operand owner is 2,270,
-the dependency owner is 2,813, and the execution owner is 837. The latest owner
-slice passed focused 4/4 and affected 279/279 tests, the 217-literal audit, and
-full discovery over 1,486/1,486 tests on Python 3.13. Benchmark refresh is NOT
+At the latest checkpoint, the graph is 19,747 lines, the operand owner is 2,270,
+the dependency owner is 2,889, and the execution owner is 837. The latest owner
+slice passed focused 3/3 and affected 294/294 tests, the 217-literal audit, and
+full discovery over 1,487/1,487 tests on Python 3.13. Benchmark refresh is NOT
 RUN. Exact commit boundaries, intermediate metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
 in this plan.
@@ -232,8 +235,8 @@ Phase 3 remains open for these unordered follow-ups:
 - characterize remaining graph-prepared direct-preference builder/scoring seams
   without moving graph state or builders;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
-- isolate dependency post-candidate finalization and ratio
-  artifact/absolute-magnitude seams without moving graph state lookup;
+- isolate dependency post-candidate finalization and remaining ratio
+  absolute-magnitude seams without moving graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified
   behavior contract;
 - reduce the remaining private-API mesh and co-locate tests only as their public
