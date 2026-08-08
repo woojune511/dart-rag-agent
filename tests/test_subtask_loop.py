@@ -19,6 +19,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent import financial_graph_calculation
+from src.agent import financial_operand_resolution
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
@@ -2452,7 +2453,19 @@ class SubtaskLoopTests(unittest.TestCase):
         direct_acceptances, acceptance_patch = _record_graph_resolver(
             "resolve_direct_structured_operand_acceptance"
         )
-        with acceptance_patch:
+        with (
+            acceptance_patch,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_direct_support",
+                wraps=financial_graph_calculation.resolve_post_coercion_llm_direct_support,
+            ) as lookup_direct_support,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_operand_selection",
+                wraps=financial_graph_calculation.resolve_post_coercion_llm_operand_selection,
+            ) as operand_selection,
+        ):
             extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
@@ -2462,6 +2475,8 @@ class SubtaskLoopTests(unittest.TestCase):
             _direct_acceptance_contract(direct_acceptances[0]),
             ((), False, False, False, True),
         )
+        lookup_direct_support.assert_not_called()
+        operand_selection.assert_not_called()
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
 
@@ -2484,6 +2499,152 @@ class SubtaskLoopTests(unittest.TestCase):
         resolve_direct_acceptance.assert_not_called()
         self.assertEqual(nonlookup_state, nonlookup_before)
         self.assertEqual(nonlookup_rows[0]["evidence_id"], "ev_context_table")
+
+    def test_lookup_post_coercion_selection_preserves_stage_order_and_catches_errors(self) -> None:
+        required_operand = {"label": "target metric", "concept": "target_metric", "role": "primary_value"}
+        evidence_ids = ("llm_scope", "llm_unsupported", "llm_kept")
+        state = {
+            "query": "Return the target metric.",
+            "active_subtask": {
+                "task_id": "task_lookup",
+                "metric_family": "concept_lookup",
+                "operation_family": "lookup",
+                "required_operands": [required_operand],
+            },
+            "evidence_items": [
+                {
+                    "evidence_id": evidence_id,
+                    "claim": f"target metric {index}",
+                    "source_anchor": "[Example | 2023]",
+                }
+                for index, evidence_id in enumerate(evidence_ids, start=1)
+            ],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {"status": "ready"},
+            "calc_subtasks": [],
+        }
+        response = OperandExtraction(
+            coverage="sufficient",
+            operands=[
+                CalculationOperand(
+                    operand_id=f"model_{index}",
+                    evidence_id=evidence_id,
+                    source_anchor="[Example | 2023]",
+                    label="target metric",
+                    raw_value=str(index),
+                    raw_unit="KRW",
+                    normalized_value=float(index),
+                    normalized_unit="KRW",
+                    period="2023",
+                )
+                for index, evidence_id in enumerate(evidence_ids, start=1)
+            ],
+        )
+        selection_active = {"value": False}
+
+        class _ActivatingLLM:
+            def with_structured_output(self, _schema):
+                def _invoke(_prompt_value):
+                    selection_active["value"] = True
+                    return response
+
+                return RunnableLambda(_invoke)
+
+        self.agent.llm = _ActivatingLLM()
+        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        state_before = deepcopy(state)
+        events = []
+        original_coerce = self.agent._coerce_operand_row_from_evidence
+        original_selection = financial_graph_calculation.resolve_post_coercion_llm_operand_selection
+
+        def scope_conflicts(evidence_item, _desired_scope):
+            evidence_id = str(evidence_item.get("evidence_id") or "")
+            if selection_active["value"] and evidence_id in evidence_ids:
+                events.append(("scope", evidence_id))
+                return evidence_id == "llm_scope"
+            return False
+
+        def coerce(row, evidence_item):
+            evidence_id = str(row.get("evidence_id") or "")
+            events.append(("coerce", evidence_id, row.get("operand_id")))
+            return original_coerce(row, evidence_item)
+
+        def direct_support(support_input):
+            evidence_id = str(support_input.operand_row.get("evidence_id") or "")
+            events.append(("support", evidence_id))
+            accepted = evidence_id != "llm_unsupported"
+            return financial_operand_resolution.PostCoercionLlmDirectSupportResult(
+                support_input.operand_row,
+                accepted,
+                "direct_support_present" if accepted else "missing_direct_support",
+            )
+
+        def select_operands(selection_input):
+            events.append(
+                ("batch", tuple(row.get("evidence_id") for row in selection_input.operand_rows))
+            )
+            return original_selection(selection_input)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "evidence_item_conflicts_requested_scope",
+                side_effect=scope_conflicts,
+            ),
+            patch.object(self.agent, "_coerce_operand_row_from_evidence", side_effect=coerce),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_direct_support",
+                side_effect=direct_support,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_operand_selection",
+                side_effect=select_operands,
+            ),
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+
+        rows = _resolve_runtime_calculation_trace(extracted)["calculation_operands"]
+        self.assertEqual(state, state_before)
+        self.assertEqual([row["evidence_id"] for row in rows], ["llm_kept"])
+        self.assertEqual(rows[0]["operand_id"], "op_003")
+        self.assertEqual(
+            events,
+            [
+                ("scope", "llm_scope"),
+                ("scope", "llm_unsupported"),
+                ("coerce", "llm_unsupported", "op_002"),
+                ("support", "llm_unsupported"),
+                ("scope", "llm_kept"),
+                ("coerce", "llm_kept", "op_003"),
+                ("support", "llm_kept"),
+                ("batch", ("llm_kept",)),
+            ],
+        )
+
+        self.agent.llm = _StubLLM(response)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "evidence_item_conflicts_requested_scope",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_post_coercion_llm_direct_support",
+                side_effect=RuntimeError("post-coercion support failed"),
+            ),
+        ):
+            failed = self.agent._extract_calculation_operands(state)
+        failed_trace = _resolve_runtime_calculation_trace(failed)
+        self.assertEqual(
+            (state, failed["evidence_status"], failed_trace.get("calculation_operands", [])),
+            (state_before, "missing", []),
+        )
+        self.assertIn("post-coercion support failed", failed["calculation_debug_trace"]["error"])
 
     def test_lookup_allows_context_dependent_table_when_scope_requested(self) -> None:
         scoped_row = {
@@ -7994,7 +8155,22 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
-        extracted = self.agent._extract_calculation_operands(state)
+        selection_inputs = []
+        selection_results = []
+        original_selection = financial_graph_calculation.resolve_post_coercion_llm_operand_selection
+
+        def record_selection(selection_input):
+            selection_inputs.append(selection_input)
+            result = original_selection(selection_input)
+            selection_results.append(result)
+            return result
+
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_post_coercion_llm_operand_selection",
+            side_effect=record_selection,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
         self.assertEqual(extracted["evidence_status"], "sufficient")
@@ -8008,6 +8184,21 @@ class SubtaskLoopTests(unittest.TestCase):
             if row.get("label") == "operating profit"
         )
         self.assertEqual(denominator["raw_value"], "1,000")
+        self.assertEqual(len(selection_inputs), 1)
+        self.assertEqual(
+            [row.get("evidence_id") for row in selection_inputs[0].operand_rows],
+            ["task_output:task_expense", "ev_doc_001"],
+        )
+        self.assertEqual(
+            (
+                selection_inputs[0].require_direct_support,
+                selection_inputs[0].lookup_rematch_required,
+                selection_results[0].required_surface_filter_applied,
+                selection_results[0].lookup_rematch_filter_applied,
+                selection_results[0].direct_merge_applied,
+            ),
+            (True, False, True, False, True),
+        )
 
     def test_ratio_missing_dependency_binding_can_use_active_reconciliation_evidence(self) -> None:
         state = {

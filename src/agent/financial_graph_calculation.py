@@ -92,6 +92,8 @@ from src.agent.financial_dependency_projection import (
 from src.agent.financial_operand_resolution import (
     DirectStructuredOperandAcceptanceInput,
     DirectStructuredPreferredSlotAdoptionInput,
+    PostCoercionLlmDirectSupportInput,
+    PostCoercionLlmOperandSelectionInput,
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
     _canonical_structured_reconciliation_id,
@@ -104,7 +106,6 @@ from src.agent.financial_operand_resolution import (
     _evidence_surface_contains_segment_label,
     evidence_item_conflicts_requested_scope,
     _filter_operand_rows_by_required_surface_contract,
-    _llm_lookup_operand_has_direct_support,
     merge_operand_rows,
     _missing_required_operands,
     _operand_rows_have_single_table_context,
@@ -112,13 +113,14 @@ from src.agent.financial_operand_resolution import (
     _operand_slot_has_evidence_surface_match,
     operand_row_conflicts_requested_scope,
     _operand_row_matches_requirement,
-    _operand_row_satisfies_required_surface_contract,
     _period_comparison_operand_rows_collapse_to_same_slot,
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
     resolve_direct_structured_operand_acceptance,
     resolve_direct_structured_preferred_slot_adoption,
+    resolve_post_coercion_llm_direct_support,
+    resolve_post_coercion_llm_operand_selection,
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
 )
@@ -15476,33 +15478,28 @@ class FinancialAgentCalculationMixin:
                 row["operand_id"] = f"op_{index:03d}"
                 row = self._coerce_operand_row_from_evidence(row, evidence_item)
                 if operation_family in {"lookup", "single_value"} and required_operands:
-                    if not _llm_lookup_operand_has_direct_support(row, evidence_item, required_operands):
+                    direct_support = resolve_post_coercion_llm_direct_support(
+                        PostCoercionLlmDirectSupportInput(
+                            operand_row=row,
+                            evidence_item=evidence_item,
+                            required_operands=required_operands,
+                        )
+                    )
+                    if not direct_support.direct_support_accepted:
                         continue
                 operand_rows.append(row)
             if required_operands:
-                operand_rows = [
-                    row
-                    for row in operand_rows
-                    if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                    and _operand_row_satisfies_required_surface_contract(
-                        row,
-                        evidence_by_id,
-                        required_operands,
+                llm_operand_selection = resolve_post_coercion_llm_operand_selection(
+                    PostCoercionLlmOperandSelectionInput(
+                        operand_rows=operand_rows,
+                        evidence_by_id=evidence_by_id,
+                        required_operands=required_operands,
+                        direct_structured_rows=direct_structured_rows,
                         require_direct_support=operation_family == "ratio",
+                        lookup_rematch_required=operation_family in {"lookup", "single_value"},
                     )
-                ]
-            if operation_family in {"lookup", "single_value"} and required_operands:
-                operand_rows = [
-                    row
-                    for row in operand_rows
-                    if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                ]
-            if direct_structured_rows and required_operands:
-                operand_rows = merge_operand_rows(
-                    direct_structured_rows,
-                    operand_rows,
-                    required_operands=required_operands,
                 )
+                operand_rows = llm_operand_selection.selected_operand_rows
 
             missing_required = _missing_required_operands(required_operands, operand_rows) if required_operands else []
             operand_rows, missing_required = self._merge_required_operand_fallback_rows(

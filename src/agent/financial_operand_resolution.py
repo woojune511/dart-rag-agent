@@ -134,6 +134,52 @@ class DirectStructuredPreferredSlotAdoptionResult:
     reason: DirectStructuredPreferredSlotAdoptionReason
 
 
+PostCoercionLlmDirectSupportReason = Literal[
+    "direct_support_present",
+    "missing_direct_support",
+]
+
+
+@dataclass(frozen=True)
+class PostCoercionLlmDirectSupportInput:
+    """One graph-coerced LLM row ready for direct-support validation."""
+
+    operand_row: Dict[str, Any]
+    evidence_item: Optional[Dict[str, Any]]
+    required_operands: List[Dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class PostCoercionLlmDirectSupportResult:
+    """Identity-preserving direct-support decision for one LLM row."""
+
+    operand_row: Dict[str, Any]
+    direct_support_accepted: bool
+    reason: PostCoercionLlmDirectSupportReason
+
+
+@dataclass(frozen=True)
+class PostCoercionLlmOperandSelectionInput:
+    """State-free inputs for post-loop LLM operand selection and merge."""
+
+    operand_rows: List[Dict[str, Any]]
+    evidence_by_id: Dict[str, Dict[str, Any]]
+    required_operands: List[Dict[str, Any]]
+    direct_structured_rows: List[Dict[str, Any]]
+    require_direct_support: bool
+    lookup_rematch_required: bool
+
+
+@dataclass(frozen=True)
+class PostCoercionLlmOperandSelectionResult:
+    """Inspectable post-loop LLM selection stages."""
+
+    selected_operand_rows: List[Dict[str, Any]]
+    required_surface_filter_applied: bool
+    lookup_rematch_filter_applied: bool
+    direct_merge_applied: bool
+
+
 RecoveredOperandContextKind = Literal[
     "period_comparison",
     "coherent_ratio",
@@ -1594,6 +1640,79 @@ def resolve_direct_structured_preferred_slot_adoption(
             if unit_alignment_improves
             else "preferred_slot_selected"
         ),
+    )
+
+
+def resolve_post_coercion_llm_direct_support(
+    support_input: PostCoercionLlmDirectSupportInput,
+) -> PostCoercionLlmDirectSupportResult:
+    """Validate direct support without copying a graph-coerced LLM row."""
+
+    direct_support_accepted = _llm_lookup_operand_has_direct_support(
+        support_input.operand_row,
+        support_input.evidence_item,
+        support_input.required_operands,
+    )
+    return PostCoercionLlmDirectSupportResult(
+        operand_row=support_input.operand_row,
+        direct_support_accepted=direct_support_accepted,
+        reason=(
+            "direct_support_present"
+            if direct_support_accepted
+            else "missing_direct_support"
+        ),
+    )
+
+
+def resolve_post_coercion_llm_operand_selection(
+    selection_input: PostCoercionLlmOperandSelectionInput,
+) -> PostCoercionLlmOperandSelectionResult:
+    """Apply post-loop required selection before direct-first merge."""
+
+    if not selection_input.required_operands:
+        return PostCoercionLlmOperandSelectionResult(
+            selected_operand_rows=selection_input.operand_rows,
+            required_surface_filter_applied=False,
+            lookup_rematch_filter_applied=False,
+            direct_merge_applied=False,
+        )
+
+    selected_operand_rows = [
+        row
+        for row in selection_input.operand_rows
+        if any(
+            _operand_row_matches_requirement(row, operand)
+            for operand in selection_input.required_operands
+        )
+        and _operand_row_satisfies_required_surface_contract(
+            row,
+            selection_input.evidence_by_id,
+            selection_input.required_operands,
+            require_direct_support=selection_input.require_direct_support,
+        )
+    ]
+    if selection_input.lookup_rematch_required:
+        selected_operand_rows = [
+            row
+            for row in selected_operand_rows
+            if any(
+                _operand_row_matches_requirement(row, operand)
+                for operand in selection_input.required_operands
+            )
+        ]
+
+    direct_merge_applied = bool(selection_input.direct_structured_rows)
+    if direct_merge_applied:
+        selected_operand_rows = merge_operand_rows(
+            selection_input.direct_structured_rows,
+            selected_operand_rows,
+            required_operands=selection_input.required_operands,
+        )
+    return PostCoercionLlmOperandSelectionResult(
+        selected_operand_rows=selected_operand_rows,
+        required_surface_filter_applied=True,
+        lookup_rematch_filter_applied=selection_input.lookup_rematch_required,
+        direct_merge_applied=direct_merge_applied,
     )
 
 

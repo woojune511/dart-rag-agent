@@ -1398,6 +1398,114 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             (False, "no_context_rows", ()),
         )
 
+    def test_post_coercion_llm_selection_contract(self) -> None:
+        required = [
+            {"label": "primary", "concept": "primary_metric", "role": "numerator_1"},
+            {"label": "secondary", "concept": "secondary_metric", "role": "denominator_1"},
+        ]
+        candidate = _merge_operand_row(
+            "candidate_secondary",
+            label="secondary",
+            concept="secondary_metric",
+            role="denominator_1",
+            value=40.0,
+        )
+        evidence_item = {"evidence_id": "candidate_secondary", "claim": "secondary 40 unit"}
+
+        for accepted, reason in (
+            (True, "direct_support_present"),
+            (False, "missing_direct_support"),
+        ):
+            support_input = operand_resolution.PostCoercionLlmDirectSupportInput(
+                candidate,
+                evidence_item,
+                required,
+            )
+            support_before = deepcopy(support_input)
+            with patch.object(
+                operand_resolution,
+                "_llm_lookup_operand_has_direct_support",
+                return_value=accepted,
+            ):
+                support_result = operand_resolution.resolve_post_coercion_llm_direct_support(
+                    support_input
+                )
+            self.assertEqual(support_input, support_before)
+            self.assertIs(support_result.operand_row, candidate)
+            self.assertEqual(
+                (support_result.direct_support_accepted, support_result.reason),
+                (accepted, reason),
+            )
+
+        no_required_input = operand_resolution.PostCoercionLlmOperandSelectionInput(
+            [candidate], {}, [], [], False, False
+        )
+        no_required_result = operand_resolution.resolve_post_coercion_llm_operand_selection(
+            no_required_input
+        )
+        self.assertIs(no_required_result.selected_operand_rows, no_required_input.operand_rows)
+        self.assertEqual(
+            (
+                no_required_result.required_surface_filter_applied,
+                no_required_result.lookup_rematch_filter_applied,
+                no_required_result.direct_merge_applied,
+            ),
+            (False, False, False),
+        )
+
+        direct = _merge_operand_row(
+            "direct_primary",
+            label="primary",
+            concept="primary_metric",
+            role="numerator_1",
+            value=100.0,
+        )
+        match_none = _merge_operand_row(
+            "match_none", label="other", concept="other", role="other", value=1.0
+        )
+        surface_false = dict(candidate, evidence_id="surface_false", source_row_id="surface_false")
+        selection_input = operand_resolution.PostCoercionLlmOperandSelectionInput(
+            [match_none, surface_false, candidate],
+            {},
+            required,
+            [direct],
+            True,
+            True,
+        )
+        selection_before = deepcopy(selection_input)
+        surface_flags = []
+
+        def surface_contract(row, _evidence_by_id, _required, *, require_direct_support=False):
+            surface_flags.append(require_direct_support)
+            return row.get("evidence_id") != "surface_false"
+
+        with patch.object(
+            operand_resolution,
+            "_operand_row_satisfies_required_surface_contract",
+            side_effect=surface_contract,
+        ):
+            selection_result = operand_resolution.resolve_post_coercion_llm_operand_selection(
+                selection_input
+            )
+
+        self.assertEqual(selection_input, selection_before)
+        self.assertEqual(surface_flags, [True, True])
+        self.assertEqual(
+            [row["evidence_id"] for row in selection_result.selected_operand_rows],
+            ["direct_primary", "candidate_secondary"],
+        )
+        self.assertEqual(
+            (
+                selection_result.required_surface_filter_applied,
+                selection_result.lookup_rematch_filter_applied,
+                selection_result.direct_merge_applied,
+            ),
+            (True, True, True),
+        )
+        for actual, original in zip(selection_result.selected_operand_rows, [direct, candidate]):
+            self.assertIsNot(actual, original)
+            self.assertIs(actual["source_row_ids"], original["source_row_ids"])
+
     def test_supplemental_selector_prefers_explicit_binding_over_loose_match(self) -> None:
         required_operand = self._merge_required_operands()[1]
         exact = _merge_operand_row(
