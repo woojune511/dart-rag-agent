@@ -84,6 +84,73 @@ class AggregateAnswerCandidateApplicationResult:
     selected_claim_ids: List[str]
 
 
+@dataclass(frozen=True)
+class AggregateProjectionProvenanceFilterInput:
+    """Prepared aggregate projection and the evidence ids retained by the graph."""
+
+    aggregate_projection: Dict[str, Any]
+    kept_evidence_ids: Sequence[Any]
+
+
+@dataclass(frozen=True)
+class AggregateProjectionProvenanceFilterResult:
+    """The original or shallow-filtered aggregate projection."""
+
+    aggregate_projection: Dict[str, Any]
+
+
+def filter_aggregate_projection_provenance(
+    filter_input: AggregateProjectionProvenanceFilterInput,
+) -> AggregateProjectionProvenanceFilterResult:
+    """Remove pruned generated evidence refs from a prepared aggregate projection."""
+
+    kept = {
+        str(value).strip()
+        for value in (filter_input.kept_evidence_ids or [])
+        if str(value).strip()
+    }
+    if not kept:
+        return AggregateProjectionProvenanceFilterResult(
+            aggregate_projection=filter_input.aggregate_projection,
+        )
+
+    def _filter_ids(values: Any) -> List[str]:
+        current = _clean_source_row_ids([values])
+        return [
+            value
+            for value in current
+            if not (value.startswith("ev_") or value.startswith("recon::")) or value in kept
+        ]
+
+    updated = dict(filter_input.aggregate_projection)
+    calculation_result = dict(updated.get("calculation_result") or {})
+    calculation_result["source_evidence_ids"] = _filter_ids(calculation_result.get("source_evidence_ids"))
+    calculation_result["source_row_ids"] = _filter_ids(calculation_result.get("source_row_ids"))
+    derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+    for key in ("aggregate_source_evidence_ids", "aggregate_source_row_ids"):
+        if key in derived_metrics:
+            derived_metrics[key] = _filter_ids(derived_metrics.get(key))
+    calculation_result["derived_metrics"] = derived_metrics
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    if answer_slots:
+        answer_slots["source_row_ids"] = _filter_ids(answer_slots.get("source_row_ids"))
+        subtask_results: List[Dict[str, Any]] = []
+        for subtask in list(answer_slots.get("subtask_results") or []):
+            if not isinstance(subtask, dict):
+                continue
+            row = dict(subtask)
+            row["source_evidence_ids"] = _filter_ids(row.get("source_evidence_ids"))
+            row["source_row_ids"] = _filter_ids(row.get("source_row_ids"))
+            subtask_results.append(row)
+        if subtask_results:
+            answer_slots["subtask_results"] = subtask_results
+        calculation_result["answer_slots"] = answer_slots
+    updated["calculation_result"] = calculation_result
+    return AggregateProjectionProvenanceFilterResult(
+        aggregate_projection=updated,
+    )
+
+
 def sync_aggregate_projection_final_answer(
     sync_input: AggregateProjectionFinalAnswerSyncInput,
 ) -> AggregateProjectionFinalAnswerSyncResult:

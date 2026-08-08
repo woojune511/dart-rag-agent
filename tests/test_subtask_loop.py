@@ -3569,10 +3569,25 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("4,355억원", prepared.complete_numeric_answer)
         self.assertNotIn("435,542천원", prepared.complete_numeric_answer)
         self.assertNotIn("435,542천원", prepared.fallback_answer)
-        projection = self.agent._rebuild_aggregate_projection(
-            prepared.ordered_results,
-            prepared.complete_numeric_answer,
-        )
+        with patch.object(
+            financial_graph_calculation,
+            "filter_aggregate_projection_provenance",
+            wraps=financial_graph_calculation.filter_aggregate_projection_provenance,
+        ) as provenance_filter:
+            projection = self.agent._rebuild_aggregate_projection(
+                prepared.ordered_results,
+                prepared.complete_numeric_answer,
+            )
+            provenance_filter.assert_not_called()
+            empty_kept_projection = self.agent._rebuild_aggregate_projection(
+                prepared.ordered_results,
+                prepared.complete_numeric_answer,
+                kept_evidence_ids=[],
+            )
+        provenance_filter.assert_called_once()
+        provenance_input = provenance_filter.call_args.args[0]
+        self.assertEqual(provenance_input.kept_evidence_ids, [])
+        self.assertEqual(empty_kept_projection, projection)
         projection_operands = projection["calculation_operands"]
         self.assertEqual(
             {(row["matched_operand_role"], row["raw_value"], row["raw_unit"]) for row in projection_operands},
@@ -5589,12 +5604,41 @@ class SubtaskLoopTests(unittest.TestCase):
             }
         ]
 
-        _filtered, updated_projection, _selected, _kept = self.agent._filter_final_aggregate_evidence_and_projection(
-            evidence_items,
-            projection,
-            final_answer="2024 target metric is 1,200백만원, versus 2023 800백만원, up 50.00%.",
-            selected_claim_ids=[],
-        )
+        provenance_events = []
+        provenance_filter = financial_graph_calculation.filter_aggregate_projection_provenance
+        surface_append = self.agent._append_final_answer_surface_operands_from_evidence
+
+        def _record_provenance(*args, **kwargs):
+            provenance_events.append("provenance")
+            return provenance_filter(*args, **kwargs)
+
+        def _record_surface(*args, **kwargs):
+            provenance_events.append("surface")
+            return surface_append(*args, **kwargs)
+
+        with patch.object(
+            financial_graph_calculation,
+            "filter_aggregate_projection_provenance",
+            side_effect=_record_provenance,
+        ) as provenance_filter_spy, patch.object(
+            self.agent,
+            "_append_final_answer_surface_operands_from_evidence",
+            side_effect=_record_surface,
+        ):
+            _filtered, updated_projection, _selected, _kept = (
+                self.agent._filter_final_aggregate_evidence_and_projection(
+                    evidence_items,
+                    projection,
+                    final_answer=(
+                        "2024 target metric is 1,200백만원, versus 2023 800백만원, up 50.00%."
+                    ),
+                    selected_claim_ids=[],
+                )
+            )
+        provenance_filter_spy.assert_called_once()
+        provenance_input = provenance_filter_spy.call_args.args[0]
+        self.assertEqual(provenance_input.kept_evidence_ids, ["recon::row:all"])
+        self.assertEqual(provenance_events, ["provenance", "surface"])
 
         operands = list(updated_projection.get("calculation_operands") or [])
         self.assertEqual(len(operands), 2)

@@ -13,6 +13,7 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
+    AggregateProjectionProvenanceFilterInput,
     AggregateProjectionFinalAnswerSyncInput,
     AggregateStaleRepairProvenanceInput,
     RuntimeRatioAbsoluteMagnitudeProjectionInput,
@@ -29,6 +30,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_task_ids,
     aggregate_task_status_value,
     apply_aggregate_answer_candidate,
+    filter_aggregate_projection_provenance,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
     sync_aggregate_projection_final_answer,
@@ -538,6 +540,173 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         self.assertEqual(updated.synthesis_state, replacement)
         self.assertIs(updated.evidence_items, evidence_items)
+
+    def test_aggregate_projection_provenance_filter_preserves_copy_and_order_contract(self) -> None:
+        class _TrackingProjection(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.get_calls = 0
+
+            def get(self, key, default=None):
+                self.get_calls += 1
+                return super().get(key, default)
+
+        class _ExplodingEvidenceId:
+            def __str__(self):
+                raise RuntimeError("kept evidence unavailable")
+
+        def _filter(projection, kept_evidence_ids):
+            return filter_aggregate_projection_provenance(
+                AggregateProjectionProvenanceFilterInput(
+                    aggregate_projection=projection,
+                    kept_evidence_ids=kept_evidence_ids,
+                )
+            ).aggregate_projection
+
+        marker = {"preserve": True}
+        empty_projection = _TrackingProjection(calculation_result={"marker": marker})
+
+        empty_result = _filter(empty_projection, [" ", ""])
+
+        self.assertIs(empty_result, empty_projection)
+        self.assertEqual(empty_projection.get_calls, 0)
+        with self.assertRaisesRegex(RuntimeError, "kept evidence unavailable"):
+            _filter(empty_projection, [_ExplodingEvidenceId()])
+        self.assertEqual(empty_projection.get_calls, 0)
+
+        valid_subtask = {
+            "task_id": "task_valid",
+            "source_evidence_ids": ["recon::drop", "plain_subtask", "ev_keep"],
+            "source_row_ids": ["ev_drop", "recon::keep", "plain_subtask"],
+            "marker": marker,
+        }
+        projection = {
+            "marker": marker,
+            "calculation_result": {
+                "source_evidence_ids": [
+                    " ev_keep ",
+                    ("plain", "ev_drop"),
+                    "ev_keep",
+                    "operand::prior",
+                    "recon::keep",
+                    "recon::drop",
+                ],
+                "source_row_ids": ["ev_drop", "plain_row", "recon::keep", "ev_keep"],
+                "derived_metrics": {
+                    "aggregate_source_evidence_ids": ["recon::drop", "plain_derived", "ev_keep"],
+                    "aggregate_source_row_ids": ["ev_drop", "recon::keep", "plain_derived"],
+                    "marker": marker,
+                },
+                "answer_slots": {
+                    "source_row_ids": ["ev_drop", "plain_slot", "recon::keep"],
+                    "subtask_results": ["discard", valid_subtask],
+                    "marker": marker,
+                },
+                "marker": marker,
+            },
+        }
+        projection_snapshot = deepcopy(projection)
+
+        kept_evidence_ids = [" ev_keep ", "recon::keep", "ev_keep"]
+        filtered = _filter(projection, kept_evidence_ids)
+
+        result = filtered["calculation_result"]
+        slots = result["answer_slots"]
+        filtered_subtask = slots["subtask_results"][0]
+        self.assertEqual(
+            (
+                result["source_evidence_ids"],
+                result["source_row_ids"],
+                result["derived_metrics"]["aggregate_source_evidence_ids"],
+                result["derived_metrics"]["aggregate_source_row_ids"],
+                slots["source_row_ids"],
+                filtered_subtask["source_evidence_ids"],
+                filtered_subtask["source_row_ids"],
+            ),
+            (
+                ["ev_keep", "plain", "operand::prior", "recon::keep"],
+                ["plain_row", "recon::keep", "ev_keep"],
+                ["plain_derived", "ev_keep"],
+                ["recon::keep", "plain_derived"],
+                ["plain_slot", "recon::keep"],
+                ["plain_subtask", "ev_keep"],
+                ["recon::keep", "plain_subtask"],
+            ),
+        )
+        self.assertEqual([row["task_id"] for row in slots["subtask_results"]], ["task_valid"])
+        for selected, original in (
+            (filtered, projection),
+            (result, projection["calculation_result"]),
+            (result["derived_metrics"], projection["calculation_result"]["derived_metrics"]),
+            (slots, projection["calculation_result"]["answer_slots"]),
+            (filtered_subtask, valid_subtask),
+        ):
+            self.assertIsNot(selected, original)
+        for retained in (
+            filtered["marker"],
+            result["marker"],
+            result["derived_metrics"]["marker"],
+            slots["marker"],
+            filtered_subtask["marker"],
+        ):
+            self.assertIs(retained, marker)
+        self.assertEqual(projection, projection_snapshot)
+        self.assertEqual(kept_evidence_ids, [" ev_keep ", "recon::keep", "ev_keep"])
+
+        invalid_subtasks = ["invalid", None]
+        conditional_projection = {
+            "calculation_result": {
+                "answer_slots": {
+                    "source_row_ids": ["plain"],
+                    "subtask_results": invalid_subtasks,
+                }
+            }
+        }
+        conditional_result = _filter(conditional_projection, ["ev_keep"])
+        self.assertIs(
+            conditional_result["calculation_result"]["answer_slots"]["subtask_results"],
+            invalid_subtasks,
+        )
+        falsy_slots = {}
+        falsy_projection = {"calculation_result": {"answer_slots": falsy_slots}}
+        falsy_result = _filter(falsy_projection, ["ev_keep"])
+        falsy_calculation_result = falsy_result["calculation_result"]
+        self.assertIs(falsy_calculation_result["answer_slots"], falsy_slots)
+        self.assertEqual(
+            falsy_calculation_result,
+            {
+                "answer_slots": {},
+                "source_evidence_ids": [],
+                "source_row_ids": [],
+                "derived_metrics": {},
+            },
+        )
+
+        cleaner = financial_aggregate_projection._clean_source_row_ids
+        cleaner_inputs = []
+
+        def _fail_on_derived(values):
+            cleaner_inputs.append(values)
+            if len(cleaner_inputs) == 3:
+                raise RuntimeError("derived provenance unavailable")
+            return cleaner(values)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "_clean_source_row_ids",
+            side_effect=_fail_on_derived,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "derived provenance unavailable"):
+                _filter(projection, ["ev_keep"])
+        self.assertEqual(
+            cleaner_inputs,
+            [
+                [projection["calculation_result"]["source_evidence_ids"]],
+                [projection["calculation_result"]["source_row_ids"]],
+                [projection["calculation_result"]["derived_metrics"]["aggregate_source_evidence_ids"]],
+            ],
+        )
+        self.assertEqual(projection, projection_snapshot)
 
     def test_aggregate_answer_candidate_application_preserves_projection_and_claim_contract(self) -> None:
         def _apply(projection, selected_claim_ids, candidate):

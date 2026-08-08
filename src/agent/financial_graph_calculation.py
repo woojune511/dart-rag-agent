@@ -29,6 +29,7 @@ from src.agent.financial_aggregate_state import (
 from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
     AggregateProjectionFinalAnswerSyncInput,
+    AggregateProjectionProvenanceFilterInput,
     AggregateStaleRepairProvenanceInput,
     RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload as _aggregate_artifact_payload,
@@ -43,6 +44,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     apply_aggregate_answer_candidate,
+    filter_aggregate_projection_provenance,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
     sync_aggregate_projection_final_answer,
@@ -5231,7 +5233,12 @@ class FinancialAgentCalculationMixin:
         )
         projection = self._build_aggregate_calculation_projection(projection_rows, final_answer)
         if kept_evidence_ids is not None:
-            projection = self._filter_aggregate_projection_provenance(projection, kept_evidence_ids)
+            projection = filter_aggregate_projection_provenance(
+                AggregateProjectionProvenanceFilterInput(
+                    aggregate_projection=projection,
+                    kept_evidence_ids=kept_evidence_ids,
+                )
+            ).aggregate_projection
         return projection
 
     def _projection_rows_for_final_answer(
@@ -6376,10 +6383,12 @@ class FinancialAgentCalculationMixin:
                     ]
                 )
             )
-        aggregate_projection = self._filter_aggregate_projection_provenance(
-            aggregate_projection,
-            kept_evidence_ids,
-        )
+        aggregate_projection = filter_aggregate_projection_provenance(
+            AggregateProjectionProvenanceFilterInput(
+                aggregate_projection=aggregate_projection,
+                kept_evidence_ids=kept_evidence_ids,
+            )
+        ).aggregate_projection
         aggregate_projection = self._append_final_answer_surface_operands_from_evidence(
             aggregate_projection,
             filtered_evidence_items,
@@ -7514,49 +7523,6 @@ class FinancialAgentCalculationMixin:
                 }
             )
 
-        return updated
-
-    def _filter_aggregate_projection_provenance(
-        self,
-        projection: Dict[str, Any],
-        kept_evidence_ids: List[str],
-    ) -> Dict[str, Any]:
-        kept = {str(value).strip() for value in (kept_evidence_ids or []) if str(value).strip()}
-        if not kept:
-            return projection
-
-        def _filter_ids(values: Any) -> List[str]:
-            current = _clean_source_row_ids([values])
-            return [
-                value
-                for value in current
-                if not (value.startswith("ev_") or value.startswith("recon::")) or value in kept
-            ]
-
-        updated = dict(projection)
-        calculation_result = dict(updated.get("calculation_result") or {})
-        calculation_result["source_evidence_ids"] = _filter_ids(calculation_result.get("source_evidence_ids"))
-        calculation_result["source_row_ids"] = _filter_ids(calculation_result.get("source_row_ids"))
-        derived_metrics = dict(calculation_result.get("derived_metrics") or {})
-        for key in ("aggregate_source_evidence_ids", "aggregate_source_row_ids"):
-            if key in derived_metrics:
-                derived_metrics[key] = _filter_ids(derived_metrics.get(key))
-        calculation_result["derived_metrics"] = derived_metrics
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        if answer_slots:
-            answer_slots["source_row_ids"] = _filter_ids(answer_slots.get("source_row_ids"))
-            subtask_results: List[Dict[str, Any]] = []
-            for subtask in list(answer_slots.get("subtask_results") or []):
-                if not isinstance(subtask, dict):
-                    continue
-                row = dict(subtask)
-                row["source_evidence_ids"] = _filter_ids(row.get("source_evidence_ids"))
-                row["source_row_ids"] = _filter_ids(row.get("source_row_ids"))
-                subtask_results.append(row)
-            if subtask_results:
-                answer_slots["subtask_results"] = subtask_results
-            calculation_result["answer_slots"] = answer_slots
-        updated["calculation_result"] = calculation_result
         return updated
 
     def _dependency_slot_matches_input(

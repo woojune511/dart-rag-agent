@@ -677,40 +677,6 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         self.assertIn("credit loss provision expense 1,848", filtered[0]["quote_span"])
         self.assertIn("final_answer_table_numeric_support", filtered[0]["metadata"])
 
-    def test_aggregate_projection_provenance_drops_pruned_recon_ids(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        projection = {
-            "calculation_result": {
-                "source_evidence_ids": ["ev_selected", "recon::good", "recon::noise"],
-                "source_row_ids": ["ev_selected", "recon::good", "recon::noise"],
-                "derived_metrics": {
-                    "aggregate_source_evidence_ids": ["ev_selected", "recon::good", "recon::noise"],
-                },
-                "answer_slots": {
-                    "operation_family": "aggregate_subtasks",
-                    "source_row_ids": ["ev_selected", "recon::noise"],
-                    "subtask_results": [
-                        {
-                            "task_id": "task_noise",
-                            "source_evidence_ids": ["recon::noise"],
-                            "source_row_ids": ["recon::noise"],
-                        }
-                    ],
-                },
-            }
-        }
-
-        filtered = agent._filter_aggregate_projection_provenance(
-            projection,
-            ["ev_selected", "recon::good"],
-        )
-
-        result = filtered["calculation_result"]
-        self.assertEqual(result["source_evidence_ids"], ["ev_selected", "recon::good"])
-        self.assertEqual(result["source_row_ids"], ["ev_selected", "recon::good"])
-        self.assertEqual(result["answer_slots"]["source_row_ids"], ["ev_selected"])
-        self.assertEqual(result["answer_slots"]["subtask_results"][0]["source_evidence_ids"], [])
-
     def test_final_answer_appends_matching_operand_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         evidence_items = []
