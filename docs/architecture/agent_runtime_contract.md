@@ -582,6 +582,19 @@ The typed application flags are inspectable owner outputs, not runtime trace
 fields. The owner receives explicit row, evidence, requirement, operation, and
 ambiguity-context values, never `FinancialAgentState` or a callback.
 
+After the graph has built recovered period-comparison or coherent-ratio rows,
+the operand owner also applies their typed, state-free adoption contract. The
+graph calls this resolver only inside its non-empty recovered-row gate. Period
+context is preferred first and fills missing requirements from the current rows;
+coherent ratio context replaces the current rows instead. Both paths retain the
+existing top-level shallow-copy and stable-order merge behavior. Evidence
+adoption is restricted to ids referenced by recovered rows, excludes ids already
+present in the current evidence list, and preserves the source order and
+duplicates of newly adopted candidates. Applied paths return new row/evidence
+lists without mutating their inputs; the no-context owner path retains the input
+identities. Adoption reasons and adopted ids are inspectable owner outputs, not
+runtime trace fields. The graph does not pass state or a builder callback.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
@@ -606,9 +619,11 @@ projected as runtime trace fields.
 
 The graph adapter still owns direct-row and evidence construction, coercion,
 consolidation-scope filtering, target override, the acceptance applicability
-gate, direct structured evidence preference/refinement, and recovered
-context/evidence adoption. It also owns required-candidate builders,
-producer-scope filtering, the lazy coherent-context builder gate, retry and
+gate, direct structured evidence preference/refinement, recovered-context
+eligibility, document/evidence collection, and period/ratio context-row builders.
+It also owns recovery logging and ratio-recovered flag projection,
+required-candidate builders, producer-scope filtering, the lazy coherent-context
+builder gate, retry and
 dependency-guard decisions, the percent-point query gate, other deterministic/LLM
 fallback paths, coverage decisions, and state, trace, artifact, and logging
 projection. Aggregate repair also remains graph-owned, so this is not a

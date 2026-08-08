@@ -275,6 +275,30 @@ This is a direct-acceptance ownership move, not a total-code, broad executed-pat
 performance, private-mesh, end-to-end calculation-owner, or complete Phase 3
 reduction claim.
 
+### Recovered context adoption ownership
+
+- `f1152b7` moves the duplicated state-free adoption bodies for graph-built
+  period-comparison and coherent-ratio rows into the operand-resolution owner.
+  The typed result preserves period recovered-first/current missing-fill versus
+  coherent-ratio replacement, used-evidence filtering and order, existing-id
+  exclusion, candidate duplicates, top-level row copies with nested identity,
+  and no-context identity. The graph retains recovery eligibility,
+  document/evidence collection, context-row builders, logging, the
+  ratio-recovered flag, main precedence, and runtime projection.
+- The graph changes from 19,792 to 19,776 lines (`+24/-40`, net -16) and the
+  operand owner from 1,953 to 2,045 lines (`+92`). Production source is
+  `+116/-40`, net 76; tests are `+263/-38`, net 225; the whole commit is
+  `+379/-78`, net 301. The extraction adapter's definition-to-next-definition
+  span changes from 818 to 800 lines.
+- Validation passed 5/5 targeted tests, 355/355 affected tests, the 217-literal
+  runtime audit, and full discovery over 1,483/1,483 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a recovered-row/evidence adoption ownership move, not a move of recovery
+eligibility or context builders and not a total-code, broad executed-path,
+performance, private-mesh, end-to-end calculation-owner, or complete Phase 3
+reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

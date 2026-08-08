@@ -39,7 +39,9 @@ Last updated: 2026-08-08
   merge하고, complete ratio candidate-first 또는 그 밖의 current-first precedence를
   state-free result로 반환한다. 같은 owner는 graph가 구성·coerce·scope-filter한
   direct structured row에 required match/surface, ambiguity, lookup direct-support
-  gate를 runtime 순서대로 적용하는 typed acceptance도 소유한다. Dependency owner는
+  gate를 runtime 순서대로 적용하는 typed acceptance도 소유한다. Graph가 복구한
+  period/ratio row에는 period recovered-first merge 또는 coherent-ratio replacement와
+  사용 evidence adoption을 typed state-free result로 적용한다. Dependency owner는
   main precedence, late re-merge, terminal finalization, dependency recalculation plan
   disposition을 소유한다.
   Executable `single_value` plan은 reuse하고 invalid/absent plan은 한 번 rebuild하며,
@@ -51,8 +53,9 @@ Last updated: 2026-08-08
   Aggregate owner는 pure stale provenance target selection을 소유한다.
 - Graph는 direct row/evidence construction, coercion과 scope filtering,
   target override, acceptance applicability gate, direct structured evidence
-  preference/refinement, recovered context/evidence adoption, required-candidate
-  builder와 lazy coherent-context builder를 유지한다. Retry/query gate,
+  preference/refinement, recovered-context eligibility와 document/evidence 및 row
+  builder, required-candidate builder와 lazy coherent-context builder를 유지한다.
+  Recovery logging과 ratio-recovered flag projection, retry/query gate,
   state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
   absolute-ratio와 기타 fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
@@ -64,7 +67,7 @@ Last updated: 2026-08-08
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 7/7, affected 301/301, full unittest 1,482/1,482 PASS |
+| Latest calculation runtime validation | targeted 5/5, affected 355/355, full unittest 1,483/1,483 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
