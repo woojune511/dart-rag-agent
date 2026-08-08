@@ -299,6 +299,31 @@ eligibility or context builders and not a total-code, broad executed-path,
 performance, private-mesh, end-to-end calculation-owner, or complete Phase 3
 reduction claim.
 
+### Prepared preferred-slot adoption ownership
+
+- `9f68408` moves the prepared direct preferred-slot decision and exact row
+  overlay into the operand-resolution owner. The typed state-free resolver
+  preserves higher/equal current-score rejection, same-raw ratio peer-unit
+  alignment override, strict comparison order including NaN fallthrough,
+  top-level row-copy and nested identity, exact field clearing/overlay, sequential
+  row application, and input immutability. Its reason and alignment fields are
+  inspectable contract outputs, not runtime trace fields. The graph retains
+  applicability, runtime evidence overlay, row copying/matching/iteration,
+  peer-unit preparation, and the stateful strongest-slot builder and scorer.
+- The graph changes from 19,776 to 19,756 lines (`+16/-36`, net -20) and the
+  operand owner from 2,045 to 2,151 lines (`+106`). Production source is
+  `+122/-36`, net 86; tests are `+247/-9`, net 238; the whole commit is
+  `+369/-45`, net 324. The extraction adapter remains 800 lines under the
+  definition-to-next-definition count.
+- Validation passed 5/5 targeted tests, 153/153 affected tests, the 217-literal
+  runtime audit, and full discovery over 1,484/1,484 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a prepared preferred-slot adoption/overlay ownership move, not a move of
+stateful evidence preparation, builder/scoring, or graph orchestration and not a
+total-code, broad executed-path, performance, private-mesh, end-to-end
+calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

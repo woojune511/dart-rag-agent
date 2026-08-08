@@ -186,10 +186,11 @@ Current calculation ownership is:
   orchestrator. It constructs and coerces direct rows, applies consolidation
   scope and target-override policy, prepares evidence/query inputs, builds
   required candidates, applies dependency producer-scope filtering, and invokes
-  the coherent-context builder lazily. It also owns direct structured evidence
-  preference/refinement, recovered-context eligibility, document/evidence and
-  context-row builders, recovery logging and ratio-recovered flag projection,
-  retry gates,
+  the coherent-context builder lazily. It also owns direct structured preference
+  preparation through runtime evidence overlay, row iteration, peer-unit
+  preparation, strongest-slot building and scoring, recovered-context
+  eligibility, document/evidence and context-row builders, recovery logging and
+  ratio-recovered flag projection, retry gates,
   graph-private candidate preparation, state/task/artifact projection, repair
   acceptance, aggregate/filter sequencing, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
@@ -197,8 +198,9 @@ Current calculation ownership is:
   candidate merge followed by complete-ratio candidate-first or current-first
   precedence. It also owns ordered typed direct structured acceptance across
   required match/surface, ambiguity, and lookup direct-support gates, plus typed
-  recovered-context period merge or coherent-ratio replacement and referenced
-  evidence adoption after graph-owned builders run.
+  prepared preferred-slot score/ratio-alignment adoption and exact overlay. It
+  owns recovered-context period merge or coherent-ratio replacement and
+  referenced evidence adoption after graph-owned builders run.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -212,18 +214,19 @@ Current calculation ownership is:
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection and canonical aggregate operation-family normalization.
 
-At the latest checkpoint, the graph is 19,776 lines, the operand owner is 2,045,
+At the latest checkpoint, the graph is 19,756 lines, the operand owner is 2,151,
 the dependency owner is 2,813, and the execution owner is 837. The latest owner
-slice passed 5/5 targeted and 355/355 affected tests, the 217-literal audit, and
-full discovery over 1,483/1,483 tests on Python 3.13. Benchmark refresh is NOT
+slice passed 5/5 targeted and 153/153 affected tests, the 217-literal audit, and
+full discovery over 1,484/1,484 tests on Python 3.13. Benchmark refresh is NOT
 RUN. Exact commit boundaries, intermediate metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
 in this plan.
 
 Phase 3 remains open for these unordered follow-ups:
 
-- extract bounded direct structured evidence preference/refinement and
-  post-coercion LLM selection slices without moving graph state or builders;
+- characterize bounded post-coercion LLM selection and remaining graph-prepared
+  direct-preference builder/scoring seams as separate slices without moving graph
+  state or builders;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
 - isolate dependency post-candidate finalization and ratio
   artifact/absolute-magnitude seams without moving graph state lookup;

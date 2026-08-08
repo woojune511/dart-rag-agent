@@ -582,6 +582,24 @@ The typed application flags are inspectable owner outputs, not runtime trace
 fields. The owner receives explicit row, evidence, requirement, operation, and
 ambiguity-context values, never `FinancialAgentState` or a callback.
 
+After the graph has copied and matched a direct row, built the strongest
+preferred evidence slot, scored the current and preferred evidence, and prepared
+the normalized peer raw-unit set, the operand owner applies a typed state-free
+preferred-slot adoption contract. It tests a higher current score and then an
+equal score, retaining the current row unless a ratio candidate with the same raw
+value improves peer-unit alignment. This strict comparison order is contractual;
+NaN scores fall through to adoption as before. Other prepared candidates are
+adopted through the existing exact overlay: the selected source and
+numeric/display fields replace the current fields, unmatched current fields and
+nested identities are retained, and the required label, concept, and role are
+normalized into the matched fields. A
+rejected result returns the prepared current-row identity; an adopted result is a
+new top-level row. The graph assigns only adopted rows immediately, preserving
+the existing sequential peer-unit behavior for later ratio operands. The typed
+reason and alignment flag are inspectable owner outputs, not runtime trace
+fields. This resolver receives no graph state, evidence builder, scorer, or
+callback.
+
 After the graph has built recovered period-comparison or coherent-ratio rows,
 the operand owner also applies their typed, state-free adoption contract. The
 graph calls this resolver only inside its non-empty recovered-row gate. Period
@@ -619,8 +637,10 @@ projected as runtime trace fields.
 
 The graph adapter still owns direct-row and evidence construction, coercion,
 consolidation-scope filtering, target override, the acceptance applicability
-gate, direct structured evidence preference/refinement, recovered-context
-eligibility, document/evidence collection, and period/ratio context-row builders.
+gate, and direct structured preference preparation: runtime evidence overlay,
+row copying and matching, peer-unit preparation, strongest-slot building,
+scoring, and sequential iteration. It also owns recovered-context eligibility,
+document/evidence collection, and period/ratio context-row builders.
 It also owns recovery logging and ratio-recovered flag projection,
 required-candidate builders, producer-scope filtering, the lazy coherent-context
 builder gate, retry and

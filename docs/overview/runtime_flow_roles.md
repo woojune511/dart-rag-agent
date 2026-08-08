@@ -262,9 +262,11 @@ lookup surface matching, retry query 생성이다.
   producer-scope filter, lazy coherent-context builder를 유지한다. Direct row를
   구성·coerce·scope-filter한 뒤 typed direct-acceptance owner를 조건부 호출하고,
   required-candidate merge와 acceptance 결과를 operand set에 반영한다. Direct
-  structured evidence preference/refinement은 graph에 남고, graph가 만든 recovered
-  period/ratio rows와 evidence는 typed adoption owner가 merge/replacement한다. Recovery
-  eligibility와 builder, logging, ratio flag 및 runtime projection은 graph에 남는다.
+  preference에서는 graph가 runtime evidence, peer unit, strongest slot과 score를
+  준비하고 typed owner가 adoption decision과 exact overlay를 적용한다. Graph가 만든
+  recovered period/ratio rows와 evidence는 typed adoption owner가
+  merge/replacement한다. Recovery eligibility와 builder, logging, ratio flag 및
+  runtime projection은 graph에 남는다.
 - `_plan_formula_calculation(state)`: state/query context를 state-free plan owner
   입력으로 바꾸고, primary 경로에서는 selected plan을 runtime/task/artifact
   state로 투영하는 graph adapter다.
@@ -302,10 +304,13 @@ state-free owner 경계:
   `lookup`/`single_value` row에 direct-support와 두 번째 ambiguity gate를 적용한다.
   Required operand가 없는 lookup은 ambiguity gate만 적용한다. 적용된 filter는 row
   identity와 순서를 보존하며, no-stage 경로는 input list identity를 유지한다. Graph가
-  복구한 period context에는 recovered-first/current missing-fill을, coherent ratio
-  context에는 recovered-only replacement를 적용하고, recovered row가 참조한 evidence만
-  기존 evidence 뒤에 source order대로 채택한다. 기존 id는 제외하고 새 candidate
-  duplicate는 보존하며 input은 변경하지 않는다.
+  준비한 direct preferred slot에는 score precedence와 ratio peer-unit alignment를
+  적용하고, 채택 시 exact overlay를 새 top-level row로 반환한다. Reject는 prepared
+  current-row identity를 유지하며 reason/alignment 필드는 runtime trace가 아니다.
+  Graph가 복구한 period context에는 recovered-first/current missing-fill을, coherent
+  ratio context에는 recovered-only replacement를 적용하고, recovered row가 참조한
+  evidence만 기존 evidence 뒤에 source order대로 채택한다. 기존 id는 제외하고 새
+  candidate duplicate는 보존하며 input은 변경하지 않는다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -340,7 +345,8 @@ graph adapter에 남은 orchestration 역할군:
 
 - main context/evidence retrieval gate와 typed input 구성
 - direct row/evidence construction, coercion, scope/target policy, acceptance
-  applicability gate, direct structured evidence preference/refinement
+  applicability gate, direct preference runtime evidence overlay, row
+  matching/iteration, peer-unit preparation, strongest-slot builder와 scoring
 - recovered-context eligibility, document/evidence collection, period/ratio row
   builder, logging, ratio-recovered flag와 runtime projection
 - required-candidate/evidence builder, dependency producer-scope filter, lazy
