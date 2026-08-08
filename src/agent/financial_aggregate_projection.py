@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Sequence
+from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
@@ -47,6 +47,110 @@ class RuntimeRatioAbsoluteMagnitudeProjectionResult:
     """The same prepared calculation-result object after attempted projection."""
 
     calculation_result: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class AggregateProjectionFinalAnswerSyncInput:
+    """Prepared aggregate projection and final-answer synchronization flags."""
+
+    aggregate_projection: Dict[str, Any]
+    final_answer: str
+    sync_rendered_for_aggregate: bool = True
+    status_ok: bool = False
+
+
+@dataclass(frozen=True)
+class AggregateProjectionFinalAnswerSyncResult:
+    """The same aggregate projection after attempted final-answer synchronization."""
+
+    aggregate_projection: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class AggregateAnswerCandidateApplicationInput:
+    """Graph-prepared candidate inputs for state-free aggregate application."""
+
+    aggregate_projection: Dict[str, Any]
+    selected_claim_ids: Sequence[Any]
+    candidate: Optional[Mapping[str, Any]]
+
+
+@dataclass(frozen=True)
+class AggregateAnswerCandidateApplicationResult:
+    """Applied projection, normalized answer, and newly merged claim ids."""
+
+    aggregate_projection: Dict[str, Any]
+    final_answer: str
+    selected_claim_ids: List[str]
+
+
+def sync_aggregate_projection_final_answer(
+    sync_input: AggregateProjectionFinalAnswerSyncInput,
+) -> AggregateProjectionFinalAnswerSyncResult:
+    """Synchronize one prepared answer onto the same aggregate projection."""
+
+    aggregate_projection = sync_input.aggregate_projection
+    final_answer = sync_input.final_answer
+    if not final_answer:
+        return AggregateProjectionFinalAnswerSyncResult(
+            aggregate_projection=aggregate_projection,
+        )
+    calculation_result = aggregate_projection.setdefault("calculation_result", {})
+    calculation_result["formatted_result"] = final_answer
+    if (
+        sync_input.sync_rendered_for_aggregate
+        and str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks"
+    ):
+        calculation_result["rendered_value"] = final_answer
+    if sync_input.status_ok:
+        calculation_result["status"] = "ok"
+    return AggregateProjectionFinalAnswerSyncResult(
+        aggregate_projection=aggregate_projection,
+    )
+
+
+def apply_aggregate_answer_candidate(
+    application_input: AggregateAnswerCandidateApplicationInput,
+) -> AggregateAnswerCandidateApplicationResult:
+    """Apply one graph-prepared candidate without selecting or refreshing it."""
+
+    candidate = application_input.candidate
+    aggregate_projection = application_input.aggregate_projection
+    final_answer = _normalise_spaces(str((candidate or {}).get("answer") or ""))
+    if bool((candidate or {}).get("sync_projection", True)):
+        sync_rendered_for_aggregate = bool(
+            (candidate or {}).get("sync_rendered_for_aggregate", True)
+        )
+        status_ok = bool((candidate or {}).get("status_ok", False))
+        aggregate_projection = sync_aggregate_projection_final_answer(
+            AggregateProjectionFinalAnswerSyncInput(
+                aggregate_projection=aggregate_projection,
+                final_answer=final_answer,
+                sync_rendered_for_aggregate=sync_rendered_for_aggregate,
+                status_ok=status_ok,
+            )
+        ).aggregate_projection
+    merged_claim_ids = list(
+        dict.fromkeys(
+            [
+                *[
+                    str(claim_id).strip()
+                    for claim_id in (application_input.selected_claim_ids or [])
+                    if str(claim_id).strip()
+                ],
+                *[
+                    str(claim_id).strip()
+                    for claim_id in ((candidate or {}).get("selected_claim_ids") or [])
+                    if str(claim_id).strip()
+                ],
+            ]
+        )
+    )
+    return AggregateAnswerCandidateApplicationResult(
+        aggregate_projection=aggregate_projection,
+        final_answer=final_answer,
+        selected_claim_ids=merged_claim_ids,
+    )
 
 
 def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:

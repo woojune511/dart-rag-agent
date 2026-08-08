@@ -12,6 +12,8 @@ from src.agent import (
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
+    AggregateAnswerCandidateApplicationInput,
+    AggregateProjectionFinalAnswerSyncInput,
     AggregateStaleRepairProvenanceInput,
     RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload,
@@ -26,8 +28,10 @@ from src.agent.financial_aggregate_projection import (
     aggregate_selected_claim_ids,
     aggregate_source_task_ids,
     aggregate_task_status_value,
+    apply_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
+    sync_aggregate_projection_final_answer,
 )
 from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
 from src.agent.financial_dependency_projection import dependency_operand_can_use_source_slot
@@ -534,6 +538,222 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         self.assertEqual(updated.synthesis_state, replacement)
         self.assertIs(updated.evidence_items, evidence_items)
+
+    def test_aggregate_answer_candidate_application_preserves_projection_and_claim_contract(self) -> None:
+        def _apply(projection, selected_claim_ids, candidate):
+            result = apply_aggregate_answer_candidate(
+                AggregateAnswerCandidateApplicationInput(
+                    aggregate_projection=projection,
+                    selected_claim_ids=selected_claim_ids,
+                    candidate=candidate,
+                )
+            )
+            return result.aggregate_projection, result.final_answer, result.selected_claim_ids
+
+        def _sync(projection, final_answer, **kwargs):
+            return sync_aggregate_projection_final_answer(
+                AggregateProjectionFinalAnswerSyncInput(
+                    aggregate_projection=projection,
+                    final_answer=final_answer,
+                    **kwargs,
+                )
+            ).aggregate_projection
+
+        class _TrackingCandidate(dict):
+            def __init__(self, *args, failing_key="", **kwargs):
+                super().__init__(*args, **kwargs)
+                self.accessed = []
+                self.failing_key = failing_key
+
+            def get(self, key, default=None):
+                self.accessed.append(key)
+                if key == self.failing_key:
+                    raise RuntimeError(f"failed to read {key}")
+                return super().get(key, default)
+
+        class _ExplodingPlan(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("plan mode unavailable")
+
+        marker = {"preserve": True}
+        result = {
+            "formatted_result": "old",
+            "rendered_value": "old",
+            "status": "partial",
+            "metadata": marker,
+        }
+        projection = {
+            "calculation_plan": {"mode": "aggregate_subtasks"},
+            "calculation_result": result,
+        }
+        current_ids = [" keep ", "duplicate", "", "duplicate"]
+        candidate_ids = ["duplicate", " next ", " "]
+        candidate = _TrackingCandidate(
+            answer="  final   answer  ",
+            selected_claim_ids=candidate_ids,
+            sync_projection=True,
+            sync_rendered_for_aggregate=True,
+            status_ok=True,
+        )
+        candidate_snapshot = deepcopy(dict(candidate))
+
+        selected_projection, final_answer, merged_ids = _apply(
+            projection, current_ids, candidate
+        )
+
+        self.assertIs(selected_projection, projection)
+        self.assertIs(projection["calculation_result"], result)
+        self.assertIs(result["metadata"], marker)
+        self.assertEqual(
+            (final_answer, merged_ids, result["formatted_result"], result["rendered_value"], result["status"]),
+            ("final answer", ["keep", "duplicate", "next"], "final answer", "final answer", "ok"),
+        )
+        self.assertIsNot(merged_ids, current_ids)
+        self.assertIsNot(merged_ids, candidate_ids)
+        self.assertEqual(current_ids, [" keep ", "duplicate", "", "duplicate"])
+        self.assertEqual(dict(candidate), candidate_snapshot)
+        self.assertIs(candidate["selected_claim_ids"], candidate_ids)
+        self.assertEqual(
+            candidate.accessed,
+            ["answer", "sync_projection", "sync_rendered_for_aggregate", "status_ok", "selected_claim_ids"],
+        )
+
+        empty_projection = {"calculation_plan": {"mode": "aggregate_subtasks"}}
+        empty_candidate = _TrackingCandidate(answer=" \n ", selected_claim_ids=[" next ", "keep"])
+        selected_projection, final_answer, merged_ids = _apply(
+            empty_projection, [" keep ", "keep"], empty_candidate
+        )
+        self.assertIs(selected_projection, empty_projection)
+        self.assertEqual((empty_projection, final_answer, merged_ids), (
+            {"calculation_plan": {"mode": "aggregate_subtasks"}}, "", ["keep", "next"]
+        ))
+        self.assertEqual(
+            empty_candidate.accessed,
+            ["answer", "sync_projection", "sync_rendered_for_aggregate", "status_ok", "selected_claim_ids"],
+        )
+
+        unchanged_result = {"formatted_result": "old", "rendered_value": "old"}
+        unchanged_projection = {
+            "calculation_plan": {"mode": "aggregate_subtasks"},
+            "calculation_result": unchanged_result,
+        }
+        no_sync = _TrackingCandidate(
+            answer=" new   answer ",
+            selected_claim_ids=["new"],
+            sync_projection=False,
+            sync_rendered_for_aggregate=True,
+            status_ok=True,
+        )
+        unchanged_snapshot = deepcopy(unchanged_projection)
+        selected_projection, final_answer, merged_ids = _apply(
+            unchanged_projection, ["old"], no_sync
+        )
+        self.assertIs(selected_projection, unchanged_projection)
+        self.assertIs(unchanged_projection["calculation_result"], unchanged_result)
+        self.assertEqual((unchanged_projection, final_answer, merged_ids), (
+            unchanged_snapshot, "new answer", ["old", "new"]
+        ))
+        self.assertEqual(no_sync.accessed, ["answer", "sync_projection", "selected_claim_ids"])
+
+        flag_error_projection = {
+            "calculation_plan": {"mode": "aggregate_subtasks"},
+            "calculation_result": {"formatted_result": "old", "rendered_value": "old"},
+        }
+        flag_error = _TrackingCandidate(
+            answer="updated",
+            selected_claim_ids=["never-read"],
+            sync_projection=True,
+            sync_rendered_for_aggregate=True,
+            status_ok=True,
+            failing_key="status_ok",
+        )
+        flag_error_snapshot = deepcopy(flag_error_projection)
+        with self.assertRaisesRegex(RuntimeError, "failed to read status_ok"):
+            _apply(flag_error_projection, ["existing"], flag_error)
+        self.assertEqual(flag_error_projection, flag_error_snapshot)
+        self.assertEqual(
+            flag_error.accessed,
+            ["answer", "sync_projection", "sync_rendered_for_aggregate", "status_ok"],
+        )
+
+        sync_cases = [
+            (
+                "missing_result",
+                {"calculation_plan": {"mode": "single_value"}},
+                {},
+                {"formatted_result": "updated"},
+            ),
+            (
+                "nonaggregate",
+                {
+                    "calculation_plan": {"mode": "single_value"},
+                    "calculation_result": {"rendered_value": "preserved", "status": "partial"},
+                },
+                {},
+                {"formatted_result": "updated", "rendered_value": "preserved", "status": "partial"},
+            ),
+            (
+                "render_disabled",
+                {
+                    "calculation_plan": _ExplodingPlan(marker=True),
+                    "calculation_result": {"rendered_value": "preserved", "status": "partial"},
+                },
+                {"sync_rendered_for_aggregate": False, "status_ok": True},
+                {"formatted_result": "updated", "rendered_value": "preserved", "status": "ok"},
+            ),
+        ]
+        for name, sync_projection, sync_kwargs, expected_result in sync_cases:
+            with self.subTest(sync=name):
+                original_result = sync_projection.get("calculation_result")
+                synced = _sync(sync_projection, "updated", **sync_kwargs)
+                self.assertIs(synced, sync_projection)
+                if original_result is not None:
+                    self.assertIs(synced["calculation_result"], original_result)
+                self.assertEqual(synced["calculation_result"], expected_result)
+
+        sync_error_result = {"formatted_result": "old", "rendered_value": "old", "status": "partial"}
+        sync_error = _TrackingCandidate(
+            answer="updated",
+            selected_claim_ids=["never-read"],
+            sync_projection=True,
+            sync_rendered_for_aggregate=True,
+            status_ok=True,
+        )
+        with self.assertRaisesRegex(RuntimeError, "plan mode unavailable"):
+            _apply(
+                {
+                    "calculation_plan": _ExplodingPlan(marker=True),
+                    "calculation_result": sync_error_result,
+                },
+                ["existing"],
+                sync_error,
+            )
+        self.assertEqual(sync_error_result, {
+            "formatted_result": "updated", "rendered_value": "old", "status": "partial"
+        })
+        self.assertNotIn("selected_claim_ids", sync_error.accessed)
+
+        claim_error_result = {"formatted_result": "old", "rendered_value": "old", "status": "partial"}
+        claim_error = _TrackingCandidate(
+            answer="updated",
+            selected_claim_ids=["unavailable"],
+            sync_projection=True,
+            sync_rendered_for_aggregate=True,
+            status_ok=True,
+            failing_key="selected_claim_ids",
+        )
+        with self.assertRaisesRegex(RuntimeError, "failed to read selected_claim_ids"):
+            _apply(
+                {
+                    "calculation_plan": {"mode": "aggregate_subtasks"},
+                    "calculation_result": claim_error_result,
+                },
+                ["existing"],
+                claim_error,
+            )
+        self.assertEqual(claim_error_result, {
+            "formatted_result": "updated", "rendered_value": "updated", "status": "ok"
+        })
 
     def test_aggregate_selected_claim_ids_preserves_order_and_dedupes(self) -> None:
         selected = aggregate_selected_claim_ids(

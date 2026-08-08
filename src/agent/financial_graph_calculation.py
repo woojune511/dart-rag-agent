@@ -27,6 +27,8 @@ from src.agent.financial_aggregate_state import (
     _PreparedAggregateState,
 )
 from src.agent.financial_aggregate_projection import (
+    AggregateAnswerCandidateApplicationInput,
+    AggregateProjectionFinalAnswerSyncInput,
     AggregateStaleRepairProvenanceInput,
     RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload as _aggregate_artifact_payload,
@@ -40,8 +42,10 @@ from src.agent.financial_aggregate_projection import (
     aggregate_result_operation_family as _aggregate_result_operation_family,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_task_ids as _aggregate_source_task_ids,
+    apply_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
+    sync_aggregate_projection_final_answer,
 )
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
@@ -4819,27 +4823,6 @@ class FinancialAgentCalculationMixin:
                 return sibling_answer
         return default_answer
 
-    def _sync_aggregate_projection_final_answer(
-        self,
-        aggregate_projection: Dict[str, Any],
-        final_answer: str,
-        *,
-        sync_rendered_for_aggregate: bool = True,
-        status_ok: bool = False,
-    ) -> Dict[str, Any]:
-        if not final_answer:
-            return aggregate_projection
-        calculation_result = aggregate_projection.setdefault("calculation_result", {})
-        calculation_result["formatted_result"] = final_answer
-        if (
-            sync_rendered_for_aggregate
-            and str((aggregate_projection.get("calculation_plan") or {}).get("mode") or "") == "aggregate_subtasks"
-        ):
-            calculation_result["rendered_value"] = final_answer
-        if status_ok:
-            calculation_result["status"] = "ok"
-        return aggregate_projection
-
     def _answer_sentence_for_projection_subtask_row(
         self,
         final_answer: str,
@@ -5402,36 +5385,6 @@ class FinancialAgentCalculationMixin:
             status_ok=status_ok,
         )
 
-    def _apply_aggregate_answer_candidate(
-        self,
-        aggregate_projection: Dict[str, Any],
-        selected_claim_ids: List[str],
-        candidate: Dict[str, Any],
-    ) -> tuple[Dict[str, Any], str, List[str]]:
-        final_answer = _normalise_spaces(str((candidate or {}).get("answer") or ""))
-        if bool((candidate or {}).get("sync_projection", True)):
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                final_answer,
-                sync_rendered_for_aggregate=bool(
-                    (candidate or {}).get("sync_rendered_for_aggregate", True)
-                ),
-                status_ok=bool((candidate or {}).get("status_ok", False)),
-            )
-        merged_claim_ids = list(
-            dict.fromkeys(
-                [
-                    *[str(claim_id).strip() for claim_id in (selected_claim_ids or []) if str(claim_id).strip()],
-                    *[
-                        str(claim_id).strip()
-                        for claim_id in ((candidate or {}).get("selected_claim_ids") or [])
-                        if str(claim_id).strip()
-                    ],
-                ]
-            )
-        )
-        return aggregate_projection, final_answer, merged_claim_ids
-
     def _apply_aggregate_composition_answer(
         self,
         composition_state: _AggregateCompositionState,
@@ -5742,18 +5695,23 @@ class FinancialAgentCalculationMixin:
         evidence_items: List[Dict[str, Any]],
         sync_projection: bool = False,
     ) -> _AggregateSynthesisState:
-        aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-            aggregate_state.aggregate_projection,
-            aggregate_state.selected_claim_ids,
-            self._refresh_numeric_aggregate_answer_candidate(
-                query=str(state.get("query") or ""),
-                current_answer=aggregate_state.final_answer,
-                numeric_answer=numeric_answer,
-                ordered_results=aggregate_state.ordered_results,
-                evidence_items=evidence_items,
-                sync_projection=sync_projection,
-            ),
+        candidate_application = apply_aggregate_answer_candidate(
+            AggregateAnswerCandidateApplicationInput(
+                aggregate_projection=aggregate_state.aggregate_projection,
+                selected_claim_ids=aggregate_state.selected_claim_ids,
+                candidate=self._refresh_numeric_aggregate_answer_candidate(
+                    query=str(state.get("query") or ""),
+                    current_answer=aggregate_state.final_answer,
+                    numeric_answer=numeric_answer,
+                    ordered_results=aggregate_state.ordered_results,
+                    evidence_items=evidence_items,
+                    sync_projection=sync_projection,
+                ),
+            )
         )
+        aggregate_projection = candidate_application.aggregate_projection
+        final_answer = candidate_application.final_answer
+        selected_claim_ids = candidate_application.selected_claim_ids
         return _AggregateSynthesisState(
             aggregate_state.ordered_results,
             aggregate_projection,
@@ -5774,12 +5732,14 @@ class FinancialAgentCalculationMixin:
         candidate_answer = _normalise_spaces(candidate_answer)
         if candidate_answer == mutable_state.final_answer and not force:
             return mutable_state, False
-        aggregate_projection = self._sync_aggregate_projection_final_answer(
-            mutable_state.aggregate_projection,
-            candidate_answer,
-            sync_rendered_for_aggregate=sync_rendered_for_aggregate,
-            status_ok=status_ok,
-        )
+        aggregate_projection = sync_aggregate_projection_final_answer(
+            AggregateProjectionFinalAnswerSyncInput(
+                aggregate_projection=mutable_state.aggregate_projection,
+                final_answer=candidate_answer,
+                sync_rendered_for_aggregate=sync_rendered_for_aggregate,
+                status_ok=status_ok,
+            )
+        ).aggregate_projection
         evidence_items = mutable_state.evidence_items
         if refresh_operand_evidence:
             evidence_items = self._append_operand_evidence_for_final_answer(
@@ -5920,14 +5880,19 @@ class FinancialAgentCalculationMixin:
                 ordered_results=ordered_results,
                 evidence_items=aggregate_evidence_items,
             ):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        repaired_answer,
-                        selected_claim_ids=(repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [],
-                    ),
+                candidate_application = apply_aggregate_answer_candidate(
+                    AggregateAnswerCandidateApplicationInput(
+                        aggregate_projection=aggregate_projection,
+                        selected_claim_ids=selected_claim_ids,
+                        candidate=self._aggregate_answer_candidate(
+                            repaired_answer,
+                            selected_claim_ids=(repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [],
+                        ),
+                    )
                 )
+                aggregate_projection = candidate_application.aggregate_projection
+                final_answer = candidate_application.final_answer
+                selected_claim_ids = candidate_application.selected_claim_ids
                 aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
                     aggregate_evidence_items,
                     operands=list(aggregate_projection.get("calculation_operands") or []),
@@ -13825,12 +13790,14 @@ class FinancialAgentCalculationMixin:
             kept_evidence_ids=None,
         )
         if refreshed_answer:
-            aggregate_projection = self._sync_aggregate_projection_final_answer(
-                aggregate_projection,
-                refreshed_answer,
-                sync_rendered_for_aggregate=True,
-                status_ok=True,
-            )
+            aggregate_projection = sync_aggregate_projection_final_answer(
+                AggregateProjectionFinalAnswerSyncInput(
+                    aggregate_projection=aggregate_projection,
+                    final_answer=refreshed_answer,
+                    sync_rendered_for_aggregate=True,
+                    status_ok=True,
+                )
+            ).aggregate_projection
         updated_trace = dict(aggregate_projection)
         updated_result = dict(updated_trace.get("calculation_result") or {})
         updated_result["stale_result_repaired_from_evidence"] = True
@@ -19156,15 +19123,20 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
         )
         if complete_projection_answer:
-            aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                aggregate_projection,
-                selected_claim_ids,
-                self._aggregate_answer_candidate(
-                    complete_projection_answer,
-                    selected_claim_ids=[],
-                    status_ok=True,
-                ),
+            candidate_application = apply_aggregate_answer_candidate(
+                AggregateAnswerCandidateApplicationInput(
+                    aggregate_projection=aggregate_projection,
+                    selected_claim_ids=selected_claim_ids,
+                    candidate=self._aggregate_answer_candidate(
+                        complete_projection_answer,
+                        selected_claim_ids=[],
+                        status_ok=True,
+                    ),
+                )
             )
+            aggregate_projection = candidate_application.aggregate_projection
+            final_answer = candidate_application.final_answer
+            selected_claim_ids = candidate_application.selected_claim_ids
             _sync_state(
                 aggregate_projection=aggregate_projection,
                 final_answer=final_answer,
@@ -19222,15 +19194,20 @@ class FinancialAgentCalculationMixin:
                     and not _narrative_sentence_looks_table_noisy(conflicting_answer)
                 )
             ):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        conflicting_answer,
-                        selected_claim_ids=late_conflicting_narrative.get("selected_claim_ids") or [],
-                        sync_projection=False,
-                    ),
+                candidate_application = apply_aggregate_answer_candidate(
+                    AggregateAnswerCandidateApplicationInput(
+                        aggregate_projection=aggregate_projection,
+                        selected_claim_ids=selected_claim_ids,
+                        candidate=self._aggregate_answer_candidate(
+                            conflicting_answer,
+                            selected_claim_ids=late_conflicting_narrative.get("selected_claim_ids") or [],
+                            sync_projection=False,
+                        ),
+                    )
                 )
+                aggregate_projection = candidate_application.aggregate_projection
+                final_answer = candidate_application.final_answer
+                selected_claim_ids = candidate_application.selected_claim_ids
                 aggregate_projection = self._rebuild_aggregate_projection(
                     ordered_results, final_answer, kept_evidence_ids=kept_evidence_ids
                 )
@@ -19245,11 +19222,16 @@ class FinancialAgentCalculationMixin:
             final_answer,
         )
         if preserved_aggregate_candidate:
-            aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                aggregate_projection,
-                selected_claim_ids,
-                preserved_aggregate_candidate,
+            candidate_application = apply_aggregate_answer_candidate(
+                AggregateAnswerCandidateApplicationInput(
+                    aggregate_projection=aggregate_projection,
+                    selected_claim_ids=selected_claim_ids,
+                    candidate=preserved_aggregate_candidate,
+                )
             )
+            aggregate_projection = candidate_application.aggregate_projection
+            final_answer = candidate_application.final_answer
+            selected_claim_ids = candidate_application.selected_claim_ids
             _sync_state(
                 aggregate_projection=aggregate_projection,
                 final_answer=final_answer,
@@ -19271,14 +19253,19 @@ class FinancialAgentCalculationMixin:
             )
             supported_sentence = _normalise_spaces(str(supported_candidate.get("sentence") or ""))
             if supported_sentence:
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        _normalise_spaces(" ".join([final_answer, supported_sentence])),
-                        selected_claim_ids=supported_candidate.get("selected_claim_ids") or [],
-                    ),
+                candidate_application = apply_aggregate_answer_candidate(
+                    AggregateAnswerCandidateApplicationInput(
+                        aggregate_projection=aggregate_projection,
+                        selected_claim_ids=selected_claim_ids,
+                        candidate=self._aggregate_answer_candidate(
+                            _normalise_spaces(" ".join([final_answer, supported_sentence])),
+                            selected_claim_ids=supported_candidate.get("selected_claim_ids") or [],
+                        ),
+                    )
                 )
+                aggregate_projection = candidate_application.aggregate_projection
+                final_answer = candidate_application.final_answer
+                selected_claim_ids = candidate_application.selected_claim_ids
                 _sync_state(
                     aggregate_projection=aggregate_projection,
                     final_answer=final_answer,
@@ -19309,14 +19296,19 @@ class FinancialAgentCalculationMixin:
                 evidence_items=aggregate_evidence_items,
             )
             if numeric_preserved_answer and numeric_preserved_answer != _normalise_spaces(final_answer):
-                aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                    aggregate_projection,
-                    selected_claim_ids,
-                    self._aggregate_answer_candidate(
-                        numeric_preserved_answer,
-                        selected_claim_ids=[],
-                    ),
+                candidate_application = apply_aggregate_answer_candidate(
+                    AggregateAnswerCandidateApplicationInput(
+                        aggregate_projection=aggregate_projection,
+                        selected_claim_ids=selected_claim_ids,
+                        candidate=self._aggregate_answer_candidate(
+                            numeric_preserved_answer,
+                            selected_claim_ids=[],
+                        ),
+                    )
                 )
+                aggregate_projection = candidate_application.aggregate_projection
+                final_answer = candidate_application.final_answer
+                selected_claim_ids = candidate_application.selected_claim_ids
                 _sync_state(
                     aggregate_projection=aggregate_projection,
                     final_answer=final_answer,
@@ -19394,15 +19386,20 @@ class FinancialAgentCalculationMixin:
             and not _narrative_sentence_looks_table_noisy(final_conflicting_answer)
             and self._numeric_surface_conflicts_with_reference(final_answer, final_conflicting_answer)
         ):
-            aggregate_projection, final_answer, selected_claim_ids = self._apply_aggregate_answer_candidate(
-                aggregate_projection,
-                selected_claim_ids,
-                self._aggregate_answer_candidate(
-                    final_conflicting_answer,
-                    selected_claim_ids=final_conflicting_narrative.get("selected_claim_ids") or [],
-                    sync_projection=False,
-                ),
+            candidate_application = apply_aggregate_answer_candidate(
+                AggregateAnswerCandidateApplicationInput(
+                    aggregate_projection=aggregate_projection,
+                    selected_claim_ids=selected_claim_ids,
+                    candidate=self._aggregate_answer_candidate(
+                        final_conflicting_answer,
+                        selected_claim_ids=final_conflicting_narrative.get("selected_claim_ids") or [],
+                        sync_projection=False,
+                    ),
+                )
             )
+            aggregate_projection = candidate_application.aggregate_projection
+            final_answer = candidate_application.final_answer
+            selected_claim_ids = candidate_application.selected_claim_ids
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
             _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         return self._build_aggregate_completion_update(

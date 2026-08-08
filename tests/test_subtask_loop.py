@@ -3411,9 +3411,27 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent.llm = None
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        with patch.object(
+            financial_graph_calculation,
+            "sync_aggregate_projection_final_answer",
+            wraps=financial_graph_calculation.sync_aggregate_projection_final_answer,
+        ) as final_answer_sync, patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_answer_candidate",
+            wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+        ) as candidate_apply:
+            updated = self.agent._aggregate_calculation_subtasks(state)
 
         trace = _resolve_runtime_calculation_trace(updated)
+        candidate_apply.assert_not_called()
+        final_answer_sync.assert_called_once()
+        self.assertEqual(
+            (
+                final_answer_sync.call_args.args[0].sync_rendered_for_aggregate,
+                final_answer_sync.call_args.args[0].status_ok,
+            ),
+            (True, True),
+        )
         self.assertIn("37.47%", updated["answer"])
         self.assertNotIn("0.04%", updated["answer"])
         self.assertIn("37.47%", trace["calculation_result"]["formatted_result"])
@@ -4502,9 +4520,30 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent.llm = None
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        with patch.object(
+            financial_graph_calculation,
+            "sync_aggregate_projection_final_answer",
+            wraps=financial_graph_calculation.sync_aggregate_projection_final_answer,
+        ) as final_answer_sync, patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_answer_candidate",
+            wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+        ) as candidate_apply:
+            updated = self.agent._aggregate_calculation_subtasks(state)
         trace = _resolve_runtime_calculation_trace(updated)
 
+        candidate_apply.assert_called_once()
+        self.assertFalse(candidate_apply.call_args.args[0].candidate["sync_projection"])
+        self.assertEqual(
+            [
+                (call.args[0].sync_rendered_for_aggregate, call.args[0].status_ok)
+                for call in final_answer_sync.call_args_list
+            ],
+            [
+                (True, True),
+                (False, False),
+            ],
+        )
         self.assertIn("80%", updated["answer"])
         self.assertIn("peer metric 30백만원", updated["answer"])
         self.assertNotIn("30천원", updated["answer"])
@@ -15449,7 +15488,6 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         updated = self.agent._aggregate_calculation_subtasks(state)
-
         self.assertIn("70.28%", updated["answer"])
         self.assertNotIn("70.23%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])
@@ -15555,8 +15593,28 @@ class SubtaskLoopTests(unittest.TestCase):
             "selected_claim_ids": [],
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        with patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_answer_candidate",
+            wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+        ) as candidate_apply:
+            updated = self.agent._aggregate_calculation_subtasks(state)
 
+        self.assertEqual(candidate_apply.call_count, 2)
+        self.assertEqual(
+            [
+                (
+                    list(call.args[0].selected_claim_ids),
+                    call.args[0].candidate["selected_claim_ids"],
+                    call.args[0].candidate["sync_projection"],
+                )
+                for call in candidate_apply.call_args_list
+            ],
+            [
+                (["ev_driver"], ["ev_driver"], False),
+                (["ev_driver"], ["ev_driver"], True),
+            ],
+        )
         self.assertIn("70.28%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])
         self.assertIn("1,847,775백만원", updated["answer"])
