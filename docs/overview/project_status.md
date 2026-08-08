@@ -62,17 +62,20 @@ imports or an unconfigured `FinancialAgent` invocation.
   `single_value` plans are reused, invalid or absent plans are rebuilt once, and
   executable non-`single_value` plans are `unsupported_mode`: the affected row
   is not recalculated, and the no-change path retains original list/row identity,
-  before raw-plan construction, candidate execution, or ratio formatting. This
-  is the separate `d1114c6` behavior fix.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,831 lines,
+  before raw-plan construction, candidate execution, or ratio formatting.
+- Required candidate merge now has a typed state-free operand-resolution owner.
+  It applies coherent-first candidate merge, evaluates required coverage, and
+  selects complete-ratio candidate-first or current-first precedence. The graph
+  retains evidence/candidate builders, dependency producer-scope filtering, the
+  lazy coherent-context builder gate, and runtime projection.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,823 lines,
+  `financial_operand_resolution.py` is 1,854,
   `financial_dependency_projection.py` is 2,813, and
-  `financial_calculation_execution.py` is 837. For `d1114c6`, source is
-  `+22/-2`, net 20; tests add 46 lines; the whole commit is `+68/-2`, net 66.
-  These figures are not a total-code or broad executed-path/performance
-  reduction claim.
-- The latest calculation checkpoint passed 1 targeted contract, all 615 affected
-  tests, the 217-literal runtime audit, and full discovery over 1,479 tests on
-  Python 3.13. Benchmark refresh remains NOT RUN.
+  `financial_calculation_execution.py` is 837. These figures are not a
+  total-code or broad executed-path/performance reduction claim.
+- The latest calculation checkpoint passed 5/5 focused and 299/299 affected
+  tests, the 217-literal runtime audit, and full discovery over 1,480/1,480 tests
+  on Python 3.13. Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
 boundaries live in
@@ -90,7 +93,7 @@ current-state document does not duplicate that commit diary.
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
-| Generic operand candidate resolution | `financial_operand_resolution.py` |
+| Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge and complete-ratio candidate-first/current-first precedence while graph retains builders and producer-scope filtering |
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, and dependency recalculation plan disposition | `financial_dependency_projection.py`; graph builds explicit raw plans and retains query gates, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
@@ -117,9 +120,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS after `d1114c6`: 1 targeted and 615 affected tests on 2026-08-08 |
+| Latest calculation runtime checkpoint | PASS: 5/5 focused and 299/299 affected tests on 2026-08-08 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-08 |
-| Full unittest discovery | PASS, 1,479 tests locally after `d1114c6` on 2026-08-08 |
+| Full unittest discovery | PASS, 1,480/1,480 tests locally on 2026-08-08 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -163,14 +166,15 @@ rather than an incomplete product requirement.
 
 The July canonical public-projection milestone is complete, but the broader
 single-calculation-path Phase 3 remains open. Dependency precedence, late merge,
-terminal finalization, scalar plan disposition, deterministic plan/execution,
-and pure aggregate provenance selection have named owners. The graph still owns
-operand/evidence adapters, retry and query gates, candidate preparation plus
-state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
-absolute-ratio handling, and other deterministic/LLM fallbacks. Broader ledger
-synchronization and the private helper mesh are also open. No current result
-supports a whole-ledger, end-to-end owner, total-code reduction, or broad
-performance claim.
+terminal finalization, required-candidate merge, scalar plan disposition,
+deterministic plan/execution, and pure aggregate provenance selection have named
+owners. The graph still owns operand/evidence adapters and builders,
+producer-scope filtering, lazy coherent-context construction, retry and query
+gates, candidate preparation plus state/task/artifact projection, repair
+acceptance, aggregate/filter sequencing, absolute-ratio handling, and other
+deterministic/LLM fallbacks. Broader ledger synchronization and the private
+helper mesh are also open. No current result supports a whole-ledger,
+end-to-end owner, total-code reduction, or broad performance claim.
 
 Open work should be created only when one of these conditions is met:
 
@@ -187,18 +191,20 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture slice is the
-`_extract_calculation_operands` adapter/resolver decomposition. First
-characterize one state-free selection or merge subcluster, move it to the
-existing operand-resolution owner, migrate its callers, and delete the old graph
-body. Do not split the full 860-line function by size alone.
+The next bounded architecture slice is the direct structured acceptance boundary
+at the current `financial_graph_calculation.py:15081-15127` inside
+`_extract_calculation_operands`. Characterize its requirement/surface, ambiguity,
+and lookup-direct-support evaluation order, move the state-free selection to the
+existing operand-resolution owner, migrate the caller, and delete the old graph
+body. The function remains an 851-line graph adapter; do not split it by size
+alone.
 
-After that, address one bounded seam at a time: aggregate repair/precedence
-selection, dependency post-candidate finalization, and ratio artifact/absolute
-orchestration. Broader ledger synchronization, remaining deterministic/LLM
-fallbacks, private facade/API cleanup, and contract-aligned test co-location
-remain separate work. The Phase 3 backlog in the refactoring plan is unordered;
-this section is the authority for priority.
+After that, move context/evidence adoption and then post-coercion LLM selection
+as separate bounded slices. Aggregate repair/precedence selection, dependency
+post-candidate finalization, ratio artifact/absolute orchestration, broader ledger
+synchronization, remaining fallbacks, private facade/API cleanup, and
+contract-aligned test co-location remain separate work. The Phase 3 backlog in
+the refactoring plan is unordered; this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

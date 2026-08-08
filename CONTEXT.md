@@ -34,19 +34,23 @@ Last updated: 2026-08-08
   checkpoint다. 정확한 commit은 `git log`로 확인하며, 이 branch는 아직
   push/merge하지 않았다.
 - 계산 경로는 graph-state adapter와 state-free operand, dependency,
-  deterministic-execution owner로 나뉜다. Dependency owner는 main precedence,
-  late re-merge, terminal finalization, dependency recalculation plan disposition을
-  소유한다. Executable `single_value` plan은 reuse하고 invalid/absent plan은
-  한 번 rebuild하며, executable non-`single_value` plan은 `unsupported_mode`로
-  해당 row를 재계산하지 않는다. 다른 row도 바뀌지 않은 no-change 경로에서는
-  원본 list/row identity를 유지한다.
+  deterministic-execution owner로 나뉜다. Operand owner는 producer-scope
+  filtering 뒤의 required candidate와 graph가 lazy하게 만든 coherent candidate를
+  merge하고, complete ratio candidate-first 또는 그 밖의 current-first precedence를
+  state-free result로 반환한다. Dependency owner는 main precedence, late re-merge,
+  terminal finalization, dependency recalculation plan disposition을 소유한다.
+  Executable `single_value` plan은 reuse하고 invalid/absent plan은 한 번 rebuild하며,
+  executable non-`single_value` plan은 `unsupported_mode`로 해당 row를 재계산하지
+  않는다. 다른 row도 바뀌지 않은 no-change 경로에서는 원본 list/row identity를
+  유지한다.
 - Execution owner는 deterministic difference/growth plan construction, plan
   validation, formula execution, value-only freshness assessment를 소유한다.
   Aggregate owner는 pure stale provenance target selection을 소유한다.
-- Graph는 evidence/context input, retry/query gates, candidate preparation과
-  state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
-  absolute-ratio와 기타 fallback orchestration을 유지한다. 전체 ledger
-  synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
+- Graph는 evidence/candidate builder, producer-scope filter, lazy coherent-context
+  builder, retry/query gate와 state/task/artifact projection을 유지한다. Repair
+  acceptance, aggregate/filter sequencing, absolute-ratio와 기타 fallback
+  orchestration도 graph에 남는다. 전체 ledger synchronization과 broader
+  single-calculation-path Phase 3는 완료되지 않았다.
 
 ## 현재 검증 기준
 
@@ -55,7 +59,7 @@ Last updated: 2026-08-08
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | `d1114c6` 뒤 targeted 1개, affected 615개, full unittest 1,479개 PASS |
+| Latest calculation runtime validation | focused 5/5, affected 299/299, full unittest 1,480/1,480 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

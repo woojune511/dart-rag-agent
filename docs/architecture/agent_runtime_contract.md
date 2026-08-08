@@ -559,6 +559,16 @@ normalized values, the resolver must abstain instead of selecting whichever
 candidate arrived first. If tied candidates are value-equivalent, it may select
 one through a stable provenance and candidate-identity ordering.
 
+Within `_extract_calculation_operands`, the same owner also receives the current
+post-main operand rows, required candidate rows after producer-scope filtering,
+and any coherent candidate rows built by the graph. It merges coherent rows into
+the ratio candidate set first when they are present, evaluates required-operand
+coverage, then prefers a complete ratio candidate set over the current rows;
+partial ratio and non-ratio sets keep current rows first and fill only missing
+requirements. The transformation is state-free, preserves preferred-row order
+through the existing top-level shallow-copy merge contract, and does not receive
+graph state or builder callbacks.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
@@ -581,11 +591,12 @@ active dependency snapshot second, retaining order through top-level shallow
 copies. Its reason fields are owner-contract outputs; they are not currently
 projected as runtime trace fields.
 
-The graph adapter still owns the context/evidence builders that prepare these
-inputs, retry and dependency-guard decisions, the percent-point query gate,
-other deterministic/LLM fallback paths, coverage decisions, and state, trace,
-artifact, and logging projection. Aggregate repair also remains graph-owned, so
-this is not a single-owner end-to-end precedence claim. A task output may
+The graph adapter still owns the context/evidence and required-candidate builders,
+producer-scope filtering, the lazy coherent-context builder gate, retry and
+dependency-guard decisions, the percent-point query gate, other deterministic/LLM
+fallback paths, coverage decisions, and state, trace, artifact, and logging
+projection. Aggregate repair also remains graph-owned, so this is not a
+single-owner end-to-end precedence claim. A task output may
 override a direct row only through an explicit decision reason and provenance
 record. The decision must retain the
 current and candidate source identities needed to inspect value, materiality,

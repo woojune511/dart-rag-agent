@@ -233,6 +233,25 @@ full tests. `d1114c6` passed 1 targeted and the same 615 affected tests, the sam
 audit, and 1,479 full tests on Python 3.13. No benchmark refresh ran for any of
 these post-stop-line calculation changes.
 
+### Required-candidate operand merge ownership
+
+- `1f67638` moves the post-main required-candidate merge from the graph into the
+  existing operand-resolution owner. The typed state-free result merges coherent
+  rows into producer-scope-filtered candidates, evaluates required coverage, and
+  applies complete-ratio candidate-first or otherwise current-first precedence.
+  Candidate/evidence builders, producer-scope filtering, the lazy coherent-context
+  builder gate, logging, and runtime projection remain graph-owned.
+- The graph changes from 19,831 to 19,823 lines (`+12/-20`, net -8) and the
+  operand owner from 1,770 to 1,854 lines (`+84`). Production source is
+  `+96/-20`, net 76; tests are `+185/-15`, net 170; the whole commit is
+  `+281/-35`, net 246.
+- Validation passed 5/5 focused tests, 299/299 affected tests, the 217-literal
+  runtime audit, and full discovery over 1,480/1,480 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a required-candidate precedence/merge ownership move, not a total-code,
+executed-path, performance, private-mesh, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
