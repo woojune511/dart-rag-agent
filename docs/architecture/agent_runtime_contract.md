@@ -762,6 +762,26 @@ mode:
   candidate execution, or ratio formatting. When the enclosing alignment pass
   accepts no other row change, it returns the original ordered-result identity.
 
+After a supported candidate runs, the dependency owner applies two state-free
+post-candidate stages. Stage 1 receives only the candidate operand rows, plan,
+and calculation result, not the graph-private candidate wrapper. In the existing
+order it shallow-copies each operand row, the plan, and the result, makes a second
+top-level mutable result copy, and decides readiness from normalized
+`calculation_result.status`. Candidate-wrapper status, reason, and selected
+evidence ids are not inputs. The trace result and mutable result are distinct
+top-level dictionaries with retained nested identities; the typed readiness and
+reason are owner-contract fields, not runtime trace fields.
+
+The graph then retains the absolute-ratio query and transform invocation,
+task-artifact/ledger construction and conflict short-circuit, and ratio or scalar
+formatting. Only after those steps does Stage 2 mutate `formatted_result` when
+the prepared answer is truthy and project the final row. Calculation operands
+and plan use trace-first then graph-prepared fallback order; source ids use the
+mutable result first and the current row second. The final row keeps the same
+mutable calculation-result identity while copying the selected operand list,
+plan dictionary, source-id list, and row top level with existing nested
+identities. No selected-evidence or ledger projection is added.
+
 For supported ratio recalculation, artifact precedence is split at a narrower
 boundary. The graph coerces the recalculated top-level `result_value`; an
 unavailable value returns before artifact-row construction. It then builds the
@@ -773,12 +793,17 @@ then row value, skips values within the existing scaled tolerance, and selects
 the first material conflict. A selected row is a new top-level shallow copy with
 the preservation marker and retained nested identities. The typed reason and
 flag are inspectable owner outputs, not runtime trace fields. The graph retains
-absolute-ratio transformation and caller projection. In particular, when the
-enclosing pass accepts no other alignment, its no-change identity contract can
+absolute-ratio query/transform invocation and caller projection. In particular,
+when the enclosing pass accepts no other alignment, its no-change identity contract can
 discard the local selected-row copy; owner selection is not a guarantee that the
 artifact row reaches final output.
 
-Failure and no-op paths preserve ordered-result identity and input immutability.
+The nested non-`ok` path returns the graph-supplied local row. The enclosing pass
+returns the original ordered-result and original row identities only when no
+other row changes; when another row changes, an unchanged row may be the graph's
+top-level copy. Caller-owned ordered results, state, and aggregate projection
+remain unmodified; Stage 2 intentionally mutates only its graph-prepared mutable
+calculation-result input.
 This contract does not move primary state/artifact projection, repair acceptance,
 aggregate sequencing, or absolute-ratio orchestration out of the graph. It does
 not establish whole-ledger synchronization, broad performance or total-code

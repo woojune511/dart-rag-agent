@@ -397,6 +397,32 @@ move of query or rendering policy, aggregate sequencing, final projection, or
 ledger state and not a total-code, broad executed-path, performance,
 private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Dependency post-candidate finalization ownership
+
+- `7573d5f` moves two state-free dependency recalculation stages into the
+  dependency owner. Stage 1 shallow-copies candidate operand rows, plan, and
+  result in the existing order, creates the distinct mutable result copy, and
+  decides from normalized `calculation_result.status`. The graph retains the
+  absolute-ratio query/transform, task-artifact/ledger conflict short-circuit,
+  and formatter. Stage 2 then applies a truthy formatted result and projects the
+  final row with trace-first/fallback operands and plan, result-first/current-row
+  source ids, and the same result identity. The nested non-`ok` path returns its
+  supplied local row; original ordered list/row identities remain guaranteed
+  only when the enclosing pass has no other change. No selected-evidence
+  projection is added.
+- The graph changes from 19,737 to 19,741 lines (`+24/-20`, net 4) and the
+  dependency owner from 2,889 to 2,966 lines (`+92/-15`, net 77). Production
+  source is `+116/-35`, net 81; tests are `+210/-0`, net 210; the whole commit is
+  `+326/-35`, net 291.
+- Validation passed targeted 2/2 tests, affected 375/375 tests, the 217-literal
+  runtime audit, and full discovery over 1,489/1,489 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving typed disposition/final-row relocation, not a
+query, formatter, artifact/ledger, or selected-provenance ownership move and not
+a total-code, broad executed-path, performance, private-mesh, end-to-end
+calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

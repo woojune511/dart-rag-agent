@@ -108,14 +108,24 @@ imports or an unconfigured `FinancialAgent` invocation.
   order, returns the same result identity, preserves caught `TypeError`/`ValueError`
   partial updates and `RuntimeError` propagation, and adds no reason/flag/trace
   field.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,737 lines,
+- Dependency post-candidate finalization now has two typed state-free owner
+  stages. Stage 1 shallow-copies candidate operands, plan, and result, creates a
+  distinct mutable result, and uses only normalized `calculation_result.status`
+  for disposition. The graph retains query/absolute handling, artifact-ledger
+  conflict short-circuit, and formatting. Stage 2 applies a truthy formatted
+  result and projects the final row with the existing trace-first and source-id
+  fallbacks while preserving result identity. Its readiness and reason are not
+  trace fields, and no selected-evidence projection is added. A non-`ok` nested path returns its
+  supplied local row; original list/row identities are guaranteed only when the
+  enclosing pass has no other changes.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,741 lines,
   `financial_aggregate_projection.py` is 427,
   `financial_operand_resolution.py` is 2,270,
-  `financial_dependency_projection.py` is 2,889, and
+  `financial_dependency_projection.py` is 2,966, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 2/2 and affected 322/322
-  tests, the 217-literal runtime audit, and full discovery over 1,488/1,488 tests
+- The latest calculation checkpoint passed targeted 2/2 and affected 375/375
+  tests, the 217-literal runtime audit, and full discovery over 1,489/1,489 tests
   on Python 3.13. Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -135,7 +145,7 @@ current-state document does not duplicate that commit diary.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
-| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, and prepared ratio-artifact conflict selection | `financial_dependency_projection.py`; graph retains raw-plan construction, recalculated-value coercion, invalid-value artifact-builder laziness, task-artifact/ledger row construction, absolute-ratio query/transform invocation, caller projection, other query gates, repair acceptance, other fallback, and aggregate sequencing |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, and two-stage post-candidate finalization | `financial_dependency_projection.py`; Stage 1 owns candidate field copies and result-status disposition, Stage 2 owns truthy formatted-result/final-row projection, while graph retains raw-plan and candidate construction/execution, recalculated-value coercion and invalid-value artifact-builder laziness, absolute-ratio query/transform invocation, task-artifact/ledger conflict short-circuit, formatter, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection, stale provenance selection, and prepared collapsed-ratio magnitude transformation | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization, typed state-free target selection, and the result/slot/primary prepared-copy transform are owner-owned, while trace/eligibility/completeness/query gates, downstream coherence/answer/coverage, acceptance/filter sequencing, and final projection remain graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
@@ -161,9 +171,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 322/322 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 375/375 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,488/1,488 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,489/1,489 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -210,7 +220,8 @@ single-calculation-path Phase 3 remains open. Dependency precedence, late merge,
 terminal finalization, required-candidate merge, direct structured acceptance,
 prepared preferred-slot adoption, recovered-context adoption, scalar plan
 disposition, post-coercion LLM operand selection, deterministic plan/execution,
-prepared ratio-artifact conflict selection, and pure aggregate provenance
+prepared ratio-artifact conflict selection, two-stage dependency post-candidate
+finalization, and pure aggregate provenance
 selection have named owners. The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy, direct
 structured preference applicability, runtime evidence preparation, row
@@ -218,8 +229,9 @@ matching/iteration, peer-unit preparation and strongest-slot scoring,
 recovered-context eligibility and row/evidence construction, producer-scope filtering, lazy coherent-context
 construction, retry and
 query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
-exception/fallback orchestration, candidate preparation plus state/task/artifact projection, repair
-acceptance, artifact/ledger row construction, recalculated-value coercion,
+exception/fallback orchestration, candidate preparation/execution plus
+state/task/artifact projection, repair acceptance, artifact/ledger conflict
+construction and short-circuit, dependency formatter, recalculated-value coercion,
 collapsed-ratio trace/eligibility/completeness/query gates and prepared copies,
 downstream coherence/answer/coverage/final projection, aggregate/filter sequencing,
 other absolute-ratio handling, and other
@@ -242,29 +254,30 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize dependency
-post-candidate finalization in
-`_align_lookup_results_with_dependency_projection`
-(`financial_graph_calculation.py:2802-2845`) and move only its state-free
-candidate disposition and final row construction/application decisions into
-`financial_dependency_projection.py`. The first typed stage should normalize
-the candidate projection into copied trace/result data and decide non-`ok`
-disposition. After graph-owned query/absolute handling, artifact short-circuit,
-and formatting, a second typed stage should absorb the formatted-result mutation
-and final row construction by replacing the existing row-builder helper. The
-graph must retain plan disposition and lazy raw-plan construction,
-candidate-input construction and execution, the absolute-ratio query gate and
-transform invocation, task-artifact/ledger row building and conflict
-short-circuit, compact-ratio formatting, and caller iteration/state
-orchestration. No owner callback or graph state should cross the boundary.
-Characterization must preserve non-`ok` and no-change row identity,
-artifact-before-formatter precedence, operand/plan/result and source-id fallback
-order, stable row ordering, top-level copy/nested identity, input immutability,
-and the current exception order. Direct-preference preparation/scoring,
-aggregate stale-repair/precedence orchestration, other ratio/absolute handling,
-broader ledger synchronization, remaining fallbacks, private facade/API cleanup,
-and further test co-location remain separate work. The Phase 3 backlog in the
-refactoring plan is unordered; this section is the authority for priority.
+The next bounded architecture work is to characterize and move only the prepared
+structured-provenance adoption block in `_build_dependency_operand_rows`
+(`financial_graph_calculation.py:8322-8395`) into
+`financial_dependency_projection.py`. The typed state-free boundary should
+receive only the graph-built dependency row and graph-resolved structured
+provenance. The owner should perform the converted-display-unit policy lookup at
+the same logical point so lookup and exception order remain unchanged, then own
+source-anchor and chunk-id adoption, stable source-id cleaning/order,
+source-visible and high-magnitude converted-unit preservation, tolerance-bounded
+unit realignment, and the nonempty consolidation/statement/table metadata
+overlay. The graph must retain
+initial row construction and normalization (`8251-8315`), the stateful provenance
+lookup call (`8316-8321`) and lookup helper (`8400-8481`), plus downstream
+evidence lookup, coercion, and append (`8396-8398`). No graph state or callback
+should cross the owner boundary. Characterization must preserve no-provenance
+laziness/identity, anchor and chunk-id dedupe order, metadata empty/nonempty
+behavior, normalization failure and scaled-tolerance boundaries, same dependency
+row and nested identity, and structured-provenance input immutability.
+Direct-preference preparation/scoring, aggregate stale-repair/precedence and
+final-answer mutation
+plumbing, other ratio/absolute handling, broader ledger synchronization,
+remaining fallbacks, private facade/API cleanup, and further test co-location
+remain separate work. The Phase 3 backlog in the refactoring plan is unordered;
+this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

@@ -194,8 +194,10 @@ Current calculation ownership is:
   post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
   exception/fallback orchestration, graph-private candidate preparation,
   state/task/artifact projection, repair acceptance, aggregate/filter
-  sequencing, recalculated ratio-value coercion, task-artifact row construction,
-  collapsed-ratio trace/eligibility/completeness/query gates and prepared-copy
+  sequencing, recalculated ratio-value coercion, dependency candidate-input
+  construction/execution, absolute-ratio query/transform invocation,
+  task-artifact/ledger conflict short-circuit and formatting, collapsed-ratio
+  trace/eligibility/completeness/query gates and prepared-copy
   construction, downstream coherence/answer/coverage/final projection, other
   ratio/absolute orchestration, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
@@ -214,10 +216,13 @@ Current calculation ownership is:
   dependency recalculation plan disposition. Executable `single_value` plans
   are reused, invalid or absent plans rebuild once, and executable
   non-`single_value` plans are `unsupported_mode`, do not recalculate that row,
-  and preserve original result identity on the enclosing no-change path before
-  builder, candidate, or formatter work. For graph-prepared artifact rows and an
-  already-coerced recalculated ratio value, it also owns typed status/numeric
-  precedence, scaled-tolerance, and stable first-conflict selection.
+  and preserve original ordered-result identity on the enclosing no-change path
+  before builder, candidate, or formatter work. For graph-prepared artifact rows
+  and an already-coerced recalculated ratio value, it also owns typed status/numeric
+  precedence, scaled-tolerance, and stable first-conflict selection. After
+  candidate execution it owns typed Stage 1 operand/plan/result shallow copies,
+  the second mutable result and result-status disposition, plus Stage 2 truthy
+  formatted-result mutation and trace-first/fallback final row projection.
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
@@ -226,10 +231,10 @@ Current calculation ownership is:
   state-free negative runtime-ratio absolute-magnitude transformation over
   graph-prepared mutable result/slot/primary copies.
 
-At the latest checkpoint, the graph is 19,737 lines, the aggregate owner is 427,
-the operand owner is 2,270, the dependency owner is 2,889, and the execution
-owner is 837. The latest owner slice passed targeted 2/2 and affected 322/322
-tests, the 217-literal audit, and full discovery over 1,488/1,488 tests on Python
+At the latest checkpoint, the graph is 19,741 lines, the aggregate owner is 427,
+the operand owner is 2,270, the dependency owner is 2,966, and the execution
+owner is 837. The latest owner slice passed targeted 2/2 and affected 375/375
+tests, the 217-literal audit, and full discovery over 1,489/1,489 tests on Python
 3.13. Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
@@ -240,8 +245,8 @@ Phase 3 remains open for these unordered follow-ups:
 - characterize remaining graph-prepared direct-preference builder/scoring seams
   without moving graph state or builders;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
-- isolate dependency post-candidate finalization and other remaining
-  ratio/absolute seams without moving graph state lookup;
+- isolate other remaining dependency and ratio/absolute seams without moving
+  graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified
   behavior contract;
 - reduce the remaining private-API mesh and co-locate tests only as their public

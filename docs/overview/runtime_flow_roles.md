@@ -337,7 +337,12 @@ state-free owner 경계:
   builder callback은 받지 않는다. Graph가 준비한 ordered artifact rows와 이미
   coerce한 recalculated ratio value에는 outer-status fallback, artifact numeric
   precedence, scaled tolerance, stable first-conflict selection과 shallow-copy marker를
-  typed result로 적용한다. 그 reason/flag도 runtime trace가 아니다.
+  typed result로 적용한다. Supported candidate 뒤 Stage 1은 operand-row/plan/result
+  shallow copy, 두 번째 mutable result와 `calculation_result.status` disposition을,
+  Stage 2는 truthy formatted-result mutation과 trace-first/fallback operands/plan,
+  result-first/current-row source ids의 final row projection을 소유한다. 같은 result
+  identity를 유지하며 reason/flag는 runtime trace가 아니고 selected-evidence
+  projection은 추가하지 않는다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -379,7 +384,10 @@ graph adapter에 남은 orchestration 역할군:
   period recovery는 기존 state wrapper를 통해 같은 typed projection을 소비한다.
   두 contract-valid scalar 경로 모두 내부 `_execute_calculation()`과 버려지는
   state/ledger projection을 만들지 않는다. Dependency 경로는 strict trace를
-  재조회하지 않으며 결과/order, 입력 불변성, failure/no-op identity를 유지한다.
+  재조회하지 않으며 결과/order와 caller-owned ordered/state/projection 입력
+  불변성을 유지한다. Non-`ok` nested branch는
+  graph가 전달한 local row를 반환하고, 원본 list/row identity는 enclosing pass에서
+  다른 row change가 없을 때 유지된다.
 - deterministic difference/growth planning의 thin state/query adapter와 primary
   planner runtime/task/artifact projection. Adapter는 complete plan을 만든 뒤
   percent-point policy를 평가한다. Eligible `%p` query와 두 `PERCENT` operand는
@@ -393,7 +401,10 @@ graph adapter에 남은 orchestration 역할군:
   formatter를 호출하지 않는다. 다른 row도 바뀌지 않은 경로는 원본 list/row
   identity를 유지한다. Supported plan은 updated operands와 함께 direct candidate
   input으로 전달되고 ratio formatter는 active task와 같은 pre-candidate
-  operands를 explicit override로 받는다. Ratio artifact conflict에서는 graph가
+  operands를 explicit override로 받는다. Candidate 실행 뒤 graph는
+  absolute-ratio query/transform invocation, task-artifact/ledger conflict
+  short-circuit와 formatter를 Stage 1과 Stage 2 사이에 유지한다. Ratio artifact
+  conflict에서는 graph가
   recalculated result value를 coerce하고 invalid value면 artifact builder를 호출하지
   않으며, task-artifact/ledger row를 준비한 뒤 owner result를 소비한다. Absolute
   transform의 query gate/invocation과 no-change/final projection은 graph에 남으므로
@@ -453,7 +464,10 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_operand_resolution.py`: state-free generic operand candidate
   resolution, typed required-candidate precedence/merge, and typed direct
   structured acceptance
-- `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
+- `financial_dependency_projection.py`: dependency-binding summary, projection,
+  source-set selector, typed main/late/terminal application, recalculation plan
+  disposition, ratio-artifact conflict selection, and two-stage post-candidate
+  finalization
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
   outcome, and typed state-free value-only stale freshness assessment
