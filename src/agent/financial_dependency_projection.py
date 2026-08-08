@@ -72,6 +72,12 @@ DependencyRecalculationCandidateProjectionReason = Literal[
     "calculation_result_not_ok",
 ]
 
+DependencyStructuredProvenanceAdoptionReason = Literal[
+    "structured_unit_realigned",
+    "source_visible_converted_unit_preserved",
+    "structured_unit_unchanged",
+]
+
 RatioArtifactConflictSelectionReason = Literal[
     "conflicting_artifact_selected",
     "no_conflicting_artifact",
@@ -93,6 +99,23 @@ class RatioArtifactConflictSelectionResult:
     selected_artifact_row: Dict[str, Any]
     conflict_selected: bool
     reason: RatioArtifactConflictSelectionReason
+
+
+@dataclass(frozen=True)
+class DependencyStructuredProvenanceAdoptionInput:
+    """Graph-built mutable dependency row and resolved structured provenance."""
+
+    dependency_row: Dict[str, Any]
+    structured_provenance: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class DependencyStructuredProvenanceAdoptionResult:
+    """In-place provenance adoption with an inspectable unit disposition."""
+
+    dependency_row: Dict[str, Any]
+    unit_realignment_applied: bool
+    reason: DependencyStructuredProvenanceAdoptionReason
 
 
 @dataclass(frozen=True)
@@ -1104,6 +1127,106 @@ def resolve_dependency_producer_scope(
         producer_task=dict(producer_task),
         preferred_statement_types=tuple(dict.fromkeys(preferred_statement_types)),
         preferred_sections=tuple(dict.fromkeys(preferred_sections)),
+    )
+
+
+def adopt_dependency_structured_provenance(
+    adoption_input: DependencyStructuredProvenanceAdoptionInput,
+) -> DependencyStructuredProvenanceAdoptionResult:
+    """Adopt graph-resolved provenance into the graph-built dependency row."""
+
+    dependency_row = adoption_input.dependency_row
+    structured_provenance = adoption_input.structured_provenance
+    structured_anchor = _normalise_spaces(str(structured_provenance.get("source_anchor") or ""))
+    structured_chunk_uid = _normalise_spaces(str(structured_provenance.get("chunk_uid") or ""))
+    if structured_anchor:
+        dependency_row["source_anchor"] = structured_anchor
+    if structured_chunk_uid:
+        dependency_row["source_row_ids"] = _clean_source_row_ids([
+            dependency_row.get("source_row_ids"),
+            structured_chunk_uid,
+        ])
+    structured_unit_hint = _normalise_spaces(str(structured_provenance.get("unit_hint") or ""))
+    current_raw_unit = _normalise_spaces(str(dependency_row.get("raw_unit") or ""))
+    current_raw_value = _normalise_spaces(str(dependency_row.get("raw_value") or ""))
+    current_rendered_value = _normalise_spaces(str(dependency_row.get("rendered_value") or ""))
+    converted_units = {
+        _normalise_spaces(str(unit or ""))
+        for unit in (CALCULATION_RENDER_POLICY.get("converted_display_units") or ())
+        if _normalise_spaces(str(unit or ""))
+    }
+    current_value_consistent = False
+    if current_raw_value and current_raw_unit:
+        expected_value, expected_unit = _normalise_operand_value(current_raw_value, current_raw_unit)
+        try:
+            current_normalized_value = float(dependency_row.get("normalized_value"))
+        except (TypeError, ValueError):
+            current_normalized_value = None
+        current_value_consistent = bool(
+            expected_value is not None
+            and current_normalized_value is not None
+            and _normalise_spaces(str(expected_unit or "")).upper()
+            == _normalise_spaces(str(dependency_row.get("normalized_unit") or "")).upper()
+            and abs(float(expected_value) - current_normalized_value) <= max(
+                1e-6,
+                abs(float(expected_value)) * 1e-9,
+            )
+        )
+    high_magnitude_converted_value = bool(
+        current_raw_unit in converted_units
+        and current_value_consistent
+        and len(re.sub(r"\D", "", current_raw_value)) >= 8
+    )
+    source_visible_converted_unit = bool(
+        current_raw_value
+        and current_raw_unit
+        and current_raw_unit in converted_units
+        and (
+            high_magnitude_converted_value
+            or (
+                current_raw_value in current_rendered_value
+                and current_raw_unit in current_rendered_value
+            )
+        )
+    )
+    source_visible_unit_preserved = bool(
+        structured_unit_hint
+        and structured_unit_hint != current_raw_unit
+        and source_visible_converted_unit
+    )
+    unit_realignment_applied = False
+    if (
+        structured_unit_hint
+        and structured_unit_hint != current_raw_unit
+        and not source_visible_converted_unit
+    ):
+        structured_value, structured_unit = _normalise_operand_value(
+            str(dependency_row.get("raw_value") or ""),
+            structured_unit_hint,
+        )
+        if structured_value is not None and structured_unit:
+            dependency_row["raw_unit"] = structured_unit_hint
+            dependency_row["normalized_value"] = structured_value
+            dependency_row["normalized_unit"] = structured_unit
+            dependency_row["rendered_value"] = _normalise_spaces(
+                f"{dependency_row.get('raw_value')}{structured_unit_hint}"
+            )
+            dependency_row["unit_realigned_from_structured_provenance"] = True
+            unit_realignment_applied = True
+    for key in ("consolidation_scope", "statement_type", "table_source_id"):
+        value = _normalise_spaces(str(structured_provenance.get(key) or ""))
+        if value:
+            dependency_row[key] = value
+    if unit_realignment_applied:
+        reason: DependencyStructuredProvenanceAdoptionReason = "structured_unit_realigned"
+    elif source_visible_unit_preserved:
+        reason = "source_visible_converted_unit_preserved"
+    else:
+        reason = "structured_unit_unchanged"
+    return DependencyStructuredProvenanceAdoptionResult(
+        dependency_row=dependency_row,
+        unit_realignment_applied=unit_realignment_applied,
+        reason=reason,
     )
 
 

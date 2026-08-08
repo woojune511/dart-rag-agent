@@ -17591,7 +17591,7 @@ class SubtaskLoopTests(unittest.TestCase):
                                 "normalized_unit": "KRW",
                                 "rendered_value": "100천원",
                                 "source_row_id": "ev_lookup",
-                                "source_row_ids": ["ev_lookup"],
+                                "source_row_ids": ["ev_lookup", "node_1", "ev_lookup"],
                             }
                         },
                     },
@@ -17606,17 +17606,34 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        state_before = deepcopy(state)
+
+        with patch.object(
+            financial_graph_calculation,
+            "adopt_dependency_structured_provenance",
+            wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+        ) as adoption:
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "100")
         self.assertEqual(rows[0]["raw_unit"], "백만원")
         self.assertEqual(rows[0]["normalized_value"], 100000000.0)
         self.assertTrue(rows[0]["unit_realigned_from_structured_provenance"])
-        self.assertIn("node_1", rows[0]["source_row_ids"])
+        self.assertEqual(
+            rows[0]["source_row_ids"],
+            ["task_output:task_lookup", "ev_lookup", "node_1"],
+        )
+        self.assertEqual(rows[0]["source_anchor"], "[ExampleCo | 2023 | Financial statements]")
+        self.assertEqual(
+            (rows[0]["consolidation_scope"], rows[0]["statement_type"], rows[0]["table_source_id"]),
+            ("consolidated", "income_statement", "table_income"),
+        )
+        adoption.assert_called_once()
+        self.assertEqual(state, state_before)
 
     def test_dependency_row_preserves_source_visible_converted_unit_over_graph_hint(self) -> None:
-        self.agent.vector_store = type(
+        self.agent.vsm = type(
             "Store",
             (),
             {
@@ -17692,16 +17709,22 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        with patch.object(
+            financial_graph_calculation,
+            "adopt_dependency_structured_provenance",
+            wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+        ) as adoption:
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "100")
         self.assertEqual(rows[0]["raw_unit"], "원")
         self.assertEqual(rows[0]["normalized_value"], 100.0)
         self.assertFalse(rows[0].get("unit_realigned_from_structured_provenance", False))
+        adoption.assert_called_once()
 
     def test_dependency_row_preserves_high_magnitude_converted_unit_without_rendered_display(self) -> None:
-        self.agent.vector_store = type(
+        self.agent.vsm = type(
             "Store",
             (),
             {
@@ -17777,12 +17800,18 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        with patch.object(
+            financial_graph_calculation,
+            "adopt_dependency_structured_provenance",
+            wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+        ) as adoption:
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_unit"], "원")
         self.assertEqual(rows[0]["normalized_value"], 651481422157.0)
         self.assertFalse(rows[0].get("unit_realigned_from_structured_provenance", False))
+        adoption.assert_called_once()
 
     def test_lookup_recovery_prefers_table_unit_hint_when_source_surface_has_no_unit(self) -> None:
         state = {
@@ -18204,14 +18233,27 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.agent._lookup_value_from_table_label_metadata = lambda _operand, _evidence: {}
         self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-        self.agent._structured_graph_provenance_for_dependency_operand = lambda *_args, **_kwargs: {}
-
-        rows = self.agent._build_dependency_operand_rows(state)
+        with (
+            patch.object(
+                self.agent,
+                "_structured_graph_provenance_for_dependency_operand",
+                return_value={},
+            ) as structured_provenance,
+            patch.object(
+                financial_graph_calculation,
+                "adopt_dependency_structured_provenance",
+                wraps=financial_graph_calculation.adopt_dependency_structured_provenance,
+            ) as adoption,
+        ):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["matched_operand_role"], "denominator_1")
         self.assertEqual(rows[0]["source_row_id"], "task_output:task_asset")
         self.assertEqual(rows[0]["raw_value"], "52,704,853")
+        self.assertNotIn("unit_realigned_from_structured_provenance", rows[0])
+        structured_provenance.assert_called_once()
+        adoption.assert_not_called()
 
     def test_lookup_recovery_aligns_current_slot_unit_without_preferred_replacement(self) -> None:
         state = {

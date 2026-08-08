@@ -8,9 +8,11 @@ from src.agent.financial_dependency_projection import (
     DirectDependencySelectionInput,
     DependencyRecalculatedRowFinalizationInput,
     DependencyRecalculationCandidateProjectionInput,
+    DependencyStructuredProvenanceAdoptionInput,
     LateDependencyRemergeInput,
     LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
+    adopt_dependency_structured_provenance,
     align_dependency_rows_with_sibling_direct_context,
     decide_task_output_operand_resolution,
     dependency_binding_identity,
@@ -138,6 +140,115 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             recalculated_result,
             {**recalculated_result_before, "formatted_result": "recalculated answer"},
         )
+
+    def test_dependency_structured_provenance_adoption_contracts(self) -> None:
+        nested = {"preserve": True}
+        provenance = {
+            "source_anchor": " [ExampleCo | 2023 | Financial statements] ",
+            "chunk_uid": " node_1 ",
+            "unit_hint": "백만원",
+            "consolidation_scope": " consolidated ",
+            "statement_type": " income_statement ",
+            "table_source_id": " table_income ",
+        }
+
+        def operand_row(**updates):
+            return {
+                "raw_value": "100",
+                "raw_unit": "천원",
+                "normalized_value": 100000.0,
+                "normalized_unit": "KRW",
+                "rendered_value": "100천원",
+                "source_anchor": "old anchor",
+                "source_row_ids": ["ev_lookup", "ev_lookup"],
+                "consolidation_scope": "separate",
+                "statement_type": "notes",
+                "table_source_id": "old_table",
+                "metadata": nested,
+                **updates,
+            }
+
+        adopted_metadata = ("consolidated", "income_statement", "table_income")
+        original_metadata = ("separate", "notes", "old_table")
+        cases = (
+            (
+                "realigned", {}, {},
+                ("백만원", 100000000.0, True, "structured_unit_realigned", adopted_metadata),
+            ),
+            (
+                "visible", {"raw_unit": "원", "normalized_value": 100.0, "rendered_value": "100원"}, {},
+                ("원", 100.0, False, "source_visible_converted_unit_preserved", adopted_metadata),
+            ),
+            (
+                "high_magnitude_tolerance",
+                {"raw_value": "651,481,422,157", "raw_unit": "원", "normalized_value": 651481422757.0, "rendered_value": ""},
+                {},
+                ("원", 651481422757.0, False, "source_visible_converted_unit_preserved", adopted_metadata),
+            ),
+            (
+                "same_unit", {"raw_unit": "백만원", "normalized_value": 100000000.0, "rendered_value": "100백만원"}, {},
+                ("백만원", 100000000.0, False, "structured_unit_unchanged", adopted_metadata),
+            ),
+            (
+                "unnormalizable",
+                {"raw_value": "not-a-number", "raw_unit": "원", "normalized_value": None, "rendered_value": ""},
+                {"consolidation_scope": "", "statement_type": "", "table_source_id": ""},
+                ("원", None, False, "structured_unit_unchanged", original_metadata),
+            ),
+        )
+        invalid_expected = ("백만원", 100000000.0, True, "structured_unit_realigned", adopted_metadata)
+        cases += tuple(
+            (f"invalid_{type(value).__name__}", {"raw_unit": "원", "normalized_value": value, "rendered_value": ""}, {}, invalid_expected)
+            for value in ("not-a-number", None)
+        )
+        for name, row_updates, provenance_updates, expected in cases:
+            with self.subTest(name=name):
+                row = operand_row(**row_updates)
+                case_provenance = {**provenance, **provenance_updates}
+                provenance_before = deepcopy(case_provenance)
+                result = adopt_dependency_structured_provenance(
+                    DependencyStructuredProvenanceAdoptionInput(row, case_provenance)
+                )
+                self.assertIs(result.dependency_row, row)
+                self.assertEqual(
+                    (
+                        row["raw_unit"], row["normalized_value"],
+                        result.unit_realignment_applied, result.reason,
+                        (row["consolidation_scope"], row["statement_type"], row["table_source_id"]),
+                    ),
+                    expected,
+                )
+                self.assertEqual(row["source_row_ids"], ["ev_lookup", "node_1"])
+                self.assertEqual(row["source_anchor"], "[ExampleCo | 2023 | Financial statements]")
+                self.assertEqual(bool(row.get("unit_realigned_from_structured_provenance")), expected[2])
+                self.assertIs(row["metadata"], nested)
+                self.assertEqual(case_provenance, provenance_before)
+
+        exception_row = operand_row()
+        exception_provenance = deepcopy(provenance)
+        exception_provenance_before = deepcopy(exception_provenance)
+        with patch.object(
+            dependency_projection,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                adopt_dependency_structured_provenance(
+                    DependencyStructuredProvenanceAdoptionInput(exception_row, exception_provenance)
+                )
+        self.assertEqual(exception_row["source_anchor"], "[ExampleCo | 2023 | Financial statements]")
+        self.assertEqual(exception_row["source_row_ids"], ["ev_lookup", "node_1"])
+        self.assertEqual(
+            (
+                exception_row["consolidation_scope"],
+                exception_row["statement_type"],
+                exception_row["table_source_id"],
+            ),
+            ("separate", "notes", "old_table"),
+        )
+        self.assertNotIn("unit_realigned_from_structured_provenance", exception_row)
+        self.assertIs(exception_row["metadata"], nested)
+        self.assertEqual(exception_provenance, exception_provenance_before)
 
     def test_resolve_dependency_producer_scope_preserves_task_precedence_and_hint_order(self) -> None:
         binding = {
