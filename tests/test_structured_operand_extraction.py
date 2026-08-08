@@ -1119,11 +1119,28 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        result = self.agent._extract_calculation_operands(state)
+        state_before = deepcopy(state)
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
+        ) as resolve_direct_acceptance:
+            result = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(result)
+        acceptance_input = resolve_direct_acceptance.call_args.args[0]
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(resolve_direct_acceptance.call_count, 1)
+        self.assertEqual(acceptance_input.ambiguity_active_subtask, state["active_subtask"])
+        self.assertNotIn("direct_target_metric_lookup_preferred", acceptance_input.ambiguity_active_subtask)
+        self.assertEqual(acceptance_input.ambiguity_query, state["query"])
+        self.assertEqual(
+            [row["evidence_id"] for row in acceptance_input.direct_operand_rows],
+            ["chunk_lookup_direct::value:0"],
+        )
         self.assertEqual(result.get("calculation_debug_trace", {}).get("source"), "structured_row_direct")
         self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["evidence_id"], "chunk_lookup_direct::value:0")
         self.assertEqual(trace["calculation_operands"][0]["raw_value"], "1,481,396,317,551")
 
     def test_lookup_direct_acceptance_rejects_evidence_row_and_uses_structured_value(self) -> None:
@@ -1286,9 +1303,15 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        result = self.agent._extract_calculation_operands(state)
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
+        ) as resolve_direct_acceptance:
+            result = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(result)
 
+        resolve_direct_acceptance.assert_not_called()
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(result["calculation_debug_trace"]["coverage"], "missing")
 

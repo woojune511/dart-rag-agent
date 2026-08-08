@@ -5,10 +5,12 @@ from copy import deepcopy
 from itertools import permutations
 from types import SimpleNamespace
 from typing import Any, Dict, List
+from unittest.mock import patch
 
 import src.agent.financial_operand_resolution as operand_resolution
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_operand_resolution import (
+    DirectStructuredOperandAcceptanceInput,
     RequiredOperandCandidateMergeInput,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
@@ -30,6 +32,7 @@ from src.agent.financial_operand_resolution import (
     collect_retrieved_operand_evidence_candidates,
     direct_lookup_row_is_ambiguous_context_table,
     merge_operand_rows,
+    resolve_direct_structured_operand_acceptance,
     resolve_required_operand_candidate_merge,
     select_sibling_direct_operand_candidate,
     select_supplemental_operand_candidate,
@@ -1048,6 +1051,157 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                     self.assertIs(
                         result.selected_operand_rows[0]["metadata"],
                         current_rows[0]["metadata"],
+                    )
+
+    def test_direct_acceptance_preserves_stage_order_and_short_circuits(self) -> None:
+        row_ids = (
+            "keep_1",
+            "drop_requirement",
+            "drop_surface",
+            "drop_first_ambiguity",
+            "drop_support",
+            "drop_second_ambiguity",
+            "keep_2",
+        )
+        rows = [{"evidence_id": row_id, "metadata": {"row": row_id}} for row_id in row_ids]
+        events = []
+        ambiguity_calls: Dict[str, int] = {}
+        ambiguity_subtasks = []
+
+        def passes(stage: str, row: Dict[str, Any]) -> bool:
+            row_id = row["evidence_id"]
+            events.append((stage, row_id))
+            return row_id != f"drop_{stage}"
+
+        def matches(row: Dict[str, Any], _operand: Dict[str, Any]) -> bool:
+            return passes("requirement", row)
+
+        def has_surface(row: Dict[str, Any], *_args: Any, **_kwargs: Any) -> bool:
+            return passes("surface", row)
+
+        def has_direct_support(row: Dict[str, Any], *_args: Any) -> bool:
+            return passes("support", row)
+
+        def is_ambiguous(row: Dict[str, Any], *_args: Any, **kwargs: Any) -> bool:
+            row_id = row["evidence_id"]
+            call_number = ambiguity_calls.get(row_id, 0) + 1
+            ambiguity_calls[row_id] = call_number
+            stage = "first_ambiguity" if call_number == 1 else "second_ambiguity"
+            ambiguity_subtasks.append(kwargs["active_subtask"])
+            events.append((stage, row_id))
+            self.assertEqual(kwargs["query"], "original query")
+            return row_id == f"drop_{stage}"
+
+        acceptance_input = DirectStructuredOperandAcceptanceInput(
+            direct_operand_rows=rows,
+            evidence_items=[],
+            required_operands=[{"label": "metric", "role": "primary_value"}],
+            operation_family="lookup",
+            ambiguity_query="original query",
+            ambiguity_active_subtask={"task_id": "original"},
+        )
+        input_before = deepcopy(acceptance_input)
+        with (
+            patch.object(operand_resolution, "_operand_row_matches_requirement", side_effect=matches),
+            patch.object(operand_resolution, "_operand_row_satisfies_required_surface_contract", side_effect=has_surface),
+            patch.object(operand_resolution, "direct_lookup_row_is_ambiguous_context_table", side_effect=is_ambiguous),
+            patch.object(operand_resolution, "_llm_lookup_operand_has_direct_support", side_effect=has_direct_support),
+            patch.object(operand_resolution, "_evidence_items_by_id", wraps=operand_resolution._evidence_items_by_id) as evidence_index,
+        ):
+            result = resolve_direct_structured_operand_acceptance(acceptance_input)
+
+        stage_order = tuple(dict.fromkeys(stage for stage, _row_id in events))
+        observed = [
+            (stage, tuple(row_id for event_stage, row_id in events if event_stage == stage))
+            for stage in stage_order
+        ]
+        self.assertEqual(acceptance_input, input_before)
+        self.assertEqual(evidence_index.call_count, 2)
+        self.assertTrue(
+            all(
+                subtask == acceptance_input.ambiguity_active_subtask
+                and subtask is not acceptance_input.ambiguity_active_subtask
+                for subtask in ambiguity_subtasks
+            )
+        )
+        self.assertEqual(len({id(subtask) for subtask in ambiguity_subtasks}), len(ambiguity_subtasks))
+        self.assertEqual(
+            observed,
+            [
+                ("requirement", row_ids),
+                ("surface", ("keep_1", "drop_surface", "drop_first_ambiguity", "drop_support", "drop_second_ambiguity", "keep_2")),
+                ("first_ambiguity", ("keep_1", "drop_first_ambiguity", "drop_support", "drop_second_ambiguity", "keep_2")),
+                ("support", ("keep_1", "drop_support", "drop_second_ambiguity", "keep_2")),
+                ("second_ambiguity", ("keep_1", "drop_second_ambiguity", "keep_2")),
+            ],
+        )
+        self.assertEqual(
+            [row["evidence_id"] for row in result.accepted_operand_rows],
+            ["keep_1", "keep_2"],
+        )
+        self.assertIs(result.accepted_operand_rows[0], rows[0])
+        self.assertIs(result.accepted_operand_rows[1], rows[-1])
+        self.assertEqual(
+            (
+                result.required_surface_filter_applied,
+                result.pre_lookup_ambiguity_filter_applied,
+                result.lookup_direct_support_filter_applied,
+                result.lookup_ambiguity_filter_applied,
+            ),
+            (True, True, True, True),
+        )
+
+    def test_direct_acceptance_stage_matrix_and_noop_identity(self) -> None:
+        row = {"evidence_id": "direct", "metadata": {"nested": ["value"]}}
+        required = [{"label": "metric", "role": "primary_value"}]
+        cases = (
+            ("empty lookup", [], required, "lookup", (False, False, False, False), True),
+            ("no-stage difference", [row], [], "difference", (False, False, False, False), True),
+            ("no-required lookup", [row], [], "lookup", (False, False, False, True), False),
+            ("required difference", [row], required, "difference", (True, True, False, False), False),
+            ("required ratio", [row], required, "ratio", (True, True, False, False), False),
+            ("required lookup", [row], required, "lookup", (True, True, True, True), False),
+            ("required single value", [row], required, "single_value", (True, True, True, True), False),
+        )
+
+        for name, rows, required_operands, operation_family, expected_flags, expected_identity in cases:
+            with self.subTest(name=name):
+                acceptance_input = DirectStructuredOperandAcceptanceInput(
+                    direct_operand_rows=rows,
+                    evidence_items=[],
+                    required_operands=required_operands,
+                    operation_family=operation_family,
+                    ambiguity_query="query",
+                    ambiguity_active_subtask={"task_id": "task"},
+                )
+                input_before = deepcopy(acceptance_input)
+                with (
+                    patch.object(operand_resolution, "_operand_row_matches_requirement", return_value=True),
+                    patch.object(operand_resolution, "_operand_row_satisfies_required_surface_contract", return_value=True) as surface_check,
+                    patch.object(operand_resolution, "direct_lookup_row_is_ambiguous_context_table", return_value=False),
+                    patch.object(operand_resolution, "_llm_lookup_operand_has_direct_support", return_value=True),
+                ):
+                    result = resolve_direct_structured_operand_acceptance(acceptance_input)
+
+                self.assertEqual(acceptance_input, input_before)
+                self.assertEqual(
+                    (
+                        result.required_surface_filter_applied,
+                        result.pre_lookup_ambiguity_filter_applied,
+                        result.lookup_direct_support_filter_applied,
+                        result.lookup_ambiguity_filter_applied,
+                    ),
+                    expected_flags,
+                )
+                self.assertEqual(result.accepted_operand_rows is rows, expected_identity)
+                self.assertEqual(
+                    [item["evidence_id"] for item in result.accepted_operand_rows],
+                    [item["evidence_id"] for item in rows],
+                )
+                if rows and required_operands:
+                    self.assertEqual(
+                        surface_check.call_args.kwargs["require_direct_support"],
+                        operation_family == "ratio",
                     )
 
     def test_supplemental_selector_prefers_explicit_binding_over_loose_match(self) -> None:

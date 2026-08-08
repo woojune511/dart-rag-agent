@@ -84,20 +84,24 @@ class _RecordingVectorStore:
         return []
 
 
-def _record_required_candidate_merges():
+def _record_graph_resolver(symbol):
     results = []
-    resolver = financial_graph_calculation.resolve_required_operand_candidate_merge
+    resolver = getattr(financial_graph_calculation, symbol)
 
-    def recording_resolver(merge_input):
-        result = resolver(merge_input)
+    def recording_resolver(resolver_input):
+        result = resolver(resolver_input)
         results.append(result)
         return result
 
     return results, patch.object(
         financial_graph_calculation,
-        "resolve_required_operand_candidate_merge",
+        symbol,
         side_effect=recording_resolver,
     )
+
+
+def _record_required_candidate_merges():
+    return _record_graph_resolver("resolve_required_operand_candidate_merge")
 
 
 def _required_candidate_merge_contract(result):
@@ -105,6 +109,16 @@ def _required_candidate_merge_contract(result):
         result.reason,
         result.candidate_rows_cover_required,
         result.coherent_candidate_merge_applied,
+    )
+
+
+def _direct_acceptance_contract(result):
+    return (
+        tuple(row.get("evidence_id") for row in result.accepted_operand_rows),
+        result.required_surface_filter_applied,
+        result.pre_lookup_ambiguity_filter_applied,
+        result.lookup_direct_support_filter_applied,
+        result.lookup_ambiguity_filter_applied,
     )
 
 
@@ -2403,12 +2417,43 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: [dict(ambiguous_row)]
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(ambiguous_evidence)]
+        state_before = deepcopy(state)
 
-        extracted = self.agent._extract_calculation_operands(state)
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        with acceptance_patch:
+            extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            _direct_acceptance_contract(direct_acceptances[0]),
+            ((), False, False, False, True),
+        )
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(extracted["calculation_debug_trace"]["coverage"], "missing")
+
+        nonlookup_state = deepcopy(state)
+        nonlookup_state["active_subtask"] = {
+            "task_id": "task_difference",
+            "metric_family": "generic_numeric",
+            "operation_family": "difference",
+        }
+        nonlookup_before = deepcopy(nonlookup_state)
+        self.agent._direct_target_metric_operand_from_evidence = lambda *_args, **_kwargs: (None, {})
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
+        ) as resolve_direct_acceptance:
+            nonlookup_extracted = self.agent._extract_calculation_operands(nonlookup_state)
+        nonlookup_rows = _resolve_runtime_calculation_trace(nonlookup_extracted)["calculation_operands"]
+
+        resolve_direct_acceptance.assert_not_called()
+        self.assertEqual(nonlookup_state, nonlookup_before)
+        self.assertEqual(nonlookup_rows[0]["evidence_id"], "ev_context_table")
 
     def test_lookup_allows_context_dependent_table_when_scope_requested(self) -> None:
         scoped_row = {
@@ -2467,11 +2512,25 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         self.agent._extract_structured_operands_from_reconciliation = lambda _state: [dict(scoped_row)]
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: [dict(scoped_evidence)]
+        state_before = deepcopy(state)
+        row_before = deepcopy(scoped_row)
 
-        extracted = self.agent._extract_calculation_operands(state)
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        with acceptance_patch:
+            extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
 
+        self.assertEqual(state, state_before)
+        self.assertEqual(scoped_row, row_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            _direct_acceptance_contract(direct_acceptances[0]),
+            (("ev_context_table",), True, True, True, True),
+        )
         self.assertEqual(len(trace["calculation_operands"]), 1)
+        self.assertEqual(trace["calculation_operands"][0]["evidence_id"], "ev_context_table")
         self.assertEqual(trace["calculation_operands"][0]["raw_value"], "(718,937)")
 
     def test_ratio_rejects_context_dependent_table_operand_when_scope_not_requested(self) -> None:
@@ -2566,13 +2625,26 @@ class SubtaskLoopTests(unittest.TestCase):
             dict(income_evidence),
             dict(ambiguous_evidence),
         ]
+        state_before = deepcopy(state)
+        rows_before = deepcopy([numerator_row, ambiguous_denominator_row])
 
-        extracted = self.agent._extract_calculation_operands(state)
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        with acceptance_patch:
+            extracted = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(extracted)
         operands = list(trace.get("calculation_operands") or [])
         debug_operands = list((extracted.get("calculation_debug_trace") or {}).get("operands") or [])
         all_rows = operands + debug_operands
 
+        self.assertEqual(state, state_before)
+        self.assertEqual([numerator_row, ambiguous_denominator_row], rows_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            _direct_acceptance_contract(direct_acceptances[0]),
+            (("ev_income",), True, True, False, False),
+        )
         self.assertFalse(any(row.get("raw_value") == "(1,180,096)" for row in all_rows))
 
     def test_ratio_rejects_direct_rows_when_consolidation_scope_conflicts(self) -> None:

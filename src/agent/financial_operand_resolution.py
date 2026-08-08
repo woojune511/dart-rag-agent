@@ -79,6 +79,29 @@ class RequiredOperandCandidateMergeResult:
     reason: RequiredOperandCandidateMergeReason
 
 
+@dataclass(frozen=True)
+class DirectStructuredOperandAcceptanceInput:
+    """State-free inputs for direct structured-row acceptance."""
+
+    direct_operand_rows: List[Dict[str, Any]]
+    evidence_items: List[Dict[str, Any]]
+    required_operands: List[Dict[str, Any]]
+    operation_family: str
+    ambiguity_query: str
+    ambiguity_active_subtask: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class DirectStructuredOperandAcceptanceResult:
+    """Inspectable result of ordered direct-row acceptance stages."""
+
+    accepted_operand_rows: List[Dict[str, Any]]
+    required_surface_filter_applied: bool
+    pre_lookup_ambiguity_filter_applied: bool
+    lookup_direct_support_filter_applied: bool
+    lookup_ambiguity_filter_applied: bool
+
+
 SiblingDirectSelectionReason = Literal[
     "shared_source_context",
     "same_table_context",
@@ -1355,6 +1378,82 @@ def resolve_required_operand_candidate_merge(
         candidate_rows_cover_required=candidate_rows_cover_required,
         coherent_candidate_merge_applied=coherent_candidate_merge_applied,
         reason=reason,
+    )
+
+
+def resolve_direct_structured_operand_acceptance(
+    acceptance_input: DirectStructuredOperandAcceptanceInput,
+) -> DirectStructuredOperandAcceptanceResult:
+    """Apply direct-row grounding and ambiguity gates in runtime order."""
+
+    accepted_operand_rows = acceptance_input.direct_operand_rows
+    required_surface_filter_applied = False
+    pre_lookup_ambiguity_filter_applied = False
+    lookup_direct_support_filter_applied = False
+    lookup_ambiguity_filter_applied = False
+
+    def _row_is_ambiguous(
+        row: Dict[str, Any],
+        evidence_by_id: Dict[str, Dict[str, Any]],
+    ) -> bool:
+        return direct_lookup_row_is_ambiguous_context_table(
+            row,
+            _evidence_item_for_operand_row(row, evidence_by_id),
+            query=str(acceptance_input.ambiguity_query or ""),
+            active_subtask=dict(acceptance_input.ambiguity_active_subtask or {}),
+            required_operands=acceptance_input.required_operands,
+        )
+
+    if accepted_operand_rows and acceptance_input.required_operands:
+        evidence_by_id = _evidence_items_by_id(acceptance_input.evidence_items)
+        required_surface_filter_applied = True
+        accepted_operand_rows = [
+            row
+            for row in accepted_operand_rows
+            if any(
+                _operand_row_matches_requirement(row, operand)
+                for operand in acceptance_input.required_operands
+            )
+            and _operand_row_satisfies_required_surface_contract(
+                row,
+                evidence_by_id,
+                acceptance_input.required_operands,
+                require_direct_support=acceptance_input.operation_family == "ratio",
+            )
+        ]
+        pre_lookup_ambiguity_filter_applied = True
+        accepted_operand_rows = [
+            row
+            for row in accepted_operand_rows
+            if not _row_is_ambiguous(row, evidence_by_id)
+        ]
+
+    if accepted_operand_rows and acceptance_input.operation_family in {"lookup", "single_value"}:
+        evidence_by_id = _evidence_items_by_id(acceptance_input.evidence_items)
+        if acceptance_input.required_operands:
+            lookup_direct_support_filter_applied = True
+            accepted_operand_rows = [
+                row
+                for row in accepted_operand_rows
+                if _llm_lookup_operand_has_direct_support(
+                    row,
+                    _evidence_item_for_operand_row(row, evidence_by_id),
+                    acceptance_input.required_operands,
+                )
+            ]
+        lookup_ambiguity_filter_applied = True
+        accepted_operand_rows = [
+            row
+            for row in accepted_operand_rows
+            if not _row_is_ambiguous(row, evidence_by_id)
+        ]
+
+    return DirectStructuredOperandAcceptanceResult(
+        accepted_operand_rows=accepted_operand_rows,
+        required_surface_filter_applied=required_surface_filter_applied,
+        pre_lookup_ambiguity_filter_applied=pre_lookup_ambiguity_filter_applied,
+        lookup_direct_support_filter_applied=lookup_direct_support_filter_applied,
+        lookup_ambiguity_filter_applied=lookup_ambiguity_filter_applied,
     )
 
 

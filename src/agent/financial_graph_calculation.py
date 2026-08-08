@@ -90,6 +90,7 @@ from src.agent.financial_dependency_projection import (
     summarize_dependency_bindings,
 )
 from src.agent.financial_operand_resolution import (
+    DirectStructuredOperandAcceptanceInput,
     RequiredOperandCandidateMergeInput,
     _canonical_structured_reconciliation_id,
     _canonicalize_structured_operand_reconciliation_refs,
@@ -114,6 +115,7 @@ from src.agent.financial_operand_resolution import (
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
+    resolve_direct_structured_operand_acceptance,
     resolve_required_operand_candidate_merge,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
@@ -15078,53 +15080,20 @@ class FinancialAgentCalculationMixin:
                 "required_operands": required_operands,
                 "direct_target_metric_lookup_preferred": True,
             }
-        if direct_structured_rows and required_operands:
-            evidence_by_id = _evidence_items_by_id(evidence_items)
-            direct_structured_rows = [
-                row
-                for row in direct_structured_rows
-                if any(_operand_row_matches_requirement(row, operand) for operand in required_operands)
-                and _operand_row_satisfies_required_surface_contract(
-                    row,
-                    evidence_by_id,
-                    required_operands,
-                    require_direct_support=operation_family == "ratio",
-                )
-            ]
-            direct_structured_rows = [
-                row
-                for row in direct_structured_rows
-                if not direct_lookup_row_is_ambiguous_context_table(
-                    row,
-                    _evidence_item_for_operand_row(row, evidence_by_id),
-                    query=str(state.get("query") or ""),
-                    active_subtask=dict(state.get("active_subtask") or {}),
+        if direct_structured_rows and (
+            required_operands or operation_family in {"lookup", "single_value"}
+        ):
+            direct_acceptance = resolve_direct_structured_operand_acceptance(
+                DirectStructuredOperandAcceptanceInput(
+                    direct_operand_rows=direct_structured_rows,
+                    evidence_items=evidence_items,
                     required_operands=required_operands,
+                    operation_family=operation_family,
+                    ambiguity_query=state.get("query") or "",
+                    ambiguity_active_subtask=state.get("active_subtask") or {},
                 )
-            ]
-        if direct_structured_rows and operation_family in {"lookup", "single_value"}:
-            evidence_by_id = _evidence_items_by_id(evidence_items)
-            if required_operands:
-                direct_structured_rows = [
-                    row
-                    for row in direct_structured_rows
-                    if _llm_lookup_operand_has_direct_support(
-                        row,
-                        _evidence_item_for_operand_row(row, evidence_by_id),
-                        required_operands,
-                    )
-                ]
-            direct_structured_rows = [
-                row
-                for row in direct_structured_rows
-                if not direct_lookup_row_is_ambiguous_context_table(
-                    row,
-                    _evidence_item_for_operand_row(row, evidence_by_id),
-                    query=str(state.get("query") or ""),
-                    active_subtask=dict(state.get("active_subtask") or {}),
-                    required_operands=required_operands,
-                )
-            ]
+            )
+            direct_structured_rows = direct_acceptance.accepted_operand_rows
         if direct_structured_rows and required_operands and operation_family in {"lookup", "single_value"}:
             direct_structured_rows = self._prefer_direct_structured_lookup_evidence_rows(
                 direct_structured_rows,
