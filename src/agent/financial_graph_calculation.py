@@ -91,6 +91,7 @@ from src.agent.financial_dependency_projection import (
 )
 from src.agent.financial_operand_resolution import (
     DirectStructuredOperandAcceptanceInput,
+    DirectStructuredPreferredSlotAdoptionInput,
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
     _canonical_structured_reconciliation_id,
@@ -117,6 +118,7 @@ from src.agent.financial_operand_resolution import (
     operand_row_values_differ,
     operand_row_values_materially_conflict,
     resolve_direct_structured_operand_acceptance,
+    resolve_direct_structured_preferred_slot_adoption,
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
 )
@@ -2262,42 +2264,20 @@ class FinancialAgentCalculationMixin:
             current_evidence = _evidence_item_for_operand_row(current, evidence_by_id)
             if current_evidence:
                 current_score = self._direct_structured_lookup_evidence_score(operand, current_evidence)
-            preferred_unit = _normalise_spaces(str(preferred_slot.get("raw_unit") or ""))
-            current_unit = _normalise_spaces(str(current.get("raw_unit") or ""))
-            preferred_raw = _normalise_spaces(str(preferred_slot.get("raw_value") or ""))
-            current_raw = _normalise_spaces(str(current.get("raw_value") or ""))
-            unit_alignment_improves = bool(
-                operation_family == "ratio"
-                and peer_units
-                and preferred_raw == current_raw
-                and preferred_unit in peer_units
-                and current_unit not in peer_units
+            preferred_slot_adoption = resolve_direct_structured_preferred_slot_adoption(
+                DirectStructuredPreferredSlotAdoptionInput(
+                    operation_family=operation_family,
+                    row_index=row_index,
+                    current_operand_row=current,
+                    required_operand=operand,
+                    normalized_peer_raw_units=peer_units,
+                    preferred_slot=preferred_slot,
+                    preferred_score=best_score,
+                    current_score=current_score,
+                )
             )
-            if current_score > best_score and not unit_alignment_improves:
-                continue
-            if current_score == best_score and not unit_alignment_improves:
-                continue
-            preferred_row = {
-                **current,
-                "operand_id": current.get("operand_id") or f"direct_lookup_{row_index + 1:03d}",
-                "evidence_id": preferred_slot.get("source_row_id"),
-                "source_row_id": preferred_slot.get("source_row_id"),
-                "source_row_ids": preferred_slot.get("source_row_ids") or [],
-                "source_anchor": preferred_slot.get("source_anchor"),
-                "label": preferred_slot.get("label"),
-                "raw_value": preferred_slot.get("raw_value"),
-                "raw_unit": preferred_slot.get("raw_unit"),
-                "normalized_value": preferred_slot.get("normalized_value"),
-                "normalized_unit": preferred_slot.get("normalized_unit"),
-                "period": preferred_slot.get("period"),
-                "value_role": preferred_slot.get("value_role"),
-                "aggregation_stage": preferred_slot.get("aggregation_stage"),
-                "aggregate_label": preferred_slot.get("aggregate_label"),
-                "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
-                "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
-                "matched_operand_role": _normalise_spaces(str(operand.get("role") or "")),
-            }
-            refined_rows[row_index] = preferred_row
+            if preferred_slot_adoption.preferred_slot_adopted:
+                refined_rows[row_index] = preferred_slot_adoption.selected_operand_row
         return refined_rows
 
     def _prefer_direct_structured_lookup_evidence_rows(

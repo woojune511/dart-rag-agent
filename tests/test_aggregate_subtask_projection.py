@@ -2290,6 +2290,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
     def test_lookup_preference_uses_requested_scope_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
+        nested_context = {"keep": "lookup"}
         current_rows = [
             {
                 "operand_id": "primary_value",
@@ -2303,6 +2304,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "normalized_unit": "KRW",
                 "matched_operand_label": "target metric",
                 "matched_operand_role": "primary_value",
+                "nested_context": nested_context,
             }
         ]
         evidence_items = [
@@ -2330,6 +2332,15 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         ]
 
+        current_rows_before = deepcopy(current_rows)
+        evidence_items_before = deepcopy(evidence_items)
+        resolver_patch = patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            wraps=financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption,
+        )
+        resolve_adoption = resolver_patch.start()
+        self.addCleanup(resolver_patch.stop)
         rows = agent._prefer_direct_structured_lookup_evidence_rows(
             current_rows,
             evidence_items=evidence_items,
@@ -2338,8 +2349,44 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             state={"query": "2023년 연결기준 target metric을 답해 줘.", "report_scope": {}},
         )
 
+        resolver_patch.stop()
+        resolve_adoption.assert_called_once()
+        adoption_input = resolve_adoption.call_args.args[0]
+        self.assertEqual(adoption_input.operation_family, "lookup")
+        self.assertEqual(adoption_input.normalized_peer_raw_units, set())
+        self.assertGreater(adoption_input.preferred_score, adoption_input.current_score)
         self.assertEqual(rows[0]["source_row_id"], "ev_consolidated")
         self.assertEqual(rows[0]["raw_value"], "1,701,152")
+        self.assertIs(rows[0]["nested_context"], nested_context)
+        self.assertEqual(current_rows, current_rows_before)
+        self.assertEqual(evidence_items, evidence_items_before)
+
+        with patch.object(
+            agent,
+            "_best_direct_lookup_slot_from_evidence_pool",
+            return_value=({}, 0.0),
+        ) as select_preferred, patch.object(
+            agent,
+            "_direct_structured_lookup_evidence_score",
+        ) as score_current, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+        ) as resolve_adoption:
+            unchanged = agent._prefer_direct_structured_lookup_evidence_rows(
+                current_rows,
+                evidence_items=evidence_items,
+                required_operands=[{"label": "target metric", "role": "primary_value", "required": True}],
+                operation_family="lookup",
+                state={},
+            )
+
+        self.assertIsNone(select_preferred.call_args.kwargs["preferred_raw_units"])
+        score_current.assert_not_called()
+        resolve_adoption.assert_not_called()
+        self.assertIsNot(unchanged, current_rows)
+        self.assertIsNot(unchanged[0], current_rows[0])
+        self.assertIs(unchanged[0]["nested_context"], nested_context)
+        self.assertEqual(unchanged, current_rows)
 
     def test_lookup_recovery_can_use_seed_retrieved_doc_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

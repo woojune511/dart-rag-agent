@@ -10,6 +10,7 @@ from unittest.mock import patch
 import src.agent.financial_operand_resolution as operand_resolution
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_operand_resolution import (
+    DirectStructuredPreferredSlotAdoptionInput,
     DirectStructuredOperandAcceptanceInput,
     RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
@@ -34,6 +35,7 @@ from src.agent.financial_operand_resolution import (
     direct_lookup_row_is_ambiguous_context_table,
     merge_operand_rows,
     resolve_direct_structured_operand_acceptance,
+    resolve_direct_structured_preferred_slot_adoption,
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
     select_sibling_direct_operand_candidate,
@@ -1205,6 +1207,96 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                         surface_check.call_args.kwargs["require_direct_support"],
                         operation_family == "ratio",
                     )
+
+    def test_direct_structured_preferred_slot_adoption_matrix(self) -> None:
+        nested_context = {"keep": "current"}
+        current = {
+            "operand_id": "primary_value",
+            "evidence_id": "ev_current",
+            "source_row_id": "ev_current",
+            "source_row_ids": ["ev_current"],
+            "source_anchor": "current-anchor",
+            "label": "target metric",
+            "raw_value": "100",
+            "raw_unit": "thousand",
+            "normalized_value": 100.0,
+            "normalized_unit": "COUNT",
+            "period": "2023",
+            "value_role": "aggregate",
+            "aggregation_stage": "final",
+            "aggregate_label": "current aggregate",
+            "untouched": nested_context,
+        }
+        required = {"label": " target metric ", "concept": " target_concept ", "role": " primary_value "}
+        preferred = {
+            "source_row_id": "ev_preferred",
+            "label": "preferred target metric",
+            "raw_value": "100",
+            "raw_unit": "million",
+            "normalized_value": 100_000.0,
+            "normalized_unit": "COUNT",
+            "value_role": "detail",
+            "ignored_extra": "do not project",
+        }
+        expected_adopted = {
+            **current,
+            "evidence_id": "ev_preferred",
+            "source_row_id": "ev_preferred",
+            "source_row_ids": [],
+            "source_anchor": None,
+            "label": "preferred target metric",
+            "raw_value": "100",
+            "raw_unit": "million",
+            "normalized_value": 100_000.0,
+            "normalized_unit": "COUNT",
+            "period": None,
+            "value_role": "detail",
+            "aggregation_stage": None,
+            "aggregate_label": None,
+            "matched_operand_label": "target metric",
+            "matched_operand_concept": "target_concept",
+            "matched_operand_role": "primary_value",
+        }
+        cases = (
+            ("current higher", "lookup", {"million"}, 12.0, 13.0, False, False, "higher_current_evidence_score"),
+            ("equal", "lookup", set(), 12.0, 12.0, False, False, "equal_evidence_score"),
+            ("preferred higher", "lookup", set(), 13.0, 12.0, True, False, "preferred_slot_selected"),
+            ("nan fallthrough", "lookup", set(), float("nan"), 13.0, True, False, "preferred_slot_selected"),
+            ("ratio alignment", "ratio", {"million"}, 12.0, 13.0, True, True, "ratio_unit_alignment_selected"),
+        )
+
+        for name, operation, peer_units, preferred_score, current_score, adopted, aligned, reason in cases:
+            with self.subTest(name=name):
+                adoption_input = DirectStructuredPreferredSlotAdoptionInput(
+                    operation_family=operation,
+                    row_index=0,
+                    current_operand_row=current,
+                    required_operand=required,
+                    normalized_peer_raw_units=peer_units,
+                    preferred_slot=preferred,
+                    preferred_score=preferred_score,
+                    current_score=current_score,
+                )
+                input_before = deepcopy(adoption_input)
+
+                result = resolve_direct_structured_preferred_slot_adoption(adoption_input)
+
+                if name == "nan fallthrough":
+                    self.assertIs(adoption_input.preferred_score, input_before.preferred_score)
+                    self.assertEqual(adoption_input.current_operand_row, input_before.current_operand_row)
+                    self.assertEqual(adoption_input.preferred_slot, input_before.preferred_slot)
+                else:
+                    self.assertEqual(adoption_input, input_before)
+                self.assertEqual(result.reason, reason)
+                self.assertEqual(result.preferred_slot_adopted, adopted)
+                self.assertEqual(result.unit_alignment_improves, aligned)
+                if adopted:
+                    self.assertEqual(result.selected_operand_row, expected_adopted)
+                    self.assertIsNot(result.selected_operand_row, current)
+                    self.assertIs(result.selected_operand_row["untouched"], nested_context)
+                    self.assertNotIn("ignored_extra", result.selected_operand_row)
+                else:
+                    self.assertIs(result.selected_operand_row, current)
 
     def test_recovered_context_adoption_matrix_and_copy_contracts(self) -> None:
         def adoption_row(evidence_id, label, concept, role, value):

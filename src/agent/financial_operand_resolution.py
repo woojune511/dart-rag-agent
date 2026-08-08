@@ -102,6 +102,38 @@ class DirectStructuredOperandAcceptanceResult:
     lookup_ambiguity_filter_applied: bool
 
 
+DirectStructuredPreferredSlotAdoptionReason = Literal[
+    "higher_current_evidence_score",
+    "equal_evidence_score",
+    "preferred_slot_selected",
+    "ratio_unit_alignment_selected",
+]
+
+
+@dataclass(frozen=True)
+class DirectStructuredPreferredSlotAdoptionInput:
+    """Prepared state-free inputs for one preferred-slot adoption decision."""
+
+    operation_family: str
+    row_index: int
+    current_operand_row: Dict[str, Any]
+    required_operand: Dict[str, Any]
+    normalized_peer_raw_units: set[str]
+    preferred_slot: Dict[str, Any]
+    preferred_score: float
+    current_score: float
+
+
+@dataclass(frozen=True)
+class DirectStructuredPreferredSlotAdoptionResult:
+    """Inspectable decision for a graph-prepared direct evidence slot."""
+
+    selected_operand_row: Dict[str, Any]
+    preferred_slot_adopted: bool
+    unit_alignment_improves: bool
+    reason: DirectStructuredPreferredSlotAdoptionReason
+
+
 RecoveredOperandContextKind = Literal[
     "period_comparison",
     "coherent_ratio",
@@ -1488,6 +1520,80 @@ def resolve_direct_structured_operand_acceptance(
         pre_lookup_ambiguity_filter_applied=pre_lookup_ambiguity_filter_applied,
         lookup_direct_support_filter_applied=lookup_direct_support_filter_applied,
         lookup_ambiguity_filter_applied=lookup_ambiguity_filter_applied,
+    )
+
+
+def resolve_direct_structured_preferred_slot_adoption(
+    adoption_input: DirectStructuredPreferredSlotAdoptionInput,
+) -> DirectStructuredPreferredSlotAdoptionResult:
+    """Adopt one prepared evidence slot without consulting graph state."""
+
+    current = adoption_input.current_operand_row
+    operand = adoption_input.required_operand
+    peer_units = adoption_input.normalized_peer_raw_units
+    preferred = adoption_input.preferred_slot
+    preferred_unit = _normalise_spaces(str(preferred.get("raw_unit") or ""))
+    current_unit = _normalise_spaces(str(current.get("raw_unit") or ""))
+    preferred_raw = _normalise_spaces(str(preferred.get("raw_value") or ""))
+    current_raw = _normalise_spaces(str(current.get("raw_value") or ""))
+    unit_alignment_improves = bool(
+        adoption_input.operation_family == "ratio"
+        and peer_units
+        and preferred_raw == current_raw
+        and preferred_unit in peer_units
+        and current_unit not in peer_units
+    )
+    if (
+        adoption_input.current_score > adoption_input.preferred_score
+        and not unit_alignment_improves
+    ):
+        return DirectStructuredPreferredSlotAdoptionResult(
+            selected_operand_row=current,
+            preferred_slot_adopted=False,
+            unit_alignment_improves=False,
+            reason="higher_current_evidence_score",
+        )
+    if (
+        adoption_input.current_score == adoption_input.preferred_score
+        and not unit_alignment_improves
+    ):
+        return DirectStructuredPreferredSlotAdoptionResult(
+            selected_operand_row=current,
+            preferred_slot_adopted=False,
+            unit_alignment_improves=False,
+            reason="equal_evidence_score",
+        )
+
+    preferred_row = {
+        **current,
+        "operand_id": current.get("operand_id")
+        or f"direct_lookup_{adoption_input.row_index + 1:03d}",
+        "evidence_id": preferred.get("source_row_id"),
+        "source_row_id": preferred.get("source_row_id"),
+        "source_row_ids": preferred.get("source_row_ids") or [],
+        "source_anchor": preferred.get("source_anchor"),
+        "label": preferred.get("label"),
+        "raw_value": preferred.get("raw_value"),
+        "raw_unit": preferred.get("raw_unit"),
+        "normalized_value": preferred.get("normalized_value"),
+        "normalized_unit": preferred.get("normalized_unit"),
+        "period": preferred.get("period"),
+        "value_role": preferred.get("value_role"),
+        "aggregation_stage": preferred.get("aggregation_stage"),
+        "aggregate_label": preferred.get("aggregate_label"),
+        "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
+        "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
+        "matched_operand_role": _normalise_spaces(str(operand.get("role") or "")),
+    }
+    return DirectStructuredPreferredSlotAdoptionResult(
+        selected_operand_row=preferred_row,
+        preferred_slot_adopted=True,
+        unit_alignment_improves=unit_alignment_improves,
+        reason=(
+            "ratio_unit_alignment_selected"
+            if unit_alignment_improves
+            else "preferred_slot_selected"
+        ),
     )
 
 

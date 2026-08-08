@@ -2,6 +2,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -10,6 +11,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
+from src.agent import financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
@@ -445,6 +447,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
                 "period": "2023",
             },
         ]
+        nested_context = {"keep": "ratio"}
         direct_rows = [
             {
                 "operand_id": "op_001",
@@ -457,6 +460,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
                 "normalized_unit": "KRW",
                 "source_row_id": "ev_weak",
                 "source_row_ids": ["ev_weak"],
+                "nested_context": nested_context,
             },
             {
                 "operand_id": "op_002",
@@ -469,6 +473,7 @@ class PartWholeRatioContractTests(unittest.TestCase):
                 "normalized_unit": "KRW",
                 "source_row_id": "ev_denominator",
                 "source_row_ids": ["ev_denominator"],
+                "nested_context": nested_context,
             },
         ]
         evidence_items = [
@@ -528,18 +533,77 @@ class PartWholeRatioContractTests(unittest.TestCase):
             },
         ]
 
-        refined_rows = agent._prefer_direct_structured_evidence_rows(
-            direct_rows,
-            evidence_items=evidence_items,
-            required_operands=required_operands,
-            operation_family="ratio",
-            state={"active_subtask": {"operation_family": "ratio"}},
-        )
+        state = {"active_subtask": {"operation_family": "ratio"}}
+        direct_rows_before = json.loads(json.dumps(direct_rows, ensure_ascii=False))
+        evidence_items_before = json.loads(json.dumps(evidence_items, ensure_ascii=False))
+        required_operands_before = json.loads(json.dumps(required_operands, ensure_ascii=False))
+        state_before = json.loads(json.dumps(state, ensure_ascii=False))
+        preferred_calls = []
+        resolution_events = []
+        original_preferred_slot = agent._best_direct_lookup_slot_from_evidence_pool
+        original_resolver = financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption
 
+        def record_preferred_slot(operand, pool, **kwargs):
+            slot, score = original_preferred_slot(operand, pool, **kwargs)
+            preferred_calls.append((operand["role"], pool, kwargs, slot.get("source_row_id"), score))
+            return slot, score
+
+        def record_resolution(adoption_input):
+            result = original_resolver(adoption_input)
+            resolution_events.append((adoption_input, result))
+            return result
+
+        agent._best_direct_lookup_slot_from_evidence_pool = record_preferred_slot
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            side_effect=record_resolution,
+        ):
+            refined_rows = agent._prefer_direct_structured_evidence_rows(
+                direct_rows,
+                evidence_items=evidence_items,
+                required_operands=required_operands,
+                operation_family="ratio",
+                state=state,
+            )
+
+        self.assertEqual(
+            [(role, kwargs["preferred_raw_units"], source_id, score) for role, _, kwargs, source_id, score in preferred_calls],
+            [
+                ("numerator_1", {"\ubc31\ub9cc\uc6d0"}, "ev_strong", 12.0),
+                ("denominator_1", {"\ubc31\ub9cc\uc6d0"}, "ev_denominator", 12.0),
+            ],
+        )
+        self.assertTrue(all(pool is evidence_items for _, pool, _, _, _ in preferred_calls))
+        self.assertTrue(all(kwargs["state"] is state for _, _, kwargs, _, _ in preferred_calls))
+        self.assertEqual(
+            [
+                (
+                    adoption_input.row_index,
+                    adoption_input.normalized_peer_raw_units,
+                    result.reason,
+                    result.preferred_slot_adopted,
+                )
+                for adoption_input, result in resolution_events
+            ],
+            [
+                (0, {"\ubc31\ub9cc\uc6d0"}, "ratio_unit_alignment_selected", True),
+                (1, {"\ubc31\ub9cc\uc6d0"}, "equal_evidence_score", False),
+            ],
+        )
+        self.assertIsNot(refined_rows, direct_rows)
+        self.assertEqual([row["operand_id"] for row in refined_rows], ["op_001", "op_002"])
+        self.assertTrue(all(result is not source for result, source in zip(refined_rows, direct_rows)))
+        self.assertTrue(all(row["nested_context"] is nested_context for row in refined_rows))
+        self.assertEqual(direct_rows, direct_rows_before)
+        self.assertEqual(evidence_items, evidence_items_before)
+        self.assertEqual(required_operands, required_operands_before)
+        self.assertEqual(state, state_before)
         numerator = refined_rows[0]
         self.assertEqual(numerator["source_row_id"], "ev_strong")
         self.assertEqual(numerator["raw_unit"], "\ubc31\ub9cc\uc6d0")
         self.assertEqual(numerator["normalized_value"], 3531423000000.0)
+        self.assertEqual(refined_rows[1]["source_row_id"], "ev_denominator")
 
     def test_surface_contract_required_lookup_rejects_broad_column_only_match(self) -> None:
         operand = {

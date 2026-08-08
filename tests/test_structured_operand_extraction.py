@@ -1120,17 +1120,47 @@ class StructuredOperandExtractionTests(unittest.TestCase):
         }
 
         state_before = deepcopy(state)
+        adoption_events = []
+        original_adoption = financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption
+
+        def record_adoption(adoption_input):
+            adoption_result = original_adoption(adoption_input)
+            adoption_events.append((adoption_input, adoption_result))
+            return adoption_result
+
         with patch.object(
             financial_graph_calculation,
             "resolve_direct_structured_operand_acceptance",
             wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
-        ) as resolve_direct_acceptance:
+        ) as resolve_direct_acceptance, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            side_effect=record_adoption,
+        ) as resolve_preferred_slot:
             result = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(result)
         acceptance_input = resolve_direct_acceptance.call_args.args[0]
 
         self.assertEqual(state, state_before)
         self.assertEqual(resolve_direct_acceptance.call_count, 1)
+        resolve_preferred_slot.assert_called_once()
+        adoption_input, adoption_result = adoption_events[0]
+        self.assertEqual(
+            (
+                adoption_input.operation_family,
+                adoption_input.current_operand_row["source_row_id"],
+                adoption_input.preferred_slot["source_row_id"],
+                adoption_result.reason,
+                adoption_result.preferred_slot_adopted,
+            ),
+            (
+                "lookup",
+                "chunk_lookup_direct::value:0",
+                "recon::chunk_lookup_direct::value:0",
+                "preferred_slot_selected",
+                True,
+            ),
+        )
         self.assertEqual(acceptance_input.ambiguity_active_subtask, state["active_subtask"])
         self.assertNotIn("direct_target_metric_lookup_preferred", acceptance_input.ambiguity_active_subtask)
         self.assertEqual(acceptance_input.ambiguity_query, state["query"])
@@ -1307,11 +1337,16 @@ class StructuredOperandExtractionTests(unittest.TestCase):
             financial_graph_calculation,
             "resolve_direct_structured_operand_acceptance",
             wraps=financial_graph_calculation.resolve_direct_structured_operand_acceptance,
-        ) as resolve_direct_acceptance:
+        ) as resolve_direct_acceptance, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            wraps=financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption,
+        ) as resolve_preferred_slot:
             result = self.agent._extract_calculation_operands(state)
         trace = _resolve_runtime_calculation_trace(result)
 
         resolve_direct_acceptance.assert_not_called()
+        resolve_preferred_slot.assert_not_called()
         self.assertEqual(trace.get("calculation_operands", []), [])
         self.assertEqual(result["calculation_debug_trace"]["coverage"], "missing")
 
