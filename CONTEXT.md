@@ -71,9 +71,12 @@ Last updated: 2026-08-09
   Typed reason과 application flag는 trace가 아니며 provenance input은 변경하지 않는다.
 - Execution owner는 deterministic difference/growth plan construction, plan
   validation, formula execution, value-only freshness assessment를 소유한다.
-  Aggregate owner는 pure stale provenance target selection과 graph가 준비한
+  Aggregate owner는 pure stale provenance target selection, graph가 준비한
   calculation-result/slot/primary copies의 negative runtime-ratio
-  absolute-magnitude projection을 소유한다.
+  absolute-magnitude projection, prepared answer candidate application과 final-answer
+  projection synchronization을 소유한다. Candidate seam은 같은 aggregate projection
+  identity를 유지하고 normalized answer와 current-first stable merged claim-id list를
+  반환한다.
 - Graph는 direct row/evidence construction, coercion과 scope filtering,
   target override, acceptance applicability gate, direct structured preference의
   runtime evidence overlay, row iteration, peer-unit preparation, strongest-slot
@@ -89,8 +92,9 @@ Last updated: 2026-08-09
   task-artifact/ledger conflict short-circuit와 formatter, collapsed-ratio
   trace/eligibility/completeness/query gate와 prepared
   copies, downstream coherence/compact-answer/coverage/final projection, structured
-  provenance lookup과 후속 evidence lookup/coercion/append, 기타
-  absolute-ratio 및 fallback orchestration도 graph에 남는다. 전체 ledger
+  provenance lookup과 후속 evidence lookup/coercion/append, aggregate candidate
+  build/refresh/selection, mutable state/evidence, artifact/ledger, stale repair와 final
+  orchestration, 기타 absolute-ratio 및 fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
 
 ## 현재 검증 기준
@@ -100,7 +104,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 6/6, owner 37/37 + affected 594/594 = 631/631, full unittest 1,490/1,490 PASS |
+| Latest calculation runtime validation | targeted 4/4, affected 379/379, full unittest 1,491/1,491 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

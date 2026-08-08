@@ -474,6 +474,34 @@ ambiguity/tie-break policy, sequential adoption, or runtime trace projection and
 not a total-code, broad executed-path, performance, broad private-mesh,
 end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Prepared aggregate answer application ownership
+
+- `0409dde` moves prepared aggregate answer-candidate application and final-answer
+  projection synchronization into the aggregate owner. The owner preserves the
+  same aggregate projection and existing calculation-result identities, applies
+  formatted, conditional aggregate-rendered, and optional ok-status mutations in
+  the existing order, then returns a new normalized current-first stable merged
+  claim-id list. Flag lookup, empty-answer laziness, and partial-mutation exception
+  boundaries remain unchanged.
+- The graph retains candidate construction, refresh and selection, mutable
+  aggregate state/evidence, artifact and ledger work, stale repair, answer
+  precedence, and final orchestration. All eight prepared-candidate callers and
+  both remaining direct synchronization callers use the typed owner; the two old
+  graph-private helper bodies are deleted.
+- Production source is `+225/-124`, net 101: the graph changes from 19,581 to
+  19,578 lines (`+120/-123`, net -3) and the aggregate owner from 427 to 531
+  (`+105/-1`, net 104). Tests are `+282/-4`, net 278; the whole commit is
+  `+507/-128`, net 379.
+- Validation passed targeted 4/4 tests, affected 379/379 tests, the 217-literal
+  runtime audit, and full discovery over 1,491/1,491 tests. Benchmark refresh was
+  NOT RUN.
+
+This is a behavior-preserving prepared-candidate application and projection-sync
+ownership relocation, not a move of aggregate answer selection/precedence,
+state/evidence or artifact/ledger orchestration, stale repair, final projection,
+or a total-code, broad executed-path, performance, broad private-mesh,
+end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

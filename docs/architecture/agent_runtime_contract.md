@@ -866,6 +866,30 @@ application flag, or runtime trace field is added by this seam, and it does not
 move query policy, rendering policy, aggregate sequencing, ledger state, or
 final projection into the aggregate owner.
 
+Prepared aggregate answer-candidate application and final-answer projection
+synchronization are separate typed owner seams. The application owner receives
+the graph-prepared mutable aggregate projection, the current selected-claim
+sequence, and the raw prepared candidate mapping. It normalizes the candidate
+answer first. When `sync_projection` is true, it evaluates
+`sync_rendered_for_aggregate` and `status_ok` before entering projection sync;
+the sync mutates the same projection in `formatted_result`, conditional
+aggregate-mode `rendered_value`, then optional `status="ok"` order. It then
+normalizes nonempty claim ids and returns a new `List[str]` with stable
+current-first, candidate-second first-occurrence order. The result retains the
+same aggregate-projection identity and any existing calculation-result and
+nested identities. Candidate and selected-id inputs remain unmodified.
+
+The existing lazy and partial-mutation exception boundaries remain intact. A
+false sync flag does not read the rendered/status flags or mutate the projection.
+An empty normalized answer still reads both flags, but sync does not create a
+calculation result; claim merging still runs. A rendered-mode lookup failure may
+propagate after `formatted_result` changed and before rendered/status updates,
+while a candidate claim-id lookup failure may propagate after projection sync
+completed. These typed results add no decision reason, application flag, or
+runtime trace field. Candidate builders and refresh, answer selection and
+precedence, mutable aggregate state/evidence, artifact/ledger work, stale repair,
+and final orchestration remain graph-owned.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

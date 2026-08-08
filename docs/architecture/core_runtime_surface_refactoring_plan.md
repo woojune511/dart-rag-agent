@@ -236,16 +236,17 @@ Current calculation ownership is:
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
 - `financial_aggregate_projection.py` owns pure stale provenance target
-  selection, canonical aggregate operation-family normalization, and the typed
+  selection, canonical aggregate operation-family normalization, the typed
   state-free negative runtime-ratio absolute-magnitude transformation over
-  graph-prepared mutable result/slot/primary copies.
+  graph-prepared mutable result/slot/primary copies, and typed prepared answer
+  candidate application/final-answer projection synchronization.
 
-At the latest checkpoint, the graph is 19,581 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,578 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 427, the dependency owner is 3,089, and the
-execution owner is 837. The latest owner slice passed targeted 6/6 tests and
-owner 37/37 plus affected 594/594 tests (631 total), the 217-literal audit, and
-full discovery over 1,490/1,490 tests.
+is 2,437, the aggregate owner is 531, the dependency owner is 3,089, and the
+execution owner is 837. The latest owner slice passed targeted 4/4 tests,
+affected 379/379 tests, the 217-literal audit, and full discovery over
+1,491/1,491 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
@@ -254,10 +255,6 @@ in this plan.
 Phase 3 remains open for these unordered follow-ups:
 
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
-- characterize prepared aggregate answer-candidate application and final-answer
-  synchronization as one bounded state-free projection slice; keep candidate
-  builders, selection/precedence, mutable state/evidence, artifact/ledger work,
-  and final orchestration in the graph;
 - isolate other remaining dependency and ratio/absolute seams without moving
   graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified
