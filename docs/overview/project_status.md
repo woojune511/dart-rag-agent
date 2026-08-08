@@ -118,15 +118,23 @@ imports or an unconfigured `FinancialAgent` invocation.
   trace fields, and no selected-evidence projection is added. A non-`ok` nested path returns its
   supplied local row; original list/row identities are guaranteed only when the
   enclosing pass has no other changes.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,741 lines,
+- Prepared dependency structured-provenance adoption now has a typed state-free
+  owner seam. The graph constructs and normalizes the row, resolves provenance
+  from `vsm` graph state, skips the owner when none exists, and retains evidence
+  lookup/coercion/append. The owner mutates that same row in anchor/chunk-id,
+  converted-display preservation or unit-realignment, and metadata-overlay order;
+  nested identity and provenance input immutability are retained. Its typed reason
+  and application flag are not trace fields. The corrected graph fixtures attach
+  their structure graph to the production `vsm` surface.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,676 lines,
   `financial_aggregate_projection.py` is 427,
   `financial_operand_resolution.py` is 2,270,
-  `financial_dependency_projection.py` is 2,966, and
+  `financial_dependency_projection.py` is 3,089, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 2/2 and affected 375/375
-  tests, the 217-literal runtime audit, and full discovery over 1,489/1,489 tests
-  on Python 3.13. Benchmark refresh remains NOT RUN.
+- The latest calculation checkpoint passed targeted 5/5 and affected 296/296
+  tests, the 217-literal runtime audit, and full discovery over 1,490/1,490 tests.
+  Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
 boundaries live in
@@ -145,7 +153,7 @@ current-state document does not duplicate that commit diary.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
-| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, and two-stage post-candidate finalization | `financial_dependency_projection.py`; Stage 1 owns candidate field copies and result-status disposition, Stage 2 owns truthy formatted-result/final-row projection, while graph retains raw-plan and candidate construction/execution, recalculated-value coercion and invalid-value artifact-builder laziness, absolute-ratio query/transform invocation, task-artifact/ledger conflict short-circuit, formatter, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, and prepared structured-provenance adoption | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, while graph retains row construction/normalization and evidence coercion/append; Stage 1 owns candidate field copies and result-status disposition, Stage 2 owns truthy formatted-result/final-row projection, while graph retains raw-plan and candidate construction/execution, recalculated-value coercion and invalid-value artifact-builder laziness, absolute-ratio query/transform invocation, task-artifact/ledger conflict short-circuit, formatter, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection, stale provenance selection, and prepared collapsed-ratio magnitude transformation | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization, typed state-free target selection, and the result/slot/primary prepared-copy transform are owner-owned, while trace/eligibility/completeness/query gates, downstream coherence/answer/coverage, acceptance/filter sequencing, and final projection remain graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
@@ -171,9 +179,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 375/375 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 5/5 and affected 296/296 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,489/1,489 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,490/1,490 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -221,7 +229,7 @@ terminal finalization, required-candidate merge, direct structured acceptance,
 prepared preferred-slot adoption, recovered-context adoption, scalar plan
 disposition, post-coercion LLM operand selection, deterministic plan/execution,
 prepared ratio-artifact conflict selection, two-stage dependency post-candidate
-finalization, and pure aggregate provenance
+finalization, prepared dependency structured-provenance adoption, and pure aggregate provenance
 selection have named owners. The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy, direct
 structured preference applicability, runtime evidence preparation, row
@@ -232,6 +240,8 @@ query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
 exception/fallback orchestration, candidate preparation/execution plus
 state/task/artifact projection, repair acceptance, artifact/ledger conflict
 construction and short-circuit, dependency formatter, recalculated-value coercion,
+dependency-row construction/normalization, stateful structured-provenance lookup,
+downstream evidence coercion/append,
 collapsed-ratio trace/eligibility/completeness/query gates and prepared copies,
 downstream coherence/answer/coverage/final projection, aggregate/filter sequencing,
 other absolute-ratio handling, and other
@@ -254,30 +264,45 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and move only the prepared
-structured-provenance adoption block in `_build_dependency_operand_rows`
-(`financial_graph_calculation.py:8322-8395`) into
-`financial_dependency_projection.py`. The typed state-free boundary should
-receive only the graph-built dependency row and graph-resolved structured
-provenance. The owner should perform the converted-display-unit policy lookup at
-the same logical point so lookup and exception order remain unchanged, then own
-source-anchor and chunk-id adoption, stable source-id cleaning/order,
-source-visible and high-magnitude converted-unit preservation, tolerance-bounded
-unit realignment, and the nonempty consolidation/statement/table metadata
-overlay. The graph must retain
-initial row construction and normalization (`8251-8315`), the stateful provenance
-lookup call (`8316-8321`) and lookup helper (`8400-8481`), plus downstream
-evidence lookup, coercion, and append (`8396-8398`). No graph state or callback
-should cross the owner boundary. Characterization must preserve no-provenance
-laziness/identity, anchor and chunk-id dedupe order, metadata empty/nonempty
-behavior, normalization failure and scaled-tolerance boundaries, same dependency
-row and nested identity, and structured-provenance input immutability.
-Direct-preference preparation/scoring, aggregate stale-repair/precedence and
-final-answer mutation
-plumbing, other ratio/absolute handling, broader ledger synchronization,
-remaining fallbacks, private facade/API cleanup, and further test co-location
-remain separate work. The Phase 3 backlog in the refactoring plan is unordered;
-this section is the authority for priority.
+The next bounded architecture work is to characterize and relocate only the pure
+`_direct_structured_lookup_evidence_score`
+(`financial_graph_calculation.py:1725-1838`) into
+`financial_operand_resolution.py`, deleting that graph scorer body. The operand
+owner should expose typed score input/result contracts that receive only the
+operand and evidence item, with the internal reasons
+`no_structured_cells`, `surface_contract_not_satisfied`, and `evidence_scored`;
+those reasons are contract outputs, not runtime trace fields. Before moving it,
+define the neutral-owner
+boundary for `_operand_prefers_aggregate_value_role`
+(`financial_graph_helpers.py:3548-3559`): co-locate and expose that predicate from
+the operand owner, then update graph and graph-helper consumers through one-way
+imports. Do not make the operand owner import `financial_graph_helpers.py`, and
+do not replace the predicate with an eagerly computed boolean that changes
+evaluation or exception order.
+
+Characterization must lock the exact score-component matrix and input
+immutability: missing structured cells, required positive-surface gating,
+exact/fuzzy row and semantic labels, numeric-cell normalization and header
+affinity, direct-row and single/multi-cell adjustments, adjustment/detail
+penalties, preferred aggregate role/stage bonuses, normalization failure, and
+exception propagation. The graph must retain
+`_best_direct_lookup_slot_from_evidence_pool` (`1922-2229`), evidence iteration,
+query/report-scope scoring, ambiguity and tie-break policy, and the outer
+sequential preferred-slot adoption loop (`2231-2292`). No graph state, callback,
+or batch precomputation should cross the scorer boundary.
+
+The allowed structural claim is scorer ownership plus deletion of that one
+private aggregate-role predicate. It is not a claim that preferred-slot building,
+selection, sequential adoption, the broader private mesh, total code, executed
+paths, or performance have been reduced.
+
+The prepared aggregate final-answer mutation helper
+(`financial_graph_calculation.py:4927-4946`) is a safe but lower-semantic runner-up
+and remains an unordered backlog item rather than a precedence claim. Aggregate
+stale-repair/precedence, other ratio/absolute handling, broader ledger
+synchronization, remaining fallbacks, private facade/API cleanup, and further
+test co-location also remain separate work. The Phase 3 backlog in the
+refactoring plan is unordered; this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

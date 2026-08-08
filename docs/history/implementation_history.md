@@ -423,6 +423,33 @@ query, formatter, artifact/ledger, or selected-provenance ownership move and not
 a total-code, broad executed-path, performance, private-mesh, end-to-end
 calculation-owner, or complete Phase 3 reduction claim.
 
+### Dependency structured-provenance adoption ownership
+
+- `9089aa1` moves only the prepared structured-provenance adoption body into the
+  dependency owner. The graph still constructs and normalizes the dependency
+  row, resolves provenance through the stateful `vsm` structure graph, skips the
+  owner when no provenance exists, and retains downstream evidence lookup,
+  coercion, and append. The owner mutates the same graph-built row in the existing
+  anchor, chunk-id, converted-unit preservation or realignment, and metadata
+  overlay order. It preserves nested identity and leaves the provenance mapping
+  unchanged; its reason and application flag are contract outputs, not trace
+  fields. Graph fixtures were corrected to attach the structured graph to the
+  actual `vsm` runtime surface, so the source-visible and high-magnitude branches
+  now exercise the production lookup path.
+- The graph changes from 19,741 to 19,676 lines (`+7/-72`, net -65) and the
+  dependency owner from 2,966 to 3,089 lines (`+123`). Production source is
+  `+130/-72`, net 58; tests are `+163/-10`, net 153; the whole commit is
+  `+293/-82`, net 211.
+- Validation passed targeted 5/5 tests, affected 296/296 tests, the 217-literal
+  runtime audit, and full discovery over 1,490/1,490 tests. Benchmark refresh was
+  NOT RUN.
+
+This is a behavior-preserving in-place adoption relocation, not a move of
+stateful provenance lookup, dependency-row construction, downstream evidence
+coercion, graph/store state, or final projection and not a total-code, broad
+executed-path, performance, private-mesh, end-to-end calculation-owner, or
+complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -198,8 +198,10 @@ Current calculation ownership is:
   construction/execution, absolute-ratio query/transform invocation,
   task-artifact/ledger conflict short-circuit and formatting, collapsed-ratio
   trace/eligibility/completeness/query gates and prepared-copy
-  construction, downstream coherence/answer/coverage/final projection, other
-  ratio/absolute orchestration, and remaining fallbacks.
+  construction, downstream coherence/answer/coverage/final projection,
+  dependency-row construction/normalization, stateful structured-provenance
+  lookup and downstream evidence coercion/append, other ratio/absolute
+  orchestration, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
   grounding, selection, and merge behavior, including coherent-first required
   candidate merge followed by complete-ratio candidate-first or current-first
@@ -222,7 +224,10 @@ Current calculation ownership is:
   precedence, scaled-tolerance, and stable first-conflict selection. After
   candidate execution it owns typed Stage 1 operand/plan/result shallow copies,
   the second mutable result and result-status disposition, plus Stage 2 truthy
-  formatted-result mutation and trace-first/fallback final row projection.
+  formatted-result mutation and trace-first/fallback final row projection. It
+  also owns typed in-place adoption of graph-resolved structured provenance into
+  a graph-built dependency row: source ids/anchor, converted-display preservation
+  or unit realignment, and nonempty scope/statement/table metadata overlay.
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
@@ -231,20 +236,25 @@ Current calculation ownership is:
   state-free negative runtime-ratio absolute-magnitude transformation over
   graph-prepared mutable result/slot/primary copies.
 
-At the latest checkpoint, the graph is 19,741 lines, the aggregate owner is 427,
-the operand owner is 2,270, the dependency owner is 2,966, and the execution
-owner is 837. The latest owner slice passed targeted 2/2 and affected 375/375
-tests, the 217-literal audit, and full discovery over 1,489/1,489 tests on Python
-3.13. Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
+At the latest checkpoint, the graph is 19,676 lines, the aggregate owner is 427,
+the operand owner is 2,270, the dependency owner is 3,089, and the execution
+owner is 837. The latest owner slice passed targeted 5/5 and affected 296/296
+tests, the 217-literal audit, and full discovery over 1,490/1,490 tests.
+Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
 in this plan.
 
 Phase 3 remains open for these unordered follow-ups:
 
-- characterize remaining graph-prepared direct-preference builder/scoring seams
-  without moving graph state or builders;
+- characterize the pure direct structured-evidence scorer and co-locate its
+  aggregate-role predicate in the operand owner without moving the graph-owned
+  best-slot builder, state/scope iteration, ambiguity/tie-break policy, or
+  sequential adoption loop; this may claim scorer ownership and deletion of that
+  predicate only, not broader private-mesh or executed-path reduction;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
+- treat prepared aggregate final-answer mutation as a lower-semantic mechanical
+  projection slice, not as an aggregate-precedence completion claim;
 - isolate other remaining dependency and ratio/absolute seams without moving
   graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified

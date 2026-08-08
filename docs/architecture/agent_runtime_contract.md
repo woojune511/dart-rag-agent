@@ -782,6 +782,26 @@ mutable calculation-result identity while copying the selected operand list,
 plan dictionary, source-id list, and row top level with existing nested
 identities. No selected-evidence or ledger projection is added.
 
+Dependency structured-provenance adoption is a separate typed state-free seam.
+The graph still builds and normalizes the dependency row, resolves structured
+provenance from graph/store state, and skips the owner call entirely when that
+lookup returns no provenance. For a truthy provenance mapping, the owner receives
+only that read-only mapping and the graph-built mutable row. It mutates the same
+row in the existing order: normalized source anchor, stable cleaned chunk id,
+converted-display policy and current-value consistency, source-visible or
+high-magnitude converted-unit preservation versus optional unit realignment, and
+finally nonempty consolidation, statement, and table metadata overlay.
+
+The owner returns the same row identity and retains untouched nested identities;
+it does not mutate the provenance mapping. The existing
+`unit_realigned_from_structured_provenance` row marker is set only when the
+realignment succeeds. The typed `unit_realignment_applied` field and reason are
+owner-contract outputs, not runtime trace fields. The existing float
+`TypeError`/`ValueError` fallback is unchanged, no broader exception boundary is
+added, and an exception after source-anchor or chunk-id adoption still propagates
+with those earlier in-place mutations intact. The graph retains downstream
+evidence lookup, row coercion, append/order, and all stateful provenance lookup.
+
 For supported ratio recalculation, artifact precedence is split at a narrower
 boundary. The graph coerces the recalculated top-level `result_value`; an
 unavailable value returns before artifact-row construction. It then builds the
@@ -805,7 +825,8 @@ top-level copy. Caller-owned ordered results, state, and aggregate projection
 remain unmodified; Stage 2 intentionally mutates only its graph-prepared mutable
 calculation-result input.
 This contract does not move primary state/artifact projection, repair acceptance,
-aggregate sequencing, or absolute-ratio orchestration out of the graph. It does
+aggregate sequencing, structured-provenance lookup, or absolute-ratio
+orchestration out of the graph. It does
 not establish whole-ledger synchronization, broad performance or total-code
 reduction, a single end-to-end calculation owner, or complete Phase 3. Exact
 change chronology and validation evidence live in

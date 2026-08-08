@@ -342,7 +342,11 @@ state-free owner 경계:
   Stage 2는 truthy formatted-result mutation과 trace-first/fallback operands/plan,
   result-first/current-row source ids의 final row projection을 소유한다. 같은 result
   identity를 유지하며 reason/flag는 runtime trace가 아니고 selected-evidence
-  projection은 추가하지 않는다.
+  projection은 추가하지 않는다. Graph가 stateful lookup으로 준비한 structured
+  provenance와 graph-built mutable dependency row에는 같은 row identity로 source
+  anchor/chunk id를 채택하고, converted-display 보존 또는 unit realignment 뒤
+  nonempty consolidation/statement/table metadata를 overlay한다. Provenance input과
+  nested identity는 유지하며 typed reason/application flag는 runtime trace가 아니다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -362,6 +366,8 @@ state-free owner 경계:
 graph adapter에 남은 orchestration 역할군:
 
 - main context/evidence retrieval gate와 typed input 구성
+- dependency row construction/normalization, stateful `vsm` structured-provenance
+  lookup, no-provenance owner-call skip, downstream evidence lookup/coercion/append
 - direct row/evidence construction, coercion, scope/target policy, acceptance
   applicability gate, direct preference runtime evidence overlay, row
   matching/iteration, peer-unit preparation, strongest-slot builder와 scoring
@@ -466,8 +472,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   structured acceptance
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
-  disposition, ratio-artifact conflict selection, and two-stage post-candidate
-  finalization
+  disposition, ratio-artifact conflict selection, two-stage post-candidate
+  finalization, and in-place prepared structured-provenance adoption
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
   outcome, and typed state-free value-only stale freshness assessment
