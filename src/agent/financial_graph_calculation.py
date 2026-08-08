@@ -28,6 +28,7 @@ from src.agent.financial_aggregate_state import (
 )
 from src.agent.financial_aggregate_projection import (
     AggregateStaleRepairProvenanceInput,
+    RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload as _aggregate_artifact_payload,
     aggregate_completion_base_payload as _aggregate_completion_base_payload,
     aggregate_extend_selected_claim_ids as _aggregate_extend_selected_claim_ids,
@@ -39,6 +40,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_result_operation_family as _aggregate_result_operation_family,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_task_ids as _aggregate_source_task_ids,
+    project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
 )
 from src.agent.financial_calculation_execution import (
@@ -6433,25 +6435,13 @@ class FinancialAgentCalculationMixin:
         runtime_slots = dict(runtime_slots)
         runtime_primary = dict(runtime_slots.get("primary_value") or {})
         if self._ratio_query_requests_absolute_magnitude(str(state.get("query") or "")):
-            try:
-                runtime_value = runtime_result.get("result_value")
-                if runtime_value is not None and float(runtime_value) < 0:
-                    absolute_value = abs(float(runtime_value))
-                    runtime_result["result_value"] = absolute_value
-                    runtime_primary["normalized_value"] = absolute_value
-                    runtime_primary["normalized_unit"] = runtime_primary.get("normalized_unit") or "PERCENT"
-                    runtime_primary["raw_unit"] = runtime_primary.get("raw_unit") or runtime_result.get("result_unit") or "%"
-                    runtime_rendered = calculation_rendering.format_calculation_value(
-                        absolute_value,
-                        str(runtime_result.get("result_unit") or "%"),
-                        str(runtime_primary.get("normalized_unit") or "PERCENT"),
-                    )
-                    runtime_result["rendered_value"] = runtime_rendered
-                    runtime_primary["rendered_value"] = runtime_rendered
-                    runtime_slots["primary_value"] = runtime_primary
-                    runtime_result["answer_slots"] = runtime_slots
-            except (TypeError, ValueError):
-                pass
+            runtime_result = project_runtime_ratio_absolute_magnitude(
+                RuntimeRatioAbsoluteMagnitudeProjectionInput(
+                    calculation_result=runtime_result,
+                    answer_slots=runtime_slots,
+                    primary_value=runtime_primary,
+                )
+            ).calculation_result
 
         runtime_operands = list(runtime_trace.get("calculation_operands") or [])
         if (

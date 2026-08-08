@@ -5173,15 +5173,48 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        projection, answer = self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
-            stale_state,
-            aggregate_projection,
-            [source_lookup, coherent_ratio, collapsed_ratio],
-            "target share is 80%.",
-        )
+        with patch.object(
+            financial_graph_calculation,
+            "project_runtime_ratio_absolute_magnitude",
+        ) as magnitude_projection:
+            projection, answer = self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
+                stale_state,
+                aggregate_projection,
+                [source_lookup, coherent_ratio, collapsed_ratio],
+                "target share is 80%.",
+            )
 
+        magnitude_projection.assert_not_called()
         self.assertEqual(answer, "target share is 80%.")
         self.assertEqual(projection["calculation_result"]["formatted_result"], "target share is 80%.")
+
+        absolute_state = deepcopy(stale_state)
+        absolute_state["resolved_calculation_trace"]["calculation_result"]["result_value"] = -46.67
+        state_before = deepcopy(absolute_state)
+        with (
+            patch.object(self.agent, "_ratio_query_requests_absolute_magnitude", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "project_runtime_ratio_absolute_magnitude",
+                wraps=financial_graph_calculation.project_runtime_ratio_absolute_magnitude,
+            ) as magnitude_projection,
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "format_calculation_value",
+                side_effect=RuntimeError("projection failed"),
+            ),
+            patch.object(self.agent, "_aggregate_dependency_slot_coherence_rank_for_operands") as coherence,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "projection failed"):
+                self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
+                    absolute_state,
+                    aggregate_projection,
+                    [source_lookup, coherent_ratio, collapsed_ratio],
+                    "target share is 80%.",
+                )
+        magnitude_projection.assert_called_once()
+        coherence.assert_not_called()
+        self.assertEqual(absolute_state, state_before)
 
     def test_stale_projection_repair_rejects_dependency_incoherent_operands(self) -> None:
         source_lookup = {

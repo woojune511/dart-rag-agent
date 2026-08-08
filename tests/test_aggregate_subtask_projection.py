@@ -1,13 +1,19 @@
+import math
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.agent import financial_calculation_execution, financial_graph_calculation
+from src.agent import (
+    financial_aggregate_projection,
+    financial_calculation_execution,
+    financial_graph_calculation,
+)
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
     AggregateStaleRepairProvenanceInput,
+    RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload,
     aggregate_completion_base_payload,
     aggregate_extend_selected_claim_ids,
@@ -20,6 +26,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_selected_claim_ids,
     aggregate_source_task_ids,
     aggregate_task_status_value,
+    project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
 )
 from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
@@ -65,6 +72,125 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_runtime_ratio_absolute_magnitude_projection_contract(self) -> None:
+        nested_marker = {"preserve": True}
+
+        def prepared(value, *, result_unit=None, normalized_unit=None, raw_unit=None):
+            original_primary = {"normalized_value": value, "rendered_value": "old"}
+            original_slots = {"primary_value": original_primary}
+            calculation_result = {
+                "result_value": value,
+                "rendered_value": "old",
+                "answer_slots": original_slots,
+                "metadata": nested_marker,
+            }
+            primary_value = {**original_primary, "metadata": nested_marker}
+            if result_unit is not None:
+                calculation_result["result_unit"] = result_unit
+            if normalized_unit is not None:
+                primary_value["normalized_unit"] = normalized_unit
+            if raw_unit is not None:
+                primary_value["raw_unit"] = raw_unit
+            return calculation_result, dict(original_slots), primary_value, original_slots, original_primary
+
+        with patch.object(
+            financial_aggregate_projection.calculation_rendering,
+            "format_calculation_value",
+        ) as formatter:
+            for value in (None, 4.0, float("nan"), -0.0, "not-a-number", {}):
+                with self.subTest(no_projection=value):
+                    result, slots, primary, original_slots, original_primary = prepared(value)
+                    projection = project_runtime_ratio_absolute_magnitude(
+                        RuntimeRatioAbsoluteMagnitudeProjectionInput(result, slots, primary)
+                    )
+                    self.assertIs(projection.calculation_result, result)
+                    self.assertIs(result["answer_slots"], original_slots)
+                    self.assertIs(result["answer_slots"]["primary_value"], original_primary)
+                    self.assertIs(slots["primary_value"], original_primary)
+                    self.assertIs(primary["metadata"], nested_marker)
+                    if isinstance(value, float) and math.isnan(value):
+                        self.assertTrue(math.isnan(result["result_value"]))
+                    elif value == 0:
+                        self.assertEqual(math.copysign(1.0, result["result_value"]), -1.0)
+                    else:
+                        self.assertEqual(result["result_value"], value)
+            formatter.assert_not_called()
+
+        class CountingNegative:
+            def __init__(self):
+                self.float_calls = 0
+
+            def __float__(self):
+                self.float_calls += 1
+                return -3.5
+
+        for units, expected_args in (
+            ({}, (3.5, "%", "PERCENT")),
+            (
+                {
+                    "result_unit": "%p",
+                    "normalized_unit": "PERCENT_POINT",
+                    "raw_unit": "percentage points",
+                },
+                (3.5, "%p", "PERCENT_POINT"),
+            ),
+        ):
+            with self.subTest(units=units):
+                value = CountingNegative()
+                result, slots, primary, _, _ = prepared(value, **units)
+                with patch.object(
+                    financial_aggregate_projection.calculation_rendering,
+                    "format_calculation_value",
+                    return_value="3.5 rendered",
+                ) as formatter:
+                    projection = project_runtime_ratio_absolute_magnitude(
+                        RuntimeRatioAbsoluteMagnitudeProjectionInput(result, slots, primary)
+                    )
+                self.assertIs(projection.calculation_result, result)
+                self.assertEqual(value.float_calls, 2)
+                formatter.assert_called_once_with(*expected_args)
+                self.assertEqual(result["result_value"], 3.5)
+                self.assertEqual(result["rendered_value"], "3.5 rendered")
+                self.assertIs(result["answer_slots"], slots)
+                self.assertIs(slots["primary_value"], primary)
+                self.assertEqual(primary["normalized_value"], 3.5)
+                self.assertEqual(primary["normalized_unit"], units.get("normalized_unit", "PERCENT"))
+                self.assertEqual(primary["raw_unit"], units.get("raw_unit", "%"))
+                self.assertIs(primary["metadata"], nested_marker)
+
+        for exception_type in (TypeError, ValueError):
+            with self.subTest(formatter_exception=exception_type.__name__):
+                result, slots, primary, original_slots, original_primary = prepared(-3.5)
+                with patch.object(
+                    financial_aggregate_projection.calculation_rendering,
+                    "format_calculation_value",
+                    side_effect=exception_type("cannot format"),
+                ):
+                    projection = project_runtime_ratio_absolute_magnitude(
+                        RuntimeRatioAbsoluteMagnitudeProjectionInput(result, slots, primary)
+                    )
+                self.assertIs(projection.calculation_result, result)
+                self.assertEqual(result["result_value"], 3.5)
+                self.assertEqual(result["rendered_value"], "old")
+                self.assertIs(result["answer_slots"], original_slots)
+                self.assertIs(slots["primary_value"], original_primary)
+                self.assertEqual(primary["normalized_value"], 3.5)
+                self.assertEqual(primary["normalized_unit"], "PERCENT")
+                self.assertEqual(primary["raw_unit"], "%")
+
+        result, slots, primary, original_slots, _ = prepared(-3.5)
+        with patch.object(
+            financial_aggregate_projection.calculation_rendering,
+            "format_calculation_value",
+            side_effect=RuntimeError("formatter unavailable"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "formatter unavailable"):
+                project_runtime_ratio_absolute_magnitude(
+                    RuntimeRatioAbsoluteMagnitudeProjectionInput(result, slots, primary)
+                )
+        self.assertEqual(result["result_value"], 3.5)
+        self.assertIs(result["answer_slots"], original_slots)
+
     def test_semantic_plan_artifact_update_attaches_pending_calculation_tasks(self) -> None:
         updated = semantic_plan_artifact_update(
             tasks=[],

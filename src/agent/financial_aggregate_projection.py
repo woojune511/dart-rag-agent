@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Sequence
 
+from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 
 
@@ -30,6 +31,22 @@ class AggregateStaleRepairProvenanceInput:
 class AggregateStaleRepairProvenanceResult:
     selected_claim_ids: tuple[str, ...]
     target_resolution: AggregateStaleRepairTargetResolution
+
+
+@dataclass(frozen=True)
+class RuntimeRatioAbsoluteMagnitudeProjectionInput:
+    """Prepared mutable copies for query-approved ratio magnitude projection."""
+
+    calculation_result: Dict[str, Any]
+    answer_slots: Dict[str, Any]
+    primary_value: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RuntimeRatioAbsoluteMagnitudeProjectionResult:
+    """The same prepared calculation-result object after attempted projection."""
+
+    calculation_result: Dict[str, Any]
 
 
 def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
@@ -66,6 +83,40 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
         "addition": "sum",
     }
     return operation_aliases.get(operation_family, operation_family)
+
+
+def project_runtime_ratio_absolute_magnitude(
+    projection_input: RuntimeRatioAbsoluteMagnitudeProjectionInput,
+) -> RuntimeRatioAbsoluteMagnitudeProjectionResult:
+    """Project a negative runtime ratio onto graph-prepared result and slot copies."""
+
+    runtime_result = projection_input.calculation_result
+    runtime_slots = projection_input.answer_slots
+    runtime_primary = projection_input.primary_value
+    try:
+        runtime_value = runtime_result.get("result_value")
+        if runtime_value is not None and float(runtime_value) < 0:
+            absolute_value = abs(float(runtime_value))
+            runtime_result["result_value"] = absolute_value
+            runtime_primary["normalized_value"] = absolute_value
+            runtime_primary["normalized_unit"] = runtime_primary.get("normalized_unit") or "PERCENT"
+            runtime_primary["raw_unit"] = (
+                runtime_primary.get("raw_unit") or runtime_result.get("result_unit") or "%"
+            )
+            runtime_rendered = calculation_rendering.format_calculation_value(
+                absolute_value,
+                str(runtime_result.get("result_unit") or "%"),
+                str(runtime_primary.get("normalized_unit") or "PERCENT"),
+            )
+            runtime_result["rendered_value"] = runtime_rendered
+            runtime_primary["rendered_value"] = runtime_rendered
+            runtime_slots["primary_value"] = runtime_primary
+            runtime_result["answer_slots"] = runtime_slots
+    except (TypeError, ValueError):
+        pass
+    return RuntimeRatioAbsoluteMagnitudeProjectionResult(
+        calculation_result=runtime_result,
+    )
 
 
 def _aggregate_stale_repair_provenance_refs(payload: Mapping[str, Any]) -> set[str]:
