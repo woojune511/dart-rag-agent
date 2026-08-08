@@ -100,6 +100,10 @@ def _record_graph_resolver(symbol):
     )
 
 
+def _spy_method(target, symbol):
+    return patch.object(target, symbol, wraps=getattr(target, symbol))
+
+
 def _record_required_candidate_merges():
     return _record_graph_resolver("resolve_required_operand_candidate_merge")
 
@@ -1498,7 +1502,20 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        extracted = self.agent._extract_calculation_operands(state)
+        state_before = deepcopy(state)
+        with (
+            _spy_method(
+                self.agent, "_build_period_comparison_operands_from_table_label_context"
+            ) as build_context,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_recovered_operand_context_adoption",
+            ) as context_adoption,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+        self.assertEqual(state, state_before)
+        build_context.assert_called_once()
+        context_adoption.assert_not_called()
         merged_state = {**state, **extracted}
         trace = _resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(len(trace["calculation_operands"]), 2)
@@ -2163,7 +2180,20 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_result": {},
         }
 
-        extracted = self.agent._extract_calculation_operands(state)
+        state_before = deepcopy(state)
+        with (
+            _spy_method(
+                self.agent, "_build_complete_ratio_operands_from_coherent_context"
+            ) as build_context,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_recovered_operand_context_adoption",
+            ) as context_adoption,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
+        self.assertEqual(state, state_before)
+        build_context.assert_called_once()
+        context_adoption.assert_not_called()
         merged_state = {**state, **extracted}
         trace = _resolve_runtime_calculation_trace(merged_state)
         self.assertEqual(
@@ -9701,6 +9731,20 @@ class SubtaskLoopTests(unittest.TestCase):
             _operand_row(index, source_id, dependency=False)
             for index, source_id in enumerate(direct_ids)
         ]
+        stale_direct_rows = [
+            _operand_row(index, f"stale_direct_{index}", dependency=False)
+            for index in range(len(operand_specs))
+        ]
+        existing_evidence = {
+            "evidence_id": direct_ids[0],
+            "metadata": {"marker": "existing"},
+        }
+        context_evidence = [
+            {"evidence_id": direct_ids[0], "metadata": {"marker": "recovered-existing"}},
+            {"evidence_id": "unused_context", "metadata": {"marker": "unused"}},
+            {"evidence_id": direct_ids[1], "metadata": {"marker": "first-new"}},
+            {"evidence_id": direct_ids[1], "metadata": {"marker": "second-new"}},
+        ]
         dependency_binding_keys = {
             (operand["label"], operand["role"])
             for operand in required_operands
@@ -9713,7 +9757,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 "operation_family": "ratio",
                 "required_operands": required_operands,
             },
-            "evidence_items": [],
+            "evidence_items": [existing_evidence],
             "retrieved_docs": [],
             "seed_retrieved_docs": [],
         }
@@ -9725,25 +9769,52 @@ class SubtaskLoopTests(unittest.TestCase):
             "missing_bindings": [dict(dependency_bindings[1])],
             "all_resolved": False,
         }
-        self.agent._extract_structured_operands_from_reconciliation = lambda _state: []
+        self.agent._extract_structured_operands_from_reconciliation = (
+            lambda _state: [dict(row) for row in stale_direct_rows]
+        )
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
+        self.agent._ratio_operand_context_evidence_from_docs = (
+            lambda *_args, **_kwargs: context_evidence
+        )
         self.agent._build_complete_ratio_operands_from_coherent_context = (
             lambda *_args, **_kwargs: [dict(row) for row in coherent_direct_rows]
         )
-        owner_results = []
-        original_owner = financial_graph_calculation.resolve_main_operand_precedence
-
-        def _record_owner(precedence_input):
-            result = original_owner(precedence_input)
-            owner_results.append(result)
-            return result
-
-        financial_graph_calculation.resolve_main_operand_precedence = _record_owner
-        try:
+        state_before = deepcopy(state)
+        inputs_before = deepcopy((stale_direct_rows, coherent_direct_rows, context_evidence))
+        direct_acceptances, acceptance_patch = _record_graph_resolver(
+            "resolve_direct_structured_operand_acceptance"
+        )
+        context_adoptions, adoption_patch = _record_graph_resolver(
+            "resolve_recovered_operand_context_adoption"
+        )
+        owner_results, owner_patch = _record_graph_resolver(
+            "resolve_main_operand_precedence"
+        )
+        with (
+            acceptance_patch,
+            adoption_patch,
+            owner_patch,
+        ):
             extracted = self.agent._extract_calculation_operands(state)
-        finally:
-            financial_graph_calculation.resolve_main_operand_precedence = original_owner
 
+        self.assertEqual(state, state_before)
+        self.assertEqual((stale_direct_rows, coherent_direct_rows, context_evidence), inputs_before)
+        self.assertEqual(len(direct_acceptances), 1)
+        self.assertEqual(
+            [row["evidence_id"] for row in direct_acceptances[0].accepted_operand_rows],
+            ["stale_direct_0", "stale_direct_1"],
+        )
+        self.assertEqual(len(context_adoptions), 1)
+        context_adoption = context_adoptions[0]
+        self.assertEqual(context_adoption.reason, "coherent_ratio_context_replaced")
+        self.assertEqual(
+            [row["evidence_id"] for row in context_adoption.selected_operand_rows],
+            direct_ids,
+        )
+        self.assertEqual(
+            context_adoption.adopted_evidence_ids,
+            (direct_ids[1], direct_ids[1]),
+        )
         self.assertEqual(len(owner_results), 1)
         owner_result = owner_results[0]
         self.assertEqual(
@@ -9777,6 +9848,12 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(
             [row.get("evidence_id") for row in trace_rows],
             direct_ids,
+        )
+        adopted_evidence = extracted["evidence_items"]
+        self.assertIs(adopted_evidence, context_adoption.evidence_items)
+        self.assertEqual(
+            [item["evidence_id"] for item in adopted_evidence],
+            [direct_ids[0], direct_ids[1], direct_ids[1]],
         )
         self.assertTrue(
             all(

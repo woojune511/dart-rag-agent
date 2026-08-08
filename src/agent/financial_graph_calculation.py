@@ -91,6 +91,7 @@ from src.agent.financial_dependency_projection import (
 )
 from src.agent.financial_operand_resolution import (
     DirectStructuredOperandAcceptanceInput,
+    RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
     _canonical_structured_reconciliation_id,
     _canonicalize_structured_operand_reconciliation_refs,
@@ -116,6 +117,7 @@ from src.agent.financial_operand_resolution import (
     operand_row_values_differ,
     operand_row_values_materially_conflict,
     resolve_direct_structured_operand_acceptance,
+    resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
@@ -15163,27 +15165,18 @@ class FinancialAgentCalculationMixin:
                 operation_family=operation_family,
             )
             if period_context_rows:
-                direct_structured_rows = merge_operand_rows(
-                    period_context_rows,
-                    direct_structured_rows,
-                    required_operands=required_operands,
+                context_adoption = resolve_recovered_operand_context_adoption(
+                    RecoveredOperandContextAdoptionInput(
+                        context_kind="period_comparison",
+                        current_operand_rows=direct_structured_rows,
+                        recovered_operand_rows=period_context_rows,
+                        required_operands=required_operands,
+                        evidence_items=evidence_items,
+                        recovered_evidence_items=period_context_evidence,
+                    )
                 )
-                used_period_evidence_ids = {
-                    str(row.get("evidence_id") or "")
-                    for row in period_context_rows
-                    if str(row.get("evidence_id") or "").strip()
-                }
-                existing_evidence_ids = {
-                    str(item.get("evidence_id") or "")
-                    for item in evidence_items
-                    if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-                }
-                evidence_items = evidence_items + [
-                    item
-                    for item in period_context_evidence
-                    if str(item.get("evidence_id") or "") in used_period_evidence_ids
-                    and str(item.get("evidence_id") or "") not in existing_evidence_ids
-                ]
+                direct_structured_rows = context_adoption.selected_operand_rows
+                evidence_items = context_adoption.evidence_items
                 logger.info("[calc_operands] coherent period-comparison table-label rows=%s", len(period_context_rows))
         if operation_family == "ratio" and required_operands and (
             (direct_rows_cover_required_operands and not direct_rows_have_coherent_context)
@@ -15207,27 +15200,18 @@ class FinancialAgentCalculationMixin:
             )
             if coherent_ratio_rows:
                 retrieved_ratio_context_recovered = True
-                direct_structured_rows = merge_operand_rows(
-                    coherent_ratio_rows,
-                    [],
-                    required_operands=required_operands,
+                context_adoption = resolve_recovered_operand_context_adoption(
+                    RecoveredOperandContextAdoptionInput(
+                        context_kind="coherent_ratio",
+                        current_operand_rows=direct_structured_rows,
+                        recovered_operand_rows=coherent_ratio_rows,
+                        required_operands=required_operands,
+                        evidence_items=evidence_items,
+                        recovered_evidence_items=ratio_context_evidence,
+                    )
                 )
-                used_context_evidence_ids = {
-                    str(row.get("evidence_id") or "")
-                    for row in coherent_ratio_rows
-                    if str(row.get("evidence_id") or "").strip()
-                }
-                existing_evidence_ids = {
-                    str(item.get("evidence_id") or "")
-                    for item in evidence_items
-                    if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-                }
-                evidence_items = evidence_items + [
-                    item
-                    for item in ratio_context_evidence
-                    if str(item.get("evidence_id") or "") in used_context_evidence_ids
-                    and str(item.get("evidence_id") or "") not in existing_evidence_ids
-                ]
+                direct_structured_rows = context_adoption.selected_operand_rows
+                evidence_items = context_adoption.evidence_items
                 logger.info("[calc_operands] coherent ratio context rows=%s", len(coherent_ratio_rows))
         main_precedence = resolve_main_operand_precedence(
             MainOperandPrecedenceInput(

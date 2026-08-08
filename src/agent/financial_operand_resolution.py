@@ -102,6 +102,40 @@ class DirectStructuredOperandAcceptanceResult:
     lookup_ambiguity_filter_applied: bool
 
 
+RecoveredOperandContextKind = Literal[
+    "period_comparison",
+    "coherent_ratio",
+]
+RecoveredOperandContextAdoptionReason = Literal[
+    "no_context_rows",
+    "period_context_merged",
+    "coherent_ratio_context_replaced",
+]
+
+
+@dataclass(frozen=True)
+class RecoveredOperandContextAdoptionInput:
+    """State-free inputs for recovered context and evidence adoption."""
+
+    context_kind: RecoveredOperandContextKind
+    current_operand_rows: List[Dict[str, Any]]
+    recovered_operand_rows: List[Dict[str, Any]]
+    required_operands: List[Dict[str, Any]]
+    evidence_items: List[Dict[str, Any]]
+    recovered_evidence_items: List[Dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class RecoveredOperandContextAdoptionResult:
+    """Inspectable rows and provenance adopted from recovered context."""
+
+    selected_operand_rows: List[Dict[str, Any]]
+    evidence_items: List[Dict[str, Any]]
+    adopted_evidence_ids: Tuple[str, ...]
+    context_applied: bool
+    reason: RecoveredOperandContextAdoptionReason
+
+
 SiblingDirectSelectionReason = Literal[
     "shared_source_context",
     "same_table_context",
@@ -1454,6 +1488,64 @@ def resolve_direct_structured_operand_acceptance(
         pre_lookup_ambiguity_filter_applied=pre_lookup_ambiguity_filter_applied,
         lookup_direct_support_filter_applied=lookup_direct_support_filter_applied,
         lookup_ambiguity_filter_applied=lookup_ambiguity_filter_applied,
+    )
+
+
+def resolve_recovered_operand_context_adoption(
+    adoption_input: RecoveredOperandContextAdoptionInput,
+) -> RecoveredOperandContextAdoptionResult:
+    """Adopt recovered operand rows and only their referenced evidence."""
+
+    if not adoption_input.recovered_operand_rows:
+        return RecoveredOperandContextAdoptionResult(
+            selected_operand_rows=adoption_input.current_operand_rows,
+            evidence_items=adoption_input.evidence_items,
+            adopted_evidence_ids=(),
+            context_applied=False,
+            reason="no_context_rows",
+        )
+
+    if adoption_input.context_kind == "period_comparison":
+        supplemental_operand_rows = adoption_input.current_operand_rows
+        reason: RecoveredOperandContextAdoptionReason = "period_context_merged"
+    elif adoption_input.context_kind == "coherent_ratio":
+        supplemental_operand_rows = []
+        reason = "coherent_ratio_context_replaced"
+    else:
+        raise ValueError(f"unsupported recovered operand context: {adoption_input.context_kind}")
+
+    selected_operand_rows = merge_operand_rows(
+        adoption_input.recovered_operand_rows,
+        supplemental_operand_rows,
+        required_operands=adoption_input.required_operands,
+    )
+    used_evidence_ids = {
+        str(row.get("evidence_id") or "")
+        for row in adoption_input.recovered_operand_rows
+        if str(row.get("evidence_id") or "").strip()
+    }
+    existing_evidence_ids = {
+        str(item.get("evidence_id") or "")
+        for item in adoption_input.evidence_items
+        if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+    }
+    adopted_evidence_items: List[Dict[str, Any]] = []
+    adopted_evidence_ids: List[str] = []
+    for item in adoption_input.recovered_evidence_items:
+        used_candidate_id = str(item.get("evidence_id") or "")
+        if used_candidate_id not in used_evidence_ids:
+            continue
+        if str(item.get("evidence_id") or "") in existing_evidence_ids:
+            continue
+        adopted_evidence_items.append(item)
+        adopted_evidence_ids.append(used_candidate_id)
+
+    return RecoveredOperandContextAdoptionResult(
+        selected_operand_rows=selected_operand_rows,
+        evidence_items=adoption_input.evidence_items + adopted_evidence_items,
+        adopted_evidence_ids=tuple(adopted_evidence_ids),
+        context_applied=True,
+        reason=reason,
     )
 
 

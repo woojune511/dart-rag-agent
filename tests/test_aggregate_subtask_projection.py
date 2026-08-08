@@ -4719,7 +4719,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
     def test_period_comparison_operand_recovery_uses_seed_table_context_before_dependency_rows(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        agent._extract_structured_operands_from_reconciliation = lambda _state: []
         agent._evidence_items_from_reconciliation_matches = lambda _state: []
         agent._surface_contract_numeric_evidence_items = lambda _items, _operands: []
         agent._direct_target_metric_operand_from_evidence = lambda _state, _items: ({}, {})
@@ -4807,33 +4806,80 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "unit_family": "KRW",
             },
         ]
-
-        result = agent._extract_calculation_operands(
-            {
-                "query": "calculate year-over-year target metric growth and summarize the impact",
-                "report_scope": {"year": 2023},
-                "active_subtask": {
-                    "task_id": "task_growth",
-                    "metric_family": "generic_numeric",
-                    "metric_label": "target metric growth",
-                    "operation_family": "growth_rate",
-                    "required_operands": required_operands,
-                },
-                "retrieved_docs": [(stale_visible_doc, 1.0)],
-                "seed_retrieved_docs": [(seed_comparison_doc, 0.9)],
-                "evidence_items": [],
-                "evidence_bullets": [],
-                "artifacts": [],
-                "tasks": [],
-            }
+        direct_prior_row = {
+            "operand_id": "direct_prior",
+            "evidence_id": "ev_direct_prior",
+            "label": "2022 target metric",
+            "raw_value": "800",
+            "normalized_value": 800_000_000.0,
+            "normalized_unit": "KRW",
+            "matched_operand_label": "2022 target metric",
+            "matched_operand_role": "prior_period",
+        }
+        agent._extract_structured_operands_from_reconciliation = (
+            lambda _state: [direct_prior_row]
         )
+        original_context_builder = agent._build_period_comparison_operands_from_table_label_context
+
+        def build_current_context(*args, **kwargs):
+            rows = original_context_builder(*args, **kwargs)
+            return [row for row in rows if row.get("matched_operand_role") == "current_period"]
+
+        agent._build_period_comparison_operands_from_table_label_context = build_current_context
+        state = {
+            "query": "calculate year-over-year target metric growth and summarize the impact",
+            "report_scope": {"year": 2023},
+            "active_subtask": {
+                "task_id": "task_growth",
+                "metric_family": "generic_numeric",
+                "metric_label": "target metric growth",
+                "operation_family": "growth_rate",
+                "required_operands": required_operands,
+            },
+            "retrieved_docs": [(stale_visible_doc, 1.0)],
+            "seed_retrieved_docs": [(seed_comparison_doc, 0.9)],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "artifacts": [],
+            "tasks": [],
+        }
+        state_before = deepcopy(state)
+        direct_prior_before = deepcopy(direct_prior_row)
+        adoptions = []
+        original_adoption = financial_graph_calculation.resolve_recovered_operand_context_adoption
+
+        def record_adoption(adoption_input):
+            adoption = original_adoption(adoption_input)
+            adoptions.append((adoption_input, adoption))
+            return adoption
+
+        with patch.object(
+            financial_graph_calculation,
+            "resolve_recovered_operand_context_adoption",
+            side_effect=record_adoption,
+        ):
+            result = agent._extract_calculation_operands(state)
 
         rows = _resolve_runtime_calculation_trace(result)["calculation_operands"]
         by_role = {row["matched_operand_role"]: row for row in rows}
+        self.assertEqual(state, state_before)
+        self.assertEqual(direct_prior_row, direct_prior_before)
         self.assertEqual(by_role["current_period"]["raw_value"], "1,200")
-        self.assertEqual(by_role["prior_period"]["raw_value"], "1,000")
+        self.assertEqual(by_role["prior_period"]["raw_value"], "800")
         self.assertEqual(by_role["current_period"]["table_source_id"], "mda::table:1")
-        self.assertEqual(by_role["prior_period"]["table_source_id"], "mda::table:1")
+        self.assertEqual([item["evidence_id"] for item in result["evidence_items"]], ["ratio_doc_context_002"])
+        self.assertEqual(len(adoptions), 1)
+        adoption_input, adoption = adoptions[0]
+        self.assertEqual(
+            [row["matched_operand_role"] for row in adoption_input.recovered_operand_rows + adoption_input.current_operand_rows],
+            ["current_period", "prior_period"],
+        )
+        self.assertEqual(adoption.reason, "period_context_merged")
+        self.assertEqual(
+            [row["matched_operand_role"] for row in adoption.selected_operand_rows],
+            ["current_period", "prior_period"],
+        )
+        self.assertEqual(adoption.adopted_evidence_ids, ("ratio_doc_context_002",))
 
     def test_preferred_complete_numeric_answer_joins_multiple_ratio_rows(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

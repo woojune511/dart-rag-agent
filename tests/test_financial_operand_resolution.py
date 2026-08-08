@@ -11,6 +11,7 @@ import src.agent.financial_operand_resolution as operand_resolution
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_operand_resolution import (
     DirectStructuredOperandAcceptanceInput,
+    RecoveredOperandContextAdoptionInput,
     RequiredOperandCandidateMergeInput,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
@@ -33,6 +34,7 @@ from src.agent.financial_operand_resolution import (
     direct_lookup_row_is_ambiguous_context_table,
     merge_operand_rows,
     resolve_direct_structured_operand_acceptance,
+    resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
     select_sibling_direct_operand_candidate,
     select_supplemental_operand_candidate,
@@ -1203,6 +1205,106 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                         surface_check.call_args.kwargs["require_direct_support"],
                         operation_family == "ratio",
                     )
+
+    def test_recovered_context_adoption_matrix_and_copy_contracts(self) -> None:
+        def adoption_row(evidence_id, label, concept, role, value):
+            row = _merge_operand_row(
+                evidence_id, label=label, concept=concept, role=role, value=value
+            )
+            row["metadata"] = {"nested": [evidence_id]}
+            return row
+
+        period_required = [
+            {"label": label, "concept": "metric", "role": role}
+            for label, role in (("current", "current_period"), ("prior", "prior_period"))
+        ]
+        recovered_current = adoption_row("recovered_current", "current", "metric", "current_period", 120.0)
+        current_prior = adoption_row("current_prior", "prior", "metric", "prior_period", 80.0)
+        period_input = RecoveredOperandContextAdoptionInput(
+            "period_comparison", [current_prior], [recovered_current], period_required, [], []
+        )
+        period_before = deepcopy(period_input)
+        period_result = resolve_recovered_operand_context_adoption(period_input)
+
+        self.assertEqual(period_input, period_before)
+        self.assertEqual(
+            (period_result.context_applied, period_result.reason),
+            (True, "period_context_merged"),
+        )
+        self.assertEqual(
+            [row["evidence_id"] for row in period_result.selected_operand_rows],
+            ["recovered_current", "current_prior"],
+        )
+        self.assertIsNot(period_result.selected_operand_rows, period_input.recovered_operand_rows)
+        self.assertIsNot(period_result.evidence_items, period_input.evidence_items)
+        for selected, source in zip(
+            period_result.selected_operand_rows,
+            [recovered_current, current_prior],
+        ):
+            self.assertIsNot(selected, source)
+            self.assertIs(selected["metadata"], source["metadata"])
+
+        ratio_required = [
+            {"label": label, "concept": concept, "role": role}
+            for label, concept, role in (
+                ("numerator", "metric", "numerator_1"),
+                ("denominator", "base", "denominator_1"),
+            )
+        ]
+        stale_ratio = adoption_row("stale", "numerator", "metric", "numerator_1", 1.0)
+        recovered_ratio = [
+            adoption_row("existing", "numerator", "metric", "numerator_1", 2.0),
+            adoption_row("new", "denominator", "base", "denominator_1", 4.0),
+        ]
+        existing_item = {"evidence_id": "existing", "metadata": {"marker": "existing"}}
+        recovered_items = [
+            {"evidence_id": "existing", "metadata": {"marker": "excluded"}},
+            {"evidence_id": "unused", "metadata": {"marker": "unused"}},
+            {"evidence_id": "new", "metadata": {"marker": "first"}},
+            {"evidence_id": "new", "metadata": {"marker": "second"}},
+        ]
+        ratio_input = RecoveredOperandContextAdoptionInput(
+            "coherent_ratio",
+            [stale_ratio],
+            recovered_ratio,
+            ratio_required,
+            [existing_item],
+            recovered_items,
+        )
+        ratio_before = deepcopy(ratio_input)
+        ratio_result = resolve_recovered_operand_context_adoption(ratio_input)
+
+        self.assertEqual(ratio_input, ratio_before)
+        self.assertEqual(
+            (ratio_result.context_applied, ratio_result.reason),
+            (True, "coherent_ratio_context_replaced"),
+        )
+        self.assertEqual(
+            [row["evidence_id"] for row in ratio_result.selected_operand_rows],
+            ["existing", "new"],
+        )
+        self.assertEqual(ratio_result.adopted_evidence_ids, ("new", "new"))
+        self.assertEqual(
+            [item["evidence_id"] for item in ratio_result.evidence_items],
+            ["existing", "new", "new"],
+        )
+        self.assertIsNot(ratio_result.evidence_items, ratio_input.evidence_items)
+        for actual, expected in zip(
+            ratio_result.evidence_items,
+            [existing_item, recovered_items[2], recovered_items[3]],
+        ):
+            self.assertIs(actual, expected)
+
+        no_context_input = RecoveredOperandContextAdoptionInput(
+            "period_comparison", [current_prior], [], period_required, [existing_item], recovered_items
+        )
+        no_context_result = resolve_recovered_operand_context_adoption(no_context_input)
+        self.assertIs(no_context_result.selected_operand_rows, no_context_input.current_operand_rows)
+        self.assertIs(no_context_result.evidence_items, no_context_input.evidence_items)
+        self.assertEqual(
+            (no_context_result.context_applied, no_context_result.reason, no_context_result.adopted_evidence_ids),
+            (False, "no_context_rows", ()),
+        )
 
     def test_supplemental_selector_prefers_explicit_binding_over_loose_match(self) -> None:
         required_operand = self._merge_required_operands()[1]
