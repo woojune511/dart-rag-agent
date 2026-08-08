@@ -241,14 +241,16 @@ Current calculation ownership is:
   graph-prepared mutable result/slot/primary copies, and typed prepared answer
   candidate application/final-answer projection synchronization. It also owns
   typed state-free filtering of generated aggregate provenance from a graph-
-  prepared projection and kept-evidence-id sequence.
+  prepared projection and kept-evidence-id sequence, plus recursive consistency
+  synchronization of graph-prepared nested subtask rows against current ordered
+  task results.
 
-At the latest checkpoint, the graph is 19,544 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,498 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 598, the dependency owner is 3,089, and the
+is 2,437, the aggregate owner is 669, the dependency owner is 3,089, and the
 execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 339/339 tests, the 217-literal audit, and full discovery over
-1,491/1,491 tests.
+affected 325/325 tests, the 217-literal audit, and full discovery over
+1,492/1,492 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

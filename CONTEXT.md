@@ -79,7 +79,9 @@ Last updated: 2026-08-09
   반환한다. 같은 owner는 graph가 선택한 kept evidence ids를 받아 aggregate
   projection의 generated provenance만 state-free하게 filter한다. Empty kept set은
   입력 projection identity를 그대로 유지하고, nonempty 경로는 기존 shallow-copy와
-  stable id-order 계약을 보존한다.
+  stable id-order 계약을 보존한다. 또한 graph가 준비한 ordered result rows의 세
+  nested subtask surface를 current top-level task row와 재귀적으로 동기화하며,
+  last-id-wins, stable order, cycle/depth, conditional shallow-copy 계약을 유지한다.
 - Graph는 direct row/evidence construction, coercion과 scope filtering,
   target override, acceptance applicability gate, direct structured preference의
   runtime evidence overlay, row iteration, peer-unit preparation, strongest-slot
@@ -97,7 +99,8 @@ Last updated: 2026-08-09
   copies, downstream coherence/compact-answer/coverage/final projection, structured
   provenance lookup과 후속 evidence lookup/coercion/append, aggregate evidence와
   kept-id selection, rebuild gate, selected claims, final-answer surface-operand append,
-  aggregate candidate
+  nested-result promotion, preliminary/final projection rebuild, dependency alignment,
+  preserved-field merge, aggregate candidate
   build/refresh/selection, mutable state/evidence, artifact/ledger, stale repair와 final
   orchestration, 기타 absolute-ratio 및 fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
@@ -109,7 +112,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 339/339, full unittest 1,491/1,491 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 325/325, full unittest 1,492/1,492 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

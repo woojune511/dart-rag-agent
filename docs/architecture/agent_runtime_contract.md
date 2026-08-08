@@ -911,6 +911,37 @@ application flag, or trace field. Evidence filtering and kept-id selection,
 projection-rebuild gating, selected-claim filtering, final-answer surface-operand
 append, stale repair, ledger work, and final orchestration remain graph-owned.
 
+Recursive nested aggregate-row consistency is a separate typed, state-free
+aggregate-owner seam. The graph supplies its already-promoted, dependency-
+aligned, preserved-field-merged ordered rows. Before descending, the owner builds
+the complete current-row authority map from normalized nonempty task ids; when
+ids repeat, the last top-level row remains authoritative. It then traverses, in
+stable order, calculation-result subtask rows, calculation-result answer-slot
+subtask rows, and row-level answer-slot subtask rows. Non-dictionary nested items
+are skipped. A matching non-cyclic task id uses the current top-level row, while
+the ancestor-id stack prevents replacement cycles and depth greater than eight
+returns a shallow row copy without descending further.
+
+Each owner call returns a new ordered list, and every top-level input row becomes
+a new dictionary; even an empty input returns a distinct empty list. Truthy
+calculation-result dictionaries are shallow-
+copied. Answer-slot dictionaries are copied and reassigned only when their nested
+subtask rows are truthy and rewritten; otherwise untouched nested values retain
+their existing identities. The owner does not mutate the supplied rows and does
+not catch mapping access, normalization, `dict`, or `list` failures. It preserves
+the existing map-before-recursion and access/copy order and adds no reason, flag,
+or trace field.
+
+The graph keeps the empty-projection and unchanged promotion/alignment gates,
+which return the original ordered-result and projection identities without
+calling the owner. On the changed path it retains nested-result promotion,
+preliminary projection rebuild, dependency alignment, preserved-field merge, and
+the final projection rebuild around the single owner call. State/evidence,
+artifact/ledger, repair, and answer orchestration also remain graph-owned. This
+seam does not establish final-projection ownership, broad executed-path or total-
+code reduction, performance improvement, broad private-surface cleanup, or Phase
+3 completion.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

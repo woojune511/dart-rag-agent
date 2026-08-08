@@ -147,17 +147,24 @@ imports or an unconfigured `FinancialAgent` invocation.
   conditional subtask replacement, and input-immutability contracts. The graph
   retains evidence/kept-id selection, rebuild gating, selected claims, surface-
   operand append, stale repair, ledger, and final orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,544 lines,
+- Recursive nested aggregate-row consistency now has a typed state-free aggregate
+  owner seam. It builds the normalized current-row authority map before recursion,
+  uses last-row-wins task-id precedence, and preserves the three nested surfaces,
+  stable order, invalid-item skip, cycle/depth, copy/identity, input-immutability,
+  and uncaught-exception contracts. The graph retains the outer empty/no-change
+  gates, promotion, preliminary/final rebuild, dependency alignment, preserved-
+  field merge, and all later state/evidence/artifact/ledger/repair/answer work.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,498 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
-  `financial_aggregate_projection.py` is 598,
+  `financial_aggregate_projection.py` is 669,
   `financial_operand_resolution.py` is 2,437,
   `financial_dependency_projection.py` is 3,089, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 3/3 and affected 339/339
-  tests, the 217-literal runtime audit, and full discovery over 1,491/1,491 tests.
+- The latest calculation checkpoint passed targeted 3/3 and affected 325/325
+  tests, the 217-literal runtime audit, and full discovery over 1,492/1,492 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -203,9 +210,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 339/339 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 325/325 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,491/1,491 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,492/1,492 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -257,7 +264,8 @@ prepared ratio-artifact conflict selection, two-stage dependency post-candidate
 finalization, prepared dependency structured-provenance adoption, pure aggregate
 provenance selection, collapsed-ratio magnitude transformation, prepared
 aggregate answer-candidate application/final-answer synchronization, and
-generated aggregate-provenance filtering have named owners. The graph still owns
+generated aggregate-provenance filtering, and recursive nested aggregate-row
+consistency have named owners. The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy, direct
 structured preference applicability, runtime evidence preparation, row
 matching/iteration, peer-unit preparation, strongest-slot building,
@@ -272,6 +280,8 @@ dependency-row construction/normalization, stateful structured-provenance lookup
 downstream evidence coercion/append,
 collapsed-ratio trace/eligibility/completeness/query gates and prepared copies,
 downstream coherence/answer/coverage/final projection, aggregate/filter sequencing,
+aggregate nested-result promotion, preliminary/final projection rebuild,
+dependency alignment and preserved-field merge,
 aggregate candidate build/refresh/selection, mutable state/evidence,
 aggregate evidence/kept-id selection, rebuild gating, selected-claim filtering,
 surface-operand append, artifact/ledger, stale repair and final orchestration,
@@ -295,38 +305,50 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and relocate only
-`_sync_nested_subtask_rows_with_current_results`
-(`financial_graph_calculation.py:9414-9464`) into
-`financial_aggregate_projection.py`. The typed owner input should contain the
-graph-prepared ordered result rows; the result needs only the newly synchronized
-row list, with no decision reason, application flag, graph state, or callback.
-The single graph caller (`9411`) must consume the owner directly after the
-existing empty-projection and no-change early returns.
+The next bounded architecture work is to characterize and relocate only the
+base and refreshed aggregate-answer candidate packagers
+(`financial_graph_calculation.py:5331-5368`) into
+`financial_aggregate_projection.py`, beside the existing candidate application
+owner. The public typed seam should be:
 
-Characterization must preserve the recursive consistency contract. Build the
-current-row map from normalized nonempty task ids with existing last-row-wins
-behavior, retain top-level and nested row order, and return new top-level row
-copies without mutating the input. For calculation-result subtask rows,
-calculation-result answer-slot subtask rows, and row-level answer-slot subtask
-rows, a non-cyclic matching task id uses the current top-level row; otherwise the
-nested row remains the source. Non-dictionary nested entries stay skipped.
-Ancestor-stack cycle prevention, the current depth-greater-than-eight stop,
-truthy/falsy copy gates, retained untouched nested identities, and uncaught
-mapping/normalization exceptions must remain unchanged.
+- `AggregateAnswerCandidatePackagingInput`, with `answer`, optional iterable
+  `selected_claim_ids`, and the existing `sync_projection`,
+  `sync_rendered_for_aggregate`, and `status_ok` fields;
+- `AggregateRefreshedAnswerCandidatePackagingInput`, with the prepared refreshed-
+  answer mapping, fallback answer, and the same three flags;
+- shared `AggregateAnswerCandidatePackagingResult(candidate=...)`, returned by
+  `package_aggregate_answer_candidate` and
+  `package_refreshed_aggregate_answer_candidate`.
 
-The stop line keeps the outer early-return gates, nested-result promotion,
-preliminary projection rebuild,
-dependency alignment, and preserved-field merge before the call, plus final
-aggregate rebuild, dedupe/ranking, state/evidence, artifact/ledger, repair, and
-answer orchestration after it, in the graph. The allowed claim is prepared
-recursive nested-row consistency ownership, not promotion or answer precedence,
-dependency alignment, final-projection ownership, total-code or executed-path
-reduction, performance, broader private-mesh cleanup, or Phase 3 completion.
-Prepared composition-state application, aggregate stale repair, other
-ratio/absolute handling, remaining fallbacks, and private facade/API cleanup
-remain separate debt. The Phase 3 backlog in the refactoring plan is unordered;
-this section is the authority for priority.
+Base packaging must evaluate and store fields in the current order: normalize
+`_normalise_spaces(str(answer or ""))`; build a fresh selected-claim list in
+source order while dropping blank ids, retaining duplicates, and evaluating
+`str(claim_id).strip()` twice for every kept id; then coerce
+`sync_projection`, `sync_rendered_for_aggregate`, and `status_ok` to `bool` in
+that order. Refreshed packaging must first execute
+`dict(refreshed_answer or {})`, then evaluate the answer getter and fallback,
+then the selected-claim getter, and only then delegate to base packaging. Neither
+path catches access/string/boolean-conversion failures or mutates its input; the
+result owns a fresh candidate dictionary and selected-claim list.
+
+Characterization needs a compact owner matrix for normalization, blank and
+duplicate claim ids, stable order, whitespace-answer versus fallback behavior,
+fresh-object/input-immutability semantics, flag coercion, and the exact getter,
+string, and boolean exception order. Graph wiring must preserve the placement
+and laziness of seven direct base calls and the single refreshed call; acceptance
+requires both old graph definitions and all
+`self._aggregate_answer_candidate*` references to be gone.
+
+The stop line keeps candidate discovery, scoring/selection and branch gates,
+narrative refresh, all call placement/laziness, candidate-application invocation
+and answer precedence, projection/state/evidence mutation, rebuild, and final
+orchestration in the graph. The allowed claim is prepared candidate-payload
+packaging and schema ownership, not aggregate answer selection, refresh policy,
+application precedence, composition-state ownership, total-code or executed-path
+reduction, performance, broader private-mesh cleanup, or Phase 3 completion. Aggregate
+composition, stale repair, other ratio/absolute handling, remaining fallbacks,
+and private facade/API cleanup remain separate debt. The Phase 3 backlog in the
+refactoring plan is unordered; this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

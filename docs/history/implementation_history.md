@@ -529,6 +529,34 @@ selection/precedence, stale repair, artifact/ledger or final projection
 orchestration, and not a total-code, broad executed-path, performance, broad
 private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Recursive nested aggregate-row synchronization ownership
+
+- `fee6017` moves the graph-private recursive nested-subtask row synchronizer to
+  the aggregate owner. The typed state-free owner receives graph-prepared ordered
+  rows, builds the normalized current-row authority map before recursion, and
+  preserves last-id-wins precedence, all three nested subtask surfaces, stable
+  order, invalid-item skipping, ancestor-cycle and depth limits, conditional
+  shallow-copy identities, input immutability, and uncaught exception order. It
+  adds no reason, flag, callback, graph state, or trace field.
+- The graph retains the empty-projection and unchanged promotion/alignment gates,
+  nested-result promotion, preliminary and final projection rebuilds, dependency
+  alignment, preserved-field merge, and later state/evidence, artifact/ledger,
+  repair, and answer orchestration. Its sole caller consumes the typed owner and
+  the old graph-private body is deleted.
+- Production source is `+78/-53`, net 25: the graph changes from 19,544 to
+  19,498 lines (`+7/-53`, net -46) and the aggregate owner from 598 to 669
+  (`+71`). Tests are `+218/-6`, net 212; the whole commit is `+296/-59`, net 237.
+- Validation passed targeted 3/3 tests, affected 325/325 tests, the 217-literal
+  runtime audit, and full discovery over 1,492/1,492 tests. Benchmark refresh was
+  NOT RUN.
+
+This is a behavior-preserving prepared recursive nested-row consistency
+ownership relocation, not a move of promotion, dependency alignment, projection
+rebuild policy, final projection, state/evidence or artifact/ledger work, repair,
+answer precedence or final orchestration, and not a total-code, broad executed-
+path, performance, broad private-mesh, end-to-end calculation-owner, or complete
+Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -371,7 +371,10 @@ state-free owner 경계:
   적용하고 final answer를 formatted, aggregate-mode rendered, optional ok-status
   순서로 동기화한다. Graph가 준비한 aggregate projection과 kept evidence ids에는
   generated `ev_`/`recon::` provenance filter를 적용하며 empty-kept identity와
-  nonempty shallow-copy/stable-order 계약을 유지한다. 이 seam들은
+  nonempty shallow-copy/stable-order 계약을 유지한다. Graph가 준비한 ordered
+  result rows에는 current-row authority map을 먼저 구성한 뒤 세 nested subtask
+  surface를 재귀 동기화하고, last-id-wins, stable order, invalid-item skip,
+  cycle/depth와 conditional shallow-copy 계약을 보존한다. 이 seam들은
   reason/flag/trace field를 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
@@ -396,6 +399,8 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate projection/repair sequencing
 - aggregate evidence/kept-id selection, rebuild gate, selected-claim filtering,
   final-answer surface-operand append
+- aggregate nested-result promotion, preliminary/final projection rebuild,
+  dependency alignment, preserved-field merge
 - aggregate answer candidate build/refresh/selection, mutable state/evidence,
   artifact/ledger, stale repair와 final orchestration
 - unit conversion/repair
@@ -496,7 +501,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   outcome, and typed state-free value-only stale freshness assessment
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
-  normalization, graph-prepared runtime-ratio magnitude projection
+  normalization, graph-prepared runtime-ratio magnitude projection, generated
+  provenance filtering, and recursive nested-subtask row consistency
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
