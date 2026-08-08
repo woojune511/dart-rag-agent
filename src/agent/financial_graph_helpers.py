@@ -93,6 +93,9 @@ from src.agent.financial_operation_policies import (
     _is_ratio_percent_query,
     _is_single_metric_period_comparison,
 )
+from src.agent.financial_operand_resolution import (
+    operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
+)
 from src.agent.financial_lookup_recovery import lookup_hints_for_concept_key
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -3543,20 +3546,6 @@ def _select_structured_cell(
         reverse=True,
     )
     return ranked_cells[0] if ranked_cells else None
-
-
-def _operand_prefers_aggregate_value_role(operand: Dict[str, Any]) -> bool:
-    binding_policy = dict(operand.get("binding_policy") or {})
-    preferred_value_roles = [
-        _normalise_spaces(str(item)).lower()
-        for item in (binding_policy.get("prefer_value_roles") or [])
-        if _normalise_spaces(str(item))
-    ]
-    if not preferred_value_roles:
-        return False
-    return preferred_value_roles[0] == "aggregate" or (
-        "aggregate" in preferred_value_roles and "detail" not in preferred_value_roles
-    )
 
 
 def _select_aggregate_structured_cell(

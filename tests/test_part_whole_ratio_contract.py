@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,7 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent import financial_graph_calculation
+from src.agent import financial_graph_calculation, financial_operand_resolution
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
@@ -19,8 +20,11 @@ from src.agent.financial_graph_helpers import (
     _candidate_satisfies_direct_acceptance_contract,
 )
 from src.agent.financial_operand_resolution import (
+    DirectStructuredLookupEvidenceScoreInput,
     _llm_lookup_operand_has_direct_support,
     _operand_row_satisfies_required_surface_contract,
+    operand_prefers_aggregate_value_role,
+    score_direct_structured_lookup_evidence,
 )
 
 
@@ -182,7 +186,6 @@ class PartWholeRatioContractTests(unittest.TestCase):
         self.assertTrue(_llm_lookup_operand_has_direct_support(contracted_row, contracted_evidence, [operand]))
 
     def test_direct_lookup_score_requires_positive_surface_contract(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         operand = {
             "label": "\uc790\ubcf8\ud654\ub41c \uac1c\ubc1c\ube44",
             "concept": "capitalized_development_cost",
@@ -223,8 +226,117 @@ class PartWholeRatioContractTests(unittest.TestCase):
             },
         }
 
-        self.assertEqual(agent._direct_structured_lookup_evidence_score(operand, broad_evidence), 0.0)
-        self.assertGreaterEqual(agent._direct_structured_lookup_evidence_score(operand, contracted_evidence), 6.0)
+        broad_result = score_direct_structured_lookup_evidence(
+            DirectStructuredLookupEvidenceScoreInput(operand=operand, evidence_item=broad_evidence)
+        )
+        contracted_result = score_direct_structured_lookup_evidence(
+            DirectStructuredLookupEvidenceScoreInput(operand=operand, evidence_item=contracted_evidence)
+        )
+        self.assertEqual((broad_result.score, broad_result.reason), (0.0, "surface_contract_not_satisfied"))
+        self.assertEqual((contracted_result.score, contracted_result.reason), (12.0, "evidence_scored"))
+
+        base_operand = {"label": "target metric", "role": "primary_value"}
+        base_cell = {"column_headers": ["2023"], "value_text": "100", "unit_hint": "KRW"}
+
+        def _evidence(**metadata_updates):
+            metadata = {
+                "row_label": "target metric",
+                "semantic_label": "target metric",
+                "structured_cells": [base_cell],
+            }
+            metadata.update(metadata_updates)
+            return {
+                "claim": "target metric 100",
+                "quote_span": "target metric 100",
+                "metadata": metadata,
+            }
+
+        multi_cells = [base_cell, {**base_cell, "column_headers": ["2022"], "value_text": "90"}]
+        cases = {
+            "no_cells": ({}, {"structured_cells": []}, 0.0),
+            "fuzzy_labels": (
+                {},
+                {"row_label": "target metric total", "semantic_label": "target metric disclosed"},
+                6.5,
+            ),
+            "header_affinity": (
+                {},
+                {"structured_cells": [{**base_cell, "column_headers": ["target metric"]}]},
+                13.0,
+            ),
+            "normalization_failure": (
+                {},
+                {"structured_cells": [{**base_cell, "value_text": "not-a-number"}]},
+                11.0,
+            ),
+            "multiple_numeric_cells": ({}, {"structured_cells": multi_cells}, 9.0),
+            "direct_label_multiple_cells": (
+                {},
+                {"structured_cells": multi_cells, "direct_row_from_table_value_labels": True},
+                12.0,
+            ),
+            "adjustment_penalty": ({}, {"value_role": "adjustment"}, 8.0),
+            "detail_penalty": (
+                {"binding_policy": {"prefer_value_roles": ["aggregate"]}},
+                {"value_role": "detail"},
+                10.5,
+            ),
+            "aggregate_stage_bonuses": (
+                {
+                    "binding_policy": {
+                        "prefer_value_roles": ["aggregate"],
+                        "prefer_aggregation_stages": ["final"],
+                    }
+                },
+                {"value_role": "aggregate", "aggregation_stage": "final"},
+                18.75,
+            ),
+        }
+        for name, (operand_updates, metadata_updates, expected_score) in cases.items():
+            with self.subTest(name=name):
+                scoring_operand = {**base_operand, **operand_updates}
+                evidence_item = _evidence(**metadata_updates)
+                before = deepcopy((scoring_operand, evidence_item))
+                result = score_direct_structured_lookup_evidence(
+                    DirectStructuredLookupEvidenceScoreInput(
+                        operand=scoring_operand,
+                        evidence_item=evidence_item,
+                    )
+                )
+                expected_reason = "no_structured_cells" if name == "no_cells" else "evidence_scored"
+                self.assertEqual((result.score, result.reason), (expected_score, expected_reason))
+                self.assertEqual((scoring_operand, evidence_item), before)
+
+        for roles, expected in (
+            ([], False),
+            (["aggregate", "detail"], True),
+            (["other", "aggregate"], True),
+            (["detail", "aggregate"], False),
+        ):
+            with self.subTest(preferred_roles=roles):
+                self.assertIs(
+                    operand_prefers_aggregate_value_role(
+                        {**base_operand, "binding_policy": {"prefer_value_roles": roles}}
+                    ),
+                    expected,
+                )
+
+        exceptional_operand = deepcopy(base_operand)
+        exceptional_evidence = _evidence()
+        exceptional_before = deepcopy((exceptional_operand, exceptional_evidence))
+        with patch.object(
+            financial_operand_resolution,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                score_direct_structured_lookup_evidence(
+                    DirectStructuredLookupEvidenceScoreInput(
+                        operand=exceptional_operand,
+                        evidence_item=exceptional_evidence,
+                    )
+                )
+        self.assertEqual((exceptional_operand, exceptional_evidence), exceptional_before)
 
     def test_dependency_row_prefers_better_structured_slot_when_value_surface_matches(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

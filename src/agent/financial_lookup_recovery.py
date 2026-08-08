@@ -4,7 +4,11 @@ import re
 from typing import Any, Callable, Dict, List, Optional
 
 from src.config import get_financial_ontology
-from src.agent.financial_operand_resolution import _evidence_item_for_operand_row
+from src.agent.financial_operand_resolution import (
+    DirectStructuredLookupEvidenceScoreInput,
+    _evidence_item_for_operand_row,
+    score_direct_structured_lookup_evidence,
+)
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 
 
@@ -345,7 +349,6 @@ def _lookup_recovery_same_unit_refinement_allowed(
     preferred_metadata: Dict[str, Any],
     operand: Dict[str, Any],
     recovered_slot_matches_primary_label: Callable[[Dict[str, Any]], bool],
-    direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
 ) -> bool:
     current_unit = _normalise_spaces(str(current_slot.get("normalized_unit") or "")).upper()
     preferred_unit = _normalise_spaces(str(preferred_slot.get("normalized_unit") or "")).upper()
@@ -366,7 +369,12 @@ def _lookup_recovery_same_unit_refinement_allowed(
         if _lookup_recovery_more_compact_same_raw_unit(current_slot, preferred_slot):
             return False
         evidence_score = (
-            direct_structured_lookup_evidence_score(operand, preferred_evidence)
+            score_direct_structured_lookup_evidence(
+                DirectStructuredLookupEvidenceScoreInput(
+                    operand=operand,
+                    evidence_item=preferred_evidence,
+                )
+            ).score
             if preferred_evidence
             else 0.0
         )
@@ -396,7 +404,6 @@ def lookup_recovery_value_refinement_allowed(
     current_evidence: Optional[Dict[str, Any]],
     operand: Dict[str, Any],
     recovered_slot_matches_primary_label: Callable[[Dict[str, Any]], bool],
-    direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
     operand_rows_materially_conflict: Callable[[Dict[str, Any], Dict[str, Any]], bool],
 ) -> bool:
     if not _lookup_recovery_scope_allows_refinement(
@@ -432,7 +439,6 @@ def lookup_recovery_value_refinement_allowed(
         preferred_metadata=preferred_metadata,
         operand=operand,
         recovered_slot_matches_primary_label=recovered_slot_matches_primary_label,
-        direct_structured_lookup_evidence_score=direct_structured_lookup_evidence_score,
     )
 
 
@@ -523,7 +529,6 @@ def align_or_replace_successful_lookup_row(
     state: Dict[str, Any],
     normalize_slot: Callable[[Dict[str, Any]], Dict[str, Any]],
     lookup_result_builder: Callable[[Dict[str, Any], str], Dict[str, Any]],
-    direct_structured_lookup_evidence_score: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], float],
     best_direct_lookup_slot: Callable[..., tuple[Dict[str, Any], float]],
     preferred_slot_has_evidence_surface_match: Callable[[Dict[str, Any], Optional[Dict[str, Any]]], bool],
     value_refinement_allowed: Callable[[Dict[str, Any], Dict[str, Any], Optional[Dict[str, Any]]], bool],
@@ -550,7 +555,12 @@ def align_or_replace_successful_lookup_row(
 
     current_evidence = _evidence_item_for_operand_row(current_slot, evidence_by_id)
     current_score = (
-        direct_structured_lookup_evidence_score(operand, current_evidence)
+        score_direct_structured_lookup_evidence(
+            DirectStructuredLookupEvidenceScoreInput(
+                operand=operand,
+                evidence_item=current_evidence,
+            )
+        ).score
         if current_evidence
         else 0.0
     )

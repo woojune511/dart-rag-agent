@@ -26,7 +26,6 @@ from src.agent.financial_graph_helpers import (
     _deterministic_reconcile_task,
     _extract_generic_operand_labels,
     _operand_period_focus,
-    _operand_prefers_aggregate_value_role,
     _operand_target_years,
     _query_years_from_state,
     _resolve_candidate_local_unit_hint,
@@ -34,6 +33,9 @@ from src.agent.financial_graph_helpers import (
     _score_structured_cell,
     _select_aggregate_structured_cell,
     _select_structured_cell,
+)
+from src.agent.financial_operand_resolution import (
+    operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
 )
 from src.agent.financial_graph_model_loaders import (
     _reconciliation_candidate_rerank_model,

@@ -784,6 +784,59 @@ class OperationContractTests(unittest.TestCase):
         values_by_role = {row["matched_operand_role"]: row["raw_value"] for row in rows}
         self.assertEqual(values_by_role, {"numerator_1": "4,355", "denominator_1": "11,623"})
 
+        direct_operands = [
+            {"label": "metric a", "role": "numerator_1", "required": True},
+            {"label": "metric b", "role": "denominator_1", "required": True},
+        ]
+        direct_evidence = [
+            {
+                "evidence_id": f"ev_direct_{index}",
+                "source_anchor": "[ExampleCo | 2023 | Management discussion]",
+                "claim": f"{operand['label']} {index * 100}",
+                "quote_span": f"{operand['label']} {index * 100}",
+                "metadata": {
+                    "table_source_id": "table:direct",
+                    "period_labels": ["2023"],
+                    "row_label": operand["label"],
+                    "structured_cells": [
+                        {"column_headers": ["2023"], "value_text": str(index * 100), "unit_hint": "million"}
+                    ],
+                },
+            }
+            for index, operand in enumerate(direct_operands, start=1)
+        ]
+        events = []
+        row_builder = agent._lookup_row_from_direct_structured_evidence
+        scorer = financial_graph_calculation.score_direct_structured_lookup_evidence
+
+        def _record_row(operand, evidence, *, index):
+            events.append("row")
+            return row_builder(operand, evidence, index=index)
+
+        def _record_score(score_input):
+            events.append("score")
+            return scorer(score_input)
+
+        with patch.object(
+            agent,
+            "_lookup_row_from_direct_structured_evidence",
+            side_effect=_record_row,
+        ), patch.object(
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_record_score,
+        ):
+            direct_rows = agent._build_complete_ratio_operands_from_coherent_context(
+                direct_evidence,
+                required_operands=direct_operands,
+                query="Calculate the ratio.",
+                topic="ratio",
+                report_scope={"years": [2023]},
+            )
+
+        self.assertEqual(events, ["row", "score"] * 4)
+        self.assertEqual([row["raw_value"] for row in direct_rows], ["100", "200"])
+
     def test_late_runtime_ratio_answer_refreshes_component_display(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         state = {

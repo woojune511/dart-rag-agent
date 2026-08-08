@@ -19,6 +19,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent import financial_graph_calculation
+from src.agent import financial_lookup_recovery
 from src.agent import financial_operand_resolution
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
@@ -1379,7 +1380,6 @@ class SubtaskLoopTests(unittest.TestCase):
             "source_row_ids": ["ev_target"],
             "consolidation_scope": "separate",
         }
-        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda binding, _pool, state=None, preferred_raw_units=None: (dict(separate_slot), 10.0)
             if binding.get("label") == "target metric"
@@ -17145,18 +17145,32 @@ class SubtaskLoopTests(unittest.TestCase):
             "rendered_value": "3,589,061 thousand",
             "source_row_id": "ev_direct",
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = (
-            lambda _binding, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
-        )
-        self.agent._direct_structured_lookup_evidence_score = lambda _binding, _evidence: 0.0
+        events = []
+        score_resolver = financial_graph_calculation.score_direct_structured_lookup_evidence
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        def _score_current(score_input):
+            events.append("score_current")
+            return score_resolver(score_input)
+
+        def _select_preferred(_binding, _pool, state=None, preferred_raw_units=None):
+            events.append("select_preferred")
+            return preferred_slot, 10.0
+
+        self.agent._best_direct_lookup_slot_from_evidence_pool = _select_preferred
+
+        with patch.object(
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "2,546,649")
         self.assertEqual(rows[0]["raw_unit"], "million")
         self.assertEqual(rows[0]["normalized_value"], 2546649000000.0)
         self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_current", "ev_current"])
+        self.assertEqual(events, ["score_current", "select_preferred"])
 
     def test_period_comparison_table_context_prefers_pure_period_columns_over_change_columns(self) -> None:
         required_operands = [
@@ -17864,8 +17878,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
         )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
@@ -17925,8 +17937,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
         )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
@@ -18094,8 +18104,6 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._best_direct_lookup_slot_from_evidence_pool = (
             lambda _operand, _pool, state=None, preferred_raw_units=None: (preferred_slot, 10.0)
         )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
-
         recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
@@ -18232,7 +18240,6 @@ class SubtaskLoopTests(unittest.TestCase):
             10.0,
         )
         self.agent._lookup_value_from_table_label_metadata = lambda _operand, _evidence: {}
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
         with (
             patch.object(
                 self.agent,
@@ -18303,17 +18310,64 @@ class SubtaskLoopTests(unittest.TestCase):
                 "answer_slots": {"primary_value": current_slot},
             },
         }
-        self.agent._best_direct_lookup_slot_from_evidence_pool = (
-            lambda _operand, _pool, state=None, preferred_raw_units=None: ({}, 0.0)
-        )
-        self.agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 10.0
+        events = []
+        score_resolver = financial_lookup_recovery.score_direct_structured_lookup_evidence
 
-        recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
+        def _score_current(score_input):
+            events.append("score_current")
+            return score_resolver(score_input)
+
+        def _select_no_preferred(_operand, _pool, state=None, preferred_raw_units=None):
+            events.append("select_preferred")
+            return {}, 0.0
+
+        self.agent._best_direct_lookup_slot_from_evidence_pool = _select_no_preferred
+
+        with patch.object(
+            financial_lookup_recovery,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ):
+            recovered = self.agent._recover_lookup_results_from_sibling_table_evidence([current_row], state)
         slot = recovered[0]["calculation_result"]["answer_slots"]["primary_value"]
 
         self.assertTrue(recovered[0].get("unit_aligned_from_evidence_metadata"))
         self.assertEqual(slot["raw_unit"], "백만원")
         self.assertEqual(slot["normalized_value"], 2546649000000.0)
+        self.assertEqual(events, ["score_current", "select_preferred"])
+
+        preferred_slot = {
+            **slot,
+            "raw_value": "3,000,000",
+            "raw_unit": "백만원",
+            "normalized_value": 3_000_000_000_000.0,
+            "rendered_value": "3,000,000백만원",
+        }
+        refinement_evidence = {
+            "metadata": {
+                "row_label": "segment revenue",
+                "structured_cells": [{"value_text": "3,000,000", "unit_hint": "백만원"}],
+            }
+        }
+        events.clear()
+        with patch.object(
+            financial_lookup_recovery,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ):
+            refinement_allowed = financial_lookup_recovery.lookup_recovery_value_refinement_allowed(
+                slot,
+                preferred_slot,
+                refinement_evidence,
+                desired_scope="unknown",
+                current_evidence=refinement_evidence,
+                operand=state["calc_subtasks"][0]["required_operands"][0],
+                recovered_slot_matches_primary_label=lambda _slot: True,
+                operand_rows_materially_conflict=lambda _current, _preferred: False,
+            )
+
+        self.assertTrue(refinement_allowed)
+        self.assertEqual(events, ["score_current"])
 
     def test_lookup_recovery_uses_nested_subtask_runtime_evidence(self) -> None:
         state = {

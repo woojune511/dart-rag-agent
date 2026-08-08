@@ -2,6 +2,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -10,6 +11,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
+from src.agent import financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 
 
@@ -20,7 +22,6 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             dict(preferred_slot),
             preferred_score,
         )
-        agent._direct_structured_lookup_evidence_score = lambda _operand, _evidence: 0.0
         return agent
 
     def test_ok_lookup_rejects_different_unknown_unit_table_label_candidate(self) -> None:
@@ -187,9 +188,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             "role": "current_period",
             "period": "2023",
         }
-        slot, score = agent._best_direct_lookup_slot_from_evidence_pool(
-            operand,
-            [
+        evidence_pool = [
                 {
                     "evidence_id": "ev_unknown",
                     "source_anchor": "[ExampleCo | 2023 | Notes]",
@@ -208,12 +207,42 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                         "table_value_labels_text": "metric 3,146,409",
                     },
                 },
-            ],
-        )
+            ]
+        events = []
+        score_evidence = financial_graph_calculation.score_direct_structured_lookup_evidence
+        table_label_lookup = agent._lookup_value_from_table_label_metadata
+
+        def _record_score(score_input):
+            events.append(("score", score_input.evidence_item.get("evidence_id")))
+            return score_evidence(score_input)
+
+        def _record_table_label_lookup(scoring_operand, evidence):
+            events.append(("table_label", evidence.get("evidence_id")))
+            return table_label_lookup(scoring_operand, evidence)
+
+        with patch.object(
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_record_score,
+        ), patch.object(
+            agent,
+            "_lookup_value_from_table_label_metadata",
+            side_effect=_record_table_label_lookup,
+        ):
+            slot, score = agent._best_direct_lookup_slot_from_evidence_pool(operand, evidence_pool)
 
         self.assertGreater(score, 0.0)
         self.assertEqual(slot["source_row_id"], "ev_precise")
         self.assertEqual(slot["raw_value"], "3,146,409")
+        self.assertEqual(
+            events,
+            [
+                ("score", "ev_unknown"),
+                ("table_label", "ev_unknown"),
+                ("score", "ev_precise"),
+                ("table_label", "ev_precise"),
+            ],
+        )
 
     def test_growth_refresh_prefers_conflicting_narrative_summary_over_wrong_trace(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

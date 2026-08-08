@@ -2492,8 +2492,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "_best_direct_lookup_slot_from_evidence_pool",
             return_value=({}, 0.0),
         ) as select_preferred, patch.object(
-            agent,
-            "_direct_structured_lookup_evidence_score",
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
         ) as score_current, patch.object(
             financial_graph_calculation,
             "resolve_direct_structured_preferred_slot_adoption",
@@ -2513,6 +2513,54 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIsNot(unchanged[0], current_rows[0])
         self.assertIs(unchanged[0]["nested_context"], nested_context)
         self.assertEqual(unchanged, current_rows)
+
+        events = []
+        adoption_resolver = financial_graph_calculation.resolve_direct_structured_preferred_slot_adoption
+        score_resolver = financial_graph_calculation.score_direct_structured_lookup_evidence
+        preferred_slot = {
+            **current_rows[0],
+            "evidence_id": "ev_consolidated",
+            "source_row_id": "ev_consolidated",
+            "source_row_ids": ["ev_consolidated"],
+            "raw_value": "1,701,152",
+            "normalized_value": 1_701_152_000_000.0,
+        }
+
+        def _select_preferred(*_args, **_kwargs):
+            events.append("select_preferred")
+            return preferred_slot, 10.0
+
+        def _score_current(score_input):
+            events.append("score_current")
+            return score_resolver(score_input)
+
+        def _resolve_adoption(selection_input):
+            events.append("resolve_adoption")
+            return adoption_resolver(selection_input)
+
+        with patch.object(
+            agent,
+            "_best_direct_lookup_slot_from_evidence_pool",
+            side_effect=_select_preferred,
+        ), patch.object(
+            financial_graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=_score_current,
+        ), patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_preferred_slot_adoption",
+            side_effect=_resolve_adoption,
+        ):
+            preferred = agent._prefer_direct_structured_lookup_evidence_rows(
+                current_rows,
+                evidence_items=evidence_items,
+                required_operands=[{"label": "target metric", "role": "primary_value", "required": True}],
+                operation_family="lookup",
+                state={},
+            )
+
+        self.assertEqual(events, ["select_preferred", "score_current", "resolve_adoption"])
+        self.assertEqual(preferred[0]["source_row_id"], "ev_consolidated")
 
     def test_lookup_recovery_can_use_seed_retrieved_doc_context(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

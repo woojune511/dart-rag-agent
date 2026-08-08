@@ -99,6 +99,7 @@ from src.agent.financial_dependency_projection import (
     summarize_dependency_bindings,
 )
 from src.agent.financial_operand_resolution import (
+    DirectStructuredLookupEvidenceScoreInput,
     DirectStructuredOperandAcceptanceInput,
     DirectStructuredPreferredSlotAdoptionInput,
     PostCoercionLlmDirectSupportInput,
@@ -117,6 +118,7 @@ from src.agent.financial_operand_resolution import (
     _filter_operand_rows_by_required_surface_contract,
     merge_operand_rows,
     _missing_required_operands,
+    operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
     _operand_rows_have_single_table_context,
     _operand_row_has_direct_evidence_surface,
     _operand_slot_has_evidence_surface_match,
@@ -132,13 +134,13 @@ from src.agent.financial_operand_resolution import (
     resolve_post_coercion_llm_operand_selection,
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
+    score_direct_structured_lookup_evidence,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
     _infer_concept_ratio_result_unit,
     _operand_period_focus,
-    _operand_prefers_aggregate_value_role,
     _resolve_candidate_local_unit_hint,
     _scoped_surface_affinity_priority,
     _select_aggregate_structured_cell,
@@ -1722,121 +1724,6 @@ class FinancialAgentCalculationMixin:
             score += 0.25
         return score
 
-    def _direct_structured_lookup_evidence_score(
-        self,
-        operand: Dict[str, Any],
-        evidence_item: Dict[str, Any],
-    ) -> float:
-        metadata = dict(evidence_item.get("metadata") or {})
-        structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
-        if not structured_cells:
-            return 0.0
-
-        score = 0.0
-        row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
-        semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
-        binding_policy = dict(operand.get("binding_policy") or {})
-        requires_surface_contract = bool(
-            binding_policy.get("require_surface_contract_for_direct_match")
-            or binding_policy.get("require_surface_contract_for_direct_lookup")
-        )
-        if requires_surface_contract:
-            authoritative_surface = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for value in (
-                        evidence_item.get("claim"),
-                        evidence_item.get("quote_span"),
-                        evidence_item.get("raw_row_text"),
-                        row_label,
-                        semantic_label,
-                    )
-                )
-            )
-            if not _text_has_positive_surface(authoritative_surface, operand):
-                return 0.0
-
-        operand_needles = [
-            _normalise_spaces(str(needle))
-            for needle in _operand_needles(operand)
-            if _normalise_spaces(str(needle))
-        ]
-        def _surface_variants(text: str) -> set[str]:
-            normalized = _normalise_spaces(text)
-            compact = re.sub(r"\s+", "", normalized)
-            return {item for item in (normalized, compact) if item}
-
-        row_variants = _surface_variants(row_label) if row_label else set()
-        semantic_variants = _surface_variants(semantic_label) if semantic_label else set()
-        needle_variants = {
-            variant
-            for needle in operand_needles
-            for variant in _surface_variants(needle)
-            if variant
-        }
-        if row_variants and needle_variants and row_variants & needle_variants:
-            score += 8.0
-        elif row_label and _operand_text_match(row_label, operand):
-            score += 4.0
-        if semantic_variants and needle_variants and semantic_variants & needle_variants:
-            score += 3.0
-        elif semantic_label and semantic_label != row_label and _operand_text_match(semantic_label, operand):
-            score += 1.5
-
-        numeric_cells = 0
-        header_affinity = False
-        for cell in structured_cells:
-            raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
-            raw_unit = _normalise_spaces(str(cell.get("unit_hint") or metadata.get("unit_hint") or ""))
-            normalized_value, _normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-            if normalized_value is None:
-                continue
-            numeric_cells += 1
-            headers = _normalise_spaces(
-                " ".join(str(header) for header in (cell.get("column_headers") or []) if str(header).strip())
-            )
-            if headers and _operand_text_match(headers, operand):
-                header_affinity = True
-        if header_affinity:
-            score += 1.0
-        direct_row_from_value_labels = bool(metadata.get("direct_row_from_table_value_labels"))
-        if direct_row_from_value_labels:
-            score += 1.0
-        if numeric_cells == 1:
-            score += 1.0
-        elif numeric_cells > 1 and not direct_row_from_value_labels:
-            score -= 2.0
-
-        value_role = _normalise_spaces(str(metadata.get("value_role") or ""))
-        aggregation_stage = _normalise_spaces(str(metadata.get("aggregation_stage") or ""))
-        aggregate_label = _normalise_spaces(str(metadata.get("aggregate_label") or ""))
-        preferred_value_roles = {
-            _normalise_spaces(str(item)).lower()
-            for item in (binding_policy.get("prefer_value_roles") or [])
-            if _normalise_spaces(str(item))
-        }
-        preferred_aggregation_stages = {
-            _normalise_spaces(str(item)).lower()
-            for item in (binding_policy.get("prefer_aggregation_stages") or [])
-            if _normalise_spaces(str(item))
-        }
-        if value_role == "adjustment":
-            score -= 4.0
-        aggregate_like = bool(
-            value_role == "aggregate"
-            or aggregation_stage in {"direct", "final", "subtotal"}
-            or aggregate_label
-        )
-        if aggregate_like and "aggregate" in preferred_value_roles:
-            score += 4.0
-        if aggregate_like and preferred_aggregation_stages and aggregation_stage in preferred_aggregation_stages:
-            score += 2.0
-        if value_role == "detail" and _operand_prefers_aggregate_value_role(operand):
-            score -= 1.5
-        if aggregation_stage in {"direct", "final", "subtotal"}:
-            score += 0.75
-        return score
-
     def _lookup_row_from_direct_structured_evidence(
         self,
         operand: Dict[str, Any],
@@ -2113,7 +2000,12 @@ class FinancialAgentCalculationMixin:
             metadata = dict(evidence.get("metadata") or {})
             evidence_id = _normalise_spaces(str(evidence.get("evidence_id") or ""))
             structured_slot_selected_for_evidence = False
-            score = self._direct_structured_lookup_evidence_score(operand, evidence)
+            score = score_direct_structured_lookup_evidence(
+                DirectStructuredLookupEvidenceScoreInput(
+                    operand=operand,
+                    evidence_item=evidence,
+                )
+            ).score
             if score > 0:
                 score += _context_scope_score(evidence)
             should_consider_structured = score > best_score
@@ -2274,7 +2166,12 @@ class FinancialAgentCalculationMixin:
             current_score = 0.0
             current_evidence = _evidence_item_for_operand_row(current, evidence_by_id)
             if current_evidence:
-                current_score = self._direct_structured_lookup_evidence_score(operand, current_evidence)
+                current_score = score_direct_structured_lookup_evidence(
+                    DirectStructuredLookupEvidenceScoreInput(
+                        operand=operand,
+                        evidence_item=current_evidence,
+                    )
+                ).score
             preferred_slot_adoption = resolve_direct_structured_preferred_slot_adoption(
                 DirectStructuredPreferredSlotAdoptionInput(
                     operation_family=operation_family,
@@ -2381,7 +2278,6 @@ class FinancialAgentCalculationMixin:
                 current_evidence=current_evidence,
                 operand=operand,
                 recovered_slot_matches_primary_label=_recovered_slot_has_primary_label_match,
-                direct_structured_lookup_evidence_score=self._direct_structured_lookup_evidence_score,
                 operand_rows_materially_conflict=operand_row_values_materially_conflict,
             )
 
@@ -2460,7 +2356,6 @@ class FinancialAgentCalculationMixin:
                         state=state,
                         normalize_slot=_normalize_lookup_slot_unit,
                         lookup_result_builder=_lookup_result_from_slot,
-                        direct_structured_lookup_evidence_score=self._direct_structured_lookup_evidence_score,
                         best_direct_lookup_slot=self._best_direct_lookup_slot_from_evidence_pool,
                         preferred_slot_has_evidence_surface_match=_preferred_slot_has_evidence_surface_match,
                         value_refinement_allowed=_value_refinement_allowed,
@@ -7898,7 +7793,12 @@ class FinancialAgentCalculationMixin:
             ) or _evidence_item_for_operand_row(source_slot, evidence_by_id)
             current_metadata = dict((current_evidence or {}).get("metadata") or {})
             current_score = (
-                self._direct_structured_lookup_evidence_score(binding, current_evidence)
+                score_direct_structured_lookup_evidence(
+                    DirectStructuredLookupEvidenceScoreInput(
+                        operand=binding,
+                        evidence_item=current_evidence,
+                    )
+                ).score
                 if current_evidence
                 else 0.0
             )
@@ -12496,7 +12396,12 @@ class FinancialAgentCalculationMixin:
                     )
                     if not row:
                         continue
-                    score = self._direct_structured_lookup_evidence_score(operand, evidence)
+                    score = score_direct_structured_lookup_evidence(
+                        DirectStructuredLookupEvidenceScoreInput(
+                            operand=operand,
+                            evidence_item=evidence,
+                        )
+                    ).score
                     if score > best_row_score:
                         best_row = row
                         best_row_score = score
