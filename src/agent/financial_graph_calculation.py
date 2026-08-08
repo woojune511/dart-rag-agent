@@ -28,6 +28,7 @@ from src.agent.financial_aggregate_state import (
 )
 from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
+    AggregateNestedSubtaskSynchronizationInput,
     AggregateProjectionFinalAnswerSyncInput,
     AggregateProjectionProvenanceFilterInput,
     AggregateStaleRepairProvenanceInput,
@@ -47,6 +48,7 @@ from src.agent.financial_aggregate_projection import (
     filter_aggregate_projection_provenance,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
+    synchronize_nested_aggregate_subtask_rows,
     sync_aggregate_projection_final_answer,
 )
 from src.agent.financial_calculation_execution import (
@@ -9408,60 +9410,12 @@ class FinancialAgentCalculationMixin:
                 if existing.get(key) and not merged.get(key):
                     merged[key] = existing.get(key)
             preserved_results.append(merged)
-        preserved_results = self._sync_nested_subtask_rows_with_current_results(preserved_results)
+        preserved_results = synchronize_nested_aggregate_subtask_rows(
+            AggregateNestedSubtaskSynchronizationInput(
+                ordered_results=preserved_results,
+            )
+        ).ordered_results
         return preserved_results, self._rebuild_aggregate_projection(preserved_results, final_answer)
-
-    def _sync_nested_subtask_rows_with_current_results(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        by_task_id = {
-            _normalise_spaces(str(row.get("task_id") or "")): dict(row)
-            for row in ordered_results
-            if _normalise_spaces(str(row.get("task_id") or ""))
-        }
-
-        def _sync_rows(rows: List[Any], stack: set[str], depth: int) -> List[Dict[str, Any]]:
-            synced: List[Dict[str, Any]] = []
-            for item in rows:
-                if not isinstance(item, dict):
-                    continue
-                task_id = _normalise_spaces(str(item.get("task_id") or ""))
-                source = dict(item)
-                if task_id and task_id not in stack and by_task_id.get(task_id):
-                    source = dict(by_task_id[task_id])
-                synced.append(_sync_row(source, stack, depth + 1))
-            return synced
-
-        def _sync_row(row: Dict[str, Any], stack: set[str], depth: int = 0) -> Dict[str, Any]:
-            if depth > 8:
-                return dict(row)
-            synced = dict(row)
-            task_id = _normalise_spaces(str(synced.get("task_id") or ""))
-            child_stack = set(stack)
-            if task_id:
-                child_stack.add(task_id)
-
-            calculation_result = dict(synced.get("calculation_result") or {})
-            if calculation_result:
-                nested_rows = list(calculation_result.get("subtask_results") or [])
-                if nested_rows:
-                    calculation_result["subtask_results"] = _sync_rows(nested_rows, child_stack, depth)
-                answer_slots = dict(calculation_result.get("answer_slots") or {})
-                nested_slot_rows = list(answer_slots.get("subtask_results") or [])
-                if nested_slot_rows:
-                    answer_slots["subtask_results"] = _sync_rows(nested_slot_rows, child_stack, depth)
-                    calculation_result["answer_slots"] = answer_slots
-                synced["calculation_result"] = calculation_result
-
-            row_answer_slots = dict(synced.get("answer_slots") or {})
-            row_nested_slot_rows = list(row_answer_slots.get("subtask_results") or [])
-            if row_nested_slot_rows:
-                row_answer_slots["subtask_results"] = _sync_rows(row_nested_slot_rows, child_stack, depth)
-                synced["answer_slots"] = row_answer_slots
-            return synced
-
-        return [_sync_row(dict(row), set()) for row in ordered_results]
 
     def _dedupe_aggregate_subtask_results(
         self,

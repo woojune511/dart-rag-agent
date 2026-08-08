@@ -13,6 +13,7 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
+    AggregateNestedSubtaskSynchronizationInput,
     AggregateProjectionProvenanceFilterInput,
     AggregateProjectionFinalAnswerSyncInput,
     AggregateStaleRepairProvenanceInput,
@@ -33,6 +34,7 @@ from src.agent.financial_aggregate_projection import (
     filter_aggregate_projection_provenance,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
+    synchronize_nested_aggregate_subtask_rows,
     sync_aggregate_projection_final_answer,
 )
 from src.agent.financial_operand_resolution import evidence_item_conflicts_requested_scope
@@ -707,6 +709,142 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ],
         )
         self.assertEqual(projection, projection_snapshot)
+
+    def test_nested_subtask_sync_preserves_recursive_copy_contract(self) -> None:
+        class _TrackingRow(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append(key)
+                if len(self.get_calls) == 2:
+                    raise RuntimeError("task id unavailable")
+                return super().get(key, default)
+
+        def sync_rows(ordered_results):
+            return synchronize_nested_aggregate_subtask_rows(
+                AggregateNestedSubtaskSynchronizationInput(
+                    ordered_results=ordered_results,
+                )
+            ).ordered_results
+
+        marker = {"preserve": True}
+        unmatched_marker = {"unmatched": True}
+        blank_marker = {"blank": True}
+        first_child = {"task_id": " child ", "value": "first", "marker": marker}
+        last_child = {"task_id": "child", "value": "last", "marker": marker}
+        unmatched = {"task_id": "missing", "value": "unmatched", "marker": unmatched_marker}
+        blank = {"task_id": " ", "value": "blank", "marker": blank_marker}
+        parent = {
+            "task_id": "parent",
+            "marker": marker,
+            "calculation_result": {
+                "marker": marker,
+                "subtask_results": [
+                    "discard",
+                    {"task_id": " child ", "value": "stale"},
+                    unmatched,
+                    blank,
+                ],
+                "answer_slots": {
+                    "marker": marker,
+                    "subtask_results": [{"task_id": "child", "value": "stale_slot"}],
+                },
+            },
+            "answer_slots": {
+                "marker": marker,
+                "subtask_results": [{"task_id": "child", "value": "stale_row_slot"}],
+            },
+        }
+        ordered_results = [first_child, last_child, parent]
+        ordered_snapshot = deepcopy(ordered_results)
+
+        selected = sync_rows(ordered_results)
+
+        selected_parent = selected[2]
+        calculation_result = selected_parent["calculation_result"]
+        calculation_rows = calculation_result["subtask_results"]
+        calculation_slot_rows = calculation_result["answer_slots"]["subtask_results"]
+        row_slot_rows = selected_parent["answer_slots"]["subtask_results"]
+        self.assertEqual(
+            [(row["task_id"], row["value"]) for row in calculation_rows],
+            [("child", "last"), ("missing", "unmatched"), (" ", "blank")],
+        )
+        self.assertEqual(
+            [rows[0]["value"] for rows in (calculation_slot_rows, row_slot_rows)],
+            ["last", "last"],
+        )
+        self.assertEqual([row["task_id"] for row in selected], [" child ", "child", "parent"])
+        self.assertIsNot(selected, ordered_results)
+        for selected_row, original_row in zip(selected, ordered_results):
+            self.assertIsNot(selected_row, original_row)
+        for selected_value, original_value in (
+            (calculation_result, parent["calculation_result"]),
+            (calculation_rows, parent["calculation_result"]["subtask_results"]),
+            (calculation_result["answer_slots"], parent["calculation_result"]["answer_slots"]),
+            (calculation_slot_rows, parent["calculation_result"]["answer_slots"]["subtask_results"]),
+            (selected_parent["answer_slots"], parent["answer_slots"]),
+            (row_slot_rows, parent["answer_slots"]["subtask_results"]),
+            (calculation_rows[1], unmatched),
+            (calculation_rows[2], blank),
+        ):
+            self.assertIsNot(selected_value, original_value)
+        for retained, original in (
+            (selected[1]["marker"], marker),
+            (calculation_rows[0]["marker"], marker),
+            (calculation_rows[1]["marker"], unmatched_marker),
+            (calculation_rows[2]["marker"], blank_marker),
+            (calculation_result["marker"], marker),
+            (calculation_result["answer_slots"]["marker"], marker),
+            (selected_parent["answer_slots"]["marker"], marker),
+        ):
+            self.assertIs(retained, original)
+        self.assertEqual(ordered_results, ordered_snapshot)
+
+        nested_root = {"task_id": "root", "value": "nested_root"}
+        root = {
+            "task_id": "root",
+            "value": "canonical_root",
+            "calculation_result": {"subtask_results": [{"task_id": "child"}]},
+        }
+        child = {
+            "task_id": "child",
+            "value": "canonical_child",
+            "calculation_result": {"subtask_results": [nested_root]},
+        }
+        cycle_selected = sync_rows([root, child])
+        cycle_child = cycle_selected[0]["calculation_result"]["subtask_results"][0]
+        cycle_root = cycle_child["calculation_result"]["subtask_results"][0]
+        self.assertEqual((cycle_child["value"], cycle_root["value"]), ("canonical_child", "nested_root"))
+
+        deep_rows = [
+            {
+                "task_id": f"depth_{index}",
+                "calculation_result": {
+                    "subtask_results": (
+                        [{"task_id": f"depth_{index + 1}"}] if index < 10 else []
+                    )
+                },
+            }
+            for index in range(11)
+        ]
+        deep_snapshot = deepcopy(deep_rows)
+        cursor = sync_rows(deep_rows)[0]
+        for _ in range(9):
+            cursor = cursor["calculation_result"]["subtask_results"][0]
+        self.assertEqual(cursor["task_id"], "depth_9")
+        self.assertIs(cursor["calculation_result"], deep_rows[9]["calculation_result"])
+        self.assertEqual(deep_rows, deep_snapshot)
+
+        empty_results = []
+        empty_selected = sync_rows(empty_results)
+        self.assertEqual(empty_selected, [])
+        self.assertIsNot(empty_selected, empty_results)
+        tracking_row = _TrackingRow(task_id="tracked")
+        with self.assertRaisesRegex(RuntimeError, "task id unavailable"):
+            sync_rows([tracking_row])
+        self.assertEqual(tracking_row.get_calls, ["task_id", "task_id"])
 
     def test_aggregate_answer_candidate_application_preserves_projection_and_claim_contract(self) -> None:
         def _apply(projection, selected_claim_ids, candidate):

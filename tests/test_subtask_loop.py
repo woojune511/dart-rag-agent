@@ -19047,7 +19047,13 @@ class SubtaskLoopTests(unittest.TestCase):
             "selected_claim_ids": [],
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_nested_aggregate_subtask_rows",
+            wraps=financial_graph_calculation.synchronize_nested_aggregate_subtask_rows,
+        ) as nested_sync:
+            updated = self.agent._aggregate_calculation_subtasks(state)
+        nested_sync.assert_called_once()
 
         self.assertIn("41.4%", updated["answer"])
         self.assertIn("1,801,079 million", updated["answer"])
@@ -19110,6 +19116,7 @@ class SubtaskLoopTests(unittest.TestCase):
 
         current_row = _lookup_row("task_current", "2023", "2,546,649", "ev_current")
         stale_prior_row = _lookup_row("task_prior", "2022", "303", "ev_weak_prior")
+        stale_prior_row["artifact_ids"] = ["artifact:preserved"]
         correct_prior_row = _lookup_row("task_prior", "2022", "1,801,079", "ev_prior")
         stale_growth_row = {
             "task_id": "task_growth",
@@ -19196,11 +19203,41 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        synced_results, synced_projection = self.agent._sync_projection_subtask_results_with_nested_promotions(
-            ordered_results,
-            state,
-            aggregate_projection,
-            "Segment revenue increased 41.4%.",
+        sync_events = []
+        nested_sync = financial_graph_calculation.synchronize_nested_aggregate_subtask_rows
+        rebuild_projection = self.agent._rebuild_aggregate_projection
+
+        def _record_nested_sync(*args, **kwargs):
+            sync_events.append("nested_sync")
+            return nested_sync(*args, **kwargs)
+
+        def _record_rebuild(*args, **kwargs):
+            sync_events.append("rebuild")
+            return rebuild_projection(*args, **kwargs)
+
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_nested_aggregate_subtask_rows",
+            side_effect=_record_nested_sync,
+        ) as nested_sync_spy, patch.object(
+            self.agent,
+            "_rebuild_aggregate_projection",
+            side_effect=_record_rebuild,
+        ):
+            synced_results, synced_projection = (
+                self.agent._sync_projection_subtask_results_with_nested_promotions(
+                    ordered_results,
+                    state,
+                    aggregate_projection,
+                    "Segment revenue increased 41.4%.",
+                )
+            )
+        nested_sync_spy.assert_called_once()
+        self.assertEqual(sync_events, ["rebuild", "nested_sync", "rebuild"])
+        nested_sync_rows = nested_sync_spy.call_args.args[0].ordered_results
+        self.assertEqual(
+            next(row for row in nested_sync_rows if row["task_id"] == "task_prior")["artifact_ids"],
+            ["artifact:preserved"],
         )
 
         prior_row = next(row for row in synced_results if row["task_id"] == "task_prior")
@@ -19235,6 +19272,43 @@ class SubtaskLoopTests(unittest.TestCase):
                 for row in projected_summary_prior_rows
             )
         )
+
+        empty_projection = {"calculation_result": {"subtask_results": []}}
+        stable_results = [current_row]
+        stable_projection = {"calculation_result": {"subtask_results": [current_row]}}
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_nested_aggregate_subtask_rows",
+            wraps=nested_sync,
+        ) as skipped_sync, patch.object(
+            self.agent,
+            "_rebuild_aggregate_projection",
+            wraps=rebuild_projection,
+        ) as gated_rebuild:
+            empty_results, empty_selected_projection = (
+                self.agent._sync_projection_subtask_results_with_nested_promotions(
+                    ordered_results,
+                    state,
+                    empty_projection,
+                    "unchanged",
+                )
+            )
+            skipped_sync.assert_not_called()
+            gated_rebuild.assert_not_called()
+            unchanged_results, unchanged_projection = (
+                self.agent._sync_projection_subtask_results_with_nested_promotions(
+                    stable_results,
+                    state,
+                    stable_projection,
+                    "unchanged",
+                )
+            )
+        skipped_sync.assert_not_called()
+        gated_rebuild.assert_called_once()
+        self.assertIs(empty_results, ordered_results)
+        self.assertIs(empty_selected_projection, empty_projection)
+        self.assertIs(unchanged_results, stable_results)
+        self.assertIs(unchanged_projection, stable_projection)
 
     def test_dependency_slot_alignment_dedupes_stale_operand_ids(self) -> None:
         state = {
