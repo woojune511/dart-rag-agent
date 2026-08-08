@@ -188,7 +188,8 @@ Current calculation ownership is:
   required candidates, applies dependency producer-scope filtering, and invokes
   the coherent-context builder lazily. It also owns direct structured preference
   preparation through runtime evidence overlay, row iteration, peer-unit
-  preparation, strongest-slot building and scoring, recovered-context
+  preparation, strongest-slot building, query/report-scope score augmentation,
+  ambiguity/tie-break policy and sequential adoption, recovered-context
   eligibility, document/evidence and context-row builders, recovery logging and
   ratio-recovered flag projection, retry gates,
   post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
@@ -212,7 +213,10 @@ Current calculation ownership is:
   referenced evidence adoption after graph-owned builders run. It also owns the
   post-coercion per-row lookup direct-support decision and the required
   match/surface, lookup-rematch, direct-first merge decision as separate typed
-  state-free seams.
+  state-free seams. Its typed direct structured-evidence base scorer and neutral
+  ordered aggregate-role preference predicate are also state-free; graph and
+  lookup-recovery callers consume the scorer directly without the former
+  graph-private method or callback parameters.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -236,10 +240,12 @@ Current calculation ownership is:
   state-free negative runtime-ratio absolute-magnitude transformation over
   graph-prepared mutable result/slot/primary copies.
 
-At the latest checkpoint, the graph is 19,676 lines, the aggregate owner is 427,
-the operand owner is 2,270, the dependency owner is 3,089, and the execution
-owner is 837. The latest owner slice passed targeted 5/5 and affected 296/296
-tests, the 217-literal audit, and full discovery over 1,490/1,490 tests.
+At the latest checkpoint, the graph is 19,581 lines, the graph helper module is
+6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
+is 2,437, the aggregate owner is 427, the dependency owner is 3,089, and the
+execution owner is 837. The latest owner slice passed targeted 6/6 tests and
+owner 37/37 plus affected 594/594 tests (631 total), the 217-literal audit, and
+full discovery over 1,490/1,490 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
@@ -247,14 +253,11 @@ in this plan.
 
 Phase 3 remains open for these unordered follow-ups:
 
-- characterize the pure direct structured-evidence scorer and co-locate its
-  aggregate-role predicate in the operand owner without moving the graph-owned
-  best-slot builder, state/scope iteration, ambiguity/tie-break policy, or
-  sequential adoption loop; this may claim scorer ownership and deletion of that
-  predicate only, not broader private-mesh or executed-path reduction;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
-- treat prepared aggregate final-answer mutation as a lower-semantic mechanical
-  projection slice, not as an aggregate-precedence completion claim;
+- characterize prepared aggregate answer-candidate application and final-answer
+  synchronization as one bounded state-free projection slice; keep candidate
+  builders, selection/precedence, mutable state/evidence, artifact/ledger work,
+  and final orchestration in the graph;
 - isolate other remaining dependency and ratio/absolute seams without moving
   graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified

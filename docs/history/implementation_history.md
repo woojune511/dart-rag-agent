@@ -450,6 +450,30 @@ coercion, graph/store state, or final projection and not a total-code, broad
 executed-path, performance, private-mesh, end-to-end calculation-owner, or
 complete Phase 3 reduction claim.
 
+### Direct structured-evidence scorer ownership
+
+- `e652bac` moves the pure direct structured-evidence base scorer and its ordered
+  aggregate-role preference predicate into the operand owner. Typed results expose
+  `no_structured_cells`, `surface_contract_not_satisfied`, or `evidence_scored`
+  as contract-only reasons. Graph and lookup-recovery callers consume the owner
+  directly, and the old graph-private scorer plus lookup-recovery scorer callback
+  parameters are deleted. The graph retains evidence iteration, strongest-slot
+  building, query/report-scope score augmentation, ambiguity and tie-break policy,
+  and sequential preferred-slot adoption.
+- Production source is `+217/-144`, net 73: the graph changes from 19,676 to
+  19,581 lines, graph helpers from 6,322 to 6,311, reconciliation from 2,426 to
+  2,428, lookup recovery from 599 to 609, and the operand owner from 2,270 to
+  2,437. Tests are `+326/-30`, net 296; the whole commit is `+543/-174`, net 369.
+- Validation passed targeted 6/6 tests, owner 37/37 plus affected 594/594 tests
+  (631 total), the 217-literal runtime audit, and full discovery over
+  1,490/1,490 tests. Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving scorer and neutral-predicate ownership relocation,
+not a move of best-slot construction, graph state/scope iteration,
+ambiguity/tie-break policy, sequential adoption, or runtime trace projection and
+not a total-code, broad executed-path, performance, broad private-mesh,
+end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

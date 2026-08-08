@@ -559,6 +559,17 @@ normalized values, the resolver must abstain instead of selecting whichever
 candidate arrived first. If tied candidates are value-equivalent, it may select
 one through a stable provenance and candidate-identity ordering.
 
+The same owner also owns the typed direct structured-evidence base scorer. It
+receives only the operand and one evidence item, returns `no_structured_cells`
+or `surface_contract_not_satisfied` at the existing early-return boundaries,
+and otherwise returns `evidence_scored` with the component score. The ordered
+aggregate-role preference predicate is co-located in this neutral owner and is
+evaluated only at the original guarded call sites; callers must not replace it
+with an eager boolean. These reasons are inspectable contract outputs, not
+runtime trace fields. Graph and lookup-recovery callers consume the owner
+directly; the former graph-private scorer and lookup-recovery scorer callbacks
+are not compatibility seams.
+
 Within `_extract_calculation_operands`, the same owner also receives the current
 post-main operand rows, required candidate rows after producer-scope filtering,
 and any coherent candidate rows built by the graph. It merges coherent rows into
@@ -583,9 +594,10 @@ fields. The owner receives explicit row, evidence, requirement, operation, and
 ambiguity-context values, never `FinancialAgentState` or a callback.
 
 After the graph has copied and matched a direct row, built the strongest
-preferred evidence slot, scored the current and preferred evidence, and prepared
-the normalized peer raw-unit set, the operand owner applies a typed state-free
-preferred-slot adoption contract. It tests a higher current score and then an
+preferred evidence slot, invoked the owner scorer for current and preferred
+evidence, and prepared the normalized peer raw-unit set, the operand owner
+applies a typed state-free preferred-slot adoption contract. It tests a higher
+current score and then an
 equal score, retaining the current row unless a ratio candidate with the same raw
 value improves peer-unit alignment. This strict comparison order is contractual;
 NaN scores fall through to adoption as before. Other prepared candidates are
@@ -654,7 +666,8 @@ The graph adapter still owns direct-row and evidence construction, coercion,
 consolidation-scope filtering, target override, the acceptance applicability
 gate, and direct structured preference preparation: runtime evidence overlay,
 row copying and matching, peer-unit preparation, strongest-slot building,
-scoring, and sequential iteration. It also owns recovered-context eligibility,
+query/report-scope score augmentation, ambiguity and tie-break policy, and
+sequential iteration. It also owns recovered-context eligibility,
 document/evidence collection, and period/ratio context-row builders.
 It also owns recovery logging and ratio-recovered flag projection,
 required-candidate builders, producer-scope filtering, the lazy coherent-context

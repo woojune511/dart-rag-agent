@@ -73,12 +73,20 @@ imports or an unconfigured `FinancialAgent` invocation.
   lookup direct-support gates, including lookup's second ambiguity check and
   no-stage identity. The graph retains row/evidence construction, coercion,
   scope/target policy, and the applicability gate.
+- Direct structured-evidence base scoring now has a typed state-free
+  operand-resolution owner with `no_structured_cells`,
+  `surface_contract_not_satisfied`, and `evidence_scored` dispositions. The
+  ordered aggregate-role preference predicate is co-located there and remains
+  guarded at its original call sites. Graph and lookup recovery consume the
+  scorer directly; the old graph-private scorer and lookup-recovery callback
+  parameters are gone. Reasons are contract outputs, not runtime trace fields.
 - Prepared preferred-slot adoption now has a typed state-free operand-resolution
   owner. It preserves higher/equal-score rejection, ratio peer-unit alignment,
   exact row overlay, top-level copy/nested identity, sequential row application,
   and input immutability. Its reasons are contract outputs, not runtime trace
   fields. The graph retains runtime evidence overlay, row matching and iteration,
-  peer-unit preparation, and the strongest-slot builder and scoring.
+  peer-unit preparation, the strongest-slot builder, query/report-scope score
+  augmentation, ambiguity/tie-break policy, and sequential adoption.
 - Recovered context adoption now has a typed state-free operand-resolution owner.
   It preserves period recovered-first/current missing-fill versus coherent-ratio
   replacement, referenced-evidence filtering and order, existing-id exclusion,
@@ -126,14 +134,18 @@ imports or an unconfigured `FinancialAgent` invocation.
   nested identity and provenance input immutability are retained. Its typed reason
   and application flag are not trace fields. The corrected graph fixtures attach
   their structure graph to the production `vsm` surface.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,676 lines,
+- At the current checkpoint, `financial_graph_calculation.py` is 19,581 lines,
+  `financial_graph_helpers.py` is 6,311,
+  `financial_graph_reconciliation.py` is 2,428,
+  `financial_lookup_recovery.py` is 609,
   `financial_aggregate_projection.py` is 427,
-  `financial_operand_resolution.py` is 2,270,
+  `financial_operand_resolution.py` is 2,437,
   `financial_dependency_projection.py` is 3,089, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 5/5 and affected 296/296
-  tests, the 217-literal runtime audit, and full discovery over 1,490/1,490 tests.
+- The latest calculation checkpoint passed targeted 6/6 and owner 37/37 plus
+  affected 594/594 tests (631 total), the 217-literal runtime audit, and full
+  discovery over 1,490/1,490 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -152,7 +164,7 @@ current-state document does not duplicate that commit diary.
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
-| Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
+| Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring and the neutral ordered aggregate-role predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, and prepared structured-provenance adoption | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, while graph retains row construction/normalization and evidence coercion/append; Stage 1 owns candidate field copies and result-status disposition, Stage 2 owns truthy formatted-result/final-row projection, while graph retains raw-plan and candidate construction/execution, recalculated-value coercion and invalid-value artifact-builder laziness, absolute-ratio query/transform invocation, task-artifact/ledger conflict short-circuit, formatter, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection, stale provenance selection, and prepared collapsed-ratio magnitude transformation | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization, typed state-free target selection, and the result/slot/primary prepared-copy transform are owner-owned, while trace/eligibility/completeness/query gates, downstream coherence/answer/coverage, acceptance/filter sequencing, and final projection remain graph-owned |
@@ -179,7 +191,7 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 5/5 and affected 296/296 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 6/6 and owner 37/37 + affected 594/594 = 631/631 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
 | Full unittest discovery | PASS, 1,490/1,490 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
@@ -226,6 +238,7 @@ rather than an incomplete product requirement.
 The July canonical public-projection milestone is complete, but the broader
 single-calculation-path Phase 3 remains open. Dependency precedence, late merge,
 terminal finalization, required-candidate merge, direct structured acceptance,
+direct structured-evidence base scoring and aggregate-role preference,
 prepared preferred-slot adoption, recovered-context adoption, scalar plan
 disposition, post-coercion LLM operand selection, deterministic plan/execution,
 prepared ratio-artifact conflict selection, two-stage dependency post-candidate
@@ -233,7 +246,8 @@ finalization, prepared dependency structured-provenance adoption, and pure aggre
 selection have named owners. The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy, direct
 structured preference applicability, runtime evidence preparation, row
-matching/iteration, peer-unit preparation and strongest-slot scoring,
+matching/iteration, peer-unit preparation, strongest-slot building,
+query/report-scope score augmentation, ambiguity/tie-break and sequential adoption,
 recovered-context eligibility and row/evidence construction, producer-scope filtering, lazy coherent-context
 construction, retry and
 query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
@@ -264,45 +278,42 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and relocate only the pure
-`_direct_structured_lookup_evidence_score`
-(`financial_graph_calculation.py:1725-1838`) into
-`financial_operand_resolution.py`, deleting that graph scorer body. The operand
-owner should expose typed score input/result contracts that receive only the
-operand and evidence item, with the internal reasons
-`no_structured_cells`, `surface_contract_not_satisfied`, and `evidence_scored`;
-those reasons are contract outputs, not runtime trace fields. Before moving it,
-define the neutral-owner
-boundary for `_operand_prefers_aggregate_value_role`
-(`financial_graph_helpers.py:3548-3559`): co-locate and expose that predicate from
-the operand owner, then update graph and graph-helper consumers through one-way
-imports. Do not make the operand owner import `financial_graph_helpers.py`, and
-do not replace the predicate with an eagerly computed boolean that changes
-evaluation or exception order.
+The next bounded architecture work is to characterize and relocate the prepared
+aggregate answer-candidate application cluster into
+`financial_aggregate_projection.py`: only
+`_sync_aggregate_projection_final_answer`
+(`financial_graph_calculation.py:4822-4841`) and
+`_apply_aggregate_answer_candidate` (`5405-5433`). The typed owner input should
+contain the graph-prepared mutable aggregate projection, current selected-claim
+sequence, and prepared candidate mapping. Its result should expose that same
+projection identity, the normalized final answer, and a new merged claim-id
+list. The eight prepared-candidate application callers and the two remaining
+direct projection-sync callers must use the owner without passing graph state or
+callbacks.
 
-Characterization must lock the exact score-component matrix and input
-immutability: missing structured cells, required positive-surface gating,
-exact/fuzzy row and semantic labels, numeric-cell normalization and header
-affinity, direct-row and single/multi-cell adjustments, adjustment/detail
-penalties, preferred aggregate role/stage bonuses, normalization failure, and
-exception propagation. The graph must retain
-`_best_direct_lookup_slot_from_evidence_pool` (`1922-2229`), evidence iteration,
-query/report-scope scoring, ambiguity and tie-break policy, and the outer
-sequential preferred-slot adoption loop (`2231-2292`). No graph state, callback,
-or batch precomputation should cross the scorer boundary.
+Characterization must lock the exact order. Normalize the candidate answer
+first; when `sync_projection` is true, apply `formatted_result`, the
+aggregate-mode rendered-value gate, and optional `status="ok"` to the same
+projection before reading and merging candidate claim ids. Then normalize and
+deduplicate nonempty ids current-first and candidate-second with stable
+first-occurrence order. A false sync flag or empty final answer retains the
+projection identity, while the claim-id result remains a new list. Exceptions
+must propagate at their existing point: an error during projection sync prevents
+claim merging, while an error reading candidate ids may occur after an earlier
+in-place projection update. Candidate and selected-id inputs remain unmodified.
 
-The allowed structural claim is scorer ownership plus deletion of that one
-private aggregate-role predicate. It is not a claim that preferred-slot building,
-selection, sequential adoption, the broader private mesh, total code, executed
-paths, or performance have been reduced.
-
-The prepared aggregate final-answer mutation helper
-(`financial_graph_calculation.py:4927-4946`) is a safe but lower-semantic runner-up
-and remains an unordered backlog item rather than a precedence claim. Aggregate
-stale-repair/precedence, other ratio/absolute handling, broader ledger
-synchronization, remaining fallbacks, private facade/API cleanup, and further
-test co-location also remain separate work. The Phase 3 backlog in the
-refactoring plan is unordered; this section is the authority for priority.
+The stop line is before candidate builders and refresh
+(`_aggregate_answer_candidate` through
+`_refresh_numeric_aggregate_answer_candidate`, `5339-5403`), mutable aggregate
+state and evidence handling (`5764+`), candidate selection, answer precedence,
+evidence refresh, artifact/ledger synchronization, and final orchestration. The
+allowed claim is prepared candidate application and projection synchronization,
+not aggregate answer selection/precedence, total-code or executed-path reduction,
+performance, broader private-mesh cleanup, or Phase 3 completion. Aggregate
+stale repair, other ratio/absolute handling, broader ledger synchronization,
+remaining fallbacks, private facade/API cleanup, and further test co-location
+remain separate work. The Phase 3 backlog in the refactoring plan is unordered;
+this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

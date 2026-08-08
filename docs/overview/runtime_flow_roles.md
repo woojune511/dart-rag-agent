@@ -318,6 +318,11 @@ state-free owner 경계:
   row에는 lookup direct-support를 identity-preserving decision으로 적용하고, required
   operand가 있으면 ordered match/surface, lookup rematch, direct-first missing-fill을
   별도 typed result로 적용한다. 이 두 seam의 reason/flag도 runtime trace가 아니다.
+  Direct structured evidence base scorer는 operand와 evidence item만 받아
+  `no_structured_cells`, `surface_contract_not_satisfied`, `evidence_scored` reason과
+  score를 반환한다. Ordered aggregate-role preference predicate도 같은 neutral
+  owner에 있으며 원래 guard 안에서만 평가된다. Graph와 lookup recovery는 owner를
+  직접 호출하고 scorer callback을 주입하지 않는다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -370,7 +375,8 @@ graph adapter에 남은 orchestration 역할군:
   lookup, no-provenance owner-call skip, downstream evidence lookup/coercion/append
 - direct row/evidence construction, coercion, scope/target policy, acceptance
   applicability gate, direct preference runtime evidence overlay, row
-  matching/iteration, peer-unit preparation, strongest-slot builder와 scoring
+  matching/iteration, peer-unit preparation, strongest-slot builder,
+  query/report-scope score 보강, ambiguity/tie-break와 sequential adoption
 - post-coercion LLM invocation/model dump, evidence lookup, scope-conflict skip,
   operand-id assignment, coercion, applicability, enclosing exception과 fallback
 - recovered-context eligibility, document/evidence collection, period/ratio row
@@ -469,7 +475,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate
   resolution, typed required-candidate precedence/merge, and typed direct
-  structured acceptance
+  structured acceptance, typed direct structured-evidence base scoring, and the
+  neutral ordered aggregate-role preference predicate
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate
