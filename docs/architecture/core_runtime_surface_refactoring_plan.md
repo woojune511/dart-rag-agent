@@ -183,15 +183,18 @@ broader single-calculation-path phase is not complete.
 Current calculation ownership is:
 
 - `financial_graph_calculation.py` remains the graph-state adapter and
-  orchestrator. It prepares evidence/query inputs, builds required candidates,
-  applies dependency producer-scope filtering, and invokes the coherent-context
-  builder lazily. It also owns retry gates, graph-private candidate preparation,
-  state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
-  and remaining fallbacks.
+  orchestrator. It constructs and coerces direct rows, applies consolidation
+  scope and target-override policy, prepares evidence/query inputs, builds
+  required candidates, applies dependency producer-scope filtering, and invokes
+  the coherent-context builder lazily. It also owns direct structured evidence
+  preference/refinement, recovered context/evidence adoption, retry gates,
+  graph-private candidate preparation, state/task/artifact projection, repair
+  acceptance, aggregate/filter sequencing, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
   grounding, selection, and merge behavior, including coherent-first required
   candidate merge followed by complete-ratio candidate-first or current-first
-  precedence.
+  precedence. It also owns ordered typed direct structured acceptance across
+  required match/surface, ambiguity, and lookup direct-support gates.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -205,20 +208,19 @@ Current calculation ownership is:
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection and canonical aggregate operation-family normalization.
 
-At the latest checkpoint, the graph is 19,823 lines, the operand owner is 1,854,
+At the latest checkpoint, the graph is 19,792 lines, the operand owner is 1,953,
 the dependency owner is 2,813, and the execution owner is 837. The latest owner
-slice passed 5/5 focused and 299/299 affected tests, the 217-literal audit, and
-full discovery over 1,480/1,480 tests on Python 3.13. Benchmark refresh is NOT
+slice passed 7/7 targeted and 301/301 affected tests, the 217-literal audit, and
+full discovery over 1,482/1,482 tests on Python 3.13. Benchmark refresh is NOT
 RUN. Exact commit boundaries, intermediate metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
 in this plan.
 
 Phase 3 remains open for these unordered follow-ups:
 
-- move the characterized direct structured acceptance boundary behind the
-  existing operand-resolution owner;
-- extract bounded context/evidence adoption and post-coercion LLM selection
-  slices without moving graph state or builders;
+- extract bounded direct structured evidence preference/refinement, recovered
+  context/evidence adoption, and post-coercion LLM selection slices without
+  moving graph state or builders;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
 - isolate dependency post-candidate finalization and ratio
   artifact/absolute-magnitude seams without moving graph state lookup;

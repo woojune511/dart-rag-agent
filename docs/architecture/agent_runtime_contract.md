@@ -569,6 +569,19 @@ requirements. The transformation is state-free, preserves preferred-row order
 through the existing top-level shallow-copy merge contract, and does not receive
 graph state or builder callbacks.
 
+The operand owner also owns typed direct structured-row acceptance. The graph
+invokes it only when direct rows are non-empty and either required operands exist
+or the operation is `lookup`/`single_value`. For required operands, the owner
+applies requirement matching and the required surface contract, then rejects
+ambiguous context-table rows. Surviving `lookup`/`single_value` rows next apply
+direct-support filtering when requirements exist and the ambiguity gate again;
+without requirements, only that lookup ambiguity gate runs. This order and its
+short-circuit behavior are contractual. Applied filters create ordered subsets
+while retaining row-dict identity; no-stage paths retain the input-list identity.
+The typed application flags are inspectable owner outputs, not runtime trace
+fields. The owner receives explicit row, evidence, requirement, operation, and
+ambiguity-context values, never `FinancialAgentState` or a callback.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
@@ -591,7 +604,10 @@ active dependency snapshot second, retaining order through top-level shallow
 copies. Its reason fields are owner-contract outputs; they are not currently
 projected as runtime trace fields.
 
-The graph adapter still owns the context/evidence and required-candidate builders,
+The graph adapter still owns direct-row and evidence construction, coercion,
+consolidation-scope filtering, target override, the acceptance applicability
+gate, direct structured evidence preference/refinement, and recovered
+context/evidence adoption. It also owns required-candidate builders,
 producer-scope filtering, the lazy coherent-context builder gate, retry and
 dependency-guard decisions, the percent-point query gate, other deterministic/LLM
 fallback paths, coverage decisions, and state, trace, artifact, and logging

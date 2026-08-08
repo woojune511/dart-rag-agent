@@ -252,6 +252,29 @@ these post-stop-line calculation changes.
 This is a required-candidate precedence/merge ownership move, not a total-code,
 executed-path, performance, private-mesh, or complete Phase 3 reduction claim.
 
+### Direct structured operand acceptance ownership
+
+- `25eeccb` moves the ordered direct structured-row acceptance stages from the
+  graph into the existing operand-resolution owner. The typed state-free owner
+  preserves required matching and surface validation, the first ambiguity gate,
+  lookup direct-support filtering, the second lookup ambiguity gate, stable row
+  order/identity, and no-stage list identity. The graph retains upstream
+  row/evidence construction, coercion, consolidation-scope and target policy,
+  the applicability gate, direct structured evidence preference/refinement,
+  recovered context/evidence adoption, and runtime projection.
+- The graph changes from 19,823 to 19,792 lines (`+14/-45`, net -31) and the
+  operand owner from 1,854 to 1,953 lines (`+99`). Production source is
+  `+113/-45`, net 68; tests are `+259/-10`, net 249; the whole commit is
+  `+372/-55`, net 317. The extraction adapter's definition-to-next-definition
+  span changes from 851 to 818 lines.
+- Validation passed 7/7 targeted tests, 301/301 affected tests, the 217-literal
+  runtime audit, and full discovery over 1,482/1,482 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a direct-acceptance ownership move, not a total-code, broad executed-path,
+performance, private-mesh, end-to-end calculation-owner, or complete Phase 3
+reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

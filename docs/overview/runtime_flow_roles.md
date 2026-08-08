@@ -259,8 +259,11 @@ lookup surface matching, retry query 생성이다.
 
 - `_extract_calculation_operands(state)`: reconciliation direct row, evidence
   fallback, dependency output을 모은다. Graph는 required candidate와
-  producer-scope filter, lazy coherent-context builder를 유지하고, state-free
-  operand owner의 required-candidate merge 결과를 operand set에 반영한다.
+  producer-scope filter, lazy coherent-context builder를 유지한다. Direct row를
+  구성·coerce·scope-filter한 뒤 typed direct-acceptance owner를 조건부 호출하고,
+  required-candidate merge와 acceptance 결과를 operand set에 반영한다. 이후
+  direct structured evidence preference/refinement, recovered context/evidence
+  adoption과 runtime projection은 graph에 남는다.
 - `_plan_formula_calculation(state)`: state/query context를 state-free plan owner
   입력으로 바꾸고, primary 경로에서는 selected plan을 runtime/task/artifact
   state로 투영하는 graph adapter다.
@@ -293,7 +296,11 @@ state-free owner 경계:
   abstain하고 값이 동등한 tie만 stable key로 선택한다. Required candidate
   경로에서는 coherent rows를 candidate set에 먼저 merge하고 required coverage를
   판정한 뒤, complete ratio candidate-first 또는 그 밖의 current-first precedence를
-  typed state-free result로 반환한다.
+  typed state-free result로 반환한다. Direct structured acceptance에서는 required
+  match/surface와 ambiguity를 먼저 적용하고, required operand가 있는 surviving
+  `lookup`/`single_value` row에 direct-support와 두 번째 ambiguity gate를 적용한다.
+  Required operand가 없는 lookup은 ambiguity gate만 적용한다. 적용된 filter는 row
+  identity와 순서를 보존하며, no-stage 경로는 input list identity를 유지한다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -327,6 +334,9 @@ state-free owner 경계:
 graph adapter에 남은 orchestration 역할군:
 
 - main context/evidence retrieval gate와 typed input 구성
+- direct row/evidence construction, coercion, scope/target policy, acceptance
+  applicability gate, direct structured evidence preference/refinement,
+  recovered context/evidence adoption
 - required-candidate/evidence builder, dependency producer-scope filter, lazy
   coherent-context builder gate
 - retry/dependency guard, logging, trace/artifact/state projection
@@ -408,7 +418,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 
 - `financial_answer_slots.py`: answer slot payload construction
 - `financial_operand_resolution.py`: state-free generic operand candidate
-  resolution and typed required-candidate precedence/merge
+  resolution, typed required-candidate precedence/merge, and typed direct
+  structured acceptance
 - `financial_dependency_projection.py`: dependency-binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal operand finalization
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
