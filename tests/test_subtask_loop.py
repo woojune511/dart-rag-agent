@@ -5791,6 +5791,52 @@ class SubtaskLoopTests(unittest.TestCase):
         failed_formatter.assert_not_called()
         self.assertIs(failed, ordered)
 
+        time_series_ordered = json.loads(json.dumps(ordered))
+        time_series_ordered[-1]["calculation_plan"].update(
+            {
+                "mode": "time_series",
+                "operation": "time_series_trend",
+                "formula": "((B - A) / A) * 100",
+                "pairwise_formula": "((CURR - PREV) / PREV) * 100",
+            }
+        )
+        original_time_series_inputs = json.loads(
+            json.dumps([time_series_ordered, state, projection])
+        )
+        original_time_series_rows = tuple(time_series_ordered)
+
+        with (
+            patch.object(
+                self.agent,
+                "_build_deterministic_operation_plan",
+                wraps=self.agent._build_deterministic_operation_plan,
+            ) as time_series_raw_builder,
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                wraps=self.agent._run_calculation_candidate_input,
+            ) as time_series_candidate,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                wraps=self.agent._compact_ratio_answer,
+            ) as time_series_formatter,
+        ):
+            time_series_aligned = self.agent._align_lookup_results_with_dependency_projection(
+                time_series_ordered,
+                state,
+                projection,
+            )
+
+        time_series_raw_builder.assert_not_called()
+        time_series_candidate.assert_not_called()
+        time_series_formatter.assert_not_called()
+        self.assertIs(time_series_aligned, time_series_ordered)
+        self.assertEqual([time_series_ordered, state, projection], original_time_series_inputs)
+        self.assertTrue(
+            all(row is original for row, original in zip(time_series_ordered, original_time_series_rows))
+        )
+
     def test_ratio_recalculation_binds_lookup_slots_by_prefixed_roles(self) -> None:
         lookup_numerator = {
             "task_id": "task_numerator",

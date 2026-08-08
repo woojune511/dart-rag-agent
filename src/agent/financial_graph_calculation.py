@@ -62,11 +62,11 @@ from src.agent.financial_dependency_projection import (
     align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
     build_dependency_recalculated_row,
+    classify_dependency_recalculation_plan,
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
     dependency_binding_identity,
     dependency_lookup_slot_match_score,
-    dependency_plan_is_executable,
     dependency_operand_from_answer_slot,
     dependency_operand_can_use_source_slot,
     dependency_operand_from_source_slot,
@@ -2777,8 +2777,11 @@ class FinancialAgentCalculationMixin:
             if not changed:
                 return row
 
+            plan_disposition = classify_dependency_recalculation_plan(calculation_plan)
+            if plan_disposition == "unsupported_mode":
+                return row
             raw_deterministic_plan: Dict[str, Any] = {}
-            if not dependency_plan_is_executable(calculation_plan):
+            if plan_disposition == "rebuild":
                 raw_deterministic_plan = self._build_deterministic_operation_plan(
                     state,
                     updated_operands,

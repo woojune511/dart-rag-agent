@@ -60,6 +60,12 @@ OperandPreservationSource = Literal[
     "dependency_outputs",
 ]
 
+DependencyRecalculationPlanDisposition = Literal[
+    "rebuild",
+    "reuse",
+    "unsupported_mode",
+]
+
 
 @dataclass(frozen=True)
 class DirectDependencySelectionInput:
@@ -1966,6 +1972,17 @@ def dependency_plan_is_executable(plan: Dict[str, Any]) -> bool:
         and plan_operation not in {"", "none"}
         and plan_operand_ids
     )
+
+
+def classify_dependency_recalculation_plan(
+    plan: Dict[str, Any],
+) -> DependencyRecalculationPlanDisposition:
+    if not dependency_plan_is_executable(plan):
+        return "rebuild"
+    plan_mode = _normalise_spaces(str(plan.get("mode") or "")).lower()
+    if plan_mode != "single_value":
+        return "unsupported_mode"
+    return "reuse"
 
 
 def rebuild_dependency_calculation_plan(
