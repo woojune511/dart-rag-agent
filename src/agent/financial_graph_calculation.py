@@ -57,6 +57,8 @@ from src.agent.financial_calculation_execution import (
     resolve_deterministic_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
+    DependencyRecalculatedRowFinalizationInput,
+    DependencyRecalculationCandidateProjectionInput,
     LateDependencyRemergeInput,
     LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
@@ -64,7 +66,6 @@ from src.agent.financial_dependency_projection import (
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
-    build_dependency_recalculated_row,
     classify_dependency_recalculation_plan,
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
@@ -79,6 +80,7 @@ from src.agent.financial_dependency_projection import (
     dependency_ratio_role_group,
     derive_dependency_operands_from_source_task_slots,
     fill_missing_ratio_dependency_operands,
+    finalize_dependency_recalculated_row,
     filter_direct_rows_by_dependency_producer_scope,
     lookup_primary_slot,
     refresh_dependency_operands_from_lookup_slots,
@@ -86,6 +88,7 @@ from src.agent.financial_dependency_projection import (
     rebuild_dependency_calculation_plan,
     replace_lookup_primary_slot,
     resolve_dependency_producer_scope,
+    resolve_dependency_recalculation_candidate_projection,
     resolve_late_dependency_remerge,
     resolve_late_operand_finalization,
     resolve_main_operand_precedence,
@@ -2799,16 +2802,17 @@ class FinancialAgentCalculationMixin:
                     runtime_evidence=tuple(state.get("runtime_evidence") or []),
                 )
             ).projection
-            recalculated_trace = {
-                "calculation_operands": [
-                    dict(item) for item in recalculation_projection.calculation_operands
-                ],
-                "calculation_plan": dict(recalculation_projection.calculation_plan),
-                "calculation_result": dict(recalculation_projection.calculation_result),
-            }
-            recalculated_result = dict(recalculated_trace.get("calculation_result") or {})
-            if _normalise_spaces(str(recalculated_result.get("status") or "")).lower() != "ok":
+            candidate_projection = resolve_dependency_recalculation_candidate_projection(
+                DependencyRecalculationCandidateProjectionInput(
+                    calculation_operands=recalculation_projection.calculation_operands,
+                    calculation_plan=recalculation_projection.calculation_plan,
+                    calculation_result=recalculation_projection.calculation_result,
+                )
+            )
+            if not candidate_projection.candidate_ready:
                 return row
+            recalculated_trace = candidate_projection.recalculated_trace
+            recalculated_result = candidate_projection.recalculated_result
             if operation_family == "ratio" and self._ratio_query_requests_absolute_magnitude(str(state.get("query") or "")):
                 recalculated_result = apply_absolute_ratio_magnitude_if_requested(
                     recalculated_result,
@@ -2833,16 +2837,16 @@ class FinancialAgentCalculationMixin:
                 formatted_answer = _normalise_spaces(
                     str(recalculated_result.get("formatted_result") or recalculated_result.get("rendered_value") or "")
             )
-            if formatted_answer:
-                recalculated_result["formatted_result"] = formatted_answer
-            return build_dependency_recalculated_row(
-                row,
-                recalculated_trace=recalculated_trace,
-                updated_operands=updated_operands,
-                calculation_plan=calculation_plan,
-                recalculated_result=recalculated_result,
-                formatted_answer=formatted_answer,
-            )
+            return finalize_dependency_recalculated_row(
+                DependencyRecalculatedRowFinalizationInput(
+                    current_row=row,
+                    recalculated_trace=recalculated_trace,
+                    updated_operands=updated_operands,
+                    fallback_calculation_plan=calculation_plan,
+                    recalculated_result=recalculated_result,
+                    formatted_answer=formatted_answer,
+                )
+            ).selected_row
 
         aligned_results: List[Dict[str, Any]] = []
         changed_any = False

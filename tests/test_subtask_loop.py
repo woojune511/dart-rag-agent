@@ -6083,11 +6083,51 @@ class SubtaskLoopTests(unittest.TestCase):
         original_inputs = json.loads(json.dumps([ordered, state, projection]))
         original_rows = tuple(ordered)
         candidate_runs = []
+        candidate_projections = []
+        finalization_inputs = []
+        finalization_result_before = []
+        stage_events = []
         original_run = self.agent._run_calculation_candidate_input
+        original_candidate_projection = (
+            financial_graph_calculation.resolve_dependency_recalculation_candidate_projection
+        )
+        original_artifact_selector = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation
+        original_finalizer = financial_graph_calculation.finalize_dependency_recalculated_row
 
         def _record_candidate_run(candidate_input):
+            stage_events.append("candidate")
             candidate_runs.append(original_run(candidate_input))
             return candidate_runs[-1]
+
+        def _record_artifact_selection(*args, **kwargs):
+            stage_events.append("artifact")
+            return original_artifact_selector(*args, **kwargs)
+
+        def _record_candidate_projection(projection_input):
+            stage_events.append("candidate_projection")
+            candidate_projections.append(original_candidate_projection(projection_input))
+            return candidate_projections[-1]
+
+        def _record_finalization(finalization_input):
+            stage_events.append("finalization")
+            finalization_inputs.append(finalization_input)
+            finalization_result_before.append(dict(finalization_input.recalculated_result))
+            return original_finalizer(finalization_input)
+
+        candidate_projection_patch = patch.object(
+            financial_graph_calculation,
+            "resolve_dependency_recalculation_candidate_projection",
+            side_effect=_record_candidate_projection,
+        )
+        candidate_projection = candidate_projection_patch.start()
+        self.addCleanup(candidate_projection_patch.stop)
+        finalizer_patch = patch.object(
+            financial_graph_calculation,
+            "finalize_dependency_recalculated_row",
+            side_effect=_record_finalization,
+        )
+        finalizer = finalizer_patch.start()
+        self.addCleanup(finalizer_patch.stop)
 
         with (
             patch.object(
@@ -6110,6 +6150,17 @@ class SubtaskLoopTests(unittest.TestCase):
                 "_project_calculation_candidate_state",
                 wraps=self.agent._project_calculation_candidate_state,
             ) as state_projection,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                side_effect=_record_artifact_selection,
+            ) as artifact_selector,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                side_effect=lambda *_args, **_kwargs: stage_events.append("formatter")
+                or "post-candidate formatted",
+            ) as ratio_formatter,
         ):
             aligned = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
 
@@ -6117,8 +6168,27 @@ class SubtaskLoopTests(unittest.TestCase):
         legacy_run_candidate.assert_not_called()
         execute_calculation.assert_not_called()
         state_projection.assert_not_called()
+        candidate_projection.assert_called_once()
+        artifact_selector.assert_called_once()
+        ratio_formatter.assert_called_once()
+        finalizer.assert_called_once()
+        self.assertEqual(
+            stage_events,
+            ["candidate", "candidate_projection", "artifact", "formatter", "finalization"],
+        )
         ratio_row = aligned[-1]
         canonical_projection = candidate_runs[0].projection
+        finalization_input = finalization_inputs[0]
+        candidate_projection_result = candidate_projections[0]
+        self.assertIsNot(finalization_input.current_row, original_rows[-1])
+        self.assertIs(finalization_input.recalculated_trace, candidate_projection_result.recalculated_trace)
+        self.assertIs(finalization_input.recalculated_result, candidate_projection_result.recalculated_result)
+        self.assertEqual(finalization_input.formatted_answer, "post-candidate formatted")
+        self.assertNotEqual(
+            finalization_result_before[0].get("formatted_result"),
+            "post-candidate formatted",
+        )
+        self.assertEqual(finalization_input.recalculated_result["formatted_result"], "post-candidate formatted")
         self.assertEqual(ratio_row["calculation_operands"], list(canonical_projection.calculation_operands))
         self.assertEqual(ratio_row["calculation_plan"], canonical_projection.calculation_plan)
         projected_result = dict(ratio_row["calculation_result"])
@@ -6130,6 +6200,9 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual([ordered, state, projection], original_inputs)
         self.assertTrue(all(row is original for row, original in zip(ordered, original_rows)))
 
+        candidate_projection.reset_mock()
+        finalizer.reset_mock()
+        stage_events.clear()
         artifact_call_order = []
 
         def _record_artifact_candidate(candidate_input):
@@ -6163,13 +6236,18 @@ class SubtaskLoopTests(unittest.TestCase):
                 projection,
             )
         artifact_candidate.assert_called_once()
+        candidate_projection.assert_called_once()
         artifact_selector.assert_called_once()
         artifact_formatter.assert_not_called()
+        finalizer.assert_not_called()
         self.assertEqual(artifact_call_order, ["candidate", "artifact"])
         self.assertIs(artifact_preserved, ordered)
         self.assertIs(artifact_preserved[-1], original_rows[-1])
         self.assertEqual([ordered, state, projection], original_inputs)
 
+        candidate_projection.reset_mock()
+        finalizer.reset_mock()
+        stage_events.clear()
         failed_run = candidate_runs[0]._replace(
             projection=candidate_runs[0].projection._replace(
                 calculation_result={"status": "parse_error"}
@@ -6191,11 +6269,19 @@ class SubtaskLoopTests(unittest.TestCase):
                 "_compact_ratio_answer",
                 wraps=self.agent._compact_ratio_answer,
             ) as failed_formatter,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                wraps=self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation,
+            ) as failed_artifact_selector,
         ):
             failed = self.agent._align_lookup_results_with_dependency_projection(ordered, state, projection)
         failed_raw_plan_builder.assert_not_called()
         failed_candidate_input.assert_called_once()
+        candidate_projection.assert_called_once()
+        failed_artifact_selector.assert_not_called()
         failed_formatter.assert_not_called()
+        finalizer.assert_not_called()
         self.assertIs(failed, ordered)
 
         time_series_ordered = json.loads(json.dumps(ordered))
@@ -6212,6 +6298,9 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         original_time_series_rows = tuple(time_series_ordered)
 
+        candidate_projection.reset_mock()
+        finalizer.reset_mock()
+        stage_events.clear()
         with (
             patch.object(
                 self.agent,
@@ -6228,6 +6317,11 @@ class SubtaskLoopTests(unittest.TestCase):
                 "_compact_ratio_answer",
                 wraps=self.agent._compact_ratio_answer,
             ) as time_series_formatter,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                wraps=self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation,
+            ) as time_series_artifact_selector,
         ):
             time_series_aligned = self.agent._align_lookup_results_with_dependency_projection(
                 time_series_ordered,
@@ -6237,7 +6331,10 @@ class SubtaskLoopTests(unittest.TestCase):
 
         time_series_raw_builder.assert_not_called()
         time_series_candidate.assert_not_called()
+        candidate_projection.assert_not_called()
+        time_series_artifact_selector.assert_not_called()
         time_series_formatter.assert_not_called()
+        finalizer.assert_not_called()
         self.assertIs(time_series_aligned, time_series_ordered)
         self.assertEqual([time_series_ordered, state, projection], original_time_series_inputs)
         self.assertTrue(

@@ -6,6 +6,8 @@ from unittest.mock import patch
 import src.agent.financial_dependency_projection as dependency_projection
 from src.agent.financial_dependency_projection import (
     DirectDependencySelectionInput,
+    DependencyRecalculatedRowFinalizationInput,
+    DependencyRecalculationCandidateProjectionInput,
     LateDependencyRemergeInput,
     LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
@@ -14,8 +16,10 @@ from src.agent.financial_dependency_projection import (
     dependency_binding_identity,
     direct_rows_resolved_dependency_keys,
     filter_direct_rows_by_dependency_producer_scope,
+    finalize_dependency_recalculated_row,
     period_comparison_direct_rows_conflict_with_dependency_outputs,
     prefer_complete_ratio_direct_context_rows,
+    resolve_dependency_recalculation_candidate_projection,
     resolve_late_dependency_remerge,
     resolve_late_operand_finalization,
     resolve_main_operand_precedence,
@@ -26,6 +30,115 @@ from src.agent.financial_dependency_projection import (
 
 
 class FinancialDependencyProjectionTests(unittest.TestCase):
+    def test_dependency_recalculation_candidate_and_row_projection_contracts(self) -> None:
+        nested_marker = {"preserve": True}
+        candidate_operands = [{"operand_id": "candidate", "metadata": nested_marker}]
+        candidate_plan = {"operation": "ratio", "metadata": nested_marker}
+        candidate_result = {
+            "status": " OK ",
+            "answer_slots": {"metadata": nested_marker},
+        }
+        candidate_inputs = (candidate_operands, candidate_plan, candidate_result)
+        candidate_inputs_before = deepcopy(candidate_inputs)
+
+        candidate = resolve_dependency_recalculation_candidate_projection(
+            DependencyRecalculationCandidateProjectionInput(
+                calculation_operands=candidate_operands,
+                calculation_plan=candidate_plan,
+                calculation_result=candidate_result,
+            )
+        )
+
+        trace = candidate.recalculated_trace
+        self.assertEqual((candidate.candidate_ready, candidate.reason), (True, "candidate_ready"))
+        self.assertIsNot(trace["calculation_operands"], candidate_operands)
+        self.assertIsNot(trace["calculation_operands"][0], candidate_operands[0])
+        self.assertIs(trace["calculation_operands"][0]["metadata"], nested_marker)
+        self.assertIsNot(trace["calculation_plan"], candidate_plan)
+        self.assertIs(trace["calculation_plan"]["metadata"], nested_marker)
+        self.assertIsNot(trace["calculation_result"], candidate_result)
+        self.assertIsNot(candidate.recalculated_result, trace["calculation_result"])
+        self.assertIs(
+            candidate.recalculated_result["answer_slots"],
+            trace["calculation_result"]["answer_slots"],
+        )
+        self.assertEqual(candidate_inputs, candidate_inputs_before)
+
+        rejected = resolve_dependency_recalculation_candidate_projection(
+            DependencyRecalculationCandidateProjectionInput([], {}, {"status": "parse_error"})
+        )
+        self.assertEqual((rejected.candidate_ready, rejected.reason), (False, "calculation_result_not_ok"))
+
+        current_row = {
+            "answer": "current answer",
+            "source_row_ids": ["row_current"],
+            "metadata": nested_marker,
+        }
+        trace_operand = {"operand_id": "trace", "metadata": nested_marker}
+        fallback_operand = {"operand_id": "fallback"}
+        trace_operands = [trace_operand]
+        fallback_operands = [fallback_operand]
+        trace_plan = {"operation": "ratio", "metadata": nested_marker}
+        fallback_plan = {"operation": "difference"}
+        recalculated_result = {
+            "status": "ok",
+            "source_row_ids": ["row_recalculated"],
+            "metadata": nested_marker,
+        }
+        inputs = (current_row, trace_operands, fallback_operands, trace_plan, fallback_plan)
+        inputs_before = deepcopy(inputs)
+        recalculated_result_before = deepcopy(recalculated_result)
+
+        selected = finalize_dependency_recalculated_row(
+            DependencyRecalculatedRowFinalizationInput(
+                current_row=current_row,
+                recalculated_trace={
+                    "calculation_operands": trace_operands,
+                    "calculation_plan": trace_plan,
+                },
+                updated_operands=fallback_operands,
+                fallback_calculation_plan=fallback_plan,
+                recalculated_result=recalculated_result,
+                formatted_answer="recalculated answer",
+            )
+        ).selected_row
+
+        self.assertIsNot(selected, current_row)
+        self.assertEqual(selected["answer"], "recalculated answer")
+        self.assertEqual(selected["status"], "ok")
+        self.assertIsNot(selected["calculation_operands"], trace_operands)
+        self.assertIs(selected["calculation_operands"][0], trace_operand)
+        self.assertIsNot(selected["calculation_plan"], trace_plan)
+        self.assertEqual(selected["calculation_plan"]["operation"], "ratio")
+        self.assertIs(selected["calculation_plan"]["metadata"], nested_marker)
+        self.assertIs(selected["calculation_result"], recalculated_result)
+        self.assertEqual(selected["source_row_ids"], ["row_recalculated"])
+        self.assertIsNot(selected["source_row_ids"], recalculated_result["source_row_ids"])
+        self.assertIs(selected["metadata"], nested_marker)
+
+        fallback_result = {}
+        fallback_selected = finalize_dependency_recalculated_row(
+            DependencyRecalculatedRowFinalizationInput(
+                current_row=current_row,
+                recalculated_trace={},
+                updated_operands=fallback_operands,
+                fallback_calculation_plan=fallback_plan,
+                recalculated_result=fallback_result,
+                formatted_answer="",
+            )
+        ).selected_row
+        self.assertEqual(fallback_selected["answer"], "current answer")
+        self.assertIsNot(fallback_selected["calculation_operands"], fallback_operands)
+        self.assertIs(fallback_selected["calculation_operands"][0], fallback_operand)
+        self.assertEqual(fallback_selected["calculation_plan"]["operation"], "difference")
+        self.assertIs(fallback_selected["calculation_result"], fallback_result)
+        self.assertEqual(fallback_selected["source_row_ids"], ["row_current"])
+        self.assertEqual(inputs, inputs_before)
+        self.assertEqual(
+            recalculated_result,
+            {**recalculated_result_before, "formatted_result": "recalculated answer"},
+        )
+
     def test_resolve_dependency_producer_scope_preserves_task_precedence_and_hint_order(self) -> None:
         binding = {
             "preferred_task_id": "task_cost",

@@ -67,6 +67,11 @@ DependencyRecalculationPlanDisposition = Literal[
     "unsupported_mode",
 ]
 
+DependencyRecalculationCandidateProjectionReason = Literal[
+    "candidate_ready",
+    "calculation_result_not_ok",
+]
+
 RatioArtifactConflictSelectionReason = Literal[
     "conflicting_artifact_selected",
     "no_conflicting_artifact",
@@ -88,6 +93,44 @@ class RatioArtifactConflictSelectionResult:
     selected_artifact_row: Dict[str, Any]
     conflict_selected: bool
     reason: RatioArtifactConflictSelectionReason
+
+
+@dataclass(frozen=True)
+class DependencyRecalculationCandidateProjectionInput:
+    """Graph-prepared candidate fields without the graph-private wrapper type."""
+
+    calculation_operands: Sequence[Mapping[str, Any]]
+    calculation_plan: Mapping[str, Any]
+    calculation_result: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class DependencyRecalculationCandidateProjectionResult:
+    """Copied candidate trace and mutable result plus status disposition."""
+
+    recalculated_trace: Dict[str, Any]
+    recalculated_result: Dict[str, Any]
+    candidate_ready: bool
+    reason: DependencyRecalculationCandidateProjectionReason
+
+
+@dataclass(frozen=True)
+class DependencyRecalculatedRowFinalizationInput:
+    """Prepared values for final dependency recalculation row projection."""
+
+    current_row: Mapping[str, Any]
+    recalculated_trace: Mapping[str, Any]
+    updated_operands: Sequence[Mapping[str, Any]]
+    fallback_calculation_plan: Mapping[str, Any]
+    recalculated_result: Dict[str, Any]
+    formatted_answer: str
+
+
+@dataclass(frozen=True)
+class DependencyRecalculatedRowFinalizationResult:
+    """Final shallow-copied row with recalculation provenance."""
+
+    selected_row: Dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -2030,6 +2073,28 @@ def rebuild_dependency_calculation_plan(
     return calculation_plan
 
 
+def resolve_dependency_recalculation_candidate_projection(
+    projection_input: DependencyRecalculationCandidateProjectionInput,
+) -> DependencyRecalculationCandidateProjectionResult:
+    """Copy a graph candidate projection and decide whether it can continue."""
+
+    recalculated_trace = {
+        "calculation_operands": [dict(item) for item in projection_input.calculation_operands],
+        "calculation_plan": dict(projection_input.calculation_plan),
+        "calculation_result": dict(projection_input.calculation_result),
+    }
+    recalculated_result = dict(recalculated_trace.get("calculation_result") or {})
+    candidate_ready = bool(
+        _normalise_spaces(str(recalculated_result.get("status") or "")).lower() == "ok"
+    )
+    return DependencyRecalculationCandidateProjectionResult(
+        recalculated_trace=recalculated_trace,
+        recalculated_result=recalculated_result,
+        candidate_ready=candidate_ready,
+        reason="candidate_ready" if candidate_ready else "calculation_result_not_ok",
+    )
+
+
 def apply_absolute_ratio_magnitude_if_requested(
     calculation_result: Dict[str, Any],
     *,
@@ -2113,25 +2178,37 @@ def resolve_ratio_artifact_conflict_selection(
     )
 
 
-def build_dependency_recalculated_row(
-    row: Dict[str, Any],
-    *,
-    recalculated_trace: Dict[str, Any],
-    updated_operands: List[Dict[str, Any]],
-    calculation_plan: Dict[str, Any],
-    recalculated_result: Dict[str, Any],
-    formatted_answer: str,
-) -> Dict[str, Any]:
-    return {
-        **dict(row),
-        "answer": formatted_answer or str(row.get("answer") or ""),
+def finalize_dependency_recalculated_row(
+    finalization_input: DependencyRecalculatedRowFinalizationInput,
+) -> DependencyRecalculatedRowFinalizationResult:
+    """Apply formatted output and project the final recalculated dependency row."""
+
+    current_row = finalization_input.current_row
+    recalculated_result = finalization_input.recalculated_result
+    formatted_answer = finalization_input.formatted_answer
+    if formatted_answer:
+        recalculated_result["formatted_result"] = formatted_answer
+    selected_row = {
+        **dict(current_row),
+        "answer": formatted_answer or str(current_row.get("answer") or ""),
         "status": "ok",
-        "calculation_operands": list(recalculated_trace.get("calculation_operands") or updated_operands),
-        "calculation_plan": dict(recalculated_trace.get("calculation_plan") or calculation_plan),
+        "calculation_operands": list(
+            finalization_input.recalculated_trace.get("calculation_operands")
+            or finalization_input.updated_operands
+        ),
+        "calculation_plan": dict(
+            finalization_input.recalculated_trace.get("calculation_plan")
+            or finalization_input.fallback_calculation_plan
+        ),
         "calculation_result": recalculated_result,
-        "source_row_ids": list(recalculated_result.get("source_row_ids") or row.get("source_row_ids") or []),
+        "source_row_ids": list(
+            recalculated_result.get("source_row_ids")
+            or current_row.get("source_row_ids")
+            or []
+        ),
         "aligned_from_source_task_slots": True,
     }
+    return DependencyRecalculatedRowFinalizationResult(selected_row=selected_row)
 
 
 def refresh_dependency_operands_from_lookup_slots(
