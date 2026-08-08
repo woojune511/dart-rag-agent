@@ -606,9 +606,9 @@ thin adapter that reads state/query context. It first obtains the complete owner
 plan and then evaluates the percent-point result-unit policy against that plan;
 an eligible query with two `PERCENT` operands receives a copied plan whose
 `result_unit` is `%p`. A non-eligible query or missing plan is unchanged. The
-complete-plan ordering is the separate `ec93f8a` behavior fix, not part of the
-owner relocation claim. The primary planner still performs the existing runtime
-and task/artifact projection.
+complete-plan ordering is a behavior contract distinct from the state-free owner
+relocation. The primary planner still performs the existing runtime and
+task/artifact projection.
 
 The graph adapter contains a graph-private typed calculation-candidate seam. It
 separates candidate preparation and canonical execution, deterministic result
@@ -666,32 +666,30 @@ planner/artifact/runtime projection.
 A `not_applicable` decision enters the existing fallback continuation without
 rebuilding the deterministic plan.
 
-Behavior fix `8296eb1` separately prevents stale parent `structured_result` or
-`subtask_results` surfaces from overriding the explicit dependency recalculation
-trace. Structural cleanup `ea84921` then removes that synthetic-state helper and
-the raw-plan builder callback without changing supported scalar behavior. An
-existing executable plan is reused without calling the raw builder; an invalid or
-absent plan triggers one raw construction, and the dependency owner receives that
-explicit plan for reuse or fallback. The graph sends the selected plan, updated
-operands, active task, query, and evidence directly through
-`_CalculationCandidateInput`. Ratio formatting receives the active task and the
-same pre-candidate operands explicitly, so it does not resolve stale parent trace
-surfaces. Failure and no-op paths preserve the original ordered-result identity.
+Dependency recalculation must isolate its explicit operands, plan, and result
+from stale parent `structured_result` or `subtask_results` surfaces. The graph
+passes selected plan, updated operands, active task, query, and evidence through
+`_CalculationCandidateInput`; ratio formatting receives that active task and
+the same pre-candidate operands explicitly.
 
-The two commits remain separate validation boundaries. `8296eb1` changes the
-dependency owner from 2,833 to 2,835 lines (`+2`), adds 63 test lines, and is net
-`+65` overall; it passed 4 targeted tests, the 217-literal audit, and full
-discovery over 1,480 tests. `ea84921` changes the graph from 19,786 to 19,828
-lines (`+75/-33`) and the dependency owner from 2,835 to 2,796 (`+3/-42`), for
-source `+78/-75`, tests `+167/-90`, and whole `+245/-165`; it passed 3 targeted
-and 615 affected tests, the same audit, and full discovery over 1,479 tests.
-Benchmark refresh was not run. A reused abnormal
-dependency `time_series` plan is still outside the claimed state-projector
-exception-parity boundary. Supported scalar cleanup does not move the primary
-state/artifact projector, repair acceptance, or absolute-ratio orchestration out
-of the graph. Assessment reasons are owner-contract outputs, not runtime trace
-fields. This boundary does not establish broad performance or total-code
-reduction, a single end-to-end calculation owner, or complete Phase 3.
+The dependency owner classifies plan disposition by syntactic executability and
+mode:
+
+- an invalid or absent plan is `rebuild`, and the graph constructs the raw plan
+  exactly once;
+- an executable `single_value` plan is `reuse`, with no raw-plan construction;
+- an executable non-`single_value` plan is `unsupported_mode`, and the graph
+  leaves that recalculation row unchanged before raw-plan construction,
+  candidate execution, or ratio formatting. When the enclosing alignment pass
+  accepts no other row change, it returns the original ordered-result identity.
+
+Failure and no-op paths preserve ordered-result identity and input immutability.
+This contract does not move primary state/artifact projection, repair acceptance,
+aggregate sequencing, or absolute-ratio orchestration out of the graph. It does
+not establish whole-ledger synchronization, broad performance or total-code
+reduction, a single end-to-end calculation owner, or complete Phase 3. Exact
+change chronology and validation evidence live in
+`docs/history/implementation_history.md`.
 
 ## 9. Aggregate Subtask Projection
 

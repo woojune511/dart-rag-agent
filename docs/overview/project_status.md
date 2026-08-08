@@ -53,187 +53,31 @@ imports or an unconfigured `FinancialAgent` invocation.
   refreshes.
 - `.github/workflows/validation.yml` defines the Python 3.13 publication
   validation path; `.python-version` is the interpreter source of truth.
-- The calculation owner slice makes the primary graph-state orchestration,
-  state-free operand-resolution, and deterministic-execution boundaries
-  explicit. Dependency-binding summary and direct-versus-dependency selector
-  ownership are co-located without callback injection. The same dependency
-  owner now returns the typed main-path application result for final ratio
-  override or purge, producer-scope filtering, duplicate guarding, and
-  missing-binding fill. The separate `b16a6c5` behavior fix prevents
-  consolidation- or producer-scope-rejected dependency rows from re-entering
-  through the active late snapshot. The dependency owner now also returns the
-  typed late application result for coherent-first context merge,
-  alignment/preference, complete-context veto, and dependency re-merge. The
-  separate `c6f6fdf` behavior fix makes percent-point filtering terminal, so an
-  empty filtered result cannot restore unfiltered post-main selected or active
-  dependency snapshots. The behavior-preserving `5b44875` slice moves the
-  generic normalized-unit filter and no-filter selected-first/dependency-second
-  preservation into a typed finalization result. The separate `8ebb239` behavior
-  fix recomputes empty and partial post-filter coverage. Graph-level evidence
-  context builders plus retry, the percent-point query gate, logging, coverage
-  and state projection, other fallback paths, and aggregate repair remain in the
-  adapter. The original
-  owner-extraction slice changed
-  `financial_graph_calculation.py` from 21,642 to 19,682 lines while source as a
-  whole grew by 1,095 lines. The typed main-path application changes the graph
-  adapter from 19,686 to 19,587 lines while the two changed source files have a
-  net increase of 109 lines as policy moves into the dependency owner.
-  Product-runtime behavior is intended to remain unchanged; the precedence logic
-  is relocated behind one owner contract rather than removed from the executed
-  path.
+- The calculation path now has explicit graph-state orchestration, state-free
+  operand/dependency owners, deterministic plan/execution ownership, and pure
+  aggregate provenance selection. Canonical public output remains
+  `resolved_calculation_trace`, explicit `structured_result`, and task/artifact
+  projections.
+- Dependency recalculation now uses a typed plan disposition. Executable
+  `single_value` plans are reused, invalid or absent plans are rebuilt once, and
+  executable non-`single_value` plans are `unsupported_mode`: the affected row
+  is not recalculated, and the no-change path retains original list/row identity,
+  before raw-plan construction, candidate execution, or ratio formatting. This
+  is the separate `d1114c6` behavior fix.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,831 lines,
+  `financial_dependency_projection.py` is 2,813, and
+  `financial_calculation_execution.py` is 837. For `d1114c6`, source is
+  `+22/-2`, net 20; tests add 46 lines; the whole commit is `+68/-2`, net 66.
+  These figures are not a total-code or broad executed-path/performance
+  reduction claim.
+- The latest calculation checkpoint passed 1 targeted contract, all 615 affected
+  tests, the 217-literal runtime audit, and full discovery over 1,479 tests on
+  Python 3.13. Benchmark refresh remains NOT RUN.
 
-The late-owner slice changes `financial_graph_calculation.py` from 19,587 to
-19,564 lines and `financial_dependency_projection.py` from 2,656 to 2,760 lines.
-The two source files have a net increase of 81 lines. Product-runtime behavior is
-intended to remain unchanged; this slice relocates late precedence logic rather
-than removing it from execution. Its typed reason is not currently projected to
-the runtime trace.
-
-After `c6f6fdf` moves the graph to 19,565 lines, the behavior-preserving
-`5b44875` finalization relocation changes the graph to 19,567 lines and the
-dependency owner from 2,760 to 2,833 lines, for a structural source net of 75
-lines. The separate `8ebb239` coverage fix leaves the final graph at 19,576
-lines. From the `77d5bff` baseline, the whole bounded slice changes the graph by
-12 and the owner by 73 lines, for a two-source net of 85 lines. The executed
-finalization policy moved owners; it was not removed from runtime. Neither the
-late nor finalization reason is currently projected to the runtime trace.
-
-The separate `f0eafae` behavior fix prevents repeated stale repair when a
-source-stated display differs from formula precision but its traced formula
-value still matches the current operands. Structural commit `2496fce` moves only
-that bound-operand freshness assessment into `financial_calculation_execution.py`
-as a typed state-free result. At that checkpoint, the graph still retained the
-second `_execute_calculation()` and discarded recalculation projection.
-Mechanically, the graph changes from 19,591 to 19,558 lines and the execution
-owner from 614 to 712 lines, for a two-source net increase of 65 lines. From the
-`73d593e` baseline, the whole stale-result bounded slice changes the graph from
-19,576 to 19,558 lines and grows the execution owner by 98 lines, for a two-source
-net increase of 80 lines.
-
-Commit `406c1ef` separately characterizes stale execution snapshots. The
-behavior-preserving `c2a5e96` decomposition then creates graph-private typed
-candidate preparation, deterministic result projection, and state/ledger
-projection seams. Stale repair uses the first two directly, removing its second
-`_execute_calculation()` and discarded ledger/trace projection. The graph grows
-from 19,558 to 19,730 lines (`+172`); full discovery at that checkpoint passed
-1,473 tests. This is an internal graph decomposition, not an execution-owner move.
-
-The separate `f2af4f4` behavior fix compares freshness with the prepared canonical
-value. A raw pre-preparation value of 0.0035 that previously appeared current is
-now compared with canonical 3.5 and repaired. An actual stale repair evaluates
-the formula once instead of twice; current results still prepare and evaluate
-once, and only stale values run result projection. The execution owner changes
-from 712 to 679 lines (`-33`), the graph changes from 19,730 to 19,736 (`+6`), and
-the source net is `-27`; the whole source/test diff is net `-83` lines. This does
-not add ledger or selected-claim synchronization.
-
-Behavior fix `be2e7bf` synchronizes accepted stale-repair provenance at the three
-production caller boundaries while leaving numeric freshness and repair
-acceptance unchanged. Render updates selected/kept refs and the latest same-id
-calculation-result artifact; planning capture updates returned-row refs only;
-aggregate repair snapshots evidence before the first final filter, supersedes a
-unique provenance target, and re-filters after acceptance. Ambiguous refs are
-preserved. The graph changes from 19,736 to 19,933 lines (`+197`), graph planning
-from 2,367 to 2,371 (`+4`), and task artifacts from 1,047 to 1,128 (`+81`). The
-source diff is `+332/-50`, net `+282`; the whole commit is `+792/-69`, net `+723`.
-This is not full task/artifact ledger synchronization.
-
-The behavior-preserving `2cfa867` relocation moves pure aggregate stale-repair
-provenance selection and canonical `aggregate_result_operation_family`
-normalization into `financial_aggregate_projection.py`. The old graph provenance
-bodies are deleted. A one-line operation-family delegate remains for 68 graph
-callers, and the graph still owns repair acceptance, the pre-filter snapshot,
-accepted re-filter, and answer/state orchestration. The graph changes from 19,933
-to 19,802 lines (`-131`, `+15/-146`) and the owner from 195 to 376 (`+181`,
-`+182/-1`). Production source is `+197/-147`, net `+50`; the whole commit is
-`+392/-184`, net `+208`. This is an ownership change and graph reduction, not a
-total-code or executed-path reduction claim.
-
-Structural commit `1a3979e` adds graph-private typed
-`_CalculationCandidateRun` and `_run_calculation_candidate()`. The primary
-`_execute_calculation()` graph-node adapter retains its existing state/ledger
-projector. Dependency and period contract-valid scalar recovery consume only the
-candidate projection's operands, plan, and result copies, removing two internal
-`_execute_calculation()` calls, their strict trace re-reads, and the state/ledger
-projections those callers discarded. Result and operand order, input
-immutability, and failure/no-op identity remain unchanged. The graph changes from
-19,802 to 19,813 lines; source is `+36/-25`, net `+11`. Tests are `+176/-57`, net
-`+119`, and the whole commit is `+212/-82`, net `+130`. State projection changes
-from one call to zero in the two characterized success paths, but this is not a
-broad performance or total-code reduction claim. A reused abnormal dependency
-`time_series` plan is outside the full exception-parity claim. The seam remains
-graph-private; this is not an execution-owner move or Phase 3 completion.
-
-Structural commit `af968a6` moves state-free deterministic difference/growth plan
-construction and the typed raw/guarded decision into
-`financial_calculation_execution.py`. The graph retains a thin state/query adapter
-around owner construction and the difference result-unit policy, while the primary
-planner retains full runtime and task/artifact projection. Period recovery consumes a ready or
-guarded selected plan directly, so those branches create no
-planner/artifact/runtime projection; a `not_applicable` decision preserves the
-existing fallback without rebuilding. Dependency recovery retains its raw-plan
-callback. The execution owner changes from 679 to 837 lines (`+158`), and the
-graph from 19,813 to 19,786 lines (`-27`, `+91/-118`). Production source is
-`+249/-118`, net `+131`; tests are `+182/-5`, net `+177`; the whole commit is
-`+431/-123`, net `+308`. Result, order, input, failure, and no-op parity is claimed
-only for supported, contract-valid paths. Malformed difference inputs remain
-outside full query-policy evaluation/exception-order parity. This is not a
-total-code reduction, broad executed-path/performance improvement, or Phase 3
-completion claim.
-
-Behavior fix `ec93f8a` separately repairs the pre-existing percent-point unit gate
-in the graph adapter. The adapter now builds the complete plan before evaluating
-`_should_coerce_percent_point_unit`; an eligible `%p` query with two `PERCENT`
-operands receives a copied plan with `result_unit="%p"`. Non-eligible and no-plan
-cases are unchanged. The graph diff is `+9/-9` and line-neutral; tests add `32`
-lines, making the whole commit `+41/-9`, net `+32`. This resolves the
-incomplete-plan unit-policy bug without claiming full evaluation/exception-order
-parity for every malformed difference input.
-
-Behavior fix `8296eb1` separately prevents stale parent `structured_result` or
-`subtask_results` from overriding the explicit dependency recalculation trace.
-The dependency owner changes from 2,833 to 2,835 lines (`+2`), the regression
-test adds 63 lines, and the whole commit is net `+65`. This is the behavior
-boundary for the stale-parent P1, not part of the following structural cleanup.
-
-Structural commit `ea84921` preserves supported scalar behavior while removing
-the dependency synthetic-state helper and raw-plan builder callback. An existing
-executable plan calls the raw builder zero times; an invalid or absent plan calls
-it once and passes the explicit raw plan to the dependency owner. The graph then
-runs a direct `_CalculationCandidateInput` and gives ratio formatting the active
-task plus the same pre-candidate operands. Result/order, input immutability, and
-failure/no-op identity remain unchanged. The graph changes from 19,786 to 19,828
-lines (`+75/-33`, net `+42`) and the dependency owner from 2,835 to 2,796
-(`+3/-42`, net `-39`). Production source is `+78/-75`, net `+3`; tests are
-`+167/-90`, net `+77`; the whole commit is `+245/-165`, net `+80`. This does not
-establish broad performance or total-code reduction, dependency-owner completion,
-or Phase 3 completion. Primary state/artifact projection, repair acceptance, and
-absolute-ratio orchestration remain graph-owned.
-
-Validation follows the commit boundaries: `c6f6fdf` passed 3 focused contracts,
-the 217-literal audit, and full discovery over 1,462 tests; `5b44875` passed 52
-focused contracts, the same audit, and full discovery over 1,468 tests; after
-`8ebb239`, 53 focused contracts, the same audit, and all 1,468 tests passed on
-Python 3.13. After `f0eafae` and `2496fce`, 29 focused stale/execution contracts,
-the same 217-literal audit, and all 1,472 tests passed on Python 3.13. The final
-`f2af4f4` state passed 345 unique focused contracts; the core 7-contract subset
-and 2 adapter/time-series spot contracts were also rerun. The 217-literal audit
-and all 1,472 tests passed on Python 3.13. After `be2e7bf`, all 560 affected-module
-tests, the same 217-literal audit, and all 1,472 tests passed on Python 3.13.
-After `2cfa867`, all 564 affected tests, the same 217-literal audit, and all 1,476
-tests passed. After `1a3979e`, 3 focused contracts, all 564 affected tests, the
-same audit, and all 1,476 tests passed. After `af968a6`, 4 targeted contracts, 107
-focused owner/aggregate tests, all 564 affected tests, the same 217-literal audit,
-and all 1,478 tests passed. After `ec93f8a`, 4 targeted/adjacent tests, all 29
-execution-module tests, a unique affected matrix of 593 tests, the same audit,
-and all 1,479 tests passed. After `8296eb1`, 4 targeted tests, the same audit, and
-all 1,480 tests passed. After `ea84921`, 3 targeted contracts, all 615 affected
-tests, the same audit, and all 1,479 tests passed. Benchmark refresh remains not
-run.
-
-The Phase 5 completion change also removes chronological implementation diaries
-from this current-state document and `CONTEXT.md`. Detailed pre-compression text
-remains recoverable from `main@294b4ea`.
+Detailed correctness/relocation chronology, intermediate metrics, and validation
+boundaries live in
+[implementation_history.md](../history/implementation_history.md). This
+current-state document does not duplicate that commit diary.
 
 ## Runtime Ownership
 
@@ -247,7 +91,7 @@ remains recoverable from `main@294b4ea`.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py` |
-| Dependency binding summary, projection, source-set selector, typed main-path application, typed late dependency re-merge, and typed terminal finalization | `financial_dependency_projection.py`; query gating, other fallback, and aggregate precedence remain graph-owned |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, and dependency recalculation plan disposition | `financial_dependency_projection.py`; graph builds explicit raw plans and retains query gates, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
@@ -273,16 +117,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest dependency-precedence focused contracts | PASS, 53 owner/graph tests after typed finalization and coverage repair on 2026-08-07 |
-| Latest stale/candidate focused contracts | PASS, 345 unique focused tests after `f2af4f4` on 2026-08-07; core 7 and spot 2 were subset reruns |
-| Latest aggregate provenance owner affected tests | PASS, 564 tests after `2cfa867` on 2026-08-07 |
-| Latest recovery candidate projection contracts | PASS, 3 focused and 564 affected tests after `1a3979e` on 2026-08-07 |
-| Latest deterministic operation-plan owner contracts | PASS, 4 targeted, 107 focused owner/aggregate, and 564 affected tests after `af968a6` on 2026-08-07 |
-| Latest percent-point deterministic-plan adapter fix | PASS, 4 targeted/adjacent and 29 execution-module tests; 593 unique affected tests after `ec93f8a` on 2026-08-07 |
-| Latest dependency trace-isolation fix | PASS, 4 targeted tests after `8296eb1` on 2026-08-08 |
-| Latest dependency recalculation cleanup | PASS, 3 targeted and 615 affected tests after `ea84921` on 2026-08-08 |
+| Latest calculation runtime checkpoint | PASS after `d1114c6`: 1 targeted and 615 affected tests on 2026-08-08 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-08 |
-| Full unittest discovery | PASS, 1,479 tests locally after `ea84921` on 2026-08-08 |
+| Full unittest discovery | PASS, 1,479 tests locally after `d1114c6` on 2026-08-08 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -324,30 +161,16 @@ focused and full regression tests, but its benchmark refresh has not run.
 Optional MAS and cache-promotion work is intentionally disabled or experimental
 rather than an incomplete product requirement.
 
-Phase 3 also remains architecturally open: the dependency selector, binding
-summary, typed main-path application, typed late re-merge, and typed terminal
-finalization are co-located, but the graph adapter retains context/evidence
-builders plus retry, the percent-point query gate, post-filter coverage and state
-projection, other fallback paths, and aggregate repair. Private helper imports
-are broad. The calculation candidate seam remains graph-private. Stale repair no
-longer recursively calls `_execute_calculation()`. Its render, planning-capture,
-and aggregate callers now synchronize the limited provenance surfaces described
-above, but this is not whole-ledger synchronization; ambiguous refs are preserved,
-and pure aggregate provenance selection now belongs to its projection owner. The
-graph still retains the 68-caller operation-family delegate, repair acceptance,
-pre-filter/re-filter sequencing, and answer/state orchestration. Dependency and
-period contract-valid scalar recovery now consume candidate projections without
-discarded calculation state/ledger projection. Period ready/guarded planning also
-consumes the selected plan without planner/artifact/runtime projection, and its
-not-applicable continuation does not rebuild. Dependency recovery now lazily
-constructs an explicit raw plan, runs a direct candidate input, and supplies
-ratio formatting with explicit task and operand inputs; it no longer creates a
-synthetic recalculation state or injects a builder callback. Reused abnormal
-dependency `time_series` plans are not covered by a full state-projector
-exception-parity claim, and malformed difference inputs are outside full
-query-policy evaluation/exception-order parity.
-Absolute-ratio/trend projection boundaries remain graph-owned. These are named
-follow-ups, not hidden claims that the calculation monolith is resolved.
+The July canonical public-projection milestone is complete, but the broader
+single-calculation-path Phase 3 remains open. Dependency precedence, late merge,
+terminal finalization, scalar plan disposition, deterministic plan/execution,
+and pure aggregate provenance selection have named owners. The graph still owns
+operand/evidence adapters, retry and query gates, candidate preparation plus
+state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
+absolute-ratio handling, and other deterministic/LLM fallbacks. Broader ledger
+synchronization and the private helper mesh are also open. No current result
+supports a whole-ledger, end-to-end owner, total-code reduction, or broad
+performance claim.
 
 Open work should be created only when one of these conditions is met:
 
@@ -364,20 +187,25 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next architecture change, if continued, should characterize reused abnormal
-dependency `time_series` executable plans and their state-projector exception
-boundary. If that path is not a supported contract, continue with the next
-bounded repair cluster without combining a behavior change. Broader ledger sync,
-aggregate precedence, remaining deterministic/LLM fallbacks, graph-owned
-artifact/absolute-ratio/trend orchestration, and the private facade/API mesh
-remain separate follow-ups.
+The next bounded architecture slice is the
+`_extract_calculation_operands` adapter/resolver decomposition. First
+characterize one state-free selection or merge subcluster, move it to the
+existing operand-resolution owner, migrate its callers, and delete the old graph
+body. Do not split the full 860-line function by size alone.
+
+After that, address one bounded seam at a time: aggregate repair/precedence
+selection, dependency post-candidate finalization, and ratio artifact/absolute
+orchestration. Broader ledger synchronization, remaining deterministic/LLM
+fallbacks, private facade/API cleanup, and contract-aligned test co-location
+remain separate work. The Phase 3 backlog in the refactoring plan is unordered;
+this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a
 monitored store-fixed `eval-only` refresh. If that cannot be established, keep
 the benchmark status as not run.
 
-Do not combine both architecture slices into another broad refactor or start an
+Do not combine multiple architecture slices into another broad refactor or start an
 all-at-once test split, new MAS capability, or cache-serving path without a
 concrete blocker.
 Oversized tests are split only when their public contract is being changed.

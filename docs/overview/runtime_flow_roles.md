@@ -302,9 +302,11 @@ state-free owner 경계:
   없으면서 late rows가 비었을 때만 post-main selected snapshot, active dependency
   snapshot 순서로 shallow-copy 보존한다. late/finalization reason은 owner contract
   필드이며 현재 runtime trace 필드는 아니다. override에는 explicit reason과
-  양쪽 provenance가 필요하다. Dependency recalculation plan rebuild는 graph가
-  만든 explicit raw plan만 받아 기존 executable plan reuse 또는 fallback을
-  결정하며 graph-state나 builder callback을 받지 않는다.
+  양쪽 provenance가 필요하다. Dependency recalculation plan selection은 current
+  plan과 rebuild가 필요할 때 graph가 만든 explicit raw plan을 받는다.
+  Invalid/absent plan은 rebuild하고 executable `single_value` plan은 reuse하며,
+  executable non-`single_value` plan은 `unsupported_mode`다. Graph-state나
+  builder callback은 받지 않는다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -336,19 +338,19 @@ graph adapter에 남은 orchestration 역할군:
   state/ledger projection을 만들지 않는다. Dependency 경로는 strict trace를
   재조회하지 않으며 결과/order, 입력 불변성, failure/no-op identity를 유지한다.
 - deterministic difference/growth planning의 thin state/query adapter와 primary
-  planner의 runtime/task/artifact projection. `ec93f8a` 뒤 adapter는 complete
-  plan을 먼저 만들고 percent-point policy를 평가한다. eligible `%p` query와 두
-  `PERCENT` operand에는 복사된 plan의 `result_unit="%p"`를 적용하고,
-  non-eligible/no-plan 경로는 유지한다. period recovery의 ready/guarded 경로는
-  selected plan을 직접 소비해 이 projection을 만들지 않고,
-  `not_applicable` 경로는 builder를 다시 호출하지 않은 채 기존 fallback으로
-  이어진다. 이 parity 경계는 supported, contract-valid 입력에 한정되며 malformed
-  difference 입력의 query-policy 평가/예외 순서 전체를 보장하지 않는다.
-- dependency recalculation의 lazy raw-plan adapter. 기존 plan이 executable이면 raw
-  builder 호출은 0회이고 invalid/absent이면 1회다. selected plan과 updated operands는
-  direct candidate input으로 전달되고, ratio formatter는 active task와 같은
-  pre-candidate operands를 explicit override로 받는다. Parent aggregate surface를
-  다시 읽는 synthetic recalculation state와 raw-plan callback은 없다.
+  planner runtime/task/artifact projection. Adapter는 complete plan을 만든 뒤
+  percent-point policy를 평가한다. Eligible `%p` query와 두 `PERCENT` operand는
+  복사된 plan의 `result_unit="%p"`를 받고 non-eligible/no-plan 경로는 유지된다.
+  Period ready/guarded recovery는 selected plan을 직접 소비하고,
+  `not_applicable`은 builder 재호출 없이 기존 fallback으로 이어진다.
+- dependency recalculation의 typed plan disposition과 lazy raw-plan adapter.
+  Executable `single_value` plan은 raw builder 없이 reuse하고 invalid/absent
+  plan은 raw plan을 한 번 만든다. Executable non-`single_value` plan은
+  `unsupported_mode`로 해당 row를 재계산하지 않으며 raw builder, candidate,
+  formatter를 호출하지 않는다. 다른 row도 바뀌지 않은 경로는 원본 list/row
+  identity를 유지한다. Supported plan은 updated operands와 함께 direct candidate
+  input으로 전달되고 ratio formatter는 active task와 같은 pre-candidate
+  operands를 explicit override로 받는다.
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
   stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
   same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
@@ -357,21 +359,14 @@ graph adapter에 남은 orchestration 역할군:
   밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
 - 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
   acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
-- 재사용된 비정상 dependency `time_series` executable plan의 candidate와
-  state-projector exception parity. 현재 supported scalar recovery claim 밖이다.
 - absolute-ratio와 trend projection/error 경계
 - aggregate result dedupe/ranking
 - narrative context preservation
 
-이 dependency 경계는 두 commit으로 분리됐다. Behavior fix `8296eb1`은 stale parent
-`structured_result`/`subtask_results`의 explicit trace override를 막았고 targeted
-4개, 217-literal audit, full 1,480개 테스트가 통과했다. Behavior-preserving
-structural cleanup `ea84921`은 synthetic helper/callback을 제거했으며 graph
-19,786→19,828줄(`+75/-33`), dependency owner 2,835→2,796줄(`+3/-42`), source
-net `+3`, tests net `+77`, whole net `+80`이다. Targeted 3개, affected 615개,
-같은 audit와 full 1,479개 테스트가 통과했다. Benchmark refresh는 실행하지 않았다.
-Primary state/artifact projection, repair acceptance, absolute-ratio orchestration과
-Phase 3는 여전히 graph/open 경계다.
+Commit별 behavior/structural 경계, source metrics와 validation은
+[implementation_history.md](../history/implementation_history.md)에만 기록한다.
+July public-projection milestone은 완료됐지만 broader single-calculation-path
+Phase 3에는 위 graph-owned 경계가 여전히 남아 있다.
 
 ## 9. Projection And Helper Modules
 
@@ -518,49 +513,24 @@ runtime code에 domain vocabulary를 박지 않기 위한 declarative layer 접�
 
 ## 15. MAS Experimental Path
 
-MAS는 현재 single-agent runtime을 typed task/artifact ledger로 감싸는 실험 축이다.
+MAS는 single-agent runtime을 typed task/artifact ledger로 감싸는 optional
+experimental 축이다. 새 caller의 public import boundary는
+`src.experimental.mas` facade다.
 
-### `src/agent/mas_graph.py`
+### `src.experimental.mas`
 
-- `build_initial_state(...)`: MAS state 초기화.
-- `build_mas_graph(...)`: Orchestrator, Analyst, Researcher, Critic, Merge graph를
-  wiring한다.
-- `run_mas_graph(...)`: graph 실행 wrapper.
-- `check_critic_approval(...)`: critic verdict에 따라 retry/merge route 결정.
-- `check_orchestrator_merge_outcome(...)`: final merge 후 종료/재계획 route 결정.
+- `graph.py`: `build_initial_state(...)`, `build_mas_graph(...)`,
+  `run_mas_graph(...)`를 노출한다.
+- `types.py`: `AgentTask`, `Artifact`, `EvidenceRecord`, `CriticReport`,
+  `FinalReport`, `MultiAgentState`와 typed constructor/projection을 노출한다.
+- `nodes.py`: orchestrator, analyst, researcher, critic node factory를 노출한다.
+- `diagnostics.py`: opt-in diagnostic helper만 노출한다.
 
-### `src/agent/mas_types.py`
-
-- `AgentTask`, `Artifact`, `EvidenceRecord`, `CriticReport`, `FinalReport`,
-  `MultiAgentState`: MAS ledger schema.
-- `build_agent_task(...)`, `build_artifact(...)`, `build_evidence_record(...)`,
-  `build_critic_report(...)`, `build_final_report_record(...)`: typed record
-  constructor.
-- `project_worker_artifact_boundary(...)`: worker artifact가 외부로 노출할 최소
-  계약을 만든다.
-- `project_mas_task_artifact_trace(...)`: reviewer/caller가 볼 compact integrity
-  projection을 만든다.
-- `attach_task_artifact_trace(...)`: final state에 trace를 붙인다.
-
-### MAS nodes
-
-- `orchestrator_node.py`
-  - `FinancialOrchestratorPlannerCore.run()`: query를 analyst/researcher task로
-    나눈다.
-  - `FinancialOrchestratorMergeCore.run()`: accepted worker artifacts를 final
-    report로 합친다.
-  - `make_run_orchestrator_plan(...)`, `make_run_orchestrator_merge(...)`: core를
-    LangGraph node function으로 감싼다.
-- `analyst_node.py`
-  - `make_run_analyst(core_runner)`: numeric task를 기존 `FinancialAgent.run()`에
-    위임하고 artifact/evidence record로 변환한다.
-- `researcher_node.py`
-  - `NarrativeResearcherCore.run()`: vector store에서 narrative docs를 찾고
-    compact answer/evidence를 만든다.
-  - `make_run_researcher(core_runner)`: researcher core를 MAS node로 감싼다.
-- `critic_node.py`
-  - `run_critic(state)`: analyst/researcher artifact가 최소 evidence/calculation
-    contract를 만족하는지 검사하고 reject feedback을 남긴다.
+현재 facade 구현은 compatibility를 위해 `src.agent.mas_graph`,
+`src.agent.mas_types`, `src.agent.nodes.*`에 위임한다. 이 legacy module들은
+새 caller의 owner/import surface가 아니며, 검증된 compatibility caller가 남아
+있는 동안의 implementation detail이다. Analyst node는 numeric task를 기존
+`FinancialAgent.run()`에 위임한다.
 
 ## 16. Evaluation And Gates
 
@@ -623,7 +593,7 @@ profile 기반 실험 orchestrator다.
 15. `src/processing/financial_parser.py::FinancialParser.process_document`
 16. `src/storage/vector_store.py::VectorStoreManager.search`
 17. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
-18. MAS가 필요할 때만 `src/agent/mas_graph.py`와 `src/agent/nodes/*`
+18. MAS가 필요할 때만 `src.experimental.mas` facade; legacy `src.agent` 구현은 compatibility 확인 시에만
 
 ## 18. 헷갈리지 말아야 할 경계
 

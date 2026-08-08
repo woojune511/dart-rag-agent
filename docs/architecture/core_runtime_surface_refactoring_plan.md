@@ -2,12 +2,11 @@
 
 Last revised: 2026-08-08
 
-This is the completed execution record for reducing repository complexity while
-preserving the verified financial QA behavior. Git history,
-`docs/history/implementation_history.md`, and
-`docs/history/experiment_history.md` retain detailed chronology;
-`docs/overview/project_status.md` contains current state only. This document
-describes the resulting boundaries and stop lines.
+This is the active boundary and phased plan for reducing repository complexity
+while preserving verified financial QA behavior. Detailed chronology lives in
+Git history, `docs/history/implementation_history.md`, and
+`docs/history/experiment_history.md`; `docs/overview/project_status.md`
+contains current state and is the sole authority for next-work priority.
 
 `docs/architecture/agent_runtime_contract.md` remains authoritative for runtime
 behavior. Update both documents if a structural change alters that contract.
@@ -177,291 +176,54 @@ Completion conditions:
 
 ### Phase 3: Converge on one calculation path
 
-Status: in progress. The first slice was merged in PR #80 on 2026-07-22 and the
-second slice was merged in PR #81 on the same date. Both changes tighten public
-projection ownership without splitting calculation helpers by file size. The
-current owner-extraction slice does not complete Phase 3.
+Status: in progress. The July canonical public-projection milestone is complete:
+legacy flat mirrors cannot override `agent_answer` or the resolved trace. The
+broader single-calculation-path phase is not complete.
 
-Completed first slice:
-
-- owner: `src/api/financial_router.py::_query_response_from_agent_result`;
-- when `agent_answer` is present, treat it as the canonical projection and
-  preserve intentional empty strings, lists, and dictionaries;
-- use legacy flat result fields only when `agent_answer` itself is absent;
-- add the regression contract to `tests/test_financial_router_response.py`;
-- keep retrieval, formula execution, and answer-generation behavior unchanged.
-
-Proof: the focused router/projection/import suite passed `79` tests, full unit
-test discovery passed `1350` tests, and `git diff --check` passed. No benchmark
-refresh was required for this API-only compatibility change.
-
-Second slice:
-
-- `FinancialAgent.run()` now rejects legacy top-level `calculation_*` mirrors;
-- public structured output reads explicit `structured_result` or the canonical
-  trace calculation result;
-- the callerless `_resolve_runtime_structured_result()` wrapper and its
-  private-helper compatibility test were deleted;
-- stale aggregate replacement remains covered through canonical active
-  task/artifact ledger material;
-- historical replay and retrospective resolver opt-ins remain unchanged.
-
-Proof: the runtime domain-term audit passed with `216` reviewed literals, the
-focused calculation projection suite passed `625` tests, full unit test
-discovery passed `1348` tests, and `git diff --check` passed. No benchmark
-refresh was required because retrieval and calculation behavior did not change.
-
-Current owner-extraction slice:
+Current calculation ownership is:
 
 - `financial_graph_calculation.py` remains the graph-state adapter and
-  orchestrator: it decides when calculation owners run and projects their
-  results into trace, task, and artifact state;
-- `financial_operand_resolution.py` owns state-free operand candidate matching,
-  grounding, generic candidate selection, and merge behavior;
-- `financial_dependency_projection.py` owns dependency-binding summaries,
-  state-free dependency projection, and the direct-versus-dependency source-set
-  selector, including an explicit reason and provenance contract. It also owns
-  the typed main-path application covering final ratio override or purge,
-  producer-scope filtering, duplicate guarding, and missing-binding fill. Its
-  typed late application performs coherent-first context merge, alignment and
-  direct-context preference, complete-context veto, and dependency re-merge.
-  Its typed terminal finalization applies an optional generic normalized-unit
-  filter and, only without a filter, post-main-selected-snapshot-first then
-  active-dependency-snapshot preservation;
-- `financial_calculation_execution.py` validates ordered operand ids and variable
-  bindings against the operand set, then returns a typed execution outcome for
-  the graph adapter to project. It also owns state-free deterministic
-  difference/growth plan construction, the typed raw/guarded plan decision, and
-  value-only stale freshness assessment over a canonical prepared result;
-- the graph adapter contains a graph-private typed candidate seam separating
-  preparation/execution, deterministic result projection, and state/ledger
-  projection. It also retains the operation-plan state/query adapter and primary
-  runtime/task/artifact projection. This candidate decomposition is not itself an
-  execution-owner move;
-- candidate selection is invariant to input order: tied conflicting values
-  abstain, while equivalent ties use a stable selection rule.
+  orchestrator. It prepares evidence/query inputs and owns retry gates,
+  graph-private candidate preparation, state/task/artifact projection, repair
+  acceptance, aggregate/filter sequencing, and remaining fallbacks.
+- `financial_operand_resolution.py` owns state-free candidate matching,
+  grounding, selection, and merge behavior.
+- `financial_dependency_projection.py` owns dependency binding/projection,
+  direct-versus-dependency selection, typed main/late/final application, and
+  dependency recalculation plan disposition. Executable `single_value` plans
+  are reused, invalid or absent plans rebuild once, and executable
+  non-`single_value` plans are `unsupported_mode`, do not recalculate that row,
+  and preserve original result identity on the enclosing no-change path before
+  builder, candidate, or formatter work.
+- `financial_calculation_execution.py` owns deterministic difference/growth
+  plan construction, plan validation, formula execution, and value-only stale
+  assessment.
+- `financial_aggregate_projection.py` owns pure stale provenance target
+  selection and canonical aggregate operation-family normalization.
 
-The bounded selector co-location removes the graph-injected callback seam: the
-source-set selector invokes its co-located period-conflict and sibling-alignment
-decisions directly. The following typed application slice moves the final ratio
-override or purge, selector application, producer-scope filtering, duplicate
-guard, and missing-binding fill behind the same dependency owner. The graph
-still prepares that input through context/evidence retrieval gates and owns
-retry, dependency-guard, logging, artifact, trace, and state projection.
-Commit `b16a6c5` is a separate behavior fix: it removes consolidation- or
-producer-scope-rejected rows from the active dependency snapshot before any late
-fallback can reuse it. That fix passed `78` focused owner/graph contracts, the
-`217`-literal runtime audit, and full discovery over `1,457` unit tests.
+At the latest checkpoint, the graph is 19,831 lines, the dependency owner is
+2,813, and the execution owner is 837. The latest behavior fix passed 1 targeted
+and 615 affected tests, the 217-literal audit, and full discovery over 1,479
+tests on Python 3.13. Benchmark refresh is NOT RUN. Exact commit boundaries,
+intermediate metrics, and claim limits live in
+`docs/history/implementation_history.md`; they are intentionally not repeated
+in this plan.
 
-The following late-owner slice moves coherent-first direct-context merge,
-alignment and preference, the complete-context veto, and dependency re-merge
-application behind a typed state-free result. The graph still builds the sibling
-and coherent evidence contexts. Commit `c6f6fdf` is a separate behavior fix: a
-terminal percent-point filter that removes every late row can no longer restore
-an unfiltered post-main selected or active dependency snapshot.
+Phase 3 remains open for these unordered follow-ups:
 
-The following `5b44875` slice moves the generic normalized-unit filter and the
-no-filter preservation order behind a typed state-free finalization result. The
-graph retains the percent-point query gate and passes only
-`required_normalized_unit`; it also retains logging, coverage, artifact, trace,
-and state projection. Commit `8ebb239` is a separate behavior fix that recomputes
-post-filter coverage so an empty result is `missing` and an incomplete required
-set is `partial`. Other deterministic/LLM fallback, aggregate repair, and
-stale-result execution remain graph orchestration. This is not end-to-end
-precedence consolidation, and the typed late/finalization reasons are not yet
-runtime trace fields.
-
-The earlier calculation owner-extraction slice changed
-`financial_graph_calculation.py` from `21,642` to `19,682` lines (`-1,960`),
-while its source diff as a whole was `+1,095` lines. The typed main-path
-application slice changes the graph adapter from `19,686` to `19,587` lines
-(`-99`) while the two changed source files have a net increase of `109` lines
-because the policy body moves into the dependency owner. Product-runtime
-behavior is intended to remain unchanged; the precedence logic is relocated
-behind one owner contract rather than removed from the executed path.
-
-The late-owner slice changes `financial_graph_calculation.py` from `19,587` to
-`19,564` lines (`-23`) and `financial_dependency_projection.py` from `2,656` to
-`2,760` lines (`+104`). The two changed source files therefore have a net
-increase of `81` lines. Product-runtime behavior is intended to remain
-unchanged; the late precedence logic is relocated, not removed from execution.
-
-After `c6f6fdf` moves the graph to `19,565` lines, the behavior-preserving
-`5b44875` finalization relocation changes the graph to `19,567` lines (`+2`) and
-the dependency owner from `2,760` to `2,833` lines (`+73`), for a structural
-source net of `+75`. The separate `8ebb239` coverage fix leaves the final graph
-at `19,576` lines. From the `77d5bff` baseline, the whole bounded slice changes
-the graph by `+12` and the owner by `+73`, for a two-source net of `+85` lines.
-The executed finalization policy moved owners; it was not removed from runtime.
-
-Commit `f0eafae` is a separate behavior fix that prevents a source-stated display
-from being repeatedly classified as stale when its traced formula value still
-matches the current operands. The following structural commit `2496fce` moves
-only the bound-operand formula comparison and typed freshness assessment into
-`financial_calculation_execution.py`. That structural checkpoint changes
-`financial_graph_calculation.py` from `19,591` to `19,558` lines (`-33`) and the
-execution owner from `614` to `712` lines (`+98`), for a two-source net of `+65`.
-From the `73d593e` baseline, the whole stale-result bounded slice changes the
-graph from `19,576` to `19,558` lines (`-18`) and the execution owner by `+98`,
-for a two-source net of `+80`.
-
-Commit `406c1ef` separately characterizes stale execution snapshots. Structural
-commit `c2a5e96` then decomposes the inline calculation path into graph-private
-typed candidate preparation, result projection, and state/ledger projection.
-Stale repair calls the preparation and result projection seam directly, removing
-its recursive `_execute_calculation()` call and discarded ledger/trace projection
-without changing product behavior. This changes the graph from `19,558` to
-`19,730` lines (`+172`); full discovery at that checkpoint passed `1,473` tests.
-The candidate seam remains graph-private and this commit does not remove the two
-formula evaluations in an actual stale repair.
-
-Behavior fix `f2af4f4` makes the prepared canonical value the freshness authority.
-A pre-preparation raw value of `0.0035` that previously appeared current is now
-compared with the prepared canonical value `3.5` and repaired. The stale path
-evaluates its formula once instead of twice. Current results still prepare and
-evaluate once, and deterministic result projection runs only for a stale value.
-The execution owner changes from `712` to `679` lines (`-33`) and the graph from
-`19,730` to `19,736` (`+6`), for a source net of `-27`; the whole source/test diff
-for this behavior slice is net `-83` lines. No ledger or selected-claim
-synchronization is added.
-
-Behavior fix `be2e7bf` then synchronizes accepted stale-repair provenance at the
-three production caller boundaries without changing numeric freshness or repair
-acceptance. Render updates selected/kept refs and the latest same-id
-calculation-result artifact; planning capture updates only its returned row refs;
-aggregate repair uses a pre-filter evidence snapshot, supersedes only a unique
-provenance target, and re-filters after acceptance. Ambiguous refs are preserved.
-This changes the graph from `19,736` to `19,933` lines (`+197`), graph planning
-from `2,367` to `2,371` (`+4`), and task artifacts from `1,047` to `1,128`
-(`+81`). The production-source diff is `+332/-50`, net `+282`; the whole commit is
-`+792/-69`, net `+723`. This is caller-specific synchronization, not completion
-of the whole task/artifact ledger contract.
-
-Structural commit `2cfa867` then relocates the pure aggregate stale-repair
-provenance selection without changing behavior. `financial_aggregate_projection.py`
-now owns the typed state-free selection and canonical
-`aggregate_result_operation_family`; the old graph provenance bodies are deleted.
-The graph retains a one-line delegate for its 68 existing operation-family
-callers, plus repair acceptance, pre-filter snapshot, accepted re-filter, and
-answer/state orchestration. The graph changes from `19,933` to `19,802` lines
-(`-131`, `+15/-146`) and the owner from `195` to `376` (`+181`, `+182/-1`).
-Production source is `+197/-147`, net `+50`; the whole commit is `+392/-184`, net
-`+208`. These numbers show owner relocation and graph reduction, not total-code
-or executed-path reduction.
-
-Structural commit `1a3979e` then adds the graph-private typed
-`_CalculationCandidateRun` and `_run_calculation_candidate()` seam. The primary
-`_execute_calculation()` graph-node adapter continues to apply the existing
-state/ledger projector. Dependency and period contract-valid scalar recovery
-consume the candidate projection's operands, plan, and result copies directly,
-removing two internal `_execute_calculation()` calls, their strict trace
-re-reads, and the state/ledger projections those callers discarded. Result and
-operand order, input immutability, and failure/no-op identity remain unchanged.
-The graph changes from `19,802` to `19,813` lines; source is `+36/-25`, net `+11`.
-Tests are `+176/-57`, net `+119`, and the whole commit is `+212/-82`, net `+130`.
-The state projector changes from one call to zero in the two characterized
-success paths. These figures are not a broad performance or total-code reduction
-claim, and a reused abnormal dependency `time_series` plan is outside the full
-exception-parity claim. The seam remains graph-private; this is not an execution
-owner move or Phase 3 completion.
-
-Structural commit `af968a6` moves the state-free deterministic difference/growth
-builder and typed raw/guarded operation-plan decision into
-`financial_calculation_execution.py`. The graph retains a thin state/query adapter
-around owner construction and the difference result-unit policy, and the primary
-planner retains its full runtime and task/artifact projection. Period recovery consumes a ready or
-guarded selected plan directly, with no planner/artifact/runtime projection, while
-a `not_applicable` decision continues through the existing fallback without a
-second builder call. Dependency recovery still uses the raw-plan callback. The
-execution owner changes from `679` to `837` lines (`+158`) and the graph from
-`19,813` to `19,786` lines (`-27`, `+91/-118`). Production source is `+249/-118`,
-net `+131`; tests are `+182/-5`, net `+177`; the whole commit is `+431/-123`, net
-`+308`. Supported, contract-valid result, order, input, failure, and no-op
-contracts are preserved. Malformed difference inputs remain outside a full
-query-policy evaluation/exception-order parity claim. These figures do not
-establish total-code reduction, broad executed-path or performance improvement,
-or Phase 3 completion.
-
-Behavior fix `ec93f8a` separately corrects the pre-existing percent-point unit
-gate in that adapter. It constructs the complete plan before calling
-`_should_coerce_percent_point_unit`; an eligible `%p` query with two `PERCENT`
-operands receives a copied plan with `result_unit="%p"`, while non-eligible and
-no-plan cases remain unchanged. The graph diff is `+9/-9`, so its line count is
-unchanged; tests add `32` lines, and the whole commit is `+41/-9`, net `+32`.
-This fixes the incomplete-plan unit-policy bug, but it does not establish full
-evaluation/exception-order parity for every malformed difference input.
-
-Behavior fix `8296eb1` separately blocks a stale-parent trace override. Parent
-`structured_result` or `subtask_results` can no longer replace the explicit
-dependency recalculation trace before candidate preparation. The dependency
-owner changes from `2,833` to `2,835` lines (`+2`); the regression test adds `63`
-lines, and the whole commit is net `+65`. This is a correctness fix, not part of
-the following mechanical relocation.
-
-Structural commit `ea84921` then removes the dependency synthetic-state helper
-and raw-plan builder callback while preserving supported scalar behavior. The
-graph skips raw construction for an existing executable plan and constructs it
-once for an invalid or absent plan, passes that explicit raw plan to the
-dependency owner, runs a direct `_CalculationCandidateInput`, and supplies ratio
-formatting with the active task and the same pre-candidate operands. Result/order,
-input immutability, and failure/no-op identity remain unchanged. The graph changes
-from `19,786` to `19,828` lines (`+75/-33`, net `+42`) and the dependency owner
-from `2,835` to `2,796` (`+3/-42`, net `-39`). Production source is `+78/-75`,
-net `+3`; tests are `+167/-90`, net `+77`; the whole commit is `+245/-165`, net
-`+80`. These figures show a bounded callback/state cleanup, not total-code
-reduction, broad performance improvement, dependency-owner completion, or Phase
-3 completion. Primary state/artifact projection, repair acceptance, and
-absolute-ratio orchestration remain graph-owned.
-
-Validation for this slice: `62` focused operand/execution contract tests, `323`
-focused calculation/projection tests, the runtime domain-language audit over
-`217` reviewed literals, and full discovery over `1,451` unit tests passed. This
-was the earlier extraction evidence. The typed main-path application passed `76`
-focused owner/graph contracts, the same `217`-literal audit, and full discovery
-over `1,457` unit tests. These are contract and regression evidence, not a
-refreshed benchmark claim. After the separate `b16a6c5` behavior fix, the late
-typed application passed `78` focused owner/graph contracts, the same
-`217`-literal audit, and full discovery over `1,462` unit tests. The terminal
-filter fix `c6f6fdf` passed `3` focused contracts, the same audit, and full
-discovery over `1,462` tests. The behavior-preserving `5b44875` extraction passed
-`52` focused contracts, the same audit, and full discovery over `1,468` tests.
-After `8ebb239`, `53` focused contracts, the same audit, and full discovery over
-`1,468` tests passed on Python 3.13. After `f0eafae` and `2496fce`, `29` focused
-stale/execution contracts, the same `217`-literal audit, and full discovery over
-`1,472` tests passed on Python 3.13. After `f2af4f4`, `345` unique focused
-contracts passed; the `7`-contract core subset and `2` adapter/time-series spot
-contracts were also rerun. The `217`-literal audit and full discovery over
-`1,472` tests passed on Python 3.13. After `be2e7bf`, all `560` affected-module
-tests, the same `217`-literal audit, and full discovery over `1,472` tests passed
-on Python 3.13. After `2cfa867`, all `564` affected tests, the same `217`-literal
-audit, and full discovery over `1,476` tests passed. After `1a3979e`, `3` focused
-contracts and all `564` affected tests passed, together with the same
-`217`-literal audit and full discovery over `1,476` tests. After `af968a6`, `4`
-targeted contracts, `107` focused owner/aggregate tests, all `564` affected tests,
-the same `217`-literal audit, and full discovery over `1,478` tests passed.
-After `ec93f8a`, `4` targeted/adjacent tests and all `29` execution-module tests
-passed; the unique affected matrix contained `593` passing tests, and the same
-`217`-literal audit and full discovery over `1,479` tests passed. After
-`8296eb1`, `4` targeted tests, the same audit, and full discovery over `1,480`
-tests passed. After `ea84921`, `3` targeted contracts, all `615` affected tests,
-the same audit, and full discovery over `1,479` tests passed. Benchmark refresh
-has not run for these latest changes.
-
-Phase 3 remains open for these follow-ups:
-
-- characterize reused abnormal dependency `time_series` executable plans and the
-  state-projector exception boundary before deciding whether they are supported;
-- if that abnormal path is not a supported contract, continue with the next
-  bounded repair cluster without folding in a behavior change;
+- decompose one characterized state-free selection or merge subcluster from
+  `_extract_calculation_operands` behind the existing operand-resolution owner;
+- move bounded aggregate repair/precedence decisions behind the aggregate owner;
+- isolate dependency post-candidate finalization and ratio
+  artifact/absolute-magnitude seams without moving graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified
-  contract rather than inferring it from the three repaired caller surfaces;
-- move the remaining deterministic/LLM fallback and aggregate precedence
-  orchestration behind named owner contracts;
-- reduce the remaining private-API mesh;
-- characterize the remaining graph-owned absolute-ratio and trend
-  projection/error boundaries before moving them;
-- extract the remaining extraction and aggregate repair clusters behind named
-  contracts.
+  behavior contract;
+- reduce the remaining private-API mesh and co-locate tests only as their public
+  contracts move.
+
+Priority and sequencing are owned by
+`docs/overview/project_status.md#next-work`; this plan records debt and stop
+lines, not a competing queue.
 
 The canonical path is:
 
@@ -485,10 +247,12 @@ the old implementation. Do not split the file merely to reduce line count.
 
 Completion conditions:
 
-- one source of truth for operands, formula result, and rendered answer;
-- legacy flat mirrors cannot override `agent_answer` or the resolved trace;
-- wrappers with no runtime caller are removed;
-- tests are organized by operand, execution, rendering, verification, and
+- partial: converge on one source of truth for operands, formula result, and
+  rendered answer;
+- met: legacy flat mirrors cannot override `agent_answer` or the resolved trace;
+- partial: remove wrappers with no runtime caller as each bounded owner move
+  deletes its old implementation;
+- open: organize tests by operand, execution, rendering, verification, and
   projection contracts rather than private helper location.
 
 ### Phase 4: Isolate optional systems
