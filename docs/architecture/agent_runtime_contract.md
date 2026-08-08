@@ -890,6 +890,27 @@ runtime trace field. Candidate builders and refresh, answer selection and
 precedence, mutable aggregate state/evidence, artifact/ledger work, stale repair,
 and final orchestration remain graph-owned.
 
+Prepared aggregate-provenance filtering is another typed state-free aggregate
+owner seam. The graph supplies the aggregate projection and its already-selected
+kept-evidence-id sequence. If the normalized kept set is empty, the owner returns
+the exact input projection before reading or copying it. Otherwise it shallow-
+copies the projection, calculation result, derived metrics, truthy answer slots,
+and accepted dictionary subtask rows in the existing order. It applies the shared
+source-id cleaner, removes only unkept `ev_` and `recon::` ids, and retains other
+ids in stable order. The input projection and kept-id sequence remain unmodified;
+untouched nested values retain their identities.
+
+The existing conditional projection shape is part of the contract. A falsy
+answer-slot value is not overwritten. While rebuilding truthy answer-slot
+subtasks, non-dictionary entries are skipped and the rebuilt list replaces the
+old list only when at least one dictionary row remains; therefore an all-invalid
+or empty list retains its original nested identity, while a mixed list drops its
+invalid entries. No exception is caught, and earlier local copies are not exposed
+when normalization or mapping access fails. The seam adds no decision reason,
+application flag, or trace field. Evidence filtering and kept-id selection,
+projection-rebuild gating, selected-claim filtering, final-answer surface-operand
+append, stale repair, ledger work, and final orchestration remain graph-owned.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

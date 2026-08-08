@@ -369,7 +369,10 @@ state-free owner 경계:
   순서와 same result identity를 유지한다. Prepared answer candidate에는 normalized
   answer, same aggregate-projection identity, current-first stable claim-id merge를
   적용하고 final answer를 formatted, aggregate-mode rendered, optional ok-status
-  순서로 동기화한다. 이 seam들은 reason/flag/trace field를 추가하지 않는다.
+  순서로 동기화한다. Graph가 준비한 aggregate projection과 kept evidence ids에는
+  generated `ev_`/`recon::` provenance filter를 적용하며 empty-kept identity와
+  nonempty shallow-copy/stable-order 계약을 유지한다. 이 seam들은
+  reason/flag/trace field를 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -391,6 +394,8 @@ graph adapter에 남은 orchestration 역할군:
 - percent-point query gate, finalization input 구성, post-filter coverage 결정
 - 기타 deterministic/LLM fallback
 - aggregate projection/repair sequencing
+- aggregate evidence/kept-id selection, rebuild gate, selected-claim filtering,
+  final-answer surface-operand append
 - aggregate answer candidate build/refresh/selection, mutable state/evidence,
   artifact/ledger, stale repair와 final orchestration
 - unit conversion/repair

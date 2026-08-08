@@ -502,6 +502,33 @@ state/evidence or artifact/ledger orchestration, stale repair, final projection,
 or a total-code, broad executed-path, performance, broad private-mesh,
 end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Aggregate provenance filtering ownership
+
+- `1a4a826` moves generated aggregate-provenance filtering into the aggregate
+  owner. The typed owner receives a graph-prepared projection and kept-evidence-id
+  sequence. An empty normalized kept set returns the exact input projection;
+  otherwise the owner preserves the existing shallow-copy order, stable source-id
+  normalization, `ev_`/`recon::` filtering, retained nested identities, and
+  conditional invalid-subtask replacement behavior. It adds no reason, flag, or
+  trace field.
+- The graph retains aggregate evidence and kept-id selection, the projection-
+  rebuild gate, selected-claim filtering, final-answer surface-operand append,
+  stale repair, artifact/ledger work, and final orchestration. Both graph callers
+  consume the typed owner and the old graph-private helper plus its legacy direct
+  test are deleted.
+- Production source is `+81/-48`, net 33: the graph changes from 19,578 to
+  19,544 lines (`+14/-48`, net -34) and the aggregate owner from 531 to 598
+  (`+67`). Tests are `+223/-44`, net 179; the whole commit is `+304/-92`, net 212.
+- Validation passed targeted 3/3 tests, affected 339/339 tests, the 217-literal
+  runtime audit, and full discovery over 1,491/1,491 tests. Benchmark refresh was
+  NOT RUN.
+
+This is a behavior-preserving aggregate-provenance copy/filter ownership
+relocation, not a move of evidence selection, selected claims, aggregate answer
+selection/precedence, stale repair, artifact/ledger or final projection
+orchestration, and not a total-code, broad executed-path, performance, broad
+private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

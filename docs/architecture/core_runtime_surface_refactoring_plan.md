@@ -239,13 +239,15 @@ Current calculation ownership is:
   selection, canonical aggregate operation-family normalization, the typed
   state-free negative runtime-ratio absolute-magnitude transformation over
   graph-prepared mutable result/slot/primary copies, and typed prepared answer
-  candidate application/final-answer projection synchronization.
+  candidate application/final-answer projection synchronization. It also owns
+  typed state-free filtering of generated aggregate provenance from a graph-
+  prepared projection and kept-evidence-id sequence.
 
-At the latest checkpoint, the graph is 19,578 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,544 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 531, the dependency owner is 3,089, and the
-execution owner is 837. The latest owner slice passed targeted 4/4 tests,
-affected 379/379 tests, the 217-literal audit, and full discovery over
+is 2,437, the aggregate owner is 598, the dependency owner is 3,089, and the
+execution owner is 837. The latest owner slice passed targeted 3/3 tests,
+affected 339/339 tests, the 217-literal audit, and full discovery over
 1,491/1,491 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
