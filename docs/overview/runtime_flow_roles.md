@@ -349,7 +349,10 @@ state-free owner 경계:
 - `financial_aggregate_projection.py`: typed state-free stale-repair provenance
   selection과 canonical `aggregate_result_operation_family` normalization을 소유한다.
   unique provenance target만 supersede하고 ambiguous refs는 보존하며, input
-  sequence와 nested row identity를 변경하지 않는다.
+  sequence와 nested row identity를 변경하지 않는다. 또한 graph가 준비한 mutable
+  calculation-result/slot/primary copies에 query-approved negative runtime-ratio
+  absolute-magnitude projection을 적용한다. 기존 mutation/formatter/exception
+  순서와 same result identity를 유지하고 reason/flag/trace field는 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -393,8 +396,8 @@ graph adapter에 남은 orchestration 역할군:
   operands를 explicit override로 받는다. Ratio artifact conflict에서는 graph가
   recalculated result value를 coerce하고 invalid value면 artifact builder를 호출하지
   않으며, task-artifact/ledger row를 준비한 뒤 owner result를 소비한다. Absolute
-  transform과 no-change/final projection은 graph에 남으므로 selected artifact가 항상
-  final output에 도달하는 계약은 아니다.
+  transform의 query gate/invocation과 no-change/final projection은 graph에 남으므로
+  selected artifact가 항상 final output에 도달하는 계약은 아니다.
 - stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
   stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
   same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
@@ -403,7 +406,9 @@ graph adapter에 남은 orchestration 역할군:
   밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
 - 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
   acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
-- absolute-ratio와 trend projection/error 경계
+- collapsed-ratio runtime trace/eligibility/completeness/query gate, prepared
+  copies, downstream coherence/compact-answer/coverage/final projection과 기타
+  absolute-ratio 및 trend projection/error 경계
 - aggregate result dedupe/ranking
 - narrative context preservation
 
@@ -454,7 +459,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   outcome, and typed state-free value-only stale freshness assessment
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
-  normalization
+  normalization, graph-prepared runtime-ratio magnitude projection
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers

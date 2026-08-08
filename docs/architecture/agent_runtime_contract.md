@@ -788,6 +788,25 @@ change chronology and validation evidence live in
 
 ## 9. Aggregate Subtask Projection
 
+For collapsed-ratio runtime recovery, the aggregate owner exposes a typed,
+state-free absolute-magnitude projection over graph-prepared mutable copies of
+the calculation result, answer slots, and primary value. The graph still
+resolves the runtime trace, checks collapsed-row eligibility, ratio completeness,
+and query intent, prepares those copies, and retains downstream dependency
+coherence, compact-answer, numeric-coverage, and final projection.
+
+The owner preserves the existing mutation and exception order: it reads and
+coerces `result_value` twice for a negative value, updates the copied result and
+primary value, applies the existing unit fallbacks, invokes the existing
+calculation rendering owner, and only then attaches the prepared slots. It
+returns the same calculation-result identity it received. `TypeError` and
+`ValueError` remain caught; when rendering fails after the numeric update, the
+positive `result_value` remains on the copied result while its old attached slots
+and rendered value remain. `RuntimeError` still propagates. No decision reason,
+application flag, or runtime trace field is added by this seam, and it does not
+move query policy, rendering policy, aggregate sequencing, ledger state, or
+final projection into the aggregate owner.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

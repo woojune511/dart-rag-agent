@@ -97,16 +97,25 @@ imports or an unconfigured `FinancialAgent` invocation.
   scaled tolerance, stable first-conflict selection, and the shallow-copy
   preservation marker. Its reason/flag are not runtime trace fields. The graph
   retains recalculated-value coercion and invalid-value builder laziness,
-  task-artifact/ledger row construction, absolute-ratio transformation, and the
-  caller's no-change/final projection contract; a selected row is therefore not
-  guaranteed to reach final output.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,747 lines,
+  task-artifact/ledger row construction, absolute-ratio query/transform
+  invocation, and the caller's no-change/final projection contract; a selected
+  row is therefore not guaranteed to reach final output.
+- Collapsed-ratio runtime absolute-magnitude projection now has a typed
+  state-free aggregate owner. The graph retains trace and collapsed-row
+  eligibility, completeness and query gates, prepares mutable result/slot/primary
+  copies, and retains downstream coherence, compact-answer, coverage, and final
+  projection. The owner mutates only those prepared copies in the existing
+  order, returns the same result identity, preserves caught `TypeError`/`ValueError`
+  partial updates and `RuntimeError` propagation, and adds no reason/flag/trace
+  field.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,737 lines,
+  `financial_aggregate_projection.py` is 427,
   `financial_operand_resolution.py` is 2,270,
   `financial_dependency_projection.py` is 2,889, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed focused 3/3 and affected 294/294
-  tests, the 217-literal runtime audit, and full discovery over 1,487/1,487 tests
+- The latest calculation checkpoint passed targeted 2/2 and affected 322/322
+  tests, the 217-literal runtime audit, and full discovery over 1,488/1,488 tests
   on Python 3.13. Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -126,9 +135,9 @@ current-state document does not duplicate that commit diary.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
-| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, and prepared ratio-artifact conflict selection | `financial_dependency_projection.py`; graph retains raw-plan construction, recalculated-value coercion, invalid-value artifact-builder laziness, task-artifact/ledger row construction, absolute-ratio transformation, caller projection, query gates, repair acceptance, other fallback, and aggregate sequencing |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, and prepared ratio-artifact conflict selection | `financial_dependency_projection.py`; graph retains raw-plan construction, recalculated-value coercion, invalid-value artifact-builder laziness, task-artifact/ledger row construction, absolute-ratio query/transform invocation, caller projection, other query gates, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
-| Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
+| Aggregate projection, stale provenance selection, and prepared collapsed-ratio magnitude transformation | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization, typed state-free target selection, and the result/slot/primary prepared-copy transform are owner-owned, while trace/eligibility/completeness/query gates, downstream coherence/answer/coverage, acceptance/filter sequencing, and final projection remain graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
 | Optional persisted report cache | configured `ReportCacheIndex` boundary |
@@ -152,9 +161,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: focused 3/3 and affected 294/294 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 322/322 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,487/1,487 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,488/1,488 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -210,8 +219,10 @@ recovered-context eligibility and row/evidence construction, producer-scope filt
 construction, retry and
 query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
 exception/fallback orchestration, candidate preparation plus state/task/artifact projection, repair
-acceptance, artifact/ledger row construction, recalculated-value coercion and
-caller projection, aggregate/filter sequencing, absolute-ratio handling, and other
+acceptance, artifact/ledger row construction, recalculated-value coercion,
+collapsed-ratio trace/eligibility/completeness/query gates and prepared copies,
+downstream coherence/answer/coverage/final projection, aggregate/filter sequencing,
+other absolute-ratio handling, and other
 deterministic/LLM fallbacks. Broader ledger synchronization and the private
 helper mesh are also open. No current result supports a whole-ledger,
 end-to-end owner, total-code reduction, or broad performance claim.
@@ -231,26 +242,29 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and move only the
-query-gated negative runtime-ratio absolute-magnitude projection body inside
-`_apply_runtime_ratio_projection_for_collapsed_rows`
-(`financial_graph_calculation.py:6430-6452`) into
-`financial_aggregate_projection.py`. The graph must retain runtime-trace and
-collapsed-row eligibility, the ratio-completeness and query gates, prepared
-result/slot/primary copies, downstream dependency-coherence and answer checks,
-and artifact/final projection. Characterization must preserve the current
-`TypeError`/`ValueError` boundary, including partial updates made before a caught
-formatter error, and confirm that `RuntimeError` still propagates. This slice is
-only a typed state-free value/slot transformation; it is not a move of query
-policy, formatter ownership, aggregate orchestration, or ledger state. The
-extraction adapter remains a 795-line graph adapter under the
-definition-to-next-definition count; do not split it by size alone. Remaining
-direct-preference preparation/scoring, aggregate repair/precedence selection,
-dependency post-candidate finalization, other ratio/absolute orchestration,
+The next bounded architecture work is to characterize dependency
+post-candidate finalization in
+`_align_lookup_results_with_dependency_projection`
+(`financial_graph_calculation.py:2802-2845`) and move only its state-free
+candidate disposition and final row construction/application decisions into
+`financial_dependency_projection.py`. The first typed stage should normalize
+the candidate projection into copied trace/result data and decide non-`ok`
+disposition. After graph-owned query/absolute handling, artifact short-circuit,
+and formatting, a second typed stage should absorb the formatted-result mutation
+and final row construction by replacing the existing row-builder helper. The
+graph must retain plan disposition and lazy raw-plan construction,
+candidate-input construction and execution, the absolute-ratio query gate and
+transform invocation, task-artifact/ledger row building and conflict
+short-circuit, compact-ratio formatting, and caller iteration/state
+orchestration. No owner callback or graph state should cross the boundary.
+Characterization must preserve non-`ok` and no-change row identity,
+artifact-before-formatter precedence, operand/plan/result and source-id fallback
+order, stable row ordering, top-level copy/nested identity, input immutability,
+and the current exception order. Direct-preference preparation/scoring,
+aggregate stale-repair/precedence orchestration, other ratio/absolute handling,
 broader ledger synchronization, remaining fallbacks, private facade/API cleanup,
-and contract-aligned test co-location remain separate work. The Phase 3 backlog
-in the refactoring plan is unordered; this section is the authority for
-priority.
+and further test co-location remain separate work. The Phase 3 backlog in the
+refactoring plan is unordered; this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

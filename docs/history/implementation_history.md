@@ -374,6 +374,29 @@ task-artifact/ledger construction, absolute-ratio transformation, or final
 projection and not a total-code, broad executed-path, performance, private-mesh,
 whole-ledger, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Collapsed-ratio runtime magnitude projection ownership
+
+- `1d6896c` moves only the query-approved negative runtime-ratio magnitude
+  transformation into the aggregate owner. The graph retains runtime-trace and
+  collapsed-row eligibility, completeness and query gates, prepares mutable
+  top-level result/slot/primary copies, and retains downstream coherence,
+  compact-answer, coverage, and final projection. The typed owner mutates those
+  copies in the original order and returns the same calculation-result identity.
+  It catches `TypeError`/`ValueError` with the existing partial `result_value`
+  update while the old attached slots/render remain, and allows `RuntimeError`
+  to propagate. It adds no reason, flag, or trace field.
+- The graph changes from 19,747 to 19,737 lines (`+9/-19`, net -10) and the
+  aggregate owner from 376 to 427 lines (`+51`). Production source is `+60/-19`,
+  net 41; tests are `+166/-7`, net 159; the whole commit is `+226/-26`, net 200.
+- Validation passed targeted 2/2 tests, affected 322/322 tests, the 217-literal
+  runtime audit, and full discovery over 1,488/1,488 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving state-free prepared-copy transformation, not a
+move of query or rendering policy, aggregate sequencing, final projection, or
+ledger state and not a total-code, broad executed-path, performance,
+private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -195,7 +195,9 @@ Current calculation ownership is:
   exception/fallback orchestration, graph-private candidate preparation,
   state/task/artifact projection, repair acceptance, aggregate/filter
   sequencing, recalculated ratio-value coercion, task-artifact row construction,
-  absolute-ratio and caller projection, and remaining fallbacks.
+  collapsed-ratio trace/eligibility/completeness/query gates and prepared-copy
+  construction, downstream coherence/answer/coverage/final projection, other
+  ratio/absolute orchestration, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
   grounding, selection, and merge behavior, including coherent-first required
   candidate merge followed by complete-ratio candidate-first or current-first
@@ -220,13 +222,16 @@ Current calculation ownership is:
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
 - `financial_aggregate_projection.py` owns pure stale provenance target
-  selection and canonical aggregate operation-family normalization.
+  selection, canonical aggregate operation-family normalization, and the typed
+  state-free negative runtime-ratio absolute-magnitude transformation over
+  graph-prepared mutable result/slot/primary copies.
 
-At the latest checkpoint, the graph is 19,747 lines, the operand owner is 2,270,
-the dependency owner is 2,889, and the execution owner is 837. The latest owner
-slice passed focused 3/3 and affected 294/294 tests, the 217-literal audit, and
-full discovery over 1,487/1,487 tests on Python 3.13. Benchmark refresh is NOT
-RUN. Exact commit boundaries, intermediate metrics, and claim limits live in
+At the latest checkpoint, the graph is 19,737 lines, the aggregate owner is 427,
+the operand owner is 2,270, the dependency owner is 2,889, and the execution
+owner is 837. The latest owner slice passed targeted 2/2 and affected 322/322
+tests, the 217-literal audit, and full discovery over 1,488/1,488 tests on Python
+3.13. Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
+metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
 in this plan.
 
@@ -235,8 +240,8 @@ Phase 3 remains open for these unordered follow-ups:
 - characterize remaining graph-prepared direct-preference builder/scoring seams
   without moving graph state or builders;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
-- isolate dependency post-candidate finalization and remaining ratio
-  absolute-magnitude seams without moving graph state lookup;
+- isolate dependency post-candidate finalization and other remaining
+  ratio/absolute seams without moving graph state lookup;
 - keep broader task/artifact ledger synchronization as a separately specified
   behavior contract;
 - reduce the remaining private-API mesh and co-locate tests only as their public
