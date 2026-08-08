@@ -58,6 +58,7 @@ from src.agent.financial_dependency_projection import (
     LateDependencyRemergeInput,
     LateOperandFinalizationInput,
     MainOperandPrecedenceInput,
+    RatioArtifactConflictSelectionInput,
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
     build_dependency_lookup_slots_by_task,
@@ -86,6 +87,7 @@ from src.agent.financial_dependency_projection import (
     resolve_late_dependency_remerge,
     resolve_late_operand_finalization,
     resolve_main_operand_precedence,
+    resolve_ratio_artifact_conflict_selection,
     source_task_id_for_dependency_operand,
     summarize_dependency_bindings,
 )
@@ -14480,22 +14482,14 @@ class FinancialAgentCalculationMixin:
         recalculated_value = financial_answer_slots.coerce_slot_numeric(recalculated_result.get("result_value"))
         if recalculated_value is None:
             return {}
-        for artifact_row in self._ratio_result_rows_from_task_artifacts(state, task):
-            calculation_result = dict(artifact_row.get("calculation_result") or {})
-            status = _normalise_spaces(str(artifact_row.get("status") or calculation_result.get("status") or "")).lower()
-            if status != "ok":
-                continue
-            artifact_value = self._ratio_result_numeric_value(artifact_row)
-            if artifact_value is None:
-                continue
-            tolerance = max(max(abs(float(artifact_value)), abs(float(recalculated_value)), 1.0) * 5e-4, 1e-6)
-            if abs(float(artifact_value) - float(recalculated_value)) <= tolerance:
-                continue
-            return {
-                **artifact_row,
-                "artifact_ratio_result_preserved_over_alignment": True,
-            }
-        return {}
+        artifact_rows = self._ratio_result_rows_from_task_artifacts(state, task)
+        selection = resolve_ratio_artifact_conflict_selection(
+            RatioArtifactConflictSelectionInput(
+                artifact_rows=artifact_rows,
+                recalculated_value=recalculated_value,
+            )
+        )
+        return selection.selected_artifact_row
 
     def _build_deterministic_lookup_plan(
         self,

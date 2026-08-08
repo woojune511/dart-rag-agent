@@ -1,7 +1,9 @@
 import unittest
 from copy import deepcopy
 from typing import Any, Dict, List
+from unittest.mock import patch
 
+import src.agent.financial_dependency_projection as dependency_projection
 from src.agent.financial_dependency_projection import (
     DirectDependencySelectionInput,
     LateDependencyRemergeInput,
@@ -643,6 +645,105 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         self.assertFalse(result.operand_filter_applied)
         self.assertEqual(result.preserved_operand_source, "")
         self.assertEqual(result.finalization_reason, "no_operand_rows")
+
+    def test_ratio_artifact_conflict_selection_preserves_numeric_authority_order_and_inputs(self) -> None:
+        nested_context = {"keep": "artifact"}
+        artifact_rows = [
+            {
+                "artifact_id": "non_ok",
+                "status": "parse_error",
+                "calculation_result": {"status": "ok", "result_value": 150.0},
+            },
+            {"artifact_id": "no_value", "status": "ok", "calculation_result": {}},
+            {
+                "artifact_id": "calculation_result_value",
+                "status": "ok",
+                "result_value": 400.0,
+                "calculation_result": {
+                    "result_value": 100.04,
+                    "answer_slots": {
+                        "primary_value": {"normalized_value": 200.0, "raw_value": "300"}
+                    },
+                },
+            },
+            {
+                "artifact_id": "primary_normalized_value",
+                "result_value": 300.0,
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {"normalized_value": 100.03, "raw_value": "200"}
+                    },
+                },
+            },
+            {
+                "artifact_id": "primary_raw_value",
+                "status": "ok",
+                "result_value": 300.0,
+                "calculation_result": {
+                    "answer_slots": {"primary_value": {"raw_value": "100.02"}}
+                },
+            },
+            {"artifact_id": "row_value", "status": "ok", "calculation_result": {}, "result_value": 100.01},
+            {
+                "artifact_id": "first_conflict",
+                "status": "ok",
+                "calculation_result": {"result_value": 120.0, "nested": nested_context},
+                "nested": nested_context,
+            },
+            {"artifact_id": "later_conflict", "status": "ok", "calculation_result": {"result_value": 130.0}},
+        ]
+        selection_input = dependency_projection.RatioArtifactConflictSelectionInput(
+            artifact_rows,
+            100.0,
+        )
+        input_before = deepcopy(selection_input)
+
+        with patch.object(
+            dependency_projection,
+            "_ratio_artifact_numeric_value",
+            wraps=dependency_projection._ratio_artifact_numeric_value,
+        ) as numeric_value:
+            result = dependency_projection.resolve_ratio_artifact_conflict_selection(
+                selection_input
+            )
+
+        self.assertEqual(selection_input, input_before)
+        self.assertEqual(
+            [call.args[0]["artifact_id"] for call in numeric_value.call_args_list],
+            [
+                "no_value",
+                "calculation_result_value",
+                "primary_normalized_value",
+                "primary_raw_value",
+                "row_value",
+                "first_conflict",
+            ],
+        )
+        self.assertEqual(
+            (result.conflict_selected, result.reason, result.selected_artifact_row["artifact_id"]),
+            (True, "conflicting_artifact_selected", "first_conflict"),
+        )
+        self.assertTrue(
+            result.selected_artifact_row["artifact_ratio_result_preserved_over_alignment"]
+        )
+        self.assertIsNot(result.selected_artifact_row, artifact_rows[-2])
+        self.assertIs(result.selected_artifact_row["nested"], nested_context)
+        self.assertIs(
+            result.selected_artifact_row["calculation_result"],
+            artifact_rows[-2]["calculation_result"],
+        )
+
+        no_match = dependency_projection.resolve_ratio_artifact_conflict_selection(
+            dependency_projection.RatioArtifactConflictSelectionInput(
+                artifact_rows[:-2],
+                100.0,
+            )
+        )
+        self.assertEqual(
+            (no_match.selected_artifact_row, no_match.conflict_selected, no_match.reason),
+            ({}, False, "no_conflicting_artifact"),
+        )
 
     def test_late_remerge_complete_coherent_context_blocks_dependency(self) -> None:
         required_operands, direct_rows, dependency_rows = self._source_selection_fixture()

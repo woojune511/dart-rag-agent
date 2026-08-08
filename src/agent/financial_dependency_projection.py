@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import re
 from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
+from src.agent import financial_answer_slots
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
 from src.agent.financial_operand_resolution import (
@@ -65,6 +66,28 @@ DependencyRecalculationPlanDisposition = Literal[
     "reuse",
     "unsupported_mode",
 ]
+
+RatioArtifactConflictSelectionReason = Literal[
+    "conflicting_artifact_selected",
+    "no_conflicting_artifact",
+]
+
+
+@dataclass(frozen=True)
+class RatioArtifactConflictSelectionInput:
+    """Prepared rows and numeric authority for ratio artifact precedence."""
+
+    artifact_rows: List[Dict[str, Any]]
+    recalculated_value: float
+
+
+@dataclass(frozen=True)
+class RatioArtifactConflictSelectionResult:
+    """Inspectable first-conflict selection without graph or ledger state."""
+
+    selected_artifact_row: Dict[str, Any]
+    conflict_selected: bool
+    reason: RatioArtifactConflictSelectionReason
 
 
 @dataclass(frozen=True)
@@ -2035,6 +2058,59 @@ def apply_absolute_ratio_magnitude_if_requested(
     except (TypeError, ValueError):
         return updated
     return updated
+
+
+def _ratio_artifact_numeric_value(row: Dict[str, Any]) -> Optional[float]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    primary_value = dict(answer_slots.get("primary_value") or {})
+    for value in (
+        calculation_result.get("result_value"),
+        primary_value.get("normalized_value"),
+        primary_value.get("raw_value"),
+        row.get("result_value"),
+    ):
+        numeric_value = financial_answer_slots.coerce_slot_numeric(value)
+        if numeric_value is not None:
+            return numeric_value
+    return None
+
+
+def resolve_ratio_artifact_conflict_selection(
+    selection_input: RatioArtifactConflictSelectionInput,
+) -> RatioArtifactConflictSelectionResult:
+    """Select the first artifact result that materially conflicts with recalculation."""
+
+    recalculated_value = selection_input.recalculated_value
+    for artifact_row in selection_input.artifact_rows:
+        calculation_result = dict(artifact_row.get("calculation_result") or {})
+        status = _normalise_spaces(
+            str(artifact_row.get("status") or calculation_result.get("status") or "")
+        ).lower()
+        if status != "ok":
+            continue
+        artifact_value = _ratio_artifact_numeric_value(artifact_row)
+        if artifact_value is None:
+            continue
+        tolerance = max(
+            max(abs(float(artifact_value)), abs(float(recalculated_value)), 1.0) * 5e-4,
+            1e-6,
+        )
+        if abs(float(artifact_value) - float(recalculated_value)) <= tolerance:
+            continue
+        return RatioArtifactConflictSelectionResult(
+            selected_artifact_row={
+                **artifact_row,
+                "artifact_ratio_result_preserved_over_alignment": True,
+            },
+            conflict_selected=True,
+            reason="conflicting_artifact_selected",
+        )
+    return RatioArtifactConflictSelectionResult(
+        selected_artifact_row={},
+        conflict_selected=False,
+        reason="no_conflicting_artifact",
+    )
 
 
 def build_dependency_recalculated_row(

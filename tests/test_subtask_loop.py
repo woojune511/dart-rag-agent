@@ -4038,32 +4038,78 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertFalse(updated[0].get("recovered_from_retrieved_ratio_context"))
         self.assertEqual(updated[0]["calculation_result"]["result_value"], 25.0)
         self.assertEqual(artifact_updated, [])
-        preferred_artifact_row = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
-            {
-                "artifacts": [
-                    {
-                        "artifact_id": "result:task_ratio:001",
-                        "task_id": "task_ratio",
-                        "kind": "calculation_result",
-                        "status": "ok",
-                        "summary": "25.00%",
-                        "payload": {
-                            "calculation_result": {
-                                "status": "ok",
-                                "operation_family": "ratio",
-                                "result_value": 25.0,
-                                "result_unit": "%",
-                                "rendered_value": "25.00%",
-                            }
-                        },
-                    }
-                ]
-            },
-            {"task_id": "task_ratio", "metric_family": "concept_ratio", "metric_label": metric_label},
-            {"status": "ok", "operation_family": "ratio", "result_value": 10.0},
-        )
+        artifact_state = {
+            "artifacts": [
+                {
+                    "artifact_id": "result:task_ratio:001",
+                    "task_id": "task_ratio",
+                    "kind": "calculation_result",
+                    "status": "ok",
+                    "summary": "25.00%",
+                    "payload": {
+                        "calculation_result": {
+                            "status": "ok",
+                            "operation_family": "ratio",
+                            "result_value": 25.0,
+                            "result_unit": "%",
+                            "rendered_value": "25.00%",
+                        }
+                    },
+                }
+            ]
+        }
+        artifact_task = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": metric_label,
+        }
+        recalculated_result = {"status": "ok", "operation_family": "ratio", "result_value": 10.0}
+        artifact_inputs_before = deepcopy([artifact_state, artifact_task, recalculated_result])
+        with (
+            patch.object(
+                self.agent,
+                "_ratio_result_rows_from_task_artifacts",
+                wraps=self.agent._ratio_result_rows_from_task_artifacts,
+            ) as artifact_builder,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_ratio_artifact_conflict_selection",
+                wraps=financial_graph_calculation.resolve_ratio_artifact_conflict_selection,
+            ) as artifact_owner,
+        ):
+            preferred_artifact_row = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                artifact_state,
+                artifact_task,
+                recalculated_result,
+            )
+        artifact_builder.assert_called_once_with(artifact_state, artifact_task)
+        artifact_owner.assert_called_once()
+        owner_input = artifact_owner.call_args.args[0]
+        self.assertEqual((len(owner_input.artifact_rows), owner_input.recalculated_value), (1, 10.0))
+        self.assertEqual([artifact_state, artifact_task, recalculated_result], artifact_inputs_before)
         self.assertTrue(preferred_artifact_row.get("artifact_ratio_result_preserved_over_alignment"))
         self.assertEqual(preferred_artifact_row["calculation_result"]["result_value"], 25.0)
+
+        with (
+            patch.object(
+                self.agent,
+                "_ratio_result_rows_from_task_artifacts",
+                wraps=self.agent._ratio_result_rows_from_task_artifacts,
+            ) as invalid_builder,
+            patch.object(
+                financial_graph_calculation,
+                "resolve_ratio_artifact_conflict_selection",
+                wraps=financial_graph_calculation.resolve_ratio_artifact_conflict_selection,
+            ) as invalid_owner,
+        ):
+            invalid = self.agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                artifact_state,
+                artifact_task,
+                {"status": "ok", "result_value": "not-a-number"},
+            )
+        self.assertEqual(invalid, {})
+        invalid_builder.assert_not_called()
+        invalid_owner.assert_not_called()
 
     def test_aggregate_final_answer_refreshes_after_late_lookup_slot_alignment(self) -> None:
         state = {
@@ -6050,6 +6096,46 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projected_formatted_result, ratio_row["answer"])
         self.assertEqual([ordered, state, projection], original_inputs)
         self.assertTrue(all(row is original for row, original in zip(ordered, original_rows)))
+
+        artifact_call_order = []
+
+        def _record_artifact_candidate(candidate_input):
+            artifact_call_order.append("candidate")
+            return candidate_runs[0]
+
+        def _select_existing_artifact(_state, _task, _recalculated_result):
+            artifact_call_order.append("artifact")
+            return ordered[-1]
+
+        with (
+            patch.object(
+                self.agent,
+                "_run_calculation_candidate_input",
+                side_effect=_record_artifact_candidate,
+            ) as artifact_candidate,
+            patch.object(
+                self.agent,
+                "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                side_effect=_select_existing_artifact,
+            ) as artifact_selector,
+            patch.object(
+                self.agent,
+                "_compact_ratio_answer",
+                wraps=self.agent._compact_ratio_answer,
+            ) as artifact_formatter,
+        ):
+            artifact_preserved = self.agent._align_lookup_results_with_dependency_projection(
+                ordered,
+                state,
+                projection,
+            )
+        artifact_candidate.assert_called_once()
+        artifact_selector.assert_called_once()
+        artifact_formatter.assert_not_called()
+        self.assertEqual(artifact_call_order, ["candidate", "artifact"])
+        self.assertIs(artifact_preserved, ordered)
+        self.assertIs(artifact_preserved[-1], original_rows[-1])
+        self.assertEqual([ordered, state, projection], original_inputs)
 
         failed_run = candidate_runs[0]._replace(
             projection=candidate_runs[0].projection._replace(
