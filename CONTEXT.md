@@ -43,7 +43,11 @@ Last updated: 2026-08-08
   direct preferred slot에는 score precedence와 ratio peer-unit alignment, exact row
   overlay를 typed state-free result로 적용한다. Graph가 복구한 period/ratio row에는
   period recovered-first merge 또는 coherent-ratio replacement와 사용 evidence
-  adoption을 typed state-free result로 적용한다. Dependency owner는
+  adoption을 typed state-free result로 적용한다. Graph가 LLM row를 coerce하고
+  applicability를 확인한 뒤에는 같은 owner가 per-row lookup direct-support와,
+  required operand가 있을 때의 ordered match/surface, lookup rematch,
+  direct-first merge를 두 typed state-free seam으로 적용한다. 이 seam의 reason과
+  application flag는 contract output이지 runtime trace가 아니다. Dependency owner는
   main precedence, late re-merge, terminal finalization, dependency recalculation plan
   disposition을 소유한다.
   Executable `single_value` plan은 reuse하고 invalid/absent plan은 한 번 rebuild하며,
@@ -57,7 +61,9 @@ Last updated: 2026-08-08
   target override, acceptance applicability gate, direct structured preference의
   runtime evidence overlay, row iteration, peer-unit preparation, strongest-slot
   builder와 scoring, recovered-context eligibility와 document/evidence 및 row builder,
-  required-candidate builder와 lazy coherent-context builder를 유지한다.
+  required-candidate builder와 lazy coherent-context builder를 유지한다. Post-coercion
+  LLM 경로에서도 model invocation, evidence lookup, scope-conflict skip, operand-id
+  assignment, coercion, applicability gate, enclosing try와 fallback을 유지한다.
   Recovery logging과 ratio-recovered flag projection, retry/query gate,
   state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
   absolute-ratio와 기타 fallback orchestration도 graph에 남는다. 전체 ledger
@@ -70,7 +76,7 @@ Last updated: 2026-08-08
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 5/5, affected 153/153, full unittest 1,484/1,484 PASS |
+| Latest calculation runtime validation | focused 4/4, affected 279/279, full unittest 1,486/1,486 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

@@ -266,7 +266,11 @@ lookup surface matching, retry query 생성이다.
   준비하고 typed owner가 adoption decision과 exact overlay를 적용한다. Graph가 만든
   recovered period/ratio rows와 evidence는 typed adoption owner가
   merge/replacement한다. Recovery eligibility와 builder, logging, ratio flag 및
-  runtime projection은 graph에 남는다.
+  runtime projection은 graph에 남는다. Post-coercion LLM 경로에서는 graph가
+  evidence lookup, scope skip, `op_{index}` id, coercion과 applicability를 준비하고,
+  typed owner가 per-row lookup direct-support와 required match/surface, lookup
+  rematch, direct-first merge를 두 단계로 적용한다. Enclosing exception과 fallback은
+  graph에 남는다.
 - `_plan_formula_calculation(state)`: state/query context를 state-free plan owner
   입력으로 바꾸고, primary 경로에서는 selected plan을 runtime/task/artifact
   state로 투영하는 graph adapter다.
@@ -310,7 +314,10 @@ state-free owner 경계:
   Graph가 복구한 period context에는 recovered-first/current missing-fill을, coherent
   ratio context에는 recovered-only replacement를 적용하고, recovered row가 참조한
   evidence만 기존 evidence 뒤에 source order대로 채택한다. 기존 id는 제외하고 새
-  candidate duplicate는 보존하며 input은 변경하지 않는다.
+  candidate duplicate는 보존하며 input은 변경하지 않는다. Graph가 coerce한 LLM
+  row에는 lookup direct-support를 identity-preserving decision으로 적용하고, required
+  operand가 있으면 ordered match/surface, lookup rematch, direct-first missing-fill을
+  별도 typed result로 적용한다. 이 두 seam의 reason/flag도 runtime trace가 아니다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -347,6 +354,8 @@ graph adapter에 남은 orchestration 역할군:
 - direct row/evidence construction, coercion, scope/target policy, acceptance
   applicability gate, direct preference runtime evidence overlay, row
   matching/iteration, peer-unit preparation, strongest-slot builder와 scoring
+- post-coercion LLM invocation/model dump, evidence lookup, scope-conflict skip,
+  operand-id assignment, coercion, applicability, enclosing exception과 fallback
 - recovered-context eligibility, document/evidence collection, period/ratio row
   builder, logging, ratio-recovered flag와 runtime projection
 - required-candidate/evidence builder, dependency producer-scope filter, lazy

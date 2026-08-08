@@ -613,6 +613,21 @@ lists without mutating their inputs; the no-context owner path retains the input
 identities. Adoption reasons and adopted ids are inspectable owner outputs, not
 runtime trace fields. The graph does not pass state or a builder callback.
 
+After LLM extraction, the graph still resolves evidence, skips scope conflicts,
+assigns `op_{index}` ids, coerces rows, and applies the operation-specific
+applicability gate. For each surviving coerced row, the operand owner makes a
+typed lookup direct-support decision while retaining that row's identity. When
+required operands exist, a second typed owner seam applies ordered requirement
+matching and surface validation, performs the lookup binding-policy rematch, and
+then applies the existing direct-first missing-fill merge. Without a merge,
+surviving LLM row identities and order are retained; a merge preserves direct
+row order first and uses the existing top-level shallow-copy contract. The two
+stages intentionally do not reuse the pre-LLM acceptance/ambiguity contract,
+because their evaluation order differs and this path has no direct-row ambiguity
+gate. Owner exceptions continue through the existing graph `try` boundary. The
+typed reasons and application flags are inspectable contract outputs, not
+runtime trace fields.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
@@ -643,7 +658,9 @@ scoring, and sequential iteration. It also owns recovered-context eligibility,
 document/evidence collection, and period/ratio context-row builders.
 It also owns recovery logging and ratio-recovered flag projection,
 required-candidate builders, producer-scope filtering, the lazy coherent-context
-builder gate, retry and
+builder gate, post-coercion LLM invocation and model-row dumping, evidence lookup,
+scope-conflict skip, operand-id assignment, applicability and enclosing exception
+boundaries, retry and
 dependency-guard decisions, the percent-point query gate, other deterministic/LLM
 fallback paths, coverage decisions, and state, trace, artifact, and logging
 projection. Aggregate repair also remains graph-owned, so this is not a

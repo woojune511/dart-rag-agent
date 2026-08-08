@@ -191,8 +191,10 @@ Current calculation ownership is:
   preparation, strongest-slot building and scoring, recovered-context
   eligibility, document/evidence and context-row builders, recovery logging and
   ratio-recovered flag projection, retry gates,
-  graph-private candidate preparation, state/task/artifact projection, repair
-  acceptance, aggregate/filter sequencing, and remaining fallbacks.
+  post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
+  exception/fallback orchestration, graph-private candidate preparation,
+  state/task/artifact projection, repair acceptance, aggregate/filter
+  sequencing, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
   grounding, selection, and merge behavior, including coherent-first required
   candidate merge followed by complete-ratio candidate-first or current-first
@@ -200,7 +202,10 @@ Current calculation ownership is:
   required match/surface, ambiguity, and lookup direct-support gates, plus typed
   prepared preferred-slot score/ratio-alignment adoption and exact overlay. It
   owns recovered-context period merge or coherent-ratio replacement and
-  referenced evidence adoption after graph-owned builders run.
+  referenced evidence adoption after graph-owned builders run. It also owns the
+  post-coercion per-row lookup direct-support decision and the required
+  match/surface, lookup-rematch, direct-first merge decision as separate typed
+  state-free seams.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -214,19 +219,18 @@ Current calculation ownership is:
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection and canonical aggregate operation-family normalization.
 
-At the latest checkpoint, the graph is 19,756 lines, the operand owner is 2,151,
+At the latest checkpoint, the graph is 19,753 lines, the operand owner is 2,270,
 the dependency owner is 2,813, and the execution owner is 837. The latest owner
-slice passed 5/5 targeted and 153/153 affected tests, the 217-literal audit, and
-full discovery over 1,484/1,484 tests on Python 3.13. Benchmark refresh is NOT
+slice passed focused 4/4 and affected 279/279 tests, the 217-literal audit, and
+full discovery over 1,486/1,486 tests on Python 3.13. Benchmark refresh is NOT
 RUN. Exact commit boundaries, intermediate metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
 in this plan.
 
 Phase 3 remains open for these unordered follow-ups:
 
-- characterize bounded post-coercion LLM selection and remaining graph-prepared
-  direct-preference builder/scoring seams as separate slices without moving graph
-  state or builders;
+- characterize remaining graph-prepared direct-preference builder/scoring seams
+  without moving graph state or builders;
 - move bounded aggregate repair/precedence decisions behind the aggregate owner;
 - isolate dependency post-candidate finalization and ratio
   artifact/absolute-magnitude seams without moving graph state lookup;

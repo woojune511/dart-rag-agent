@@ -85,13 +85,19 @@ imports or an unconfigured `FinancialAgent` invocation.
   candidate duplicates, top-level row-copy/nested identity, and no-context
   identity. The graph retains recovery eligibility, document/evidence collection,
   context-row builders, logging, and ratio-recovered/runtime projection.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,756 lines,
-  `financial_operand_resolution.py` is 2,151,
+- Post-coercion LLM operand selection now has two typed state-free
+  operand-resolution seams: per-row lookup direct-support, then required
+  match/surface, lookup rematch, and direct-first merge. Their reasons and flags
+  are contract outputs, not runtime trace fields. The graph retains model
+  invocation, evidence lookup, scope skip, id assignment, coercion,
+  applicability, the enclosing exception boundary, and fallback orchestration.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,753 lines,
+  `financial_operand_resolution.py` is 2,270,
   `financial_dependency_projection.py` is 2,813, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed 5/5 targeted and 153/153 affected
-  tests, the 217-literal runtime audit, and full discovery over 1,484/1,484 tests
+- The latest calculation checkpoint passed focused 4/4 and affected 279/279
+  tests, the 217-literal runtime audit, and full discovery over 1,486/1,486 tests
   on Python 3.13. Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -110,7 +116,7 @@ current-state document does not duplicate that commit diary.
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
-| Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, and typed recovered-context merge/replacement plus referenced-evidence adoption while graph retains scope/target and applicability policy, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
+| Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation/scoring, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, and dependency recalculation plan disposition | `financial_dependency_projection.py`; graph builds explicit raw plans and retains query gates, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection and stale provenance selection | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization and typed state-free target selection are owner-owned, while acceptance/filter sequencing remains graph-owned |
@@ -137,9 +143,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: 5/5 targeted and 153/153 affected tests on 2026-08-08 |
+| Latest calculation runtime checkpoint | PASS: 4/4 focused and 279/279 affected tests on 2026-08-08 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-08 |
-| Full unittest discovery | PASS, 1,484/1,484 tests locally on 2026-08-08 |
+| Full unittest discovery | PASS, 1,486/1,486 tests locally on 2026-08-08 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -185,14 +191,15 @@ The July canonical public-projection milestone is complete, but the broader
 single-calculation-path Phase 3 remains open. Dependency precedence, late merge,
 terminal finalization, required-candidate merge, direct structured acceptance,
 prepared preferred-slot adoption, recovered-context adoption, scalar plan
-disposition, deterministic plan/execution, and pure aggregate provenance selection
-have named owners. The graph still owns
+disposition, post-coercion LLM operand selection, deterministic plan/execution,
+and pure aggregate provenance selection have named owners. The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy, direct
 structured preference applicability, runtime evidence preparation, row
 matching/iteration, peer-unit preparation and strongest-slot scoring,
 recovered-context eligibility and row/evidence construction, producer-scope filtering, lazy coherent-context
 construction, retry and
-query gates, candidate preparation plus state/task/artifact projection, repair
+query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
+exception/fallback orchestration, candidate preparation plus state/task/artifact projection, repair
 acceptance, aggregate/filter sequencing, absolute-ratio handling, and other
 deterministic/LLM fallbacks. Broader ledger synchronization and the private
 helper mesh are also open. No current result supports a whole-ledger,
@@ -213,22 +220,19 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize two separate post-coercion
-LLM selection boundaries inside `_extract_calculation_operands`: per-row lookup
-direct-support at `financial_graph_calculation.py:15478-15480`, then batch required
-matching, surface validation, lookup rematching, and direct-first merge at
-`financial_graph_calculation.py:15482-15505`. Evidence lookup, scope-conflict
-skip, `op_{index}` assignment, coercion, applicability gates, and the enclosing
-exception boundary remain graph-owned. Do not reuse the pre-LLM direct-acceptance
-or ambiguity contract: this path intentionally has no direct-row ambiguity gate
-and preserves a different evaluation order. Extract each boundary only after its
-typed input, identity/order, and exception behavior are characterized. The
-function remains an 800-line graph adapter under the established
-definition-to-next-definition count; do not split it by size alone. Remaining
-direct-preference applicability, runtime evidence preparation, row iteration,
-peer-unit preparation, strongest-slot building and scoring are separate graph-state
-debt. Aggregate
-repair/precedence selection, dependency post-candidate finalization, ratio
+The next bounded architecture work is to characterize the prepared
+artifact-row versus recalculated-ratio conflict decision inside
+`_preferred_ratio_artifact_row_for_conflicting_recalculation`
+(`financial_graph_calculation.py:14480-14498`). Artifact lookup and row
+construction remain graph-owned; a typed state-free dependency owner should
+receive the already prepared artifact rows and recalculated result. Preserve
+numeric coercion, status/value skips, scaled tolerance, stable first-conflict
+selection, top-level copy plus preservation marker, input immutability, and the
+empty no-match result. This stop line does not move artifact ledger state or
+absolute-ratio formatting. The extraction adapter remains a 795-line graph
+adapter under the definition-to-next-definition count; do not split it by size
+alone. Remaining direct-preference preparation/scoring, aggregate
+repair/precedence selection, dependency post-candidate finalization, other ratio
 artifact/absolute orchestration, broader ledger synchronization, remaining
 fallbacks, private facade/API cleanup, and contract-aligned test co-location
 remain separate work. The Phase 3 backlog in the refactoring plan is unordered;

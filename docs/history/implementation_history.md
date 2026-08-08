@@ -324,6 +324,30 @@ stateful evidence preparation, builder/scoring, or graph orchestration and not a
 total-code, broad executed-path, performance, private-mesh, end-to-end
 calculation-owner, or complete Phase 3 reduction claim.
 
+### Post-coercion LLM operand selection ownership
+
+- `6dc036e` moves two post-coercion state-free decisions into the operand owner.
+  The first preserves per-row lookup direct-support, row identity, and reason;
+  the second preserves ordered required matching/surface validation, lookup
+  rematching, and direct-first missing-fill merge with the existing list,
+  top-level copy, nested-identity, and input-immutability contracts. The graph
+  retains LLM invocation, evidence lookup, scope-conflict skip, operand-id
+  assignment, coercion, applicability, the enclosing exception boundary, and
+  fallback orchestration. Owner reasons and application flags are not projected
+  into runtime trace fields.
+- The graph changes from 19,756 to 19,753 lines (`+20/-23`, net -3) and the
+  operand owner from 2,151 to 2,270 lines (`+119`). Production source is
+  `+139/-23`, net 116; tests are `+301/-2`, net 299; the whole commit is
+  `+440/-25`, net 415. The extraction adapter's definition-to-next-definition
+  span changes from 800 to 795 lines.
+- Validation passed focused 4/4 tests, affected 279/279 tests, the 217-literal
+  runtime audit, and full discovery over 1,486/1,486 tests on Python 3.13.
+  Benchmark refresh was NOT RUN.
+
+This move deletes only the graph's two direct imports of the migrated private
+operand helpers. It is not a total-code, broad executed-path, performance,
+private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
