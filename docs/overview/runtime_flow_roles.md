@@ -331,7 +331,13 @@ state-free owner 경계:
   label, raw-unit, digit-threshold gate와 기존 additive weights를 literal 순서로
   적용한다. 첫 두 caller는 empty slot도 호출하고 period-context caller는 먼저
   건너뛰며, graph는 세 slot builder와 후속 context/scope/ambiguity/tie/grouping/
-  selection policy를 유지한다. 같은 owner의 plain public
+  selection policy를 유지한다. 같은 owner의 plain direct target-metric fallback
+  predicate는 prepared target/existing/required rows만 받아 unit/value conflict와
+  aggregate preference를 판정한다. Target/existing gate, matcher별 row-copy 반복,
+  unit normalization, aggregate-role veto, aggregate-like/structured-source lazy
+  access와 stable first-conflict를 보존한다. Value-difference helper의 float
+  `TypeError`/`ValueError`는 raw/value fallback으로 이어지고 그 밖의 예외는
+  전파된다. 같은 owner의 plain public
   transform은 graph-built 단일 operand row의 embedded/rendered unit normalization을
   repair한다. 모든 경로에서 fresh top-level dict와 nested alias를 유지하고 scaled
   tolerance, `NaN` 비대칭, first rendered match, original-field precedence와 uncaught
@@ -450,7 +456,9 @@ graph adapter에 남은 orchestration 역할군:
 - direct row/evidence construction, coercion, scope/target policy, acceptance
   applicability gate, direct preference runtime evidence overlay, row
   matching/iteration, peer-unit preparation, strongest-slot builder,
-  query/report-scope score 보강, ambiguity/tie-break와 sequential adoption
+  query/report-scope score 보강, ambiguity/tie-break와 sequential adoption;
+  direct target-metric builder, evidence pool/coercion, scope gate, conflict-owner
+  call placement, adoption/evidence append와 candidate preparation
 - post-coercion LLM invocation/model dump, evidence lookup, scope-conflict skip,
   operand-id assignment, coercion, applicability, enclosing exception과 fallback
 - recovered-context eligibility, document/evidence collection, period/ratio row
@@ -573,7 +581,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_operand_resolution.py`: state-free generic operand candidate
   resolution, typed required-candidate precedence/merge, and typed direct
   structured acceptance, typed direct structured-evidence base scoring, and the
-  neutral ordered aggregate-role preference predicate, plus plain single-row
+  neutral ordered aggregate-role preference predicate, plain table-label scoring,
+  and plain direct target-metric fallback conflict predicate, plus plain single-row
   embedded/rendered-unit normalization repair and shared-context multi-row ratio
   display-unit alignment
 - `financial_dependency_projection.py`: dependency-binding summary, projection,

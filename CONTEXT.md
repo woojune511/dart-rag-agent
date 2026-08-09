@@ -45,7 +45,14 @@ Last updated: 2026-08-09
   metadata scorer는 graph-built slot과 evidence만 받아 empty-slot/label/unit/digit
   gate 뒤 기존 additive weights를 그대로 계산한다. 첫 두 caller는 empty slot도
   scorer에 전달하고 period-context caller는 empty slot을 먼저 건너뛰는 비대칭을
-  유지한다. Typed base-scorer reason은 contract output이지 runtime trace가 아니다. Direct
+  유지한다. 같은 owner의 plain direct-target conflict predicate는 graph가 준비한
+  target row, existing rows와 required operands만 받아 unit/value conflict와 aggregate
+  preference를 판정한다. Target/existing gate, matcher별 row copy, repeated unit
+  normalization, aggregate-role veto, aggregate-like와 structured-source lazy access
+  순서를 보존한다. `operand_row_values_differ`의 float `TypeError`/`ValueError`는 기존
+  raw/value fallback으로 이어지고, 그 밖의 mapping/matcher/copy/string/normalizer/
+  cleaner/iteration 예외는 전파된다. Typed base-scorer reason은 contract output이지
+  runtime trace가 아니다. Direct
   preferred slot에는 score precedence와 ratio peer-unit
   alignment, exact row overlay를 typed state-free result로 적용한다. Graph가 복구한
   period/ratio row에는
@@ -141,6 +148,8 @@ Last updated: 2026-08-09
 - Graph는 direct row/evidence construction, coercion과 scope filtering,
   target override, acceptance applicability gate, table-label metadata scorer의
   세 caller placement와 empty-slot 비대칭, direct structured preference의
+  target builder, evidence pool/coercion, scope gate, conflict-owner call placement,
+  target adoption과 evidence append,
   runtime evidence overlay, row iteration, peer-unit preparation, strongest-slot
   builder, query/report-scope score 보강, ambiguity/tie-break와 sequential adoption,
   recovered-context eligibility와 document/evidence 및 row builder,
@@ -186,7 +195,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 5/5, affected 610/610, full unittest 1,510/1,510 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 552/552, full unittest 1,509/1,509 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

@@ -969,6 +969,42 @@ integrity/replan policy, total-code or broad executed-path reduction, performanc
 broader private-mesh cleanup, end-to-end calculation ownership, or complete
 Phase 3.
 
+### Direct target-metric fallback conflict ownership
+
+- `3794f19` moves the graph-private direct target-metric fallback unit/value
+  conflict and aggregate-preference predicate into the plain public
+  `financial_operand_resolution.py` owner. The sole graph call remains after
+  target construction, evidence coercion, target truthiness, and requested-scope
+  acceptance. The old graph definition and private self references are deleted;
+  no wrapper, result carrier, callback, reason, flag, config input, compatibility
+  alias, or trace field is added.
+- Target/existing gates, matcher-specific row-copy repetition, repeated known-unit
+  normalization, first matching required operand, aggregate-role veto, aggregate-
+  like surface laziness, structured-source access, stable first-conflict order,
+  and input immutability are unchanged. `operand_row_values_differ` preserves its
+  helper-local float `TypeError`/`ValueError` catch and raw/value fallback; the
+  predicate adds no broader catch, so mapping, matcher, copy, truthiness, string,
+  normalization, source-id cleaning, iteration, `RuntimeError`, and other
+  exceptions still propagate.
+- Graph retains the target builder, evidence pool/build/coercion, outer scope gate,
+  target adoption and evidence append, candidate preparation, state/artifact
+  projection, and final orchestration. The owner tests pin the direct decision,
+  copy/access and exception contract; the existing graph fixture pins owner-zero
+  target/scope gates, exact post-coercion inputs, false/true adoption behavior, and
+  exception stop.
+- Production source is `+74/-73`, net 1: the graph changes from 18,738 to 18,667
+  lines (`+2/-73`, net -71) and the operand owner from 2,663 to 2,735 (`+72`).
+  Tests are `+570/-125`, net 445; the whole commit is `+644/-198`, net 446.
+- Validation passed targeted 3/3 tests, affected 552/552 tests, the 217-literal
+  runtime audit, full discovery over 1,509/1,509 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared direct-target fallback conflict-predicate
+ownership relocation and 71-line old graph-body deletion, not target construction,
+scope/evidence selection, whole-operand precedence, scoring or policy improvement,
+callback/private-mesh cleanup, total-code or broad executed-path reduction,
+performance, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

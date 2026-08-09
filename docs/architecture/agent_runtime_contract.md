@@ -590,6 +590,37 @@ empty slot before scorer invocation. This seam owns only the state-free score,
 not slot construction, evidence iteration, selection, or downstream policy, and
 adds no wrapper, reason, flag, callback, config input, or trace field.
 
+The operand owner also exposes the plain public direct target-metric fallback
+conflict predicate. It receives only the graph-prepared target row, existing rows,
+and required operands. Target-row then existing-row truthiness gates retain their
+short-circuit order. Required operands cause a fresh row copy for each matcher
+attempt and another copy when a row is retained; an empty requirement sequence
+skips matcher access and copies each retained row once. No matching row returns
+before target-unit access. Known existing units retain the repeated getter,
+string, normalization, and uppercase evaluation in the set filter and expression.
+A blank or `UNKNOWN` target unit, or a target unit outside that known set, is a
+conflict.
+
+The first matching required operand is copied in source order. Aggregate-role
+preference vetoes replacement before target aggregate-like surface access;
+otherwise value role and aggregation stage precede the lazy aggregate-label OR.
+Existing rows then retain unit compatibility, value comparison, cleaned evidence/
+source ids, and lazy table-source, statement-type, and source-anchor order. The
+first differing structured row conflicts only with an aggregate-like target.
+Inputs remain unmodified. The existing `operand_row_values_differ` helper keeps
+its float `TypeError`/`ValueError` catch and raw/value fallback; the predicate adds
+no broader catch, so mapping, matcher, copy, truthiness, string, normalization,
+source-id cleaning, iteration, `RuntimeError`, and other exceptions propagate.
+
+The sole graph call remains after target construction, evidence coercion, target
+truthiness, and requested-scope acceptance. Graph retains the target builder,
+evidence pool and coercion, scope gate, target adoption and evidence append,
+candidate preparation, state/artifact projection, and final orchestration. This
+seam owns only prepared direct-target fallback unit/value conflict and aggregate-
+preference disposition. It does not establish target/evidence selection, whole-
+operand precedence, total-code or executed-path reduction, performance, private-
+mesh cleanup, or Phase 3 completion.
+
 The operand owner also exposes a plain state-free single-row transform for
 embedded raw-unit or rendered-unit normalization repair. It executes the former
 graph body literally: `dict(row or {})` always creates a fresh top-level result,

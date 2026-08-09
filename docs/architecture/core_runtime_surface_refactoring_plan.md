@@ -189,7 +189,9 @@ Current calculation ownership is:
   the coherent-context builder lazily. It also owns direct structured preference
   preparation through runtime evidence overlay, row iteration, peer-unit
   preparation, strongest-slot building, query/report-scope score augmentation,
-  ambiguity/tie-break policy and sequential adoption, recovered-context
+  ambiguity/tie-break policy and sequential adoption, direct target-metric
+  fallback construction/evidence coercion/scope gating plus target adoption and
+  evidence append around the owner conflict call, recovered-context
   eligibility, document/evidence and context-row builders, recovery logging and
   ratio-recovered flag projection, retry gates,
   post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
@@ -225,6 +227,15 @@ Current calculation ownership is:
   It preserves the literal empty-slot/label/unit/digit gates, additive weights,
   repeated access and exception order, while graph retains all three slot builders,
   their empty-slot invocation asymmetry, and downstream selection policy.
+  It also owns the plain direct target-metric fallback conflict predicate over a
+  graph-prepared target row, existing rows, and required operands. The predicate
+  preserves target/existing gates, matcher-specific row-copy repetition, known-unit
+  construction, aggregate-role veto, aggregate-like and structured-source lazy
+  access, input immutability, and exact exception behavior. In particular,
+  `operand_row_values_differ` retains its helper-local float `TypeError`/`ValueError`
+  catch and raw/value fallback while other exceptions propagate. Graph retains
+  target construction, evidence pool/coercion, scope, adoption/evidence append,
+  candidate preparation, state, artifact, and final orchestration.
   The same owner also owns the plain state-free single-row embedded/rendered-unit
   normalization repair transform. It preserves fresh top-level copy and nested-
   alias behavior, scaled tolerance and `NaN` semantics, stable first rendered
@@ -306,13 +317,13 @@ Current calculation ownership is:
   graph state/input preparation, integrity/replan policy, and final orchestration
   remain graph-owned.
 
-At the latest checkpoint, the graph is 18,738 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,667 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,663, the answer-slot owner is 594, the aggregate owner is 1,019, the
+is 2,735, the answer-slot owner is 594, the aggregate owner is 1,019, the
 aggregate-state owner is 161, the dependency owner is 3,209, the task-artifact
 owner is 1,250, and the execution owner is 837. The latest owner slice passed
-targeted 5/5 tests, affected 610/610 tests, the 217-literal audit, and full
-discovery over 1,510/1,510 tests.
+targeted 3/3 tests, affected 552/552 tests, the 217-literal audit, and full
+discovery over 1,509/1,509 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
