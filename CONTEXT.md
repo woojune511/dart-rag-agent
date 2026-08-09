@@ -54,7 +54,12 @@ Last updated: 2026-08-09
   graph가 준비한 단일 row의 embedded raw-unit 또는 rendered-unit normalization repair를
   plain state-free transform으로 소유한다. 모든 경로에서 fresh top-level dict를 만들고
   nested alias, scaled tolerance와 `NaN` 비대칭, first rendered match, access/exception
-  순서를 보존하며 input을 변경하지 않는다. Dependency owner는
+  순서를 보존하며 input을 변경하지 않는다. 같은 owner가 graph가 선택한 ordered ratio
+  operands에는 shared table id 또는 complete section/statement/scope context 안의 display
+  unit을 largest configured scale로 정렬한다. No-change는 exact input list/row identity를,
+  changed path는 모든 row의 fresh top-level copy와 nested alias를 보존한다. Graph는
+  evidence-driven sibling aligner와 candidate selection, caller gate와 operand-map propagation을
+  유지한다. Dependency owner는
   main precedence, late re-merge, terminal finalization, dependency recalculation plan
   disposition을 소유한다. Graph가 준비한 ordered artifact rows와 이미 coerce한
   recalculated numeric authority에는 status fallback, artifact numeric precedence,
@@ -120,8 +125,8 @@ Last updated: 2026-08-09
   source-id cleaning, compact formatting,
   recalculated result-value coercion과 invalid-value artifact-builder skip,
   dependency candidate-input construction/execution, query/absolute transform,
-  task-artifact/ledger conflict short-circuit와 formatter, multi-row sibling-table unit
-  alignment, collapsed-ratio
+  task-artifact/ledger conflict short-circuit와 formatter, sibling-table evidence selection과
+  candidate realignment 및 preparation/map propagation, collapsed-ratio
   trace/eligibility/completeness/query gate와 prepared
   copies, downstream coherence/compact-answer/coverage/final projection, structured
   provenance lookup과 후속 evidence lookup/coercion/append, aggregate evidence와
@@ -147,7 +152,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 5/5, affected 612/612, full unittest 1,500/1,500 PASS |
+| Latest calculation runtime validation | targeted 5/5, affected 613/613, full unittest 1,501/1,501 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

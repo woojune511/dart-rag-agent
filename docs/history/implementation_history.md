@@ -764,6 +764,40 @@ ratio or append policy, aggregate repair or composition, state/artifact/ledger
 ownership, and not a total-code, broad executed-path, performance, broad private-
 mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Shared-table ratio display-unit alignment ownership
+
+- `00b6357` moves the graph-private same-table/context multi-row ratio display-
+  unit alignment into `financial_operand_resolution.py` as a plain state-free
+  transform. The old body is relocated literally, including length and policy
+  gates, eager configured-scale conversion, repeated unit normalization,
+  table-id-first or complete section/statement/scope grouping, unsorted
+  largest-scale selection, partial repairs, and uncaught access/exception order.
+- No-change returns the exact input list and row identities even after discarded
+  copies. Any repair returns a fresh list and fresh top-level copy for every row,
+  preserves untouched nested aliases and order, and leaves inputs unmodified.
+  There is no new tolerance or finiteness gate; existing normalizer behavior,
+  including accepted `NaN`, is unchanged.
+- The three graph calls retain their original semantic positions after the outer
+  length/evidence gates: empty-evidence and unchanged-evidence paths pass the
+  original rows, while accepted evidence realignment passes its prepared aligned
+  rows. The graph retains the evidence-driven sibling aligner, candidate
+  selection, ratio-family preparation and operand-map propagation, ratio policy,
+  state/artifact work, and final orchestration. The old definition and private
+  self references are deleted.
+- Production source is `+82/-81`, net 1: the graph changes from 19,066 to 18,989
+  lines (`+4/-81`, net -77) and the operand owner from 2,532 to 2,610 (`+78`).
+  Tests are `+242/-2`, net 240; the whole commit is `+324/-83`, net 241.
+- Validation passed targeted 5/5 tests, affected 613/613 tests, the 217-literal
+  runtime audit, full discovery over 1,501/1,501 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving shared-context multi-row ratio display-unit
+alignment ownership relocation, not evidence-driven sibling candidate
+selection, single-row repair, unit inference, ratio/query policy, preparation
+or operand-map propagation, state/artifact/ledger or final orchestration, and
+not a total-code, broad executed-path, performance, broad private-mesh,
+end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

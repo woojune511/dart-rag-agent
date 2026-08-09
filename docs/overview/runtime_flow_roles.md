@@ -330,7 +330,11 @@ state-free owner 경계:
   transform은 graph-built 단일 operand row의 embedded/rendered unit normalization을
   repair한다. 모든 경로에서 fresh top-level dict와 nested alias를 유지하고 scaled
   tolerance, `NaN` 비대칭, first rendered match, original-field precedence와 uncaught
-  exception 순서를 보존한다. Input을 변경하지 않고 reason/flag/trace를 추가하지 않는다.
+  exception 순서를 보존한다. 같은 owner의 plain multi-row transform은 shared table id
+  또는 complete section/statement/scope context 안의 ratio display units를 configured
+  largest scale로 정렬한다. No-change exact identity, changed-path all-row shallow copy,
+  nested alias, partial repair와 uncaught exception 순서를 보존한다. 두 transform 모두
+  input을 변경하지 않고 reason/flag/trace를 추가하지 않는다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -410,8 +414,9 @@ graph adapter에 남은 orchestration 역할군:
 - main context/evidence retrieval gate와 typed input 구성
 - dependency row construction, stateful `vsm` structured-provenance lookup,
   no-provenance owner-call skip, downstream evidence lookup/coercion/append;
-  single-row repair 전후의 caller gates와 plan/operand-map propagation, multi-row
-  sibling-table unit alignment
+  single-row repair 전후의 caller gates와 plan/operand-map propagation,
+  evidence-driven sibling candidate selection/realignment과 shared-context owner
+  호출 배치
 - direct row/evidence construction, coercion, scope/target policy, acceptance
   applicability gate, direct preference runtime evidence overlay, row
   matching/iteration, peer-unit preparation, strongest-slot builder,
@@ -534,7 +539,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   resolution, typed required-candidate precedence/merge, and typed direct
   structured acceptance, typed direct structured-evidence base scoring, and the
   neutral ordered aggregate-role preference predicate, plus plain single-row
-  embedded/rendered-unit normalization repair
+  embedded/rendered-unit normalization repair and shared-context multi-row ratio
+  display-unit alignment
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate

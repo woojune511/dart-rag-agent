@@ -589,10 +589,33 @@ dependency row is built and before structured-provenance/evidence work; after
 candidate plan guards and before multi-row sibling-ratio alignment; and at the
 two prepared ratio-append row construction sites before later coverage, merge,
 and projection. The graph retains every applicability gate, row and evidence
-builder, plan and operand-map propagation, multi-row unit alignment, ratio and
+builder, plan and operand-map propagation, evidence-driven sibling alignment, ratio and
 append policy, and state/artifact/final orchestration. This seam adds no wrapper,
 reason, application flag, graph state, callback, or trace field and claims only
 single-row normalization-repair ownership.
+
+The operand owner also exposes the plain state-free multi-row transform
+`align_ratio_operand_units_with_shared_table_context`. It keeps the former graph
+body literal: the length, copied render-policy, KRW and eligible-unit gates run in
+their original order; configured units retain repeated normalization and eager
+scale conversion; table id takes precedence over the complete section/statement/
+scope fallback; and target selection remains the unsorted set-backed largest
+configured scale. There is no separate tolerance or finiteness gate. Per-row
+normalization may repair only part of an eligible group, and every policy,
+mapping, copy, truthiness, string, float, `max`, or normalizer exception remains
+uncaught in the same access order.
+
+No-change returns the exact input list and row identities, including after
+discarded top-level copies. Any accepted repair returns a fresh list and fresh
+top-level dictionaries for every row while preserving untouched nested aliases,
+stable row order, and input immutability. The three graph calls remain after the
+outer length/evidence gates: no-evidence and unchanged-evidence paths pass the
+original list, while an accepted evidence realignment passes the already aligned
+list. The graph retains that evidence-driven outer aligner, candidate selection,
+ratio-family preparation and operand-map propagation, ratio policy, and later
+state/artifact orchestration. This relocation adds no wrapper, reason, flag,
+callback, or trace field and claims only shared-context multi-row display-unit
+alignment ownership.
 
 Within `_extract_calculation_operands`, the same owner also receives the current
 post-main operand rows, required candidate rows after producer-scope filtering,
