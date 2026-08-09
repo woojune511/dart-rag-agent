@@ -2,6 +2,7 @@ import unittest
 from copy import deepcopy
 from unittest.mock import patch
 
+import src.agent.financial_graph_calculation as graph_calculation
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
     DeterministicOperationPlanDecision,
@@ -22,6 +23,184 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import CalculationResult
 
 class FinancialCalculationExecutionTests(unittest.TestCase):
+    def test_prepare_candidate_binds_operation_sign_policy_before_execution(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        numerator = {
+            "operand_id": "numerator",
+            "matched_operand_role": "numerator",
+            "normalized_value": 300.0,
+            "normalized_unit": "KRW",
+        }
+        denominator = {
+            "operand_id": "denominator",
+            "matched_operand_role": "denominator",
+            "normalized_value": -100.0,
+            "normalized_unit": "KRW",
+        }
+
+        def candidate_input(*, mode: str = "scalar", operation_family: str = "ratio"):
+            return graph_calculation._CalculationCandidateInput(
+                calculation_operands=(deepcopy(numerator), deepcopy(denominator)),
+                calculation_plan={
+                    "mode": mode,
+                    "operation": operation_family,
+                    "ordered_operand_ids": ["numerator", "denominator"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "numerator"},
+                        {"variable": "B", "operand_id": "denominator"},
+                    ],
+                    "formula": "A / B",
+                    "pairwise_formula": "",
+                    "result_unit": "NUMBER",
+                },
+                active_subtask={"operation_family": operation_family, "required_operands": []},
+                query="calculate the ratio",
+                evidence_items=(),
+                runtime_evidence=(),
+            )
+
+        def execute(**kwargs):
+            ordered = tuple(
+                kwargs["operands_by_id"][operand_id]
+                for operand_id in kwargs["ordered_operand_ids"]
+            )
+            return CalculationExecutionOutcome(
+                status="ok",
+                reason="",
+                result_value=3.0,
+                normalized_unit="NUMBER",
+                source_normalized_unit="NUMBER",
+                ordered_operands=ordered,
+                selected_evidence_ids=(),
+            )
+
+        latest_mocks = {}
+
+        def invoke(
+            owner_side_effect,
+            *,
+            mode: str = "scalar",
+            operation_family: str = "ratio",
+            period_conflict: bool = False,
+        ):
+            with (
+                patch.object(
+                    agent,
+                    "_coerce_operand_row_from_evidence",
+                    side_effect=lambda row, _evidence: row,
+                ),
+                patch.object(
+                    agent,
+                    "_repair_krw_operand_units_from_table_metadata",
+                    side_effect=lambda rows, _evidence: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_repair_krw_normalized_values_from_raw_units",
+                    side_effect=lambda rows: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_align_ratio_operands_with_sibling_table_context",
+                    side_effect=lambda rows, _evidence: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_align_growth_operand_units_when_raw_scale_matches",
+                    side_effect=lambda rows: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_recover_duplicate_growth_prior_operand",
+                    side_effect=lambda rows, _evidence: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_growth_operand_periods_conflict",
+                    return_value=period_conflict,
+                ),
+                patch.object(
+                    graph_calculation,
+                    "apply_operation_sign_policy",
+                    side_effect=owner_side_effect,
+                ) as owner,
+                patch.object(graph_calculation, "guard_operation_plan", return_value={}),
+                patch.object(
+                    graph_calculation,
+                    "repair_operand_normalization_from_rendered_unit",
+                    side_effect=lambda row: row,
+                ),
+                patch.object(
+                    graph_calculation,
+                    "coerce_lookup_magnitude_record",
+                    side_effect=lambda row, _evidence: row,
+                ) as magnitude,
+                patch.object(
+                    graph_calculation,
+                    "execute_prepared_calculation_plan",
+                    side_effect=execute,
+                ) as executor,
+            ):
+                latest_mocks.update(owner=owner, magnitude=magnitude, executor=executor)
+                result = agent._prepare_calculation_candidate(
+                    candidate_input(mode=mode, operation_family=operation_family)
+                )
+            return result, owner, magnitude, executor
+
+        early, owner, magnitude, executor = invoke(
+            lambda rows, **_kwargs: rows,
+            operation_family="growth_rate",
+            period_conflict=True,
+        )
+        self.assertEqual(early.status, "insufficient_operands")
+        self.assertEqual(early.reason, "growth operands share the same period")
+        owner.assert_not_called()
+        magnitude.assert_not_called()
+        executor.assert_not_called()
+
+        equal_rows = []
+        owner_inputs = []
+
+        def equal_owner(rows, *, operation, operation_family):
+            owner_inputs.append(rows)
+            self.assertEqual((operation, operation_family), ("ratio", "ratio"))
+            equal_rows.extend(dict(row) for row in rows)
+            return equal_rows
+
+        unchanged, owner, magnitude, executor = invoke(equal_owner)
+        owner.assert_called_once()
+        self.assertEqual(magnitude.call_count, 2)
+        executor.assert_called_once()
+        executor_operands = executor.call_args.kwargs["operands_by_id"]
+        self.assertIs(executor_operands["denominator"], owner_inputs[0][1])
+        self.assertIsNot(executor_operands["denominator"], equal_rows[1])
+        self.assertEqual(unchanged.calculation_operands[1]["normalized_value"], -100.0)
+
+        changed_rows = []
+
+        def changed_owner(rows, *, operation, operation_family):
+            self.assertEqual((operation, operation_family), ("ratio", "ratio"))
+            changed_rows.extend(dict(row) for row in rows)
+            changed_rows[1]["normalized_value"] = 100.0
+            changed_rows[1]["sign_policy_applied"] = "ratio_denominator_magnitude"
+            return changed_rows
+
+        changed, owner, magnitude, executor = invoke(changed_owner)
+        owner.assert_called_once()
+        self.assertEqual(magnitude.call_count, 2)
+        executor.assert_called_once()
+        executor_operands = executor.call_args.kwargs["operands_by_id"]
+        self.assertIs(executor_operands["denominator"], changed_rows[1])
+        self.assertEqual(changed.calculation_operands[1]["normalized_value"], 100.0)
+
+        with self.assertRaisesRegex(RuntimeError, "sign-owner"):
+            invoke(
+                lambda _rows, **_kwargs: (_ for _ in ()).throw(RuntimeError("sign-owner"))
+            )
+        latest_mocks["owner"].assert_called_once()
+        latest_mocks["magnitude"].assert_not_called()
+        latest_mocks["executor"].assert_not_called()
+
     def test_graph_difference_plan_adapter_preserves_percent_point_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         def operand(operand_id: str, role: str, value: float) -> dict:

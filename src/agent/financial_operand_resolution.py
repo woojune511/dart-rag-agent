@@ -35,6 +35,7 @@ from src.agent.financial_surface_contracts import (
     _text_has_positive_surface,
 )
 from src.agent.financial_text_surface import _strip_rerank_metadata
+from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     CALCULATION_RENDER_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
@@ -835,6 +836,57 @@ def align_ratio_operand_units_with_shared_table_context(
             row["ratio_unit_aligned_from_sibling_table"] = True
             changed = True
     return aligned if changed else ordered_operands
+
+
+def _binding_policy_for_operand_row(row: Dict[str, Any]) -> Dict[str, Any]:
+    row_policy = dict(row.get("binding_policy") or {})
+    concept_key = str(row.get("matched_operand_concept") or row.get("concept") or "").strip()
+    if not concept_key:
+        return row_policy
+    ontology_policy = get_financial_ontology().binding_policy_for_concept(concept_key)
+    merged = dict(ontology_policy or {})
+    merged.update(row_policy)
+    return merged
+
+
+def apply_operation_sign_policy(
+    operands: List[Dict[str, Any]],
+    *,
+    operation: str,
+    operation_family: str,
+) -> List[Dict[str, Any]]:
+    if _normalise_spaces(operation) != "ratio" and _normalise_spaces(operation_family) != "ratio":
+        return operands
+    updated: List[Dict[str, Any]] = []
+    changed = False
+    for row in operands:
+        next_row = dict(row)
+        role = _normalise_spaces(str(next_row.get("matched_operand_role") or next_row.get("role") or ""))
+        if not role.startswith("denominator"):
+            updated.append(next_row)
+            continue
+        policy = _binding_policy_for_operand_row(next_row)
+        denominator_sign = _normalise_spaces(str(policy.get("ratio_denominator_sign") or ""))
+        if denominator_sign != "magnitude":
+            updated.append(next_row)
+            continue
+        value = next_row.get("normalized_value")
+        if value is None:
+            updated.append(next_row)
+            continue
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            updated.append(next_row)
+            continue
+        if numeric_value < 0:
+            next_row["normalized_value"] = abs(numeric_value)
+            next_row["sign_policy_applied"] = "ratio_denominator_magnitude"
+            next_row["source_normalized_value"] = numeric_value
+            next_row["binding_policy"] = policy
+            changed = True
+        updated.append(next_row)
+    return updated if changed else operands
 
 
 def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:

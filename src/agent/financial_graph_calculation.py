@@ -158,6 +158,7 @@ from src.agent.financial_operand_resolution import (
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
+    apply_operation_sign_policy,
     align_ratio_operand_units_with_shared_table_context,
     repair_operand_normalization_from_rendered_unit,
     ratio_context_has_metric_surface,
@@ -14540,56 +14541,6 @@ class FinancialAgentCalculationMixin:
                 updated[key] = merged
         return updated
 
-    def _binding_policy_for_operand_row(self, row: Dict[str, Any]) -> Dict[str, Any]:
-        row_policy = dict(row.get("binding_policy") or {})
-        concept_key = str(row.get("matched_operand_concept") or row.get("concept") or "").strip()
-        if not concept_key:
-            return row_policy
-        ontology_policy = get_financial_ontology().binding_policy_for_concept(concept_key)
-        merged = dict(ontology_policy or {})
-        merged.update(row_policy)
-        return merged
-
-    def _apply_operation_sign_policy(
-        self,
-        operands: List[Dict[str, Any]],
-        *,
-        operation: str,
-        operation_family: str,
-    ) -> List[Dict[str, Any]]:
-        if _normalise_spaces(operation) != "ratio" and _normalise_spaces(operation_family) != "ratio":
-            return operands
-        updated: List[Dict[str, Any]] = []
-        changed = False
-        for row in operands:
-            next_row = dict(row)
-            role = _normalise_spaces(str(next_row.get("matched_operand_role") or next_row.get("role") or ""))
-            if not role.startswith("denominator"):
-                updated.append(next_row)
-                continue
-            policy = self._binding_policy_for_operand_row(next_row)
-            denominator_sign = _normalise_spaces(str(policy.get("ratio_denominator_sign") or ""))
-            if denominator_sign != "magnitude":
-                updated.append(next_row)
-                continue
-            value = next_row.get("normalized_value")
-            if value is None:
-                updated.append(next_row)
-                continue
-            try:
-                numeric_value = float(value)
-            except (TypeError, ValueError):
-                updated.append(next_row)
-                continue
-            if numeric_value < 0:
-                next_row["normalized_value"] = abs(numeric_value)
-                next_row["sign_policy_applied"] = "ratio_denominator_magnitude"
-                next_row["source_normalized_value"] = numeric_value
-                next_row["binding_policy"] = policy
-                changed = True
-            updated.append(next_row)
-        return updated if changed else operands
-
     def _repair_krw_normalized_values_from_raw_units(
         self,
         operands: List[Dict[str, Any]],
@@ -15075,7 +15026,7 @@ class FinancialAgentCalculationMixin:
                     "growth operands share the same period",
                 )
 
-        sign_normalized_operands = self._apply_operation_sign_policy(
+        sign_normalized_operands = apply_operation_sign_policy(
             ordered_operands,
             operation=operation,
             operation_family=operation_family,

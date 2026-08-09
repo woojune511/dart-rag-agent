@@ -883,36 +883,5 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         )
         self.assertTrue(filtered[1]["metadata"]["supports_derived_percent"])
 
-    def test_ratio_denominator_sign_policy_uses_magnitude(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        operands = [
-            {
-                "operand_id": "numerator",
-                "matched_operand_role": "numerator_1",
-                "matched_operand_concept": "operating_income",
-                "normalized_value": 300.0,
-                "normalized_unit": "KRW",
-            },
-            {
-                "operand_id": "denominator",
-                "matched_operand_role": "denominator_1",
-                "matched_operand_concept": "interest_expense",
-                "raw_value": "(100)",
-                "normalized_value": -100.0,
-                "normalized_unit": "KRW",
-            },
-        ]
-
-        updated = agent._apply_operation_sign_policy(
-            operands,
-            operation="ratio",
-            operation_family="ratio",
-        )
-
-        self.assertEqual(updated[1]["normalized_value"], 100.0)
-        self.assertEqual(updated[1]["source_normalized_value"], -100.0)
-        self.assertEqual(updated[1]["sign_policy_applied"], "ratio_denominator_magnitude")
-
-
 if __name__ == "__main__":
     unittest.main()

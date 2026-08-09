@@ -145,6 +145,290 @@ def _merge_operand_row(
 
 
 class FinancialOperandResolutionTests(unittest.TestCase):
+    def test_operation_sign_policy_preserves_identity_and_applies_ontology_override(self) -> None:
+        class IterationBomb(list):
+            def __iter__(self):
+                raise AssertionError("rows must stay untouched on the non-ratio gate")
+
+        family_bomb = object()
+        normalize_calls: List[Any] = []
+
+        def normalize(value: Any) -> str:
+            normalize_calls.append(value)
+            if value is family_bomb:
+                raise AssertionError("ratio operation must skip operation_family")
+            return str(value).strip()
+
+        empty_operands: List[Dict[str, Any]] = []
+        with patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize):
+            ratio_empty = operand_resolution.apply_operation_sign_policy(
+                empty_operands,
+                operation="ratio",
+                operation_family=family_bomb,
+            )
+            family_ratio = operand_resolution.apply_operation_sign_policy(
+                empty_operands,
+                operation="lookup",
+                operation_family="ratio",
+            )
+            gated_operands = IterationBomb([{"normalized_value": -1.0}])
+            non_ratio = operand_resolution.apply_operation_sign_policy(
+                gated_operands,
+                operation="lookup",
+                operation_family="lookup",
+            )
+
+        self.assertIs(ratio_empty, empty_operands)
+        self.assertIs(family_ratio, empty_operands)
+        self.assertIs(non_ratio, gated_operands)
+        self.assertEqual(
+            normalize_calls,
+            ["ratio", "lookup", "ratio", "lookup", "lookup"],
+        )
+
+        ontology_calls: List[str] = []
+
+        class Ontology:
+            def binding_policy_for_concept(self, concept: str) -> Dict[str, Any]:
+                ontology_calls.append(concept)
+                return {
+                    "ratio_denominator_sign": "signed",
+                    "ontology_only": "kept",
+                }
+
+        nested = {"source": ["ev_denominator"]}
+        operands = [
+            {
+                "operand_id": "numerator",
+                "matched_operand_role": "numerator_1",
+                "matched_operand_concept": "operating_income",
+                "normalized_value": 300.0,
+                "metadata": {"source": ["ev_numerator"]},
+            },
+            {
+                "operand_id": "denominator",
+                "role": "denominator_1",
+                "concept": "interest_expense",
+                "normalized_value": -100.0,
+                "binding_policy": {
+                    "ratio_denominator_sign": "magnitude",
+                    "row_only": True,
+                },
+                "metadata": nested,
+            },
+        ]
+        original = deepcopy(operands)
+        with patch.object(operand_resolution, "get_financial_ontology", return_value=Ontology()):
+            updated = operand_resolution.apply_operation_sign_policy(
+                operands,
+                operation="ratio",
+                operation_family="ratio",
+            )
+
+        self.assertIsNot(updated, operands)
+        self.assertEqual([row["operand_id"] for row in updated], ["numerator", "denominator"])
+        self.assertIsNot(updated[0], operands[0])
+        self.assertIsNot(updated[1], operands[1])
+        self.assertIs(updated[1]["metadata"], nested)
+        self.assertEqual(updated[1]["normalized_value"], 100.0)
+        self.assertEqual(updated[1]["source_normalized_value"], -100.0)
+        self.assertEqual(updated[1]["sign_policy_applied"], "ratio_denominator_magnitude")
+        self.assertEqual(
+            updated[1]["binding_policy"],
+            {
+                "ratio_denominator_sign": "magnitude",
+                "ontology_only": "kept",
+                "row_only": True,
+            },
+        )
+        self.assertEqual(ontology_calls, ["interest_expense"])
+        self.assertEqual(operands, original)
+
+        for value in (None, "not-a-number", object(), 0, 2.5, float("nan")):
+            with self.subTest(value=value):
+                unchanged = [
+                    {
+                        "matched_operand_role": "denominator",
+                        "binding_policy": {"ratio_denominator_sign": "magnitude"},
+                        "normalized_value": value,
+                    }
+                ]
+                result = operand_resolution.apply_operation_sign_policy(
+                    unchanged,
+                    operation="ratio",
+                    operation_family="",
+                )
+                self.assertIs(result, unchanged)
+                self.assertIs(result[0], unchanged[0])
+
+        class StringBomb:
+            def __str__(self) -> str:
+                raise AssertionError("truthy matched fields must skip fallbacks")
+
+        lazy_fallback_row = {
+            "matched_operand_role": "denominator",
+            "role": StringBomb(),
+            "matched_operand_concept": "interest_expense",
+            "concept": StringBomb(),
+            "binding_policy": {"ratio_denominator_sign": "magnitude"},
+            "normalized_value": -2.0,
+        }
+        lazy_result = operand_resolution.apply_operation_sign_policy(
+            [lazy_fallback_row],
+            operation="ratio",
+            operation_family="",
+        )
+        self.assertEqual(lazy_result[0]["normalized_value"], 2.0)
+
+        blank_concept_row = {
+            "matched_operand_role": "denominator",
+            "binding_policy": {"ratio_denominator_sign": "magnitude"},
+            "normalized_value": -3.0,
+        }
+        with patch.object(
+            operand_resolution,
+            "get_financial_ontology",
+            side_effect=AssertionError("blank concept must skip ontology"),
+        ):
+            blank_concept_result = operand_resolution.apply_operation_sign_policy(
+                [blank_concept_row],
+                operation="ratio",
+                operation_family="ratio",
+            )
+        self.assertEqual(blank_concept_result[0]["normalized_value"], 3.0)
+
+    def test_operation_sign_policy_access_and_exception_boundaries(self) -> None:
+        events: List[str] = []
+
+        class TrackedText:
+            def __init__(self, name: str, value: str) -> None:
+                self.name = name
+                self.value = value
+
+            def __str__(self) -> str:
+                events.append(f"str:{self.name}")
+                return self.value
+
+        class TrackedFloat:
+            def __float__(self) -> float:
+                events.append("float:value")
+                return -4.0
+
+        class TrackedPolicy(Mapping):
+            def __init__(self) -> None:
+                self.values = {
+                    "ratio_denominator_sign": TrackedText("row-sign", "magnitude"),
+                    "row_only": True,
+                }
+
+            def __iter__(self):
+                events.append("policy:copy")
+                return iter(self.values)
+
+            def __len__(self) -> int:
+                return len(self.values)
+
+            def __getitem__(self, key: str) -> Any:
+                return self.values[key]
+
+        class Ontology:
+            def binding_policy_for_concept(self, concept: str) -> Dict[str, Any]:
+                events.append(f"ontology:{concept}")
+                return ontology_policy
+
+        ontology_policy = {
+            "ratio_denominator_sign": TrackedText("ontology-sign", "signed"),
+            "ontology_only": ["retained"],
+        }
+        ontology_sign = ontology_policy["ratio_denominator_sign"]
+        ontology_only = ontology_policy["ontology_only"]
+
+        row = {
+            "matched_operand_role": TrackedText("role", "denominator_main"),
+            "matched_operand_concept": TrackedText("concept", "interest_expense"),
+            "binding_policy": TrackedPolicy(),
+            "normalized_value": TrackedFloat(),
+        }
+        with patch.object(operand_resolution, "get_financial_ontology", return_value=Ontology()):
+            updated = operand_resolution.apply_operation_sign_policy(
+                [row],
+                operation="ratio",
+                operation_family="ignored",
+            )
+
+        milestones = [
+            event
+            for event in events
+            if event
+            in {
+                "str:role",
+                "policy:copy",
+                "str:concept",
+                "ontology:interest_expense",
+                "str:row-sign",
+                "float:value",
+            }
+        ]
+        self.assertEqual(
+            milestones,
+            [
+                "str:role",
+                "policy:copy",
+                "str:concept",
+                "ontology:interest_expense",
+                "str:row-sign",
+                "float:value",
+            ],
+        )
+        self.assertEqual(updated[0]["normalized_value"], 4.0)
+        self.assertEqual(updated[0]["binding_policy"]["ontology_only"], ["retained"])
+        self.assertTrue(updated[0]["binding_policy"]["row_only"])
+        self.assertIs(ontology_policy["ratio_denominator_sign"], ontology_sign)
+        self.assertIs(ontology_policy["ontology_only"], ontology_only)
+        self.assertEqual(set(ontology_policy), {"ratio_denominator_sign", "ontology_only"})
+
+        class RuntimeFloat:
+            def __float__(self) -> float:
+                raise RuntimeError("float-stage")
+
+        propagating_cases = (
+            (
+                "normalizer",
+                patch.object(operand_resolution, "_normalise_spaces", side_effect=RuntimeError("normalize-stage")),
+                [{"matched_operand_role": "denominator", "normalized_value": -1.0}],
+            ),
+            (
+                "ontology",
+                patch.object(operand_resolution, "get_financial_ontology", side_effect=RuntimeError("ontology-stage")),
+                [
+                    {
+                        "matched_operand_role": "denominator",
+                        "matched_operand_concept": "interest_expense",
+                        "normalized_value": -1.0,
+                    }
+                ],
+            ),
+            (
+                "float",
+                patch.object(operand_resolution, "get_financial_ontology"),
+                [
+                    {
+                        "matched_operand_role": "denominator",
+                        "binding_policy": {"ratio_denominator_sign": "magnitude"},
+                        "normalized_value": RuntimeFloat(),
+                    }
+                ],
+            ),
+        )
+        for name, active_patch, operands in propagating_cases:
+            with self.subTest(stage=name), active_patch:
+                with self.assertRaises(RuntimeError):
+                    operand_resolution.apply_operation_sign_policy(
+                        operands,
+                        operation="ratio",
+                        operation_family="ratio",
+                    )
+
     def test_evidence_local_unit_and_period_behavior_matrix(self) -> None:
         coerce_unit = operand_resolution.coerce_operand_unit_from_evidence
         coerce_period = operand_resolution.coerce_operand_period_from_evidence_surface
