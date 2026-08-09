@@ -4,6 +4,7 @@ from copy import deepcopy
 from unittest.mock import Mock, patch
 
 import src.agent.financial_numeric_surface as financial_numeric_surface
+import src.agent.financial_graph_calculation as financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_numeric_surface import (
@@ -352,6 +353,244 @@ class FinancialNumericProvenanceTests(unittest.TestCase):
         ):
             with self.assertRaisesRegex(RuntimeError, "equivalence failed"):
                 covers("answer", "reference")
+
+    def test_final_answer_numeric_support_and_conflict_predicates_preserve_behavior_contract(
+        self,
+    ) -> None:
+        evidence_support = financial_numeric_surface.evidence_supports_numeric_candidates
+        text_support = financial_numeric_surface.text_supports_numeric_candidates
+        conflicts = financial_numeric_surface.numeric_surface_conflicts_with_reference
+
+        answer_candidates = extract_numeric_surface_candidates("target 10% and peer 20%")
+        evidence = {
+            "claim": "target 10%",
+            "metadata": {"nested": {"keep": True}},
+        }
+        evidence_before = deepcopy(evidence)
+        self.assertTrue(evidence_support(evidence, answer_candidates))
+        self.assertTrue(text_support("peer 20%", answer_candidates))
+        self.assertFalse(text_support("unrelated 30%", answer_candidates))
+        self.assertEqual(evidence, evidence_before)
+
+        for name, answer, reference, expected in (
+            ("empty answer", "no numeric material", "target 10%", False),
+            ("empty reference", "target 10%", "no numeric material", False),
+            ("equivalent", "target 10%", "target 10%", False),
+            ("answer extra", "target 10% and peer 20%", "target 10%", True),
+            ("reference extra", "target 10%", "target 10% and peer 20%", False),
+        ):
+            with self.subTest(conflict=name):
+                self.assertEqual(conflicts(answer, reference), expected)
+
+        events = []
+        answer_1, answer_2 = object(), object()
+        evidence_1, evidence_2 = object(), object()
+
+        class TrackedAnswers:
+            def __iter__(self):
+                events.append("answers:iter")
+                return iter((answer_1, answer_2))
+
+        class TrackedEvidenceCandidates(list):
+            def __iter__(self):
+                events.append("evidence:iter")
+                return super().__iter__()
+
+        raw_evidence = {"claim": "raw"}
+        evidence_candidates = TrackedEvidenceCandidates((evidence_1, evidence_2))
+
+        def evidence_text(value):
+            self.assertIs(value, raw_evidence)
+            events.append("evidence:text")
+            return "evidence surface"
+
+        def extract(value):
+            self.assertEqual(value, "evidence surface")
+            events.append("evidence:extract")
+            return evidence_candidates
+
+        def equivalent(answer_candidate, evidence_candidate):
+            events.append((answer_candidate, evidence_candidate))
+            return answer_candidate is answer_2 and evidence_candidate is evidence_1
+
+        with (
+            patch.object(
+                financial_numeric_surface,
+                "evidence_text_for_numeric_support",
+                side_effect=evidence_text,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=extract,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=equivalent,
+            ),
+        ):
+            self.assertTrue(evidence_support(raw_evidence, TrackedAnswers()))
+
+        self.assertEqual(
+            events,
+            [
+                "evidence:text",
+                "evidence:extract",
+                "answers:iter",
+                "evidence:iter",
+                (answer_1, evidence_1),
+                (answer_1, evidence_2),
+                "evidence:iter",
+                (answer_2, evidence_1),
+            ],
+        )
+
+        class AnswerIterationBomb:
+            def __iter__(self):
+                raise AssertionError("empty support candidates must skip answer iteration")
+
+        raw_text = object()
+        with patch.object(
+            financial_numeric_surface,
+            "extract_numeric_surface_candidates",
+            side_effect=lambda value: [] if value is raw_text else None,
+        ) as extractor:
+            self.assertFalse(text_support(raw_text, AnswerIterationBomb()))
+        extractor.assert_called_once_with(raw_text)
+
+    def test_final_answer_numeric_support_and_conflict_predicates_preserve_access_contract(
+        self,
+    ) -> None:
+        evidence_support = financial_numeric_surface.evidence_supports_numeric_candidates
+        text_support = financial_numeric_surface.text_supports_numeric_candidates
+        conflicts = financial_numeric_surface.numeric_surface_conflicts_with_reference
+
+        class IterationBomb:
+            def __iter__(self):
+                raise RuntimeError("answer iteration failed")
+
+        with (
+            patch.object(
+                financial_numeric_surface,
+                "evidence_text_for_numeric_support",
+                return_value="evidence surface",
+            ) as evidence_text,
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                return_value=[{"id": "evidence"}],
+            ) as extractor,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "answer iteration failed"):
+                evidence_support({"claim": "raw"}, IterationBomb())
+        evidence_text.assert_called_once_with({"claim": "raw"})
+        extractor.assert_called_once_with("evidence surface")
+
+        for name, target, patches in (
+            (
+                "evidence text",
+                lambda: evidence_support({}, []),
+                (
+                    patch.object(
+                        financial_numeric_surface,
+                        "evidence_text_for_numeric_support",
+                        side_effect=RuntimeError("evidence text failed"),
+                    ),
+                ),
+            ),
+            (
+                "text extract",
+                lambda: text_support("raw text", []),
+                (
+                    patch.object(
+                        financial_numeric_surface,
+                        "extract_numeric_surface_candidates",
+                        side_effect=RuntimeError("text extract failed"),
+                    ),
+                ),
+            ),
+            (
+                "equivalence",
+                lambda: text_support("raw text", [{"id": "answer"}]),
+                (
+                    patch.object(
+                        financial_numeric_surface,
+                        "extract_numeric_surface_candidates",
+                        return_value=[{"id": "text"}],
+                    ),
+                    patch.object(
+                        financial_numeric_surface,
+                        "numeric_surface_candidates_equivalent",
+                        side_effect=RuntimeError("equivalence failed"),
+                    ),
+                ),
+            ),
+        ):
+            with self.subTest(propagates=name):
+                entered = []
+                for active_patch in patches:
+                    entered.append(active_patch)
+                    active_patch.start()
+                try:
+                    with self.assertRaisesRegex(RuntimeError, f"{name} failed"):
+                        target()
+                finally:
+                    for active_patch in reversed(entered):
+                        active_patch.stop()
+
+        events = []
+
+        class CandidateContainer:
+            def __init__(self, name: str, truth: bool, *, poison_second: bool = False) -> None:
+                self.name = name
+                self.truth = truth
+                self.poison_second = poison_second
+                self.truth_calls = 0
+
+            def __bool__(self) -> bool:
+                self.truth_calls += 1
+                events.append(f"bool:{self.name}:{self.truth_calls}")
+                if self.poison_second and self.truth_calls == 2:
+                    raise RuntimeError(f"{self.name} second truth failed")
+                return self.truth
+
+            def __iter__(self):
+                events.append(f"iter:{self.name}")
+                return iter(())
+
+        answer_empty = CandidateContainer("answer", False)
+        reference_unused = CandidateContainer("reference", True)
+        with patch.object(
+            financial_numeric_surface,
+            "extract_numeric_surface_candidates",
+            side_effect=(answer_empty, reference_unused),
+        ):
+            self.assertFalse(conflicts("answer", "reference"))
+        self.assertEqual(events, ["bool:answer:1", "bool:answer:2"])
+
+        events.clear()
+        answer_present = CandidateContainer("answer", True)
+        reference_empty = CandidateContainer("reference", False)
+        with patch.object(
+            financial_numeric_surface,
+            "extract_numeric_surface_candidates",
+            side_effect=(answer_present, reference_empty),
+        ):
+            self.assertFalse(conflicts("answer", "reference"))
+        self.assertEqual(
+            events,
+            ["bool:answer:1", "bool:reference:1", "bool:reference:2"],
+        )
+
+        answer_poison = CandidateContainer("answer", False, poison_second=True)
+        with patch.object(
+            financial_numeric_surface,
+            "extract_numeric_surface_candidates",
+            side_effect=(answer_poison, CandidateContainer("reference", True)),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "answer second truth failed"):
+                conflicts("answer", "reference")
 
     def test_table_numeric_support_promotion_preserves_behavior_contract(self) -> None:
         promote = financial_numeric_surface.promote_table_numeric_support_evidence

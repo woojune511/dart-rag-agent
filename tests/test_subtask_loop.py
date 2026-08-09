@@ -17359,12 +17359,37 @@ class SubtaskLoopTests(unittest.TestCase):
             "selected_claim_ids": [],
         }
 
+        real_conflicting_candidate = self.agent._preferred_conflicting_growth_narrative_answer
+        preserved_conflicting_candidate = {}
+
+        def preserve_candidate_for_final_conflict_call(*args, **kwargs):
+            candidate = real_conflicting_candidate(*args, **kwargs)
+            if candidate:
+                preserved_conflicting_candidate.clear()
+                preserved_conflicting_candidate.update(candidate)
+            return candidate or dict(preserved_conflicting_candidate)
+
+        real_numeric_conflict = financial_graph_calculation.numeric_surface_conflicts_with_reference
         packaging_events, base_patch, refreshed_patch = _record_aggregate_candidate_packaging()
-        with base_patch, refreshed_patch, patch.object(
-            financial_graph_calculation,
-            "apply_aggregate_answer_candidate",
-            wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
-        ) as candidate_apply:
+        with (
+            base_patch,
+            refreshed_patch,
+            patch.object(
+                self.agent,
+                "_preferred_conflicting_growth_narrative_answer",
+                side_effect=preserve_candidate_for_final_conflict_call,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "numeric_surface_conflicts_with_reference",
+                wraps=real_numeric_conflict,
+            ) as numeric_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "apply_aggregate_answer_candidate",
+                wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
+            ) as candidate_apply,
+        ):
             updated = self.agent._aggregate_calculation_subtasks(state)
 
         self.assertEqual(packaging_events, ["base", "base"])
@@ -17382,6 +17407,17 @@ class SubtaskLoopTests(unittest.TestCase):
                 (["ev_driver"], ["ev_driver"], False),
                 (["ev_driver"], ["ev_driver"], True),
             ],
+        )
+        self.assertEqual(numeric_conflict.call_count, 2)
+        first_answer, first_reference = numeric_conflict.call_args_list[0].args
+        final_answer, final_reference = numeric_conflict.call_args_list[1].args
+        self.assertEqual(first_reference, final_reference)
+        self.assertIn("98.15%", first_answer)
+        self.assertIn("70.28%", first_reference)
+        self.assertNotIn("98.15%", final_answer)
+        self.assertEqual(
+            [real_numeric_conflict(*call.args) for call in numeric_conflict.call_args_list],
+            [True, False],
         )
         self.assertIn("70.28%", updated["answer"])
         self.assertIn("3,146,409백만원", updated["answer"])

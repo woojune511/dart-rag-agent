@@ -359,6 +359,22 @@ def answer_has_numeric_material_outside_reference(
     )
 
 
+def numeric_surface_conflicts_with_reference(answer: str, reference: str) -> bool:
+    answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+    reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference or "")))
+    return bool(
+        answer_candidates
+        and reference_candidates
+        and any(
+            not any(
+                numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
+                for reference_candidate in reference_candidates
+            )
+            for answer_candidate in answer_candidates
+        )
+    )
+
+
 def numeric_evidence_relevance_score(
     evidence: Dict[str, Any],
     *,
@@ -527,6 +543,34 @@ def evidence_text_for_numeric_support(
             )
             if str(value or "").strip()
         )
+    )
+
+
+def evidence_supports_numeric_candidates(
+    evidence: Dict[str, Any],
+    answer_candidates: List[Dict[str, Any]],
+) -> bool:
+    evidence_candidates = extract_numeric_surface_candidates(evidence_text_for_numeric_support(evidence))
+    if not evidence_candidates:
+        return False
+    return any(
+        numeric_surface_candidates_equivalent(answer_candidate, evidence_candidate)
+        for answer_candidate in answer_candidates
+        for evidence_candidate in evidence_candidates
+    )
+
+
+def text_supports_numeric_candidates(
+    text: str,
+    answer_candidates: List[Dict[str, Any]],
+) -> bool:
+    text_candidates = extract_numeric_surface_candidates(text)
+    if not text_candidates:
+        return False
+    return any(
+        numeric_surface_candidates_equivalent(answer_candidate, text_candidate)
+        for answer_candidate in answer_candidates
+        for text_candidate in text_candidates
     )
 
 

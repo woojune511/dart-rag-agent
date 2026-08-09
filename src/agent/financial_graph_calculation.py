@@ -240,6 +240,7 @@ from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
 from src.agent.financial_numeric_surface import (
     answer_covers_numeric_answer,
     answer_has_numeric_material_outside_reference,
+    evidence_supports_numeric_candidates,
     evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
@@ -247,7 +248,9 @@ from src.agent.financial_numeric_surface import (
     numeric_evidence_relevance_score,
     numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
+    numeric_surface_conflicts_with_reference,
     promote_table_numeric_support_evidence,
+    text_supports_numeric_candidates,
 )
 from src.agent.financial_text_surface import (
     narrative_sentence_looks_abbreviated_fragment as _narrative_sentence_looks_abbreviated_fragment,
@@ -4048,21 +4051,6 @@ class FinancialAgentCalculationMixin:
             }
         return {}
 
-    def _numeric_surface_conflicts_with_reference(self, answer: str, reference: str) -> bool:
-        answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
-        reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference or "")))
-        return bool(
-            answer_candidates
-            and reference_candidates
-            and any(
-                not any(
-                    numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
-                    for reference_candidate in reference_candidates
-                )
-                for answer_candidate in answer_candidates
-            )
-        )
-
     def _aggregate_results_include_source_task_slot_realignment(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -5978,34 +5966,6 @@ class FinancialAgentCalculationMixin:
         )
         return filtered_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids
 
-    def _evidence_supports_final_answer_numeric_material(
-        self,
-        evidence: Dict[str, Any],
-        answer_candidates: List[Dict[str, Any]],
-    ) -> bool:
-        evidence_candidates = extract_numeric_surface_candidates(evidence_text_for_numeric_support(evidence))
-        if not evidence_candidates:
-            return False
-        return any(
-            numeric_surface_candidates_equivalent(answer_candidate, evidence_candidate)
-            for answer_candidate in answer_candidates
-            for evidence_candidate in evidence_candidates
-        )
-
-    def _text_supports_final_answer_numeric_material(
-        self,
-        text: str,
-        answer_candidates: List[Dict[str, Any]],
-    ) -> bool:
-        text_candidates = extract_numeric_surface_candidates(text)
-        if not text_candidates:
-            return False
-        return any(
-            numeric_surface_candidates_equivalent(answer_candidate, text_candidate)
-            for answer_candidate in answer_candidates
-            for text_candidate in text_candidates
-        )
-
     def _filter_aggregate_evidence_for_final_answer(
         self,
         evidence_items: List[Dict[str, Any]],
@@ -6023,7 +5983,7 @@ class FinancialAgentCalculationMixin:
                 str((item or {}).get("evidence_id") or "").strip() in selected
                 or str((item or {}).get("evidence_id") or "").strip().startswith("operand::")
             )
-            and self._evidence_supports_final_answer_numeric_material(dict(item or {}), answer_candidates)
+            and evidence_supports_numeric_candidates(dict(item or {}), answer_candidates)
             for item in list(evidence_items or [])
         )
         operand_surface_support = any(
@@ -6050,7 +6010,7 @@ class FinancialAgentCalculationMixin:
                     and raw_row_text
                     and quote_span
                     and not evidence_id.startswith("retrieved_narrative::")
-                    and not self._text_supports_final_answer_numeric_material(quote_span, answer_candidates)
+                    and not text_supports_numeric_candidates(quote_span, answer_candidates)
                 ):
                     continue
                 filtered.append(evidence)
@@ -6069,7 +6029,7 @@ class FinancialAgentCalculationMixin:
             if evidence_id.startswith("operand::") and metadata.get("supports_answer_numeric_surface"):
                 filtered.append(evidence)
                 continue
-            if self._evidence_supports_final_answer_numeric_material(evidence, answer_candidates):
+            if evidence_supports_numeric_candidates(evidence, answer_candidates):
                 filtered.append(evidence)
         return filtered or list(evidence_items or [])
 
@@ -6619,7 +6579,7 @@ class FinancialAgentCalculationMixin:
                 or _sentence_already_supported(cleaned)
             ):
                 continue
-            if self._text_supports_final_answer_numeric_material(cleaned, answer_numeric_candidates):
+            if text_supports_numeric_candidates(cleaned, answer_numeric_candidates):
                 continue
             scored_docs: List[tuple[int, Dict[str, Any]]] = []
             for row in doc_rows:
@@ -9203,7 +9163,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 if any(marker in sentence for marker in missing_markers):
                     continue
-                if self._text_supports_final_answer_numeric_material(sentence, answer_numeric_candidates):
+                if text_supports_numeric_candidates(sentence, answer_numeric_candidates):
                     continue
                 sentence_terms = _content_terms(sentence)
                 if not sentence_terms:
@@ -17541,7 +17501,7 @@ class FinancialAgentCalculationMixin:
             )
             final_numeric_conflicts_with_supported_aggregate = bool(
                 str(late_conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks"
-                and self._numeric_surface_conflicts_with_reference(final_answer_surface, conflicting_answer)
+                and numeric_surface_conflicts_with_reference(final_answer_surface, conflicting_answer)
             )
             if conflicting_answer and (
                 (
@@ -17758,7 +17718,7 @@ class FinancialAgentCalculationMixin:
             final_conflicting_answer
             and str(final_conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks"
             and not _narrative_sentence_looks_table_noisy(final_conflicting_answer)
-            and self._numeric_surface_conflicts_with_reference(final_answer, final_conflicting_answer)
+            and numeric_surface_conflicts_with_reference(final_answer, final_conflicting_answer)
         ):
             candidate_application = apply_aggregate_answer_candidate(
                 AggregateAnswerCandidateApplicationInput(

@@ -806,7 +806,10 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 "promote_table_numeric_support_evidence",
                 side_effect=RuntimeError("promotion failed"),
             ) as failing_owner,
-            patch.object(agent, "_evidence_supports_final_answer_numeric_material") as later_support,
+            patch.object(
+                financial_graph_calculation,
+                "evidence_supports_numeric_candidates",
+            ) as later_support,
         ):
             with self.assertRaisesRegex(RuntimeError, "promotion failed"):
                 agent._filter_aggregate_evidence_for_final_answer(
@@ -816,6 +819,135 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 )
         failing_owner.assert_called_once()
         later_support.assert_not_called()
+
+    def test_final_answer_evidence_filter_binds_numeric_support_owners(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        answer_candidates = [{"kind": "percent", "value": 10.0}]
+        selected = {
+            "evidence_id": "ev_selected",
+            "claim": "selected 10%",
+            "quote_span": "selected quote 10%",
+            "raw_row_text": "selected raw 10%",
+        }
+        operand = {
+            "evidence_id": "operand::ratio",
+            "claim": "operand 10%",
+            "metadata": {"supports_answer_numeric_surface": True},
+        }
+        events = []
+
+        def evidence_owner(evidence, candidates):
+            self.assertIs(candidates, answer_candidates)
+            evidence_id = evidence["evidence_id"]
+            events.append(("evidence", evidence_id))
+            return evidence_id.startswith("operand::")
+
+        def text_owner(text, candidates):
+            self.assertIs(candidates, answer_candidates)
+            events.append(("text", text))
+            return False
+
+        def promote_owner(evidence, *, final_answer, answer_candidates):
+            self.assertEqual(final_answer, "target 10%")
+            self.assertIs(answer_candidates, globals_answer_candidates)
+            events.append(("promote", evidence["evidence_id"]))
+            return evidence
+
+        globals_answer_candidates = answer_candidates
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "extract_numeric_surface_candidates",
+                return_value=answer_candidates,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "evidence_supports_numeric_candidates",
+                side_effect=evidence_owner,
+            ) as evidence_support,
+            patch.object(
+                financial_graph_calculation,
+                "text_supports_numeric_candidates",
+                side_effect=text_owner,
+            ) as text_support,
+            patch.object(
+                financial_graph_calculation,
+                "promote_table_numeric_support_evidence",
+                side_effect=promote_owner,
+            ),
+        ):
+            filtered = agent._filter_aggregate_evidence_for_final_answer(
+                [selected, operand],
+                final_answer="target 10%",
+                selected_claim_ids=["ev_selected"],
+            )
+
+        self.assertEqual(
+            events,
+            [
+                ("evidence", "ev_selected"),
+                ("evidence", "operand::ratio"),
+                ("promote", "ev_selected"),
+                ("text", "selected quote 10%"),
+                ("promote", "operand::ratio"),
+            ],
+        )
+        self.assertEqual([row["evidence_id"] for row in filtered], ["operand::ratio"])
+        self.assertIsNot(filtered[0], operand)
+        self.assertEqual(evidence_support.call_count, 2)
+        text_support.assert_called_once_with("selected quote 10%", answer_candidates)
+
+        generic_first = {"evidence_id": "ev_first", "claim": "first 20%"}
+        generic_second = {"evidence_id": "ev_second", "claim": "second 10%"}
+        events.clear()
+
+        def generic_evidence_owner(evidence, candidates):
+            self.assertIs(candidates, answer_candidates)
+            events.append(("evidence", evidence["evidence_id"]))
+            return evidence["evidence_id"] == "ev_second"
+
+        def generic_promote_owner(evidence, **_kwargs):
+            events.append(("promote", evidence["evidence_id"]))
+            return evidence
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "extract_numeric_surface_candidates",
+                return_value=answer_candidates,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "evidence_supports_numeric_candidates",
+                side_effect=generic_evidence_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "text_supports_numeric_candidates",
+            ) as text_support,
+            patch.object(
+                financial_graph_calculation,
+                "promote_table_numeric_support_evidence",
+                side_effect=generic_promote_owner,
+            ),
+        ):
+            filtered = agent._filter_aggregate_evidence_for_final_answer(
+                [generic_first, generic_second],
+                final_answer="target 10%",
+                selected_claim_ids=[],
+            )
+
+        self.assertEqual(
+            events,
+            [
+                ("promote", "ev_first"),
+                ("evidence", "ev_first"),
+                ("promote", "ev_second"),
+                ("evidence", "ev_second"),
+            ],
+        )
+        self.assertEqual([row["evidence_id"] for row in filtered], ["ev_second"])
+        text_support.assert_not_called()
 
     def test_final_answer_appends_matching_operand_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
