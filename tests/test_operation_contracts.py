@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -2306,11 +2307,34 @@ class OperationContractTests(unittest.TestCase):
             "runtime_evidence": [evidence],
         }
 
-        rows = agent._build_dependency_operand_rows(state)
+        owner_calls = []
+        current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
 
+        def record_repair(row):
+            owner_calls.append(deepcopy(row))
+            return {
+                **current_repair(row),
+                "rendered_unit_repair_owner_marker": "dependency",
+            }
+
+        with patch.object(
+            financial_graph_calculation,
+            "repair_operand_normalization_from_rendered_unit",
+            side_effect=record_repair,
+        ) as repair_owner:
+            rows = agent._build_dependency_operand_rows(state)
+            self.assertEqual(
+                agent._build_dependency_operand_rows({"active_subtask": {"inputs": []}}),
+                [],
+            )
+
+        repair_owner.assert_called_once()
+        self.assertEqual(owner_calls[0]["raw_value"], "(573,884)")
+        self.assertEqual(owner_calls[0]["rendered_value"], "573,884\ubc31\ub9cc\uc6d0")
         self.assertEqual(rows[0]["raw_value"], "(573,884)")
         self.assertEqual(rows[0]["normalized_value"], 573_884_000_000.0)
         self.assertEqual(rows[0]["rendered_value"], "573,884백만원")
+        self.assertEqual(rows[0]["rendered_unit_repair_owner_marker"], "dependency")
 
     def test_difference_source_display_unit_preserves_common_source_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -7201,7 +7225,41 @@ class OperationContractTests(unittest.TestCase):
         }
 
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
-        execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+        owner_calls = []
+        current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
+
+        def record_repair(row):
+            owner_calls.append(deepcopy(row))
+            return {
+                **current_repair(row),
+                "rendered_unit_repair_owner_order": len(owner_calls),
+            }
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "repair_operand_normalization_from_rendered_unit",
+                side_effect=record_repair,
+            ) as repair_owner,
+            patch.object(
+                agent,
+                "_prepare_calculation_candidate",
+                wraps=agent._prepare_calculation_candidate,
+            ) as candidate_preparation,
+        ):
+            execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
+            candidate_input = candidate_preparation.call_args.args[0]
+            owner_call_count = repair_owner.call_count
+            early_failure = agent._prepare_calculation_candidate(
+                candidate_input._replace(
+                    calculation_plan={**candidate_input.calculation_plan, "mode": "none"},
+                )
+            )
+
+        self.assertEqual(early_failure.status, "insufficient_operands")
+        self.assertEqual(owner_call_count, 2)
+        self.assertEqual(repair_owner.call_count, owner_call_count)
+        self.assertEqual([row["operand_id"] for row in owner_calls], ["op_amortization", "op_revenue"])
         trace = _resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
         self.assertEqual(calc["status"], "ok")
@@ -7211,6 +7269,9 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(repaired_operand["raw_unit"], "천원")
         self.assertEqual(repaired_operand["normalized_value"], 182049824000.0)
         self.assertTrue(repaired_operand["unit_repaired_from_rendered_value"])
+        self.assertEqual(repaired_operand["rendered_unit_repair_owner_order"], 1)
+        revenue_operand = next(row for row in trace["calculation_operands"] if row["operand_id"] == "op_revenue")
+        self.assertEqual(revenue_operand["rendered_unit_repair_owner_order"], 2)
 
     def test_ratio_recomputes_operand_scale_from_embedded_raw_unit(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

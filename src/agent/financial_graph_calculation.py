@@ -146,6 +146,7 @@ from src.agent.financial_operand_resolution import (
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
+    repair_operand_normalization_from_rendered_unit,
     resolve_direct_structured_operand_acceptance,
     resolve_direct_structured_preferred_slot_adoption,
     resolve_post_coercion_llm_direct_support,
@@ -7931,7 +7932,7 @@ class FinancialAgentCalculationMixin:
                 "source_slot": source_slot_name,
                 "dependency_resolved": True,
             }
-            dependency_row = self._repair_operand_normalization_from_rendered_unit(dependency_row)
+            dependency_row = repair_operand_normalization_from_rendered_unit(dependency_row)
             structured_provenance = self._structured_graph_provenance_for_dependency_operand(
                 state,
                 binding=binding,
@@ -11590,100 +11591,6 @@ class FinancialAgentCalculationMixin:
                 row["ratio_unit_aligned_from_sibling_table"] = True
                 changed = True
         return aligned if changed else ordered_operands
-
-    def _repair_operand_normalization_from_rendered_unit(
-        self,
-        row: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        updated = dict(row or {})
-        raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
-        rendered_value = _normalise_spaces(str(updated.get("rendered_value") or ""))
-        if not raw_value or not rendered_value:
-            return updated
-        normalized_unit = _normalise_spaces(str(updated.get("normalized_unit") or "")).upper()
-        krw_unit = _normalise_spaces(str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "")).upper()
-        if normalized_unit and normalized_unit not in {krw_unit, "UNKNOWN"}:
-            return updated
-
-        inline_value, inline_unit = _normalise_operand_value(raw_value, "")
-        if inline_value is not None and _normalise_spaces(str(inline_unit or "")).upper() == krw_unit:
-            try:
-                current_value = float(updated.get("normalized_value"))
-            except (TypeError, ValueError):
-                current_value = None
-            if current_value is None or abs(current_value - float(inline_value)) > max(
-                1e-6,
-                abs(float(inline_value)) * 1e-9,
-            ):
-                unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
-                unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
-                inline_raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
-                if unit_pattern:
-                    match = re.fullmatch(unit_pattern, raw_value)
-                    if match:
-                        aliases = dict(unit_policy.get("inline_unit_aliases") or {})
-                        matched_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
-                        inline_raw_unit = _normalise_spaces(str(aliases.get(matched_unit) or matched_unit))
-                updated["original_raw_unit"] = updated.get("original_raw_unit") or updated.get("raw_unit")
-                updated["original_normalized_value"] = (
-                    updated.get("original_normalized_value")
-                    if updated.get("original_normalized_value") is not None
-                    else updated.get("normalized_value")
-                )
-                if inline_raw_unit:
-                    updated["raw_unit"] = inline_raw_unit
-                updated["normalized_value"] = inline_value
-                updated["normalized_unit"] = inline_unit
-                updated["unit_repaired_from_rendered_value"] = True
-                return updated
-
-        unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
-        unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
-        if not unit_pattern:
-            return updated
-        aliases = dict(unit_policy.get("inline_unit_aliases") or {})
-        krw_display_units = {
-            _normalise_spaces(str(unit or ""))
-            for unit in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
-            if _normalise_spaces(str(unit or ""))
-        }
-        compact_raw_value = re.sub(r"[,\s()]", "", raw_value)
-        if not compact_raw_value:
-            return updated
-
-        current_value: Optional[float]
-        try:
-            current_value = float(updated.get("normalized_value"))
-        except (TypeError, ValueError):
-            current_value = None
-        for match in re.finditer(unit_pattern, rendered_value):
-            matched_raw = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
-            if matched_raw != compact_raw_value:
-                continue
-            rendered_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
-            rendered_unit = _normalise_spaces(str(aliases.get(rendered_unit) or rendered_unit))
-            if rendered_unit not in krw_display_units:
-                continue
-            repaired_value, repaired_unit = _normalise_operand_value(raw_value, rendered_unit)
-            if repaired_value is None or _normalise_spaces(str(repaired_unit or "")).upper() != krw_unit:
-                continue
-            if current_value is not None and abs(current_value - float(repaired_value)) <= max(
-                1e-6,
-                abs(float(repaired_value)) * 1e-9,
-            ):
-                return updated
-            updated["original_raw_unit"] = updated.get("original_raw_unit") or updated.get("raw_unit")
-            updated["original_normalized_value"] = (
-                updated.get("original_normalized_value")
-                if updated.get("original_normalized_value") is not None
-                else updated.get("normalized_value")
-            )
-            updated["raw_unit"] = rendered_unit
-            updated["normalized_value"] = repaired_value
-            updated["normalized_unit"] = repaired_unit
-            updated["unit_repaired_from_rendered_value"] = True
-            return updated
-        return updated
 
     def _align_ratio_operands_with_sibling_table_context(
         self,
@@ -16041,7 +15948,7 @@ class FinancialAgentCalculationMixin:
         ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
         rendered_unit_repaired_operands = [
-            self._repair_operand_normalization_from_rendered_unit(row)
+            repair_operand_normalization_from_rendered_unit(row)
             for row in ordered_operands
         ]
         if rendered_unit_repaired_operands != ordered_operands:
@@ -17458,7 +17365,7 @@ class FinancialAgentCalculationMixin:
                         }
                 raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
                 dependency_rows.append(
-                    self._repair_operand_normalization_from_rendered_unit(
+                    repair_operand_normalization_from_rendered_unit(
                         {
                             "operand_id": f"aggregate_task_output_{preferred_task_id}_{index:03d}",
                             "evidence_id": f"task_output:{preferred_task_id}",
@@ -17713,7 +17620,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
                 dependency_rows.append(
-                    self._repair_operand_normalization_from_rendered_unit(
+                    repair_operand_normalization_from_rendered_unit(
                         {
                             "operand_id": f"aggregate_dep_{preferred_task_id}",
                             "evidence_id": f"task_output:{preferred_task_id}",

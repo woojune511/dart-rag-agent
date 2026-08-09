@@ -3906,13 +3906,66 @@ class SubtaskLoopTests(unittest.TestCase):
             "seed_retrieved_docs": [],
         }
 
-        prepared = self.agent._prepare_initial_aggregate_state(state)
+        owner_events = []
+        current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
+
+        def record_repair(row):
+            owner_events.append(str(row.get("operand_id") or ""))
+            return current_repair(row)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "repair_operand_normalization_from_rendered_unit",
+                side_effect=record_repair,
+            ) as repair_owner,
+        ):
+            prepared = self.agent._prepare_initial_aggregate_state(state)
+            owner_call_count = repair_owner.call_count
+            empty_results = []
+            self.assertIs(
+                self.agent._append_ratio_result_from_task_outputs(
+                    empty_results,
+                    {"calc_subtasks": []},
+                ),
+                empty_results,
+            )
+            self.assertIs(
+                self.agent._append_ratio_result_from_retrieved_context(
+                    empty_results,
+                    {"calc_subtasks": []},
+                ),
+                empty_results,
+            )
+
+        self.assertEqual(repair_owner.call_count, owner_call_count)
+        self.assertEqual(
+            owner_events,
+            [
+                "aggregate_dep_task_numerator",
+                "aggregate_dep_task_denominator",
+                "aggregate_task_output_task_numerator_001",
+                "aggregate_task_output_task_denominator_002",
+            ],
+        )
 
         self.assertNotIn("2%", prepared.complete_numeric_answer)
         self.assertFalse(
             any(row.get("recovered_from_retrieved_ratio_context") for row in prepared.ordered_results)
         )
         self.assertNotIn("259,611천원", prepared.complete_numeric_answer)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "repair_operand_normalization_from_rendered_unit",
+                side_effect=RuntimeError("rendered-unit owner failed"),
+            ),
+            patch.object(self.agent, "_ratio_result_projection") as later_projection,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "rendered-unit owner failed"):
+                self.agent._append_ratio_result_from_task_outputs(dependency_rows, state)
+        later_projection.assert_not_called()
 
     def test_dependency_rows_keep_task_output_when_sibling_context_candidate_conflicts(self) -> None:
         state = {

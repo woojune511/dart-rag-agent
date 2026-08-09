@@ -32,6 +32,7 @@ from src.agent.financial_surface_contracts import (
 )
 from src.agent.financial_text_surface import _strip_rerank_metadata
 from src.config.retrieval_policy import (
+    CALCULATION_RENDER_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
@@ -436,6 +437,100 @@ def operand_row_values_materially_conflict(
     except (TypeError, ValueError):
         pass
     return operand_row_values_differ(left, right)
+
+
+def repair_operand_normalization_from_rendered_unit(
+    row: Mapping[str, Any],
+) -> Dict[str, Any]:
+    updated = dict(row or {})
+    raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))
+    rendered_value = _normalise_spaces(str(updated.get("rendered_value") or ""))
+    if not raw_value or not rendered_value:
+        return updated
+    normalized_unit = _normalise_spaces(str(updated.get("normalized_unit") or "")).upper()
+    krw_unit = _normalise_spaces(str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "")).upper()
+    if normalized_unit and normalized_unit not in {krw_unit, "UNKNOWN"}:
+        return updated
+
+    inline_value, inline_unit = _normalise_operand_value(raw_value, "")
+    if inline_value is not None and _normalise_spaces(str(inline_unit or "")).upper() == krw_unit:
+        try:
+            current_value = float(updated.get("normalized_value"))
+        except (TypeError, ValueError):
+            current_value = None
+        if current_value is None or abs(current_value - float(inline_value)) > max(
+            1e-6,
+            abs(float(inline_value)) * 1e-9,
+        ):
+            unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
+            unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
+            inline_raw_unit = _normalise_spaces(str(updated.get("raw_unit") or ""))
+            if unit_pattern:
+                match = re.fullmatch(unit_pattern, raw_value)
+                if match:
+                    aliases = dict(unit_policy.get("inline_unit_aliases") or {})
+                    matched_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
+                    inline_raw_unit = _normalise_spaces(str(aliases.get(matched_unit) or matched_unit))
+            updated["original_raw_unit"] = updated.get("original_raw_unit") or updated.get("raw_unit")
+            updated["original_normalized_value"] = (
+                updated.get("original_normalized_value")
+                if updated.get("original_normalized_value") is not None
+                else updated.get("normalized_value")
+            )
+            if inline_raw_unit:
+                updated["raw_unit"] = inline_raw_unit
+            updated["normalized_value"] = inline_value
+            updated["normalized_unit"] = inline_unit
+            updated["unit_repaired_from_rendered_value"] = True
+            return updated
+
+    unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
+    unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
+    if not unit_pattern:
+        return updated
+    aliases = dict(unit_policy.get("inline_unit_aliases") or {})
+    krw_display_units = {
+        _normalise_spaces(str(unit or ""))
+        for unit in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
+        if _normalise_spaces(str(unit or ""))
+    }
+    compact_raw_value = re.sub(r"[,\s()]", "", raw_value)
+    if not compact_raw_value:
+        return updated
+
+    current_value: Optional[float]
+    try:
+        current_value = float(updated.get("normalized_value"))
+    except (TypeError, ValueError):
+        current_value = None
+    for match in re.finditer(unit_pattern, rendered_value):
+        matched_raw = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
+        if matched_raw != compact_raw_value:
+            continue
+        rendered_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
+        rendered_unit = _normalise_spaces(str(aliases.get(rendered_unit) or rendered_unit))
+        if rendered_unit not in krw_display_units:
+            continue
+        repaired_value, repaired_unit = _normalise_operand_value(raw_value, rendered_unit)
+        if repaired_value is None or _normalise_spaces(str(repaired_unit or "")).upper() != krw_unit:
+            continue
+        if current_value is not None and abs(current_value - float(repaired_value)) <= max(
+            1e-6,
+            abs(float(repaired_value)) * 1e-9,
+        ):
+            return updated
+        updated["original_raw_unit"] = updated.get("original_raw_unit") or updated.get("raw_unit")
+        updated["original_normalized_value"] = (
+            updated.get("original_normalized_value")
+            if updated.get("original_normalized_value") is not None
+            else updated.get("normalized_value")
+        )
+        updated["raw_unit"] = rendered_unit
+        updated["normalized_value"] = repaired_value
+        updated["normalized_unit"] = repaired_unit
+        updated["unit_repaired_from_rendered_value"] = True
+        return updated
+    return updated
 
 
 def _operand_row_conflicts_with_requirement(row: Dict[str, Any], operand: Dict[str, Any]) -> bool:

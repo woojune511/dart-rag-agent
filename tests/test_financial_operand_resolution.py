@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from copy import deepcopy
 from itertools import permutations
@@ -143,11 +144,207 @@ def _merge_operand_row(
 
 
 class FinancialOperandResolutionTests(unittest.TestCase):
+    def test_rendered_unit_operand_normalization_repair_matrix(self) -> None:
+        repair = operand_resolution.repair_operand_normalization_from_rendered_unit
+        million_won = "\ubc31\ub9cc\uc6d0"
+        hundred_million_won = "\uc5b5\uc6d0"
+        nested = []
+
+        early_rows = [
+            {},
+            {"raw_value": "2", "normalized_unit": "KRW"},
+            {"rendered_value": f"2{million_won}", "normalized_unit": "KRW"},
+            {
+                "raw_value": "2",
+                "rendered_value": f"2{million_won}",
+                "normalized_value": 2.0,
+                "normalized_unit": "PERCENT",
+                "nested": nested,
+            },
+        ]
+        for row in early_rows:
+            with self.subTest(early=row):
+                before = deepcopy(row)
+                repaired = repair(row)
+                self.assertEqual(repaired, before)
+                self.assertIsNot(repaired, row)
+                self.assertEqual(row, before)
+        self.assertIs(repair(early_rows[-1])["nested"], nested)
+
+        inline_row = {
+            "raw_value": "2\uc5b5",
+            "rendered_value": "2\uc5b5",
+            "raw_unit": "\uc6d0",
+            "normalized_value": 2.0,
+            "normalized_unit": "UNKNOWN",
+            "original_raw_unit": "source unit",
+            "original_normalized_value": 0.0,
+            "nested": nested,
+        }
+        inline_before = deepcopy(inline_row)
+        inline_repaired = repair(inline_row)
+        self.assertEqual(inline_repaired["raw_unit"], hundred_million_won)
+        self.assertEqual(inline_repaired["normalized_value"], 200_000_000.0)
+        self.assertEqual(inline_repaired["normalized_unit"], "KRW")
+        self.assertEqual(inline_repaired["original_raw_unit"], "source unit")
+        self.assertEqual(inline_repaired["original_normalized_value"], 0.0)
+        self.assertTrue(inline_repaired["unit_repaired_from_rendered_value"])
+        self.assertIs(inline_repaired["nested"], nested)
+        self.assertEqual(inline_row, inline_before)
+
+        inline_close = {
+            "raw_value": f"2{million_won}",
+            "rendered_value": f"2{million_won}",
+            "raw_unit": million_won,
+            "normalized_value": 2_000_000.001,
+            "normalized_unit": "KRW",
+        }
+        self.assertEqual(repair(inline_close), inline_close)
+        inline_nan = {**inline_close, "normalized_value": float("nan")}
+        inline_nan_repaired = repair(inline_nan)
+        self.assertIs(inline_nan_repaired["normalized_value"], inline_nan["normalized_value"])
+        self.assertNotIn("unit_repaired_from_rendered_value", inline_nan_repaired)
+
+        rendered_row = {
+            "raw_value": "2",
+            "rendered_value": f"1{million_won} 2\uc5b5 2{million_won}",
+            "raw_unit": "\uc6d0",
+            "normalized_value": float("nan"),
+            "normalized_unit": "KRW",
+            "original_raw_unit": "",
+            "original_normalized_value": None,
+        }
+        rendered_before = dict(rendered_row)
+        rendered_repaired = repair(rendered_row)
+        self.assertEqual(rendered_repaired["raw_unit"], hundred_million_won)
+        self.assertEqual(rendered_repaired["normalized_value"], 200_000_000.0)
+        self.assertEqual(rendered_repaired["original_raw_unit"], "\uc6d0")
+        self.assertIs(rendered_repaired["original_normalized_value"], rendered_row["normalized_value"])
+        self.assertTrue(rendered_repaired["unit_repaired_from_rendered_value"])
+        self.assertEqual(rendered_row, rendered_before)
+
+        rendered_close = {
+            "raw_value": "2",
+            "rendered_value": f"2{million_won}",
+            "raw_unit": million_won,
+            "normalized_value": 2_000_000.001,
+            "normalized_unit": "KRW",
+        }
+        self.assertEqual(repair(rendered_close), rendered_close)
+
+        billion_won = "\uc2ed\uc5b5\uc6d0"
+        for boundary_row in (
+            {**inline_close, "raw_value": f"1{billion_won}", "rendered_value": f"1{billion_won}", "normalized_value": 1_000_000_001.0},
+            {**rendered_close, "raw_value": "1", "rendered_value": f"1{billion_won}", "normalized_value": 1_000_000_001.0},
+        ):
+            with self.subTest(tolerance_boundary=boundary_row["raw_value"]):
+                self.assertEqual(repair(boundary_row), boundary_row)
+
+        blank_pattern_row = {**rendered_close, "normalized_value": 2.0}
+        with patch.object(
+            operand_resolution,
+            "NUMERIC_UNIT_NORMALIZATION_POLICY",
+            {"inline_value_unit_pattern": ""},
+        ):
+            self.assertEqual(repair(blank_pattern_row), blank_pattern_row)
+
+    def test_rendered_unit_operand_normalization_repair_exception_and_access_order(self) -> None:
+        repair = operand_resolution.repair_operand_normalization_from_rendered_unit
+        events: List[str] = []
+
+        class ValueProbe:
+            def __init__(self, name: str, value: str, *, error: Exception | None = None) -> None:
+                self.name = name
+                self.value = value
+                self.error = error
+
+            def __bool__(self) -> bool:
+                events.append(f"bool:{self.name}")
+                return True
+
+            def __str__(self) -> str:
+                events.append(f"str:{self.name}")
+                if self.error is not None:
+                    raise self.error
+                return self.value
+
+        repair(
+            {
+                "raw_value": ValueProbe("raw", "2"),
+                "rendered_value": ValueProbe("rendered", "2%"),
+                "normalized_unit": ValueProbe("unit", "PERCENT"),
+            },
+        )
+        self.assertEqual(
+            events,
+            ["bool:raw", "str:raw", "bool:rendered", "str:rendered", "bool:unit", "str:unit"],
+        )
+
+        class MappingFailure:
+            def __bool__(self) -> bool:
+                events.append("bool:mapping")
+                return True
+
+            def keys(self):
+                events.append("keys:mapping")
+                raise RuntimeError("mapping failed")
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "mapping failed"):
+            repair(MappingFailure())
+        self.assertEqual(events, ["bool:mapping", "keys:mapping"])
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "raw string failed"):
+            repair(
+                {
+                    "raw_value": ValueProbe("raw", "", error=RuntimeError("raw string failed")),
+                    "rendered_value": ValueProbe("rendered", "unused"),
+                },
+            )
+        self.assertEqual(events, ["bool:raw", "str:raw"])
+
+        class FloatFailure:
+            def __init__(self, error: Exception) -> None:
+                self.error = error
+
+            def __float__(self) -> float:
+                raise self.error
+
+        repair_row = {
+            "raw_value": "2",
+            "rendered_value": "2\ubc31\ub9cc\uc6d0",
+            "raw_unit": "\uc6d0",
+            "normalized_unit": "KRW",
+        }
+        for error in (TypeError("bad float"), ValueError("bad float")):
+            with self.subTest(caught=type(error).__name__):
+                repaired = repair({**repair_row, "normalized_value": FloatFailure(error)})
+                self.assertEqual(repaired["normalized_value"], 2_000_000.0)
+
+        with self.assertRaisesRegex(RuntimeError, "float failed"):
+            repair({**repair_row, "normalized_value": FloatFailure(RuntimeError("float failed"))})
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                repair({**repair_row, "normalized_value": 2.0})
+        with patch.object(
+            operand_resolution,
+            "NUMERIC_UNIT_NORMALIZATION_POLICY",
+            {"inline_value_unit_pattern": "("},
+        ):
+            with self.assertRaises(re.error):
+                repair({**repair_row, "normalized_value": 2.0})
+
     def test_evidence_identity_and_surface_helpers_have_operand_resolution_owner(self) -> None:
         helper_names = (
             "_canonical_structured_reconciliation_id",
             "_canonicalize_structured_operand_reconciliation_refs",
             "_operand_slot_has_evidence_surface_match",
+            "repair_operand_normalization_from_rendered_unit",
         )
 
         for helper_name in helper_names:
