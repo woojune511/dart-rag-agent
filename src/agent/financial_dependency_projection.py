@@ -1023,6 +1023,54 @@ def dependency_projection_slot_differs_from_operand(
     )
 
 
+def structured_unit_realigned_operand_matches_source_slot(
+    source_slot: Mapping[str, Any],
+    operand: Mapping[str, Any],
+    *,
+    structured_realigned_operands: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> bool:
+    candidates = [dict(operand)] if operand.get("unit_realigned_from_structured_provenance") else []
+    if not candidates:
+        operand_role = _normalise_spaces(str(operand.get("role") or operand.get("matched_operand_role") or ""))
+        operand_raw = _normalise_spaces(str(operand.get("raw_value") or ""))
+        operand_ids = set(_clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")]))
+        for marked in structured_realigned_operands or []:
+            marked_role = _normalise_spaces(str(marked.get("role") or marked.get("matched_operand_role") or ""))
+            marked_raw = _normalise_spaces(str(marked.get("raw_value") or ""))
+            if operand_role and marked_role and operand_role != marked_role:
+                continue
+            if operand_raw and marked_raw and operand_raw != marked_raw:
+                continue
+            marked_ids = set(_clean_source_row_ids([marked.get("source_row_id"), marked.get("source_row_ids")]))
+            if operand_ids and marked_ids and not (operand_ids & marked_ids):
+                continue
+            candidates.append(dict(marked))
+    if not candidates:
+        return False
+    source_ids = {
+        source_id
+        for source_id in _clean_source_row_ids([source_slot.get("source_row_id"), source_slot.get("source_row_ids")])
+        if source_id and not source_id.startswith("task_output:")
+    }
+    source_raw = _normalise_spaces(str(source_slot.get("raw_value") or ""))
+    source_unit = _normalise_spaces(str(source_slot.get("normalized_unit") or "")).upper()
+    for candidate in candidates:
+        candidate_raw = _normalise_spaces(str(candidate.get("raw_value") or ""))
+        if not source_raw or source_raw != candidate_raw:
+            continue
+        candidate_unit = _normalise_spaces(str(candidate.get("normalized_unit") or "")).upper()
+        if not source_unit or source_unit != candidate_unit:
+            continue
+        candidate_ids = {
+            source_id
+            for source_id in _clean_source_row_ids([candidate.get("source_row_id"), candidate.get("source_row_ids")])
+            if source_id and not source_id.startswith("task_output:")
+        }
+        if source_ids and candidate_ids and source_ids & candidate_ids:
+            return True
+    return False
+
+
 def source_task_id_for_dependency_operand(operand: Dict[str, Any]) -> str:
     source_task_id = _normalise_spaces(str(operand.get("source_task_id") or ""))
     if source_task_id:

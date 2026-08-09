@@ -18165,6 +18165,100 @@ class SubtaskLoopTests(unittest.TestCase):
             0,
         )
 
+        source_slot = {
+            "raw_value": "100",
+            "raw_unit": "thousand",
+            "normalized_value": 100_000.0,
+            "normalized_unit": "KRW",
+            "source_row_id": "ev_denominator",
+            "source_row_ids": ["ev_denominator"],
+            "source_anchor": "source task table",
+        }
+        realigned_operand = {
+            "role": "denominator_1",
+            "raw_value": "100",
+            "raw_unit": "million",
+            "normalized_value": 100_000_000.0,
+            "normalized_unit": "KRW",
+            "source_task_id": "task_lookup",
+            "source_row_id": "task_output:task_lookup",
+            "source_row_ids": ["task_output:task_lookup", "ev_denominator"],
+            "source_anchor": "structured graph table",
+            "unit_realigned_from_structured_provenance": True,
+        }
+
+        def ranks(operand, slot, operation_family="ratio"):
+            return self.agent._aggregate_result_dependency_coherence_ranks(
+                {
+                    "operation_family": operation_family,
+                    "calculation_operands": [operand],
+                },
+                {"task_lookup": slot},
+            )
+
+        matching_operand = {
+            **realigned_operand,
+            "raw_unit": source_slot["raw_unit"],
+            "normalized_value": source_slot["normalized_value"],
+            "source_anchor": source_slot["source_anchor"],
+        }
+        with patch.object(
+            financial_graph_calculation,
+            "structured_unit_realigned_operand_matches_source_slot",
+        ) as owner_zero:
+            self.assertEqual(ranks(realigned_operand, source_slot, "lookup"), (1, 1))
+            self.assertEqual(
+                self.agent._aggregate_result_dependency_coherence_ranks(
+                    {"operation_family": "ratio", "calculation_operands": [realigned_operand]},
+                    {},
+                ),
+                (1, 1),
+            )
+            self.assertEqual(ranks(realigned_operand, {}), (1, 1))
+            self.assertEqual(ranks(matching_operand, source_slot), (2, 1))
+        owner_zero.assert_not_called()
+
+        with patch.object(
+            financial_graph_calculation,
+            "structured_unit_realigned_operand_matches_source_slot",
+            return_value=True,
+        ) as owner_true:
+            self.assertEqual(ranks(realigned_operand, source_slot), (2, 1))
+        owner_true.assert_called_once()
+        called_source, called_operand = owner_true.call_args.args
+        called_structured = owner_true.call_args.kwargs["structured_realigned_operands"]
+        self.assertEqual((called_source, called_operand), (source_slot, realigned_operand))
+        self.assertEqual(called_structured, [realigned_operand])
+        self.assertIsNot(called_source, source_slot)
+        self.assertIsNot(called_operand, realigned_operand)
+        self.assertIsNot(called_structured[0], realigned_operand)
+        self.assertIsNot(called_structured[0], called_operand)
+
+        with patch.object(
+            financial_graph_calculation,
+            "structured_unit_realigned_operand_matches_source_slot",
+            return_value=False,
+        ) as owner_false:
+            self.assertEqual(ranks(realigned_operand, source_slot), (0, 1))
+        owner_false.assert_called_once()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "structured_unit_realigned_operand_matches_source_slot",
+                side_effect=RuntimeError("structured match stopped"),
+            ) as owner_error,
+            patch.object(
+                financial_graph_calculation,
+                "known_consolidation_scope_value",
+                side_effect=AssertionError("scope logic reached"),
+            ) as scope_logic,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "structured match stopped"):
+                ranks(realigned_operand, {**source_slot, "consolidation_scope": "scope"})
+        owner_error.assert_called_once()
+        scope_logic.assert_not_called()
+
     def test_compact_ratio_answer_from_projection_rejects_dependency_incoherent_operands(self) -> None:
         self.agent._compact_ratio_answer = lambda _state, _result: "target share is 70%."
         state = {

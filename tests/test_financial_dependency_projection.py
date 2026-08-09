@@ -35,6 +35,316 @@ from src.agent.financial_dependency_projection import (
 
 
 class FinancialDependencyProjectionTests(unittest.TestCase):
+    def test_structured_unit_realigned_source_slot_match_matrix(self) -> None:
+        matches = dependency_projection.structured_unit_realigned_operand_matches_source_slot
+
+        def source(**updates: Any) -> Dict[str, Any]:
+            row = {
+                "raw_value": "100",
+                "normalized_unit": "KRW",
+                "source_row_id": "source",
+                "source_row_ids": ["source"],
+            }
+            row.update(updates)
+            return row
+
+        def operand(*, marked: bool = True, **updates: Any) -> Dict[str, Any]:
+            row = {
+                "unit_realigned_from_structured_provenance": marked,
+                "role": "denominator_1",
+                "raw_value": "100",
+                "normalized_unit": "KRW",
+                "source_row_id": "task_output:task_den",
+                "source_row_ids": ["task_output:task_den", "source"],
+                "nested": {"keep": True},
+            }
+            row.update(updates)
+            return row
+
+        for name, source_updates, operand_updates, expected in (
+            ("exact", {}, {}, True),
+            ("source raw blank", {"raw_value": ""}, {}, False),
+            ("source raw mismatch", {"raw_value": "101"}, {}, False),
+            ("candidate raw blank", {}, {"raw_value": ""}, False),
+            ("candidate raw mismatch", {}, {"raw_value": "101"}, False),
+            ("source unit blank", {"normalized_unit": ""}, {}, False),
+            ("source unit mismatch", {"normalized_unit": "COUNT"}, {}, False),
+            ("candidate unit blank", {}, {"normalized_unit": ""}, False),
+            ("candidate unit mismatch", {}, {"normalized_unit": "COUNT"}, False),
+            ("source ids blank", {"source_row_id": "", "source_row_ids": []}, {}, False),
+            ("candidate ids blank", {}, {"source_row_id": "", "source_row_ids": []}, False),
+            ("disjoint ids", {}, {"source_row_ids": ["other"]}, False),
+            ("source task output only", {"source_row_id": "task_output:a", "source_row_ids": []}, {}, False),
+            ("candidate task output only", {}, {"source_row_ids": ["task_output:b"]}, False),
+            (
+                "task output filtered with shared id",
+                {"source_row_ids": ["task_output:a", " shared "]},
+                {"source_row_ids": ["task_output:b", "shared"]},
+                True,
+            ),
+            ("normalized unit", {"normalized_unit": " krw "}, {"normalized_unit": "krw"}, True),
+        ):
+            with self.subTest(marked=name):
+                self.assertEqual(matches(source(**source_updates), operand(**operand_updates)), expected)
+
+        class AccessMapping(Mapping[str, Any]):
+            def __init__(self, values, events, name):
+                self.values = values
+                self.events = events
+                self.name = name
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def keys(self):
+                self.events.append(f"copy:{self.name}")
+                return self.values.keys()
+
+            def get(self, key, default=None):
+                self.events.append(f"get:{self.name}:{key}")
+                return self.values.get(key, default)
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("structured list accessed")
+
+        marker_events: List[str] = []
+        direct_operand = AccessMapping(operand(), marker_events, "operand")
+        source_events: List[str] = []
+        tracked_source = AccessMapping(source(), source_events, "source")
+        self.assertTrue(
+            matches(  # type: ignore[arg-type]
+                tracked_source,
+                direct_operand,
+                structured_realigned_operands=TruthBomb(),
+            )
+        )
+        self.assertEqual(marker_events, ["get:operand:unit_realigned_from_structured_provenance", "copy:operand"])
+        self.assertEqual(
+            source_events,
+            [
+                "get:source:source_row_id",
+                "get:source:source_row_ids",
+                "get:source:raw_value",
+                "get:source:normalized_unit",
+            ],
+        )
+
+        for name, unmarked, marked_rows, expected in (
+            ("no marked", operand(marked=False), [], False),
+            (
+                "matched-role fallback",
+                operand(marked=False, role="", matched_operand_role="denominator_1"),
+                [operand(role="", matched_operand_role="denominator_1")],
+                True,
+            ),
+            (
+                "role mismatch",
+                operand(marked=False, role="numerator_1"),
+                [operand(role="denominator_1")],
+                False,
+            ),
+            ("raw mismatch", operand(marked=False, raw_value="99"), [operand(raw_value="100")], False),
+            (
+                "selection ids disjoint",
+                operand(marked=False, source_row_id="", source_row_ids=["operand"]),
+                [operand(source_row_id="", source_row_ids=["marked"])],
+                False,
+            ),
+            (
+                "blank operand fields are wildcards",
+                operand(marked=False, role="", matched_operand_role="", raw_value="", source_row_id="", source_row_ids=[]),
+                [operand()],
+                True,
+            ),
+            (
+                "blank marked role is wildcard",
+                operand(marked=False),
+                [operand(role="", matched_operand_role="")],
+                True,
+            ),
+            (
+                "blank marked ids survive selection but fail intersection",
+                operand(marked=False, source_row_id="", source_row_ids=[]),
+                [operand(source_row_id="", source_row_ids=[])],
+                False,
+            ),
+        ):
+            with self.subTest(fallback=name):
+                self.assertEqual(
+                    matches(source(), unmarked, structured_realigned_operands=marked_rows),
+                    expected,
+                )
+
+        class SourceBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("source accessed without candidates")
+
+        self.assertFalse(
+            matches(
+                SourceBomb(),  # type: ignore[arg-type]
+                operand(marked=False),
+                structured_realigned_operands=[],
+            )
+        )
+
+        scan_events: List[str] = []
+
+        class CountingString:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                scan_events.append(self.name)
+                return self.value
+
+        surviving_first_raw = CountingString("first.raw", "100")
+        surviving_second_raw = CountingString("second.raw", "100")
+        marked_rows = [
+            AccessMapping(operand(role="other"), scan_events, "role-mismatch"),
+            AccessMapping(operand(raw_value="other"), scan_events, "raw-mismatch"),
+            AccessMapping(
+                operand(source_row_id="", source_row_ids=["disjoint"]),
+                scan_events,
+                "id-mismatch",
+            ),
+            AccessMapping(operand(raw_value=surviving_first_raw), scan_events, "first"),
+            AccessMapping(operand(raw_value=surviving_second_raw), scan_events, "second"),
+        ]
+        self.assertTrue(
+            matches(
+                source(),
+                operand(marked=False),
+                structured_realigned_operands=marked_rows,  # type: ignore[arg-type]
+            )
+        )
+        self.assertEqual(
+            [event for event in scan_events if event.startswith("copy:")],
+            ["copy:first", "copy:second"],
+        )
+        self.assertNotIn("get:role-mismatch:source_row_id", scan_events)
+        self.assertNotIn("get:raw-mismatch:source_row_id", scan_events)
+        self.assertEqual((surviving_first_raw.calls, surviving_second_raw.calls), (2, 1))
+
+        source_row = source()
+        operand_row = operand(marked=False)
+        marked_rows = [operand()]
+        before = deepcopy((source_row, operand_row, marked_rows))
+        self.assertTrue(matches(source_row, operand_row, structured_realigned_operands=marked_rows))
+        self.assertEqual((source_row, operand_row, marked_rows), before)
+
+    def test_structured_unit_realigned_source_slot_match_exception_contract(self) -> None:
+        matches = dependency_projection.structured_unit_realigned_operand_matches_source_slot
+        source = {"raw_value": "100", "normalized_unit": "KRW", "source_row_id": "source"}
+        marked = {
+            "unit_realigned_from_structured_provenance": True,
+            "raw_value": "100",
+            "normalized_unit": "KRW",
+            "source_row_id": "source",
+        }
+
+        class GetBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            matches(source, GetBomb())  # type: ignore[arg-type]
+
+        class CopyBomb(Mapping[str, Any]):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("unit_realigned_from_structured_provenance",))
+
+            def __getitem__(self, _key):
+                raise RuntimeError("dict copy failed")
+
+            def get(self, key, default=None):
+                return True if key == "unit_realigned_from_structured_provenance" else default
+
+        with self.assertRaisesRegex(RuntimeError, "dict copy failed"):
+            matches(source, CopyBomb())  # type: ignore[arg-type]
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("iteration failed")
+
+        unmarked = {**marked, "unit_realigned_from_structured_provenance": False}
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            matches(source, unmarked, structured_realigned_operands=TruthBomb())
+        with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+            matches(source, unmarked, structured_realigned_operands=IterBomb())
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            matches(source, {**unmarked, "role": StringBomb()}, structured_realigned_operands=[])
+
+        with patch.object(
+            dependency_projection,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                matches(source, marked)
+        with patch.object(
+            dependency_projection,
+            "_clean_source_row_ids",
+            side_effect=RuntimeError("cleaner failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "cleaner failed"):
+                matches(source, marked)
+        class UnhashableId:
+            __hash__ = None
+
+            def __bool__(self):
+                return True
+
+            def startswith(self, _prefix):
+                return False
+
+        with patch.object(
+            dependency_projection,
+            "_clean_source_row_ids",
+            return_value=[UnhashableId()],
+        ):
+            with self.assertRaises(TypeError):
+                matches(source, marked)
+
+        class StartsWithBomb:
+            def __bool__(self):
+                return True
+
+            def startswith(self, _prefix):
+                raise RuntimeError("startswith failed")
+
+        with patch.object(
+            dependency_projection,
+            "_clean_source_row_ids",
+            return_value=[StartsWithBomb()],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "startswith failed"):
+                matches(source, marked)
+
     def test_dependency_row_unit_inference_preserves_policy_and_access_contract(self) -> None:
         def infer(slot, sibling_result):
             return dependency_projection.infer_dependency_row_unit(slot, sibling_result)
