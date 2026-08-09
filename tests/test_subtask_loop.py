@@ -4693,11 +4693,21 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
-            [stale_ratio_row],
-            projection,
-            final_answer,
-        )
+        row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_projection_row_surface",
+            wraps=row_sync,
+        ) as row_sync_spy:
+            ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                projection,
+                final_answer,
+            )
+        row_sync_spy.assert_called_once()
+        ratio_sync_input = row_sync_spy.call_args.args[0]
+        self.assertEqual(ratio_sync_input.projection_row["task_id"], "task_ratio")
+        self.assertEqual((ratio_sync_input.answer, ratio_sync_input.rendered_value), (final_answer, "80.00%"))
 
         ratio_row = next(row for row in ordered_results if row["task_id"] == "task_ratio")
         projected_ratio_row = next(
@@ -4714,6 +4724,21 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projected_ratio_row["calculation_result"]["rendered_value"], "80.00%")
         self.assertEqual(slot_ratio_row["rendered_value"], "80.00%")
         self.assertNotIn("400.00%", projected_ratio_row["answer"])
+
+        empty_projection = {"calculation_result": {"subtask_results": []}}
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_projection_row_surface",
+            wraps=row_sync,
+        ) as gated_row_sync:
+            unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                empty_projection,
+                final_answer,
+            )
+        gated_row_sync.assert_not_called()
+        self.assertIs(unchanged_results[0], stale_ratio_row)
+        self.assertIs(unchanged_projection, empty_projection)
 
     def test_aggregate_trace_sync_updates_difference_scalar_from_final_answer(self) -> None:
         stale_difference_row = {
@@ -4786,11 +4811,22 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
-            [stale_difference_row],
-            projection,
-            final_answer,
-        )
+        row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_projection_row_surface",
+            wraps=row_sync,
+        ) as row_sync_spy:
+            ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_difference_row],
+                projection,
+                final_answer,
+            )
+        row_sync_spy.assert_called_once()
+        difference_sync_input = row_sync_spy.call_args.args[0]
+        self.assertEqual(difference_sync_input.projection_row["task_id"], "task_net")
+        self.assertIn("-3,322", difference_sync_input.answer)
+        self.assertIn("-3,322", difference_sync_input.rendered_value)
 
         synced_row = next(row for row in ordered_results if row["task_id"] == "task_net")
         projected_row = next(
@@ -4952,11 +4988,22 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
-            [stale_lookup_row, precise_lookup_row, net_row],
-            projection,
-            final_answer,
-        )
+        row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        with patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_projection_row_surface",
+            wraps=row_sync,
+        ) as row_sync_spy:
+            ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_lookup_row, precise_lookup_row, net_row],
+                projection,
+                final_answer,
+            )
+        row_sync_spy.assert_called_once()
+        lookup_sync_input = row_sync_spy.call_args.args[0]
+        self.assertEqual(lookup_sync_input.projection_row["task_id"], "task_gain")
+        self.assertIn("5,739", lookup_sync_input.answer)
+        self.assertIn("5,739", lookup_sync_input.rendered_value)
 
         gain_row = next(row for row in ordered_results if row["task_id"] == "task_gain")
         loss_row = next(row for row in ordered_results if row["task_id"] == "task_loss")

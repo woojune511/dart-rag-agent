@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
+from src.agent.financial_numeric_surface import (
+    extract_numeric_surface_candidates,
+    numeric_surface_slot_components,
+)
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 
 
@@ -140,6 +144,22 @@ class AggregateNestedSubtaskSynchronizationResult:
     """New ordered rows whose nested task results use current row authorities."""
 
     ordered_results: List[Dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class AggregateProjectionRowSurfaceSyncInput:
+    """One graph-prepared aggregate row and its selected answer surface."""
+
+    projection_row: Mapping[str, Any]
+    answer: str
+    rendered_value: str
+
+
+@dataclass(frozen=True)
+class AggregateProjectionRowSurfaceSyncResult:
+    """Fresh row with the prepared answer surface synchronized into its result."""
+
+    projection_row: Dict[str, Any]
 
 
 def filter_aggregate_projection_provenance(
@@ -391,6 +411,111 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
         "addition": "sum",
     }
     return operation_aliases.get(operation_family, operation_family)
+
+
+def _numeric_slot_from_synced_answer_sentence(
+    answer_sentence: str,
+    operation_family: str,
+) -> Dict[str, Any]:
+    sentence = _normalise_spaces(answer_sentence)
+    if not sentence:
+        return {}
+    candidates = extract_numeric_surface_candidates(sentence)
+    if not candidates:
+        return {}
+    candidate = candidates[0]
+    if operation_family not in {"ratio", "growth_rate"}:
+        candidate = candidates[-1]
+    return numeric_surface_slot_components(candidate)
+
+
+def synchronize_aggregate_projection_row_surface(
+    sync_input: AggregateProjectionRowSurfaceSyncInput,
+) -> AggregateProjectionRowSurfaceSyncResult:
+    """Synchronize one graph-selected answer surface into a prepared result row."""
+
+    row = sync_input.projection_row
+    answer = sync_input.answer
+    rendered_value = sync_input.rendered_value
+    updated = {
+        **dict(row),
+        "answer": answer,
+        "projection_surface_synced_from_final_answer": True,
+    }
+    if rendered_value:
+        updated["rendered_value"] = rendered_value
+
+    calculation_result = dict(row.get("calculation_result") or {})
+    if not calculation_result:
+        return AggregateProjectionRowSurfaceSyncResult(projection_row=updated)
+    slot_components = _numeric_slot_from_synced_answer_sentence(
+        answer,
+        aggregate_result_operation_family(row),
+    )
+    calculation_result["formatted_result"] = answer
+    if rendered_value:
+        calculation_result["rendered_value"] = rendered_value
+    if slot_components:
+        calculation_result["result_value"] = slot_components.get("normalized_value")
+        raw_unit = _normalise_spaces(str(slot_components.get("raw_unit") or ""))
+        if raw_unit:
+            calculation_result["result_unit"] = raw_unit
+        operation_family = aggregate_result_operation_family(row)
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        primary_value = dict(answer_slots.get("primary_value") or {})
+        if primary_value or operation_family in {"difference", "sum", "lookup"}:
+            primary_value = {
+                **primary_value,
+                "status": primary_value.get("status") or "ok",
+                "role": primary_value.get("role") or "primary_value",
+                "label": primary_value.get("label") or row.get("metric_label") or "",
+                "raw_value": slot_components.get("raw_value"),
+                "raw_unit": slot_components.get("raw_unit"),
+                "normalized_value": slot_components.get("normalized_value"),
+                "normalized_unit": slot_components.get("normalized_unit"),
+                "rendered_value": slot_components.get("rendered_value") or rendered_value,
+            }
+            primary_value["rendered_value"] = rendered_value
+            answer_slots["primary_value"] = primary_value
+            if operation_family == "lookup":
+                calculation_result["current_value"] = slot_components.get("normalized_value")
+                calculation_result["current_period"] = calculation_result.get("current_period") or primary_value.get("period") or ""
+                series = [
+                    dict(item)
+                    for item in list(calculation_result.get("series") or [])
+                    if isinstance(item, dict)
+                ]
+                if series:
+                    series[0] = {**series[0], **slot_components, "rendered_value": rendered_value}
+                else:
+                    series = [dict(primary_value)]
+                calculation_result["series"] = series
+
+                for container_key in ("components_by_role", "components_by_group"):
+                    container = dict(answer_slots.get(container_key) or {})
+                    target_keys = ["primary_value"] if container_key == "components_by_role" else ["primary", "primary_value"]
+                    for target_key in target_keys:
+                        if target_key not in container:
+                            continue
+                        values = [
+                            dict(item)
+                            for item in list(container.get(target_key) or [])
+                            if isinstance(item, dict)
+                        ]
+                        if values:
+                            values[0] = {**values[0], **slot_components, "rendered_value": rendered_value}
+                        else:
+                            values = [dict(primary_value)]
+                        container[target_key] = values
+                    if container:
+                        answer_slots[container_key] = container
+                derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+                if derived_metrics:
+                    derived_metrics["formula_result_value"] = slot_components.get("normalized_value")
+                    calculation_result["derived_metrics"] = derived_metrics
+            calculation_result["answer_slots"] = answer_slots
+    updated["calculation_result"] = calculation_result
+    return AggregateProjectionRowSurfaceSyncResult(projection_row=updated)
 
 
 def project_runtime_ratio_absolute_magnitude(

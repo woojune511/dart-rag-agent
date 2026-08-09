@@ -16,6 +16,7 @@ from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
     AggregateAnswerCandidatePackagingInput,
     AggregateNestedSubtaskSynchronizationInput,
+    AggregateProjectionRowSurfaceSyncInput,
     AggregateProjectionProvenanceFilterInput,
     AggregateProjectionFinalAnswerSyncInput,
     AggregateRefreshedAnswerCandidatePackagingInput,
@@ -39,6 +40,7 @@ from src.agent.financial_aggregate_projection import (
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
+    synchronize_aggregate_projection_row_surface,
     synchronize_nested_aggregate_subtask_rows,
     sync_aggregate_projection_final_answer,
 )
@@ -85,6 +87,266 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_projection_row_surface_sync_preserves_numeric_selection_and_copy_contract(self) -> None:
+        def sync(row, answer, rendered_value):
+            return synchronize_aggregate_projection_row_surface(
+                AggregateProjectionRowSurfaceSyncInput(
+                    projection_row=row,
+                    answer=answer,
+                    rendered_value=rendered_value,
+                )
+            ).projection_row
+
+        empty_result: dict = {}
+        empty_row = {
+            "task_id": "task_empty",
+            "calculation_result": empty_result,
+            "nested": {"preserve": True},
+        }
+        empty_projection = sync(
+            empty_row,
+            "   ",
+            "",
+        )
+        self.assertIsNot(empty_projection, empty_row)
+        self.assertEqual(empty_projection["answer"], "   ")
+        self.assertTrue(empty_projection["projection_surface_synced_from_final_answer"])
+        self.assertIs(empty_projection["calculation_result"], empty_result)
+        self.assertIs(empty_projection["nested"], empty_row["nested"])
+        self.assertNotIn("rendered_value", empty_projection)
+
+        shared_nested = {"preserve": "nested"}
+        ratio_row = {
+            "operation_family": "ratio",
+            "metric_label": "ratio metric",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "primary_value": {
+                        "status": "ok",
+                        "period": "2024",
+                        "nested": shared_nested,
+                    }
+                },
+                "untouched": shared_nested,
+            },
+        }
+        ratio_before = deepcopy(ratio_row)
+        ratio_projection = sync(
+            ratio_row,
+            "5.0% and 7.0%",
+            "5.0%",
+        )
+        ratio_result = ratio_projection["calculation_result"]
+        self.assertEqual(ratio_result["result_value"], 5.0)
+        self.assertEqual(ratio_result["formatted_result"], "5.0% and 7.0%")
+        self.assertEqual(ratio_result["answer_slots"]["primary_value"]["rendered_value"], "5.0%")
+        self.assertIs(ratio_result["untouched"], shared_nested)
+        self.assertIs(
+            ratio_result["answer_slots"]["primary_value"]["nested"],
+            shared_nested,
+        )
+        self.assertEqual(ratio_row, ratio_before)
+
+        difference_row = {
+            "operation_family": "difference",
+            "metric_label": "difference metric",
+            "calculation_result": {"status": "ok", "answer_slots": {}},
+        }
+        difference_projection = sync(
+            difference_row,
+            "5.0% and 7.0%",
+            "7.0%",
+        )
+        self.assertEqual(difference_projection["calculation_result"]["result_value"], 7.0)
+        self.assertEqual(
+            difference_projection["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "7.0%",
+        )
+
+        ratio_without_primary_slots: dict = {}
+        ratio_without_primary = {
+            "operation_family": "ratio",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": ratio_without_primary_slots,
+            },
+        }
+        ratio_without_primary_projection = sync(
+            ratio_without_primary,
+            "8.0%",
+            "8.0%",
+        )
+        self.assertIs(
+            ratio_without_primary_projection["calculation_result"]["answer_slots"],
+            ratio_without_primary_slots,
+        )
+        self.assertNotIn(
+            "primary_value",
+            ratio_without_primary_projection["calculation_result"]["answer_slots"],
+        )
+
+        lookup_row = {
+            "operation_family": "lookup",
+            "metric_label": "lookup metric",
+            "calculation_result": {
+                "status": "ok",
+                "series": [
+                    {"period": "2024", "nested": shared_nested},
+                    "drop-me",
+                ],
+                "derived_metrics": {"keep": shared_nested},
+                "answer_slots": {
+                    "primary_value": {"period": "2024", "nested": shared_nested},
+                    "components_by_role": {
+                        "primary_value": [
+                            {"period": "2024", "nested": shared_nested},
+                            "drop-me",
+                        ]
+                    },
+                    "components_by_group": {
+                        "primary": [{"period": "2024", "nested": shared_nested}]
+                    },
+                },
+            },
+        }
+        lookup_before = deepcopy(lookup_row)
+        lookup_projection = sync(
+            lookup_row,
+            "12.0%",
+            "12.0%",
+        )
+        lookup_result = lookup_projection["calculation_result"]
+        lookup_slots = lookup_result["answer_slots"]
+        self.assertEqual(lookup_result["current_value"], 12.0)
+        self.assertEqual(len(lookup_result["series"]), 1)
+        self.assertEqual(lookup_result["series"][0]["normalized_value"], 12.0)
+        self.assertEqual(
+            lookup_slots["components_by_role"]["primary_value"][0]["normalized_value"],
+            12.0,
+        )
+        self.assertEqual(
+            lookup_slots["components_by_group"]["primary"][0]["normalized_value"],
+            12.0,
+        )
+        self.assertEqual(lookup_result["derived_metrics"]["formula_result_value"], 12.0)
+        self.assertIs(lookup_result["derived_metrics"]["keep"], shared_nested)
+        self.assertEqual(lookup_row, lookup_before)
+
+        no_numeric_result = {"status": "ok", "rendered_value": "old", "nested": shared_nested}
+        no_numeric_row = {"operation_family": "difference", "calculation_result": no_numeric_result}
+        no_numeric_projection = sync(no_numeric_row, "no numeric surface", "")
+        self.assertEqual(no_numeric_projection["calculation_result"]["formatted_result"], "no numeric surface")
+        self.assertEqual(no_numeric_projection["calculation_result"]["rendered_value"], "old")
+        self.assertNotIn("result_value", no_numeric_projection["calculation_result"])
+        self.assertIs(no_numeric_projection["calculation_result"]["nested"], shared_nested)
+        self.assertEqual(no_numeric_row["calculation_result"], no_numeric_result)
+
+        missing_result_row = {"task_id": "task_missing", "nested": shared_nested}
+        missing_result_projection = sync(missing_result_row, "raw answer", "rendered")
+        self.assertNotIn("calculation_result", missing_result_projection)
+        self.assertEqual(missing_result_projection["rendered_value"], "rendered")
+        self.assertIs(missing_result_projection["nested"], shared_nested)
+
+        empty_rendered_row = {
+            "operation_family": "ratio",
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "old result",
+                "answer_slots": {"primary_value": {"rendered_value": "old primary"}},
+            },
+        }
+        empty_rendered_projection = sync(empty_rendered_row, "8.0%", "")
+        self.assertEqual(empty_rendered_projection["calculation_result"]["rendered_value"], "old result")
+        self.assertEqual(
+            empty_rendered_projection["calculation_result"]["answer_slots"]["primary_value"]["rendered_value"],
+            "",
+        )
+
+        empty_derived: dict = {}
+        lookup_empty_row = {
+            "operation_family": "lookup",
+            "metric_label": "lookup fallback",
+            "calculation_result": {
+                "status": "ok",
+                "series": [],
+                "derived_metrics": empty_derived,
+                "answer_slots": {
+                    "primary_value": {"period": "2025"},
+                    "components_by_role": {"primary_value": []},
+                    "components_by_group": {"primary": [], "primary_value": []},
+                },
+            },
+        }
+        lookup_empty_before = deepcopy(lookup_empty_row)
+        lookup_empty_projection = sync(lookup_empty_row, "14.0%", "14.0%")
+        lookup_empty_result = lookup_empty_projection["calculation_result"]
+        lookup_empty_slots = lookup_empty_result["answer_slots"]
+        self.assertEqual(lookup_empty_result["current_period"], "2025")
+        self.assertEqual(lookup_empty_result["series"][0]["normalized_value"], 14.0)
+        self.assertEqual(
+            lookup_empty_slots["components_by_role"]["primary_value"][0]["normalized_value"],
+            14.0,
+        )
+        self.assertEqual(
+            lookup_empty_slots["components_by_group"]["primary"][0]["normalized_value"],
+            14.0,
+        )
+        self.assertEqual(
+            lookup_empty_slots["components_by_group"]["primary_value"][0]["normalized_value"],
+            14.0,
+        )
+        self.assertIs(lookup_empty_result["derived_metrics"], empty_derived)
+        self.assertEqual(lookup_empty_row, lookup_empty_before)
+
+        class TrackingRow(dict):
+            def __init__(self, *args, fail_operation_read=0, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.accessed = []
+                self.operation_reads = 0
+                self.fail_operation_read = fail_operation_read
+
+            def get(self, key, default=None):
+                self.accessed.append(key)
+                if key == "operation_family":
+                    self.operation_reads += 1
+                    if self.operation_reads == self.fail_operation_read:
+                        raise RuntimeError("operation access failed")
+                return super().get(key, default)
+
+        tracked = TrackingRow(
+            operation_family="lookup",
+            metric_label="tracked lookup",
+            calculation_result={"status": "ok", "answer_slots": {"primary_value": {}}},
+        )
+        sync(tracked, "15.0%", "15.0%")
+        self.assertEqual(
+            tracked.accessed,
+            [
+                "calculation_result",
+                "calculation_result",
+                "operation_family",
+                "calculation_result",
+                "operation_family",
+                "metric_label",
+            ],
+        )
+
+        failing = TrackingRow(
+            operation_family="lookup",
+            metric_label="unreached",
+            calculation_result={"status": "ok", "answer_slots": {"primary_value": {}}},
+            fail_operation_read=2,
+        )
+        failing_before = deepcopy(dict(failing))
+        with self.assertRaisesRegex(RuntimeError, "operation access failed"):
+            sync(failing, "16.0%", "16.0%")
+        self.assertEqual(
+            failing.accessed,
+            ["calculation_result", "calculation_result", "operation_family", "calculation_result", "operation_family"],
+        )
+        self.assertEqual(dict(failing), failing_before)
+
     def test_runtime_ratio_absolute_magnitude_projection_contract(self) -> None:
         nested_marker = {"preserve": True}
 
