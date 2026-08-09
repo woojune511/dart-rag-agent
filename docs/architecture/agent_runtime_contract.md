@@ -570,6 +570,26 @@ runtime trace fields. Graph and lookup-recovery callers consume the owner
 directly; the former graph-private scorer and lookup-recovery scorer callbacks
 are not compatibility seams.
 
+The operand owner also exposes the plain public table-label metadata lookup
+scorer. It receives only a graph-built slot and evidence item. An empty slot
+returns `0.0` before evidence access; otherwise normalized-unit access, metadata
+copy, the table-value-label gate, slot-first raw-unit fallback, raw-value digit
+count, and the existing additive score components run in their literal order.
+Unit hint, table source, slot-first source anchor, aggregate value role,
+final-before-direct/subtotal stage, exact-or-compact matched label, and the final
+known-versus-unknown unit adjustment retain their exact weights. Repeated getters,
+normalizations, whitespace truthiness, surface iteration, compact-label set
+construction, input immutability, and uncaught mapping, copy, string, regex,
+iteration, and normalization exceptions are unchanged.
+
+The three graph calls remain immediately after their respective table-label slot
+builders and before caller-owned period, context, scope, ambiguity, tie, grouping,
+or final-selection policy. The direct lookup and dependency-row callers still
+invoke the scorer for an empty slot; the period-context caller still skips an
+empty slot before scorer invocation. This seam owns only the state-free score,
+not slot construction, evidence iteration, selection, or downstream policy, and
+adds no wrapper, reason, flag, callback, config input, or trace field.
+
 The operand owner also exposes a plain state-free single-row transform for
 embedded raw-unit or rendered-unit normalization repair. It executes the former
 graph body literally: `dict(row or {})` always creates a fresh top-level result,

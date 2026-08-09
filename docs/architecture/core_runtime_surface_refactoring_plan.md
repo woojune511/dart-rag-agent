@@ -218,7 +218,11 @@ Current calculation ownership is:
   state-free seams. Its typed direct structured-evidence base scorer and neutral
   ordered aggregate-role preference predicate are also state-free; graph and
   lookup-recovery callers consume the scorer directly without the former
-  graph-private method or callback parameters.
+  graph-private method or callback parameters. The same owner exposes the plain
+  table-label metadata lookup scorer over a graph-built slot and evidence item.
+  It preserves the literal empty-slot/label/unit/digit gates, additive weights,
+  repeated access and exception order, while graph retains all three slot builders,
+  their empty-slot invocation asymmetry, and downstream selection policy.
   The same owner also owns the plain state-free single-row embedded/rendered-unit
   normalization repair transform. It preserves fresh top-level copy and nested-
   alias behavior, scaled tolerance and `NaN` semantics, stable first rendered
@@ -293,13 +297,13 @@ Current calculation ownership is:
   exceptions. Artifact creation/finalization and ledger-level id/order remain
   graph-owned.
 
-At the latest checkpoint, the graph is 18,857 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,805 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,610, the answer-slot owner is 594, the aggregate owner is 1,019, the
+is 2,663, the answer-slot owner is 594, the aggregate owner is 1,019, the
 aggregate-state owner is 161, the dependency owner is 3,209, the task-artifact
 owner is 1,180, and the execution owner is 837. The latest owner slice passed
-targeted 2/2 tests, affected 633/633 tests, the 217-literal audit, and full
-discovery over 1,506/1,506 tests.
+targeted 5/5 tests, affected 632/632 tests, the 217-literal audit, and full
+discovery over 1,507/1,507 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

@@ -907,6 +907,32 @@ dependency binding/evidence, state/artifact/final orchestration, and not a
 total-code, broad executed-path, performance, broad private-mesh, end-to-end
 calculation-owner, or complete Phase 3 reduction claim.
 
+### Table-label metadata lookup-score ownership
+
+- `db84c7c` moves the graph-private table-label metadata scorer into the plain
+  public `financial_operand_resolution.py` owner. The three graph calls remain
+  immediately after their slot builders and before caller-owned selection policy;
+  the direct-lookup and dependency-row callers still score an empty slot, while
+  the period-context caller still skips it. The old graph definition and private
+  self references are deleted.
+- Empty-slot and table-label gates, normalized/raw-unit and digit-threshold
+  access, all additive weights, repeated getters and normalizations, compact-label
+  matching, input immutability, and uncaught mapping/copy/string/regex/iteration/
+  normalization exception order are unchanged. The owner adds no wrapper, reason,
+  flag, callback, config input, or trace field.
+- Production source is `+57/-56`, net 1: the graph changes from 18,857 to 18,805
+  lines (`+4/-56`, net -52) and the operand owner from 2,610 to 2,663 (`+53`).
+  Tests are `+490/-9`, net 481; the whole commit is `+547/-65`, net 482.
+- Validation passed targeted 5/5 tests, affected 632/632 tests, the 217-literal
+  runtime audit, full discovery over 1,507/1,507 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving table-label metadata score-ownership relocation
+and 52-line old graph-body deletion, not a scoring-policy improvement, slot or
+evidence selection ownership, period/context/scope/ambiguity/tie/grouping policy,
+total-code or broad executed-path reduction, performance, broader private-mesh
+cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -327,6 +327,11 @@ state-free owner 경계:
   score를 반환한다. Ordered aggregate-role preference predicate도 같은 neutral
   owner에 있으며 원래 guard 안에서만 평가된다. Graph와 lookup recovery는 owner를
   직접 호출하고 scorer callback을 주입하지 않는다. 같은 owner의 plain public
+  table-label metadata scorer는 graph-built slot과 evidence item만 받아 empty-slot,
+  label, raw-unit, digit-threshold gate와 기존 additive weights를 literal 순서로
+  적용한다. 첫 두 caller는 empty slot도 호출하고 period-context caller는 먼저
+  건너뛰며, graph는 세 slot builder와 후속 context/scope/ambiguity/tie/grouping/
+  selection policy를 유지한다. 같은 owner의 plain public
   transform은 graph-built 단일 operand row의 embedded/rendered unit normalization을
   repair한다. 모든 경로에서 fresh top-level dict와 nested alias를 유지하고 scaled
   tolerance, `NaN` 비대칭, first rendered match, original-field precedence와 uncaught

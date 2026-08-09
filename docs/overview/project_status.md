@@ -80,6 +80,12 @@ imports or an unconfigured `FinancialAgent` invocation.
   guarded at its original call sites. Graph and lookup recovery consume the
   scorer directly; the old graph-private scorer and lookup-recovery callback
   parameters are gone. Reasons are contract outputs, not runtime trace fields.
+- Table-label metadata lookup scoring is now a plain public operand-owner
+  primitive. It preserves the empty-slot/table-label/unit/digit gates, exact
+  additive weights, repeated access and normalization, input immutability, and
+  uncaught exception order. The graph retains all three slot builders and later
+  period/context/scope/ambiguity/tie/grouping/selection policy; the first two
+  callers still score empty slots while the period-context caller skips them.
 - Prepared preferred-slot adoption now has a typed state-free operand-resolution
   owner. It preserves higher/equal-score rejection, ratio peer-unit alignment,
   exact row overlay, top-level copy/nested identity, sequential row application,
@@ -236,20 +242,20 @@ imports or an unconfigured `FinancialAgent` invocation.
   fallback, scaled tolerance, conversion exception boundary, and input
   immutability. The graph retains row coercion, table-metadata repair, both call
   placements, mutation, and later orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 18,857 lines,
+- At the current checkpoint, `financial_graph_calculation.py` is 18,805 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_answer_slots.py` is 594,
   `financial_aggregate_projection.py` is 1,019,
   `financial_aggregate_state.py` is 161,
-  `financial_operand_resolution.py` is 2,610,
+  `financial_operand_resolution.py` is 2,663,
   `financial_dependency_projection.py` is 3,209,
   `financial_task_artifacts.py` is 1,180, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 2/2 and affected 633/633
-  tests, the 217-literal runtime audit, and full discovery over 1,506/1,506 tests.
+- The latest calculation checkpoint passed targeted 5/5 and affected 632/632
+  tests, the 217-literal runtime audit, and full discovery over 1,507/1,507 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -268,7 +274,7 @@ current-state document does not duplicate that commit diary.
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
-| Generic operand candidate resolution and unit normalization/alignment | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring and the neutral ordered aggregate-role predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, required match/surface, lookup-rematch, direct-first merge, the plain embedded/rendered single-row repair, and shared-context multi-row ratio display-unit alignment while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, ratio-recovered/runtime projection, row construction/provenance, plan/map propagation, evidence-driven sibling candidate alignment, and ratio append/merge policy |
+| Generic operand candidate resolution and unit normalization/alignment | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring, the neutral ordered aggregate-role predicate, plain table-label metadata lookup scoring, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, required match/surface, lookup-rematch, direct-first merge, the plain embedded/rendered single-row repair, and shared-context multi-row ratio display-unit alignment while graph retains scope/target policy, table-label slot builders and downstream selection, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, ratio-recovered/runtime projection, row construction/provenance, plan/map propagation, evidence-driven sibling candidate alignment, and ratio append/merge policy |
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, prepared dependency-source ratio-result projection, dependency-row unit inference, and task-output normalized-KRW consistency | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, the ratio-result seam builds fresh canonical result/slot containers with exact source/component aliases, the unit primitive preserves slot-before-sibling raw precedence plus `UNKNOWN`-only policy inference, and the task-output predicate preserves its early gates, tolerance, and conversion exception boundary; graph retains row construction/normalization and conditional re-inference, row coercion and table-metadata repair, evidence coercion/append, raw-plan and candidate construction/execution, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots and ratio result-display synchronization | `financial_answer_slots.py`; owns answer-slot construction plus typed calculation-result/primary-slot display consistency, including formula-mismatch copy versus ordinary in-place update and current-surface/percent-policy/exception order, while graph callers retain ordered-row gating and propagation, compact-answer construction, and state/task/operand/period/metric formatting |
@@ -298,9 +304,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 633/633 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 5/5 and affected 632/632 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,506/1,506 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,507/1,507 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -345,7 +351,8 @@ rather than an incomplete product requirement.
 The July canonical public-projection milestone is complete, but the broader
 single-calculation-path Phase 3 remains open. Named operand and dependency owners
 now cover main/late/terminal precedence, required-candidate merge, direct
-structured acceptance and evidence scoring, single-row embedded/rendered-unit
+structured acceptance, direct structured-evidence scoring, table-label metadata
+lookup scoring, single-row embedded/rendered-unit
 normalization repair, shared-context multi-row ratio display-unit alignment,
 preferred-slot and recovered-context
 adoption, post-coercion LLM selection, scalar plan disposition, ratio-artifact
@@ -410,45 +417,53 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and relocate graph
-`_table_label_metadata_lookup_score` (`1701-1752`) into
-`financial_operand_resolution.py`. The owner should expose the plain public
-function
-`table_label_metadata_lookup_score(slot: Mapping[str, Any], evidence_item: Mapping[str, Any]) -> float`;
-no dataclass, reason, flag, callback, or config input is required. Calls at
-`2083`, `7542`, and `11803` must remain at
-their exact semantic positions after each slot is built and before caller-owned
-period, context, scope, ambiguity, tie, grouping, or final-selection policy.
+The next bounded architecture work is the prepared reconciliation-artifact
+evidence-reference enrichment pair. Move graph
+`_calculation_operand_source_refs` (`424-445`) into
+`financial_task_artifacts.py` as an owner-private helper and move
+`_enrich_reconciliation_artifact_refs` (`519-562`) into the same owner as the
+plain public function
+`enrich_reconciliation_artifact_refs(artifacts: List[Dict[str, Any]], *, task_id: str, operand_rows: List[Dict[str, Any]], extra_refs: Optional[List[Any]] = None, task_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]`.
+The collector and owner-local `_clean_source_row_ids` remain private; only the
+public enrichment function enters the owner `__all__`. This adds no graph import
+cycle, compatibility alias, callback, wrapper, reason, flag, or trace field.
+Graph adapters at `461` and `17679` remain at their exact semantic positions.
 
-Characterization must preserve the empty-slot `0.0` return before any evidence
-access, then normalized-unit access, metadata copy, table-value-label gate,
-slot-first raw-unit fallback to metadata hint, raw-value digit-count threshold,
-and base score in their current order. All additive weights remain exact: unit
-hint and table source, slot-first source-anchor fallback, aggregate value role,
-final before direct/subtotal aggregation stage, matched-line exact or compact
-label agreement, and the final known-versus-unknown unit adjustment. Repeated
-getters and normalizations, whitespace truthiness, stable surface iteration, and
-compact-label set construction must not be collapsed or precomputed. Mapping,
-`dict`, truthiness, string, regex, iteration, and normalization exceptions remain
-uncaught, and neither input is mutated.
+Characterization must preserve the owner-private collector's strict-`dict` row
+gate, ten source-reference fields in their current order, cleaning, and stable
+dedupe. Operand refs precede cleaned extra refs. If the combined refs are empty,
+the public function returns the exact artifact-list identity before task-id or
+artifact access. Otherwise it returns a fresh list and fresh top-level copy of
+every artifact while preserving untouched nested aliases and stable order.
+Target task-id then optional task ids form the existing normalized union, retaining
+the filter-before-expression and repeated string-normalization behavior. Kind,
+task, repeated payload access, reconciliation-result, and status checks retain
+their current access and short-circuit order; only matching reconciliation
+artifacts with `ok` or `ready` status receive an `evidence_refs` replacement.
+Existing raw refs
+precede newly collected refs in the stable dedupe. No input is mutated and no
+mapping, copy, truthiness, string, iteration, hashing, or access exception is
+caught.
 
-Add a compact direct exact-score, early-return/laziness, fallback, repeated-access,
-exception, and immutability matrix. Representative graph fixtures should spy the
-public owner binding in all three caller contexts while preserving each caller's
-slot argument, call count, downstream ordering, and exception stop. Do not copy
-full selection results or turn scope, ambiguity, tie, or grouping policy into the
-scorer contract.
+Add a compact direct collector/enrichment matrix for the empty-ref identity and
+laziness gate, all ten fields and stable ref order, task-id union, kind/task/
+payload/result/status gates, copy and nested-alias behavior, immutability, and
+exception order. Strengthen one fixture for each public graph adapter to pin
+prepared arguments, owner result adoption, call placement, and exception stop;
+also lock the public `__all__` export without exposing the private collector.
 
-Acceptance deletes only graph `1701-1752`, migrates all three calls, leaves no old
-definition or private self reference, and stops before
-`_lookup_row_from_direct_structured_evidence`. The graph retains table-slot
-construction, evidence iteration, period/context/scope handling, ambiguity,
-ties, grouping, and final selection. The allowed claim is table-label metadata
-lookup-score ownership and the 52-line old-body deletion only, not a scoring-policy
-change or improvement, selection ownership, total-code or executed-path reduction,
+Acceptance deletes only graph `424-445` and `519-562`, migrates adapters `461`
+and `17679`, and leaves no old graph definition or private self reference. It
+stops before `_operand_set_artifact_update` and
+`_resolve_aggregate_feedback_state`: graph retains artifact/task/state builders,
+operand-set artifact construction, aggregate feedback inputs, task-artifact trace
+and integrity feedback, replan policy, and final orchestration. The allowed claim
+is prepared reconciliation evidence-reference enrichment ownership and the
+66-line old-body deletion only, not artifact creation/finalization, whole-ledger
+or state ownership, integrity/replan policy, total-code or executed-path reduction,
 performance, broader private-mesh cleanup, or Phase 3 completion. The evidence-
 local unit-coercion cluster remains a medium-high-risk follow-up because of its
-four-helper regex/policy/shared-surface and lookup-recovery callback boundary;
+multi-helper regex/policy/shared-surface and lookup-recovery callback boundary;
 growth raw-scale repair remains deferred until its hidden KRW and threshold policy
 debt is named and characterized.
 The Phase 3 backlog in the refactoring plan is unordered; this section is the
