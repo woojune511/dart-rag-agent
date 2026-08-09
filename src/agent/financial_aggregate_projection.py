@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
@@ -11,9 +12,10 @@ from src.agent.financial_numeric_surface import (
     numeric_surface_candidates_equivalent,
     numeric_surface_slot_components,
 )
-from src.agent.financial_row_surfaces import _operand_text_match
+from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading_period_qualifiers
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
+from src.agent.financial_text_surface import _tokenize_terms, split_narrative_sentences as _split_narrative_sentences
 
 
 AggregateStaleRepairTargetResolution = Literal[
@@ -559,6 +561,112 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
         "addition": "sum",
     }
     return operation_aliases.get(operation_family, operation_family)
+
+
+def select_aggregate_projection_row_for_task(
+    task_id: str,
+    ordered_results: List[Dict[str, Any]],
+    aggregate_projection: Dict[str, Any],
+) -> Dict[str, Any]:
+    target_task_id = _normalise_spaces(str(task_id or ""))
+    if not target_task_id:
+        return {}
+    calculation_result = dict(aggregate_projection.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    candidate_groups = [
+        calculation_result.get("subtask_results"),
+        answer_slots.get("subtask_results"),
+        ordered_results,
+    ]
+    for rows in candidate_groups:
+        for row in list(rows or []):
+            if not isinstance(row, dict):
+                continue
+            if _normalise_spaces(str(row.get("task_id") or "")) == target_task_id:
+                return dict(row)
+    return {}
+
+
+def select_aggregate_projection_answer_sentence(
+    final_answer: str,
+    row: Dict[str, Any],
+) -> str:
+    final_answer = _normalise_spaces(final_answer)
+    if not final_answer:
+        return ""
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    raw_labels = [
+        row.get("metric_label"),
+        row.get("label"),
+        primary_slot.get("label"),
+    ]
+    row_labels: List[str] = []
+    for label in raw_labels:
+        normalized = _normalise_spaces(str(label or "")).lower()
+        if not normalized:
+            continue
+        row_labels.append(normalized)
+        stripped = _normalise_spaces(_strip_leading_period_qualifiers(normalized)).lower()
+        if stripped and stripped != normalized:
+            row_labels.append(stripped)
+    row_labels = list(dict.fromkeys(row_labels))
+    operation_family = aggregate_result_operation_family(row)
+    sentences = _split_narrative_sentences(final_answer) or [final_answer]
+
+    def _label_match_score(sentence: str) -> int:
+        normalized = _normalise_spaces(sentence).lower()
+        if not normalized:
+            return 0
+        sentence_tokens = _tokenize_terms(normalized)
+        score = 0
+        for label in row_labels:
+            if not label:
+                continue
+            if label in normalized:
+                score = max(score, 3)
+                continue
+            label_tokens = _tokenize_terms(label)
+            if not label_tokens:
+                continue
+            overlap = len(label_tokens & sentence_tokens)
+            required_overlap = len(label_tokens)
+            if len(label_tokens) >= 3:
+                required_overlap = max(2, len(label_tokens) - 1)
+            if overlap >= required_overlap and _operand_text_match(normalized, {"label": label, "aliases": []}):
+                score = max(score, 1)
+        return score
+
+    def _score(sentence: str) -> tuple[int, int, int, int, int]:
+        normalized = _normalise_spaces(sentence)
+        numeric_candidates = extract_numeric_surface_candidates(normalized)
+        if not normalized or not numeric_candidates:
+            return (0, 0, 0, 0, 0)
+        label_score = _label_match_score(normalized)
+        percent_score = int(operation_family in {"ratio", "growth_rate"} and "%" in normalized)
+        arithmetic_score = len(numeric_candidates) if operation_family in {"difference", "sum"} else 0
+        conflict_score = int(subtask_numeric_answers_conflict({"answer": normalized}, row))
+        return (label_score, percent_score, arithmetic_score, conflict_score, len(normalized))
+
+    best_sentence = max(sentences, key=_score, default="")
+    return _normalise_spaces(best_sentence) if _score(best_sentence)[:3] != (0, 0, 0) else ""
+
+
+def aggregate_projection_rendered_value(
+    answer_sentence: str,
+    operation_family: str,
+) -> str:
+    sentence = _normalise_spaces(answer_sentence)
+    if not sentence:
+        return ""
+    if operation_family in {"ratio", "growth_rate"}:
+        match = re.search(r"[\(\)\-+]?\d[\d,]*(?:\.\d+)?\s*%p?", sentence)
+        return _normalise_spaces(match.group(0)) if match else ""
+    candidates = extract_numeric_surface_candidates(sentence)
+    if not candidates:
+        return ""
+    return _normalise_spaces(str(candidates[-1].get("text") or ""))
 
 
 def aggregate_result_signature(row: Mapping[str, Any]) -> str:

@@ -20,6 +20,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_aggregate_projection
 from src.agent import financial_answer_slots
 from src.agent import financial_graph_calculation
 from src.agent import financial_lookup_recovery
@@ -5250,6 +5251,654 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("0백만원", answer)
         self.assertIn("5,739억원", answer)
 
+    def test_aggregate_projection_row_selector_preserves_precedence_and_copy_contract(self) -> None:
+        select_row = financial_aggregate_projection.select_aggregate_projection_row_for_task
+
+        class Poison:
+            def __getattribute__(self, name):
+                if name.startswith("__"):
+                    return object.__getattribute__(self, name)
+                raise RuntimeError(f"later input accessed: {name}")
+
+            def __bool__(self):
+                raise RuntimeError("later input truth-tested")
+
+            def __iter__(self):
+                raise RuntimeError("later input iterated")
+
+        self.assertEqual(select_row(" \n ", Poison(), Poison()), {})
+
+        nested = {"keep": True}
+        first = {"task_id": " task_target ", "nested": nested, "source": "result"}
+        duplicate = {"task_id": "task_target", "source": "duplicate"}
+        slot_match = {"task_id": "task_target", "source": "slot"}
+        projection = {
+            "calculation_result": {
+                "subtask_results": [None, {"task_id": "other"}, first, duplicate],
+                "answer_slots": {"subtask_results": Poison()},
+            }
+        }
+        first_snapshot = deepcopy(first)
+
+        selected = select_row(" task_target ", Poison(), projection)
+
+        self.assertEqual(selected, first)
+        self.assertIsNot(selected, first)
+        self.assertIs(selected["nested"], nested)
+        self.assertEqual(first, first_snapshot)
+        self.assertIs(
+            projection["calculation_result"]["subtask_results"][2],
+            first,
+        )
+
+        slot_projection = {
+            "calculation_result": {
+                "subtask_results": [{"task_id": "other"}],
+                "answer_slots": {"subtask_results": [slot_match, duplicate]},
+            }
+        }
+        selected = select_row("task_target", Poison(), slot_projection)
+        self.assertEqual(selected, slot_match)
+        self.assertIsNot(selected, slot_match)
+
+        ordered_match = {"task_id": "task_target", "source": "ordered"}
+        selected = select_row(
+            "task_target",
+            [ordered_match, duplicate],
+            {
+                "calculation_result": {
+                    "subtask_results": [{"task_id": "other"}],
+                    "answer_slots": {"subtask_results": [None]},
+                }
+            },
+        )
+        self.assertEqual(selected, ordered_match)
+        self.assertIsNot(selected, ordered_match)
+        self.assertEqual(select_row("missing", [ordered_match], slot_projection), {})
+
+    def test_projection_sentence_selector_preserves_score_and_access_contract(self) -> None:
+        select_sentence = financial_aggregate_projection.select_aggregate_projection_answer_sentence
+
+        class Poison:
+            def get(self, _key, _default=None):
+                raise RuntimeError("row accessed")
+
+        self.assertEqual(select_sentence(" \n ", Poison()), "")
+
+        cases = (
+            (
+                "label precedence",
+                "lookup",
+                "target",
+                ["target alpha 10.", "other longer surface 20."],
+                {"target alpha 10.": 1, "other longer surface 20.": 1},
+                set(),
+                "target alpha 10.",
+            ),
+            (
+                "ratio percent precedence",
+                "ratio",
+                "",
+                ["alpha value 10.", "beta value 20%."],
+                {"alpha value 10.": 1, "beta value 20%.": 1},
+                set(),
+                "beta value 20%.",
+            ),
+            (
+                "arithmetic candidate precedence",
+                "difference",
+                "",
+                ["alpha value 10.", "beta values 20 and 30."],
+                {"alpha value 10.": 1, "beta values 20 and 30.": 2},
+                set(),
+                "beta values 20 and 30.",
+            ),
+            (
+                "conflict precedence",
+                "lookup",
+                "metric",
+                ["metric alpha 10.", "metric bravo 20."],
+                {"metric alpha 10.": 1, "metric bravo 20.": 1},
+                {"metric bravo 20."},
+                "metric bravo 20.",
+            ),
+            (
+                "length precedence",
+                "lookup",
+                "metric",
+                ["metric short 10.", "metric substantially longer 20."],
+                {"metric short 10.": 1, "metric substantially longer 20.": 1},
+                set(),
+                "metric substantially longer 20.",
+            ),
+            (
+                "stable first tie",
+                "lookup",
+                "metric",
+                ["metric alpha 10.", "metric bravo 20."],
+                {"metric alpha 10.": 1, "metric bravo 20.": 1},
+                set(),
+                "metric alpha 10.",
+            ),
+        )
+        for name, operation_family, label, sentences, candidate_counts, conflicts, expected in cases:
+            with self.subTest(score=name):
+                row = {"metric_label": label, "operation_family": operation_family}
+                extraction_events = []
+                conflict_events = []
+
+                def extract_candidates(text):
+                    extraction_events.append(text)
+                    return [
+                        {"text": f"candidate-{index}"}
+                        for index in range(candidate_counts[text])
+                    ]
+
+                def conflict(answer, candidate_row):
+                    self.assertIs(candidate_row, row)
+                    conflict_events.append(answer["answer"])
+                    return answer["answer"] in conflicts
+
+                with (
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_split_narrative_sentences",
+                        return_value=sentences,
+                    ) as splitter,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "aggregate_result_operation_family",
+                        return_value=operation_family,
+                    ) as family_owner,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "extract_numeric_surface_candidates",
+                        side_effect=extract_candidates,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "subtask_numeric_answers_conflict",
+                        side_effect=conflict,
+                    ),
+                ):
+                    selected = select_sentence(" ignored answer ", row)
+
+                self.assertEqual(selected, expected)
+                family_owner.assert_called_once_with(row)
+                splitter.assert_called_once_with("ignored answer")
+                self.assertEqual(extraction_events, [*sentences, expected])
+                self.assertEqual(conflict_events, [*sentences, expected])
+
+        fallback_cases = (
+            (
+                "row label",
+                {"label": "row fallback", "operation_family": "lookup"},
+                "row fallback",
+                "row fallback value 10.",
+            ),
+            (
+                "primary slot stripped label",
+                {
+                    "operation_family": "lookup",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": {"label": "period metric"},
+                        }
+                    },
+                },
+                "metric",
+                "metric value 20.",
+            ),
+        )
+        for name, row, stripped_label, sentence in fallback_cases:
+            with self.subTest(label_source=name):
+                original_label = (
+                    row.get("label")
+                    or row["calculation_result"]["answer_slots"]["primary_value"]["label"]
+                )
+                with (
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_strip_leading_period_qualifiers",
+                        return_value=stripped_label,
+                    ) as stripper,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_split_narrative_sentences",
+                        return_value=[sentence],
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "extract_numeric_surface_candidates",
+                        return_value=[{"text": "numeric"}],
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "subtask_numeric_answers_conflict",
+                        return_value=False,
+                    ),
+                ):
+                    self.assertEqual(select_sentence("answer", row), sentence)
+                stripper.assert_called_once_with(original_label)
+
+        gate_sentences = ["alpha value 10.", "substantially longer beta value 20."]
+        gate_events = []
+
+        def gate_conflict(answer, _row):
+            gate_events.append(answer["answer"])
+            return answer["answer"] == gate_sentences[1]
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                return_value=gate_sentences,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"text": "numeric"}],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+                side_effect=gate_conflict,
+            ),
+        ):
+            self.assertEqual(
+                select_sentence("answer", {"operation_family": "lookup"}),
+                "",
+            )
+        self.assertEqual(gate_events, [*gate_sentences, gate_sentences[1]])
+
+        events = []
+        row = {"metric_label": "metric", "operation_family": "lookup"}
+
+        def record_strip(label):
+            events.append(("strip", label))
+            return label
+
+        def record_family(candidate_row):
+            self.assertIs(candidate_row, row)
+            events.append(("family", candidate_row["operation_family"]))
+            return "lookup"
+
+        def record_split(answer):
+            events.append(("split", answer))
+            return ["metric 10."]
+
+        def fail_extract(sentence):
+            events.append(("extract", sentence))
+            raise RuntimeError("candidate extraction failed")
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_strip_leading_period_qualifiers",
+                side_effect=record_strip,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=record_family,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                side_effect=record_split,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=fail_extract,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "subtask_numeric_answers_conflict",
+            ) as stopped_conflict,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "candidate extraction failed"):
+                select_sentence(" answer ", row)
+        self.assertEqual(
+            events,
+            [
+                ("strip", "metric"),
+                ("family", "lookup"),
+                ("split", "answer"),
+                ("extract", "metric 10."),
+            ],
+        )
+        stopped_conflict.assert_not_called()
+
+    def test_projection_rendered_value_preserves_family_and_candidate_contract(self) -> None:
+        rendered_value = financial_aggregate_projection.aggregate_projection_rendered_value
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("numeric extraction should stay lazy"),
+        ) as lazy_extractor:
+            self.assertEqual(rendered_value(" \n ", "ratio"), "")
+            self.assertEqual(
+                rendered_value("value 10 and -12.5   %p before 30%", "ratio"),
+                "-12.5 %p",
+            )
+            self.assertEqual(rendered_value("value 10 without percent", "growth_rate"), "")
+        lazy_extractor.assert_not_called()
+
+        candidates = [
+            {"text": "first candidate"},
+            {"text": "  final   candidate  ", "nested": {"keep": True}},
+        ]
+        snapshot = deepcopy(candidates)
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            return_value=candidates,
+        ) as extractor:
+            self.assertEqual(
+                rendered_value("  normalized   sentence  ", "difference"),
+                "final candidate",
+            )
+        extractor.assert_called_once_with("normalized sentence")
+        self.assertEqual(candidates, snapshot)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            return_value=[],
+        ):
+            self.assertEqual(rendered_value("value 10", "lookup"), "")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("numeric extraction failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "numeric extraction failed"):
+                rendered_value("value 10", "lookup")
+
+    def test_projection_selection_owners_bind_ledger_and_surface_sync_callers(self) -> None:
+        task = {
+            "task_id": " task_target ",
+            "status": "completed",
+            "artifact_ids": ["artifact_old"],
+        }
+        ordered_results = [{"task_id": "task_target", "answer": "old 10"}]
+        projection_row = {
+            "task_id": "task_target",
+            "operation_family": "lookup",
+            "calculation_result": {"formatted_result": "new 20"},
+        }
+        aggregate_projection = {
+            "calculation_result": {
+                "formatted_result": "aggregate 20",
+                "subtask_results": [projection_row],
+            }
+        }
+        supersession_calls = []
+        ledger_events = []
+
+        preserve_results = iter((False, True))
+
+        def preserve_surface(answer, reference):
+            ledger_events.append(("preserve", answer, reference))
+            return next(preserve_results)
+
+        def select_ledger_row(task_id, rows, projection):
+            ledger_events.append(("row", task_id, rows, projection))
+            return projection_row
+
+        def select_ledger_sentence(answer, row):
+            ledger_events.append(("sentence", answer, row))
+            return "new 20"
+
+        def ledger_conflict(answer, reference):
+            ledger_events.append(("conflict", answer, reference))
+            return True
+
+        def supersede(**kwargs):
+            ledger_events.append(("supersede", kwargs["replacement_summary"]))
+            supersession_calls.append(kwargs)
+            return {"tasks": kwargs["tasks"], "artifacts": kwargs["artifacts"]}
+
+        with (
+            patch.object(
+                self.agent,
+                "_final_aggregate_resolved_slots",
+                return_value=[{"task_id": "task_target"}],
+            ),
+            patch.object(
+                self.agent,
+                "_task_target_matches_resolved_slot",
+                return_value=True,
+            ),
+            patch.object(
+                self.agent,
+                "_latest_task_artifact",
+                return_value={"artifact_id": "artifact_old", "summary": "old 10"},
+            ),
+            patch.object(
+                self.agent,
+                "_answer_preserves_task_numeric_surface",
+                side_effect=preserve_surface,
+            ) as preserves_surface,
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_row_for_task",
+                side_effect=select_ledger_row,
+            ) as row_selector,
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
+                side_effect=select_ledger_sentence,
+            ) as sentence_selector,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=ledger_conflict,
+            ) as conflict_owner,
+            patch.object(
+                financial_graph_calculation,
+                "_supersede_task_with_aggregate_result",
+                side_effect=supersede,
+            ),
+        ):
+            self.agent._finalize_aggregate_task_ledger(
+                [task],
+                [{"artifact_id": "artifact_old"}],
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                aggregate_artifact_id="artifact_aggregate",
+                final_answer=" aggregate 20 ",
+            )
+
+        self.assertEqual(row_selector.call_count, 2)
+        self.assertEqual(
+            [call.args for call in row_selector.call_args_list],
+            [
+                ("task_target", ordered_results, aggregate_projection),
+                ("task_target", ordered_results, aggregate_projection),
+            ],
+        )
+        sentence_selector.assert_called_once_with("aggregate 20", projection_row)
+        self.assertEqual(
+            [call.args for call in preserves_surface.call_args_list],
+            [("aggregate 20", "old 10"), ("new 20", "aggregate 20")],
+        )
+        conflict_owner.assert_called_once_with(
+            {"answer": "new 20"},
+            {"answer": "old 10"},
+        )
+        self.assertEqual(len(supersession_calls), 1)
+        self.assertEqual(
+            [event[0] for event in ledger_events],
+            ["preserve", "row", "sentence", "preserve", "conflict", "row", "supersede"],
+        )
+        replacement_payload = supersession_calls[0]["replacement_payload"]
+        self.assertEqual(replacement_payload["replacement_summary"], "new 20")
+        self.assertEqual(
+            replacement_payload["calculation_result"],
+            projection_row["calculation_result"],
+        )
+        self.assertIsNot(
+            replacement_payload["calculation_result"],
+            projection_row["calculation_result"],
+        )
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_row_for_task",
+                side_effect=RuntimeError("row selection failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
+            ) as stopped_sentence,
+            patch.object(
+                self.agent,
+                "_resolved_slot_summary_for_task",
+            ) as stopped_fallback,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row selection failed"):
+                self.agent._task_aggregate_replacement_summary(
+                    task,
+                    [],
+                    ordered_results=ordered_results,
+                    aggregate_projection=aggregate_projection,
+                    final_answer="aggregate 20",
+                )
+        stopped_sentence.assert_not_called()
+        stopped_fallback.assert_not_called()
+
+        stale_row = {
+            "task_id": "task_ratio",
+            "operation_family": "ratio",
+            "answer": "target share is 400%.",
+            "calculation_result": {"rendered_value": "400%"},
+        }
+        sync_projection = {
+            "calculation_result": {"subtask_results": [stale_row]},
+        }
+        sync_events = []
+        updated_row = {
+            **stale_row,
+            "answer": "target share is 80%.",
+            "calculation_result": {"rendered_value": "80%"},
+        }
+
+        def select_for_sync(answer, row):
+            sync_events.append(("sentence", answer, row))
+            return "target share is 80%."
+
+        def conflict_for_sync(answer, row):
+            sync_events.append(("conflict", answer, row))
+            return True
+
+        def coverage_for_sync(answer, reference):
+            sync_events.append(("coverage", answer, reference))
+            return False
+
+        def render_for_sync(answer, operation_family):
+            sync_events.append(("rendered", answer, operation_family))
+            return "80%"
+
+        def synchronize_for_sync(sync_input):
+            sync_events.append(("synchronize", sync_input))
+            return SimpleNamespace(projection_row=updated_row)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
+                side_effect=select_for_sync,
+            ) as sync_sentence,
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_projection_rendered_value",
+                side_effect=render_for_sync,
+            ) as sync_rendered,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=conflict_for_sync,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_numeric_answer",
+                side_effect=coverage_for_sync,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                side_effect=synchronize_for_sync,
+            ) as row_sync,
+        ):
+            synced_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_row],
+                sync_projection,
+                "target share is 80%.",
+            )
+
+        self.assertEqual(sync_sentence.call_count, 2)
+        first_row = sync_sentence.call_args_list[0].args[1]
+        self.assertIs(first_row, sync_sentence.call_args_list[1].args[1])
+        self.assertIsNot(first_row, stale_row)
+        self.assertEqual(first_row, stale_row)
+        sync_rendered.assert_called_once_with("target share is 80%.", "ratio")
+        row_sync.assert_called_once()
+        sync_input = row_sync.call_args.args[0]
+        self.assertIs(sync_input.projection_row, first_row)
+        self.assertEqual(
+            (sync_input.answer, sync_input.rendered_value),
+            ("target share is 80%.", "80%"),
+        )
+        self.assertEqual(
+            [event[0] for event in sync_events],
+            ["sentence", "conflict", "coverage", "sentence", "rendered", "synchronize"],
+        )
+        self.assertEqual(synced_results[0], updated_row)
+        self.assertEqual(
+            synced_projection["calculation_result"]["subtask_results"][0],
+            updated_row,
+        )
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
+                return_value="target share is 80%.",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_projection_rendered_value",
+                side_effect=RuntimeError("rendered selection failed"),
+            ) as failing_rendered,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_numeric_answer",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+            ) as stopped_sync,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "rendered selection failed"):
+                self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                    [stale_row],
+                    sync_projection,
+                    "target share is 80%.",
+                )
+        failing_rendered.assert_called_once_with("target share is 80%.", "ratio")
+        stopped_sync.assert_not_called()
+
     def test_aggregate_trace_sync_replaces_stale_single_ratio_subtask_surface(self) -> None:
         stale_ratio_row = {
             "task_id": "task_ratio",
@@ -5303,12 +5952,12 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
-        sentence_owner = self.agent._answer_sentence_for_projection_subtask_row
-        conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
+        sentence_owner = financial_aggregate_projection.select_aggregate_projection_answer_sentence
+        conflict_owner = financial_aggregate_projection.subtask_numeric_answers_conflict
         coverage_owner = financial_graph_calculation.answer_covers_numeric_answer
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "subtask_numeric_answers_conflict",
             wraps=conflict_owner,
         ) as scorer_conflict:
@@ -5324,8 +5973,8 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_answer_sentence_for_projection_subtask_row",
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ) as sentence_spy,
             patch.object(
@@ -5406,8 +6055,8 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_answer_sentence_for_projection_subtask_row",
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
@@ -5433,8 +6082,8 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_answer_sentence_for_projection_subtask_row",
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
@@ -5465,8 +6114,8 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_answer_sentence_for_projection_subtask_row",
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
@@ -5496,8 +6145,8 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_answer_sentence_for_projection_subtask_row",
+                financial_graph_calculation,
+                "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
@@ -15201,7 +15850,10 @@ class SubtaskLoopTests(unittest.TestCase):
                 "subtask_numeric_answers_conflict",
                 side_effect=RuntimeError("conflict owner failed"),
             ) as failing_conflict,
-            patch.object(self.agent, "_aggregate_projection_row_for_task") as later_projection,
+            patch.object(
+                financial_graph_calculation,
+                "select_aggregate_projection_row_for_task",
+            ) as later_projection,
         ):
             with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
                 self.agent._finalize_aggregate_task_ledger(
