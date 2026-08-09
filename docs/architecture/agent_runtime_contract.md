@@ -570,6 +570,30 @@ runtime trace fields. Graph and lookup-recovery callers consume the owner
 directly; the former graph-private scorer and lookup-recovery scorer callbacks
 are not compatibility seams.
 
+The operand owner also exposes a plain state-free single-row transform for
+embedded raw-unit or rendered-unit normalization repair. It executes the former
+graph body literally: `dict(row or {})` always creates a fresh top-level result,
+including every no-op path, while untouched nested values retain their aliases
+and the input remains unmodified. Raw and rendered surfaces, normalized-unit and
+KRW-policy gates, inline parsing, the second policy copy, stable first eligible
+rendered match, original-field preserve-or-fill writes, and all early returns keep
+their existing order. The scaled tolerance and repeated float conversions are
+unchanged. In particular, an embedded-unit row with a current `NaN` remains
+unrepaired while a numeric raw surface with a matching rendered unit repairs its
+current `NaN` value. Only the two existing normalized-value `TypeError` and
+`ValueError` conversions are caught; mapping, truthiness, string, policy-copy,
+regex, iteration, normalizer, and other exceptions still propagate.
+
+The four graph calls remain at their original semantic positions: after a
+dependency row is built and before structured-provenance/evidence work; after
+candidate plan guards and before multi-row sibling-ratio alignment; and at the
+two prepared ratio-append row construction sites before later coverage, merge,
+and projection. The graph retains every applicability gate, row and evidence
+builder, plan and operand-map propagation, multi-row unit alignment, ratio and
+append policy, and state/artifact/final orchestration. This seam adds no wrapper,
+reason, application flag, graph state, callback, or trace field and claims only
+single-row normalization-repair ownership.
+
 Within `_extract_calculation_operands`, the same owner also receives the current
 post-main operand rows, required candidate rows after producer-scope filtering,
 and any coherent candidate rows built by the graph. It merges coherent rows into

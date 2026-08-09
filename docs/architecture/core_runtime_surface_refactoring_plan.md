@@ -200,8 +200,9 @@ Current calculation ownership is:
   task-artifact/ledger conflict short-circuit and formatting, collapsed-ratio
   trace/eligibility/completeness/query gates and prepared-copy
   construction, downstream coherence/answer/coverage/final projection,
-  dependency-row construction/normalization, stateful structured-provenance
-  lookup and downstream evidence coercion/append, other ratio/absolute
+  dependency-row construction, stateful structured-provenance lookup and
+  downstream evidence coercion/append, multi-row sibling-table unit alignment,
+  other ratio/absolute
   orchestration, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
   grounding, selection, and merge behavior, including coherent-first required
@@ -217,6 +218,12 @@ Current calculation ownership is:
   ordered aggregate-role preference predicate are also state-free; graph and
   lookup-recovery callers consume the scorer directly without the former
   graph-private method or callback parameters.
+  The same owner also owns the plain state-free single-row embedded/rendered-unit
+  normalization repair transform. It preserves fresh top-level copy and nested-
+  alias behavior, scaled tolerance and `NaN` semantics, stable first rendered
+  match, original-field precedence, input immutability, and exact access/exception
+  order; graph retains all row construction, provenance, plan/map, multi-row
+  alignment, ratio/append, state, artifact, and final orchestration.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -265,12 +272,12 @@ Current calculation ownership is:
   exceptions. Artifact creation/finalization and ledger-level id/order remain
   graph-owned.
 
-At the latest checkpoint, the graph is 19,159 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,066 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the answer-slot owner is 594, the aggregate owner is 971, the
+is 2,532, the answer-slot owner is 594, the aggregate owner is 971, the
 dependency owner is 3,164, the task-artifact owner is 1,180, and the execution
-owner is 837. The latest owner slice passed targeted 4/4 tests, affected 348/348
-tests, the 217-literal audit, and full discovery over 1,498/1,498 tests.
+owner is 837. The latest owner slice passed targeted 5/5 tests, affected 612/612
+tests, the 217-literal audit, and full discovery over 1,500/1,500 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

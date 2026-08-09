@@ -732,6 +732,38 @@ final-projection ownership, and not a total-code, broad executed-path,
 performance, broad private-mesh, end-to-end calculation-owner, or complete
 Phase 3 reduction claim.
 
+### Rendered-unit operand normalization repair ownership
+
+- `7888914` moves the graph-private single-row embedded/rendered-unit
+  normalization repair into `financial_operand_resolution.py` as a plain public
+  state-free transform. The implementation is relocated literally: every path
+  returns a fresh top-level row, preserves untouched nested aliases and input
+  immutability, and retains raw/rendered/policy access, scaled tolerance,
+  repeated float conversion, embedded-versus-rendered `NaN` behavior, stable
+  first rendered match, original-field precedence, and caught/uncaught exception
+  order. It adds no wrapper, reason, application flag, callback, or trace field.
+- The four graph calls remain in their original semantic positions: dependency
+  row construction before structured provenance/evidence coercion; candidate
+  preparation after plan guards and before multi-row alignment; and the two
+  prepared ratio-append row sites before later coverage, merge, and projection.
+  The graph retains every construction and applicability gate, plan/operand-map
+  propagation, multi-row sibling-table alignment, ratio/append policy, and
+  state/artifact/final orchestration. The old definition and private self
+  references are deleted.
+- Production source is `+100/-98`, net 2: the graph changes from 19,159 to
+  19,066 lines (`+5/-98`, net -93) and the operand owner from 2,437 to 2,532
+  (`+95`). Tests are `+314/-3`, net 311; the whole commit is `+414/-101`, net
+  313.
+- Validation passed targeted 5/5 tests, affected 612/612 tests, the 217-literal
+  runtime audit, full discovery over 1,500/1,500 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving single-row embedded/rendered-unit normalization-
+repair ownership relocation, not multi-row unit alignment, dependency binding,
+ratio or append policy, aggregate repair or composition, state/artifact/ledger
+ownership, and not a total-code, broad executed-path, performance, broad private-
+mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

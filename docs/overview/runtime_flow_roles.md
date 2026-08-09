@@ -326,7 +326,11 @@ state-free owner 경계:
   `no_structured_cells`, `surface_contract_not_satisfied`, `evidence_scored` reason과
   score를 반환한다. Ordered aggregate-role preference predicate도 같은 neutral
   owner에 있으며 원래 guard 안에서만 평가된다. Graph와 lookup recovery는 owner를
-  직접 호출하고 scorer callback을 주입하지 않는다.
+  직접 호출하고 scorer callback을 주입하지 않는다. 같은 owner의 plain public
+  transform은 graph-built 단일 operand row의 embedded/rendered unit normalization을
+  repair한다. 모든 경로에서 fresh top-level dict와 nested alias를 유지하고 scaled
+  tolerance, `NaN` 비대칭, first rendered match, original-field precedence와 uncaught
+  exception 순서를 보존한다. Input을 변경하지 않고 reason/flag/trace를 추가하지 않는다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -404,8 +408,10 @@ state-free owner 경계:
 graph adapter에 남은 orchestration 역할군:
 
 - main context/evidence retrieval gate와 typed input 구성
-- dependency row construction/normalization, stateful `vsm` structured-provenance
-  lookup, no-provenance owner-call skip, downstream evidence lookup/coercion/append
+- dependency row construction, stateful `vsm` structured-provenance lookup,
+  no-provenance owner-call skip, downstream evidence lookup/coercion/append;
+  single-row repair 전후의 caller gates와 plan/operand-map propagation, multi-row
+  sibling-table unit alignment
 - direct row/evidence construction, coercion, scope/target policy, acceptance
   applicability gate, direct preference runtime evidence overlay, row
   matching/iteration, peer-unit preparation, strongest-slot builder,
@@ -527,7 +533,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_operand_resolution.py`: state-free generic operand candidate
   resolution, typed required-candidate precedence/merge, and typed direct
   structured acceptance, typed direct structured-evidence base scoring, and the
-  neutral ordered aggregate-role preference predicate
+  neutral ordered aggregate-role preference predicate, plus plain single-row
+  embedded/rendered-unit normalization repair
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate

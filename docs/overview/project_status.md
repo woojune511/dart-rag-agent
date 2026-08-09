@@ -200,19 +200,25 @@ imports or an unconfigured `FinancialAgent` invocation.
   rendered, completeness, formatter and projection-mutation gates, the
   `None`/blank-id owner gate, aggregate artifact creation/finalization, and final
   orchestration. Empty-list plus nonblank-id remains owner-one.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,159 lines,
+- Single-row embedded or rendered-unit operand normalization repair now has a
+  plain state-free operand-owner transform. It always returns a fresh top-level
+  row, preserves nested aliases and input immutability, and retains the exact
+  tolerance, `NaN`, original-field, first-match, access, and exception contracts.
+  The four graph calls remain after their existing construction/plan gates and
+  before provenance/evidence, multi-row alignment, or ratio append/merge work.
+- At the current checkpoint, `financial_graph_calculation.py` is 19,066 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_answer_slots.py` is 594,
   `financial_aggregate_projection.py` is 971,
-  `financial_operand_resolution.py` is 2,437,
+  `financial_operand_resolution.py` is 2,532,
   `financial_dependency_projection.py` is 3,164,
   `financial_task_artifacts.py` is 1,180, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 4/4 and affected 348/348
-  tests, the 217-literal runtime audit, and full discovery over 1,498/1,498 tests.
+- The latest calculation checkpoint passed targeted 5/5 and affected 612/612
+  tests, the 217-literal runtime audit, and full discovery over 1,500/1,500 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -231,7 +237,7 @@ current-state document does not duplicate that commit diary.
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
-| Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring and the neutral ordered aggregate-role predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
+| Generic operand candidate resolution and single-row unit-normalization repair | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring and the neutral ordered aggregate-role predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, required match/surface, lookup-rematch, direct-first merge, and the plain embedded/rendered-unit repair transform while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, ratio-recovered/runtime projection, row construction/provenance, plan/map propagation, multi-row unit alignment, and ratio append/merge policy |
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, and prepared dependency-source ratio-result projection | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, while the ratio-result seam builds the fresh canonical result/slot containers with exact source/component aliases; graph retains row construction/normalization and evidence coercion/append, raw-plan and candidate construction/execution, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots and ratio result-display synchronization | `financial_answer_slots.py`; owns answer-slot construction plus typed calculation-result/primary-slot display consistency, including formula-mismatch copy versus ordinary in-place update and current-surface/percent-policy/exception order, while graph callers retain ordered-row gating and propagation, compact-answer construction, and state/task/operand/period/metric formatting |
@@ -260,9 +266,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 4/4 and affected 348/348 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 5/5 and affected 612/612 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,498/1,498 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,500/1,500 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -307,7 +313,8 @@ rather than an incomplete product requirement.
 The July canonical public-projection milestone is complete, but the broader
 single-calculation-path Phase 3 remains open. Named operand and dependency owners
 now cover main/late/terminal precedence, required-candidate merge, direct
-structured acceptance and evidence scoring, preferred-slot and recovered-context
+structured acceptance and evidence scoring, single-row embedded/rendered-unit
+normalization repair, preferred-slot and recovered-context
 adoption, post-coercion LLM selection, scalar plan disposition, ratio-artifact
 conflict selection, two-stage post-candidate finalization, structured-provenance
 adoption, and dependency-source ratio-result projection. Named answer-slot,
@@ -329,7 +336,8 @@ query gates, LLM invocation plus evidence/scope/id/coercion/applicability and
 exception/fallback orchestration, candidate preparation/execution plus
 state/task/artifact projection, repair acceptance, artifact/ledger conflict
 construction and short-circuit, dependency formatter, recalculated-value coercion,
-dependency-row construction/normalization, stateful structured-provenance lookup,
+dependency-row construction, stateful structured-provenance lookup, multi-row
+sibling-table unit alignment,
 downstream evidence coercion/append,
 collapsed-ratio trace/eligibility/completeness/query gates and prepared copies,
 downstream coherence/answer/coverage/final projection, aggregate/filter sequencing,
@@ -363,47 +371,58 @@ acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
 The next bounded architecture work is to characterize and relocate only the
-rendered-unit operand-normalization repair helper
-`_repair_operand_normalization_from_rendered_unit`
-(`financial_graph_calculation.py:11594-11686`; four calls at `7934`, `16044`,
-`17461`, and `17716`) into `financial_operand_resolution.py`. The owner should
-expose the plain typed transform
-`repair_operand_normalization_from_rendered_unit(row: Mapping[str, Any]) ->
-Dict[str, Any]`; a one-field input/result dataclass, reason, application flag,
-graph state, or callback would add facade without strengthening the boundary.
+same-table/context multi-row ratio display-unit alignment helper
+`_align_ratio_operand_units_with_shared_table_context`
+(`financial_graph_calculation.py:11517-11593`; calls at `11604`, `11779`, and
+`11781`) into `financial_operand_resolution.py`. The owner should expose the
+plain transform
+`align_ratio_operand_units_with_shared_table_context(ordered_operands:
+List[Dict[str, Any]]) -> List[Dict[str, Any]]`; an input/result wrapper, reason,
+application flag, graph state, or callback would add facade without strengthening
+the boundary. The owner already has the render policy and normalization helpers,
+so this direction adds no graph import or cycle.
 
-The owner must preserve the literal fresh top-level `dict(row or {})` result and
-untouched nested aliases on every path. Raw value, rendered value, normalized
-unit, and KRW policy access keep their current order and early returns. Embedded
-raw-unit recovery precedes rendered-value scanning. Both paths retain their
-scaled tolerance, repeated float conversion, `NaN` behavior, and original-field
-preserve-versus-fill rules. The embedded path keeps exact inline raw-unit
-extraction and aliasing; rendered-value scanning keeps the stable first eligible
-regex match and rendered-unit aliasing. Only the existing normalized-value `TypeError`/`ValueError`
-conversions are caught; mapping, truthiness, string, policy, regex, iteration,
-and normalizer failures remain uncaught in the same order. Inputs remain
-unmodified.
+The owner must preserve the current early-return and evaluation order: length
+gate, copied render policy, normalized KRW unit, source-display-unit and scale
+comprehensions with their repeated normalization, eligible-unit gate,
+`table_source_id`-then-`source_table_id` context key with the complete
+section/statement/scope fallback,
+ordered grouping, full top-level row-copy pass, unsorted set-backed
+`max(group_units, key=...)` target selection, and per-row normalization/mutation.
+It catches no policy, mapping, iteration, truthiness, string, float, copy, or
+normalizer exception. A no-change result returns the exact input list and row identities,
+including after any discarded row copies. A changed result returns a fresh list
+and fresh top-level copy for every row, preserves untouched nested aliases, and
+does not mutate the input. Existing original-unit precedence, rendered display,
+and `ratio_unit_aligned_from_sibling_table` mutation order remain unchanged.
 
-Direct characterization must cover missing and gated rows, KRW/`UNKNOWN` versus
-other normalized units, inline and rendered repair, within/outside tolerance,
-invalid and `NaN` current values, first-match behavior, blank policy surfaces,
-original-field precedence, fresh-copy/nested identity, input immutability, and
-exception order. Caller characterization must preserve dependency-row repair
-before structured provenance/evidence coercion at `7934`; per-operand sequential
-repair and map propagation before sibling ratio alignment at `16044`; and both
-prepared append positions at `17461` and `17716`, including their owner-zero
-gates, returned-row adoption, and exception laziness.
+Direct characterization must cover both early policy gates; table-id and full
+section-context grouping; ineligible, unmatched, singleton, same-unit, and
+multi-unit groups; target-scale selection; blank and invalid raw values;
+normalizer rejection; original-unit preservation; changed/no-change copy and
+alias identities, stable output row order, policy/row laziness, input
+immutability, and access/exception order. Caller characterization must preserve
+the outer `len` and evidence-pool gates, owner
+use on the original rows when the pool is empty, owner use after evidence-driven
+candidate alignment, and the final unchanged evidence path, with the three
+calls retaining their current positions and laziness. Owner exceptions continue
+to propagate and stop later caller work. The direct matrix plus the existing
+empty-evidence success and conflicting-scope wiring need an evidence-positive
+fixture that reaches the post-candidate owner call.
 
-The graph retains row construction, binding/evidence/provenance lookup, plan and
-material gates, operand-map propagation, multi-row sibling-table alignment,
-ratio synthesis, append/merge policy, and later state/artifact/final
-orchestration. Acceptance deletes only graph `11594-11686`, migrates the four
-calls, and leaves no old definition or private self reference. The allowed
-claim is embedded/rendered-unit single-operand normalization-repair ownership,
-not multi-row unit alignment, dependency binding, ratio policy, aggregate
-composition, stale repair, total-code or executed-path reduction, performance,
-broader private-mesh cleanup, or Phase 3 completion. The Phase 3 backlog in the
-refactoring plan is unordered; this section is the authority for priority.
+The graph retains the evidence-driven outer method (`11595-11781`), including
+length/evidence-pool gates, evidence indexing, row and candidate builders,
+candidate matching/alignment, the choice of original versus aligned rows, and
+the sole ratio-family preparation caller and its operand-map propagation around
+current line `15966`.
+Acceptance deletes only graph `11517-11593`, migrates the three calls, and leaves
+no old definition or private self reference. The allowed claim is same-table/
+context multi-row ratio display-unit alignment ownership, not evidence-driven or
+growth alignment, single-row rendered-unit repair, unit inference, dependency
+binding, ratio policy, state/artifact orchestration, total-code or executed-path
+reduction, performance, broader private-mesh cleanup, or Phase 3 completion. The
+Phase 3 backlog in the refactoring plan is unordered; this section is the
+authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a

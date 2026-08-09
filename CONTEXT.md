@@ -50,7 +50,11 @@ Last updated: 2026-08-09
   applicability를 확인한 뒤에는 같은 owner가 per-row lookup direct-support와,
   required operand가 있을 때의 ordered match/surface, lookup rematch,
   direct-first merge를 두 typed state-free seam으로 적용한다. 이 seam의 reason과
-  application flag는 contract output이지 runtime trace가 아니다. Dependency owner는
+  application flag는 contract output이지 runtime trace가 아니다. 같은 operand owner는
+  graph가 준비한 단일 row의 embedded raw-unit 또는 rendered-unit normalization repair를
+  plain state-free transform으로 소유한다. 모든 경로에서 fresh top-level dict를 만들고
+  nested alias, scaled tolerance와 `NaN` 비대칭, first rendered match, access/exception
+  순서를 보존하며 input을 변경하지 않는다. Dependency owner는
   main precedence, late re-merge, terminal finalization, dependency recalculation plan
   disposition을 소유한다. Graph가 준비한 ordered artifact rows와 이미 coerce한
   recalculated numeric authority에는 status fallback, artifact numeric precedence,
@@ -64,8 +68,8 @@ Last updated: 2026-08-09
   disposition을 결정한다. Graph가 query/absolute transform, artifact-ledger conflict
   short-circuit와 formatter를 적용한 뒤 Stage 2는 truthy formatted result와
   trace-first/fallback row projection을 소유한다. 이 readiness/reason은 trace가
-  아니며 selected evidence projection은 추가되지 않았다. Graph가 dependency row를
-  만들고 정규화한 뒤 stateful lookup으로 structured provenance를 찾으면, dependency
+  아니며 selected evidence projection은 추가되지 않았다. Graph가 dependency row와
+  초기 unit fields를 만든 뒤 stateful lookup으로 structured provenance를 찾으면, dependency
   owner가 같은 mutable row에 source anchor/chunk id, converted-display 보존 또는 unit
   realignment, consolidation/statement/table metadata를 runtime 순서대로 적용한다.
   Typed reason과 application flag는 trace가 아니며 provenance input은 변경하지 않는다.
@@ -116,7 +120,8 @@ Last updated: 2026-08-09
   source-id cleaning, compact formatting,
   recalculated result-value coercion과 invalid-value artifact-builder skip,
   dependency candidate-input construction/execution, query/absolute transform,
-  task-artifact/ledger conflict short-circuit와 formatter, collapsed-ratio
+  task-artifact/ledger conflict short-circuit와 formatter, multi-row sibling-table unit
+  alignment, collapsed-ratio
   trace/eligibility/completeness/query gate와 prepared
   copies, downstream coherence/compact-answer/coverage/final projection, structured
   provenance lookup과 후속 evidence lookup/coercion/append, aggregate evidence와
@@ -142,7 +147,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 4/4, affected 348/348, full unittest 1,498/1,498 PASS |
+| Latest calculation runtime validation | targeted 5/5, affected 612/612, full unittest 1,500/1,500 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
