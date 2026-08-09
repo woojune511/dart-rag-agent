@@ -14,7 +14,7 @@ from src.agent.financial_artifact_contracts import (
     payload_missing_contract,
     reconciliation_result_status,
 )
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 from src.schema.runtime_enums import ArtifactKind, TaskKind, TaskStatus
 
 __all__ = [
@@ -23,6 +23,7 @@ __all__ = [
     "aggregate_answer_artifact_update",
     "calculation_plan_artifact_update",
     "calculation_result_artifact_update",
+    "enrich_reconciliation_artifact_refs",
     "synchronize_calculation_result_artifact",
     "next_reflection_task_id",
     "operand_set_artifact_update",
@@ -81,6 +82,75 @@ def synchronize_aggregate_artifact_projection_payload(
         }
         break
     return AggregateArtifactProjectionPayloadSyncResult(artifacts=updated_artifacts)
+
+
+def _calculation_operand_source_refs(operand_rows: List[Dict[str, Any]]) -> List[str]:
+    refs: List[str] = []
+    for row in operand_rows or []:
+        if not isinstance(row, dict):
+            continue
+        refs.extend(
+            _clean_source_row_ids(
+                [
+                    row.get("evidence_id"),
+                    row.get("evidence_ids"),
+                    row.get("source_evidence_id"),
+                    row.get("source_evidence_ids"),
+                    row.get("source_row_id"),
+                    row.get("source_row_ids"),
+                    row.get("row_id"),
+                    row.get("row_ids"),
+                    row.get("candidate_id"),
+                    row.get("candidate_ids"),
+                ]
+            )
+        )
+    return list(dict.fromkeys(refs))
+
+
+def enrich_reconciliation_artifact_refs(
+    artifacts: List[Dict[str, Any]],
+    *,
+    task_id: str,
+    operand_rows: List[Dict[str, Any]],
+    extra_refs: Optional[List[Any]] = None,
+    task_ids: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
+    refs = list(
+        dict.fromkeys(
+            [
+                *_calculation_operand_source_refs(operand_rows),
+                *_clean_source_row_ids(extra_refs or []),
+            ]
+        )
+    )
+    if not refs:
+        return artifacts
+    target_task_id = str(task_id or "").strip()
+    target_task_ids = {
+        str(value).strip()
+        for value in [target_task_id, *(task_ids or [])]
+        if str(value).strip()
+    }
+    updated: List[Dict[str, Any]] = []
+    for artifact in artifacts or []:
+        item = dict(artifact)
+        if str(item.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
+            updated.append(item)
+            continue
+        if target_task_ids and str(item.get("task_id") or "").strip() not in target_task_ids:
+            updated.append(item)
+            continue
+        payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+        result = payload.get("reconciliation_result") if isinstance(payload, dict) else {}
+        status = str(result.get("status") if isinstance(result, dict) else "").strip().lower()
+        if status not in {"ok", "ready"}:
+            updated.append(item)
+            continue
+        merged_refs = list(dict.fromkeys([*(item.get("evidence_refs") or []), *refs]))
+        item["evidence_refs"] = merged_refs
+        updated.append(item)
+    return updated
 
 
 def next_reflection_task_id(

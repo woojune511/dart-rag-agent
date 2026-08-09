@@ -247,6 +247,7 @@ from src.agent.financial_task_artifacts import (
     AggregateArtifactProjectionPayloadSyncInput,
     aggregate_answer_artifact_update as _build_aggregate_answer_artifact_update,
     calculation_plan_artifact_update as _build_calculation_plan_artifact_update,
+    enrich_reconciliation_artifact_refs,
     next_reflection_task_id,
     operand_set_artifact_update as _build_operand_set_artifact_update,
     project_task_artifact_trace as _project_task_artifact_trace,
@@ -421,29 +422,6 @@ def _has_duplicate_direct_lookup_rejection(state: FinancialAgentState) -> bool:
 
 
 class FinancialAgentCalculationMixin:
-    def _calculation_operand_source_refs(self, operand_rows: List[Dict[str, Any]]) -> List[str]:
-        refs: List[str] = []
-        for row in operand_rows or []:
-            if not isinstance(row, dict):
-                continue
-            refs.extend(
-                _clean_source_row_ids(
-                    [
-                        row.get("evidence_id"),
-                        row.get("evidence_ids"),
-                        row.get("source_evidence_id"),
-                        row.get("source_evidence_ids"),
-                        row.get("source_row_id"),
-                        row.get("source_row_ids"),
-                        row.get("row_id"),
-                        row.get("row_ids"),
-                        row.get("candidate_id"),
-                        row.get("candidate_ids"),
-                    ]
-                )
-            )
-        return list(dict.fromkeys(refs))
-
     def _operand_set_artifact_update(
         self,
         state: FinancialAgentState,
@@ -458,7 +436,7 @@ class FinancialAgentCalculationMixin:
         artifacts = list(state.get("artifacts") or [])
         tasks = list(state.get("tasks") or [])
         task_id = str(active_subtask.get("task_id") or "calc")
-        artifacts = self._enrich_reconciliation_artifact_refs(
+        artifacts = enrich_reconciliation_artifact_refs(
             artifacts,
             task_id=task_id,
             operand_rows=operand_rows,
@@ -515,51 +493,6 @@ class FinancialAgentCalculationMixin:
                 existing_ids.add(evidence_id)
             combined.append(dict(item))
         return combined
-
-    def _enrich_reconciliation_artifact_refs(
-        self,
-        artifacts: List[Dict[str, Any]],
-        *,
-        task_id: str,
-        operand_rows: List[Dict[str, Any]],
-        extra_refs: Optional[List[Any]] = None,
-        task_ids: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
-        refs = list(
-            dict.fromkeys(
-                [
-                    *self._calculation_operand_source_refs(operand_rows),
-                    *_clean_source_row_ids(extra_refs or []),
-                ]
-            )
-        )
-        if not refs:
-            return artifacts
-        target_task_id = str(task_id or "").strip()
-        target_task_ids = {
-            str(value).strip()
-            for value in [target_task_id, *(task_ids or [])]
-            if str(value).strip()
-        }
-        updated: List[Dict[str, Any]] = []
-        for artifact in artifacts or []:
-            item = dict(artifact)
-            if str(item.get("kind") or "").strip() != ArtifactKind.RECONCILIATION_RESULT.value:
-                updated.append(item)
-                continue
-            if target_task_ids and str(item.get("task_id") or "").strip() not in target_task_ids:
-                updated.append(item)
-                continue
-            payload = item.get("payload") if isinstance(item.get("payload"), dict) else {}
-            result = payload.get("reconciliation_result") if isinstance(payload, dict) else {}
-            status = str(result.get("status") if isinstance(result, dict) else "").strip().lower()
-            if status not in {"ok", "ready"}:
-                updated.append(item)
-                continue
-            merged_refs = list(dict.fromkeys([*(item.get("evidence_refs") or []), *refs]))
-            item["evidence_refs"] = merged_refs
-            updated.append(item)
-        return updated
 
     def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
         if not isinstance(slot, dict) or not slot:
@@ -17676,7 +17609,7 @@ class FinancialAgentCalculationMixin:
             preliminary_projection,
             calculation_projection_override,
         )
-        ledger_artifacts = self._enrich_reconciliation_artifact_refs(
+        ledger_artifacts = enrich_reconciliation_artifact_refs(
             list(state.get("artifacts") or []),
             task_id="",
             task_ids=source_task_ids,

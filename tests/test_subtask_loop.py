@@ -8790,7 +8790,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "calculation_plan": {},
             "calculation_result": {},
         }
-        self.agent._extract_structured_operands_from_reconciliation = lambda _state: [
+        structured_operand_rows = [
             {
                 "operand_id": "op_001",
                 "evidence_id": "ev_source",
@@ -8802,9 +8802,38 @@ class SubtaskLoopTests(unittest.TestCase):
                 "matched_operand_role": "value",
             }
         ]
+        self.agent._extract_structured_operands_from_reconciliation = (
+            lambda _state: structured_operand_rows
+        )
         self.agent._evidence_items_from_reconciliation_matches = lambda _state: []
 
-        extracted = self.agent._extract_calculation_operands(state)
+        real_enricher = financial_graph_calculation.enrich_reconciliation_artifact_refs
+        real_builder = financial_graph_calculation._build_operand_set_artifact_update
+        events = []
+        enrich_calls = []
+        builder_calls = []
+
+        def record_enrichment(artifacts, **kwargs):
+            enriched = real_enricher(artifacts, **kwargs)
+            enrich_calls.append((artifacts, kwargs, enriched))
+            events.append("enrich")
+            return enriched
+
+        def record_builder(**kwargs):
+            builder_calls.append(kwargs)
+            events.append("build")
+            return real_builder(**kwargs)
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=record_enrichment,
+        ), patch.object(
+            financial_graph_calculation,
+            "_build_operand_set_artifact_update",
+            side_effect=record_builder,
+        ):
+            extracted = self.agent._extract_calculation_operands(state)
         reconcile_artifact = next(
             artifact
             for artifact in extracted["artifacts"]
@@ -8812,6 +8841,33 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertEqual(reconcile_artifact["evidence_refs"], ["ev_source", "row_source"])
+        self.assertEqual(events, ["enrich", "build"])
+        prepared_artifacts, enrich_kwargs, enriched_artifacts = enrich_calls[0]
+        self.assertIsNot(prepared_artifacts, state["artifacts"])
+        self.assertIs(prepared_artifacts[0], state["artifacts"][0])
+        self.assertEqual(enrich_kwargs["task_id"], "task_1")
+        self.assertEqual(enrich_kwargs["operand_rows"], structured_operand_rows)
+        self.assertEqual(set(enrich_kwargs), {"task_id", "operand_rows"})
+        self.assertIs(builder_calls[0]["artifacts"], enriched_artifacts)
+        self.assertIs(builder_calls[0]["operand_rows"], enrich_kwargs["operand_rows"])
+        self.assertIsNot(reconcile_artifact, enriched_artifacts[0])
+        self.assertEqual(reconcile_artifact, enriched_artifacts[0])
+        self.assertIs(reconcile_artifact["payload"], enriched_artifacts[0]["payload"])
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=RuntimeError("artifact ref enrichment stopped"),
+        ), patch.object(
+            financial_graph_calculation,
+            "_build_operand_set_artifact_update",
+            wraps=real_builder,
+        ) as stopped_builder, self.assertRaisesRegex(
+            RuntimeError,
+            "artifact ref enrichment stopped",
+        ):
+            self.agent._extract_calculation_operands(state)
+        self.assertEqual(stopped_builder.call_count, 0)
 
     def test_ratio_missing_dependency_binding_can_fall_back_to_retrieved_docs(self) -> None:
         state = {
@@ -14665,7 +14721,33 @@ class SubtaskLoopTests(unittest.TestCase):
             "plan_loop_count": 0,
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        real_enricher = financial_graph_calculation.enrich_reconciliation_artifact_refs
+        real_integrity_projection = financial_graph_calculation._project_task_artifact_trace
+        events = []
+        enrich_calls = []
+        integrity_calls = []
+
+        def record_enrichment(artifacts, **kwargs):
+            enriched = real_enricher(artifacts, **kwargs)
+            enrich_calls.append((artifacts, kwargs, enriched))
+            events.append("enrich")
+            return enriched
+
+        def record_integrity_projection(tasks, artifacts):
+            integrity_calls.append((tasks, artifacts))
+            events.append("integrity")
+            return real_integrity_projection(tasks, artifacts)
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=record_enrichment,
+        ), patch.object(
+            financial_graph_calculation,
+            "_project_task_artifact_trace",
+            side_effect=record_integrity_projection,
+        ):
+            updated = self.agent._aggregate_calculation_subtasks(state)
         reconcile_artifact = next(
             artifact
             for artifact in updated["artifacts"]
@@ -14674,12 +14756,48 @@ class SubtaskLoopTests(unittest.TestCase):
 
         self.assertEqual(reconcile_artifact["evidence_refs"], ["row:source", "claim:source"])
         self.assertNotIn("missing_required_evidence_ref", updated["planner_feedback"])
+        self.assertEqual(events, ["enrich", "integrity"])
+        prepared_artifacts, enrich_kwargs, enriched_artifacts = enrich_calls[0]
+        self.assertIsNot(prepared_artifacts, state["artifacts"])
+        self.assertIs(prepared_artifacts[0], state["artifacts"][0])
+        self.assertEqual(
+            enrich_kwargs,
+            {
+                "task_id": "",
+                "task_ids": ["task_1"],
+                "operand_rows": [],
+                "extra_refs": [
+                    None,
+                    ["row:source"],
+                    None,
+                    None,
+                    ["row:source"],
+                    ["claim:source"],
+                ],
+            },
+        )
+        self.assertIs(integrity_calls[0][1], enriched_artifacts)
         trace = _project_task_artifact_trace(updated["tasks"], updated["artifacts"])
         aggregate_task = next(task for task in trace["tasks"] if task["task_id"] == "aggregate")
 
         self.assertEqual(trace["orphan_artifact_ids"], [])
         self.assertEqual(aggregate_task["kind"], "synthesis")
         self.assertEqual(aggregate_task["latest_artifact_kind"], "aggregated_answer")
+
+        with patch.object(
+            financial_graph_calculation,
+            "enrich_reconciliation_artifact_refs",
+            side_effect=RuntimeError("artifact integrity refs stopped"),
+        ), patch.object(
+            financial_graph_calculation,
+            "_project_task_artifact_trace",
+            wraps=real_integrity_projection,
+        ) as stopped_integrity, self.assertRaisesRegex(
+            RuntimeError,
+            "artifact integrity refs stopped",
+        ):
+            self.agent._aggregate_calculation_subtasks(state)
+        self.assertEqual(stopped_integrity.call_count, 0)
 
     def test_aggregate_subtasks_ignores_stale_top_level_source_refs_for_reconciliation_artifact(self) -> None:
         self.agent.llm = _StubLLM(
