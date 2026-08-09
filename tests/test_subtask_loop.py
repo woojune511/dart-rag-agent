@@ -3184,12 +3184,36 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         ]
 
-        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, [])
+        owner_inputs = []
+        current_owner = financial_graph_calculation.align_ratio_operand_units_with_shared_table_context
 
+        def record_owner(rows):
+            owner_inputs.append(rows)
+            return [
+                {**row, "shared_table_alignment_owner_marker": True}
+                for row in current_owner(rows)
+            ]
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_ratio_operand_units_with_shared_table_context",
+            side_effect=record_owner,
+        ) as alignment_owner:
+            aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, [])
+            single_operand = [ordered_operands[0]]
+            self.assertIs(
+                self.agent._align_ratio_operands_with_sibling_table_context(single_operand, []),
+                single_operand,
+            )
+
+        alignment_owner.assert_called_once()
+        self.assertIs(owner_inputs[0], ordered_operands)
         self.assertEqual(aligned[1]["raw_unit"], larger_unit)
         self.assertEqual(aligned[1]["original_raw_unit"], smaller_unit)
         self.assertEqual(aligned[1]["normalized_value"], 258_935_494 * scale_by_unit[larger_unit])
         self.assertTrue(aligned[1]["ratio_unit_aligned_from_sibling_table"])
+        self.assertTrue(aligned[0]["shared_table_alignment_owner_marker"])
+        self.assertTrue(aligned[1]["shared_table_alignment_owner_marker"])
 
     def test_ratio_operand_alignment_rejects_direct_candidate_with_conflicting_scope(self) -> None:
         ordered_operands = [
@@ -3248,12 +3272,54 @@ class SubtaskLoopTests(unittest.TestCase):
             lambda _operand, _pool, state=None, preferred_raw_units=None: (dict(direct_slot), 10.0)
         )
 
-        aligned = self.agent._align_ratio_operands_with_sibling_table_context(ordered_operands, evidence_items)
+        owner_inputs = []
+        current_owner = financial_graph_calculation.align_ratio_operand_units_with_shared_table_context
 
+        def record_owner(rows):
+            owner_inputs.append(rows)
+            return [
+                {**row, "shared_table_alignment_owner_order": len(owner_inputs)}
+                for row in current_owner(rows)
+            ]
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_ratio_operand_units_with_shared_table_context",
+            side_effect=record_owner,
+        ) as alignment_owner:
+            aligned = self.agent._align_ratio_operands_with_sibling_table_context(
+                ordered_operands,
+                evidence_items,
+            )
+            direct_slot["consolidation_scope"] = "consolidated"
+            realigned = self.agent._align_ratio_operands_with_sibling_table_context(
+                ordered_operands,
+                evidence_items,
+            )
+
+        self.assertEqual(alignment_owner.call_count, 2)
+        self.assertIs(owner_inputs[0], ordered_operands)
+        self.assertIsNot(owner_inputs[1], ordered_operands)
+        self.assertTrue(owner_inputs[1][0]["sibling_table_context_realigned"])
         self.assertEqual(aligned[0]["raw_value"], "120")
         self.assertEqual(aligned[0]["normalized_value"], 120.0)
         self.assertEqual(aligned[0]["source_row_ids"], ["task_output:numerator", "ev_consolidated_numerator"])
         self.assertNotIn("sibling_table_context_realigned", aligned[0])
+        self.assertEqual(aligned[0]["shared_table_alignment_owner_order"], 1)
+        self.assertEqual(realigned[0]["raw_value"], "70")
+        self.assertTrue(realigned[0]["sibling_table_context_realigned"])
+        self.assertEqual(realigned[0]["shared_table_alignment_owner_order"], 2)
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_ratio_operand_units_with_shared_table_context",
+            side_effect=RuntimeError("shared-table owner failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "shared-table owner failed"):
+                self.agent._align_ratio_operands_with_sibling_table_context(
+                    ordered_operands,
+                    evidence_items,
+                )
 
     def test_best_direct_lookup_slot_rejects_ambiguous_context_table_without_scope(self) -> None:
         operand = {

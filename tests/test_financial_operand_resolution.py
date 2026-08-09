@@ -339,12 +339,165 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             with self.assertRaises(re.error):
                 repair({**repair_row, "normalized_value": 2.0})
 
+    def test_shared_table_ratio_unit_alignment_matrix(self) -> None:
+        align = operand_resolution.align_ratio_operand_units_with_shared_table_context
+        base_policy = dict(operand_resolution.CALCULATION_RENDER_POLICY)
+        scales = dict(base_policy.get("krw_display_unit_scales") or {})
+        eligible_units = [
+            unit
+            for unit in (base_policy.get("source_display_units") or ())
+            if unit in scales
+        ]
+        smaller_unit = min(eligible_units, key=scales.get)
+        larger_unit = max(eligible_units, key=scales.get)
+        nested = []
+
+        def row(raw_unit: str, **updates: Any) -> Dict[str, Any]:
+            result = {
+                "raw_value": "2",
+                "raw_unit": raw_unit,
+                "normalized_value": 0.0,
+                "normalized_unit": "KRW",
+                "table_source_id": "table:1",
+            }
+            result.update(updates)
+            return result
+
+        operands = [
+            row(larger_unit),
+            row(smaller_unit, original_raw_unit="kept", nested=nested),
+            row(smaller_unit, raw_value="3"),
+            row(smaller_unit, raw_value="bad"),
+            row(smaller_unit, table_source_id="table:2"),
+        ]
+        before = deepcopy(operands)
+
+        aligned = align(operands)
+
+        self.assertIsNot(aligned, operands)
+        for result, source in zip(aligned, operands):
+            self.assertIsNot(result, source)
+        self.assertEqual(operands, before)
+        self.assertIs(aligned[1]["nested"], nested)
+        self.assertEqual(aligned[1]["original_raw_unit"], "kept")
+        self.assertEqual(aligned[2]["original_raw_unit"], smaller_unit)
+        self.assertEqual(
+            (aligned[2]["raw_unit"], aligned[2]["normalized_value"], aligned[2]["normalized_unit"]),
+            (larger_unit, 3 * scales[larger_unit], "KRW"),
+        )
+        self.assertEqual(aligned[2]["rendered_value"], f"3{larger_unit}")
+        self.assertTrue(all(aligned[index]["ratio_unit_aligned_from_sibling_table"] for index in (1, 2)))
+        self.assertTrue(
+            all("ratio_unit_aligned_from_sibling_table" not in aligned[index] for index in (0, 3, 4))
+        )
+
+        no_change_cases = [
+            [row(smaller_unit)],
+            [row(smaller_unit), row(smaller_unit)],
+            [row(smaller_unit), row(larger_unit, table_source_id="table:2")],
+            [row(smaller_unit, table_source_id=""), row(larger_unit, table_source_id="")],
+            [
+                row(smaller_unit, table_source_id="table:1", source_table_id="source:same"),
+                row(larger_unit, table_source_id="table:2", source_table_id="source:same"),
+            ],
+            [
+                row(smaller_unit, table_source_id="", source_section="notes", statement_type="fs"),
+                row(larger_unit, table_source_id="", source_section="notes", statement_type="fs"),
+            ],
+            [
+                row(smaller_unit, normalized_unit="COUNT"),
+                row(larger_unit),
+            ],
+        ]
+        for candidate in no_change_cases:
+            with self.subTest(no_change=candidate):
+                self.assertIs(align(candidate), candidate)
+
+        section = {
+            "source_section": "notes",
+            "statement_type": "financial_statement",
+            "consolidation_scope": "consolidated",
+        }
+        grouped_cases = (
+            [
+                row(smaller_unit, table_source_id="", source_table_id="source:1"),
+                row(larger_unit, table_source_id="", source_table_id="source:1"),
+            ],
+            [
+                row(smaller_unit, table_source_id="", **section),
+                row(larger_unit, table_source_id="", **section),
+            ],
+        )
+        for candidate in grouped_cases:
+            self.assertIsNot(align(candidate), candidate)
+        table_precedence = [
+            row(smaller_unit, table_source_id="table:1", **section),
+            row(larger_unit, table_source_id="table:2", **section),
+        ]
+        self.assertIs(align(table_precedence), table_precedence)
+
+        for policy in (
+            {**base_policy, "krw_normalized_unit": ""},
+            {**base_policy, "source_display_units": (smaller_unit,)},
+        ):
+            with patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy):
+                self.assertIs(align(operands), operands)
+
+        bad_scales = {smaller_unit: "bad", larger_unit: scales[larger_unit]}
+        with patch.object(
+            operand_resolution,
+            "CALCULATION_RENDER_POLICY",
+            {**base_policy, "krw_display_unit_scales": bad_scales},
+        ):
+            with self.assertRaises(ValueError):
+                align(operands)
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(float("nan"), "KRW"),
+        ):
+            nan_aligned = align(operands)
+        self.assertNotEqual(nan_aligned[1]["normalized_value"], nan_aligned[1]["normalized_value"])
+        self.assertTrue(nan_aligned[1]["ratio_unit_aligned_from_sibling_table"])
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                align(operands)
+        self.assertEqual(operands, before)
+
+        class CopyFailure:
+            def __init__(self, values: Dict[str, Any]) -> None:
+                self.values = values
+
+            def get(self, key: str, default: Any = None) -> Any:
+                return self.values.get(key, default)
+
+            def keys(self) -> Any:
+                raise RuntimeError("row copy failed")
+
+        with patch.object(operand_resolution, "max", create=True) as maximum:
+            with self.assertRaisesRegex(RuntimeError, "row copy failed"):
+                align([row(larger_unit), CopyFailure(row(smaller_unit))])  # type: ignore[list-item]
+        maximum.assert_not_called()
+        with patch.object(
+            operand_resolution,
+            "max",
+            create=True,
+            side_effect=RuntimeError("max failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "max failed"):
+                align([row(larger_unit), row(smaller_unit)])
+
     def test_evidence_identity_and_surface_helpers_have_operand_resolution_owner(self) -> None:
         helper_names = (
             "_canonical_structured_reconciliation_id",
             "_canonicalize_structured_operand_reconciliation_refs",
             "_operand_slot_has_evidence_surface_match",
             "repair_operand_normalization_from_rendered_unit",
+            "align_ratio_operand_units_with_shared_table_context",
         )
 
         for helper_name in helper_names:

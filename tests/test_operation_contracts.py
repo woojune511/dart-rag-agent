@@ -7132,6 +7132,11 @@ class OperationContractTests(unittest.TestCase):
                 "_project_calculation_candidate_state",
                 wraps=agent._project_calculation_candidate_state,
             ) as state_projection,
+            patch.object(
+                agent,
+                "_align_ratio_operands_with_sibling_table_context",
+                wraps=agent._align_ratio_operands_with_sibling_table_context,
+            ) as ratio_alignment,
         ):
             result = agent._execute_calculation(runtime_state)
 
@@ -7139,6 +7144,7 @@ class OperationContractTests(unittest.TestCase):
         candidate_preparation.assert_called_once()
         candidate_projection.assert_called_once()
         state_projection.assert_called_once()
+        ratio_alignment.assert_not_called()
 
         trace = _resolve_runtime_calculation_trace(result)
         calc = trace["calculation_result"]
@@ -7227,6 +7233,7 @@ class OperationContractTests(unittest.TestCase):
         plan_result = agent._plan_formula_calculation(_with_runtime_calculation_trace(state))
         owner_calls = []
         current_repair = financial_graph_calculation.repair_operand_normalization_from_rendered_unit
+        current_alignment = agent._align_ratio_operands_with_sibling_table_context
 
         def record_repair(row):
             owner_calls.append(deepcopy(row))
@@ -7234,6 +7241,12 @@ class OperationContractTests(unittest.TestCase):
                 **current_repair(row),
                 "rendered_unit_repair_owner_order": len(owner_calls),
             }
+
+        def record_alignment(rows, evidence_items):
+            return [
+                {**row, "shared_table_prep_caller_marker": True}
+                for row in current_alignment(rows, evidence_items)
+            ]
 
         with (
             patch.object(
@@ -7246,6 +7259,11 @@ class OperationContractTests(unittest.TestCase):
                 "_prepare_calculation_candidate",
                 wraps=agent._prepare_calculation_candidate,
             ) as candidate_preparation,
+            patch.object(
+                agent,
+                "_align_ratio_operands_with_sibling_table_context",
+                side_effect=record_alignment,
+            ) as ratio_alignment,
         ):
             execution_result = _execute_calculation_with_runtime_trace(agent, {**state, **plan_result})
             candidate_input = candidate_preparation.call_args.args[0]
@@ -7259,6 +7277,8 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(early_failure.status, "insufficient_operands")
         self.assertEqual(owner_call_count, 2)
         self.assertEqual(repair_owner.call_count, owner_call_count)
+        ratio_alignment.assert_called_once()
+        self.assertEqual(ratio_alignment.call_args.args[1], [])
         self.assertEqual([row["operand_id"] for row in owner_calls], ["op_amortization", "op_revenue"])
         trace = _resolve_runtime_calculation_trace(execution_result)
         calc = trace["calculation_result"]
@@ -7270,6 +7290,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(repaired_operand["normalized_value"], 182049824000.0)
         self.assertTrue(repaired_operand["unit_repaired_from_rendered_value"])
         self.assertEqual(repaired_operand["rendered_unit_repair_owner_order"], 1)
+        self.assertTrue(repaired_operand["shared_table_prep_caller_marker"])
         revenue_operand = next(row for row in trace["calculation_operands"] if row["operand_id"] == "op_revenue")
         self.assertEqual(revenue_operand["rendered_unit_repair_owner_order"], 2)
 
