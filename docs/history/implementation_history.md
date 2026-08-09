@@ -613,6 +613,35 @@ formatting, dependency precedence, aggregate projection, state/ledger or final-
 answer ownership, and not a total-code, broad executed-path, performance, broad
 private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Aggregate projection-row surface synchronization ownership
+
+- `e777269` moves the graph-private numeric-slot selector and prepared projection-
+  row surface synchronizer into `financial_aggregate_projection.py` as one typed,
+  state-free owner seam. It receives only the selected row, raw answer, and raw
+  rendered value and preserves first-candidate ratio/growth versus last-candidate
+  other selection, exact raw output surfaces, conditional shallow-copy/nested-
+  identity behavior, lookup series/container/derived-metric synchronization,
+  input immutability, repeated operation-family access, and exception order. It
+  adds no reason, application flag, or trace field.
+- The graph retains candidate-index and sentence selection, numeric conflict and
+  coverage gates, rendered extraction, row iteration, lookup-component
+  propagation, updated-row mapping, ordered/slot-row propagation, projection
+  rebuild, and final orchestration. Both old graph helpers and exact private self
+  references are deleted.
+- Production source is `+134/-100`, net 34: the graph changes from 19,431 to
+  19,340 lines (`+9/-100`, net -91) and the aggregate owner from 735 to 860
+  (`+125`). Tests are `+324/-15`, net 309; the whole commit is `+458/-115`,
+  net 343.
+- Validation passed targeted 4/4 tests, affected aggregate/subtask 327/327 tests,
+  the 217-literal runtime audit, full discovery over 1,495/1,495 tests, and
+  `git diff --check`. Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared projection-row surface synchronization
+ownership relocation, not answer or candidate selection, aggregate precedence,
+lookup propagation, final projection, state/evidence or artifact/ledger
+ownership, and not a total-code, broad executed-path, performance, broad private-
+mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

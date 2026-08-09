@@ -991,6 +991,30 @@ seam does not establish final-projection ownership, broad executed-path or total
 code reduction, performance improvement, broad private-surface cleanup, or Phase
 3 completion.
 
+Prepared aggregate projection-row surface synchronization is a typed, state-free
+aggregate-owner seam. The owner receives only the graph-selected projection row,
+raw answer, and raw rendered value. It normalizes the answer only to select a
+numeric surface: ratio/growth use the first candidate and other operation
+families use the last. The exact raw answer remains on the row and formatted
+result, and the exact rendered input retains its existing conditional updates.
+
+The owner always returns a fresh top-level row. A missing or falsy calculation
+result returns before replacement, preserving any present empty nested-result
+identity and key shape. A truthy result is shallow-copied; result, answer-slot,
+primary-value, lookup series, role/group container, and derived-metric copies are
+created only behind their existing gates. Lookup dict-only filtering, first-item
+replacement, empty-list primary fallback, role-before-group order, untouched
+nested aliases, repeated operation-family resolution, and uncaught mapping/list/
+normalization exception order remain unchanged. Inputs are not mutated, and no
+reason, application flag, or trace field is added.
+
+The graph retains candidate-index and answer-sentence selection, numeric conflict
+and coverage gates, rendered-value extraction, row iteration, lookup-component
+propagation, updated-row task mapping, ordered/slot-row propagation, projection
+rebuild, and final orchestration. This seam does not own answer selection,
+aggregate precedence, lookup propagation, final projection, state/evidence, or
+artifact/ledger work.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

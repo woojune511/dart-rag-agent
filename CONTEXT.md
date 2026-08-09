@@ -88,6 +88,9 @@ Last updated: 2026-08-09
   stable id-order 계약을 보존한다. 또한 graph가 준비한 ordered result rows의 세
   nested subtask surface를 current top-level task row와 재귀적으로 동기화하며,
   last-id-wins, stable order, cycle/depth, conditional shallow-copy 계약을 유지한다.
+  Graph가 선택한 aggregate projection row와 answer/rendered surface에는 first/last
+  numeric selection과 conditional result/slot/lookup surface synchronization을 typed
+  state-free result로 적용하며 raw answer, copy/identity, access/exception 순서를 보존한다.
 - Graph는 direct row/evidence construction, coercion과 scope filtering,
   target override, acceptance applicability gate, direct structured preference의
   runtime evidence overlay, row iteration, peer-unit preparation, strongest-slot
@@ -110,6 +113,8 @@ Last updated: 2026-08-09
   nested-result promotion, preliminary/final projection rebuild, dependency alignment,
   preserved-field merge, aggregate candidate discovery/scoring/selection, narrative
   refresh, packaging call placement/laziness, application invocation과 answer precedence,
+  aggregate row candidate/sentence/conflict gate, rendered extraction, row iteration,
+  lookup-component propagation과 final projection rebuild,
   mutable state/evidence, artifact/ledger, stale repair와 final
   orchestration, 기타 absolute-ratio 및 fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
@@ -121,7 +126,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 297/297, full unittest 1,494/1,494 PASS |
+| Latest calculation runtime validation | targeted 4/4, affected 327/327, full unittest 1,495/1,495 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

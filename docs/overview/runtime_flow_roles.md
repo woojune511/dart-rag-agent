@@ -382,7 +382,11 @@ state-free owner 경계:
   result rows에는 current-row authority map을 먼저 구성한 뒤 세 nested subtask
   surface를 재귀 동기화하고, last-id-wins, stable order, invalid-item skip,
   cycle/depth와 conditional shallow-copy 계약을 보존한다. 이 seam들은
-  reason/flag/trace field를 추가하지 않는다.
+  reason/flag/trace field를 추가하지 않는다. Graph가 선택한 projection row와 raw
+  answer/rendered surface에는 ratio/growth first-candidate 또는 other last-candidate
+  numeric selection과 conditional result/slot/lookup synchronization을 적용한다.
+  Fresh/retained identity, raw surface, input immutability와 access/exception 순서를
+  유지하며 reason/flag/trace field를 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -411,6 +415,8 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate answer candidate discovery/scoring/selection, narrative refresh,
   packaging call placement/laziness, application invocation/answer precedence,
   mutable state/evidence,
+- aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
+  extraction, iteration, lookup-component propagation, updated-row map과 final rebuild,
   artifact/ledger, stale repair와 final orchestration
 - unit conversion/repair
 - period alignment
@@ -512,8 +518,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
   normalization, graph-prepared runtime-ratio magnitude projection, generated
-  provenance filtering, recursive nested-subtask row consistency, and typed
-  base/refreshed aggregate-answer candidate payload packaging/application
+  provenance filtering, recursive nested-subtask row consistency, prepared
+  projection-row surface synchronization, and typed base/refreshed aggregate-
+  answer candidate payload packaging/application
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers

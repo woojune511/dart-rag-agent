@@ -248,14 +248,16 @@ Current calculation ownership is:
   typed state-free filtering of generated aggregate provenance from a graph-
   prepared projection and kept-evidence-id sequence, plus recursive consistency
   synchronization of graph-prepared nested subtask rows against current ordered
-  task results.
+  task results. It also owns typed state-free synchronization of a graph-selected
+  projection row with prepared raw answer/rendered surfaces, including numeric-
+  candidate selection and conditional result/slot/lookup copy semantics.
 
-At the latest checkpoint, the graph is 19,431 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,340 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 735, the dependency owner is 3,164, and the
-execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 297/297 tests, the 217-literal audit, and full discovery over
-1,494/1,494 tests.
+is 2,437, the aggregate owner is 860, the dependency owner is 3,164, and the
+execution owner is 837. The latest owner slice passed targeted 4/4 tests,
+affected 327/327 tests, the 217-literal audit, and full discovery over
+1,495/1,495 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
@@ -287,6 +289,7 @@ Use existing owner modules before adding new ones:
 - `financial_operand_resolution.py`
 - `financial_dependency_projection.py`
 - `financial_calculation_execution.py`
+- `financial_aggregate_projection.py`
 - `financial_graph_calculation_rendering.py`
 - `financial_runtime_trace.py`
 - `financial_answer_projection.py`
