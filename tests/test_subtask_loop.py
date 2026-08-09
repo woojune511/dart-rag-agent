@@ -3806,7 +3806,44 @@ class SubtaskLoopTests(unittest.TestCase):
             "seed_retrieved_docs": [],
         }
 
-        prepared = self.agent._prepare_initial_aggregate_state(state)
+        signature_owner = financial_graph_calculation.aggregate_result_signature
+        append_owner = self.agent._append_ratio_result_from_retrieved_context
+        append_active = [False]
+        append_input_rows = []
+        append_signature_rows = []
+
+        def record_signature(row):
+            if append_active[0]:
+                append_signature_rows.append(row)
+            return signature_owner(row)
+
+        def record_append(ordered_results, append_state):
+            append_input_rows.append(ordered_results)
+            append_active[0] = True
+            try:
+                return append_owner(ordered_results, append_state)
+            finally:
+                append_active[0] = False
+
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            side_effect=record_signature,
+        ), patch.object(
+            self.agent,
+            "_append_ratio_result_from_retrieved_context",
+            side_effect=record_append,
+        ):
+            prepared = self.agent._prepare_initial_aggregate_state(state)
+
+        self.assertEqual(len(append_input_rows), 1)
+        self.assertEqual(len(append_signature_rows), 5)
+        candidate_row, appended_filter, appended_value, preserved_first, preserved_second = append_signature_rows
+        self.assertEqual(candidate_row["task_id"], "task_ratio")
+        self.assertIs(appended_filter, appended_value)
+        self.assertTrue(appended_filter.get("recovered_from_retrieved_ratio_context"))
+        self.assertIs(preserved_first, append_input_rows[0][0])
+        self.assertIs(preserved_second, append_input_rows[0][1])
 
         self.assertIn("37.47%", prepared.complete_numeric_answer)
         self.assertIn("37.47%", prepared.fallback_answer)
@@ -4309,6 +4346,13 @@ class SubtaskLoopTests(unittest.TestCase):
         original_context_docs = financial_graph_calculation.collect_retrieval_context_docs
         original_context_evidence = self.agent._ratio_operand_context_evidence_from_docs
         original_build_context = self.agent._build_complete_ratio_operands_from_coherent_context
+        signature_owner = financial_graph_calculation.aggregate_result_signature
+        signature_patcher = patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            wraps=signature_owner,
+        )
+        signature_spy = signature_patcher.start()
         financial_graph_calculation.collect_retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
         self.agent._ratio_operand_context_evidence_from_docs = lambda *_args, **_kwargs: context_evidence
         self.agent._build_complete_ratio_operands_from_coherent_context = lambda *_args, **_kwargs: context_rows
@@ -4359,7 +4403,9 @@ class SubtaskLoopTests(unittest.TestCase):
                     ],
                 },
             )
+            appended = self.agent._append_ratio_result_from_retrieved_context([], base_state)
         finally:
+            signature_patcher.stop()
             financial_graph_calculation.collect_retrieval_context_docs = original_context_docs
             self.agent._ratio_operand_context_evidence_from_docs = original_context_evidence
             self.agent._build_complete_ratio_operands_from_coherent_context = original_build_context
@@ -4368,6 +4414,26 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertFalse(updated[0].get("recovered_from_retrieved_ratio_context"))
         self.assertEqual(updated[0]["calculation_result"]["result_value"], 25.0)
         self.assertEqual(artifact_updated, [])
+        self.assertEqual(signature_spy.call_count, 7)
+        (
+            candidate_row,
+            existing_arg,
+            artifact_candidate,
+            artifact_row,
+            append_candidate,
+            appended_filter,
+            appended_value,
+        ) = [
+            call.args[0] for call in signature_spy.call_args_list
+        ]
+        self.assertIs(existing_arg, existing_row)
+        self.assertEqual(candidate_row, artifact_candidate)
+        self.assertIsNot(candidate_row, artifact_candidate)
+        self.assertEqual(candidate_row["task_id"], "task_ratio")
+        self.assertTrue(artifact_row.get("artifact_backed_complete_result"))
+        self.assertEqual(append_candidate, candidate_row)
+        self.assertIs(appended_filter, appended_value)
+        self.assertIs(appended_filter, appended[0])
         artifact_state = {
             "artifacts": [
                 {
@@ -5465,7 +5531,30 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        deduped = self.agent._dedupe_aggregate_subtask_results([source_lookup, coherent_ratio, conflicting_ratio])
+        signature_owner = financial_graph_calculation.aggregate_result_signature
+        sign_rank_owner = financial_graph_calculation.growth_operand_sign_consistency_rank
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            wraps=signature_owner,
+        ) as signature_spy, patch.object(
+            financial_graph_calculation,
+            "growth_operand_sign_consistency_rank",
+            wraps=sign_rank_owner,
+        ) as sign_rank_spy:
+            deduped = self.agent._dedupe_aggregate_subtask_results(
+                [source_lookup, coherent_ratio, conflicting_ratio]
+            )
+
+        self.assertEqual(signature_spy.call_count, 3)
+        self.assertEqual(sign_rank_spy.call_count, 3)
+        expected_rows = [source_lookup, coherent_ratio, conflicting_ratio]
+        self.assertTrue(
+            all(call.args[0] is row for call, row in zip(signature_spy.call_args_list, expected_rows))
+        )
+        self.assertTrue(
+            all(call.args[0] is row for call, row in zip(sign_rank_spy.call_args_list, expected_rows))
+        )
 
         ratio_row = next(row for row in deduped if row.get("task_id") == "task_ratio")
         self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "80.00%")
@@ -16271,8 +16360,20 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results(
-            [sign_mixed_growth, aggregate_summary]
+        sign_rank_owner = financial_graph_calculation.growth_operand_sign_consistency_rank
+        with patch.object(
+            financial_graph_calculation,
+            "growth_operand_sign_consistency_rank",
+            wraps=sign_rank_owner,
+        ) as sign_rank_spy:
+            promoted = self.agent._promote_stronger_nested_aggregate_results(
+                [sign_mixed_growth, aggregate_summary]
+            )
+
+        self.assertEqual(sign_rank_spy.call_count, 6)
+        self.assertEqual(
+            [call.args[0].get("answer") for call in sign_rank_spy.call_args_list],
+            ["70.28%", "-270.28%", "70.28%", "-270.28%", "70.28%", "70.28%"],
         )
 
         self.assertEqual(promoted[0]["answer"], "70.28%")

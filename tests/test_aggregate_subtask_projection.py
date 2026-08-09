@@ -97,6 +97,258 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_aggregate_signature_and_growth_sign_rank_preserve_primitive_contract(self) -> None:
+        def signature(row, *, delegate=None):
+            if delegate is None:
+                return financial_aggregate_projection.aggregate_result_signature(row)
+            with patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=delegate._aggregate_result_operation_family,
+            ):
+                return financial_aggregate_projection.aggregate_result_signature(row)
+
+        def sign_rank(row, *, delegate=None):
+            if delegate is None:
+                return financial_aggregate_projection.growth_operand_sign_consistency_rank(row)
+            with patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=delegate._aggregate_result_operation_family,
+            ):
+                return financial_aggregate_projection.growth_operand_sign_consistency_rank(row)
+
+        row = {
+            "task_id": "task_fallback",
+            "metric_label": " row   metric ",
+            "calculation_result": {
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "metric_label": "slot metric",
+                }
+            },
+            "answer_slots": {"operation_family": "lookup", "metric_label": "row slot metric"},
+        }
+        row_snapshot = deepcopy(row)
+        self.assertEqual(signature(row), "ratio:row metric")
+        self.assertEqual(row, row_snapshot)
+        self.assertEqual(
+            signature(
+                {
+                    "task_id": "task_fallback",
+                    "calculation_result": {
+                        "answer_slots": {
+                            "operation_family": "growth_rate",
+                            "metric_label": " slot   metric ",
+                        }
+                    },
+                    "answer_slots": {"metric_label": "row slot metric"},
+                }
+            ),
+            "growth_rate:slot metric",
+        )
+        self.assertEqual(
+            signature(
+                {
+                    "task_id": "task_fallback",
+                    "calculation_result": {},
+                    "answer_slots": {"metric_label": " row   slot ", "operation_family": "lookup"},
+                }
+            ),
+            "lookup:row slot",
+        )
+        self.assertEqual(signature({"task_id": " task   fallback "}), "task fallback")
+
+        lazy_delegate = SimpleNamespace(
+            _aggregate_result_operation_family=lambda _row: (_ for _ in ()).throw(
+                RuntimeError("family must stay lazy")
+            )
+        )
+        self.assertEqual(
+            signature(
+                {
+                    "metric_label": "   ",
+                    "answer_slots": {"metric_label": "must not replace raw whitespace"},
+                },
+                delegate=lazy_delegate,
+            ),
+            "",
+        )
+
+        events = []
+
+        class _TrackedMapping(Mapping):
+            def __init__(self, name, values, *, fail_keys=False):
+                self.name = name
+                self.values = values
+                self.fail_keys = fail_keys
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                events.append(f"getitem:{self.name}:{key}")
+                return self.values[key]
+
+            def keys(self):
+                events.append(f"keys:{self.name}")
+                if self.fail_keys:
+                    raise RuntimeError(f"failed to copy {self.name}")
+                return self.values.keys()
+
+            def get(self, key, default=None):
+                events.append(f"get:{self.name}:{key}")
+                return self.values.get(key, default)
+
+        tracked_slots = _TrackedMapping(
+            "result_slots",
+            {"operation_family": "ratio", "metric_label": "slot metric"},
+        )
+        tracked_result = _TrackedMapping("result", {"answer_slots": tracked_slots})
+        tracked_row = _TrackedMapping(
+            "row",
+            {"calculation_result": tracked_result, "metric_label": ""},
+        )
+        tracked_delegate = SimpleNamespace(
+            _aggregate_result_operation_family=lambda _row: events.append("family") or "ratio"
+        )
+        self.assertEqual(signature(tracked_row, delegate=tracked_delegate), "ratio:slot metric")
+        self.assertEqual(
+            events,
+            [
+                "get:row:calculation_result",
+                "keys:result",
+                "getitem:result:answer_slots",
+                "keys:result_slots",
+                "getitem:result_slots:operation_family",
+                "getitem:result_slots:metric_label",
+                "get:row:metric_label",
+                "family",
+            ],
+        )
+
+        events.clear()
+        fallback_slots = _TrackedMapping("row_slots", {"metric_label": "fallback metric"})
+        fallback_row = _TrackedMapping(
+            "row",
+            {
+                "calculation_result": _TrackedMapping("result", {"answer_slots": {}}),
+                "answer_slots": fallback_slots,
+                "metric_label": "",
+            },
+        )
+        fallback_delegate = SimpleNamespace(_aggregate_result_operation_family=lambda _row: "")
+        self.assertEqual(signature(fallback_row, delegate=fallback_delegate), "fallback metric")
+        self.assertLess(events.index("get:row:answer_slots"), events.index("keys:row_slots"))
+
+        events.clear()
+        broken_row = _TrackedMapping(
+            "row",
+            {"calculation_result": _TrackedMapping("result", {"answer_slots": {}}, fail_keys=True)},
+        )
+        with self.assertRaisesRegex(RuntimeError, "failed to copy result"):
+            signature(broken_row, delegate=tracked_delegate)
+        self.assertEqual(events, ["get:row:calculation_result", "keys:result"])
+
+        def growth_row(current, prior, *, result_slots=True):
+            slots = {
+                "operation_family": "growth_rate",
+                "current_value": {"normalized_value": current},
+                "prior_value": {"normalized_value": prior},
+            }
+            if result_slots:
+                return {
+                    "calculation_result": {"answer_slots": slots},
+                    "answer_slots": {
+                        "operation_family": "growth_rate",
+                        "current_value": {"normalized_value": 1},
+                        "prior_value": {"normalized_value": -1},
+                    },
+                }
+            return {"calculation_result": {}, "answer_slots": slots}
+
+        for name, current, prior, expected in (
+            ("same_positive", 2, 1, 2),
+            ("same_negative", -2, -1, 2),
+            ("opposite", 2, -1, 0),
+            ("zero", 0, 1, 1),
+            ("missing", None, 1, 1),
+            ("invalid", "invalid", 1, 1),
+            ("nan", math.nan, 1, 1),
+            ("positive_inf", math.inf, 1, 2),
+            ("negative_inf", -math.inf, -1, 2),
+        ):
+            with self.subTest(rank=name):
+                self.assertEqual(sign_rank(growth_row(current, prior)), expected)
+        self.assertEqual(sign_rank(growth_row(-2, -1, result_slots=False)), 2)
+
+        class _UnreadableRow(dict):
+            def get(self, key, default=None):
+                if key == "calculation_result":
+                    raise RuntimeError("rank body result must stay lazy")
+                return super().get(key, default)
+
+        non_growth_delegate = SimpleNamespace(_aggregate_result_operation_family=lambda _row: "ratio")
+        self.assertEqual(sign_rank(_UnreadableRow(), delegate=non_growth_delegate), 1)
+        with self.assertRaisesRegex(RuntimeError, "rank body result must stay lazy"):
+            sign_rank(
+                _UnreadableRow(),
+                delegate=SimpleNamespace(
+                    _aggregate_result_operation_family=lambda _row: "growth_rate"
+                ),
+            )
+
+        events.clear()
+
+        class _TrackedNumber:
+            def __init__(self, name, value=1.0, error=None):
+                self.name = name
+                self.value = value
+                self.error = error
+
+            def __float__(self):
+                events.append(f"float:{self.name}")
+                if self.error is not None:
+                    raise self.error(f"failed {self.name}")
+                return self.value
+
+        growth_delegate = SimpleNamespace(_aggregate_result_operation_family=lambda _row: "growth_rate")
+        self.assertEqual(
+            sign_rank(
+                growth_row(_TrackedNumber("current"), _TrackedNumber("prior")),
+                delegate=growth_delegate,
+            ),
+            2,
+        )
+        self.assertEqual(events, ["float:current", "float:prior"])
+
+        events.clear()
+        self.assertEqual(
+            sign_rank(
+                growth_row(
+                    _TrackedNumber("current", error=TypeError),
+                    _TrackedNumber("prior"),
+                ),
+                delegate=growth_delegate,
+            ),
+            1,
+        )
+        self.assertEqual(events, ["float:current", "float:prior"])
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "failed current"):
+            sign_rank(
+                growth_row(
+                    _TrackedNumber("current", error=RuntimeError),
+                    _TrackedNumber("prior"),
+                ),
+                delegate=growth_delegate,
+            )
+        self.assertEqual(events, ["float:current"])
+
     def test_aggregate_composition_transition_preserves_state_and_access_contract(self) -> None:
         def apply_transition(state, **kwargs):
             return apply_aggregate_composition_answer(state, **kwargs)
@@ -2599,11 +2851,17 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ],
         }
 
-        ordered = agent._ordered_aggregate_subtask_results_for_repair(
-            state=state,
-            calculation_result=calculation_result,
-            answer_slots=answer_slots,
-        )
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            wraps=financial_aggregate_projection.aggregate_result_signature,
+        ) as signature_owner:
+            ordered = agent._ordered_aggregate_subtask_results_for_repair(
+                state=state,
+                calculation_result=calculation_result,
+                answer_slots=answer_slots,
+            )
+        signature_owner.assert_not_called()
 
         self.assertEqual(
             [(row["task_id"], row["answer"]) for row in ordered],
@@ -2613,6 +2871,22 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 ("task_lookup", "structured lookup"),
             ],
         )
+
+        signature_only_row = {"operation_family": "ratio", "metric_label": "orphan metric"}
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_result_signature",
+            wraps=financial_aggregate_projection.aggregate_result_signature,
+        ) as signature_owner:
+            fallback_ordered = agent._ordered_aggregate_subtask_results_for_repair(
+                state={},
+                calculation_result={"subtask_results": [signature_only_row]},
+                answer_slots={},
+            )
+        signature_owner.assert_called_once()
+        self.assertEqual(signature_owner.call_args.args[0], signature_only_row)
+        self.assertIsNot(signature_owner.call_args.args[0], signature_only_row)
+        self.assertEqual(fallback_ordered, [signature_only_row])
 
     def test_active_lookup_promotes_matching_nested_result_from_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

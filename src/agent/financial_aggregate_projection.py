@@ -429,6 +429,54 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
     return operation_aliases.get(operation_family, operation_family)
 
 
+def aggregate_result_signature(row: Mapping[str, Any]) -> str:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    metric_label = _normalise_spaces(
+        str(
+            row.get("metric_label")
+            or answer_slots.get("metric_label")
+            or row.get("task_id")
+            or ""
+        )
+    )
+    if not metric_label:
+        return ""
+    operation_family = aggregate_result_operation_family(row)
+    if operation_family:
+        return f"{operation_family}:{metric_label}"
+    return metric_label
+
+
+def growth_operand_sign_consistency_rank(row: Mapping[str, Any]) -> int:
+    if aggregate_result_operation_family(row) != "growth_rate":
+        return 1
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+
+    def _sign(slot: Dict[str, Any]) -> int:
+        value = slot.get("normalized_value")
+        if value is None:
+            return 0
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            return 0
+        if numeric_value > 0:
+            return 1
+        if numeric_value < 0:
+            return -1
+        return 0
+
+    current_sign = _sign(current_slot)
+    prior_sign = _sign(prior_slot)
+    if current_sign and prior_sign:
+        return 2 if current_sign == prior_sign else 0
+    return 1
+
+
 def _replacement_lookup_slot_for_component(
     component: Dict[str, Any],
     lookup_slots: Sequence[Mapping[str, Any]],

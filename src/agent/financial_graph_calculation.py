@@ -47,10 +47,12 @@ from src.agent.financial_aggregate_projection import (
     aggregate_projection_apply_override as _aggregate_projection_apply_override,
     aggregate_projection_for_integrity as _aggregate_projection_for_integrity,
     aggregate_result_operation_family as _aggregate_result_operation_family,
+    aggregate_result_signature,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     apply_aggregate_answer_candidate,
     filter_aggregate_projection_provenance,
+    growth_operand_sign_consistency_rank,
     package_aggregate_answer_candidate,
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
@@ -8200,52 +8202,6 @@ class FinancialAgentCalculationMixin:
     def _aggregate_result_operation_family(self, row: Dict[str, Any]) -> str:
         return _aggregate_result_operation_family(row)
 
-    def _aggregate_result_signature(self, row: Dict[str, Any]) -> str:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        metric_label = _normalise_spaces(
-            str(
-                row.get("metric_label")
-                or answer_slots.get("metric_label")
-                or row.get("task_id")
-                or ""
-            )
-        )
-        if not metric_label:
-            return ""
-        operation_family = self._aggregate_result_operation_family(row)
-        if operation_family:
-            return f"{operation_family}:{metric_label}"
-        return metric_label
-
-    def _growth_operand_sign_consistency_rank(self, row: Dict[str, Any]) -> int:
-        if self._aggregate_result_operation_family(row) != "growth_rate":
-            return 1
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        current_slot = dict(answer_slots.get("current_value") or {})
-        prior_slot = dict(answer_slots.get("prior_value") or {})
-
-        def _sign(slot: Dict[str, Any]) -> int:
-            value = slot.get("normalized_value")
-            if value is None:
-                return 0
-            try:
-                numeric_value = float(value)
-            except (TypeError, ValueError):
-                return 0
-            if numeric_value > 0:
-                return 1
-            if numeric_value < 0:
-                return -1
-            return 0
-
-        current_sign = _sign(current_slot)
-        prior_sign = _sign(prior_slot)
-        if current_sign and prior_sign:
-            return 2 if current_sign == prior_sign else 0
-        return 1
-
     def _aggregate_row_primary_answer_slot(self, row: Dict[str, Any]) -> Dict[str, Any]:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
@@ -8804,7 +8760,7 @@ class FinancialAgentCalculationMixin:
         }.get(status, 0)
         material_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
         answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
-        growth_sign_rank = self._growth_operand_sign_consistency_rank(row)
+        growth_sign_rank = growth_operand_sign_consistency_rank(row)
         dependency_slot_rank, scope_coherence_rank = self._aggregate_result_dependency_coherence_ranks(
             row,
             source_slot_by_task_id,
@@ -8829,7 +8785,7 @@ class FinancialAgentCalculationMixin:
         gap_free_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
         operation_family = self._aggregate_result_operation_family(row)
         non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
-        growth_sign_rank = self._growth_operand_sign_consistency_rank(row)
+        growth_sign_rank = growth_operand_sign_consistency_rank(row)
         source_count = len(_clean_source_row_ids([
             row.get("source_row_ids"),
             calculation_result.get("source_row_ids"),
@@ -8934,8 +8890,8 @@ class FinancialAgentCalculationMixin:
                     and self._subtask_row_has_direct_source_refs(current_row)
                     and self._aggregate_result_operation_family(current_row) == self._aggregate_result_operation_family(nested_row)
                     and self._subtask_numeric_answers_conflict(nested_row, current_row)
-                    and self._growth_operand_sign_consistency_rank(nested_row)
-                    <= self._growth_operand_sign_consistency_rank(current_row)
+                    and growth_operand_sign_consistency_rank(nested_row)
+                    <= growth_operand_sign_consistency_rank(current_row)
                 ):
                     continue
                 if self._nested_aggregate_result_rank(nested_row) <= self._nested_aggregate_result_rank(current_row):
@@ -9028,7 +8984,7 @@ class FinancialAgentCalculationMixin:
         winners: Dict[str, tuple[int, tuple[int, int, int, int, int, int, int], Dict[str, Any]]] = {}
         passthrough: List[tuple[int, Dict[str, Any]]] = []
         for index, row in enumerate(ordered_results):
-            signature = self._aggregate_result_signature(row)
+            signature = aggregate_result_signature(row)
             if not signature:
                 passthrough.append((index, row))
                 continue
@@ -13036,7 +12992,7 @@ class FinancialAgentCalculationMixin:
                 if not isinstance(row, dict):
                     continue
                 task_id = _normalise_spaces(str(row.get("task_id") or ""))
-                dedupe_key = task_id or self._aggregate_result_signature(dict(row))
+                dedupe_key = task_id or aggregate_result_signature(dict(row))
                 if dedupe_key and dedupe_key in seen_result_keys:
                     continue
                 if dedupe_key:
@@ -13550,7 +13506,7 @@ class FinancialAgentCalculationMixin:
     ) -> bool:
         task_id = _normalise_spaces(str(task.get("task_id") or ""))
         metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
-        candidate_signature = self._aggregate_result_signature(
+        candidate_signature = aggregate_result_signature(
             {
                 "task_id": task_id,
                 "metric_label": metric_label,
@@ -13563,7 +13519,7 @@ class FinancialAgentCalculationMixin:
             if self._aggregate_result_operation_family(row) != "ratio":
                 continue
             row_task_id = _normalise_spaces(str(row.get("task_id") or ""))
-            row_signature = self._aggregate_result_signature(row)
+            row_signature = aggregate_result_signature(row)
             if task_id and row_task_id and row_task_id != task_id:
                 if not candidate_signature or row_signature != candidate_signature:
                     continue
@@ -17709,14 +17665,14 @@ class FinancialAgentCalculationMixin:
         if not appended:
             return ordered_results
         appended_signatures = {
-            self._aggregate_result_signature(row)
+            aggregate_result_signature(row)
             for row in appended
-            if self._aggregate_result_signature(row)
+            if aggregate_result_signature(row)
         }
         preserved_rows = [
             row
             for row in list(ordered_results)
-            if self._aggregate_result_signature(row) not in appended_signatures
+            if aggregate_result_signature(row) not in appended_signatures
         ]
         return [*preserved_rows, *appended]
 
