@@ -13,6 +13,7 @@ from src.agent import (
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
+    AggregateArithmeticComponentSyncInput,
     AggregateAnswerCandidateApplicationInput,
     AggregateAnswerCandidatePackagingInput,
     AggregateNestedSubtaskSynchronizationInput,
@@ -40,6 +41,7 @@ from src.agent.financial_aggregate_projection import (
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
+    synchronize_aggregate_arithmetic_components,
     synchronize_aggregate_projection_row_surface,
     synchronize_nested_aggregate_subtask_rows,
     sync_aggregate_projection_final_answer,
@@ -87,6 +89,275 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_arithmetic_lookup_slot_sync_preserves_matching_copy_and_order_contract(self) -> None:
+        def sync(row, lookup_slots):
+            return synchronize_aggregate_arithmetic_components(
+                AggregateArithmeticComponentSyncInput(
+                    projection_row=row,
+                    lookup_slots=lookup_slots,
+                )
+            ).projection_row
+
+        marker = {"preserve": True}
+        empty_row = {"operation_family": "ratio", "nested": marker}
+        with patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_operation_family",
+            side_effect=RuntimeError("family must stay lazy"),
+        ) as family:
+            self.assertIs(sync(empty_row, []), empty_row)
+        family.assert_not_called()
+
+        lookup_slots = [{"concept": "metric", "normalized_value": 2.0}]
+        inactive = {"operation_family": "lookup", "calculation_result": {"status": "ok"}}
+        self.assertIs(sync(inactive, lookup_slots), inactive)
+
+        for case_name, row in (
+            ("missing", {"operation_family": "ratio", "nested": marker}),
+            (
+                "empty",
+                {"operation_family": "ratio", "calculation_result": {}, "nested": marker},
+            ),
+        ):
+            with self.subTest(falsy_calculation_result=case_name):
+                result = sync(row, lookup_slots)
+                self.assertIsNot(result, row)
+                self.assertEqual(result, row)
+                self.assertEqual("calculation_result" in result, case_name == "empty")
+                if case_name == "empty":
+                    self.assertIs(result["calculation_result"], row["calculation_result"])
+                self.assertIs(result["nested"], marker)
+
+        first = {"concept": "metric", "label": "first", "raw_value": "1"}
+        second = {"concept": "metric", "label": "second", "raw_value": "2"}
+        component_row = {
+            "operation_family": "ratio",
+            "calculation_result": {
+                "status": "ok",
+                "series": [{"concept": "metric", "label": "unrelated"}],
+            },
+        }
+        with patch.object(
+            financial_aggregate_projection,
+            "_operand_text_match",
+            side_effect=RuntimeError("label match must stay lazy"),
+        ) as label_match:
+            selected = sync(component_row, [first, second])
+        self.assertEqual(selected["calculation_result"]["series"][0]["raw_value"], "1")
+        label_match.assert_not_called()
+
+        match_events = []
+
+        def directional_match(text, operand):
+            match_events.append((text, operand["label"]))
+            return text == "lookup label"
+
+        directional_slot = {"label": "lookup label", "raw_value": "3"}
+        with patch.object(
+            financial_aggregate_projection,
+            "_operand_text_match",
+            side_effect=directional_match,
+        ):
+            selected = sync(
+                {
+                    "operation_family": "ratio",
+                    "calculation_result": {
+                        "status": "ok",
+                        "series": [{"label": "component label"}],
+                    },
+                },
+                [directional_slot],
+            )
+        self.assertEqual(selected["calculation_result"]["series"][0]["raw_value"], "3")
+        self.assertEqual(
+            match_events,
+            [
+                ("component label", "lookup label"),
+                ("lookup label", "component label"),
+            ],
+        )
+
+        class TrackingDict(dict):
+            def __init__(self, *args, fail_key="", fail_call=0, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.calls = {}
+                self.events = []
+                self.fail_key = fail_key
+                self.fail_call = fail_call
+
+            def get(self, key, default=None):
+                self.calls[key] = self.calls.get(key, 0) + 1
+                self.events.append(key)
+                if key == self.fail_key and self.calls[key] == self.fail_call:
+                    raise RuntimeError(f"failed to read {key}")
+                return super().get(key, default)
+
+        component = TrackingDict(
+            concept="metric",
+            raw_value="old",
+            raw_unit="old-unit",
+            normalized_value=1.0,
+            normalized_unit="OLD",
+            rendered_value="old",
+            source_row_id="row-old",
+            source_row_ids=["row-old"],
+            source_anchor="anchor-old",
+            nested=marker,
+        )
+        replacement = TrackingDict(
+            concept="metric",
+            raw_value="new",
+            raw_unit=None,
+            normalized_value=0.0,
+            normalized_unit="",
+            rendered_value="new",
+            source_row_id="",
+            source_row_ids=[],
+            source_anchor="anchor-new",
+        )
+        component_before = deepcopy(dict(component))
+        synced = sync(
+            {
+                "operation_family": "ratio",
+                "calculation_result": {"status": "ok", "series": [component]},
+            },
+            [replacement],
+        )["calculation_result"]["series"][0]
+        self.assertEqual(
+            {key: replacement.calls.get(key, 0) for key in (
+                "raw_value", "raw_unit", "normalized_value", "normalized_unit", "rendered_value",
+                "source_row_id", "source_row_ids", "source_anchor",
+            )},
+            {
+                "raw_value": 2,
+                "raw_unit": 1,
+                "normalized_value": 2,
+                "normalized_unit": 2,
+                "rendered_value": 2,
+                "source_row_id": 1,
+                "source_row_ids": 1,
+                "source_anchor": 1,
+            },
+        )
+        self.assertEqual(
+            (synced["raw_value"], synced["raw_unit"], synced["normalized_value"], synced["normalized_unit"]),
+            ("new", "old-unit", 0.0, ""),
+        )
+        self.assertEqual(
+            (synced["source_row_id"], synced["source_row_ids"], synced["source_anchor"]),
+            ("row-old", ["row-old"], "anchor-new"),
+        )
+        self.assertIs(synced["source_row_ids"], component["source_row_ids"])
+        self.assertIs(synced["nested"], marker)
+        self.assertEqual(dict(component), component_before)
+
+        source_component = {
+            "concept": "metric",
+            "raw_value": "old",
+            "nested": marker,
+        }
+        source_slot = {
+            "concept": "metric",
+            "raw_value": "new",
+            "normalized_value": 2.0,
+            "rendered_value": "new",
+        }
+        role_item = {**source_component, "role": "numerator"}
+        group_item = {**source_component, "role": "group"}
+        series_item = {**source_component, "period": "2024"}
+        mutable_non_dict = ["keep"]
+        row = {
+            "operation_family": "ratio",
+            "nested": marker,
+            "calculation_result": {
+                "nested": marker,
+                "series": [series_item, "drop-series"],
+                "answer_slots": {
+                    "nested": marker,
+                    "components_by_role": {"numerator": [role_item, mutable_non_dict]},
+                    "components_by_group": {"numerator": [group_item, mutable_non_dict]},
+                },
+            },
+        }
+        row_before = deepcopy(row)
+        projected = sync(row, [source_slot])
+        result = projected["calculation_result"]
+        slots = result["answer_slots"]
+        self.assertIs(slots["components_by_role"]["numerator"][1], mutable_non_dict)
+        self.assertIs(slots["components_by_group"]["numerator"][1], mutable_non_dict)
+        self.assertEqual(result["series"], [{**series_item, **{
+            "raw_value": "new",
+            "normalized_value": 2.0,
+            "rendered_value": "new",
+            "source_row_id": None,
+            "source_row_ids": None,
+            "source_anchor": None,
+        }}])
+        for original, updated in (
+            (role_item, slots["components_by_role"]["numerator"][0]),
+            (group_item, slots["components_by_group"]["numerator"][0]),
+            (series_item, result["series"][0]),
+        ):
+            self.assertIsNot(updated, original)
+            self.assertEqual(updated["raw_value"], "new")
+            self.assertIs(updated["nested"], marker)
+        self.assertIs(projected["nested"], marker)
+        self.assertIs(result["nested"], marker)
+        self.assertIs(slots["nested"], marker)
+        self.assertEqual(row, row_before)
+
+        for series in ([], ["invalid", None]):
+            with self.subTest(retained_series=series):
+                original_series = list(series)
+                row = {
+                    "operation_family": "growth_rate",
+                    "calculation_result": {"status": "ok", "series": original_series},
+                }
+                projected = sync(row, [source_slot])
+                self.assertIs(projected["calculation_result"]["series"], original_series)
+
+        for operation_family in ("difference", "sum"):
+            with self.subTest(delta_family=operation_family):
+                primary = {"status": "ok", "nested": marker}
+                row = {
+                    "operation_family": operation_family,
+                    "calculation_result": {"status": "ok", "answer_slots": {"primary_value": primary}},
+                }
+                with patch.object(
+                    financial_aggregate_projection,
+                    "aggregate_result_operation_family",
+                    wraps=financial_aggregate_projection.aggregate_result_operation_family,
+                ) as family:
+                    projected = sync(row, [source_slot])
+                self.assertEqual(family.call_count, 2)
+                self.assertTrue(all(item.args[0] is row for item in family.call_args_list))
+                delta = projected["calculation_result"]["answer_slots"]["delta_value"]
+                self.assertEqual(delta, primary)
+                self.assertIsNot(delta, primary)
+                self.assertIs(delta["nested"], marker)
+
+        failing_component = TrackingDict(
+            concept="metric",
+            normalized_value=1.0,
+            fail_key="normalized_value",
+            fail_call=2,
+        )
+        with self.assertRaisesRegex(RuntimeError, "failed to read normalized_value"):
+            sync(
+                {
+                    "operation_family": "ratio",
+                    "calculation_result": {
+                        "status": "ok",
+                        "series": [{"concept": "metric"}],
+                    },
+                },
+                [failing_component],
+            )
+        self.assertEqual(
+            failing_component.events,
+            ["label", "concept", "raw_value", "raw_unit", "normalized_value", "normalized_value"],
+        )
+
     def test_projection_row_surface_sync_preserves_numeric_selection_and_copy_contract(self) -> None:
         def sync(row, answer, rendered_value):
             return synchronize_aggregate_projection_row_surface(

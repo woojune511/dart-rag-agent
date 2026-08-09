@@ -27,6 +27,7 @@ from src.agent.financial_aggregate_state import (
     _PreparedAggregateState,
 )
 from src.agent.financial_aggregate_projection import (
+    AggregateArithmeticComponentSyncInput,
     AggregateAnswerCandidateApplicationInput,
     AggregateAnswerCandidatePackagingInput,
     AggregateNestedSubtaskSynchronizationInput,
@@ -53,6 +54,7 @@ from src.agent.financial_aggregate_projection import (
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
+    synchronize_aggregate_arithmetic_components,
     synchronize_aggregate_projection_row_surface,
     synchronize_nested_aggregate_subtask_rows,
     sync_aggregate_projection_final_answer,
@@ -4936,93 +4938,6 @@ class FinancialAgentCalculationMixin:
             slots.append(primary_slot)
         return slots
 
-    def _replacement_lookup_slot_for_component(
-        self,
-        component: Dict[str, Any],
-        lookup_slots: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        label = _normalise_spaces(str(component.get("label") or ""))
-        concept = _normalise_spaces(str(component.get("concept") or ""))
-        if not (label or concept):
-            return {}
-        for slot in lookup_slots:
-            slot_label = _normalise_spaces(str(slot.get("label") or ""))
-            slot_concept = _normalise_spaces(str(slot.get("concept") or ""))
-            if concept and slot_concept and concept == slot_concept:
-                return slot
-            if label and slot_label and (
-                _operand_text_match(label, {"label": slot_label, "aliases": []})
-                or _operand_text_match(slot_label, {"label": label, "aliases": []})
-            ):
-                return slot
-        return {}
-
-    def _sync_component_slot_from_lookup_slot(
-        self,
-        component: Dict[str, Any],
-        lookup_slots: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        replacement = self._replacement_lookup_slot_for_component(component, lookup_slots)
-        if not replacement:
-            return component
-        value_keys = (
-            "raw_value",
-            "raw_unit",
-            "normalized_value",
-            "normalized_unit",
-            "rendered_value",
-        )
-        return {
-            **component,
-            **{key: replacement.get(key) for key in value_keys if replacement.get(key) is not None},
-            "source_row_id": replacement.get("source_row_id") or component.get("source_row_id"),
-            "source_row_ids": replacement.get("source_row_ids") or component.get("source_row_ids"),
-            "source_anchor": replacement.get("source_anchor") or component.get("source_anchor"),
-        }
-
-    def _sync_arithmetic_components_from_lookup_slots(
-        self,
-        row: Dict[str, Any],
-        lookup_slots: List[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        if not lookup_slots or self._aggregate_result_operation_family(row) not in {"ratio", "growth_rate", "difference", "sum"}:
-            return row
-        updated = dict(row)
-        calculation_result = dict(updated.get("calculation_result") or {})
-        if not calculation_result:
-            return updated
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-
-        for container_key in ("components_by_role", "components_by_group"):
-            container = dict(answer_slots.get(container_key) or {})
-            if not container:
-                continue
-            synced_container: Dict[str, Any] = {}
-            for key, values in container.items():
-                synced_container[key] = [
-                    self._sync_component_slot_from_lookup_slot(dict(item), lookup_slots)
-                    if isinstance(item, dict)
-                    else item
-                    for item in list(values or [])
-                ]
-            answer_slots[container_key] = synced_container
-
-        series = [dict(item) for item in list(calculation_result.get("series") or []) if isinstance(item, dict)]
-        if series:
-            calculation_result["series"] = [
-                self._sync_component_slot_from_lookup_slot(item, lookup_slots)
-                for item in series
-            ]
-
-        primary_value = dict(answer_slots.get("primary_value") or {})
-        operation_family = self._aggregate_result_operation_family(row)
-        if primary_value and operation_family in {"difference", "sum"}:
-            answer_slots["delta_value"] = dict(primary_value)
-        if answer_slots:
-            calculation_result["answer_slots"] = answer_slots
-        updated["calculation_result"] = calculation_result
-        return updated
-
     def _sync_aggregate_arithmetic_subtask_surfaces(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -5116,7 +5031,12 @@ class FinancialAgentCalculationMixin:
         lookup_slots = self._aggregate_lookup_primary_slots(projection_rows)
         if lookup_slots:
             for index, row in enumerate(projection_rows):
-                synced_row = self._sync_arithmetic_components_from_lookup_slots(row, lookup_slots)
+                synced_row = synchronize_aggregate_arithmetic_components(
+                    AggregateArithmeticComponentSyncInput(
+                        projection_row=row,
+                        lookup_slots=lookup_slots,
+                    )
+                ).projection_row
                 projection_rows[index] = synced_row
                 task_id = _normalise_spaces(str(synced_row.get("task_id") or ""))
                 if task_id and synced_row != row:

@@ -4990,11 +4990,31 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        component_sync = financial_graph_calculation.synchronize_aggregate_arithmetic_components
+        component_sync_events = []
+
+        def record_component_sync(sync_input):
+            sync_result = component_sync(sync_input)
+            row = sync_input.projection_row
+            component_sync_events.append(
+                (
+                    row["task_id"],
+                    sync_result.projection_row is row,
+                    sync_result.projection_row,
+                    sync_input.lookup_slots,
+                )
+            )
+            return sync_result
+
         with patch.object(
             financial_graph_calculation,
             "synchronize_aggregate_projection_row_surface",
             wraps=row_sync,
-        ) as row_sync_spy:
+        ) as row_sync_spy, patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_arithmetic_components",
+            side_effect=record_component_sync,
+        ) as component_sync_spy:
             ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_lookup_row, precise_lookup_row, net_row],
                 projection,
@@ -5023,6 +5043,17 @@ class SubtaskLoopTests(unittest.TestCase):
             for row in synced_projection["calculation_result"]["subtask_results"]
             if row["task_id"] == "task_net"
         )
+        self.assertEqual(
+            [(task_id, retained) for task_id, retained, _, _ in component_sync_events],
+            [("task_gain", True), ("task_loss", True), ("task_net", False)],
+        )
+        self.assertEqual(component_sync_spy.call_count, 3)
+        self.assertTrue(
+            all(event[3] is component_sync_events[0][3] for event in component_sync_events)
+        )
+        self.assertIs(projected_gain, component_sync_events[0][2])
+        self.assertIs(projected_loss, component_sync_events[1][2])
+        self.assertIs(projected_net, component_sync_events[2][2])
 
         self.assertIn("5,739억원", gain_row["answer"])
         self.assertEqual(gain_row["calculation_result"]["rendered_value"], "5,739억원")
@@ -5049,6 +5080,23 @@ class SubtaskLoopTests(unittest.TestCase):
             projected_net["calculation_result"]["answer_slots"]["delta_value"]["rendered_value"],
             "-3,322억원",
         )
+
+        with patch.object(
+            self.agent,
+            "_aggregate_lookup_primary_slots",
+            return_value=[],
+        ) as empty_lookup_slots, patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_arithmetic_components",
+            side_effect=AssertionError("component sync must stay lazy"),
+        ) as owner_zero:
+            self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_lookup_row, precise_lookup_row, net_row],
+                projection,
+                final_answer,
+            )
+        empty_lookup_slots.assert_called_once()
+        owner_zero.assert_not_called()
 
     def test_dedupe_prefers_ratio_candidate_coherent_with_source_task_scope(self) -> None:
         source_lookup = {
