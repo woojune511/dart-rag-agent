@@ -94,6 +94,7 @@ from src.agent.financial_dependency_projection import (
     dedupe_dependency_operands_by_id,
     dependency_binding_identity,
     dependency_lookup_slot_match_score,
+    dependency_task_output_has_consistent_krw_unit,
     dependency_operand_from_answer_slot,
     dependency_operand_can_use_source_slot,
     dependency_operand_from_source_slot,
@@ -10485,7 +10486,7 @@ class FinancialAgentCalculationMixin:
         evidence_item: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         updated = dict(row)
-        preserve_dependency_unit = self._dependency_task_output_has_consistent_krw_unit(updated)
+        preserve_dependency_unit = dependency_task_output_has_consistent_krw_unit(updated)
         raw_value = str(updated.get("raw_value") or "")
         if preserve_dependency_unit:
             coerced_unit = str(updated.get("raw_unit") or "")
@@ -15333,27 +15334,6 @@ class FinancialAgentCalculationMixin:
             updated.append(next_row)
         return updated if changed else operands
 
-    def _dependency_task_output_has_consistent_krw_unit(self, row: Dict[str, Any]) -> bool:
-        if not (
-            row.get("dependency_resolved")
-            and str(row.get("source_row_id") or "").startswith("task_output:")
-            and _normalise_spaces(str(row.get("normalized_unit") or "")).upper() == "KRW"
-        ):
-            return False
-        raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
-        raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
-        if not raw_value or not raw_unit:
-            return False
-        expected_value, expected_unit = _normalise_operand_value(raw_value, raw_unit)
-        if expected_value is None or expected_unit != "KRW":
-            return False
-        try:
-            current_value = float(row.get("normalized_value"))
-            expected_numeric = float(expected_value)
-        except (TypeError, ValueError):
-            return False
-        return abs(current_value - expected_numeric) <= max(1e-6, abs(expected_numeric) * 1e-9)
-
     def _repair_krw_operand_units_from_table_metadata(
         self,
         operands: List[Dict[str, Any]],
@@ -15444,7 +15424,7 @@ class FinancialAgentCalculationMixin:
         changed = False
         for row in operands:
             next_row = dict(row)
-            if self._dependency_task_output_has_consistent_krw_unit(next_row):
+            if dependency_task_output_has_consistent_krw_unit(next_row):
                 updated.append(next_row)
                 continue
             raw_value = _normalise_spaces(str(next_row.get("raw_value") or ""))

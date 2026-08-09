@@ -1,3 +1,4 @@
+import math
 import unittest
 from copy import deepcopy
 from typing import Any, Dict, List, Mapping
@@ -195,6 +196,302 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 _TrackedMapping("sibling", {}, fail_key="result_unit"),
             )
         self.assertEqual(events, ["get:slot:raw_unit"])
+
+    def test_dependency_task_output_krw_consistency_preserves_gate_numeric_and_exception_contract(self) -> None:
+        def consistent(row):
+            return dependency_projection.dependency_task_output_has_consistent_krw_unit(row)
+
+        row = {
+            "dependency_resolved": True,
+            "source_row_id": "task_output:lookup",
+            "raw_value": "100",
+            "raw_unit": "원",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "nested": {"keep": True},
+        }
+        row_before = deepcopy(row)
+        self.assertTrue(consistent(row))
+        self.assertEqual(row, row_before)
+
+        events = []
+
+        class _TrackedRow(Mapping[str, Any]):
+            def __init__(self, values, *, fail_key="", fail_type=RuntimeError):
+                self.values = values
+                self.fail_key = fail_key
+                self.fail_type = fail_type
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(f"get:{key}")
+                if key == self.fail_key:
+                    raise self.fail_type(f"failed to read {key}")
+                return self.values.get(key, default)
+
+        with patch.object(
+            dependency_projection,
+            "_normalise_operand_value",
+            side_effect=AssertionError("normalizer must stay lazy"),
+        ):
+            for values, expected_events in (
+                ({}, ["get:dependency_resolved"]),
+                (
+                    {"dependency_resolved": True, "source_row_id": "local"},
+                    ["get:dependency_resolved", "get:source_row_id"],
+                ),
+                (
+                    {
+                        "dependency_resolved": True,
+                        "source_row_id": "task_output:lookup",
+                        "normalized_unit": "COUNT",
+                    },
+                    ["get:dependency_resolved", "get:source_row_id", "get:normalized_unit"],
+                ),
+            ):
+                with self.subTest(values=values):
+                    events.clear()
+                    self.assertFalse(consistent(_TrackedRow(values)))
+                    self.assertEqual(events, expected_events)
+
+            events.clear()
+            self.assertFalse(
+                consistent(
+                    _TrackedRow(
+                        {
+                            "dependency_resolved": True,
+                            "source_row_id": "task_output:lookup",
+                            "normalized_unit": "KRW",
+                            "raw_value": "1",
+                            "raw_unit": "   ",
+                            "result_unit": "원",
+                        }
+                    )
+                )
+            )
+            self.assertEqual(
+                events,
+                [
+                    "get:dependency_resolved",
+                    "get:source_row_id",
+                    "get:normalized_unit",
+                    "get:raw_value",
+                    "get:raw_unit",
+                ],
+            )
+
+            events.clear()
+            self.assertFalse(
+                consistent(
+                    _TrackedRow(
+                        {
+                            "dependency_resolved": True,
+                            "source_row_id": "task_output:lookup",
+                            "normalized_unit": "KRW",
+                            "raw_value": "",
+                            "raw_unit": "원",
+                        }
+                    )
+                )
+            )
+            self.assertEqual(
+                events,
+                [
+                    "get:dependency_resolved",
+                    "get:source_row_id",
+                    "get:normalized_unit",
+                    "get:raw_value",
+                    "get:raw_unit",
+                ],
+            )
+
+        def record_normalizer(raw_value, raw_unit):
+            events.append(f"normalize:{raw_value}:{raw_unit}")
+            return 1.0, "KRW"
+
+        events.clear()
+        with patch.object(
+            dependency_projection,
+            "_normalise_operand_value",
+            side_effect=record_normalizer,
+        ):
+            self.assertTrue(
+                consistent(
+                    _TrackedRow(
+                        {
+                            "dependency_resolved": True,
+                            "source_row_id": "task_output:lookup",
+                            "normalized_unit": " krw ",
+                            "raw_value": " 1 ",
+                            "raw_unit": "",
+                            "result_unit": " 원 ",
+                            "normalized_value": 1.0,
+                        }
+                    )
+                )
+            )
+        self.assertEqual(
+            events,
+            [
+                "get:dependency_resolved",
+                "get:source_row_id",
+                "get:normalized_unit",
+                "get:raw_value",
+                "get:raw_unit",
+                "get:result_unit",
+                "normalize:1:원",
+                "get:normalized_value",
+            ],
+        )
+
+        base = {
+            "dependency_resolved": True,
+            "source_row_id": "task_output:lookup",
+            "normalized_unit": "KRW",
+            "raw_value": "1",
+            "raw_unit": "원",
+        }
+        for normalizer_result, current_value, expected in (
+            ((None, "KRW"), 1.0, False),
+            ((1.0, "COUNT"), 1.0, False),
+            ((1.0, "krw"), 1.0, False),
+            ((1.0, "KRW"), 1.0, True),
+        ):
+            with self.subTest(normalizer_result=normalizer_result), patch.object(
+                dependency_projection,
+                "_normalise_operand_value",
+                return_value=normalizer_result,
+            ):
+                self.assertEqual(consistent({**base, "normalized_value": current_value}), expected)
+
+        for expected_value, current_value, expected in (
+            (0.0, 0.0, True),
+            (0.0, 1e-6, True),
+            (1_000_000_000.0, 1_000_000_001.0, True),
+            (1_000_000_000.0, 1_000_000_001.0001, False),
+            (-1_000_000_000.0, -999_999_999.0, True),
+            (1.0, math.nan, False),
+        ):
+            with self.subTest(expected_value=expected_value, current_value=current_value), patch.object(
+                dependency_projection,
+                "_normalise_operand_value",
+                return_value=(expected_value, "KRW"),
+            ):
+                self.assertEqual(consistent({**base, "normalized_value": current_value}), expected)
+
+        class _BadFloat:
+            def __init__(self, error_type):
+                self.error_type = error_type
+
+            def __float__(self):
+                raise self.error_type("failed to coerce float")
+
+        for error_type in (TypeError, ValueError):
+            with self.subTest(error_type=error_type), patch.object(
+                dependency_projection,
+                "_normalise_operand_value",
+                return_value=(1.0, "KRW"),
+            ):
+                self.assertFalse(consistent({**base, "normalized_value": _BadFloat(error_type)}))
+        with patch.object(
+            dependency_projection,
+            "_normalise_operand_value",
+            return_value=(_BadFloat(ValueError), "KRW"),
+        ):
+            self.assertFalse(consistent({**base, "normalized_value": 1.0}))
+
+        float_events = []
+
+        class _TrackedFloat:
+            def __init__(self, name, *, fail=False):
+                self.name = name
+                self.fail = fail
+
+            def __float__(self):
+                float_events.append(self.name)
+                if self.fail:
+                    raise ValueError(f"failed to coerce {self.name}")
+                return 1.0
+
+        with patch.object(
+            dependency_projection,
+            "_normalise_operand_value",
+            return_value=(_TrackedFloat("expected"), "KRW"),
+        ):
+            self.assertFalse(
+                consistent({**base, "normalized_value": _TrackedFloat("current", fail=True)})
+            )
+        self.assertEqual(float_events, ["current"])
+
+        for error_type in (TypeError, ValueError, RuntimeError):
+            with self.subTest(mapping_error_type=error_type):
+                events.clear()
+                with self.assertRaisesRegex(error_type, "failed to read source_row_id"):
+                    consistent(
+                        _TrackedRow(
+                            {"dependency_resolved": True},
+                            fail_key="source_row_id",
+                            fail_type=error_type,
+                        )
+                    )
+                self.assertEqual(events, ["get:dependency_resolved", "get:source_row_id"])
+
+        for error_type, expected_exception in (
+            (TypeError, False),
+            (ValueError, False),
+            (RuntimeError, True),
+        ):
+            events.clear()
+            failing_row = _TrackedRow(
+                {
+                    **base,
+                    "normalized_value": 1.0,
+                },
+                fail_key="normalized_value",
+                fail_type=error_type,
+            )
+            with self.subTest(normalized_get_error_type=error_type), patch.object(
+                dependency_projection,
+                "_normalise_operand_value",
+                return_value=(1.0, "KRW"),
+            ):
+                if expected_exception:
+                    with self.assertRaisesRegex(error_type, "failed to read normalized_value"):
+                        consistent(failing_row)
+                else:
+                    self.assertFalse(consistent(failing_row))
+            self.assertEqual(
+                events,
+                [
+                    "get:dependency_resolved",
+                    "get:source_row_id",
+                    "get:normalized_unit",
+                    "get:raw_value",
+                    "get:raw_unit",
+                    "get:normalized_value",
+                ],
+            )
+
+        class _BadString:
+            def __str__(self):
+                raise RuntimeError("failed to stringify source")
+
+        with self.assertRaisesRegex(RuntimeError, "failed to stringify source"):
+            consistent({"dependency_resolved": True, "source_row_id": _BadString()})
+        with patch.object(
+            dependency_projection,
+            "_normalise_operand_value",
+            side_effect=RuntimeError("normalizer failed"),
+        ), self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+            consistent({**base, "normalized_value": 1.0})
 
     def test_dependency_ratio_result_projection_preserves_aliases_and_access_order(self) -> None:
         marker = {"preserve": True}

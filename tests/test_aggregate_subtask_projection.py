@@ -1,3 +1,4 @@
+import inspect
 import math
 import unittest
 from collections.abc import Mapping
@@ -4180,16 +4181,108 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         }
 
-        result_state = agent._execute_calculation(state)
+        gate_calls = []
+        unit_calls = []
+        current_gate = financial_graph_calculation.dependency_task_output_has_consistent_krw_unit
+        current_unit_coercion = agent._coerce_operand_unit_from_evidence
+
+        def record_gate(row):
+            result = current_gate(row)
+            gate_calls.append((inspect.currentframe().f_back.f_code.co_name, deepcopy(row), result))
+            return result
+
+        def record_unit_coercion(*, raw_value, raw_unit, evidence_item):
+            unit_calls.append((raw_value, raw_unit, evidence_item))
+            return current_unit_coercion(
+                raw_value=raw_value,
+                raw_unit=raw_unit,
+                evidence_item=evidence_item,
+            )
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                new=record_gate,
+            ),
+            patch.object(
+                agent,
+                "_coerce_operand_unit_from_evidence",
+                new=record_unit_coercion,
+            ),
+        ):
+            result_state = agent._execute_calculation(state)
         trace = result_state["resolved_calculation_trace"]
         result = trace["calculation_result"]
         denominator_row = next(
             row for row in trace["calculation_operands"] if row["operand_id"] == "op_denominator"
         )
 
+        self.assertEqual(
+            [
+                (
+                    caller,
+                    row.get("operand_id"),
+                    bool(row.get("dependency_resolved")),
+                    row.get("source_row_id"),
+                    accepted,
+                )
+                for caller, row, accepted in gate_calls
+            ],
+            [
+                ("_coerce_operand_row_from_evidence", "op_numerator", False, None, False),
+                (
+                    "_coerce_operand_row_from_evidence",
+                    "op_denominator",
+                    True,
+                    "task_output:task_revenue",
+                    True,
+                ),
+                ("_repair_krw_operand_units_from_table_metadata", "op_numerator", False, None, False),
+                (
+                    "_repair_krw_operand_units_from_table_metadata",
+                    "op_denominator",
+                    True,
+                    "task_output:task_revenue",
+                    True,
+                ),
+            ],
+        )
+        self.assertEqual(
+            [(raw_value, raw_unit) for raw_value, raw_unit, _evidence_item in unit_calls],
+            [("1,992,636", "백만원")],
+        )
         self.assertAlmostEqual(result["result_value"], (numerator / denominator) * 100, places=6)
         self.assertEqual(denominator_row["raw_unit"], "원")
         self.assertEqual(denominator_row["normalized_value"], denominator)
+
+        numerator_row = state["resolved_calculation_trace"]["calculation_operands"][0]
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=RuntimeError("dependency unit gate failed"),
+            ),
+            patch.object(agent, "_coerce_operand_unit_from_evidence") as later_unit_coercion,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"):
+                agent._coerce_operand_row_from_evidence(numerator_row, None)
+        later_unit_coercion.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=RuntimeError("dependency unit gate failed"),
+            ),
+            patch.object(financial_graph_calculation, "_normalise_operand_value") as later_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"):
+                agent._repair_krw_operand_units_from_table_metadata(
+                    [numerator_row],
+                    state["evidence_items"],
+                )
+        later_normalizer.assert_not_called()
 
     def test_formula_task_can_recover_direct_target_metric_row(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

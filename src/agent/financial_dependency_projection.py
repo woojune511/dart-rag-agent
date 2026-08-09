@@ -411,6 +411,28 @@ def infer_dependency_row_unit(
     return raw_unit, normalized_unit
 
 
+def dependency_task_output_has_consistent_krw_unit(row: Mapping[str, Any]) -> bool:
+    if not (
+        row.get("dependency_resolved")
+        and str(row.get("source_row_id") or "").startswith("task_output:")
+        and _normalise_spaces(str(row.get("normalized_unit") or "")).upper() == "KRW"
+    ):
+        return False
+    raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+    raw_unit = _normalise_spaces(str(row.get("raw_unit") or row.get("result_unit") or ""))
+    if not raw_value or not raw_unit:
+        return False
+    expected_value, expected_unit = _normalise_operand_value(raw_value, raw_unit)
+    if expected_value is None or expected_unit != "KRW":
+        return False
+    try:
+        current_value = float(row.get("normalized_value"))
+        expected_numeric = float(expected_value)
+    except (TypeError, ValueError):
+        return False
+    return abs(current_value - expected_numeric) <= max(1e-6, abs(expected_numeric) * 1e-9)
+
+
 def dependency_binding_identity(binding: Dict[str, Any]) -> Tuple[str, str]:
     return (
         _normalise_spaces(str(binding.get("label") or "")),
