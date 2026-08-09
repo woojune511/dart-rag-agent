@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from unittest.mock import patch
 
 import src.agent.financial_operand_resolution as operand_resolution
+from src.agent import financial_graph_calculation
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_operand_resolution import (
     DirectStructuredPreferredSlotAdoptionInput,
@@ -1558,6 +1559,423 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                         surface_check.call_args.kwargs["require_direct_support"],
                         operation_family == "ratio",
                     )
+
+    def test_direct_target_metric_row_unit_conflict_matrix(self) -> None:
+        conflicts = operand_resolution.direct_target_metric_row_conflicts_existing_units
+
+        def target(**updates: Any) -> Dict[str, Any]:
+            row = {
+                "marker": "target",
+                "label": "target metric",
+                "matched_operand_label": "target metric",
+                "matched_operand_role": "primary_value",
+                "raw_value": "100",
+                "normalized_value": 100.0,
+                "normalized_unit": "KRW",
+            }
+            row.update(updates)
+            return row
+
+        def existing(**updates: Any) -> Dict[str, Any]:
+            row = {
+                "marker": "existing",
+                "label": "target metric",
+                "matched_operand_label": "target metric",
+                "matched_operand_role": "primary_value",
+                "raw_value": "100",
+                "normalized_value": 100.0,
+                "normalized_unit": "KRW",
+            }
+            row.update(updates)
+            return row
+
+        required = [{"label": "target metric", "role": "primary_value", "required": True}]
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness accessed")
+
+        self.assertFalse(conflicts({}, TruthBomb(), TruthBomb()))
+        self.assertFalse(conflicts(target(), [], TruthBomb()))
+
+        for name, existing_units, target_unit, expected in (
+            ("blank existing", [" "], "KRW", False),
+            ("unknown existing", [" UNKNOWN "], "KRW", False),
+            ("blank target", [" KRW "], " ", True),
+            ("unknown target", ["krw"], " unknown ", True),
+            ("mismatched target", ["KRW"], "COUNT", True),
+            ("same normalized target", [" krw "], "KRW", False),
+            ("one matching existing unit", ["COUNT", "KRW"], "krw", False),
+        ):
+            with self.subTest(unit_case=name):
+                self.assertEqual(
+                    conflicts(
+                        target(normalized_unit=target_unit),
+                        [existing(normalized_unit=unit) for unit in existing_units],
+                        required,
+                    ),
+                    expected,
+                )
+
+        copy_events: List[str] = []
+
+        class CopyTrackedRow(Mapping):
+            def __init__(self, marker: str) -> None:
+                self.values = existing(marker=marker)
+
+            def keys(self):
+                copy_events.append(f"copy:{self.values['marker']}")
+                return self.values.keys()
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __len__(self):
+                return len(self.values)
+
+        first_row = CopyTrackedRow("first")
+        second_row = CopyTrackedRow("second")
+        match_events: List[tuple[str, str]] = []
+        ordered_required = [{"marker": "first"}, {"marker": "second"}]
+
+        def ordered_match(row, operand):
+            match_events.append((row["marker"], operand["marker"]))
+            if row["marker"] == "target":
+                return operand["marker"] == "second"
+            return row["marker"] == operand["marker"]
+
+        with patch.object(
+            operand_resolution,
+            "_operand_row_matches_requirement",
+            side_effect=ordered_match,
+        ):
+            self.assertFalse(
+                conflicts(target(), [first_row, second_row], ordered_required)  # type: ignore[list-item]
+            )
+        self.assertEqual(
+            match_events,
+            [
+                ("first", "first"),
+                ("second", "first"),
+                ("second", "second"),
+                ("target", "first"),
+                ("target", "second"),
+            ],
+        )
+        self.assertEqual(copy_events, ["copy:first", "copy:first", "copy:second", "copy:second", "copy:second"])
+
+        copy_events.clear()
+        empty_required_row = CopyTrackedRow("empty-required")
+        self.assertFalse(conflicts(target(), [empty_required_row], []))  # type: ignore[list-item]
+        self.assertEqual(copy_events, ["copy:empty-required"])
+
+        class LaterStringBomb:
+            def __str__(self):
+                raise RuntimeError("later unit accessed")
+
+        with patch.object(
+            operand_resolution,
+            "_operand_row_matches_requirement",
+            return_value=False,
+        ):
+            self.assertFalse(
+                conflicts(
+                    target(normalized_unit=LaterStringBomb()),
+                    [existing()],
+                    [{"marker": "unmatched"}],
+                )
+            )
+
+        operand_copy_count = 0
+
+        class AggregatePreferredOperand(Mapping):
+            values = {
+                "label": "target metric",
+                "role": "primary_value",
+                "binding_policy": {"prefer_value_roles": ["aggregate"]},
+            }
+
+            def keys(self):
+                nonlocal operand_copy_count
+                operand_copy_count += 1
+                return self.values.keys()
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __len__(self):
+                return len(self.values)
+
+        aggregate_preferred = AggregatePreferredOperand()
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("later target surface accessed")
+
+        self.assertFalse(
+            conflicts(
+                target(value_role=StringBomb(), aggregation_stage=StringBomb()),
+                [existing(normalized_value=1.0, source_row_id="source")],
+                [aggregate_preferred, TruthBomb()],
+            )
+        )
+        self.assertEqual(operand_copy_count, 1)
+
+        aggregate_like_cases = (
+            ("value role", {"value_role": " aggregate ", "aggregate_label": StringBomb()}),
+            ("direct stage", {"aggregation_stage": " DIRECT ", "aggregate_label": StringBomb()}),
+            ("final stage", {"aggregation_stage": "final", "aggregate_label": StringBomb()}),
+            ("subtotal stage", {"aggregation_stage": "subtotal", "aggregate_label": StringBomb()}),
+            ("aggregate label", {"aggregate_label": " total "}),
+        )
+        for name, updates in aggregate_like_cases:
+            with self.subTest(aggregate_like=name):
+                self.assertTrue(
+                    conflicts(
+                        target(normalized_value=200.0, **updates),
+                        [existing(source_row_id="source")],
+                        [],
+                    )
+                )
+
+        class FloatBomb:
+            def __init__(self, error: Exception) -> None:
+                self.error = error
+
+            def __float__(self):
+                raise self.error
+
+        for error in (TypeError("bad float"), ValueError("bad float")):
+            with self.subTest(value_fallback=type(error).__name__):
+                self.assertFalse(
+                    conflicts(
+                        target(value_role="aggregate", normalized_value=FloatBomb(error), raw_value="100"),
+                        [existing(normalized_value=FloatBomb(error), raw_value="100", source_row_id="source")],
+                        [],
+                    )
+                )
+                self.assertTrue(
+                    conflicts(
+                        target(value_role="aggregate", normalized_value=FloatBomb(error), raw_value="200"),
+                        [existing(normalized_value=FloatBomb(error), raw_value="100", source_row_id="source")],
+                        [],
+                    )
+                )
+
+        same_value = existing(normalized_value=200.0, source_row_id=StringBomb())
+        self.assertFalse(conflicts(target(value_role="aggregate", normalized_value=200.0), [same_value], []))
+
+        structured_signals = (
+            ("evidence id", {"evidence_id": "evidence"}),
+            ("source row id", {"source_row_id": "row"}),
+            ("source row ids", {"source_row_ids": ["row"]}),
+            ("table", {"table_source_id": "table"}),
+            ("statement", {"statement_type": "notes"}),
+            ("anchor", {"source_anchor": "[anchor]"}),
+        )
+        for name, updates in structured_signals:
+            with self.subTest(structured=name):
+                self.assertTrue(
+                    conflicts(
+                        target(value_role="aggregate", normalized_value=200.0),
+                        [existing(**updates)],
+                        [],
+                    )
+                )
+
+        source_access_events: List[str] = []
+
+        class SourceProbe:
+            def __init__(self, name: str, value: str, *, explode: bool = False) -> None:
+                self.name = name
+                self.value = value
+                self.explode = explode
+
+            def __str__(self):
+                source_access_events.append(self.name)
+                if self.explode:
+                    raise RuntimeError(f"{self.name} accessed")
+                return self.value
+
+        self.assertTrue(
+            conflicts(
+                target(value_role="aggregate", normalized_value=200.0),
+                [
+                    existing(
+                        table_source_id=SourceProbe("table", ""),
+                        statement_type=SourceProbe("statement", "notes"),
+                        source_anchor=SourceProbe("anchor", "", explode=True),
+                    )
+                ],
+                [],
+            )
+        )
+        self.assertEqual(source_access_events, ["table", "statement"])
+        source_access_events.clear()
+        self.assertTrue(
+            conflicts(
+                target(value_role="aggregate", normalized_value=200.0),
+                [
+                    existing(
+                        source_row_id="source",
+                        table_source_id=SourceProbe("table", "", explode=True),
+                    )
+                ],
+                [],
+            )
+        )
+        self.assertEqual(source_access_events, [])
+        self.assertFalse(
+            conflicts(
+                target(normalized_value=200.0),
+                [existing(source_row_id="source")],
+                [],
+            )
+        )
+        self.assertFalse(
+            conflicts(
+                target(value_role="aggregate", normalized_value=200.0),
+                [existing()],
+                [],
+            )
+        )
+
+        class ValueFloatBomb:
+            def __float__(self):
+                raise RuntimeError("mismatched existing unit value accessed")
+
+        self.assertFalse(
+            conflicts(
+                target(value_role="aggregate"),
+                [
+                    existing(normalized_unit="COUNT", normalized_value=ValueFloatBomb()),
+                    existing(normalized_unit="KRW"),
+                ],
+                [],
+            )
+        )
+
+        target_row = target(value_role="aggregate", normalized_value=200.0)
+        existing_rows = [existing(source_row_id="source")]
+        required_rows = list(required)
+        before = deepcopy((target_row, existing_rows, required_rows))
+        self.assertTrue(conflicts(target_row, existing_rows, required_rows))
+        self.assertEqual((target_row, existing_rows, required_rows), before)
+
+    def test_direct_target_metric_row_unit_conflict_access_and_exception_contract(self) -> None:
+        conflicts = operand_resolution.direct_target_metric_row_conflicts_existing_units
+
+        target = {
+            "label": "target metric",
+            "raw_value": "200",
+            "normalized_value": 200.0,
+            "normalized_unit": "KRW",
+            "value_role": "aggregate",
+        }
+        existing = {
+            "label": "target metric",
+            "raw_value": "100",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "source_row_id": "source",
+        }
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            conflicts(TruthBomb(), [], [])  # type: ignore[arg-type]
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            conflicts(target, TruthBomb(), [])  # type: ignore[arg-type]
+        with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+            conflicts(target, IterBomb(), [])  # type: ignore[arg-type]
+        with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+            conflicts(target, [existing], IterBomb())  # type: ignore[arg-type]
+
+        class CopyBomb(Mapping):
+            def keys(self):
+                raise RuntimeError("copy failed")
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def __iter__(self):
+                return iter(())
+
+            def __len__(self):
+                return 1
+
+        with self.assertRaisesRegex(RuntimeError, "copy failed"):
+            conflicts(target, [CopyBomb()], [])  # type: ignore[list-item]
+
+        with patch.object(
+            operand_resolution,
+            "_operand_row_matches_requirement",
+            side_effect=RuntimeError("matcher failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "matcher failed"):
+                conflicts(target, [existing], [{"label": "target metric"}])
+
+        with patch.object(
+            operand_resolution,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                conflicts(target, [existing], [])
+
+        with patch.object(
+            operand_resolution,
+            "_clean_source_row_ids",
+            side_effect=RuntimeError("source cleaner failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source cleaner failed"):
+                conflicts(target, [existing], [])
+
+        class FloatBomb:
+            def __float__(self):
+                raise RuntimeError("float failed")
+
+        with self.assertRaisesRegex(RuntimeError, "float failed"):
+            conflicts(
+                {**target, "normalized_value": FloatBomb()},
+                [{**existing, "normalized_value": FloatBomb()}],
+                [],
+            )
+
+        class CountingString:
+            def __init__(self, value: str) -> None:
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                return self.value
+
+        existing_unit = CountingString(" KRW ")
+        target_unit = CountingString("krw")
+        self.assertFalse(
+            conflicts(
+                {**target, "normalized_unit": target_unit, "value_role": ""},
+                [{**existing, "normalized_unit": existing_unit, "normalized_value": 200.0}],
+                [],
+            )
+        )
+        self.assertEqual((existing_unit.calls, target_unit.calls), (3, 1))
 
     def test_table_label_metadata_lookup_score_matrix(self) -> None:
         score = operand_resolution.table_label_metadata_lookup_score

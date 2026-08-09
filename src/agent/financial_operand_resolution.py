@@ -1705,6 +1705,78 @@ def operand_prefers_aggregate_value_role(operand: Mapping[str, Any]) -> bool:
     )
 
 
+def direct_target_metric_row_conflicts_existing_units(
+    target_metric_row: Mapping[str, Any],
+    existing_rows: Sequence[Mapping[str, Any]],
+    required_operands: Sequence[Mapping[str, Any]],
+) -> bool:
+    if not target_metric_row or not existing_rows:
+        return False
+
+    matching_existing_rows = [
+        dict(row)
+        for row in existing_rows
+        if not required_operands
+        or any(_operand_row_matches_requirement(dict(row), operand) for operand in required_operands)
+    ]
+    if not matching_existing_rows:
+        return False
+
+    existing_units = {
+        _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
+        for row in matching_existing_rows
+        if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() not in {"", "UNKNOWN"}
+    }
+    if not existing_units:
+        return False
+
+    target_unit = _normalise_spaces(str(target_metric_row.get("normalized_unit") or "")).upper()
+    if target_unit in {"", "UNKNOWN"}:
+        return True
+    if target_unit not in existing_units:
+        return True
+
+    matching_target_operand = next(
+        (
+            dict(operand)
+            for operand in required_operands
+            if _operand_row_matches_requirement(target_metric_row, operand)
+        ),
+        {},
+    )
+    if operand_prefers_aggregate_value_role(matching_target_operand):
+        return False
+
+    target_value_role = _normalise_spaces(str(target_metric_row.get("value_role") or "")).lower()
+    target_aggregation_stage = _normalise_spaces(str(target_metric_row.get("aggregation_stage") or "")).lower()
+    target_is_aggregate_like = bool(
+        target_value_role == "aggregate"
+        or target_aggregation_stage in {"direct", "final", "subtotal"}
+        or _normalise_spaces(str(target_metric_row.get("aggregate_label") or ""))
+    )
+
+    for existing_row in matching_existing_rows:
+        existing_unit = _normalise_spaces(str(existing_row.get("normalized_unit") or "")).upper()
+        if existing_unit and existing_unit != target_unit:
+            continue
+        if not operand_row_values_differ(existing_row, target_metric_row):
+            continue
+        existing_source_ids = _clean_source_row_ids([
+            existing_row.get("evidence_id"),
+            existing_row.get("source_row_id"),
+            existing_row.get("source_row_ids"),
+        ])
+        existing_is_structured = bool(
+            existing_source_ids
+            or _normalise_spaces(str(existing_row.get("table_source_id") or ""))
+            or _normalise_spaces(str(existing_row.get("statement_type") or ""))
+            or _normalise_spaces(str(existing_row.get("source_anchor") or ""))
+        )
+        if existing_is_structured and target_is_aggregate_like:
+            return True
+    return False
+
+
 def table_label_metadata_lookup_score(
     slot: Mapping[str, Any],
     evidence_item: Mapping[str, Any],

@@ -133,6 +133,7 @@ from src.agent.financial_operand_resolution import (
     _canonicalize_structured_operand_reconciliation_refs,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
+    direct_target_metric_row_conflicts_existing_units,
     direct_lookup_row_is_ambiguous_context_table,
     _evidence_item_for_operand_row,
     _evidence_items_by_id,
@@ -13998,7 +13999,7 @@ class FinancialAgentCalculationMixin:
         if target_metric_row and not operand_row_conflicts_requested_scope(
             target_metric_row,
             desired_consolidation_scope,
-        ) and not self._direct_target_metric_row_conflicts_existing_units(
+        ) and not direct_target_metric_row_conflicts_existing_units(
             target_metric_row,
             direct_structured_rows,
             required_operands,
@@ -15449,78 +15450,6 @@ class FinancialAgentCalculationMixin:
             "direct_target_metric_lookup": True,
         }
         return row, target_operand
-
-    def _direct_target_metric_row_conflicts_existing_units(
-        self,
-        target_metric_row: Dict[str, Any],
-        existing_rows: List[Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-    ) -> bool:
-        if not target_metric_row or not existing_rows:
-            return False
-
-        matching_existing_rows = [
-            dict(row)
-            for row in existing_rows
-            if not required_operands
-            or any(_operand_row_matches_requirement(dict(row), operand) for operand in required_operands)
-        ]
-        if not matching_existing_rows:
-            return False
-
-        existing_units = {
-            _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
-            for row in matching_existing_rows
-            if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() not in {"", "UNKNOWN"}
-        }
-        if not existing_units:
-            return False
-
-        target_unit = _normalise_spaces(str(target_metric_row.get("normalized_unit") or "")).upper()
-        if target_unit in {"", "UNKNOWN"}:
-            return True
-        if target_unit not in existing_units:
-            return True
-
-        matching_target_operand = next(
-            (
-                dict(operand)
-                for operand in required_operands
-                if _operand_row_matches_requirement(target_metric_row, operand)
-            ),
-            {},
-        )
-        if _operand_prefers_aggregate_value_role(matching_target_operand):
-            return False
-
-        target_value_role = _normalise_spaces(str(target_metric_row.get("value_role") or "")).lower()
-        target_aggregation_stage = _normalise_spaces(str(target_metric_row.get("aggregation_stage") or "")).lower()
-        target_is_aggregate_like = bool(
-            target_value_role == "aggregate"
-            or target_aggregation_stage in {"direct", "final", "subtotal"}
-            or _normalise_spaces(str(target_metric_row.get("aggregate_label") or ""))
-        )
-
-        for existing_row in matching_existing_rows:
-            existing_unit = _normalise_spaces(str(existing_row.get("normalized_unit") or "")).upper()
-            if existing_unit and existing_unit != target_unit:
-                continue
-            if not operand_row_values_differ(existing_row, target_metric_row):
-                continue
-            existing_source_ids = _clean_source_row_ids([
-                existing_row.get("evidence_id"),
-                existing_row.get("source_row_id"),
-                existing_row.get("source_row_ids"),
-            ])
-            existing_is_structured = bool(
-                existing_source_ids
-                or _normalise_spaces(str(existing_row.get("table_source_id") or ""))
-                or _normalise_spaces(str(existing_row.get("statement_type") or ""))
-                or _normalise_spaces(str(existing_row.get("source_anchor") or ""))
-            )
-            if existing_is_structured and target_is_aggregate_like:
-                return True
-        return False
 
     def _prepare_calculation_candidate(
         self,

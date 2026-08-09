@@ -1,6 +1,7 @@
 import json
 import sys
 import unittest
+from contextlib import ExitStack
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -4919,123 +4920,6 @@ class OperationContractTests(unittest.TestCase):
         row_metadata = row_item["metadata"]
         self.assertEqual(row_metadata["unit_hint"], "백만원")
         self.assertEqual(row_metadata["structured_cells"][0]["unit_hint"], "백만원")
-
-    def test_direct_target_lookup_does_not_replace_existing_row_with_conflicting_unit_family(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertTrue(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "normalized_unit": "COUNT",
-                    "matched_operand_label": "selected metric",
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "normalized_unit": "KRW",
-                    }
-                ],
-                [{"label": "selected metric", "required": True}],
-            )
-        )
-        self.assertFalse(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "normalized_unit": "KRW",
-                    "matched_operand_label": "selected metric",
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "normalized_unit": "KRW",
-                    }
-                ],
-                [{"label": "selected metric", "required": True}],
-            )
-        )
-
-    def test_direct_target_lookup_does_not_replace_structured_detail_row_with_aggregate_fallback(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertTrue(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "matched_operand_label": "selected metric",
-                    "matched_operand_role": "primary_value",
-                    "raw_value": "300",
-                    "normalized_value": 300.0,
-                    "normalized_unit": "KRW",
-                    "value_role": "aggregate",
-                    "aggregation_stage": "final",
-                    "direct_target_metric_lookup": True,
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "matched_operand_role": "primary_value",
-                        "raw_value": "100",
-                        "normalized_value": 100.0,
-                        "normalized_unit": "KRW",
-                        "source_row_id": "recon::table::value:1",
-                        "source_row_ids": ["recon::table::value:1"],
-                        "table_source_id": "table_1",
-                    }
-                ],
-                [
-                    {
-                        "label": "selected metric",
-                        "role": "primary_value",
-                        "required": True,
-                    }
-                ],
-            )
-        )
-
-    def test_direct_target_lookup_can_replace_structured_row_when_operand_prefers_aggregate(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertFalse(
-            agent._direct_target_metric_row_conflicts_existing_units(
-                {
-                    "label": "selected metric",
-                    "matched_operand_label": "selected metric",
-                    "matched_operand_role": "primary_value",
-                    "raw_value": "300",
-                    "normalized_value": 300.0,
-                    "normalized_unit": "KRW",
-                    "value_role": "aggregate",
-                    "aggregation_stage": "final",
-                    "direct_target_metric_lookup": True,
-                },
-                [
-                    {
-                        "label": "selected metric",
-                        "matched_operand_label": "selected metric",
-                        "matched_operand_role": "primary_value",
-                        "raw_value": "100",
-                        "normalized_value": 100.0,
-                        "normalized_unit": "KRW",
-                        "source_row_id": "recon::table::value:1",
-                        "source_row_ids": ["recon::table::value:1"],
-                        "table_source_id": "table_1",
-                    }
-                ],
-                [
-                    {
-                        "label": "selected metric",
-                        "role": "primary_value",
-                        "required": True,
-                        "binding_policy": {"prefer_value_roles": ["aggregate"]},
-                    }
-                ],
-            )
-        )
 
     def test_operand_coerce_realigns_value_to_direct_structured_evidence_period_cell(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
@@ -10566,21 +10450,164 @@ class OperationContractTests(unittest.TestCase):
         }
         state["runtime_evidence"] = [direct_evidence]
 
-        with patch.object(
-            agent,
-            "_extract_structured_operands_from_reconciliation",
-            return_value=[indirect_row],
-        ), patch.object(
-            agent,
-            "_evidence_items_from_reconciliation_matches",
-            return_value=reconciliation_evidence,
-        ):
-            result = agent._extract_calculation_operands(state)
+        expected_target_row = {
+            "operand_id": "primary_value",
+            "evidence_id": "ev_direct",
+            "source_row_id": "ev_direct",
+            "source_row_ids": ["ev_direct"],
+            "source_anchor": direct_evidence["source_anchor"],
+            "label": direct_evidence["metadata"]["row_label"],
+            "raw_value": "900",
+            "raw_unit": direct_evidence["metadata"]["unit_hint"],
+            "normalized_value": 900000000.0,
+            "normalized_unit": "KRW",
+            "rendered_value": f"900{direct_evidence['metadata']['unit_hint']}",
+            "period": "2023",
+            "matched_operand_label": state["active_subtask"]["metric_label"],
+            "matched_operand_concept": "",
+            "matched_operand_role": "primary_value",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_direct",
+            "value_role": "detail",
+            "aggregation_stage": "none",
+            "aggregate_label": "",
+            "direct_target_metric_lookup": True,
+        }
+        expected_existing_row = {
+            **indirect_row,
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table_indirect",
+        }
+        original_acceptance = financial_graph_calculation.resolve_direct_structured_operand_acceptance
+        no_target_override = object()
+
+        def run_with_owner(owner_result, *, target_override=no_target_override):
+            acceptance_inputs = []
+
+            def record_acceptance(acceptance_input):
+                acceptance_inputs.append(acceptance_input)
+                return original_acceptance(acceptance_input)
+
+            with ExitStack() as stack:
+                stack.enter_context(
+                    patch.object(
+                        agent,
+                        "_extract_structured_operands_from_reconciliation",
+                        return_value=[indirect_row],
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        agent,
+                        "_evidence_items_from_reconciliation_matches",
+                        return_value=reconciliation_evidence,
+                    )
+                )
+                if target_override is not no_target_override:
+                    stack.enter_context(
+                        patch.object(
+                            agent,
+                            "_direct_target_metric_operand_from_evidence",
+                            return_value=target_override,
+                        )
+                    )
+                owner = stack.enter_context(
+                    patch.object(
+                        financial_graph_calculation,
+                        "direct_target_metric_row_conflicts_existing_units",
+                        return_value=owner_result,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(
+                        financial_graph_calculation,
+                        "resolve_direct_structured_operand_acceptance",
+                        side_effect=record_acceptance,
+                    )
+                )
+                result = agent._extract_calculation_operands(state)
+            return result, owner, acceptance_inputs
+
+        result, owner_false, adopted_inputs = run_with_owner(False)
+        owner_false.assert_called_once_with(
+            expected_target_row,
+            [expected_existing_row],
+            state["active_subtask"]["required_operands"],
+        )
+        self.assertEqual(adopted_inputs[0].direct_operand_rows, [expected_target_row])
+        self.assertEqual(
+            [item["evidence_id"] for item in adopted_inputs[0].evidence_items],
+            ["ev_indirect", "ev_direct"],
+        )
+        self.assertEqual(adopted_inputs[0].required_operands[0]["label"], state["active_subtask"]["metric_label"])
 
         rows = result["calculation_debug_trace"]["operands"]
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["source_row_id"], "ev_direct")
         self.assertEqual(rows[0]["raw_value"], "900")
+
+        _, owner_true, retained_inputs = run_with_owner(True)
+        owner_true.assert_called_once()
+        self.assertEqual(retained_inputs[0].direct_operand_rows, [expected_existing_row])
+        self.assertEqual(
+            [item["evidence_id"] for item in retained_inputs[0].evidence_items],
+            ["ev_indirect"],
+        )
+        self.assertEqual(
+            retained_inputs[0].required_operands,
+            state["active_subtask"]["required_operands"],
+        )
+
+        _, absent_owner, _ = run_with_owner(False, target_override=({}, {}))
+        absent_owner.assert_not_called()
+        out_of_scope_target = {**expected_target_row, "consolidation_scope": "separate"}
+        _, scoped_owner, _ = run_with_owner(
+            False,
+            target_override=(out_of_scope_target, state["active_subtask"]["required_operands"][0]),
+        )
+        scoped_owner.assert_not_called()
+
+        with patch.object(
+            agent,
+            "_extract_structured_operands_from_reconciliation",
+            return_value=[],
+        ), patch.object(
+            agent,
+            "_evidence_items_from_reconciliation_matches",
+            return_value=[],
+        ), patch.object(
+            agent,
+            "_direct_target_metric_operand_from_evidence",
+            return_value=(expected_target_row, state["active_subtask"]["required_operands"][0]),
+        ), patch.object(
+            financial_graph_calculation,
+            "_evidence_item_for_operand_row",
+            return_value=None,
+        ), patch.object(
+            agent,
+            "_coerce_operand_row_from_evidence",
+            side_effect=lambda row, _evidence: row,
+        ), patch.object(
+            financial_graph_calculation,
+            "direct_target_metric_row_conflicts_existing_units",
+            side_effect=RuntimeError("direct target conflict stopped"),
+        ), patch.object(
+            financial_graph_calculation,
+            "_clean_source_row_ids",
+            wraps=financial_graph_calculation._clean_source_row_ids,
+        ) as stopped_source_append, patch.object(
+            financial_graph_calculation,
+            "resolve_direct_structured_operand_acceptance",
+            wraps=original_acceptance,
+        ) as stopped_acceptance, self.assertRaisesRegex(
+            RuntimeError,
+            "direct target conflict stopped",
+        ):
+            agent._extract_calculation_operands(state)
+        stopped_source_append.assert_not_called()
+        stopped_acceptance.assert_not_called()
 
     def test_aggregate_lookup_repair_uses_state_runtime_evidence_for_ok_slot(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
