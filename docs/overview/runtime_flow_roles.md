@@ -345,7 +345,12 @@ state-free owner 경계:
   또는 complete section/statement/scope context 안의 ratio display units를 configured
   largest scale로 정렬한다. No-change exact identity, changed-path all-row shallow copy,
   nested alias, partial repair와 uncaught exception 순서를 보존한다. 두 transform 모두
-  input을 변경하지 않고 reason/flag/trace를 추가하지 않는다.
+  input을 변경하지 않고 reason/flag/trace를 추가하지 않는다. 같은 owner의 plain
+  `surface_contract_numeric_evidence_items(...)`는 falsy input에 fresh empty list를
+  반환하고 evidence surface-field와 requirement predicate를 고정 순서로 평가한다.
+  Global first-seen key dedupe, duplicate-continue/unique-break, stable order, fresh
+  retained top-level rows, nested aliases, input immutability와 uncaught exception
+  순서를 보존한다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -488,7 +493,10 @@ graph adapter에 남은 orchestration 역할군:
 - recovered-context eligibility, document/evidence collection, period/ratio row
   builder, logging, ratio-recovered flag와 runtime projection
 - required-candidate/evidence builder, dependency producer-scope filter, lazy
-  coherent-context builder gate
+  coherent-context builder gate; required-operand prose evidence filter 전후의
+  evidence/reconciliation 및 required-list 준비, direct-grounding computation,
+  unconditional owner call placement, narrative/restriction gate, surface-result
+  merge/dedupe/logging과 later missing-required fallback-row merge
 - retry/dependency guard, logging, trace/artifact/state projection
 - late sibling/coherent evidence context 구성
 - percent-point query gate, finalization input 구성, post-filter coverage 결정
@@ -614,7 +622,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   neutral ordered aggregate-role preference predicate, plain table-label scoring,
   and plain direct target-metric fallback conflict predicate, plus plain single-row
   embedded/rendered-unit normalization repair and shared-context multi-row ratio
-  display-unit alignment
+  display-unit alignment, plus plain required-operand prose numeric-evidence
+  filtering through `surface_contract_numeric_evidence_items(...)`
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate

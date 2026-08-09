@@ -1109,6 +1109,38 @@ selection or faithfulness policy, numeric-policy improvement, append-evidence
 ownership, total-code or broad executed-path reduction, performance, broader
 private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Required-operand prose numeric-evidence surface-filter ownership
+
+- `9224a29` moves graph `_surface_contract_numeric_evidence_items` into the plain
+  public operand owner as `surface_contract_numeric_evidence_items(...)`. The sole
+  graph caller imports the public function at the same unconditional position.
+  The old graph definition, self references, and stale instance-test stub are
+  deleted without a wrapper, result carrier, reason, flag, callback, config input,
+  compatibility alias, or trace field.
+- Left-to-right falsy gates, evidence copy before fixed claim/quote/raw surface
+  access, blank/digit laziness, per-attempt operand copies, positive then negative
+  then numeric predicate order, lazy id/anchor/surface key precedence, global
+  first-seen dedupe, unique-break/duplicate-continue behavior, stable ordering,
+  fresh retained top-level rows, nested aliases, input immutability, and uncaught
+  exception stages remain unchanged.
+- Graph retains evidence/reconciliation and required-list preparation, direct-
+  grounding computation, unconditional call placement before narrative access,
+  narrative/restriction gates, surface-result merge/dedupe/logging, the later
+  missing-required fallback-row merge, LLM/state work, and final orchestration.
+- Production source is `+48/-43`, net 5: the graph changes from 18,449 to 18,409
+  lines (`+2/-42`, net -40) and the operand owner from 2,735 to 2,780 lines
+  (`+46/-1`, net 45). Tests are `+441/-9`, net 432; the whole commit is
+  `+489/-52`, net 437.
+- Validation passed targeted 4/4 tests, affected 639/639 tests, the 217-literal
+  runtime audit, full discovery over 1,521/1,521 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving required-operand prose numeric-evidence surface-filter
+ownership and deletion of the 40-line old graph body, not retrieval or evidence
+selection, faithfulness or filtering-policy improvement, new runtime behavior,
+total-code or broad executed-path reduction, performance, broader private-mesh
+cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

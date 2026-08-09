@@ -196,6 +196,9 @@ Current calculation ownership is:
   ratio-recovered flag projection, retry gates,
   post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
   exception/fallback orchestration, graph-private candidate preparation,
+  required-operand/evidence preparation and direct-grounding computation around
+  the unconditional prose numeric-evidence filter call, narrative/restriction
+  gates, surface-result merge/dedupe/logging and later fallback-row merge,
   state/task/artifact projection, prepared reconciliation-reference owner inputs
   and its two call placements, operand-set artifact and integrity/replan consumers,
   repair acceptance, aggregate/filter
@@ -247,6 +250,15 @@ Current calculation ownership is:
   changed-path copies and nested aliases, and uncaught exceptions. Graph retains
   all row construction, provenance, plan/map and evidence-driven sibling
   alignment, ratio/append, state, artifact, and final orchestration.
+  The same owner owns plain `surface_contract_numeric_evidence_items(...)` for
+  required-operand prose numeric-evidence filtering. It preserves fresh-empty
+  falsy results, fixed evidence surface-field
+  access, per-attempt row copies, positive/negative/numeric predicate laziness,
+  global first-seen key dedupe, stable order, fresh retained top-level rows,
+  nested aliases, input immutability, and uncaught exception order. Graph retains
+  evidence/reconciliation and required-list preparation, the unconditional call
+  after direct-grounding computation, narrative/restriction gates, both result
+  merge paths, LLM/state work, and final orchestration.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -344,13 +356,13 @@ Current calculation ownership is:
   narrative skipping, local row preparation, later filtering, state/artifact work,
   and final orchestration remain graph-owned.
 
-At the latest checkpoint, the graph is 18,449 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,409 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,735, the answer-slot owner is 594, the aggregate owner is 1,106, the
+is 2,780, the answer-slot owner is 594, the aggregate owner is 1,106, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
 owner is 1,250, the numeric-surface owner is 539, the runtime-trace owner is 1,065,
-and the execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 581/581 tests, the 217-literal audit, and full discovery over 1,519/1,519
+and the execution owner is 837. The latest owner slice passed targeted 4/4 tests,
+affected 639/639 tests, the 217-literal audit, and full discovery over 1,521/1,521
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in

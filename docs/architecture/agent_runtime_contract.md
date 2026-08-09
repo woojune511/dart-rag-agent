@@ -738,6 +738,39 @@ gate. Owner exceptions continue through the existing graph `try` boundary. The
 typed reasons and application flags are inspectable contract outputs, not
 runtime trace fields.
 
+Required-operand prose numeric-evidence surface filtering through
+`surface_contract_numeric_evidence_items(...)` is a plain, state-free
+`financial_operand_resolution.py` owner seam. Left-to-right falsy evidence and
+required-operand gates each return a fresh empty list. On the nonempty path the
+owner shallow-copies every attempted evidence row before reading `claim`,
+`quote_span`, and `raw_row_text` in that order, joining and normalizing their
+string surfaces, and applying blank then digit gates. Every attempted required
+operand is copied before positive-surface matching, the lazy negative-surface
+veto, and nearby numeric extraction.
+
+Only a complete match reads `evidence_id`, then lazily falls back to
+`source_anchor` and the first 120 normalized-surface characters. The stringified
+key participates in one global first-seen set. A unique key appends the already
+fresh shallow evidence row and breaks its requirement loop; a duplicate continues
+through later requirements. Result and input order remain stable, the outer list
+and retained top-level rows are fresh, untouched nested values remain aliased,
+inputs are unmodified, and truthiness, iteration, mapping copy, string, join,
+normalization, regex, predicate, extraction, and hash exceptions remain uncaught
+at their existing stages.
+
+The graph retains evidence and reconciliation preparation, required-operand list
+construction, direct-grounding computation, and the unconditional owner call at
+the existing pre-narrative position, including when direct grounding is false.
+It passes the exact current evidence list and fresh prepared requirement list,
+then retains narrative/restriction gates, surface-result merge/dedupe/logging,
+the later missing-required fallback-row merge, LLM/state work, and final
+orchestration. The exact owner result feeds those consumers and an owner exception
+still stops every later stage. This seam claims only required-operand prose
+numeric-evidence surface filtering, not retrieval or evidence selection,
+faithfulness or filtering-policy improvement, new behavior, performance,
+total-code or executed-path reduction, broad private-surface cleanup, or Phase 3
+completion.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
