@@ -106,6 +106,28 @@ def _spy_method(target, symbol):
     return patch.object(target, symbol, wraps=getattr(target, symbol))
 
 
+def _record_aggregate_candidate_packaging():
+    events = []
+    base_packager = financial_graph_calculation.package_aggregate_answer_candidate
+    refreshed_packager = financial_graph_calculation.package_refreshed_aggregate_answer_candidate
+
+    def record_base(*args, **kwargs):
+        events.append("base")
+        return base_packager(*args, **kwargs)
+
+    def record_refreshed(*args, **kwargs):
+        events.append("refreshed")
+        return refreshed_packager(*args, **kwargs)
+
+    return events, patch.object(
+        financial_graph_calculation, "package_aggregate_answer_candidate", side_effect=record_base
+    ), patch.object(
+        financial_graph_calculation,
+        "package_refreshed_aggregate_answer_candidate",
+        side_effect=record_refreshed,
+    )
+
+
 def _record_required_candidate_merges():
     return _record_graph_resolver("resolve_required_operand_candidate_merge")
 
@@ -4422,6 +4444,12 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
 
     def test_aggregate_compact_ratio_preserves_uncovered_lookup_item(self) -> None:
+        packaging_events, base_patch, refreshed_patch = _record_aggregate_candidate_packaging()
+        base_patch.start()
+        refreshed_patch.start()
+        self.addCleanup(base_patch.stop)
+        self.addCleanup(refreshed_patch.stop)
+
         state = {
             "query": "Extract the target and peer metrics, then calculate the target share of total.",
             "calc_subtasks": [
@@ -4547,6 +4575,7 @@ class SubtaskLoopTests(unittest.TestCase):
             updated = self.agent._aggregate_calculation_subtasks(state)
         trace = _resolve_runtime_calculation_trace(updated)
 
+        self.assertEqual(packaging_events, ["refreshed"])
         candidate_apply.assert_called_once()
         self.assertFalse(candidate_apply.call_args.args[0].candidate["sync_projection"])
         self.assertEqual(
@@ -15637,13 +15666,15 @@ class SubtaskLoopTests(unittest.TestCase):
             "selected_claim_ids": [],
         }
 
-        with patch.object(
+        packaging_events, base_patch, refreshed_patch = _record_aggregate_candidate_packaging()
+        with base_patch, refreshed_patch, patch.object(
             financial_graph_calculation,
             "apply_aggregate_answer_candidate",
             wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
         ) as candidate_apply:
             updated = self.agent._aggregate_calculation_subtasks(state)
 
+        self.assertEqual(packaging_events, ["base", "base"])
         self.assertEqual(candidate_apply.call_count, 2)
         self.assertEqual(
             [

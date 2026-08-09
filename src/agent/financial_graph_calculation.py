@@ -28,9 +28,11 @@ from src.agent.financial_aggregate_state import (
 )
 from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
+    AggregateAnswerCandidatePackagingInput,
     AggregateNestedSubtaskSynchronizationInput,
     AggregateProjectionFinalAnswerSyncInput,
     AggregateProjectionProvenanceFilterInput,
+    AggregateRefreshedAnswerCandidatePackagingInput,
     AggregateStaleRepairProvenanceInput,
     RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload as _aggregate_artifact_payload,
@@ -46,6 +48,8 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_task_ids as _aggregate_source_task_ids,
     apply_aggregate_answer_candidate,
     filter_aggregate_projection_provenance,
+    package_aggregate_answer_candidate,
+    package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
     synchronize_nested_aggregate_subtask_rows,
@@ -3191,13 +3195,15 @@ class FinancialAgentCalculationMixin:
             if score <= best_score or not score[0]:
                 continue
             best_score = score
-            best_candidate = self._aggregate_answer_candidate(
-                answer,
-                selected_claim_ids=artifact.get("evidence_refs") or [],
-                sync_projection=True,
-                sync_rendered_for_aggregate=True,
-                status_ok=True,
-            )
+            best_candidate = package_aggregate_answer_candidate(
+                AggregateAnswerCandidatePackagingInput(
+                    answer=answer,
+                    selected_claim_ids=artifact.get("evidence_refs") or [],
+                    sync_projection=True,
+                    sync_rendered_for_aggregate=True,
+                    status_ok=True,
+                )
+            ).candidate
         return best_candidate
 
     def _aggregate_results_include_dependency_numeric_result(
@@ -5328,45 +5334,6 @@ class FinancialAgentCalculationMixin:
         )
         return _normalise_spaces(str(answer or ""))
 
-    def _aggregate_answer_candidate(
-        self,
-        answer: str,
-        *,
-        selected_claim_ids: Optional[Sequence[Any]] = None,
-        sync_projection: bool = True,
-        sync_rendered_for_aggregate: bool = True,
-        status_ok: bool = False,
-    ) -> Dict[str, Any]:
-        return {
-            "answer": _normalise_spaces(str(answer or "")),
-            "selected_claim_ids": [
-                str(claim_id).strip()
-                for claim_id in (selected_claim_ids or [])
-                if str(claim_id).strip()
-            ],
-            "sync_projection": bool(sync_projection),
-            "sync_rendered_for_aggregate": bool(sync_rendered_for_aggregate),
-            "status_ok": bool(status_ok),
-        }
-
-    def _aggregate_answer_candidate_from_refresh(
-        self,
-        refreshed_answer: Dict[str, Any],
-        fallback_answer: str,
-        *,
-        sync_projection: bool = True,
-        sync_rendered_for_aggregate: bool = True,
-        status_ok: bool = False,
-    ) -> Dict[str, Any]:
-        payload = dict(refreshed_answer or {})
-        return self._aggregate_answer_candidate(
-            str(payload.get("answer") or fallback_answer or ""),
-            selected_claim_ids=payload.get("selected_claim_ids") or [],
-            sync_projection=sync_projection,
-            sync_rendered_for_aggregate=sync_rendered_for_aggregate,
-            status_ok=status_ok,
-        )
-
     def _refresh_numeric_aggregate_answer_candidate(
         self,
         *,
@@ -5386,13 +5353,15 @@ class FinancialAgentCalculationMixin:
             ordered_results=ordered_results,
             evidence_items=evidence_items,
         )
-        return self._aggregate_answer_candidate_from_refresh(
-            refreshed_answer,
-            numeric_answer,
-            sync_projection=sync_projection,
-            sync_rendered_for_aggregate=sync_rendered_for_aggregate,
-            status_ok=status_ok,
-        )
+        return package_refreshed_aggregate_answer_candidate(
+            AggregateRefreshedAnswerCandidatePackagingInput(
+                refreshed_answer=refreshed_answer,
+                fallback_answer=numeric_answer,
+                sync_projection=sync_projection,
+                sync_rendered_for_aggregate=sync_rendered_for_aggregate,
+                status_ok=status_ok,
+            )
+        ).candidate
 
     def _apply_aggregate_composition_answer(
         self,
@@ -5893,10 +5862,15 @@ class FinancialAgentCalculationMixin:
                     AggregateAnswerCandidateApplicationInput(
                         aggregate_projection=aggregate_projection,
                         selected_claim_ids=selected_claim_ids,
-                        candidate=self._aggregate_answer_candidate(
-                            repaired_answer,
-                            selected_claim_ids=(repaired_growth_narrative_answer or {}).get("selected_claim_ids") or [],
-                        ),
+                        candidate=package_aggregate_answer_candidate(
+                            AggregateAnswerCandidatePackagingInput(
+                                answer=repaired_answer,
+                                selected_claim_ids=(repaired_growth_narrative_answer or {}).get(
+                                    "selected_claim_ids"
+                                )
+                                or [],
+                            )
+                        ).candidate,
                     )
                 )
                 aggregate_projection = candidate_application.aggregate_projection
@@ -19047,11 +19021,13 @@ class FinancialAgentCalculationMixin:
                 AggregateAnswerCandidateApplicationInput(
                     aggregate_projection=aggregate_projection,
                     selected_claim_ids=selected_claim_ids,
-                    candidate=self._aggregate_answer_candidate(
-                        complete_projection_answer,
-                        selected_claim_ids=[],
-                        status_ok=True,
-                    ),
+                    candidate=package_aggregate_answer_candidate(
+                        AggregateAnswerCandidatePackagingInput(
+                            answer=complete_projection_answer,
+                            selected_claim_ids=[],
+                            status_ok=True,
+                        )
+                    ).candidate,
                 )
             )
             aggregate_projection = candidate_application.aggregate_projection
@@ -19118,11 +19094,13 @@ class FinancialAgentCalculationMixin:
                     AggregateAnswerCandidateApplicationInput(
                         aggregate_projection=aggregate_projection,
                         selected_claim_ids=selected_claim_ids,
-                        candidate=self._aggregate_answer_candidate(
-                            conflicting_answer,
-                            selected_claim_ids=late_conflicting_narrative.get("selected_claim_ids") or [],
-                            sync_projection=False,
-                        ),
+                        candidate=package_aggregate_answer_candidate(
+                            AggregateAnswerCandidatePackagingInput(
+                                answer=conflicting_answer,
+                                selected_claim_ids=late_conflicting_narrative.get("selected_claim_ids") or [],
+                                sync_projection=False,
+                            )
+                        ).candidate,
                     )
                 )
                 aggregate_projection = candidate_application.aggregate_projection
@@ -19177,10 +19155,12 @@ class FinancialAgentCalculationMixin:
                     AggregateAnswerCandidateApplicationInput(
                         aggregate_projection=aggregate_projection,
                         selected_claim_ids=selected_claim_ids,
-                        candidate=self._aggregate_answer_candidate(
-                            _normalise_spaces(" ".join([final_answer, supported_sentence])),
-                            selected_claim_ids=supported_candidate.get("selected_claim_ids") or [],
-                        ),
+                        candidate=package_aggregate_answer_candidate(
+                            AggregateAnswerCandidatePackagingInput(
+                                answer=_normalise_spaces(" ".join([final_answer, supported_sentence])),
+                                selected_claim_ids=supported_candidate.get("selected_claim_ids") or [],
+                            )
+                        ).candidate,
                     )
                 )
                 aggregate_projection = candidate_application.aggregate_projection
@@ -19220,10 +19200,12 @@ class FinancialAgentCalculationMixin:
                     AggregateAnswerCandidateApplicationInput(
                         aggregate_projection=aggregate_projection,
                         selected_claim_ids=selected_claim_ids,
-                        candidate=self._aggregate_answer_candidate(
-                            numeric_preserved_answer,
-                            selected_claim_ids=[],
-                        ),
+                        candidate=package_aggregate_answer_candidate(
+                            AggregateAnswerCandidatePackagingInput(
+                                answer=numeric_preserved_answer,
+                                selected_claim_ids=[],
+                            )
+                        ).candidate,
                     )
                 )
                 aggregate_projection = candidate_application.aggregate_projection
@@ -19310,11 +19292,13 @@ class FinancialAgentCalculationMixin:
                 AggregateAnswerCandidateApplicationInput(
                     aggregate_projection=aggregate_projection,
                     selected_claim_ids=selected_claim_ids,
-                    candidate=self._aggregate_answer_candidate(
-                        final_conflicting_answer,
-                        selected_claim_ids=final_conflicting_narrative.get("selected_claim_ids") or [],
-                        sync_projection=False,
-                    ),
+                    candidate=package_aggregate_answer_candidate(
+                        AggregateAnswerCandidatePackagingInput(
+                            answer=final_conflicting_answer,
+                            selected_claim_ids=final_conflicting_narrative.get("selected_claim_ids") or [],
+                            sync_projection=False,
+                        )
+                    ).candidate,
                 )
             )
             aggregate_projection = candidate_application.aggregate_projection

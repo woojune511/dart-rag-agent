@@ -1,5 +1,6 @@
 import math
 import unittest
+from collections.abc import Mapping
 from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -13,9 +14,11 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
 from src.agent.financial_aggregate_projection import (
     AggregateAnswerCandidateApplicationInput,
+    AggregateAnswerCandidatePackagingInput,
     AggregateNestedSubtaskSynchronizationInput,
     AggregateProjectionProvenanceFilterInput,
     AggregateProjectionFinalAnswerSyncInput,
+    AggregateRefreshedAnswerCandidatePackagingInput,
     AggregateStaleRepairProvenanceInput,
     RuntimeRatioAbsoluteMagnitudeProjectionInput,
     aggregate_artifact_payload,
@@ -32,6 +35,8 @@ from src.agent.financial_aggregate_projection import (
     aggregate_task_status_value,
     apply_aggregate_answer_candidate,
     filter_aggregate_projection_provenance,
+    package_aggregate_answer_candidate,
+    package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance,
     synchronize_nested_aggregate_subtask_rows,
@@ -845,6 +850,179 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "task id unavailable"):
             sync_rows([tracking_row])
         self.assertEqual(tracking_row.get_calls, ["task_id", "task_id"])
+
+    def test_aggregate_answer_candidate_packaging_preserves_normalization_and_access_order(self) -> None:
+        events = []
+
+        def package(answer, **kwargs):
+            return package_aggregate_answer_candidate(
+                AggregateAnswerCandidatePackagingInput(answer=answer, **kwargs)
+            ).candidate
+
+        def package_refreshed(refreshed_answer, fallback_answer, **kwargs):
+            return package_refreshed_aggregate_answer_candidate(
+                AggregateRefreshedAnswerCandidatePackagingInput(
+                    refreshed_answer=refreshed_answer,
+                    fallback_answer=fallback_answer,
+                    **kwargs,
+                )
+            ).candidate
+
+        class _TrackedValue:
+            def __init__(self, name, value, *, truth=True, fail_str_call=0, fail_bool=False):
+                self.name = name
+                self.value = value
+                self.truth = truth
+                self.fail_str_call = fail_str_call
+                self.fail_bool = fail_bool
+                self.str_calls = 0
+
+            def __str__(self):
+                self.str_calls += 1
+                events.append(f"str:{self.name}")
+                if self.str_calls == self.fail_str_call:
+                    raise RuntimeError(f"failed to stringify {self.name}")
+                return self.value
+
+            def __bool__(self):
+                events.append(f"bool:{self.name}")
+                if self.fail_bool:
+                    raise RuntimeError(f"failed to coerce {self.name}")
+                return self.truth
+
+        class _TrackedClaims:
+            def __init__(self, values):
+                self.values = values
+
+            def __bool__(self):
+                events.append("bool:refreshed_claims")
+                return bool(self.values)
+
+            def __iter__(self):
+                events.append("iter:refreshed_claims")
+                return iter(self.values)
+
+        class _TrackingMapping(Mapping):
+            def __init__(self, values, *, fail_key=""):
+                self.values = values
+                self.fail_key = fail_key
+
+            def __len__(self):
+                events.append("len:payload")
+                return len(self.values)
+
+            def __iter__(self):
+                events.append("iter:payload")
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                events.append(f"getitem:{key}")
+                if key == self.fail_key:
+                    raise RuntimeError(f"failed to copy {key}")
+                return self.values[key]
+
+        claim_ids = [
+            _TrackedValue("keep", " keep "),
+            _TrackedValue("blank", "  "),
+            _TrackedValue("duplicate", "keep"),
+        ]
+        claim_ids_snapshot = list(claim_ids)
+        packaged = package(
+            "  final   answer  ",
+            selected_claim_ids=claim_ids,
+            sync_projection=_TrackedValue("sync", "", truth=True),
+            sync_rendered_for_aggregate=_TrackedValue("render", "", truth=False),
+            status_ok=_TrackedValue("status", "", truth=True),
+        )
+        self.assertEqual(
+            tuple(packaged.values()),
+            ("final answer", ["keep", "keep"], True, False, True),
+        )
+        self.assertIsNot(packaged["selected_claim_ids"], claim_ids)
+        self.assertEqual(claim_ids, claim_ids_snapshot)
+        self.assertEqual(events, [
+            "str:keep", "str:keep", "str:blank", "str:duplicate", "str:duplicate",
+            "bool:sync", "bool:render", "bool:status",
+        ])
+        fresh_candidate = package("")
+        second_fresh_candidate = package("")
+        self.assertIsNot(fresh_candidate, second_fresh_candidate)
+        self.assertIsNot(fresh_candidate["selected_claim_ids"], second_fresh_candidate["selected_claim_ids"])
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "failed to coerce render"):
+            package(
+                "answer",
+                sync_projection=_TrackedValue("sync", "", truth=True),
+                sync_rendered_for_aggregate=_TrackedValue("render", "", fail_bool=True),
+                status_ok=_TrackedValue("status", "", truth=True),
+            )
+        self.assertEqual(events, ["bool:sync", "bool:render"])
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "failed to stringify broken"):
+            package(
+                "answer",
+                selected_claim_ids=[_TrackedValue("broken", "id", fail_str_call=2)],
+                sync_projection=_TrackedValue("unreached", "", truth=True),
+            )
+        self.assertEqual(events, ["str:broken", "str:broken"])
+
+        events.clear()
+        marker = {"preserve": True}
+        refreshed_claims = _TrackedClaims([_TrackedValue("refreshed_claim", " ev_1 ")])
+        refreshed_values = {
+            "answer": _TrackedValue("refreshed_answer", " refreshed   answer "),
+            "selected_claim_ids": refreshed_claims,
+            "metadata": marker,
+        }
+        refreshed_snapshot = dict(refreshed_values)
+        with patch.object(
+            financial_aggregate_projection,
+            "package_aggregate_answer_candidate",
+            wraps=financial_aggregate_projection.package_aggregate_answer_candidate,
+        ) as base_packager:
+            refreshed = package_refreshed(
+                _TrackingMapping(refreshed_values),
+                "fallback answer",
+                sync_projection=_TrackedValue("refresh_sync", "", truth=False),
+                sync_rendered_for_aggregate=_TrackedValue("refresh_render", "", truth=True),
+                status_ok=_TrackedValue("refresh_status", "", truth=True),
+            )
+        base_packager.assert_called_once()
+        self.assertIsNot(refreshed, refreshed_values)
+        self.assertEqual(refreshed_values, refreshed_snapshot)
+        self.assertEqual(
+            tuple(refreshed.values()),
+            ("refreshed answer", ["ev_1"], False, True, True),
+        )
+        self.assertIs(refreshed_values["metadata"], marker)
+        self.assertIs(refreshed_values["selected_claim_ids"], refreshed_claims)
+        self.assertEqual(events, [
+            "len:payload", "iter:payload", "getitem:answer", "getitem:selected_claim_ids",
+            "getitem:metadata", "bool:refreshed_answer", "str:refreshed_answer",
+            "bool:refreshed_claims", "bool:refreshed_claims", "iter:refreshed_claims",
+            "str:refreshed_claim", "str:refreshed_claim", "bool:refresh_sync",
+            "bool:refresh_render", "bool:refresh_status",
+        ])
+
+        fallback = package_refreshed({"answer": None}, " fallback   answer ")
+        whitespace = package_refreshed({"answer": "   "}, "fallback answer")
+        self.assertEqual((fallback["answer"], whitespace["answer"]), ("fallback answer", ""))
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "failed to copy selected_claim_ids"):
+            package_refreshed(
+                _TrackingMapping(
+                    {"answer": "answer", "selected_claim_ids": ["ev_1"]},
+                    fail_key="selected_claim_ids",
+                ),
+                "fallback",
+                sync_projection=_TrackedValue("unreached", "", truth=True),
+            )
+        self.assertEqual(events, [
+            "len:payload", "iter:payload", "getitem:answer", "getitem:selected_claim_ids",
+        ])
 
     def test_aggregate_answer_candidate_application_preserves_projection_and_claim_contract(self) -> None:
         def _apply(projection, selected_claim_ids, candidate):

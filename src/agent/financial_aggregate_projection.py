@@ -67,6 +67,35 @@ class AggregateProjectionFinalAnswerSyncResult:
 
 
 @dataclass(frozen=True)
+class AggregateAnswerCandidatePackagingInput:
+    """Prepared fields for one normalized aggregate-answer candidate payload."""
+
+    answer: Any
+    selected_claim_ids: Optional[Iterable[Any]] = None
+    sync_projection: bool = True
+    sync_rendered_for_aggregate: bool = True
+    status_ok: bool = False
+
+
+@dataclass(frozen=True)
+class AggregateRefreshedAnswerCandidatePackagingInput:
+    """Prepared refresh payload and fallback for candidate packaging."""
+
+    refreshed_answer: Optional[Mapping[str, Any]]
+    fallback_answer: Any
+    sync_projection: bool = True
+    sync_rendered_for_aggregate: bool = True
+    status_ok: bool = False
+
+
+@dataclass(frozen=True)
+class AggregateAnswerCandidatePackagingResult:
+    """Fresh normalized candidate payload for aggregate answer application."""
+
+    candidate: Dict[str, Any]
+
+
+@dataclass(frozen=True)
 class AggregateAnswerCandidateApplicationInput:
     """Graph-prepared candidate inputs for state-free aggregate application."""
 
@@ -244,6 +273,43 @@ def sync_aggregate_projection_final_answer(
         calculation_result["status"] = "ok"
     return AggregateProjectionFinalAnswerSyncResult(
         aggregate_projection=aggregate_projection,
+    )
+
+
+def package_aggregate_answer_candidate(
+    packaging_input: AggregateAnswerCandidatePackagingInput,
+) -> AggregateAnswerCandidatePackagingResult:
+    """Build one normalized aggregate-answer candidate payload."""
+
+    return AggregateAnswerCandidatePackagingResult(
+        candidate={
+            "answer": _normalise_spaces(str(packaging_input.answer or "")),
+            "selected_claim_ids": [
+                str(claim_id).strip()
+                for claim_id in (packaging_input.selected_claim_ids or [])
+                if str(claim_id).strip()
+            ],
+            "sync_projection": bool(packaging_input.sync_projection),
+            "sync_rendered_for_aggregate": bool(packaging_input.sync_rendered_for_aggregate),
+            "status_ok": bool(packaging_input.status_ok),
+        }
+    )
+
+
+def package_refreshed_aggregate_answer_candidate(
+    packaging_input: AggregateRefreshedAnswerCandidatePackagingInput,
+) -> AggregateAnswerCandidatePackagingResult:
+    """Package a prepared refreshed answer with the existing fallback order."""
+
+    payload = dict(packaging_input.refreshed_answer or {})
+    return package_aggregate_answer_candidate(
+        AggregateAnswerCandidatePackagingInput(
+            answer=str(payload.get("answer") or packaging_input.fallback_answer or ""),
+            selected_claim_ids=payload.get("selected_claim_ids") or [],
+            sync_projection=packaging_input.sync_projection,
+            sync_rendered_for_aggregate=packaging_input.sync_rendered_for_aggregate,
+            status_ok=packaging_input.status_ok,
+        )
     )
 
 
