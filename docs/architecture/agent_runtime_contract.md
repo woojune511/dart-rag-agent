@@ -1015,6 +1015,34 @@ rebuild, and final orchestration. This seam does not own answer selection,
 aggregate precedence, lookup propagation, final projection, state/evidence, or
 artifact/ledger work.
 
+Ratio calculation-result display synchronization is a typed, state-free
+`financial_answer_slots.py` owner seam. The owner receives the exact prepared
+calculation-result dictionary. Status and operation-family gates return the same
+identity, as does the source-stated-result veto. It reads the raw result before
+coercing the formula value and then the result value. A formula mismatch outside
+the scaled tolerance creates a shallow top-level result and derived-metric copy;
+that copy remains authoritative even when a later unit, parser, or equivalence
+gate vetoes display replacement. Without a mismatch, successful synchronization
+mutates the exact supplied result.
+
+Percent-unit policy normalization, ratio formatter and target parsing, primary-
+slot/result/formatted current-surface precedence, numeric equivalence, and fresh
+answer-slot/primary-value updates preserve their existing order. Untouched nested
+references remain shared. Formula/result numeric coercion and the later result
+`float` conversion catch `TypeError` and `ValueError`; formatter, parser, mapping,
+truthiness, policy, and other exceptions propagate. The owner result adds no
+reason, application flag,
+or trace field; the existing calculation-result synchronization marker remains
+unchanged.
+
+The graph retains ordered-row copy, operation-family and truthy-result gates,
+before/after rendered comparison, compact-answer construction, row answer/result
+updates, and all state, active-subtask, operand, period, and metric formatting.
+The two owner calls remain at their original positions. This seam does not own
+formula or ratio calculation, query policy, compact-answer rendering, row
+selection/propagation, aggregate precedence, state/evidence, or artifact/ledger
+work.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

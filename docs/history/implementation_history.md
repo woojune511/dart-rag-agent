@@ -642,6 +642,37 @@ lookup propagation, final projection, state/evidence or artifact/ledger
 ownership, and not a total-code, broad executed-path, performance, broad private-
 mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Ratio result-display synchronization ownership
+
+- `f8eb8cd` moves the graph-private ratio result-display synchronizer into
+  `financial_answer_slots.py` as a typed state-free input/result seam. Status,
+  operation-family, source-stated, percent-unit, parser, and equivalence gates
+  preserve their order. A material formula mismatch returns a shallow result and
+  derived-metric copy that survives later vetoes; ordinary successful display
+  synchronization mutates the exact prepared result and creates fresh answer-slot
+  and primary-value containers. Untouched nested aliases, policy normalization,
+  current-surface precedence, and caught-versus-propagated exception behavior are
+  unchanged.
+- The graph retains ordered-row copy/family/truthy-result gates, before/after
+  display comparison, compact-answer construction, row answer/result updates,
+  and all state, active-subtask, operand, period, and metric formatting. Both
+  direct calls remain in their original positions; the old graph helper and all
+  exact private references are deleted.
+- Production source is `+123/-88`, net 35: the graph changes from 19,340 to
+  19,264 lines (`+10/-86`, net -76) and the answer-slot owner from 483 to 594
+  lines (`+113/-2`, net 111). Tests are `+319/-37`, net 282; the whole commit is
+  `+442/-125`, net 317.
+- Validation passed targeted 3/3 tests, affected answer-slot/subtask 249/249
+  tests, the 217-literal runtime audit, full discovery over 1,495/1,495 tests,
+  and `git diff --check`. Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving ratio calculation-result and primary answer-slot
+display-consistency ownership relocation, not formula or ratio calculation,
+query policy, compact-answer construction, row selection/propagation, aggregate
+precedence, state/evidence or artifact/ledger ownership, and not a total-code,
+broad executed-path, performance, broad private-mesh, end-to-end calculation-
+owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

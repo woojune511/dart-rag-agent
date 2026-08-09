@@ -298,6 +298,10 @@ lookup surface matching, retry query 생성이다.
 
 state-free owner 경계:
 
+- `financial_answer_slots.py`: answer-slot payload construction과 prepared ratio
+  calculation-result/primary-slot display synchronization. Status/operation/source-
+  stated gate, formula-mismatch copy와 ordinary in-place update, percent policy,
+  primary/result/formatted surface precedence, nested identity와 예외 순서를 보존한다.
 - `financial_operand_resolution.py`: candidate matching, grounding, generic
   candidate selection, merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면
   abstain하고 값이 동등한 tie만 stable key로 선택한다. Required candidate
@@ -418,6 +422,9 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
   extraction, iteration, lookup-component propagation, updated-row map과 final rebuild,
   artifact/ledger, stale repair와 final orchestration
+- ordered ratio-row copy/family/truthy-result gate, before/after rendered comparison,
+  compact-answer construction과 row answer/result propagation; compact caller의 state,
+  active-subtask, operand, period, metric formatting
 - unit conversion/repair
 - period alignment
 - source-visible display 보존
@@ -502,7 +509,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 
 ### Extracted calculation helpers
 
-- `financial_answer_slots.py`: answer slot payload construction
+- `financial_answer_slots.py`: answer slot payload construction and typed ratio
+  calculation-result/primary-slot display synchronization
 - `financial_operand_resolution.py`: state-free generic operand candidate
   resolution, typed required-candidate precedence/merge, and typed direct
   structured acceptance, typed direct structured-evidence base scoring, and the

@@ -239,6 +239,11 @@ Current calculation ownership is:
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
+- `financial_answer_slots.py` owns answer-slot construction plus typed ratio
+  calculation-result and primary-slot display synchronization. It preserves the
+  formula-mismatch copy versus ordinary in-place update distinction, current-
+  surface precedence, percent policy, and exception order; graph callers retain
+  compact-answer and ordered-row orchestration.
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection, canonical aggregate operation-family normalization, the typed
   state-free negative runtime-ratio absolute-magnitude transformation over
@@ -252,12 +257,12 @@ Current calculation ownership is:
   projection row with prepared raw answer/rendered surfaces, including numeric-
   candidate selection and conditional result/slot/lookup copy semantics.
 
-At the latest checkpoint, the graph is 19,340 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,264 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 860, the dependency owner is 3,164, and the
-execution owner is 837. The latest owner slice passed targeted 4/4 tests,
-affected 327/327 tests, the 217-literal audit, and full discovery over
-1,495/1,495 tests.
+is 2,437, the answer-slot owner is 594, the aggregate owner is 860, the
+dependency owner is 3,164, and the execution owner is 837. The latest owner slice
+passed targeted 3/3 tests, affected 249/249 tests, the 217-literal audit, and full
+discovery over 1,495/1,495 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
