@@ -2967,7 +2967,11 @@ class FinancialAgentCalculationMixin:
                     or ""
                 )
             )
-            synced_result = self._sync_ratio_display_from_result_value(calculation_result)
+            synced_result = financial_answer_slots.synchronize_ratio_result_display(
+                financial_answer_slots.RatioResultDisplaySyncInput(
+                    calculation_result=calculation_result,
+                )
+            ).calculation_result
             after_rendered = _normalise_spaces(
                 str(
                     synced_result.get("rendered_value")
@@ -8594,90 +8598,6 @@ class FinancialAgentCalculationMixin:
         slot["dependency_resolved"] = True
         return slot
 
-    def _sync_ratio_display_from_result_value(
-        self,
-        calculation_result: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        if _normalise_spaces(str(calculation_result.get("status") or "")).lower() != "ok":
-            return calculation_result
-        if _normalise_spaces(str(calculation_result.get("operation_family") or "")).lower() not in {"", "ratio"}:
-            return calculation_result
-        derived_metrics = dict(calculation_result.get("derived_metrics") or {})
-        if derived_metrics.get("source_stated_result_used"):
-            return calculation_result
-        result_value = calculation_result.get("result_value")
-        formula_result_value = financial_answer_slots.coerce_slot_numeric(
-            derived_metrics.get("formula_result_value")
-        )
-        result_numeric_value = financial_answer_slots.coerce_slot_numeric(result_value)
-        if formula_result_value is not None and result_numeric_value is not None:
-            tolerance = max(abs(float(formula_result_value)), abs(float(result_numeric_value)), 1.0) * 1e-6
-            if abs(float(formula_result_value) - float(result_numeric_value)) > tolerance:
-                calculation_result = dict(calculation_result)
-                calculation_result["result_value"] = float(formula_result_value)
-                derived_metrics["result_value_synced_from_formula_trace"] = True
-                calculation_result["derived_metrics"] = derived_metrics
-                result_value = formula_result_value
-        try:
-            result_float = float(result_value)
-        except (TypeError, ValueError):
-            return calculation_result
-        result_unit = _normalise_spaces(str(calculation_result.get("result_unit") or ""))
-        percent_units = {
-            _normalise_spaces(str(unit))
-            for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())
-            if _normalise_spaces(str(unit))
-        }
-        if result_unit not in percent_units:
-            return calculation_result
-        target_rendered = calculation_rendering.format_ratio_percent_result(result_float)
-        target_candidates = extract_numeric_surface_candidates(target_rendered)
-        target_candidate = next(
-            (candidate for candidate in target_candidates if str(candidate.get("kind") or "") == "percent"),
-            {},
-        )
-        if not target_candidate:
-            return calculation_result
-        current_surface = _normalise_spaces(
-            str(
-                (dict(calculation_result.get("answer_slots") or {}).get("primary_value") or {}).get("rendered_value")
-                or calculation_result.get("rendered_value")
-                or calculation_result.get("formatted_result")
-                or ""
-            )
-        )
-        current_candidates = [
-            candidate
-            for candidate in extract_numeric_surface_candidates(current_surface)
-            if str(candidate.get("kind") or "") == "percent"
-        ]
-        if current_candidates and any(
-            numeric_surface_candidates_equivalent(candidate, target_candidate)
-            for candidate in current_candidates
-        ):
-            return calculation_result
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        primary_value = dict(answer_slots.get("primary_value") or {})
-        primary_value.update(
-            {
-                "status": primary_value.get("status") or "ok",
-                "raw_value": target_rendered,
-                "raw_unit": "%",
-                "normalized_value": result_float,
-                "normalized_unit": "PERCENT",
-                "rendered_value": target_rendered,
-            }
-        )
-        answer_slots["primary_value"] = primary_value
-        calculation_result.update(
-            {
-                "rendered_value": target_rendered,
-                "answer_slots": answer_slots,
-                "ratio_display_synced_from_result_value": True,
-            }
-        )
-        return calculation_result
-
     def _ratio_result_projection(
         self,
         *,
@@ -13639,7 +13559,11 @@ class FinancialAgentCalculationMixin:
         active_subtask: Optional[Dict[str, Any]] = None,
         calculation_operands: Optional[Sequence[Dict[str, Any]]] = None,
     ) -> str:
-        calculation_result = self._sync_ratio_display_from_result_value(calculation_result)
+        calculation_result = financial_answer_slots.synchronize_ratio_result_display(
+            financial_answer_slots.RatioResultDisplaySyncInput(
+                calculation_result=calculation_result,
+            )
+        ).calculation_result
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         resolved_active_subtask = dict(
             active_subtask

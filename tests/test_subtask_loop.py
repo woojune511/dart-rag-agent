@@ -18,6 +18,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_answer_slots
 from src.agent import financial_graph_calculation
 from src.agent import financial_lookup_recovery
 from src.agent import financial_operand_resolution
@@ -7222,37 +7223,6 @@ class SubtaskLoopTests(unittest.TestCase):
         ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
         self.assertEqual(ratio_row["answer"], "cost income ratio is 37.47%.")
 
-    def test_ratio_display_sync_uses_formula_trace_when_result_value_diverges(self) -> None:
-        synced = self.agent._sync_ratio_display_from_result_value(
-            {
-                "status": "ok",
-                "operation_family": "ratio",
-                "result_value": 3.746881183859589,
-                "result_unit": "%",
-                "rendered_value": "3.75%",
-                "answer_slots": {
-                    "primary_value": {
-                        "status": "ok",
-                        "raw_value": "3.75",
-                        "raw_unit": "%",
-                        "normalized_value": 3.746881183859589,
-                        "normalized_unit": "PERCENT",
-                        "rendered_value": "3.75%",
-                    }
-                },
-                "derived_metrics": {
-                    "operation_family": "ratio",
-                    "formula_result_value": 37.46881183859589,
-                    "source_stated_result_used": False,
-                },
-            }
-        )
-
-        self.assertEqual(synced["result_value"], 37.46881183859589)
-        self.assertEqual(synced["rendered_value"], "37.47%")
-        self.assertEqual(synced["answer_slots"]["primary_value"]["rendered_value"], "37.47%")
-        self.assertTrue(synced["derived_metrics"]["result_value_synced_from_formula_trace"])
-
     def test_ratio_projection_uses_absolute_magnitude_for_coverage_query(self) -> None:
         projection = self.agent._ratio_result_projection(
             numerator_value=350_000_000.0,
@@ -11410,11 +11380,19 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        answer = self.agent._compact_ratio_answer(
-            {"active_subtask": {"metric_label": "target share"}},
-            calculation_result,
-        )
+        display_sync = financial_answer_slots.synchronize_ratio_result_display
+        with patch.object(
+            financial_answer_slots,
+            "synchronize_ratio_result_display",
+            wraps=display_sync,
+        ) as display_sync_spy:
+            answer = self.agent._compact_ratio_answer(
+                {"active_subtask": {"metric_label": "target share"}},
+                calculation_result,
+            )
 
+        display_sync_spy.assert_called_once()
+        self.assertIs(display_sync_spy.call_args.args[0].calculation_result, calculation_result)
         self.assertIn("42.02%", answer)
         self.assertNotIn("7.87%", answer)
         self.assertEqual(calculation_result["rendered_value"], "42.02%")
@@ -11471,12 +11449,36 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        updated = self.agent._sync_ratio_result_displays_in_ordered_results([ratio_row])
+        display_sync = financial_answer_slots.synchronize_ratio_result_display
+        with patch.object(
+            financial_answer_slots,
+            "synchronize_ratio_result_display",
+            wraps=display_sync,
+        ) as display_sync_spy:
+            updated = self.agent._sync_ratio_result_displays_in_ordered_results([ratio_row])
 
+        self.assertEqual(display_sync_spy.call_count, 2)
+        prepared_result = display_sync_spy.call_args_list[0].args[0].calculation_result
+        self.assertIsNot(prepared_result, ratio_row["calculation_result"])
+        self.assertIs(prepared_result, display_sync_spy.call_args_list[1].args[0].calculation_result)
+        self.assertEqual(prepared_result["result_value"], 42.01863054131083)
         self.assertIn("42.02%", updated[0]["answer"])
         self.assertNotIn("7.87%", updated[0]["answer"])
         self.assertEqual(updated[0]["calculation_result"]["rendered_value"], "42.02%")
         self.assertEqual(updated[0]["calculation_result"]["formatted_result"], updated[0]["answer"])
+
+        no_change_rows = [
+            {"operation_family": "lookup", "calculation_result": {"status": "ok"}},
+            {"operation_family": "ratio", "calculation_result": {}},
+        ]
+        with patch.object(
+            financial_answer_slots,
+            "synchronize_ratio_result_display",
+            wraps=display_sync,
+        ) as gated_display_sync:
+            unchanged = self.agent._sync_ratio_result_displays_in_ordered_results(no_change_rows)
+        gated_display_sync.assert_not_called()
+        self.assertIs(unchanged, no_change_rows)
 
     def test_aggregate_subtasks_joins_answers_in_task_order(self) -> None:
         state = {

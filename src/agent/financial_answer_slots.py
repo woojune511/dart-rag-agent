@@ -1,16 +1,40 @@
 """Answer slot construction helpers for calculation traces."""
 
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from src.agent.financial_graph_calculation_rendering import (
     adjusted_difference_source_display_unit,
     format_calculation_value_in_display_unit,
+    format_ratio_percent_result,
     render_grounded_operand_display,
     render_value_with_unit,
 )
 from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
-from src.agent.financial_runtime_normalization import _clean_source_row_ids, _display_operand_label
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+from src.agent.financial_numeric_surface import (
+    extract_numeric_surface_candidates,
+    numeric_surface_candidates_equivalent,
+)
+from src.agent.financial_runtime_normalization import (
+    _clean_source_row_ids,
+    _display_operand_label,
+    _normalise_spaces,
+)
+from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
+
+
+@dataclass(frozen=True)
+class RatioResultDisplaySyncInput:
+    """Prepared ratio calculation result whose display may need synchronization."""
+
+    calculation_result: Dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RatioResultDisplaySyncResult:
+    """The original or copied calculation result after display synchronization."""
+
+    calculation_result: Dict[str, Any]
 
 
 def slot_status(
@@ -31,6 +55,93 @@ def coerce_slot_numeric(value: Any) -> Optional[float]:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def synchronize_ratio_result_display(
+    sync_input: RatioResultDisplaySyncInput,
+) -> RatioResultDisplaySyncResult:
+    """Synchronize a ratio result and its primary answer-slot display."""
+
+    calculation_result = sync_input.calculation_result
+    if _normalise_spaces(str(calculation_result.get("status") or "")).lower() != "ok":
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    if _normalise_spaces(str(calculation_result.get("operation_family") or "")).lower() not in {"", "ratio"}:
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    derived_metrics = dict(calculation_result.get("derived_metrics") or {})
+    if derived_metrics.get("source_stated_result_used"):
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    result_value = calculation_result.get("result_value")
+    formula_result_value = coerce_slot_numeric(
+        derived_metrics.get("formula_result_value")
+    )
+    result_numeric_value = coerce_slot_numeric(result_value)
+    if formula_result_value is not None and result_numeric_value is not None:
+        tolerance = max(abs(float(formula_result_value)), abs(float(result_numeric_value)), 1.0) * 1e-6
+        if abs(float(formula_result_value) - float(result_numeric_value)) > tolerance:
+            calculation_result = dict(calculation_result)
+            calculation_result["result_value"] = float(formula_result_value)
+            derived_metrics["result_value_synced_from_formula_trace"] = True
+            calculation_result["derived_metrics"] = derived_metrics
+            result_value = formula_result_value
+    try:
+        result_float = float(result_value)
+    except (TypeError, ValueError):
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    result_unit = _normalise_spaces(str(calculation_result.get("result_unit") or ""))
+    percent_units = {
+        _normalise_spaces(str(unit))
+        for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())
+        if _normalise_spaces(str(unit))
+    }
+    if result_unit not in percent_units:
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    target_rendered = format_ratio_percent_result(result_float)
+    target_candidates = extract_numeric_surface_candidates(target_rendered)
+    target_candidate = next(
+        (candidate for candidate in target_candidates if str(candidate.get("kind") or "") == "percent"),
+        {},
+    )
+    if not target_candidate:
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    current_surface = _normalise_spaces(
+        str(
+            (dict(calculation_result.get("answer_slots") or {}).get("primary_value") or {}).get("rendered_value")
+            or calculation_result.get("rendered_value")
+            or calculation_result.get("formatted_result")
+            or ""
+        )
+    )
+    current_candidates = [
+        candidate
+        for candidate in extract_numeric_surface_candidates(current_surface)
+        if str(candidate.get("kind") or "") == "percent"
+    ]
+    if current_candidates and any(
+        numeric_surface_candidates_equivalent(candidate, target_candidate)
+        for candidate in current_candidates
+    ):
+        return RatioResultDisplaySyncResult(calculation_result=calculation_result)
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    primary_value = dict(answer_slots.get("primary_value") or {})
+    primary_value.update(
+        {
+            "status": primary_value.get("status") or "ok",
+            "raw_value": target_rendered,
+            "raw_unit": "%",
+            "normalized_value": result_float,
+            "normalized_unit": "PERCENT",
+            "rendered_value": target_rendered,
+        }
+    )
+    answer_slots["primary_value"] = primary_value
+    calculation_result.update(
+        {
+            "rendered_value": target_rendered,
+            "answer_slots": answer_slots,
+            "ratio_display_synced_from_result_value": True,
+        }
+    )
+    return RatioResultDisplaySyncResult(calculation_result=calculation_result)
 
 
 def build_missing_value_slot(
