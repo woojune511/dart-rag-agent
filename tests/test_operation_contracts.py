@@ -10346,16 +10346,147 @@ class OperationContractTests(unittest.TestCase):
             }
         ]
 
-        with patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows), patch.object(
-            agent,
-            "_evidence_items_from_reconciliation_matches",
-            return_value=reconciliation_evidence,
+        owner_calls = []
+        real_owner = financial_graph_calculation.surface_contract_numeric_evidence_items
+
+        def select_surface_contract_evidence(evidence_items, required_rows):
+            selected = real_owner(evidence_items, required_rows)
+            owner_calls.append((evidence_items, required_rows))
+            return selected
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                side_effect=select_surface_contract_evidence,
+            ) as owner,
         ):
             result = agent._extract_calculation_operands(state)
 
+        owner.assert_called_once()
+        called_evidence, called_requirements = owner_calls[0]
+        self.assertIsNot(called_evidence, state["evidence_items"])
+        self.assertIs(called_evidence[0], state["evidence_items"][0])
+        self.assertIs(called_evidence[0]["metadata"], state["evidence_items"][0]["metadata"])
+        self.assertEqual(
+            [row.get("evidence_id") for row in called_evidence],
+            ["ev_001", "ev_002", "ev_recon_001"],
+        )
+        source_requirements = state["active_subtask"]["required_operands"]
+        self.assertIsNot(called_requirements, source_requirements)
+        self.assertIsNot(called_requirements[0], source_requirements[0])
+        self.assertEqual(called_requirements, source_requirements)
         self.assertEqual(result["evidence_status"], "sufficient")
         self.assertEqual(len(result["evidence_items"]), 2)
         self.assertTrue(any("Poshmark" in str(item.get("claim") or "") for item in result["evidence_items"]))
+
+        surface_row = {
+            "evidence_id": "ev_surface",
+            "source_anchor": "[surface]",
+            "claim": "커머스 매출액 2,546,649",
+            "raw_row_text": "커머스 매출액 2,546,649",
+        }
+        surface_rows = [surface_row]
+        merge_inputs = []
+
+        class DummyLlm:
+            def with_structured_output(self, _model):
+                return object()
+
+        class DummyPrompt:
+            def __or__(self, _structured_llm):
+                return SimpleNamespace(
+                    invoke=lambda _payload: SimpleNamespace(operands=[], coverage="missing")
+                )
+
+        def observe_surface_merge(*args, **_kwargs):
+            merge_inputs.append(args[2])
+            return args[1], []
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                return_value=surface_rows,
+            ) as adoption_owner,
+            patch.object(agent, "_llm_for_phase", return_value=DummyLlm()),
+            patch.object(
+                financial_graph_calculation,
+                "_chat_prompt_template_from_template",
+                return_value=DummyPrompt(),
+            ),
+            patch.object(
+                agent,
+                "_merge_required_operand_fallback_rows",
+                side_effect=observe_surface_merge,
+            ),
+        ):
+            agent._extract_calculation_operands(deepcopy(state))
+        adoption_owner.assert_called_once()
+        self.assertIs(merge_inputs[0], surface_rows)
+
+        grounding_false_calls = []
+
+        def select_when_grounding_false(evidence_items, required_rows):
+            grounding_false_calls.append((evidence_items, required_rows))
+            raise RuntimeError("grounding-false owner observed")
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(financial_graph_calculation, "_requires_direct_numeric_grounding", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                side_effect=select_when_grounding_false,
+            ) as grounding_false_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "grounding-false owner observed"):
+                agent._extract_calculation_operands(deepcopy(state))
+        grounding_false_owner.assert_called_once()
+        self.assertEqual(len(grounding_false_calls), 1)
+        self.assertEqual(grounding_false_calls[0][1], source_requirements)
+
+        with (
+            patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=direct_rows),
+            patch.object(
+                agent,
+                "_evidence_items_from_reconciliation_matches",
+                return_value=reconciliation_evidence,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                side_effect=RuntimeError("surface owner failed"),
+            ) as failing_owner,
+            patch.object(
+                financial_graph_calculation,
+                "_query_requests_narrative_context",
+            ) as later_narrative_gate,
+            patch.object(agent, "_merge_required_operand_fallback_rows") as later_merge,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface owner failed"):
+                agent._extract_calculation_operands(deepcopy(state))
+        failing_owner.assert_called_once()
+        later_narrative_gate.assert_not_called()
+        later_merge.assert_not_called()
 
     def test_lookup_prefers_direct_structured_row_label_evidence_over_indirect_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

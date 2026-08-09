@@ -17,7 +17,11 @@ from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     _label_implies_percent_metric,
 )
-from src.agent.financial_row_surfaces import _operand_text_match, _surface_match_variants
+from src.agent.financial_row_surfaces import (
+    _extract_numeric_value_after_operand_text,
+    _operand_text_match,
+    _surface_match_variants,
+)
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
@@ -1065,6 +1069,47 @@ def _filter_operand_rows_by_required_surface_contract(
             require_direct_support=require_direct_support,
         )
     ]
+
+
+def surface_contract_numeric_evidence_items(
+    evidence_items: List[Dict[str, Any]],
+    required_operands: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Keep prose evidence that directly names an ontology surface and a nearby number."""
+    if not evidence_items or not required_operands:
+        return []
+
+    preserved: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in evidence_items:
+        evidence = dict(item or {})
+        surface = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in (
+                    evidence.get("claim"),
+                    evidence.get("quote_span"),
+                    evidence.get("raw_row_text"),
+                )
+            )
+        )
+        if not surface or not re.search(r"\d", surface):
+            continue
+        for operand in required_operands:
+            operand_dict = dict(operand or {})
+            if not _text_has_positive_surface(surface, operand_dict):
+                continue
+            if _text_has_negative_surface(surface, operand_dict):
+                continue
+            if not _extract_numeric_value_after_operand_text(surface, operand_dict):
+                continue
+            key = str(evidence.get("evidence_id") or evidence.get("source_anchor") or surface[:120])
+            if key in seen:
+                continue
+            seen.add(key)
+            preserved.append(evidence)
+            break
+    return preserved
 
 
 def _lookup_task_requests_context_dependent_scope(

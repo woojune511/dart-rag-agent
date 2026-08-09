@@ -163,6 +163,7 @@ from src.agent.financial_operand_resolution import (
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
     score_direct_structured_lookup_evidence,
+    surface_contract_numeric_evidence_items,
     table_label_metadata_lookup_score,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
@@ -11060,47 +11061,6 @@ class FinancialAgentCalculationMixin:
             refined["precision_source"] = "flattened_table_surface_cell"
         return refined
 
-    def _surface_contract_numeric_evidence_items(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        required_operands: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """Keep prose evidence that directly names an ontology surface and a nearby number."""
-        if not evidence_items or not required_operands:
-            return []
-
-        preserved: List[Dict[str, Any]] = []
-        seen: set[str] = set()
-        for item in evidence_items:
-            evidence = dict(item or {})
-            surface = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for value in (
-                        evidence.get("claim"),
-                        evidence.get("quote_span"),
-                        evidence.get("raw_row_text"),
-                    )
-                )
-            )
-            if not surface or not re.search(r"\d", surface):
-                continue
-            for operand in required_operands:
-                operand_dict = dict(operand or {})
-                if not _text_has_positive_surface(surface, operand_dict):
-                    continue
-                if _text_has_negative_surface(surface, operand_dict):
-                    continue
-                if not _extract_numeric_value_after_operand_text(surface, operand_dict):
-                    continue
-                key = str(evidence.get("evidence_id") or evidence.get("source_anchor") or surface[:120])
-                if key in seen:
-                    continue
-                seen.add(key)
-                preserved.append(evidence)
-                break
-        return preserved
-
     def _ratio_components_have_suspicious_scale(
         self,
         calculation_result: Dict[str, Any],
@@ -13757,7 +13717,7 @@ class FinancialAgentCalculationMixin:
             if bool(item.get("required", True))
         ]
         direct_numeric_grounding = _requires_direct_numeric_grounding(active_subtask)
-        surface_contract_evidence = self._surface_contract_numeric_evidence_items(
+        surface_contract_evidence = surface_contract_numeric_evidence_items(
             evidence_items,
             required_operands,
         )

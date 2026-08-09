@@ -7559,7 +7559,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
     def test_period_comparison_operand_recovery_uses_seed_table_context_before_dependency_rows(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         agent._evidence_items_from_reconciliation_matches = lambda _state: []
-        agent._surface_contract_numeric_evidence_items = lambda _items, _operands: []
         agent._direct_target_metric_operand_from_evidence = lambda _state, _items: ({}, {})
         agent._dependency_binding_resolution_state = lambda _state: {
             "rows": [
@@ -7692,10 +7691,17 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             adoptions.append((adoption_input, adoption))
             return adoption
 
-        with patch.object(
-            financial_graph_calculation,
-            "resolve_recovered_operand_context_adoption",
-            side_effect=record_adoption,
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "surface_contract_numeric_evidence_items",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "resolve_recovered_operand_context_adoption",
+                side_effect=record_adoption,
+            ),
         ):
             result = agent._extract_calculation_operands(state)
 

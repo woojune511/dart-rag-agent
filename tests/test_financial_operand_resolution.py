@@ -146,6 +146,301 @@ def _merge_operand_row(
 
 
 class FinancialOperandResolutionTests(unittest.TestCase):
+    def test_surface_contract_numeric_evidence_items_preserves_behavior_contract(self) -> None:
+        select = operand_resolution.surface_contract_numeric_evidence_items
+
+        class IterBomb(list):
+            def __iter__(self):
+                raise RuntimeError("unused input iterated")
+
+        empty_from_evidence = select([], IterBomb([{}]))
+        empty_from_requirements = select(IterBomb([{}]), [])
+        self.assertEqual(empty_from_evidence, [])
+        self.assertEqual(empty_from_requirements, [])
+        self.assertIsNot(empty_from_evidence, empty_from_requirements)
+
+        first_nested = {"nested": "first"}
+        anchor_nested = {"nested": "anchor"}
+        fallback_nested = {"nested": "fallback"}
+        evidence_items = [
+            {"marker": "blank", "claim": "   "},
+            {"marker": "no-digit", "claim": "metric without number"},
+            {
+                "marker": "first",
+                "evidence_id": "shared-id",
+                "source_anchor": "first-anchor",
+                "claim": "first metric 10",
+                "nested": first_nested,
+            },
+            {
+                "marker": "duplicate-id",
+                "evidence_id": "shared-id",
+                "source_anchor": "different-anchor",
+                "claim": "duplicate metric 20",
+            },
+            {
+                "marker": "anchor",
+                "source_anchor": "shared-anchor",
+                "quote_span": "anchor metric 30",
+                "nested": anchor_nested,
+            },
+            {
+                "marker": "duplicate-anchor",
+                "source_anchor": "shared-anchor",
+                "raw_row_text": "different metric 35",
+            },
+            {
+                "marker": "fallback",
+                "raw_row_text": "fallback metric 40",
+                "nested": fallback_nested,
+            },
+        ]
+        required_operands = [
+            {"role": "positive-miss"},
+            {"role": "negative"},
+            {"role": "extract-miss"},
+            {"role": "match-1"},
+            {"role": "match-2"},
+        ]
+        before = deepcopy((evidence_items, required_operands))
+        events = []
+
+        def positive(surface, operand):
+            events.append(("positive", surface, operand["role"]))
+            return operand["role"] != "positive-miss"
+
+        def negative(surface, operand):
+            events.append(("negative", surface, operand["role"]))
+            return operand["role"] == "negative"
+
+        def extract(surface, operand):
+            events.append(("extract", surface, operand["role"]))
+            return "" if operand["role"] == "extract-miss" else "10"
+
+        with (
+            patch.object(operand_resolution, "_text_has_positive_surface", side_effect=positive),
+            patch.object(operand_resolution, "_text_has_negative_surface", side_effect=negative),
+            patch.object(
+                operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                side_effect=extract,
+            ),
+        ):
+            selected = select(evidence_items, required_operands)
+
+        self.assertEqual([row["marker"] for row in selected], ["first", "anchor", "fallback"])
+        self.assertIsNot(selected, evidence_items)
+        selected_inputs = (evidence_items[2], evidence_items[4], evidence_items[6])
+        for result_row, input_row in zip(selected, selected_inputs):
+            self.assertIsNot(result_row, input_row)
+        self.assertIs(selected[0]["nested"], first_nested)
+        self.assertIs(selected[1]["nested"], anchor_nested)
+        self.assertIs(selected[2]["nested"], fallback_nested)
+        self.assertEqual((evidence_items, required_operands), before)
+
+        touched_surfaces = {event[1] for event in events}
+        self.assertNotIn("", touched_surfaces)
+        self.assertNotIn("metric without number", touched_surfaces)
+        self.assertIn(("positive", "duplicate metric 20", "match-2"), events)
+        self.assertNotIn(("positive", "first metric 10", "match-2"), events)
+        self.assertIn(("positive", "different metric 35", "match-2"), events)
+        self.assertNotIn(("negative", "first metric 10", "positive-miss"), events)
+        self.assertNotIn(("extract", "first metric 10", "positive-miss"), events)
+        self.assertNotIn(("extract", "first metric 10", "negative"), events)
+
+        class AnchorBomb:
+            def __bool__(self):
+                raise RuntimeError("anchor truthiness accessed")
+
+            def __str__(self):
+                raise RuntimeError("anchor string accessed")
+
+        with (
+            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "_text_has_negative_surface", return_value=False),
+            patch.object(
+                operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                return_value="10",
+            ),
+        ):
+            id_precedence = select(
+                [{"claim": "metric 10", "evidence_id": "id", "source_anchor": AnchorBomb()}],
+                [{"role": "current"}],
+            )
+        self.assertEqual(id_precedence[0]["evidence_id"], "id")
+
+    def test_surface_contract_numeric_evidence_items_preserves_access_and_exception_contract(self) -> None:
+        select = operand_resolution.surface_contract_numeric_evidence_items
+        events = []
+
+        class TrackedValue:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __bool__(self):
+                events.append(f"bool:{self.name}")
+                return True
+
+            def __str__(self):
+                events.append(f"str:{self.name}")
+                return self.value
+
+        real_normalize = operand_resolution._normalise_spaces
+        real_search = operand_resolution.re.search
+
+        def normalize(value):
+            events.append(f"normalize:{value}")
+            return real_normalize(value)
+
+        def search(pattern, value, *args, **kwargs):
+            events.append(f"regex:{value}")
+            return real_search(pattern, value, *args, **kwargs)
+
+        def positive(surface, _operand):
+            events.append(f"positive:{surface}")
+            return True
+
+        def negative(surface, _operand):
+            events.append(f"negative:{surface}")
+            return False
+
+        def extract(surface, _operand):
+            events.append(f"extract:{surface}")
+            return "10"
+
+        evidence = {
+            "evidence_id": "tracked",
+            "claim": TrackedValue("claim", "claim 10"),
+            "quote_span": TrackedValue("quote", "quote 20"),
+            "raw_row_text": TrackedValue("raw", "raw 30"),
+        }
+        with (
+            patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize),
+            patch.object(operand_resolution.re, "search", side_effect=search),
+            patch.object(operand_resolution, "_text_has_positive_surface", side_effect=positive),
+            patch.object(operand_resolution, "_text_has_negative_surface", side_effect=negative),
+            patch.object(
+                operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                side_effect=extract,
+            ),
+        ):
+            selected = select([evidence], [{"role": "current"}])
+
+        self.assertEqual(selected[0]["evidence_id"], "tracked")
+        self.assertEqual(
+            events,
+            [
+                "bool:claim",
+                "str:claim",
+                "bool:quote",
+                "str:quote",
+                "bool:raw",
+                "str:raw",
+                "normalize:claim 10 quote 20 raw 30",
+                "regex:claim 10 quote 20 raw 30",
+                "positive:claim 10 quote 20 raw 30",
+                "negative:claim 10 quote 20 raw 30",
+                "extract:claim 10 quote 20 raw 30",
+            ],
+        )
+
+        class BoolBomb(list):
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        class IterBomb(list):
+            def __iter__(self):
+                raise RuntimeError("iteration failed")
+
+        class CopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("copy failed")
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            select(BoolBomb(), [])
+        with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+            select(IterBomb([{}]), [{}])
+        with self.assertRaisesRegex(RuntimeError, "copy failed"):
+            select([CopyBomb()], [{}])
+        with self.assertRaisesRegex(RuntimeError, "copy failed"):
+            select([{"claim": "metric 10"}], [CopyBomb()])
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            select([{"claim": StringBomb()}], [{}])
+
+        row = [{"claim": "metric 10"}]
+        requirement = [{"role": "current"}]
+        for owner_name, patch_target in (
+            ("normalizer", "_normalise_spaces"),
+            ("positive", "_text_has_positive_surface"),
+        ):
+            with self.subTest(propagates=owner_name), patch.object(
+                operand_resolution,
+                patch_target,
+                side_effect=RuntimeError(f"{owner_name} failed"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, f"{owner_name} failed"):
+                    select(row, requirement)
+        with patch.object(operand_resolution.re, "search", side_effect=RuntimeError("regex failed")):
+            with self.assertRaisesRegex(RuntimeError, "regex failed"):
+                select(row, requirement)
+        with (
+            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(
+                operand_resolution,
+                "_text_has_negative_surface",
+                side_effect=RuntimeError("negative failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "negative failed"):
+                select(row, requirement)
+        with (
+            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "_text_has_negative_surface", return_value=False),
+            patch.object(
+                operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                side_effect=RuntimeError("extract failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "extract failed"):
+                select(row, requirement)
+
+        class HashBombString(str):
+            def __hash__(self):
+                raise RuntimeError("hash failed")
+
+        class HashBombValue:
+            def __str__(self):
+                return HashBombString("hash-bomb")
+
+        with (
+            patch.object(operand_resolution, "_text_has_positive_surface", return_value=True),
+            patch.object(operand_resolution, "_text_has_negative_surface", return_value=False),
+            patch.object(
+                operand_resolution,
+                "_extract_numeric_value_after_operand_text",
+                return_value="10",
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "hash failed"):
+                select(
+                    [{"claim": "metric 10", "evidence_id": HashBombValue()}],
+                    requirement,
+                )
+
     def test_rendered_unit_operand_normalization_repair_matrix(self) -> None:
         repair = operand_resolution.repair_operand_normalization_from_rendered_unit
         million_won = "\ubc31\ub9cc\uc6d0"
