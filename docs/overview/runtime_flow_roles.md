@@ -372,7 +372,11 @@ state-free owner 경계:
   owner의 plain dependency-row unit inference는 slot raw unit을 sibling result보다
   우선하고 normalized unit이 `UNKNOWN`일 때만 percent, KRW, count policy를 기존
   순서로 읽는다. 입력을 변경하거나 exception을 catch하지 않으며 graph가 네 call
-  gate, conditional re-inference와 row construction을 유지한다.
+  gate, conditional re-inference와 row construction을 유지한다. 같은 owner의 plain
+  task-output normalized-KRW predicate는 dependency/source/unit gate, raw/result-unit
+  fallback, exact tolerance와 conversion `try`를 소유한다. Normalized-value getter의
+  `TypeError`/`ValueError`는 `False`이며 earlier mapping error와 `RuntimeError`는
+  전파된다. Graph는 두 caller 위치, row coercion, table repair와 이후 mutation을 유지한다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -428,6 +432,7 @@ graph adapter에 남은 orchestration 역할군:
 - dependency row construction, stateful `vsm` structured-provenance lookup,
   no-provenance owner-call skip, downstream evidence lookup/coercion/append;
   dependency-unit inference의 네 call placement와 conditional second inference,
+  task-output KRW predicate의 row-coercion/table-repair call placement,
   single-row repair 전후의 caller gates와 plan/operand-map propagation,
   evidence-driven sibling candidate selection/realignment과 shared-context owner
   호출 배치
@@ -562,7 +567,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   disposition, ratio-artifact conflict selection, two-stage post-candidate
   finalization, in-place prepared structured-provenance adoption, and prepared
   dependency-source ratio-result projection, plus plain dependency-row display/
-  normalized-unit inference
+  normalized-unit inference and task-output normalized-KRW consistency
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
   outcome, and typed state-free value-only stale freshness assessment

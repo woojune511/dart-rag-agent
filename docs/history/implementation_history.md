@@ -880,6 +880,33 @@ ratio policy, unit-policy cleanup, state/evidence/artifact/final orchestration,
 and not a total-code, broad executed-path, performance, broad private-mesh,
 end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Dependency task-output KRW consistency ownership
+
+- `991efb2` moves the graph-private dependency task-output normalized-KRW
+  consistency predicate into the plain public dependency owner. The row-coercion
+  and table-metadata-repair calls remain at their original semantic positions;
+  the old graph definition and private self references are deleted.
+- The dependency/source/normalized-unit short circuits, raw-before-unit access,
+  raw-to-result-unit fallback, whitespace suppression, operand normalization,
+  exact scaled tolerance, input immutability, and current-before-expected
+  conversion are unchanged. The normalized-value getter is inside the conversion
+  `try`, so its `TypeError`/`ValueError` returns `False`; earlier mapping errors of
+  those types and all `RuntimeError` instances propagate. The representative
+  caller trace remains `False, True, False, True` across numerator/denominator
+  row coercion followed by numerator/denominator table repair.
+- Production source is `+25/-23`, net 2: the graph changes from 18,877 to 18,857
+  lines (`+3/-23`, net -20) and the dependency owner from 3,187 to 3,209 (`+22`).
+  Tests are `+391/-1`, net 390; the whole commit is `+416/-24`, net 392.
+- Validation passed targeted 2/2 tests, affected 633/633 tests, the 217-literal
+  runtime audit, full discovery over 1,506/1,506 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving dependency task-output consistency-predicate
+ownership relocation, not broader KRW or unit policy, row coercion, table repair,
+dependency binding/evidence, state/artifact/final orchestration, and not a
+total-code, broad executed-path, performance, broad private-mesh, end-to-end
+calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

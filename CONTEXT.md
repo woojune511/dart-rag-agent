@@ -85,7 +85,11 @@ Last updated: 2026-08-09
   같은 owner의 plain state-free primitive다. Slot raw unit을 sibling result unit보다
   우선하고, normalized unit이 `UNKNOWN`일 때만 percent, KRW, count policy를 기존
   membership 순서로 적용한다. Graph는 네 caller gate, conditional re-inference와
-  dependency row construction을 유지한다.
+  dependency row construction을 유지한다. 같은 owner의 plain predicate는
+  dependency-resolved `task_output:` row의 normalized KRW value가 raw/result unit
+  normalization과 exact scaled tolerance에 일치하는지만 판정한다. Graph는 row
+  coercion과 table-metadata repair의 두 call placement와 이후 mutation/orchestration을
+  유지한다.
 - Execution owner는 deterministic difference/growth plan construction, plan
   validation, formula execution, value-only freshness assessment를 소유한다.
   Answer-slot owner는 prepared ratio calculation result와 primary slot의 display를
@@ -137,6 +141,8 @@ Last updated: 2026-08-09
   source-id cleaning, compact formatting,
   recalculated result-value coercion과 invalid-value artifact-builder skip,
   dependency-unit inference의 네 call placement와 conditional second inference,
+  dependency task-output KRW consistency predicate의 두 call placement, row
+  coercion과 table-metadata repair,
   dependency candidate-input construction/execution, query/absolute transform,
   task-artifact/ledger conflict short-circuit와 formatter, sibling-table evidence selection과
   candidate realignment 및 preparation/map propagation, collapsed-ratio
@@ -167,7 +173,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 4/4, affected 632/632, full unittest 1,505/1,505 PASS |
+| Latest calculation runtime validation | targeted 2/2, affected 633/633, full unittest 1,506/1,506 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

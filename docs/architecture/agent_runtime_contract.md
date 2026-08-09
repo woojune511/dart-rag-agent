@@ -916,6 +916,24 @@ state, task, binding, slot/source selection, row repair and construction,
 task-output and retrieved-context ratio append/merge, evidence, artifact, and
 final orchestration.
 
+Dependency task-output normalized-KRW consistency is a separate plain public
+dependency-owner predicate. It short-circuits dependency resolution, the
+`task_output:` source prefix, and normalized-KRW gates before reading value
+fields. Raw value is read before raw-unit truthy fallback to result unit, so a
+truthy whitespace-only raw unit suppresses that fallback before normalization.
+It then preserves the existing operand normalization, expected-KRW gate,
+current-before-expected conversion, and inclusive scaled tolerance.
+
+The normalized-value mapping access is inside the conversion `try`; a
+`TypeError` or `ValueError` raised by that access, current conversion, or expected
+conversion returns `False`. Earlier mapping `TypeError`/`ValueError`, all
+`RuntimeError` instances, and other truthiness, string, normalizer, or arithmetic
+exceptions propagate. The predicate never mutates its input and adds no result
+wrapper, reason, flag, callback, config input, or trace field. Its two graph calls
+remain at the original row-coercion and table-metadata-repair positions. The graph
+retains both caller gates, operand/evidence selection and mutation, table repair,
+state, and final orchestration.
+
 The nested non-`ok` path returns the graph-supplied local row. The enclosing pass
 returns the original ordered-result and original row identities only when no
 other row changes; when another row changes, an unchanged row may be the graph's

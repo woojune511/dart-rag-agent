@@ -231,7 +231,12 @@ imports or an unconfigured `FinancialAgent` invocation.
   lazy sibling-result fallback, and only `UNKNOWN` normalized units read the
   percent/KRW/count policy. The graph retains all four call gates, conditional
   second inference, row construction, ratio append/merge, and later orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 18,877 lines,
+- Dependency task-output normalized-KRW consistency is now a plain public
+  dependency-owner predicate. It preserves the exact early gates, raw/result-unit
+  fallback, scaled tolerance, conversion exception boundary, and input
+  immutability. The graph retains row coercion, table-metadata repair, both call
+  placements, mutation, and later orchestration.
+- At the current checkpoint, `financial_graph_calculation.py` is 18,857 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
@@ -239,12 +244,12 @@ imports or an unconfigured `FinancialAgent` invocation.
   `financial_aggregate_projection.py` is 1,019,
   `financial_aggregate_state.py` is 161,
   `financial_operand_resolution.py` is 2,610,
-  `financial_dependency_projection.py` is 3,187,
+  `financial_dependency_projection.py` is 3,209,
   `financial_task_artifacts.py` is 1,180, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 4/4 and affected 632/632
-  tests, the 217-literal runtime audit, and full discovery over 1,505/1,505 tests.
+- The latest calculation checkpoint passed targeted 2/2 and affected 633/633
+  tests, the 217-literal runtime audit, and full discovery over 1,506/1,506 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -264,7 +269,7 @@ current-state document does not duplicate that commit diary.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution and unit normalization/alignment | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring and the neutral ordered aggregate-role predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, required match/surface, lookup-rematch, direct-first merge, the plain embedded/rendered single-row repair, and shared-context multi-row ratio display-unit alignment while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, ratio-recovered/runtime projection, row construction/provenance, plan/map propagation, evidence-driven sibling candidate alignment, and ratio append/merge policy |
-| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, prepared dependency-source ratio-result projection, and dependency-row unit inference | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, the ratio-result seam builds the fresh canonical result/slot containers with exact source/component aliases, and the plain unit primitive preserves slot-before-sibling raw precedence plus `UNKNOWN`-only policy inference; graph retains row construction/normalization and conditional re-inference, evidence coercion/append, raw-plan and candidate construction/execution, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, prepared dependency-source ratio-result projection, dependency-row unit inference, and task-output normalized-KRW consistency | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, the ratio-result seam builds fresh canonical result/slot containers with exact source/component aliases, the unit primitive preserves slot-before-sibling raw precedence plus `UNKNOWN`-only policy inference, and the task-output predicate preserves its early gates, tolerance, and conversion exception boundary; graph retains row construction/normalization and conditional re-inference, row coercion and table-metadata repair, evidence coercion/append, raw-plan and candidate construction/execution, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots and ratio result-display synchronization | `financial_answer_slots.py`; owns answer-slot construction plus typed calculation-result/primary-slot display consistency, including formula-mismatch copy versus ordinary in-place update and current-surface/percent-policy/exception order, while graph callers retain ordered-row gating and propagation, compact-answer construction, and state/task/operand/period/metric formatting |
 | Aggregate projection, stale provenance selection, signature/sign rank, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, generated-provenance filtering, nested-row consistency, prepared projection-row surface synchronization, and prepared arithmetic-component synchronization | `financial_aggregate_projection.py`; canonical operation-family normalization, aggregate-result signature and growth sign-consistency primitives, state-free target selection, prepared result/slot transforms, candidate packaging/application, claim-id merge, provenance filtering, nested-row recursion, selected-row numeric/result/slot/lookup synchronization, and lookup-slot to component/series/delta synchronization are owner-owned, while full dedupe/rank tuples/nested promotion, evidence/kept-id and candidate/sentence selection, conflict/coverage/render gates, lookup primary-slot preparation and gating, per-row task mapping/propagation, rebuild gating, selected claims, surface-operand append, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
@@ -293,9 +298,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 4/4 and affected 632/632 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 633/633 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,505/1,505 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,506/1,506 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -346,7 +351,7 @@ preferred-slot and recovered-context
 adoption, post-coercion LLM selection, scalar plan disposition, ratio-artifact
 conflict selection, two-stage post-candidate finalization, structured-provenance
 adoption, dependency-source ratio-result projection, and dependency-row unit
-inference. Named answer-slot,
+inference plus task-output normalized-KRW consistency. Named answer-slot,
 calculation, and aggregate owners cover ratio result/primary-slot display
 consistency, deterministic planning/execution, stale and generated provenance
 handling, collapsed-ratio magnitude transformation, candidate
@@ -370,6 +375,7 @@ exception/fallback orchestration, candidate preparation/execution plus
 state/task/artifact projection, repair acceptance, artifact/ledger conflict
 construction and short-circuit, dependency formatter, recalculated-value coercion,
 dependency-row construction, stateful structured-provenance lookup,
+dependency row-coercion and table-metadata-repair predicate call placement,
 evidence-driven sibling candidate alignment and preparation/map propagation,
 downstream evidence coercion/append,
 collapsed-ratio trace/eligibility/completeness/query gates and prepared copies,
@@ -405,45 +411,46 @@ acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
 The next bounded architecture work is to characterize and relocate graph
-`_dependency_task_output_has_consistent_krw_unit` (`15336-15355`) into
-`financial_dependency_projection.py`. The owner should expose the plain public
-predicate
-`dependency_task_output_has_consistent_krw_unit(row: Mapping[str, Any]) -> bool`;
-no dataclass, reason, flag, callback, or config input is required. Calls
-at `10488` and `15447` must remain at their exact semantic positions and retain
-their current laziness.
+`_table_label_metadata_lookup_score` (`1701-1752`) into
+`financial_operand_resolution.py`. The owner should expose the plain public
+function
+`table_label_metadata_lookup_score(slot: Mapping[str, Any], evidence_item: Mapping[str, Any]) -> float`;
+no dataclass, reason, flag, callback, or config input is required. Calls at
+`2083`, `7542`, and `11803` must remain at
+their exact semantic positions after each slot is built and before caller-owned
+period, context, scope, ambiguity, tie, grouping, or final-selection policy.
 
-Characterization must preserve the short-circuit order for dependency-resolved,
-`task_output:` source id, and normalized-KRW gates before any value work. Raw value
-is read before raw-unit truthy fallback to result unit; a whitespace-only raw unit
-therefore suppresses the fallback before normalization. Operand normalization,
-expected-KRW gating, current-then-expected float conversion, and the exact scaled
-tolerance `max(1e-6, abs(expected) * 1e-9)` remain unchanged for zero, negative,
-invalid, and `NaN` values. Only float `TypeError` and `ValueError` are caught;
-mapping, truthiness, string, normalizer, and other exceptions still propagate in
-the existing order, and the row is never mutated.
+Characterization must preserve the empty-slot `0.0` return before any evidence
+access, then normalized-unit access, metadata copy, table-value-label gate,
+slot-first raw-unit fallback to metadata hint, raw-value digit-count threshold,
+and base score in their current order. All additive weights remain exact: unit
+hint and table source, slot-first source-anchor fallback, aggregate value role,
+final before direct/subtotal aggregation stage, matched-line exact or compact
+label agreement, and the final known-versus-unknown unit adjustment. Repeated
+getters and normalizations, whitespace truthiness, stable surface iteration, and
+compact-label set construction must not be collapsed or precomputed. Mapping,
+`dict`, truthiness, string, regex, iteration, and normalization exceptions remain
+uncaught, and neither input is mutated.
 
-Add a compact direct gate, access, fallback, normalization, tolerance, exception,
-and immutability matrix. The existing dependency-output consistency fixture should
-spy numerator and denominator row coercion followed by numerator and denominator
-table repair, preserving the observed `False, True, False, True` results across
-exactly four owner calls; an owner exception must stop later work. The current
-read-only inventory observes 354 calls across 134 tests, split 313 and 41 between
-the two production sites, but has no direct predicate contract.
+Add a compact direct exact-score, early-return/laziness, fallback, repeated-access,
+exception, and immutability matrix. Representative graph fixtures should spy the
+public owner binding in all three caller contexts while preserving each caller's
+slot argument, call count, downstream ordering, and exception stop. Do not copy
+full selection results or turn scope, ambiguity, tie, or grouping policy into the
+scorer contract.
 
-Acceptance deletes only graph `15336-15355`, migrates both calls, leaves no old
+Acceptance deletes only graph `1701-1752`, migrates all three calls, leaves no old
 definition or private self reference, and stops before
-`_coerce_operand_row_from_evidence` and
-`_repair_krw_operand_units_from_table_metadata`. The graph retains row coercion,
-table-metadata repair, operand/evidence selection and mutation, state, and final
-orchestration. The allowed claim is dependency task-output normalized-KRW
-consistency-predicate ownership and the 20-line old-body deletion only, not broader
-KRW or unit policy, row/table repair, dependency binding/evidence, total-code or
-executed-path reduction, performance, broader private-mesh cleanup, or Phase 3
-completion. The evidence-local unit-coercion cluster remains a medium-high-risk
-follow-up because of its regex, callback, policy, and access-order surface; growth
-raw-scale repair remains deferred until its hidden KRW and threshold policy debt is
-named and characterized.
+`_lookup_row_from_direct_structured_evidence`. The graph retains table-slot
+construction, evidence iteration, period/context/scope handling, ambiguity,
+ties, grouping, and final selection. The allowed claim is table-label metadata
+lookup-score ownership and the 52-line old-body deletion only, not a scoring-policy
+change or improvement, selection ownership, total-code or executed-path reduction,
+performance, broader private-mesh cleanup, or Phase 3 completion. The evidence-
+local unit-coercion cluster remains a medium-high-risk follow-up because of its
+four-helper regex/policy/shared-surface and lookup-recovery callback boundary;
+growth raw-scale repair remains deferred until its hidden KRW and threshold policy
+debt is named and characterized.
 The Phase 3 backlog in the refactoring plan is unordered; this section is the
 authority for priority.
 
