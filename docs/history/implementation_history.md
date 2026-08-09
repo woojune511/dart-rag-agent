@@ -1305,6 +1305,46 @@ policy, realignment, call-placement/adoption policy, slot/result repair, behavio
 or performance improvement, total-code or broad executed-path reduction, broader
 private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Evidence-local unit and period coercion ownership
+
+- `c355568edf9644e238b569ae0a376a28a0c6d8bc` moves the coherent six-definition
+  evidence-local unit/period cluster to `financial_operand_resolution.py`. Public
+  `coerce_operand_unit_from_evidence(...)` and
+  `coerce_operand_period_from_evidence_surface(...)` replace the graph methods;
+  the boundary, core-surface, core-containment, and unit-inference helpers remain
+  owner-private. Old graph definitions and self references are zero.
+- Unit coercion retains metadata/current/surface precedence, parenthetical-before-
+  inline inference, source-context/core asymmetry, boundary and unit/render-policy
+  order, repeated access, input immutability, and uncaught exceptions. Period
+  coercion retains stable year dedupe, exact no-change identity, conflicting or
+  inferred-year shallow copies, nested aliases, access order, and uncaught
+  exceptions.
+- `financial_lookup_recovery.normalize_lookup_slot_unit(...)` imports the public
+  unit owner directly and drops only the injected coercion callback parameter. Its
+  direct unit-hint owner-zero branch and both owner-call branches remain in place.
+  The graph-local normalize closure remains; graph evidence, own-evidence alignment,
+  and the row coordinator call the public owners at their former positions.
+- Graph retains raw value/unit and evidence preparation, header/family gates,
+  result/slot/evidence selection, own-evidence normalization/copy/adoption, row-
+  coordinator dependency/structured-provenance guards, metadata overlay, direct
+  structured-value, magnitude and precision work, lookup result construction, and
+  all state/evidence/artifact/final orchestration.
+- Production source is `+233/-230`, net 3: the calculation graph changes from
+  18,225 to 18,003 lines (`+5/-227`, net -222), graph evidence from 4,578 to
+  4,581 (`+5/-2`, net 3), lookup recovery remains 609 (`+1/-1`, net 0), and the
+  operand owner changes from 2,831 to 3,053 (`+222/-0`, net 222). Tests are
+  `+993/-10`, net 983; the whole commit is `+1,226/-240`, net 986.
+- Validation passed targeted 6/6 tests, affected 860/860 tests, the 217-literal
+  runtime audit, full discovery over 1,540/1,540 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is only state-free evidence-local unit inference/coercion and period coercion
+ownership, one injected-callback removal, and deletion of the 215 old graph
+definition lines—not a unit/render policy or behavior improvement, graph row/
+evidence/lookup orchestration ownership, structured-value/magnitude/precision
+ownership, performance, total-code or broad executed-path reduction, broader
+private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

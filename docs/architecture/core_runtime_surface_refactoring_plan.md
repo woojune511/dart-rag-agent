@@ -268,6 +268,16 @@ Current calculation ownership is:
   completeness/tolerance gates, exact-object call placement and result inversion,
   ratio recalculation/adoption, evidence selection, state, artifact, and final
   orchestration.
+  The same owner now exposes plain evidence-local unit and period coercion. Public
+  `coerce_operand_unit_from_evidence(...)` preserves metadata/current/surface
+  precedence, parenthetical-before-inline inference, core/source-context asymmetry,
+  right-boundary and unit/render policy order, input immutability, and uncaught
+  exceptions. Public `coerce_operand_period_from_evidence_surface(...)` preserves
+  exact no-change row identity and shallow-copy period realignment; its four
+  supporting helpers remain owner-private. Graph retains the row coordinator,
+  graph-evidence builder, own-evidence alignment, structured-value/magnitude/
+  precision work, and state orchestration. Lookup recovery now imports the unit
+  owner directly and no longer receives an injected coercion callback.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -390,14 +400,14 @@ Current calculation ownership is:
   initial-state policy, later filtering, state/artifact work, and final orchestration
   remain graph-owned.
 
-At the latest checkpoint, the calculation graph adapter is 18,225 lines, the
-public graph is 1,200, the graph helper module is
-6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,831, the answer-slot owner is 625, the aggregate owner is 1,151, the
+At the latest checkpoint, the calculation graph adapter is 18,003 lines, the
+public graph is 1,200, the graph-evidence module is 4,581, the graph helper module
+is 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
+is 3,053, the answer-slot owner is 625, the aggregate owner is 1,151, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
 owner is 1,250, the numeric-surface owner is 575, the runtime-trace owner is 1,094,
-and the execution owner is 837. The latest owner slice passed targeted 4/4 tests,
-affected 582/582 tests, the 217-literal audit, and full discovery over 1,535/1,535
+and the execution owner is 837. The latest owner slice passed targeted 6/6 tests,
+affected 860/860 tests, the 217-literal audit, and full discovery over 1,540/1,540
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in

@@ -83,6 +83,17 @@ Last updated: 2026-08-10
   ratio-result row의 family/task/signature/status/artifact/value/completeness/tolerance
   gate, exact-object owner call과 결과 inversion, recalculation/adoption, evidence,
   state/artifact 및 final orchestration을 유지한다.
+  같은 owner의 public `coerce_operand_unit_from_evidence(...)`는 evidence metadata의
+  unit hint, current raw unit, value-local surface unit을 기존 순서로 resolve한다.
+  Value-local inference는 claim/quote/raw-row/`source_context`를 사용하되 private core
+  confirmation과 period coercion은 claim/quote/raw-row만 사용한다. Parenthetical-before-
+  inline inference, right-boundary 및 unit/render policy, surface/current/hint family
+  precedence, no-surface fallback, repeated access와 uncaught exception 순서를 보존한다.
+  Public `coerce_operand_period_from_evidence_surface(...)`는 blank/zero-or-multi-year/
+  already-aligned 경로의 exact row identity와 conflicting/inferred-year 경로의 fresh
+  shallow copy, nested aliases, input immutability를 보존한다. 네 supporting helper는
+  owner-private다. Lookup recovery는 unit owner를 직접 import하며 injected callback을
+  더 이상 받지 않는다.
   Dependency owner는 graph가 준비한 source slot, operand와 optional
   structured-realigned operand sequence만 받는 plain equivalence predicate도 소유한다.
   Marker-first direct copy와 fallback role/raw/id filtering, final non-task source-id
@@ -217,6 +228,12 @@ Last updated: 2026-08-10
   preparation, direct-grounding computation, unconditional owner call placement, narrative/
   restriction gate, surface-result merge/dedupe/logging, later missing-required fallback-row
   merge와 이후 LLM/state/final orchestration을 유지한다.
+  Evidence-local unit/period owner 주변에서는 graph-evidence의 raw-value/unit fallback,
+  header/year 및 desired-family gate와 row construction, own-evidence aligner의 result/
+  slot/evidence selection과 copy/adoption, row coordinator의 dependency/structured-
+  provenance guards, unit adoption, metadata overlay, period-before-direct-value/magnitude/
+  precision 순서, lookup recovery의 slot/evidence preparation과 direct-hint bypass, local
+  normalize closure 및 이후 lookup result orchestration을 유지한다.
   Recovery logging과 ratio-recovered flag projection, retry/query gate,
   state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
   dependency source-slot 선택과 component ranking, ratio formula/query policy,
@@ -275,7 +292,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 4/4, affected 582/582, full unittest 1,535/1,535 PASS |
+| Latest calculation runtime validation | targeted 6/6, affected 860/860, full unittest 1,540/1,540 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

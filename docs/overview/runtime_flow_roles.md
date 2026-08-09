@@ -363,6 +363,15 @@ state-free owner 경계:
   보존한다. Graph는 existing ratio-result gate/iteration, exact-object call과 logical
   inversion, recalculation/adoption 및 evidence/state/artifact/final orchestration을
   유지한다.
+  같은 owner의 public `coerce_operand_unit_from_evidence(...)`는 metadata hint,
+  current unit과 value-local surface unit을 state-free하게 resolve한다. Parenthetical-
+  before-inline inference, source-context/core asymmetry, right-boundary와 unit/render
+  policy, family/fallback precedence, repeated access, input immutability와 uncaught
+  exception 순서를 보존한다. Public
+  `coerce_operand_period_from_evidence_surface(...)`는 exact no-change row identity와
+  conflicting/inferred-year shallow copy, nested aliases를 보존하며 네 supporting
+  helper는 private다. Lookup recovery는 public unit owner를 직접 import하고 injected
+  callback을 받지 않는다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -515,6 +524,12 @@ graph adapter에 남은 orchestration 역할군:
   query/report-scope score 보강, ambiguity/tie-break와 sequential adoption;
   direct target-metric builder, evidence pool/coercion, scope gate, conflict-owner
   call placement, adoption/evidence append와 candidate preparation
+- evidence-local unit/period owner 전후의 graph-evidence raw-value/unit fallback,
+  header/year 및 desired-family gate와 row construction; own-evidence result/slot/
+  evidence selection, normalization, copy/adoption; row-coordinator dependency/
+  structured-provenance guard, metadata overlay, period-before-direct-value/magnitude/
+  precision order; lookup slot/evidence preparation, direct-hint bypass, local
+  normalize closure와 lookup-result orchestration
 - post-coercion LLM invocation/model dump, evidence lookup, scope-conflict skip,
   operand-id assignment, coercion, applicability, enclosing exception과 fallback
 - recovered-context eligibility, document/evidence collection, period/ratio row
@@ -571,8 +586,10 @@ graph adapter에 남은 orchestration 역할군:
 - ordered ratio-row copy/family/truthy-result gate, before/after rendered comparison,
   compact-answer construction과 row answer/result propagation; compact caller의 state,
   active-subtask, operand, period, metric formatting
-- unit conversion/repair
-- period alignment
+- unit conversion/repair의 evidence/row preparation, owner call gate, normalization과
+  returned-row adoption
+- period alignment의 context/evidence selection, owner call placement와 downstream
+  result/state propagation
 - source-visible display 보존
 - graph-private typed candidate preparation/result/state projection seam.
   dependency recovery는 explicit `_CalculationCandidateInput`을 직접 실행하고,
@@ -671,7 +688,10 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   display-unit alignment, plus plain required-operand prose numeric-evidence
   filtering through `surface_contract_numeric_evidence_items(...)` and retrieved
   ratio-context task-metric surface detection through
-  `ratio_context_has_metric_surface(...)`
+  `ratio_context_has_metric_surface(...)`, plus public evidence-local unit and period
+  coercion through `coerce_operand_unit_from_evidence(...)` and
+  `coerce_operand_period_from_evidence_surface(...)` with private inference/core/
+  boundary helpers
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate

@@ -807,6 +807,67 @@ adoption, evidence selection, behavior or policy improvement, performance,
 total-code or executed-path reduction, broad private-surface cleanup, or Phase 3
 completion.
 
+Evidence-local unit and period coercion are plain, state-free
+`financial_operand_resolution.py` owner seams. Public
+`coerce_operand_unit_from_evidence(*, raw_value, raw_unit, evidence_item)` first
+shallow-copies evidence metadata, reads `unit_hint`, stringifies and strips the
+current raw unit, and always invokes the owner-private value-surface inference
+before later fallback gates. Inference normalizes and digit-gates the raw value,
+then eagerly reads claim, quote span, raw-row text, and `source_context`. It tries
+the render-policy parenthetical value/unit pattern before the generic inline
+policy pattern, preserving candidate concatenation, repeated string filtering,
+stable longest-first unit alternation, alias lookup, first-match return, and the
+private right-boundary predicate.
+
+The boundary predicate catches only `IndexError` from a missing match group.
+End-of-text returns before policy access. The remaining path shallow-copies render
+policy, materializes every allowed prefix with repeated string conversion, applies
+stable lazy prefix matching, then reads the block pattern and tests exactly the
+single character at the unit boundary. Other mapping, copy, slicing, string,
+iteration, normalization, regex, match-group, and boundary exceptions propagate.
+
+When inference returns a surface unit, the owner performs operand normalization in
+surface, current, and hint order, followed by all three normalized-family
+conversions. The private core confirmation reads only claim, quote span, and raw-
+row text; it deliberately excludes `source_context`. It normalizes value, unit,
+and core before their falsy gate, then preserves compacting, unit-policy/alias/
+pattern access, right-boundary checks, match-group order, and first exact value/unit
+match. Confirmed support preserves an exactly normalized current display unit and
+otherwise returns the surface unit. A usable surface family conflicting with the
+current family first or hint family second returns `current_unit or unit_hint`;
+other surface paths return the inferred unit.
+
+Without a surface unit, no-hint, no-current, and normalized-equality exits precede
+render-policy access. Only the remaining mismatch path reads the bare-numeric
+pattern, builds ambiguous-KRW and configured display-unit sets in literal order,
+and lets the hint replace the current unit when all final conditions hold. Repeated
+conversion, set, mapping, regex, and exception behavior is unchanged; neither input
+is mutated.
+
+Public `coerce_operand_period_from_evidence_surface(row, evidence_item)` builds the
+same three-field private core surface first. Blank core, zero or multiple distinct
+evidence years, and a current period already containing the sole evidence year
+return the exact input row. A conflicting current-period year returns a fresh
+shallow row with `period` then `period_source` updated. With no period year, the
+second period/label/matched-label scan keeps exact identity on a matching year and
+otherwise returns the same fresh two-field update. Stable year dedupe, nested
+aliases, input immutability, access order, and uncaught exceptions remain unchanged.
+
+The graph-evidence builder calls the public unit owner after retaining raw-value/
+unit fallback and header/family gates. The calculation graph calls it from own-
+evidence alignment and from the retained row coordinator, and calls the public
+period owner after metadata overlay but before direct structured-value, magnitude,
+and precision work. Own-evidence iteration, slot/evidence selection, normalization,
+copy/adoption, and all row-coordinator guards remain graph-owned. Lookup recovery
+imports the public unit owner directly: its direct unit-hint branch remains owner-
+zero, both other branches invoke the owner in their existing positions, and the
+graph-local normalize closure remains without injecting a callback. This boundary
+claims only state-free evidence-local unit inference/coercion and period coercion
+ownership, one callback removal, and old-body deletion—not unit/render policy or
+behavior improvement, evidence construction, structured-value/magnitude/precision
+ownership, performance, total-code or executed-path reduction, broad private-
+surface cleanup, or Phase 3 completion.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
