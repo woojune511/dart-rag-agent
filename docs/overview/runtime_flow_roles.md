@@ -403,6 +403,13 @@ state-free owner 경계:
   적용한다. Empty/ineligible exact identity, eligible conditional shallow-copy,
   concept-first/label first-match, `None`-only overlay, source alias와 uncaught
   exception 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
+- `financial_aggregate_state.py`: public `AggregateCompositionState`와 공통
+  state-free composition transition을 소유한다. Answer normalization 뒤 lazy
+  current fallback, current-first claim cleanup/dedupe, projection reset/override
+  alias precedence, lock `None` fallback, feedback별 독립 clear truthiness,
+  fresh carrier/list와 uncaught exception 순서를 보존한다. Graph는 다섯 producer,
+  모든 gate와 순차 호출, later `_replace`, broader answer precedence와 final
+  orchestration을 유지한다.
 - `financial_task_artifacts.py`: graph가 준비한 artifact sequence, exact artifact
   id, final answer와 aggregate projection으로 첫 matching aggregate artifact의
   payload와 summary를 동기화한다. 모든 top-level artifact를 먼저 복사하고 stable
@@ -437,7 +444,8 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate nested-result promotion, preliminary/final projection rebuild,
   dependency alignment, preserved-field merge
 - aggregate answer candidate discovery/scoring/selection, narrative refresh,
-  packaging call placement/laziness, application invocation/answer precedence,
+  packaging과 composition-transition call placement/laziness, application
+  invocation/broader answer precedence,
   mutable state/evidence,
 - aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
   extraction과 iteration; lookup primary-slot 준비/truthy gate, per-row owner 호출,
@@ -556,6 +564,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   projection-row surface synchronization, arithmetic component/series/delta
   synchronization, and typed base/refreshed aggregate-answer candidate payload
   packaging/application
+- `financial_aggregate_state.py`: public aggregate composition carrier and
+  state-free answer/claim/projection/lock/feedback transition
 - `financial_task_artifacts.py`: task/artifact ledger projection and typed prepared
   aggregate artifact payload/summary synchronization
 - `financial_graph_calculation_rendering.py`: calculation answer rendering

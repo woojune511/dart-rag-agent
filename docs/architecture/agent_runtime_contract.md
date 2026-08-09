@@ -986,6 +986,28 @@ runtime trace field. Candidate builders and refresh, answer selection and
 precedence, mutable aggregate state/evidence, artifact/ledger work, stale repair,
 and final orchestration remain graph-owned.
 
+Aggregate composition uses the public `AggregateCompositionState` carrier and a
+state-free transition owned by `financial_aggregate_state.py`. The transition
+normalizes the supplied answer before lazily reading the current answer. It
+consumes all current claim ids before incoming ids, preserves two
+`str(claim_id).strip()` evaluations for every retained id, and returns a fresh
+stable current-first `dict.fromkeys` deduped list. It reads the current projection
+override before reset handling; truthy reset wins, an accepted dictionary override
+retains exact alias identity, and other inputs retain the current alias.
+
+`narrative_answer_locked=None` preserves the current value; other inputs are
+converted with `bool`. The transition evaluates `clear_feedback` independently for
+planner then deterministic feedback and reads each current field only on that
+field's false path. It always returns a fresh carrier without mutating its input
+and catches no normalization, access, iteration, string, hash, truthiness, or
+constructor exception. The graph retains the five producers and their gates,
+sequential call placement and state handoff, initial/final carrier construction,
+later `_replace` transitions, broader answer/claim/projection precedence,
+state/evidence/LLM work, and final orchestration. This seam claims only public
+carrier and common-transition ownership, not broader composition ownership,
+performance or executed-path reduction, private-mesh cleanup, or Phase 3
+completion.
+
 Prepared aggregate-provenance filtering is another typed state-free aggregate
 owner seam. The graph supplies the aggregate projection and its already-selected
 kept-evidence-id sequence. If the normalized kept set is empty, the owner returns

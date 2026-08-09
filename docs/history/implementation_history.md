@@ -798,6 +798,36 @@ or operand-map propagation, state/artifact/ledger or final orchestration, and
 not a total-code, broad executed-path, performance, broad private-mesh,
 end-to-end calculation-owner, or complete Phase 3 reduction claim.
 
+### Aggregate composition-state transition ownership
+
+- `93bc72b` promotes the private aggregate-composition carrier to public
+  `AggregateCompositionState` with no compatibility alias and moves the common
+  graph transition into `financial_aggregate_state.py`. The transition preserves
+  answer normalization and lazy fallback; current-first claim processing,
+  repeated string conversion and stable dedupe; projection reset/dictionary/
+  retained-alias precedence; lock fallback; separately evaluated feedback
+  clearing; fresh carrier/list identity; input immutability; and uncaught access,
+  normalization, string, hash, truthiness, and constructor exception order.
+- The five graph calls remain in their original branch positions and consume each
+  returned carrier sequentially. Graph still owns all producer builders and
+  gates, initial/final carrier construction, later `_replace` transitions,
+  broader answer/claim/projection precedence, state/evidence/LLM work, and final
+  orchestration. The old graph helper and private carrier name are deleted.
+- Production source is `+61/-58`, net 3: the graph changes from 18,989 to 18,943
+  lines (`+10/-56`, net -46) and the aggregate-state owner from 112 to 161
+  (`+51/-2`, net 49). Tests are `+328/-1`, net 327; the whole commit is
+  `+389/-59`, net 330.
+- Validation passed targeted 2/2 tests, affected 594/594 tests, the 217-literal
+  runtime audit, full discovery over 1,503/1,503 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving public aggregate composition-carrier and common
+state-transition ownership relocation, not producer or answer selection,
+broader composition or answer precedence, state/evidence/LLM/artifact/ledger or
+final-orchestration ownership, and not a total-code, broad executed-path,
+performance, broad private-mesh, end-to-end calculation-owner, or complete
+Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

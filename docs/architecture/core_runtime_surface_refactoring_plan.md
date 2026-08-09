@@ -270,18 +270,26 @@ Current calculation ownership is:
   graph-prepared lookup primary slots, it owns typed arithmetic component, series,
   and difference/sum delta synchronization with the existing match, copy/alias,
   stable-order, and exception contracts.
+- `financial_aggregate_state.py` owns the public `AggregateCompositionState`
+  carrier and its common state-free transition. The transition preserves answer
+  normalization and lazy fallback, current-first claim cleanup/dedupe, projection
+  reset/override alias precedence, narrative-lock fallback, independently evaluated
+  feedback clearing, fresh carrier/list identity, and uncaught exception order.
+  Producer construction and gates, sequential invocation, later `_replace`, broader
+  answer precedence, state/evidence/LLM work, and final orchestration remain graph-owned.
 - `financial_task_artifacts.py` owns prepared late aggregate-artifact payload and
   summary synchronization. It preserves copy-all-before-search, raw exact first-
   match, shallow aliases, overwrite/access order, input immutability, and uncaught
   exceptions. Artifact creation/finalization and ledger-level id/order remain
   graph-owned.
 
-At the latest checkpoint, the graph is 18,989 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,943 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,610, the answer-slot owner is 594, the aggregate owner is 971, the
-dependency owner is 3,164, the task-artifact owner is 1,180, and the execution
-owner is 837. The latest owner slice passed targeted 5/5 tests, affected 613/613
-tests, the 217-literal audit, and full discovery over 1,501/1,501 tests.
+aggregate-state owner is 161, the dependency owner is 3,164, the task-artifact
+owner is 1,180, and the execution owner is 837. The latest owner slice passed
+targeted 2/2 tests, affected 594/594 tests, the 217-literal audit, and full
+discovery over 1,503/1,503 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
@@ -314,6 +322,7 @@ Use existing owner modules before adding new ones:
 - `financial_dependency_projection.py`
 - `financial_calculation_execution.py`
 - `financial_aggregate_projection.py`
+- `financial_aggregate_state.py`
 - `financial_graph_calculation_rendering.py`
 - `financial_runtime_trace.py`
 - `financial_answer_projection.py`

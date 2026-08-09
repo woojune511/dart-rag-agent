@@ -111,6 +111,12 @@ Last updated: 2026-08-09
   Task-artifact owner는 graph가 준비한 artifact records, final answer와 aggregate
   projection으로 첫 exact-id aggregate artifact의 payload와 summary를 동기화한다.
   Stable order, copy-all-before-search, shallow alias와 예외 순서를 유지한다.
+- Aggregate-state owner는 public `AggregateCompositionState`와 공통 state-free
+  composition transition을 소유한다. 이 transition은 answer fallback, current-first
+  claim merge, projection reset/override, narrative lock와 feedback clear/preserve를
+  기존 평가 순서와 alias 계약대로 새 carrier에 적용한다. Graph는 다섯 producer와
+  모든 gate, 순차 state handoff, later `_replace`, broader answer precedence와 final
+  orchestration을 유지한다.
 - Graph는 direct row/evidence construction, coercion과 scope filtering,
   target override, acceptance applicability gate, direct structured preference의
   runtime evidence overlay, row iteration, peer-unit preparation, strongest-slot
@@ -133,7 +139,8 @@ Last updated: 2026-08-09
   kept-id selection, rebuild gate, selected claims, final-answer surface-operand append,
   nested-result promotion, preliminary/final projection rebuild, dependency alignment,
   preserved-field merge, aggregate candidate discovery/scoring/selection, narrative
-  refresh, packaging call placement/laziness, application invocation과 answer precedence,
+  refresh, packaging과 composition-transition call placement/laziness, application
+  invocation과 broader answer precedence,
   aggregate row candidate/sentence/conflict gate, rendered extraction, row iteration,
   lookup primary-slot 준비와 truthy gate, per-row owner iteration, task-id/equality
   update map, ordered/slot propagation과 final projection rebuild,
@@ -152,7 +159,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 5/5, affected 613/613, full unittest 1,501/1,501 PASS |
+| Latest calculation runtime validation | targeted 2/2, affected 594/594, full unittest 1,503/1,503 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

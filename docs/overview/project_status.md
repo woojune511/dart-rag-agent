@@ -212,19 +212,29 @@ imports or an unconfigured `FinancialAgent` invocation.
   retain the literal policy/grouping/partial-repair/exception contract. Graph
   keeps the evidence-driven outer aligner, candidate selection, ratio preparation,
   operand-map propagation, and later orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 18,989 lines,
+- Aggregate composition now has a public `AggregateCompositionState` carrier and
+  a state-free transition in `financial_aggregate_state.py`. It preserves answer
+  normalization with lazy fallback, current-first claim normalization/dedupe,
+  projection reset/override alias precedence, narrative-lock semantics, separate
+  feedback truthiness reads, fresh carrier/list identity, input immutability, and
+  uncaught exception order. The graph retains all five producers and their gates,
+  sequential transition placement, initial/final carrier construction, later
+  `_replace` transitions, broader answer/claim/projection precedence, state/evidence/
+  LLM work, and final orchestration.
+- At the current checkpoint, `financial_graph_calculation.py` is 18,943 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_answer_slots.py` is 594,
   `financial_aggregate_projection.py` is 971,
+  `financial_aggregate_state.py` is 161,
   `financial_operand_resolution.py` is 2,610,
   `financial_dependency_projection.py` is 3,164,
   `financial_task_artifacts.py` is 1,180, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 5/5 and affected 613/613
-  tests, the 217-literal runtime audit, and full discovery over 1,501/1,501 tests.
+- The latest calculation checkpoint passed targeted 2/2 and affected 594/594
+  tests, the 217-literal runtime audit, and full discovery over 1,503/1,503 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -248,6 +258,7 @@ current-state document does not duplicate that commit diary.
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots and ratio result-display synchronization | `financial_answer_slots.py`; owns answer-slot construction plus typed calculation-result/primary-slot display consistency, including formula-mismatch copy versus ordinary in-place update and current-surface/percent-policy/exception order, while graph callers retain ordered-row gating and propagation, compact-answer construction, and state/task/operand/period/metric formatting |
 | Aggregate projection, stale provenance selection, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, generated-provenance filtering, nested-row consistency, prepared projection-row surface synchronization, and prepared arithmetic-component synchronization | `financial_aggregate_projection.py`; canonical operation-family normalization, state-free target selection, prepared result/slot transforms, candidate packaging/application, claim-id merge, provenance filtering, nested-row recursion, selected-row numeric/result/slot/lookup synchronization, and lookup-slot to component/series/delta synchronization are owner-owned, while evidence/kept-id and candidate/sentence selection, conflict/coverage/render gates, lookup primary-slot preparation and gating, per-row task mapping/propagation, rebuild gating, selected claims, surface-operand append, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
+| Aggregate composition carrier and common transition | `financial_aggregate_state.py`; owns public `AggregateCompositionState` and the state-free answer/claim/projection/lock/feedback transition, while graph retains all producers and gates, call placement, sequential state handoff, later `_replace`, broader answer precedence, state/evidence/LLM work, and final orchestration |
 | Task/artifact projection and prepared late aggregate-artifact payload synchronization | `financial_task_artifacts.py`; owns artifact/task projection helpers and typed first exact-id payload/summary replacement over graph-prepared artifacts, while graph retains the initial copy, ratio/render/completeness/formatter/projection mutation and `None`/blank-id gates, artifact creation/finalization, ledger-level id/order, and final orchestration |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
 | Optional MAS | `src.experimental.mas` facade |
@@ -272,9 +283,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 5/5 and affected 613/613 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 2/2 and affected 594/594 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,501/1,501 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,503/1,503 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -331,7 +342,9 @@ handling, collapsed-ratio magnitude transformation, candidate
 packaging/application and final-answer synchronization, nested aggregate-row
 consistency, prepared projection-row surface synchronization, and prepared
 lookup-slot to arithmetic component/series/delta synchronization. The task-artifact
-owner also covers prepared late aggregate-artifact payload/summary replacement.
+owner also covers prepared late aggregate-artifact payload/summary replacement,
+while the aggregate-state owner covers the public composition carrier and its
+common answer/claim/projection/lock/feedback transition.
 The graph still owns
 operand/evidence adapters and builders, direct-row coercion and scope/target policy,
 direct structured preference applicability, runtime evidence preparation, row
@@ -351,7 +364,8 @@ downstream coherence/answer/coverage/final projection, aggregate/filter sequenci
 aggregate nested-result promotion, preliminary/final projection rebuild,
 dependency alignment and preserved-field merge,
 aggregate candidate discovery/scoring/selection, narrative refresh, packaging
-call placement/laziness, application invocation/answer precedence, mutable state/evidence,
+and composition-transition call placement/laziness, application invocation/
+broader answer precedence, mutable state/evidence,
 aggregate evidence/kept-id selection, rebuild gating, selected-claim filtering,
 surface-operand append, lookup primary-slot preparation/gating, per-row task
 mapping/propagation and rebuild, the initial late-artifact copy and ratio/render/
@@ -377,56 +391,44 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and relocate only the
-common aggregate composition-state transition
-`_apply_aggregate_composition_answer`
-(`financial_graph_calculation.py:5205-5250`; calls at `5338`, `5352`, `5365`,
-`5376`, and `5387`) into `financial_aggregate_state.py`. The private carrier at
-`financial_aggregate_state.py:59-66` must be promoted in the same slice from
-`_AggregateCompositionState` to public `AggregateCompositionState`, with no old
-private name or compatibility alias. The owner should expose the direct API
-`apply_aggregate_composition_answer(composition_state: AggregateCompositionState,
-*, answer: str = '', selected_claim_ids: Optional[Sequence[Any]] = None,
-calculation_projection_override: Optional[Dict[str, Any]] = None,
-reset_projection_override: bool = False,
-narrative_answer_locked: Optional[bool] = None, clear_feedback: bool = True) ->
-AggregateCompositionState`; wrappers, reasons, flags, graph state, or callbacks
-would add facade without strengthening this boundary.
+The next bounded architecture work is to characterize and relocate the two pure
+aggregate row identity/ranking primitives from
+`financial_graph_calculation.py` into `financial_aggregate_projection.py`:
+`_aggregate_result_signature` (`8203-8219`) and
+`_growth_operand_sign_consistency_rank` (`8221-8247`). The owner should expose
+plain public `aggregate_result_signature(row: Mapping[str, Any]) -> str` and
+`growth_operand_sign_consistency_rank(row: Mapping[str, Any]) -> int` functions.
+The seven signature calls at `9031`, `13039`, `13553`, `13566`, `17712`, `17714`,
+and `17719`, plus the four rank calls at `8807`, `8832`, `8937`, and `8938`, must
+remain in their exact semantic positions. In particular, preserve the caller's
+explicit `dict(row)` at `13039`, the constructed signature input at `13553`, and
+the repeated signature and rank calls rather than precomputing or caching them.
 
-The transition must normalize `answer` before lazily falling back to the current
-answer. It consumes all current claim ids before incoming ids, evaluates
-`str(claim_id).strip()` twice for every retained id, and preserves stable
-current-first `dict.fromkeys` dedupe in a fresh list. It reads the current
-projection override first; reset truthiness wins and short-circuits the incoming
-override type check, while a dict override is retained by exact alias and other
-inputs preserve the current alias. `narrative_answer_locked=None` preserves the
-current value and other values use `bool`. It always returns a fresh public
-carrier without mutating the input. `clear_feedback` is evaluated separately for
-planner then deterministic feedback, with the current fields read only on the
-respective false path. No access, normalization, iteration, truthiness, string,
-hash, constructor, or other exception is caught or reordered.
+Signature characterization must preserve calculation-result then answer-slot
+copy order, metric precedence from row to answer slot to task id, and the blank-
+metric return before operation-family resolution. Nonblank rows resolve the
+canonical owner operation family and return `family:metric` or the metric alone.
+Sign-rank characterization must return `1` for a non-growth row before reading its
+calculation result. Growth rows copy calculation result, answer slots, current
+slot, then prior slot in that order; convert current before prior; catch only
+`TypeError` and `ValueError`; and preserve same-sign `2`, opposite-sign `0`, and
+zero, `NaN`, missing, or invalid unknown rank `1` behavior, including accepted
+infinities and uncaught mapping/access exceptions.
 
-Direct characterization must cover blank and raw answers; current/incoming
-claim order, blanks, duplicates, repeated string conversion and hash failures;
-projection reset/dict/retain precedence and alias identity; lock `None` and bool
-paths; feedback clear/preserve and lazy field reads; fresh carrier/list identity,
-input immutability, and exception order. Caller characterization must cover the
-five producer branches as sequential transitions over the current carrier,
-skipped gates with owner zero calls, returned-state handoff, and an owner
-exception stopping later builders.
-
-The graph retains every producer and builder, all branch gates and call order,
-initial and final carrier construction, later `_replace` transitions, candidate
-selection, answer/claim/projection precedence outside this common transition,
-and state/evidence/LLM/final orchestration. Acceptance deletes only graph
-`5205-5250`, migrates the five calls, promotes every carrier reference, and
-leaves no old helper/self reference, private carrier name, or compatibility
-alias. The allowed claim is public aggregate composition-carrier and state-free
-common-transition ownership, not producer or answer selection, broader
-composition precedence, state/evidence orchestration, total-code or executed-
-path reduction, performance, broader private-mesh cleanup, or Phase 3
-completion. Growth raw-scale alignment remains deferred until its hard-coded
-KRW and ratio/distortion thresholds receive a separately named policy contract.
+Add a compact direct mapping, precedence, access, exception, zero/`NaN`/infinity,
+and rank matrix. Keep representative wiring through
+`test_nested_growth_promotion_prefers_sign_consistent_operand_pair` and verify
+the signature dedupe and nested-rank callers without weakening their call order.
+Acceptance deletes only graph `8203-8247`, migrates all eleven calls, leaves no
+old definitions or private self references, and stops before
+`_aggregate_row_primary_answer_slot` at `8249`. Full aggregate ranking, dedupe,
+nested promotion, result precedence, graph state/evidence/artifact/ledger work,
+and final orchestration remain graph-owned. The allowed claim is canonical
+aggregate-result signature and growth sign-consistency primitive ownership, not
+full ranking or promotion ownership, total-code or executed-path reduction,
+performance, broader private-mesh cleanup, or Phase 3 completion. Growth raw-
+scale alignment remains deferred until its hard-coded KRW and ratio/distortion
+thresholds receive a separately named policy contract.
 The Phase 3 backlog in the refactoring plan is unordered; this section is the
 authority for priority.
 
