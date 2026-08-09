@@ -19,12 +19,13 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional
 
 from src.agent import financial_answer_slots
 from src.agent.financial_aggregate_state import (
-    _AggregateCompositionState,
+    AggregateCompositionState,
     _AggregateEvidenceState,
     _AggregateFeedbackState,
     _AggregateMutableState,
     _AggregateSynthesisState,
     _PreparedAggregateState,
+    apply_aggregate_composition_answer,
 )
 from src.agent.financial_aggregate_projection import (
     AggregateArithmeticComponentSyncInput,
@@ -5202,53 +5203,6 @@ class FinancialAgentCalculationMixin:
             )
         ).candidate
 
-    def _apply_aggregate_composition_answer(
-        self,
-        composition_state: _AggregateCompositionState,
-        *,
-        answer: str = "",
-        selected_claim_ids: Optional[Sequence[Any]] = None,
-        calculation_projection_override: Optional[Dict[str, Any]] = None,
-        reset_projection_override: bool = False,
-        narrative_answer_locked: Optional[bool] = None,
-        clear_feedback: bool = True,
-    ) -> _AggregateCompositionState:
-        final_answer = _normalise_spaces(answer) or composition_state.final_answer
-        merged_claim_ids = list(
-            dict.fromkeys(
-                [
-                    *[
-                        str(claim_id).strip()
-                        for claim_id in (composition_state.selected_claim_ids or [])
-                        if str(claim_id).strip()
-                    ],
-                    *[
-                        str(claim_id).strip()
-                        for claim_id in (selected_claim_ids or [])
-                        if str(claim_id).strip()
-                    ],
-                ]
-            )
-        )
-        projection_override = composition_state.calculation_projection_override
-        if reset_projection_override:
-            projection_override = None
-        elif isinstance(calculation_projection_override, dict):
-            projection_override = calculation_projection_override
-        locked = (
-            composition_state.narrative_answer_locked
-            if narrative_answer_locked is None
-            else bool(narrative_answer_locked)
-        )
-        return _AggregateCompositionState(
-            final_answer=final_answer,
-            selected_claim_ids=merged_claim_ids,
-            calculation_projection_override=projection_override,
-            narrative_answer_locked=locked,
-            planner_feedback="" if clear_feedback else composition_state.planner_feedback,
-            deterministic_feedback="" if clear_feedback else composition_state.deterministic_feedback,
-        )
-
     def _apply_initial_aggregate_answer_composition(
         self,
         state: FinancialAgentState,
@@ -5266,7 +5220,7 @@ class FinancialAgentCalculationMixin:
         numeric_answer_locked: bool,
         planner_feedback: str,
         deterministic_feedback: str,
-    ) -> tuple[_AggregateCompositionState, str]:
+    ) -> tuple[AggregateCompositionState, str]:
         if (
             deterministic_feedback
             and self._unresolved_structured_numeric_gap(ordered_results)
@@ -5311,7 +5265,7 @@ class FinancialAgentCalculationMixin:
                 narrative_context=narrative_context,
             )
 
-        composition_state = _AggregateCompositionState(
+        composition_state = AggregateCompositionState(
             final_answer=final_answer,
             selected_claim_ids=[],
             calculation_projection_override=None,
@@ -5335,7 +5289,7 @@ class FinancialAgentCalculationMixin:
         )
         if growth_narrative_answer and not composition_state.narrative_answer_locked:
             growth_compressed_answer = _normalise_spaces(str(growth_narrative_answer.get("compressed_answer") or ""))
-            composition_state = self._apply_aggregate_composition_answer(
+            composition_state = apply_aggregate_composition_answer(
                 composition_state,
                 answer=growth_compressed_answer,
                 selected_claim_ids=growth_narrative_answer.get("selected_claim_ids") or [],
@@ -5349,7 +5303,7 @@ class FinancialAgentCalculationMixin:
             )
         if entity_table_answer and not composition_state.narrative_answer_locked:
             projection = entity_table_answer.get("calculation_projection")
-            composition_state = self._apply_aggregate_composition_answer(
+            composition_state = apply_aggregate_composition_answer(
                 composition_state,
                 answer=str(entity_table_answer.get("compressed_answer") or ""),
                 selected_claim_ids=entity_table_answer.get("selected_claim_ids") or [],
@@ -5362,7 +5316,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
         )
         if business_focus_answer and not composition_state.narrative_answer_locked:
-            composition_state = self._apply_aggregate_composition_answer(
+            composition_state = apply_aggregate_composition_answer(
                 composition_state,
                 answer=str(business_focus_answer.get("compressed_answer") or ""),
                 selected_claim_ids=business_focus_answer.get("selected_claim_ids") or [],
@@ -5373,7 +5327,7 @@ class FinancialAgentCalculationMixin:
         )
         dividend_answer = _normalise_spaces(str((dividend_policy_answer or {}).get("answer") or ""))
         if dividend_answer:
-            composition_state = self._apply_aggregate_composition_answer(
+            composition_state = apply_aggregate_composition_answer(
                 composition_state,
                 answer=dividend_answer,
                 selected_claim_ids=(dividend_policy_answer or {}).get("supporting_claim_ids") or [],
@@ -5384,7 +5338,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
         )
         if quantitative_impact_answer and not composition_state.narrative_answer_locked:
-            composition_state = self._apply_aggregate_composition_answer(
+            composition_state = apply_aggregate_composition_answer(
                 composition_state,
                 answer=str(quantitative_impact_answer.get("answer") or ""),
                 selected_claim_ids=quantitative_impact_answer.get("supporting_claim_ids") or [],
@@ -5449,7 +5403,7 @@ class FinancialAgentCalculationMixin:
             else:
                 final_answer = complete_numeric_answer
                 selected_claim_ids = []
-            composition_state = _AggregateCompositionState(
+            composition_state = AggregateCompositionState(
                 final_answer=final_answer,
                 selected_claim_ids=selected_claim_ids,
                 calculation_projection_override=None,

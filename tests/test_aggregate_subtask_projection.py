@@ -6,12 +6,18 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from src.agent import (
+    financial_aggregate_state,
     financial_aggregate_projection,
     financial_calculation_execution,
     financial_graph_calculation,
 )
 from src.agent.financial_graph import FinancialAgent
-from src.agent.financial_aggregate_state import _AggregateMutableState, _AggregateSynthesisState
+from src.agent.financial_aggregate_state import (
+    AggregateCompositionState,
+    _AggregateMutableState,
+    _AggregateSynthesisState,
+    apply_aggregate_composition_answer,
+)
 from src.agent.financial_aggregate_projection import (
     AggregateArithmeticComponentSyncInput,
     AggregateAnswerCandidateApplicationInput,
@@ -91,6 +97,327 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_aggregate_composition_transition_preserves_state_and_access_contract(self) -> None:
+        def apply_transition(state, **kwargs):
+            return apply_aggregate_composition_answer(state, **kwargs)
+
+        projection = {"calculation_result": {"status": "ok"}}
+        state = AggregateCompositionState(
+            final_answer="current answer",
+            selected_claim_ids=[" current ", "duplicate"],
+            calculation_projection_override=projection,
+            narrative_answer_locked=False,
+            planner_feedback="planner",
+            deterministic_feedback="deterministic",
+        )
+        state_snapshot = deepcopy(state)
+        incoming_projection = {"calculation_result": {"status": "replaced"}}
+        transitioned = apply_transition(
+            state,
+            answer="  replacement   answer  ",
+            selected_claim_ids=["duplicate", " incoming ", ""],
+            calculation_projection_override=incoming_projection,
+            narrative_answer_locked=True,
+        )
+        self.assertEqual(transitioned.final_answer, "replacement answer")
+        self.assertEqual(transitioned.selected_claim_ids, ["current", "duplicate", "incoming"])
+        self.assertIsNot(transitioned.selected_claim_ids, state.selected_claim_ids)
+        self.assertIs(transitioned.calculation_projection_override, incoming_projection)
+        self.assertTrue(transitioned.narrative_answer_locked)
+        self.assertEqual((transitioned.planner_feedback, transitioned.deterministic_feedback), ("", ""))
+        self.assertIsNot(transitioned, state)
+        self.assertEqual(state, state_snapshot)
+
+        preserved = apply_transition(
+            state,
+            answer="   ",
+            calculation_projection_override=("not", "a", "dict"),
+            clear_feedback=False,
+        )
+        self.assertEqual(preserved.final_answer, "current answer")
+        self.assertIs(preserved.calculation_projection_override, projection)
+        self.assertFalse(preserved.narrative_answer_locked)
+        self.assertEqual(
+            (preserved.planner_feedback, preserved.deterministic_feedback),
+            ("planner", "deterministic"),
+        )
+        locked_state = state._replace(narrative_answer_locked=True)
+        self.assertTrue(apply_transition(locked_state).narrative_answer_locked)
+        self.assertFalse(
+            apply_transition(locked_state, narrative_answer_locked=False).narrative_answer_locked
+        )
+        reset = apply_transition(
+            state,
+            calculation_projection_override=incoming_projection,
+            reset_projection_override=True,
+        )
+        self.assertIsNone(reset.calculation_projection_override)
+
+        events = []
+
+        class _TrackedClaim:
+            def __init__(self, name, text, *, fail_on_call=0):
+                self.name = name
+                self.text = text
+                self.fail_on_call = fail_on_call
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                events.append(f"str:{self.name}")
+                if self.calls == self.fail_on_call:
+                    raise RuntimeError(f"failed to stringify {self.name}")
+                return self.text
+
+        class _TrackingState:
+            def __init__(self):
+                self.current_claims = [_TrackedClaim("current", " current ")]
+                self.projection = {"marker": True}
+
+            @property
+            def final_answer(self):
+                events.append("get:final_answer")
+                return "fallback"
+
+            @property
+            def selected_claim_ids(self):
+                events.append("get:selected_claim_ids")
+                return self.current_claims
+
+            @property
+            def calculation_projection_override(self):
+                events.append("get:projection")
+                return self.projection
+
+            @property
+            def narrative_answer_locked(self):
+                events.append("get:lock")
+                return True
+
+            @property
+            def planner_feedback(self):
+                events.append("get:planner")
+                return "planner"
+
+            @property
+            def deterministic_feedback(self):
+                events.append("get:deterministic")
+                return "deterministic"
+
+        class _TrackedClear:
+            def __init__(self):
+                self.values = iter((True, False))
+
+            def __bool__(self):
+                events.append("bool:clear")
+                return next(self.values)
+
+        tracked_state = _TrackingState()
+        incoming_claim = _TrackedClaim("incoming", " incoming ")
+        with patch.object(
+            financial_aggregate_state,
+            "_normalise_spaces",
+            side_effect=lambda value: events.append("normalize:answer") or "normalized",
+        ):
+            tracked = apply_transition(
+                tracked_state,
+                answer="raw",
+                selected_claim_ids=[incoming_claim],
+                narrative_answer_locked=False,
+                clear_feedback=_TrackedClear(),
+            )
+        self.assertEqual(tracked.final_answer, "normalized")
+        self.assertEqual(tracked.selected_claim_ids, ["current", "incoming"])
+        self.assertEqual(tracked.planner_feedback, "")
+        self.assertEqual(tracked.deterministic_feedback, "deterministic")
+        self.assertEqual(
+            events,
+            [
+                "normalize:answer",
+                "get:selected_claim_ids",
+                "str:current",
+                "str:current",
+                "str:incoming",
+                "str:incoming",
+                "get:projection",
+                "bool:clear",
+                "bool:clear",
+                "get:deterministic",
+            ],
+        )
+
+        events.clear()
+        broken = _TrackedClaim("broken", "broken", fail_on_call=2)
+        with self.assertRaisesRegex(RuntimeError, "failed to stringify broken"):
+            apply_transition(
+                AggregateCompositionState("answer", [], projection, False, "planner", "deterministic"),
+                selected_claim_ids=[broken],
+            )
+        self.assertEqual(events, ["str:broken", "str:broken"])
+
+        class _UnhashableClaimText(str):
+            def strip(self, *_args):
+                return self
+
+            def __hash__(self):
+                raise RuntimeError("failed to hash claim")
+
+        class _UnhashableClaim:
+            def __str__(self):
+                return _UnhashableClaimText("claim")
+
+        with self.assertRaisesRegex(RuntimeError, "failed to hash claim"):
+            apply_transition(
+                AggregateCompositionState("answer", [], projection, False, "planner", "deterministic"),
+                selected_claim_ids=[_UnhashableClaim()],
+            )
+
+    def test_initial_aggregate_composition_wires_public_transition_in_order(self) -> None:
+        def build_agent(*, locked=False, growth=None, entity=None, business=None, dividend=None, quantitative=None):
+            events = []
+            business_inputs = []
+
+            def compose(name, result):
+                def run(**kwargs):
+                    events.append(name)
+                    if name == "business":
+                        business_inputs.append(kwargs["existing_answer"])
+                    return result
+
+                return run
+
+            return (
+                SimpleNamespace(
+                    _unresolved_structured_numeric_gap=lambda _rows: False,
+                    _answer_slot_has_material=lambda *_args, **_kwargs: False,
+                    _answer_matches_supported_aggregate_subtask=lambda *_args, **_kwargs: locked,
+                    _compose_growth_narrative_answer=compose("growth", growth),
+                    _compose_entity_table_summary_answer=compose("entity", entity),
+                    _compose_business_technology_focus_answer=compose("business", business),
+                    _compose_dividend_policy_hybrid_answer=compose("dividend", dividend),
+                    _compose_supported_quantitative_impact_answer=compose("quantitative", quantitative),
+                    _augment_narrative_answer_with_supported_drivers=lambda answer, *_args, **_kwargs: answer,
+                    _answer_satisfies_growth_narrative_intent=lambda **_kwargs: True,
+                ),
+                events,
+                business_inputs,
+            )
+
+        def compose(agent, *, supported_answer=""):
+            with (
+                patch.object(
+                    financial_graph_calculation.calculation_rendering,
+                    "coerce_sign_aware_subtraction_answer",
+                    side_effect=lambda answer, **_kwargs: answer,
+                ),
+                patch.object(
+                    financial_graph_calculation.calculation_rendering,
+                    "compose_slot_based_difference_answer",
+                    return_value="",
+                ),
+            ):
+                return financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
+                    agent,
+                    {"query": "summarize", "report_scope": {}},
+                    ordered_results=[],
+                    preliminary_projection={"calculation_result": {}},
+                    aggregate_evidence_items=[],
+                    narrative_docs=[],
+                    narrative_context="",
+                    final_answer="initial answer",
+                    supported_aggregate_answer=supported_answer,
+                    complete_numeric_answer="numeric answer",
+                    has_narrative_summary=False,
+                    has_growth_rate_result=False,
+                    numeric_answer_locked=False,
+                    planner_feedback="planner",
+                    deterministic_feedback="deterministic",
+                )
+
+        entity_projection = {"calculation_result": {"status": "entity"}}
+        agent, events, business_inputs = build_agent(
+            entity={
+                "compressed_answer": "entity answer",
+                "selected_claim_ids": ["entity"],
+                "calculation_projection": entity_projection,
+            },
+            business={"compressed_answer": "business answer", "selected_claim_ids": ["business"]},
+        )
+        with patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_composition_answer",
+            wraps=apply_aggregate_composition_answer,
+        ) as transition:
+            composed, complete_numeric_answer = compose(agent)
+        self.assertEqual(events, ["growth", "entity", "business", "dividend", "quantitative"])
+        self.assertEqual(business_inputs, ["entity answer"])
+        self.assertEqual(transition.call_count, 2)
+        self.assertEqual(transition.call_args_list[0].args[0].final_answer, "initial answer")
+        self.assertEqual(transition.call_args_list[1].args[0].final_answer, "entity answer")
+        self.assertEqual(composed.final_answer, "business answer")
+        self.assertEqual(composed.selected_claim_ids, ["entity", "business"])
+        self.assertIs(composed.calculation_projection_override, entity_projection)
+        self.assertEqual(complete_numeric_answer, "numeric answer")
+
+        growth_agent, _, _ = build_agent(
+            growth={"compressed_answer": "growth answer", "selected_claim_ids": ["growth"]},
+        )
+        with patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_composition_answer",
+            wraps=apply_aggregate_composition_answer,
+        ) as transition:
+            growth_state, _ = compose(growth_agent)
+        transition.assert_called_once()
+        self.assertTrue(transition.call_args.kwargs["narrative_answer_locked"])
+        self.assertEqual((growth_state.final_answer, growth_state.selected_claim_ids), ("growth answer", ["growth"]))
+
+        dividend_agent, _, _ = build_agent(
+            dividend={"answer": "dividend answer", "supporting_claim_ids": ["dividend"]},
+            quantitative={"answer": "quantitative answer", "supporting_claim_ids": ["quantitative"]},
+        )
+        with patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_composition_answer",
+            wraps=apply_aggregate_composition_answer,
+        ) as transition:
+            quantitative_state, _ = compose(dividend_agent)
+        self.assertEqual(transition.call_count, 2)
+        self.assertTrue(transition.call_args_list[0].kwargs["reset_projection_override"])
+        self.assertTrue(transition.call_args_list[1].kwargs["narrative_answer_locked"])
+        self.assertEqual(quantitative_state.final_answer, "quantitative answer")
+        self.assertEqual(quantitative_state.selected_claim_ids, ["dividend", "quantitative"])
+
+        locked_agent, locked_events, _ = build_agent(
+            locked=True,
+            growth={"compressed_answer": "growth answer"},
+            entity={"compressed_answer": "entity answer"},
+            business={"compressed_answer": "business answer"},
+            quantitative={"answer": "quantitative answer"},
+        )
+        with patch.object(financial_graph_calculation, "apply_aggregate_composition_answer") as transition:
+            locked_state, _ = compose(locked_agent, supported_answer="supported answer")
+        self.assertEqual(locked_events, ["growth", "entity", "business", "dividend", "quantitative"])
+        transition.assert_not_called()
+        self.assertEqual(locked_state.final_answer, "initial answer")
+        self.assertTrue(locked_state.narrative_answer_locked)
+
+        failing_agent, failing_events, _ = build_agent(
+            growth={"compressed_answer": "growth answer"},
+            entity={"compressed_answer": "entity answer"},
+            business={"compressed_answer": "business answer"},
+            quantitative={"answer": "quantitative answer"},
+        )
+        with patch.object(
+            financial_graph_calculation,
+            "apply_aggregate_composition_answer",
+            side_effect=RuntimeError("transition failed"),
+        ) as transition:
+            with self.assertRaisesRegex(RuntimeError, "transition failed"):
+                compose(failing_agent)
+        self.assertEqual(failing_events, ["growth", "entity"])
+        transition.assert_called_once()
+
     def test_arithmetic_lookup_slot_sync_preserves_matching_copy_and_order_contract(self) -> None:
         def sync(row, lookup_slots):
             return synchronize_aggregate_arithmetic_components(

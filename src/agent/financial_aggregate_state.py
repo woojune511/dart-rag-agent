@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Sequence
+
+from src.agent.financial_runtime_normalization import _normalise_spaces
 
 
 class _AggregateSynthesisState(NamedTuple):
@@ -56,13 +58,60 @@ class _AggregateFeedbackState(NamedTuple):
     replan_blocked_reason: str
 
 
-class _AggregateCompositionState(NamedTuple):
+class AggregateCompositionState(NamedTuple):
     final_answer: str
     selected_claim_ids: List[str]
     calculation_projection_override: Optional[Dict[str, Any]]
     narrative_answer_locked: bool
     planner_feedback: str
     deterministic_feedback: str
+
+
+def apply_aggregate_composition_answer(
+    composition_state: AggregateCompositionState,
+    *,
+    answer: str = "",
+    selected_claim_ids: Optional[Sequence[Any]] = None,
+    calculation_projection_override: Optional[Dict[str, Any]] = None,
+    reset_projection_override: bool = False,
+    narrative_answer_locked: Optional[bool] = None,
+    clear_feedback: bool = True,
+) -> AggregateCompositionState:
+    final_answer = _normalise_spaces(answer) or composition_state.final_answer
+    merged_claim_ids = list(
+        dict.fromkeys(
+            [
+                *[
+                    str(claim_id).strip()
+                    for claim_id in (composition_state.selected_claim_ids or [])
+                    if str(claim_id).strip()
+                ],
+                *[
+                    str(claim_id).strip()
+                    for claim_id in (selected_claim_ids or [])
+                    if str(claim_id).strip()
+                ],
+            ]
+        )
+    )
+    projection_override = composition_state.calculation_projection_override
+    if reset_projection_override:
+        projection_override = None
+    elif isinstance(calculation_projection_override, dict):
+        projection_override = calculation_projection_override
+    locked = (
+        composition_state.narrative_answer_locked
+        if narrative_answer_locked is None
+        else bool(narrative_answer_locked)
+    )
+    return AggregateCompositionState(
+        final_answer=final_answer,
+        selected_claim_ids=merged_claim_ids,
+        calculation_projection_override=projection_override,
+        narrative_answer_locked=locked,
+        planner_feedback="" if clear_feedback else composition_state.planner_feedback,
+        deterministic_feedback="" if clear_feedback else composition_state.deterministic_feedback,
+    )
 
 
 class _AggregateMutableState(NamedTuple):
