@@ -102,6 +102,29 @@ class RatioArtifactConflictSelectionResult:
 
 
 @dataclass(frozen=True)
+class DependencyRatioResultProjectionInput:
+    """Prepared dependency-source ratio fields for result projection."""
+
+    calculation_result: Mapping[str, Any]
+    answer_slots: Mapping[str, Any]
+    metric_label: str
+    numerator_slot: Mapping[str, Any]
+    denominator_slot: Mapping[str, Any]
+    result_value: float
+    result_unit: str
+    normalized_unit: str
+    rendered_value: str
+    source_row_ids: List[str]
+
+
+@dataclass(frozen=True)
+class DependencyRatioResultProjectionResult:
+    """Fresh calculation result projected from prepared dependency ratio fields."""
+
+    calculation_result: Dict[str, Any]
+
+
+@dataclass(frozen=True)
 class DependencyStructuredProvenanceAdoptionInput:
     """Graph-built mutable dependency row and resolved structured provenance."""
 
@@ -311,6 +334,58 @@ class DependencyProducerScope:
     producer_task: Dict[str, Any]
     preferred_statement_types: Tuple[str, ...]
     preferred_sections: Tuple[str, ...]
+
+
+def build_dependency_ratio_result_projection(
+    projection_input: DependencyRatioResultProjectionInput,
+) -> DependencyRatioResultProjectionResult:
+    """Project one dependency-source ratio result without graph state."""
+
+    source_row_ids = projection_input.source_row_ids
+    numerator_slot = projection_input.numerator_slot
+    denominator_slot = projection_input.denominator_slot
+    return DependencyRatioResultProjectionResult(
+        calculation_result={
+            **projection_input.calculation_result,
+            "status": "ok",
+            "operation_family": "ratio",
+            "result_value": projection_input.result_value,
+            "result_unit": projection_input.result_unit,
+            "rendered_value": projection_input.rendered_value,
+            "formatted_result": "",
+            "source_row_ids": source_row_ids,
+            "source_evidence_ids": source_row_ids,
+            "answer_slots": {
+                **projection_input.answer_slots,
+                "metric_label": projection_input.metric_label,
+                "operation_family": "ratio",
+                "source_row_ids": source_row_ids,
+                "primary_value": {
+                    "status": "ok",
+                    "role": "primary_value",
+                    "label": projection_input.metric_label,
+                    "concept": "",
+                    "period": "",
+                    "raw_value": projection_input.rendered_value,
+                    "raw_unit": projection_input.result_unit,
+                    "normalized_value": projection_input.result_value,
+                    "normalized_unit": projection_input.normalized_unit,
+                    "rendered_value": projection_input.rendered_value,
+                    "source_row_id": source_row_ids[0] if source_row_ids else "",
+                    "source_row_ids": source_row_ids,
+                    "source_anchor": "",
+                },
+                "components_by_group": {
+                    "numerator": [numerator_slot],
+                    "denominator": [denominator_slot],
+                },
+                "components_by_role": {
+                    "numerator_1": [numerator_slot],
+                    "denominator_1": [denominator_slot],
+                },
+            },
+        }
+    )
 
 
 def dependency_binding_identity(binding: Dict[str, Any]) -> Tuple[str, str]:

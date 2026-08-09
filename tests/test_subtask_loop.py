@@ -17524,7 +17524,15 @@ class SubtaskLoopTests(unittest.TestCase):
             ),
         ]
 
-        self.assertEqual(self.agent._preferred_complete_numeric_answer(ordered_results), "")
+        ordered_results_before = deepcopy(ordered_results)
+        with patch.object(
+            financial_graph_calculation,
+            "build_dependency_ratio_result_projection",
+            wraps=financial_graph_calculation.build_dependency_ratio_result_projection,
+        ) as result_builder:
+            self.assertEqual(self.agent._preferred_complete_numeric_answer(ordered_results), "")
+        result_builder.assert_not_called()
+        self.assertEqual(ordered_results, ordered_results_before)
 
     def test_preferred_complete_numeric_answer_rebuilds_ratio_from_dependency_source_slots(self) -> None:
         ordered_results = [
@@ -17571,8 +17579,41 @@ class SubtaskLoopTests(unittest.TestCase):
             ),
         ]
 
-        answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+        events = []
 
+        def record(name, function):
+            def wrapped(*args, **kwargs):
+                events.append(name)
+                return function(*args, **kwargs)
+
+            return wrapped
+
+        ordered_results_before = deepcopy(ordered_results)
+        with patch.object(
+            self.agent,
+            "_ratio_result_projection",
+            side_effect=record("projection", self.agent._ratio_result_projection),
+        ), patch.object(
+            financial_graph_calculation,
+            "_clean_source_row_ids",
+            side_effect=record("clean", financial_graph_calculation._clean_source_row_ids),
+        ), patch.object(
+            financial_graph_calculation,
+            "build_dependency_ratio_result_projection",
+            side_effect=record(
+                "owner",
+                financial_graph_calculation.build_dependency_ratio_result_projection,
+            ),
+        ), patch.object(
+            self.agent,
+            "_compact_ratio_answer",
+            side_effect=record("compact", self.agent._compact_ratio_answer),
+        ):
+            answer = self.agent._preferred_complete_numeric_answer(ordered_results)
+
+        self.assertEqual(events[-4:], ["projection", "clean", "owner", "compact"])
+        self.assertEqual(events.count("owner"), 1)
+        self.assertEqual(ordered_results, ordered_results_before)
         self.assertIn("80%", answer)
         self.assertIn("target value", answer)
         self.assertIn("base value", answer)

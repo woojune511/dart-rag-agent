@@ -1,10 +1,11 @@
 import unittest
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Mapping
 from unittest.mock import patch
 
 import src.agent.financial_dependency_projection as dependency_projection
 from src.agent.financial_dependency_projection import (
+    DependencyRatioResultProjectionInput,
     DirectDependencySelectionInput,
     DependencyRecalculatedRowFinalizationInput,
     DependencyRecalculationCandidateProjectionInput,
@@ -14,6 +15,7 @@ from src.agent.financial_dependency_projection import (
     MainOperandPrecedenceInput,
     adopt_dependency_structured_provenance,
     align_dependency_rows_with_sibling_direct_context,
+    build_dependency_ratio_result_projection,
     decide_task_output_operand_resolution,
     dependency_binding_identity,
     direct_rows_resolved_dependency_keys,
@@ -32,6 +34,206 @@ from src.agent.financial_dependency_projection import (
 
 
 class FinancialDependencyProjectionTests(unittest.TestCase):
+    def test_dependency_ratio_result_projection_preserves_aliases_and_access_order(self) -> None:
+        marker = {"preserve": True}
+        numerator = {"slot": "numerator", "metadata": marker}
+        denominator = {"slot": "denominator", "metadata": marker}
+        source_ids = ["ev_num", "ev_den"]
+        calculation_result = {
+            "status": "partial",
+            "operation_family": "difference",
+            "result_value": -1.0,
+            "result_unit": "old",
+            "rendered_value": "old",
+            "formatted_result": "old",
+            "source_row_ids": ["stale"],
+            "source_evidence_ids": ["stale"],
+            "answer_slots": {"legacy": True},
+            "metadata": marker,
+        }
+        answer_slots = {
+            "metric_label": "stale",
+            "operation_family": "difference",
+            "source_row_ids": ["stale"],
+            "primary_value": {"rendered_value": "stale"},
+            "components_by_group": {"operand": [{"stale": True}]},
+            "components_by_role": {"operand_1": [{"stale": True}]},
+            "metadata": marker,
+        }
+
+        def build(result=calculation_result, slots=answer_slots, ids=source_ids):
+            return build_dependency_ratio_result_projection(
+                DependencyRatioResultProjectionInput(
+                    calculation_result=result,
+                    answer_slots=slots,
+                    metric_label="target share",
+                    numerator_slot=numerator,
+                    denominator_slot=denominator,
+                    result_value=80.0,
+                    result_unit="%",
+                    normalized_unit="PERCENT",
+                    rendered_value="80%",
+                    source_row_ids=ids,
+                )
+            ).calculation_result
+
+        inputs = (calculation_result, answer_slots, numerator, denominator, source_ids)
+        inputs_before = deepcopy(inputs)
+        selected = build()
+        selected_slots = selected["answer_slots"]
+        primary = selected_slots["primary_value"]
+        grouped = selected_slots["components_by_group"]
+        by_role = selected_slots["components_by_role"]
+
+        self.assertEqual(
+            tuple(selected[key] for key in (
+                "status", "operation_family", "result_value", "result_unit",
+                "rendered_value", "formatted_result",
+            )),
+            ("ok", "ratio", 80.0, "%", "80%", ""),
+        )
+        self.assertIs(selected["metadata"], marker)
+        self.assertIsNot(selected, calculation_result)
+        self.assertIsNot(selected_slots, answer_slots)
+        self.assertIsNot(primary, answer_slots["primary_value"])
+        self.assertEqual(list(selected), list(calculation_result))
+        self.assertEqual(list(selected_slots), list(answer_slots))
+        self.assertEqual(
+            primary,
+            {
+                "status": "ok",
+                "role": "primary_value",
+                "label": "target share",
+                "concept": "",
+                "period": "",
+                "raw_value": "80%",
+                "raw_unit": "%",
+                "normalized_value": 80.0,
+                "normalized_unit": "PERCENT",
+                "rendered_value": "80%",
+                "source_row_id": "ev_num",
+                "source_row_ids": source_ids,
+                "source_anchor": "",
+            },
+        )
+        self.assertTrue(all(value is source_ids for value in (
+            selected["source_row_ids"], selected["source_evidence_ids"],
+            selected_slots["source_row_ids"], primary["source_row_ids"],
+        )))
+        self.assertIsNot(grouped, answer_slots["components_by_group"])
+        self.assertIsNot(by_role, answer_slots["components_by_role"])
+        self.assertEqual(len({id(rows) for rows in (*grouped.values(), *by_role.values())}), 4)
+        self.assertIsNot(grouped["numerator"], by_role["numerator_1"])
+        self.assertIsNot(grouped["denominator"], by_role["denominator_1"])
+        self.assertIs(grouped["numerator"][0], numerator)
+        self.assertIs(by_role["numerator_1"][0], numerator)
+        self.assertIs(grouped["denominator"][0], denominator)
+        self.assertIs(by_role["denominator_1"][0], denominator)
+        self.assertIs(selected_slots["metadata"], marker)
+        self.assertNotIn("legacy", selected_slots)
+        self.assertEqual(inputs, inputs_before)
+
+        empty_ids = []
+        empty_selected = build({}, {}, empty_ids)
+        empty_primary = empty_selected["answer_slots"]["primary_value"]
+        self.assertEqual(empty_primary["source_row_id"], "")
+        self.assertTrue(all(value is empty_ids for value in (
+            empty_selected["source_row_ids"], empty_selected["source_evidence_ids"],
+            empty_selected["answer_slots"]["source_row_ids"], empty_primary["source_row_ids"],
+        )))
+
+        events = []
+
+        class _TrackingMapping(Mapping):
+            def __init__(self, name, values, *, fail_key=""):
+                self.name = name
+                self.values = values
+                self.fail_key = fail_key
+
+            def __len__(self):
+                events.append(f"len:{self.name}")
+                return len(self.values)
+
+            def __iter__(self):
+                events.append(f"iter:{self.name}")
+                return iter(self.values)
+
+            def keys(self):
+                events.append(f"keys:{self.name}")
+                return self.values.keys()
+
+            def __getitem__(self, key):
+                events.append(f"getitem:{self.name}:{key}")
+                if key == self.fail_key:
+                    raise RuntimeError(f"failed to expand {self.name}")
+                return self.values[key]
+
+            def get(self, _key, _default=None):
+                raise RuntimeError(f"unexpected get from {self.name}")
+
+        class _TrackingIds(list):
+            def __init__(self, values, *, fail_bool=False, fail_index=False):
+                super().__init__(values)
+                self.fail_bool = fail_bool
+                self.fail_index = fail_index
+
+            def __bool__(self):
+                events.append("bool:ids")
+                if self.fail_bool:
+                    raise RuntimeError("failed source id truthiness")
+                return len(self) > 0
+
+            def __getitem__(self, index):
+                events.append(f"index:ids:{index}")
+                if self.fail_index:
+                    raise RuntimeError("failed source id index")
+                return super().__getitem__(index)
+
+        tracked_ids = _TrackingIds(["ev_num"])
+        tracked = build(
+            _TrackingMapping("result", {"metadata": marker}),
+            _TrackingMapping("slots", {"metadata": marker}),
+            tracked_ids,
+        )
+        self.assertEqual(events, [
+            "keys:result", "getitem:result:metadata", "keys:slots",
+            "getitem:slots:metadata", "bool:ids", "index:ids:0",
+        ])
+        self.assertIs(tracked["source_row_ids"], tracked_ids)
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "failed to expand slots"):
+            build(
+                _TrackingMapping("result", {"metadata": marker}),
+                _TrackingMapping("slots", {"metadata": marker}, fail_key="metadata"),
+                _TrackingIds(["ev_num"]),
+            )
+        self.assertEqual(events, [
+            "keys:result", "getitem:result:metadata", "keys:slots", "getitem:slots:metadata",
+        ])
+
+        for ids, message, expected_tail in (
+            (
+                _TrackingIds(["ev_num"], fail_bool=True),
+                "truthiness",
+                ["keys:result", "keys:slots", "bool:ids"],
+            ),
+            (
+                _TrackingIds(["ev_num"], fail_index=True),
+                "index",
+                ["keys:result", "keys:slots", "bool:ids", "index:ids:0"],
+            ),
+        ):
+            with self.subTest(source_ids=message):
+                events.clear()
+                with self.assertRaisesRegex(RuntimeError, message):
+                    build(
+                        _TrackingMapping("result", {}),
+                        _TrackingMapping("slots", {}),
+                        ids,
+                    )
+                self.assertEqual(events, expected_tail)
+
     def test_dependency_recalculation_candidate_and_row_projection_contracts(self) -> None:
         nested_marker = {"preserve": True}
         candidate_operands = [{"operand_id": "candidate", "metadata": nested_marker}]

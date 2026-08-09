@@ -69,6 +69,7 @@ from src.agent.financial_calculation_execution import (
     resolve_deterministic_operation_plan,
 )
 from src.agent.financial_dependency_projection import (
+    DependencyRatioResultProjectionInput,
     DependencyRecalculatedRowFinalizationInput,
     DependencyRecalculationCandidateProjectionInput,
     DependencyStructuredProvenanceAdoptionInput,
@@ -79,6 +80,7 @@ from src.agent.financial_dependency_projection import (
     adopt_dependency_structured_provenance,
     apply_absolute_ratio_magnitude_if_requested,
     align_lookup_result_units_from_peer_source_slots,
+    build_dependency_ratio_result_projection,
     build_dependency_lookup_slots_by_task,
     classify_dependency_recalculation_plan,
     collect_table_label_evidence_candidates,
@@ -8793,61 +8795,6 @@ class FinancialAgentCalculationMixin:
             "rendered_value": calculation_rendering.format_ratio_result(result_value, result_unit),
         }
 
-    def _rebuilt_ratio_result_from_dependency_slots(
-        self,
-        *,
-        calculation_result: Dict[str, Any],
-        answer_slots: Dict[str, Any],
-        metric_label: str,
-        numerator_slot: Dict[str, Any],
-        denominator_slot: Dict[str, Any],
-        result_value: float,
-        result_unit: str,
-        normalized_unit: str,
-        rendered_value: str,
-        source_row_ids: List[str],
-    ) -> Dict[str, Any]:
-        return {
-            **calculation_result,
-            "status": "ok",
-            "operation_family": "ratio",
-            "result_value": result_value,
-            "result_unit": result_unit,
-            "rendered_value": rendered_value,
-            "formatted_result": "",
-            "source_row_ids": source_row_ids,
-            "source_evidence_ids": source_row_ids,
-            "answer_slots": {
-                **answer_slots,
-                "metric_label": metric_label,
-                "operation_family": "ratio",
-                "source_row_ids": source_row_ids,
-                "primary_value": {
-                    "status": "ok",
-                    "role": "primary_value",
-                    "label": metric_label,
-                    "concept": "",
-                    "period": "",
-                    "raw_value": rendered_value,
-                    "raw_unit": result_unit,
-                    "normalized_value": result_value,
-                    "normalized_unit": normalized_unit,
-                    "rendered_value": rendered_value,
-                    "source_row_id": source_row_ids[0] if source_row_ids else "",
-                    "source_row_ids": source_row_ids,
-                    "source_anchor": "",
-                },
-                "components_by_group": {
-                    "numerator": [numerator_slot],
-                    "denominator": [denominator_slot],
-                },
-                "components_by_role": {
-                    "numerator_1": [numerator_slot],
-                    "denominator_1": [denominator_slot],
-                },
-            },
-        }
-
     def _ratio_answer_from_dependency_source_slots(
         self,
         row: Dict[str, Any],
@@ -8964,18 +8911,20 @@ class FinancialAgentCalculationMixin:
             denominator_slot.get("source_row_id"),
             denominator_slot.get("source_row_ids"),
         ])
-        rebuilt_result = self._rebuilt_ratio_result_from_dependency_slots(
-            calculation_result=calculation_result,
-            answer_slots=answer_slots,
-            metric_label=metric_label,
-            numerator_slot=numerator_slot,
-            denominator_slot=denominator_slot,
-            result_value=result_value,
-            result_unit=result_unit,
-            normalized_unit=normalized_unit,
-            rendered_value=rendered_value,
-            source_row_ids=source_row_ids,
-        )
+        rebuilt_result = build_dependency_ratio_result_projection(
+            DependencyRatioResultProjectionInput(
+                calculation_result=calculation_result,
+                answer_slots=answer_slots,
+                metric_label=metric_label,
+                numerator_slot=numerator_slot,
+                denominator_slot=denominator_slot,
+                result_value=result_value,
+                result_unit=result_unit,
+                normalized_unit=normalized_unit,
+                rendered_value=rendered_value,
+                source_row_ids=source_row_ids,
+            )
+        ).calculation_result
         return self._compact_ratio_answer(
             {
                 "active_subtask": {"metric_label": metric_label},
