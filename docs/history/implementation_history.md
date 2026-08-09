@@ -1040,6 +1040,42 @@ selection, complete coherence-rank/provenance-adoption ownership, unit-policy
 improvement, total-code or broad executed-path reduction, performance, broader
 private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Compact aggregate-synthesis prompt projection ownership
+
+- `b14433d` moves the graph-private compact aggregate-synthesis prompt-row
+  projection into the plain public aggregate owner and promotes the shared
+  runtime-trace material-numeric predicate to a public function. The graph imports
+  and calls the prompt owner once at the same point inside its existing synthesis
+  `try`; runtime trace and the aggregate owner consume the same public predicate.
+  The old graph body and private predicate name are deleted without a compatibility
+  alias, wrapper, result carrier, reason, flag, callback, config input, or trace
+  field.
+- Calculation-result/answer-slot/ordered fallback precedence, operand copy before
+  material filtering and task-id access, stable task grouping/order, fixed compact
+  field and repeated-getter order, strict dictionary-row admission, fresh compact
+  containers, retained nested aliases, input immutability, and uncaught owner
+  exceptions are unchanged. The shared predicate preserves its `missing` gate,
+  lazy unit/value fallback order, digit threshold, normalized-value access, raw-
+  value fallback, no-mutation, and uncaught-exception behavior.
+- Graph retains the LLM gate, model/structured-LLM/prompt construction, post-period-
+  realignment inputs, JSON/debug/prompt and LLM invocation, enclosing catch/fallback,
+  composition, state, evidence, and final orchestration. Runtime trace retains row/
+  source-id preparation before the predicate and key construction, dedupe, and
+  append afterward.
+- Production source is `+91/-90`, net 1: the graph changes from 18,620 to 18,534
+  lines (`+2/-88`, net -86), the aggregate owner from 1,019 to 1,106 (`+87`), and
+  runtime trace remains 1,065 lines (`+2/-2`). Tests are `+857/-1`, net 856; the
+  whole commit is `+948/-91`, net 857.
+- Validation passed targeted 6/6 tests, affected 660/660 tests, the 217-literal
+  runtime audit, full discovery over 1,516/1,516 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving compact aggregate-synthesis input projection and
+shared material-predicate ownership plus deletion of the 85-line old graph body,
+not LLM/template/answer policy, token or prompt-size improvement, total-code or
+broad executed-path reduction, performance, broader private-mesh cleanup, end-to-
+end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

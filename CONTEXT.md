@@ -6,7 +6,7 @@
 > [implementation_history.md](docs/history/implementation_history.md)와
 > [experiment_history.md](docs/history/experiment_history.md)에 있다.
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 ## 현재 범위
 
@@ -134,6 +134,13 @@ Last updated: 2026-08-09
   difference/sum delta synchronization을 typed state-free result로 적용한다. Empty/
   ineligible row identity, eligible shallow-copy와 nested alias, concept-first/label
   match, stable first-slot, overlay와 예외 순서를 유지한다.
+  같은 owner는 graph가 준비한 ordered results와 aggregate projection을 final
+  synthesis용 compact prompt rows로 투영한다. Result/answer-slot/ordered fallback
+  precedence, material operand filtering과 stable task grouping, fixed field/getter
+  순서, fresh container와 nested alias 계약을 유지한다. Runtime-trace owner의
+  public material-numeric predicate를 공유하며, 그 predicate는 `missing` gate,
+  raw/unit 및 raw/value/rendered/display fallback, digit gate와 normalized-value
+  access 순서를 기존 그대로 보존한다.
   Task-artifact owner는 graph가 준비한 artifact records, final answer와 aggregate
   projection으로 첫 exact-id aggregate artifact의 payload와 summary를 동기화한다.
   Stable order, copy-all-before-search, shallow alias와 예외 순서를 유지한다. 같은
@@ -179,7 +186,9 @@ Last updated: 2026-08-09
   nested-result promotion, preliminary/final projection rebuild, dependency alignment,
   preserved-field merge, aggregate candidate discovery/scoring/selection, narrative
   refresh, packaging과 composition-transition call placement/laziness, application
-  invocation과 broader answer precedence,
+  invocation과 broader answer precedence, aggregate synthesis의 LLM gate/model/
+  prompt construction, post-period-realignment input preparation, JSON/debug/prompt
+  invocation과 enclosing catch/fallback,
   aggregate row candidate/sentence/conflict gate, rendered extraction, row iteration,
   lookup primary-slot 준비와 truthy gate, per-row owner iteration, task-id/equality
   update map, ordered/slot propagation과 final projection rebuild,
@@ -200,7 +209,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 632/632, full unittest 1,511/1,511 PASS |
+| Latest calculation runtime validation | targeted 6/6, affected 660/660, full unittest 1,516/1,516 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

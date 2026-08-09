@@ -1,6 +1,6 @@
 # Core Runtime Surface Refactoring Plan
 
-Last revised: 2026-08-09
+Last revised: 2026-08-10
 
 This is the active boundary and phased plan for reducing repository complexity
 while preserving verified financial QA behavior. Detailed chronology lives in
@@ -304,7 +304,19 @@ Current calculation ownership is:
   candidate selection and conditional result/slot/lookup copy semantics. For
   graph-prepared lookup primary slots, it owns typed arithmetic component, series,
   and difference/sum delta synchronization with the existing match, copy/alias,
-  stable-order, and exception contracts.
+  stable-order, and exception contracts. It also owns plain compact aggregate-
+  synthesis prompt-row projection over graph-prepared ordered results and aggregate
+  projection. Projected-row precedence, material operand filtering, stable grouping,
+  fixed field/getter order, fresh containers, nested aliases, and uncaught
+  exceptions remain unchanged. Graph retains the LLM gate, model/prompt setup,
+  post-period inputs, JSON/debug/prompt invocation, catch/fallback, composition,
+  state, and evidence orchestration.
+- `financial_runtime_trace.py` owns the public shared operand material-numeric
+  predicate consumed by runtime-trace append and aggregate prompt projection. Its
+  `missing` gate, lazy unit/value fallbacks, digit threshold, normalized-value
+  access, raw-value fallback, no-mutation, and uncaught-exception contract remain
+  unchanged; trace-owned source normalization, key construction, dedupe, and append
+  stay outside the predicate.
 - `financial_aggregate_state.py` owns the public `AggregateCompositionState`
   carrier and its common state-free transition. The transition preserves answer
   normalization and lazy fallback, current-first claim cleanup/dedupe, projection
@@ -325,13 +337,13 @@ Current calculation ownership is:
   graph state/input preparation, integrity/replan policy, and final orchestration
   remain graph-owned.
 
-At the latest checkpoint, the graph is 18,620 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,534 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,735, the answer-slot owner is 594, the aggregate owner is 1,019, the
+is 2,735, the answer-slot owner is 594, the aggregate owner is 1,106, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
-owner is 1,250, and the execution owner is 837. The latest owner slice passed
-targeted 3/3 tests, affected 632/632 tests, the 217-literal audit, and full
-discovery over 1,511/1,511 tests.
+owner is 1,250, the runtime-trace owner is 1,065, and the execution owner is 837.
+The latest owner slice passed targeted 6/6 tests, affected 660/660 tests, the
+217-literal audit, and full discovery over 1,516/1,516 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

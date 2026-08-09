@@ -1252,6 +1252,37 @@ This boundary claims only the two canonical primitives, not full aggregate ranki
 or promotion ownership, total-code or executed-path reduction, performance,
 broader private-surface cleanup, or Phase 3 completion.
 
+Compact aggregate-synthesis prompt-row projection is a plain, state-free
+`financial_aggregate_projection.py` owner seam. It copies the prepared aggregate
+calculation result before answer slots, then selects projected rows in calculation-
+result, answer-slot, and ordered-result fallback order. Aggregate operands are
+list-materialized and shallow-copied before the shared material predicate and task-
+id access. Fixed compact operand fields retain their insertion and repeated-getter
+order, task grouping and operand order remain stable, and projected rows retain
+strict dictionary-only admission.
+
+Each retained row preserves row-field, answer-slot copy, calculation-result copy,
+compact-result, and prepared operand-attachment order. The outer list, compact rows,
+row-level answer slots, compact results, compact operands, and per-task grouping
+lists are fresh; retained nested values, including result answer slots, keep their
+aliases. Inputs remain unmodified and the owner catches no mapping, truthiness,
+copy, conversion, string, predicate, iteration, equality, or other exception.
+
+The shared public `financial_runtime_trace.py` material predicate preserves status
+normalization and the `missing` return, raw-unit before lazy unit fallback,
+normalized-unit normalization, raw value before lazy value/rendered/display
+fallbacks, digit counting, the unknown-or-empty unit plus no-raw-unit and fewer-
+than-four-digits gate, and only then normalized-value access with raw-value
+truthiness fallback. It adds no catch or mutation. Runtime trace still prepares a
+local row and source ids before this predicate and retains key construction,
+dedupe, and append afterward. The graph keeps the LLM gate, model/structured-LLM
+and prompt construction, post-period-realignment inputs, JSON/debug/prompt and LLM
+invocation, enclosing catch/fallback, composition, state, and evidence
+orchestration. This boundary claims only compact synthesis-input projection and
+shared public material-predicate ownership, not LLM/template/answer policy, token
+or prompt-size improvement, total-code or executed-path reduction, performance,
+broad private-surface cleanup, or Phase 3 completion.
+
 Ratio calculation-result display synchronization is a typed, state-free
 `financial_answer_slots.py` owner seam. The owner receives the exact prepared
 calculation-result dictionary. Status and operation-family gates return the same

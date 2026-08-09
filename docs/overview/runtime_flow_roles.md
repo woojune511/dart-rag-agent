@@ -428,7 +428,17 @@ state-free owner 경계:
   slots에는 arithmetic component, series와 difference/sum delta synchronization을
   적용한다. Empty/ineligible exact identity, eligible conditional shallow-copy,
   concept-first/label first-match, `None`-only overlay, source alias와 uncaught
-  exception 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
+  exception 순서를 보존하며 reason/flag/trace field를 추가하지 않는다. 또한 graph가
+  준비한 ordered results와 aggregate projection을 compact synthesis prompt rows로
+  투영한다. Result/answer-slot/ordered fallback precedence, material operand copy와
+  filtering, stable task grouping, fixed field/getter order, strict dictionary row
+  gate, fresh containers, nested aliases와 uncaught exceptions을 보존한다.
+- `financial_runtime_trace.py`: public state-free material-numeric predicate를
+  runtime-trace append와 aggregate prompt projection에 제공한다. `missing` gate,
+  raw-unit/unit 및 raw/value/rendered/display fallback, digit threshold,
+  normalized-value access와 raw-value truthiness fallback 순서를 유지하며 input을
+  변경하거나 exception을 catch하지 않는다. Trace row/source-id 준비와 key/dedupe/
+  append는 predicate 밖 runtime-trace orchestration에 남는다.
 - `financial_aggregate_state.py`: public `AggregateCompositionState`와 공통
   state-free composition transition을 소유한다. Answer normalization 뒤 lazy
   current fallback, current-first claim cleanup/dedupe, projection reset/override
@@ -485,6 +495,9 @@ graph adapter에 남은 orchestration 역할군:
   packaging과 composition-transition call placement/laziness, application
   invocation/broader answer precedence,
   mutable state/evidence,
+- aggregate synthesis의 LLM gate, model/structured-LLM/prompt construction,
+  post-period-realignment input 준비, compact owner call placement, JSON/debug/prompt
+  및 LLM invocation, enclosing catch/fallback,
 - aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
   extraction과 iteration; lookup primary-slot 준비/truthy gate, per-row owner 호출,
   task-id/equality update map, ordered/slot propagation과 final rebuild,
@@ -608,8 +621,10 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   graph-prepared runtime-ratio magnitude projection, generated
   provenance filtering, recursive nested-subtask row consistency, prepared
   projection-row surface synchronization, arithmetic component/series/delta
-  synchronization, and typed base/refreshed aggregate-answer candidate payload
-  packaging/application
+  synchronization, compact aggregate-synthesis prompt-row projection, and typed
+  base/refreshed aggregate-answer candidate payload packaging/application
+- `financial_runtime_trace.py`: runtime calculation-trace projection and the public
+  shared operand material-numeric predicate
 - `financial_aggregate_state.py`: public aggregate composition carrier and
   state-free answer/claim/projection/lock/feedback transition
 - `financial_task_artifacts.py`: task/artifact ledger projection, typed prepared

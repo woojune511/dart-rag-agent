@@ -7,7 +7,7 @@
 > [implementation_history.md](../history/implementation_history.md) and
 > [experiment_history.md](../history/experiment_history.md).
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 ## Product Boundary
 
@@ -268,20 +268,36 @@ imports or an unconfigured `FinancialAgent` invocation.
   the public enrichment function is exported. The graph retains both call
   placements, prepared task/artifact/state inputs, downstream operand-set artifact
   and integrity/replan consumers, and final orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 18,620 lines,
+- Compact aggregate-synthesis prompt-row projection is now a plain public aggregate-
+  owner seam. It preserves calculation-result/answer-slot/ordered fallback
+  precedence, material operand filtering, stable task grouping, fixed field and
+  repeated-getter order, fresh compact containers, nested aliases, input
+  immutability, and uncaught owner exceptions. The graph retains post-period-
+  realignment input preparation, the LLM/model/prompt gate, JSON/debug/prompt and
+  structured-LLM invocation, the enclosing catch/fallback, composition, state,
+  evidence, and final orchestration.
+- The shared material-numeric predicate is now public in
+  `financial_runtime_trace.py`. It preserves the `missing` gate, raw/unit and
+  raw/value/rendered/display fallback order, digit threshold, normalized-value
+  access, raw-value fallback, input immutability, and uncaught exceptions. Runtime
+  trace retains prepared row/source-id normalization before the predicate and key/
+  dedupe/append work afterward; the aggregate owner consumes the same public
+  predicate without a compatibility alias.
+- At the current checkpoint, `financial_graph_calculation.py` is 18,534 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_answer_slots.py` is 594,
-  `financial_aggregate_projection.py` is 1,019,
+  `financial_aggregate_projection.py` is 1,106,
   `financial_aggregate_state.py` is 161,
   `financial_operand_resolution.py` is 2,735,
   `financial_dependency_projection.py` is 3,257,
-  `financial_task_artifacts.py` is 1,250, and
+  `financial_task_artifacts.py` is 1,250,
+  `financial_runtime_trace.py` is 1,065, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 3/3 and affected 632/632
-  tests, the 217-literal runtime audit, and full discovery over 1,511/1,511 tests.
+- The latest calculation checkpoint passed targeted 6/6 and affected 660/660
+  tests, the 217-literal runtime audit, and full discovery over 1,516/1,516 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -304,7 +320,8 @@ current-state document does not duplicate that commit diary.
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, structured-unit/source-slot equivalence, prepared dependency-source ratio-result projection, dependency-row unit inference, and task-output normalized-KRW consistency | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, the structured-unit predicate preserves marker/fallback and final source-id matching order, the ratio-result seam builds fresh canonical result/slot containers with exact source/component aliases, the unit primitive preserves slot-before-sibling raw precedence plus `UNKNOWN`-only policy inference, and the task-output predicate preserves its early gates, tolerance, and conversion exception boundary; graph retains row construction/normalization and conditional re-inference, row coercion and table-metadata repair, evidence coercion/append, raw-plan and candidate construction/execution, source-slot/candidate/marked-row preparation and coherence-rank orchestration, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots and ratio result-display synchronization | `financial_answer_slots.py`; owns answer-slot construction plus typed calculation-result/primary-slot display consistency, including formula-mismatch copy versus ordinary in-place update and current-surface/percent-policy/exception order, while graph callers retain ordered-row gating and propagation, compact-answer construction, and state/task/operand/period/metric formatting |
-| Aggregate projection, stale provenance selection, signature/sign rank, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, generated-provenance filtering, nested-row consistency, prepared projection-row surface synchronization, and prepared arithmetic-component synchronization | `financial_aggregate_projection.py`; canonical operation-family normalization, aggregate-result signature and growth sign-consistency primitives, state-free target selection, prepared result/slot transforms, candidate packaging/application, claim-id merge, provenance filtering, nested-row recursion, selected-row numeric/result/slot/lookup synchronization, and lookup-slot to component/series/delta synchronization are owner-owned, while full dedupe/rank tuples/nested promotion, evidence/kept-id and candidate/sentence selection, conflict/coverage/render gates, lookup primary-slot preparation and gating, per-row task mapping/propagation, rebuild gating, selected claims, surface-operand append, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
+| Aggregate projection, stale provenance selection, signature/sign rank, compact synthesis prompt-row projection, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, generated-provenance filtering, nested-row consistency, prepared projection-row surface synchronization, and prepared arithmetic-component synchronization | `financial_aggregate_projection.py`; canonical operation-family normalization, aggregate-result signature and growth sign-consistency primitives, state-free target selection, compact synthesis-input projection, prepared result/slot transforms, candidate packaging/application, claim-id merge, provenance filtering, nested-row recursion, selected-row numeric/result/slot/lookup synchronization, and lookup-slot to component/series/delta synchronization are owner-owned, while full dedupe/rank tuples/nested promotion, LLM/model/prompt construction and invocation, JSON/debug projection and catch/fallback, evidence/kept-id and candidate/sentence selection, conflict/coverage/render gates, lookup primary-slot preparation and gating, per-row task mapping/propagation, rebuild gating, selected claims, surface-operand append, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
+| Shared operand material-numeric predicate | `financial_runtime_trace.py`; owns the public state-free `missing`/unit/value/digit/normalized-value disposition shared by runtime-trace append and aggregate prompt projection, while runtime trace retains row/source-id preparation plus key/dedupe/append and graph retains synthesis orchestration |
 | Aggregate composition carrier and common transition | `financial_aggregate_state.py`; owns public `AggregateCompositionState` and the state-free answer/claim/projection/lock/feedback transition, while graph retains all producers and gates, call placement, sequential state handoff, later `_replace`, broader answer precedence, state/evidence/LLM work, and final orchestration |
 | Task/artifact projection, prepared late aggregate-artifact payload synchronization, and prepared reconciliation evidence-ref enrichment | `financial_task_artifacts.py`; owns artifact/task projection helpers, typed first exact-id payload/summary replacement over graph-prepared artifacts, a private strict-dictionary ten-field operand-ref collector, and public empty-ref identity/nonempty-copy reconciliation enrichment; the latter uses the private runtime-normalization source-id cleaner and exports only the public function, while graph retains both reconciliation caller placements and prepared inputs, downstream operand-set artifact and integrity/replan work, the aggregate artifact initial copy and ratio/render/completeness/formatter/projection mutation gates, artifact creation/finalization, ledger-level id/order, and final orchestration |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
@@ -330,9 +347,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 632/632 tests on 2026-08-09 |
-| Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,511/1,511 tests locally on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 6/6 and affected 660/660 tests on 2026-08-10 |
+| Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-10 |
+| Full unittest discovery | PASS, 1,516/1,516 tests locally on 2026-08-10 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -391,7 +408,9 @@ consistency, deterministic planning/execution, stale and generated provenance
 handling, collapsed-ratio magnitude transformation, candidate
 packaging/application and final-answer synchronization, nested aggregate-row
 consistency, prepared projection-row surface synchronization, and prepared
-lookup-slot to arithmetic component/series/delta synchronization. The task-artifact
+lookup-slot to arithmetic component/series/delta synchronization, plus compact
+aggregate-synthesis prompt-row projection backed by the shared public runtime-
+trace material predicate. The task-artifact
 owner also covers prepared late aggregate-artifact payload/summary replacement,
 a private ten-field operand-ref collector, and public prepared reconciliation
 evidence-ref enrichment, while the aggregate-state owner covers the public
@@ -420,7 +439,9 @@ aggregate nested-result promotion, preliminary/final projection rebuild,
 dependency alignment and preserved-field merge,
 aggregate candidate discovery/scoring/selection, narrative refresh, packaging
 and composition-transition call placement/laziness, application invocation/
-broader answer precedence, mutable state/evidence,
+broader answer precedence, aggregate-synthesis LLM/model/prompt setup,
+post-period-realignment inputs, JSON/debug/prompt and structured-LLM invocation,
+catch/fallback, mutable state/evidence,
 aggregate evidence/kept-id selection, rebuild gating, selected-claim filtering,
 surface-operand append, lookup primary-slot preparation/gating, per-row task
 mapping/propagation and rebuild, the initial late-artifact copy and ratio/render/
@@ -446,74 +467,71 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is compact aggregate-synthesis prompt-row
-projection. Move only graph `_aggregate_synthesis_prompt_rows` (`16385-16469`) to
-`financial_aggregate_projection.py` as the plain public function
-`aggregate_synthesis_prompt_rows(ordered_results: Sequence[Any], aggregate_projection: Mapping[str, Any]) -> List[Dict[str, Any]]`.
-At the same time, promote
-`financial_runtime_trace._operand_row_has_material_numeric_payload` (`175-195`) to
-the public `operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool`,
-update its runtime-trace call at `312`, import that public predicate in the
-aggregate owner, and remove the graph's private import at `208`. Add no wrapper,
-result carrier, reason, flag, callback, config input, compatibility alias, or trace
-field.
+The next bounded architecture work is table numeric-support text and evidence
+promotion. Move only graph `_table_numeric_support_text_for_final_answer`
+(`6092-6152`) and `_promote_table_numeric_support_evidence` (`6154-6176`) to
+`financial_numeric_surface.py`. Keep the support-text helper owner-private and
+expose only the plain public
+`promote_table_numeric_support_evidence(evidence: Dict[str, Any], *, final_answer: str, answer_candidates: List[Dict[str, Any]]) -> Dict[str, Any]`.
+Replace the sole graph call at `6209-6213`; add no wrapper, result carrier, reason,
+flag, callback, config input, compatibility alias, or trace field. The numeric
+owner already has the required regex, normalization, rendering/unit-policy,
+numeric extraction/equivalence, and type dependencies, and the graph already
+imports that owner, so the move adds no module edge or cycle.
 
-Prompt-row characterization must preserve calculation-result copy before answer-
-slot copy, then projected-row precedence and laziness: calculation-result
-`subtask_results`, answer-slot `subtask_results`, and finally a fresh list from
-`ordered_results`. Aggregate operands are list-materialized, shallow-copied one at
-a time, and passed to the material predicate before task-id access. The fixed
-compact operand field order and repeated getter for each retained value, stable
-task grouping, and operand order remain unchanged.
+Support-text characterization must preserve metadata copy before table-text
+access and line splitting. Each retained line is normalized once for the filter
+and again for the list element. An empty normalized line set returns before final-
+answer, policy, or candidate access. Otherwise the helper normalizes the answer,
+builds and length-sorts the render-scale and percent-unit terms, escapes them, and
+then processes table lines in order: numeric stripping, unit stripping,
+punctuation stripping, label normalization, label length and answer-containment
+gates, then numeric extraction. Equivalence remains answer-candidate-major and
+line-candidate-minor. The stable first four supporting lines are retained and the
+loop breaks immediately after the fourth. No support returns before header access;
+a supported result reads `table_header_context` before `table_context` and keeps
+their existing normalized join behavior.
 
-Projected rows retain strict non-dictionary skipping and stable order. For each
-dictionary row, task id and fixed row fields are read first, retained fields repeat
-their getter, answer slots are shallow-copied next, calculation result is then
-shallow-copied and compacted with the same repeated-getter rule, and only then is
-the prepared per-task operand list attached. The outer output list, compact row,
-row-level answer-slot copy, compact result, compact operand dictionaries, and
-per-task grouping lists are fresh; retained nested values, including a result's
-answer-slot field, keep their aliases. Inputs remain unmodified. No mapping,
-truthiness, list/dict conversion, string, predicate, iteration, equality, or other
-exception is caught in the owner.
+The public promoter must call the private support helper before copying evidence.
+No support returns the exact input evidence identity. On support, it creates a
+fresh top-level evidence dictionary, reads claim and quote span in that order,
+writes their promoted surfaces in the same order, then shallow-copies metadata and
+adds `final_answer_table_numeric_support`. Other nested values retain their aliases
+and all inputs remain unmodified. Neither helper catches mapping access, `dict`,
+truthiness, string, split, normalization, policy, set/sort, regex, extraction,
+equivalence, iteration, or other exceptions; their literal access and stop order
+must remain observable.
 
-The promoted material predicate must retain status normalization and the `missing`
-early return, raw-unit before lazy unit fallback, normalized-unit normalization,
-raw value before lazy value/rendered/display fallbacks, digit counting, the
-unknown-or-empty unit plus no-raw-unit and fewer-than-four-digits gate, and only
-then normalized-value access with raw-value truthiness fallback. It adds no catch
-or input mutation.
+Graph keeps `_filter_aggregate_evidence_for_final_answer` and its answer-candidate,
+selection, and support gates; local evidence and metadata copies; evidence-id
+handling; and retrieved-narrative skip. It calls the public owner once for each
+non-narrative row with the exact local evidence dictionary, raw final answer, and
+shared answer-candidate list. The returned row is adopted before later selection
+and filtering. An owner exception stops those later steps. Answer/evidence
+selection, faithfulness policy, append-evidence behavior, state, artifact/ledger,
+and final orchestration remain graph-owned.
 
-Current execution evidence reaches the prompt helper 34 times across 33 fixtures
-and the material predicate 373 times across 40 fixtures, but there are no direct
-public contract references. The end-to-end compact-prompt fixture at
-`tests/test_subtask_loop.py:12246-12341` checks the visible prompt surface only.
-Add a compact public material-predicate matrix and direct aggregate-owner matrices
-for row-source precedence/laziness, strict non-dictionary skipping, material
-operand filtering/grouping, fixed-field repeated access, stable order, fresh
-containers, nested aliases, input immutability, and exact exception order.
-Strengthen one graph fixture to pin LLM-disabled owner zero, one call with the exact
-post-period-realignment ordered rows and preliminary projection, adoption of the
-returned rows by JSON/debug/prompt construction, and owner failure remaining
-inside the existing catch/fallback path. Also strengthen one compact runtime-trace
-fixture at the second consumer: pin the exact copied and source-id-normalized row
-passed to the public predicate, `False` returning before operand-key construction
-or append, `True` continuing the existing key/dedupe/append path, and a predicate
-exception propagating before those later steps.
+Current-source profiling reaches the promoter 58 times across 33 fixtures; the
+affected 554/554 tests and full 1,516/1,516 discovery pass. The two visible
+integration fixtures at `tests/test_lookup_recovery_policy.py:656-689` and
+`:691-723` do not constitute a direct public contract, and there are no direct
+helper references. Add two compact owner methods covering no-support identity and
+poison-access laziness, repeated line access, label/unit/equivalence order, stable
+four-line cap and header order, supported-path fresh copies and nested aliases,
+input immutability, and uncaught exceptions. Strengthen one graph wiring fixture to
+pin narrative owner-zero behavior, sequential non-narrative calls with exact
+prepared object identities, returned-row adoption, and exception stop before later
+filtering.
 
-Acceptance deletes only graph `16385-16469`, substitutes the sole call at `17750`,
-promotes the shared predicate without a private alias, updates its runtime-trace
-internal call, and leaves no old graph helper or private predicate reference. Graph
-retains the LLM gate and model/structured-LLM/prompt construction, enclosing try,
-post-period-realignment input preparation, JSON and debug projection, prompt and
-LLM invocation, exception fallback, composition, state, and evidence orchestration.
-The allowed claim is only compact aggregate-synthesis input projection ownership,
-shared public material-predicate ownership, and the 85-line old graph-body
-deletion—not LLM/template/answer policy, token or prompt-size improvement,
-performance, total-code or executed-path reduction, broader private-mesh cleanup,
-or Phase 3 completion. The append-operand-evidence cluster remains deferred because
-its evidence ownership and hard-coded derivation/KRW policy are not yet cleanly
-separated.
+Acceptance deletes only the two graph definitions and old self references, leaves
+one owner-private helper with one local call and one public function with one graph
+call, and adds no alias. The allowed claim is only numeric table-support text and
+evidence-promotion ownership plus deletion of the 84 definition lines—not evidence
+selection or faithfulness policy, numeric-policy improvement, append-evidence
+ownership, performance, total-code or executed-path reduction, broader private-
+mesh cleanup, or Phase 3 completion. The smaller surface-contract numeric-evidence
+filter remains deferred because it deletes less graph body while adding a private
+row-surface dependency and currently has only stub-level characterization.
 The Phase 3 backlog in the refactoring plan is unordered; this section is the
 authority for priority.
 
