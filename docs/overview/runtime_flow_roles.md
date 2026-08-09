@@ -433,6 +433,13 @@ state-free owner 경계:
   투영한다. Result/answer-slot/ordered fallback precedence, material operand copy와
   filtering, stable task grouping, fixed field/getter order, strict dictionary row
   gate, fresh containers, nested aliases와 uncaught exceptions을 보존한다.
+- `financial_numeric_surface.py`: numeric surface extraction/equivalence와 함께
+  table numeric-support text helper를 private하게, 준비된 evidence를 위한 public
+  `promote_table_numeric_support_evidence(...)`를 소유한다. Empty/no-support exact
+  evidence identity, retained-line
+  normalization과 answer-major/stable first-four matching, supported-path fresh
+  evidence/metadata copy, nested aliases, header와 claim/quote 순서, input
+  immutability, uncaught exceptions을 보존한다.
 - `financial_runtime_trace.py`: public state-free material-numeric predicate를
   runtime-trace append와 aggregate prompt projection에 제공한다. `missing` gate,
   raw-unit/unit 및 raw/value/rendered/display fallback, digit threshold,
@@ -498,6 +505,9 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate synthesis의 LLM gate, model/structured-LLM/prompt construction,
   post-period-realignment input 준비, compact owner call placement, JSON/debug/prompt
   및 LLM invocation, enclosing catch/fallback,
+- final-answer evidence filter의 answer-candidate/selection/support gate, local
+  evidence/metadata copy, evidence-id 처리, retrieved-narrative promoter skip,
+  table-support owner call placement과 returned-row adoption, later filtering,
 - aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
   extraction과 iteration; lookup primary-slot 준비/truthy gate, per-row owner 호출,
   task-id/equality update map, ordered/slot propagation과 final rebuild,
@@ -633,7 +643,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
-- `financial_numeric_surface.py`: numeric display surface extraction/equivalence
+- `financial_numeric_surface.py`: numeric display surface extraction/equivalence,
+  private table-support text assembly, and public prepared evidence promotion
 
 ## 10. Rendering Helpers
 

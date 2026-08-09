@@ -141,6 +141,13 @@ Last updated: 2026-08-10
   public material-numeric predicate를 공유하며, 그 predicate는 `missing` gate,
   raw/unit 및 raw/value/rendered/display fallback, digit gate와 normalized-value
   access 순서를 기존 그대로 보존한다.
+  Numeric-surface owner는 table metadata에서 final-answer numeric support text를
+  만드는 helper를 private하게 소유하고, 준비된 evidence를 promote하는 plain public
+  `promote_table_numeric_support_evidence(...)`를 제공한다. Empty/no-support 경로는
+  exact evidence identity를 유지하고,
+  support 경로는 fresh top-level evidence와 metadata copy를 만들되 다른 nested alias를
+  보존한다. Stable first-four line, answer-major equivalence, header laziness, claim/quote
+  access와 uncaught exception 순서도 기존과 같다.
   Task-artifact owner는 graph가 준비한 artifact records, final answer와 aggregate
   projection으로 첫 exact-id aggregate artifact의 payload와 summary를 동기화한다.
   Stable order, copy-all-before-search, shallow alias와 예외 순서를 유지한다. 같은
@@ -189,6 +196,9 @@ Last updated: 2026-08-10
   invocation과 broader answer precedence, aggregate synthesis의 LLM gate/model/
   prompt construction, post-period-realignment input preparation, JSON/debug/prompt
   invocation과 enclosing catch/fallback,
+  final-answer evidence filter의 candidate/selection/support gate와 local evidence/
+  metadata copy, retrieved-narrative promoter skip, numeric-support owner call placement,
+  returned-row adoption과 후속 selection/filtering,
   aggregate row candidate/sentence/conflict gate, rendered extraction, row iteration,
   lookup primary-slot 준비와 truthy gate, per-row owner iteration, task-id/equality
   update map, ordered/slot propagation과 final projection rebuild,
@@ -209,7 +219,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 6/6, affected 660/660, full unittest 1,516/1,516 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 581/581, full unittest 1,519/1,519 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

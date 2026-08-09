@@ -1283,6 +1283,43 @@ shared public material-predicate ownership, not LLM/template/answer policy, toke
 or prompt-size improvement, total-code or executed-path reduction, performance,
 broad private-surface cleanup, or Phase 3 completion.
 
+Table numeric-support text and evidence promotion are plain, state-free
+`financial_numeric_surface.py` owner seams. The owner-private support helper first
+copies evidence metadata, then reads and splits the table-value-label surface.
+Blank lines are normalized once and discarded; retained lines are normalized once
+for the gate and again for the stored line. An empty retained-line set returns
+before final-answer, render/unit-policy, answer-candidate, or header access.
+
+The nonempty path normalizes the final-answer surface, builds the render-scale and
+percent-unit term set, length-sorts and escapes those terms, and processes table
+lines in stable order. Numeric stripping precedes unit stripping, punctuation
+stripping, compact label normalization, label-length and answer-containment gates,
+and numeric extraction. Equivalence remains answer-candidate-major and line-
+candidate-minor. The helper retains the first four supporting lines and stops
+before accessing a fifth. No support returns before header access; a supported
+result reads `table_header_context` before `table_context` and preserves the
+existing normalized join behavior.
+
+The public `promote_table_numeric_support_evidence(...)` invokes the private helper
+before copying evidence. No support
+returns the exact supplied evidence identity. A supported result creates a fresh
+top-level evidence dictionary, reads claim before quote span, writes their promoted
+surfaces in that order, then shallow-copies metadata and adds
+`final_answer_table_numeric_support`. Other nested values retain their identities,
+inputs remain unmodified, and neither helper catches mapping, copy, truthiness,
+string, split, normalization, policy, set/sort, regex, extraction, equivalence,
+iteration, or other exceptions.
+
+The graph retains answer-candidate, evidence-selection, and support gates; local
+evidence and pre-owner metadata copies; evidence-id handling; and the retrieved-
+narrative skip. It calls the public owner once per non-narrative row with the exact
+local evidence dictionary, raw final answer, and shared candidate list, then adopts
+the returned row before later selection/filtering. The pre-owner metadata local
+remains authoritative for its existing later gates. This seam owns only prepared
+table-support text and evidence promotion, not evidence selection or faithfulness
+policy, append-evidence behavior, state, artifact/ledger, final orchestration,
+performance, total-code or executed-path reduction, or Phase 3 completion.
+
 Ratio calculation-result display synchronization is a typed, state-free
 `financial_answer_slots.py` owner seam. The owner receives the exact prepared
 calculation-result dictionary. Status and operation-family gates return the same

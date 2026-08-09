@@ -1076,6 +1076,39 @@ not LLM/template/answer policy, token or prompt-size improvement, total-code or
 broad executed-path reduction, performance, broader private-mesh cleanup, end-to-
 end calculation ownership, or complete Phase 3.
 
+### Table numeric-support evidence-promotion ownership
+
+- `4c83b5f` moves the graph-private table numeric-support text helper and evidence
+  promoter into `financial_numeric_surface.py`. The support-text helper remains
+  owner-private; only `promote_table_numeric_support_evidence(...)` is public. The
+  graph imports and calls that function once at the same non-narrative evidence-row
+  position. The old graph definitions and self references are deleted without an
+  alias, wrapper, result carrier, reason, flag, callback, config input, or trace
+  field.
+- Metadata copy and table-line splitting, repeated retained-line normalization,
+  empty-line-set laziness, render/percent unit-term preparation, numeric/unit/
+  punctuation stripping, label and numeric gates, answer-major equivalence, stable
+  first-four selection, header access order, and uncaught exceptions are unchanged.
+  No support returns the exact evidence identity. Supported promotion preserves
+  fresh top-level evidence and metadata copies, claim-before-quote access/write
+  order, nested aliases, and input immutability.
+- Graph retains answer-candidate and evidence-selection/support gates, local
+  evidence and pre-owner metadata copies, evidence-id handling, retrieved-narrative
+  skip, returned-row adoption, later filtering, append-evidence behavior, state,
+  artifact/ledger work, and final orchestration.
+- Production source is `+88/-87`, net 1: the graph changes from 18,534 to 18,449
+  lines (`+2/-87`, net -85) and the numeric-surface owner from 453 to 539 lines
+  (`+86`). Tests are `+466/-0`, net 466; the whole commit is `+554/-87`, net 467.
+- Validation passed targeted 3/3 tests, affected 581/581 tests, the 217-literal
+  runtime audit, full discovery over 1,519/1,519 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving table numeric-support text and prepared evidence-
+promotion ownership plus deletion of the 84 graph definition lines, not evidence
+selection or faithfulness policy, numeric-policy improvement, append-evidence
+ownership, total-code or broad executed-path reduction, performance, broader
+private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -336,14 +336,22 @@ Current calculation ownership is:
   export the collector. Artifact creation/finalization, ledger-level id/order,
   graph state/input preparation, integrity/replan policy, and final orchestration
   remain graph-owned.
+- `financial_numeric_surface.py` owns the private table numeric-support text helper
+  and the plain public prepared-evidence promoter. Empty/no-support paths preserve
+  exact evidence identity; supported paths preserve stable first-four selection,
+  fresh evidence/metadata copies, nested aliases, claim/quote order, header laziness,
+  input immutability, and uncaught exception order. Evidence selection, retrieved-
+  narrative skipping, local row preparation, later filtering, state/artifact work,
+  and final orchestration remain graph-owned.
 
-At the latest checkpoint, the graph is 18,534 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,449 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,735, the answer-slot owner is 594, the aggregate owner is 1,106, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
-owner is 1,250, the runtime-trace owner is 1,065, and the execution owner is 837.
-The latest owner slice passed targeted 6/6 tests, affected 660/660 tests, the
-217-literal audit, and full discovery over 1,516/1,516 tests.
+owner is 1,250, the numeric-surface owner is 539, the runtime-trace owner is 1,065,
+and the execution owner is 837. The latest owner slice passed targeted 3/3 tests,
+affected 581/581 tests, the 217-literal audit, and full discovery over 1,519/1,519
+tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated
@@ -378,6 +386,7 @@ Use existing owner modules before adding new ones:
 - `financial_aggregate_projection.py`
 - `financial_aggregate_state.py`
 - `financial_graph_calculation_rendering.py`
+- `financial_numeric_surface.py`
 - `financial_runtime_trace.py`
 - `financial_answer_projection.py`
 
