@@ -28,7 +28,10 @@ from src.agent.financial_graph_model_loaders import (
     _validate_answer_slots_payload,
     _validation_output_model,
 )
-from src.agent.financial_operand_resolution import _operand_row_matches_requirement
+from src.agent.financial_operand_resolution import (
+    _operand_row_matches_requirement,
+    coerce_operand_unit_from_evidence,
+)
 from src.agent.financial_langchain_loaders import (
     _chat_prompt_template_from_template,
     _document,
@@ -1631,7 +1634,7 @@ class FinancialAgentEvidenceMixin:
                 if not raw_unit:
                     raw_unit = _fallback_unit(raw_value, context_text)
                 if raw_value:
-                    raw_unit = self._coerce_operand_unit_from_evidence(
+                    raw_unit = coerce_operand_unit_from_evidence(
                         raw_value=raw_value,
                         raw_unit=raw_unit,
                         evidence_item=item,

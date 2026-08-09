@@ -137,6 +137,8 @@ from src.agent.financial_operand_resolution import (
     _canonicalize_structured_operand_reconciliation_refs,
     collect_retrieval_context_docs,
     collect_retrieved_operand_evidence_candidates,
+    coerce_operand_period_from_evidence_surface,
+    coerce_operand_unit_from_evidence,
     direct_target_metric_row_conflicts_existing_units,
     direct_lookup_row_is_ambiguous_context_table,
     _evidence_item_for_operand_row,
@@ -289,7 +291,6 @@ from src.config.retrieval_policy import (
     KOREAN_TABLE_CHANGE_HEADER_LABEL,
     KOREAN_TABLE_LABEL_ALPHA_RE_FRAGMENT,
     KOREAN_TABLE_LABEL_LEFT_BOUNDARY_RE_FRAGMENT,
-    NUMERIC_UNIT_NORMALIZATION_POLICY,
     OPERAND_CANDIDATE_SCORING_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
     narrative_policy_terms,
@@ -371,31 +372,6 @@ class _StaleCalculationRepairResult(NamedTuple):
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]
     selected_evidence_ids: tuple[str, ...]
-
-
-def _inline_unit_match_has_right_boundary(
-    text: str,
-    match: re.Match[str],
-    *,
-    group_name: str = "unit",
-) -> bool:
-    try:
-        unit_end = match.end(group_name)
-    except IndexError:
-        return True
-    if unit_end >= len(text):
-        return True
-    render_policy = dict(CALCULATION_RENDER_POLICY)
-    suffix = str(text[unit_end:])
-    allowed_prefixes = tuple(
-        str(item)
-        for item in (render_policy.get("inline_unit_right_boundary_allowed_prefixes") or ())
-        if str(item)
-    )
-    if any(suffix.startswith(prefix) for prefix in allowed_prefixes):
-        return True
-    block_pattern = str(render_policy.get("inline_unit_right_boundary_block_pattern") or "")
-    return not bool(block_pattern and re.match(block_pattern, text[unit_end]))
 
 
 def _calculation_debug_state_update(
@@ -2203,7 +2179,6 @@ class FinancialAgentCalculationMixin:
             return normalize_lookup_slot_unit(
                 slot,
                 evidence_by_id=evidence_by_id,
-                coerce_operand_unit_from_evidence=self._coerce_operand_unit_from_evidence,
             )
 
         def _lookup_result_from_slot(slot: Dict[str, Any], source_note: str) -> Dict[str, Any]:
@@ -2358,7 +2333,7 @@ class FinancialAgentCalculationMixin:
             if not raw_value or not evidence_item:
                 aligned_results.append(row)
                 continue
-            coerced_unit = self._coerce_operand_unit_from_evidence(
+            coerced_unit = coerce_operand_unit_from_evidence(
                 raw_value=raw_value,
                 raw_unit=raw_unit,
                 evidence_item=evidence_item,
@@ -9990,143 +9965,6 @@ class FinancialAgentCalculationMixin:
             return answer_text
         return pruned_answer
 
-    def _coerce_operand_unit_from_evidence(
-        self,
-        *,
-        raw_value: str,
-        raw_unit: str,
-        evidence_item: Optional[Dict[str, Any]],
-    ) -> str:
-        metadata = dict((evidence_item or {}).get("metadata") or {})
-        unit_hint = str(metadata.get("unit_hint") or "").strip()
-        current_unit = str(raw_unit or "").strip()
-        surface_unit = self._infer_operand_unit_from_value_surface(
-            raw_value=raw_value,
-            evidence_item=evidence_item,
-        )
-        if surface_unit:
-            surface_value, surface_family = _normalise_operand_value(raw_value or "1", surface_unit)
-            current_value, current_family = _normalise_operand_value(raw_value or "1", current_unit)
-            hint_value, hint_family = _normalise_operand_value(raw_value or "1", unit_hint)
-            surface_family = _normalise_spaces(str(surface_family or "")).upper()
-            current_family = _normalise_spaces(str(current_family or "")).upper()
-            hint_family = _normalise_spaces(str(hint_family or "")).upper()
-            known_current_family = current_unit and current_family and current_family != "UNKNOWN"
-            known_hint_family = unit_hint and hint_family and hint_family != "UNKNOWN"
-            known_surface_family = surface_family and surface_family != "UNKNOWN" and surface_value is not None
-            if self._evidence_core_surface_contains_value_unit(
-                raw_value=raw_value,
-                raw_unit=surface_unit,
-                evidence_item=evidence_item,
-            ):
-                if current_unit and _normalise_spaces(current_unit) == _normalise_spaces(surface_unit):
-                    return current_unit
-                return surface_unit
-            if known_surface_family and (
-                (known_current_family and current_value is not None and surface_family != current_family)
-                or (known_hint_family and hint_value is not None and surface_family != hint_family)
-            ):
-                return current_unit or unit_hint
-            return surface_unit
-        if not unit_hint:
-            return current_unit
-        if not current_unit:
-            return unit_hint
-        normalized_current = _normalise_spaces(current_unit).lower()
-        normalized_hint = _normalise_spaces(unit_hint).lower()
-        if normalized_current == normalized_hint:
-            return current_unit
-        render_policy = dict(CALCULATION_RENDER_POLICY)
-        bare_numeric_pattern = str(render_policy.get("operand_unit_bare_numeric_pattern") or "")
-        bare_numeric = bool(bare_numeric_pattern and re.fullmatch(bare_numeric_pattern, str(raw_value or "").strip()))
-        ambiguous_krw_units = {
-            _normalise_spaces(str(item)).lower()
-            for item in (render_policy.get("operand_unit_ambiguous_krw_units") or ())
-            if str(item).strip()
-        }
-        krw_display_units = {
-            _normalise_spaces(str(item)).lower()
-            for item in (render_policy.get("krw_display_units") or ())
-            if str(item).strip()
-        }
-        if bare_numeric and normalized_current in ambiguous_krw_units and normalized_hint in krw_display_units:
-            return unit_hint
-        return current_unit
-
-    def _evidence_core_surface(
-        self,
-        evidence_item: Optional[Dict[str, Any]],
-    ) -> str:
-        return _normalise_spaces(
-            " ".join(
-                str((evidence_item or {}).get(key) or "")
-                for key in ("claim", "quote_span", "raw_row_text")
-            )
-        )
-
-    def _evidence_core_surface_contains_value_unit(
-        self,
-        *,
-        raw_value: str,
-        raw_unit: str,
-        evidence_item: Optional[Dict[str, Any]],
-    ) -> bool:
-        value = _normalise_spaces(str(raw_value or ""))
-        unit = _normalise_spaces(str(raw_unit or ""))
-        surface = self._evidence_core_surface(evidence_item)
-        if not value or not unit or not surface:
-            return False
-        compact_value = re.sub(r"[,\s()]", "", value)
-        compact_unit = re.sub(r"\s+", "", unit)
-        unit_policy = dict(NUMERIC_UNIT_NORMALIZATION_POLICY)
-        aliases = dict(unit_policy.get("inline_unit_aliases") or {})
-        unit_pattern = str(unit_policy.get("inline_value_unit_pattern") or "")
-        for match in re.finditer(unit_pattern, surface):
-            if not _inline_unit_match_has_right_boundary(surface, match):
-                continue
-            matched_value = re.sub(r"[,\s()]", "", str(match.group("value") or ""))
-            matched_unit = re.sub(r"\s+", "", str(match.group("unit") or ""))
-            matched_unit = str(aliases.get(matched_unit) or matched_unit)
-            if matched_value == compact_value and matched_unit == compact_unit:
-                return True
-        return False
-
-    def _coerce_operand_period_from_evidence_surface(
-        self,
-        row: Dict[str, Any],
-        evidence_item: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        surface = self._evidence_core_surface(evidence_item)
-        if not surface:
-            return row
-        explicit_years = list(dict.fromkeys(re.findall(r"20\d{2}", surface)))
-        if len(explicit_years) != 1:
-            return row
-        evidence_year = explicit_years[0]
-        period_years = set(re.findall(r"20\d{2}", str(row.get("period") or "")))
-        if period_years and evidence_year in period_years:
-            return row
-        if period_years and evidence_year not in period_years:
-            updated = dict(row)
-            updated["period"] = evidence_year
-            updated["period_source"] = "evidence_surface"
-            return updated
-        row_years = set(
-            re.findall(
-                r"20\d{2}",
-                " ".join(
-                    str(row.get(key) or "")
-                    for key in ("period", "label", "matched_operand_label")
-                ),
-            )
-        )
-        if row_years and evidence_year in row_years:
-            return row
-        updated = dict(row)
-        updated["period"] = evidence_year
-        updated["period_source"] = "evidence_surface"
-        return updated
-
     def _coerce_operand_row_from_evidence(
         self,
         row: Dict[str, Any],
@@ -10140,7 +9978,7 @@ class FinancialAgentCalculationMixin:
         elif updated.get("unit_realigned_from_structured_provenance") and updated.get("normalized_value") is not None:
             coerced_unit = str(updated.get("raw_unit") or "")
         else:
-            coerced_unit = self._coerce_operand_unit_from_evidence(
+            coerced_unit = coerce_operand_unit_from_evidence(
                 raw_value=raw_value,
                 raw_unit=str(updated.get("raw_unit") or ""),
                 evidence_item=evidence_item,
@@ -10159,7 +9997,7 @@ class FinancialAgentCalculationMixin:
                 updated["consolidation_scope"] = metadata.get("consolidation_scope")
             if updated.get("table_source_id") is None:
                 updated["table_source_id"] = metadata.get("table_source_id")
-            updated = self._coerce_operand_period_from_evidence_surface(updated, evidence_item)
+            updated = coerce_operand_period_from_evidence_surface(updated, evidence_item)
             updated = self._coerce_operand_value_from_direct_structured_evidence(updated, evidence_item)
         updated = coerce_lookup_magnitude_record(updated, evidence_item)
         if updated.get("structured_evidence_cell_realigned"):
@@ -10311,66 +10149,6 @@ class FinancialAgentCalculationMixin:
         updated["rendered_value"] = _normalise_spaces(f"{raw_value}{raw_unit}") if raw_unit else raw_value
         updated["structured_evidence_cell_realigned"] = True
         return updated
-
-    def _infer_operand_unit_from_value_surface(
-        self,
-        *,
-        raw_value: str,
-        evidence_item: Optional[Dict[str, Any]],
-    ) -> str:
-        value = _normalise_spaces(str(raw_value or ""))
-        if not value or not re.search(r"\d", value):
-            return ""
-        surfaces = [
-            str((evidence_item or {}).get("claim") or ""),
-            str((evidence_item or {}).get("quote_span") or ""),
-            str((evidence_item or {}).get("raw_row_text") or ""),
-            str((evidence_item or {}).get("source_context") or ""),
-        ]
-        surface = _normalise_spaces(" ".join(part for part in surfaces if part))
-        if not surface:
-            return ""
-        aliases = dict(NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_unit_aliases") or {})
-        render_policy = dict(CALCULATION_RENDER_POLICY)
-        unit_candidates = [
-            _normalise_spaces(str(item))
-            for item in (
-                tuple(render_policy.get("krw_display_units") or ())
-                + tuple(render_policy.get("percent_display_units") or ())
-                + tuple(render_policy.get("count_or_percent_normalized_units") or ())
-            )
-            if str(item).strip()
-        ]
-        value_pattern = re.escape(value)
-        parenthetical_unit_pattern = (
-            rf"{value_pattern}\s*\(?\s*"
-            rf"(?P<surface_unit>{'|'.join(re.escape(unit) for unit in sorted(set(unit_candidates), key=len, reverse=True))})"
-            rf"\s*\)?"
-        )
-        for match in re.finditer(parenthetical_unit_pattern, surface, flags=re.IGNORECASE):
-            if not _inline_unit_match_has_right_boundary(surface, match, group_name="surface_unit"):
-                continue
-            unit_text = _normalise_spaces(str(match.group("surface_unit") or ""))
-            if unit_text:
-                return str(aliases.get(unit_text, unit_text))
-        unit_pattern = str(
-            NUMERIC_UNIT_NORMALIZATION_POLICY.get("inline_value_unit_pattern") or ""
-        )
-        if not unit_pattern:
-            return ""
-        compact_value = re.sub(r"[,\s()]", "", value)
-        if not compact_value:
-            return ""
-        for match in re.finditer(unit_pattern, surface):
-            if not _inline_unit_match_has_right_boundary(surface, match):
-                continue
-            matched_value = str(match.group("value") or "")
-            matched_compact = re.sub(r"[,\s()]", "", matched_value)
-            if matched_compact != compact_value:
-                continue
-            unit_text = _normalise_spaces(str(match.group("unit") or ""))
-            return str(aliases.get(unit_text, unit_text))
-        return ""
 
     def _operand_precision_surface(self, evidence_item: Optional[Dict[str, Any]]) -> str:
         return _normalise_spaces(

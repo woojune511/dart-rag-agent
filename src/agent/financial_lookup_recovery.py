@@ -7,6 +7,7 @@ from src.config import get_financial_ontology
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
     _evidence_item_for_operand_row,
+    coerce_operand_unit_from_evidence,
     score_direct_structured_lookup_evidence,
 )
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
@@ -446,7 +447,6 @@ def normalize_lookup_slot_unit(
     slot: Dict[str, Any],
     *,
     evidence_by_id: Dict[str, Dict[str, Any]],
-    coerce_operand_unit_from_evidence: Callable[..., str],
 ) -> Dict[str, Any]:
     updated = dict(slot)
     raw_value = _normalise_spaces(str(updated.get("raw_value") or ""))

@@ -11,6 +11,7 @@ from src.agent import (
     financial_aggregate_projection,
     financial_calculation_execution,
     financial_graph_calculation,
+    financial_operand_resolution,
     financial_runtime_trace,
 )
 from src.agent.financial_graph import FinancialAgent
@@ -5228,7 +5229,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         gate_calls = []
         unit_calls = []
         current_gate = financial_graph_calculation.dependency_task_output_has_consistent_krw_unit
-        current_unit_coercion = agent._coerce_operand_unit_from_evidence
+        current_unit_coercion = financial_operand_resolution.coerce_operand_unit_from_evidence
 
         def record_gate(row):
             result = current_gate(row)
@@ -5250,8 +5251,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 new=record_gate,
             ),
             patch.object(
-                agent,
-                "_coerce_operand_unit_from_evidence",
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
                 new=record_unit_coercion,
             ),
         ):
@@ -5307,7 +5308,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "dependency_task_output_has_consistent_krw_unit",
                 side_effect=RuntimeError("dependency unit gate failed"),
             ),
-            patch.object(agent, "_coerce_operand_unit_from_evidence") as later_unit_coercion,
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+            ) as later_unit_coercion,
         ):
             with self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"):
                 agent._coerce_operand_row_from_evidence(numerator_row, None)

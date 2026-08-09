@@ -20235,6 +20235,191 @@ class SubtaskLoopTests(unittest.TestCase):
         structured_provenance.assert_called_once()
         adoption.assert_not_called()
 
+    def test_lookup_unit_normalization_uses_evidence_local_unit_owner(self) -> None:
+        slot = {
+            "raw_value": "100",
+            "raw_unit": "원",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "100원",
+            "source_row_id": "ev_metric",
+        }
+        direct_hint_evidence = {
+            "evidence_id": "ev_metric",
+            "quote_span": "100",
+            "metadata": {"unit_hint": "백만원"},
+        }
+        owner = Mock(return_value="억원")
+        with patch.object(
+            financial_lookup_recovery,
+            "coerce_operand_unit_from_evidence",
+            owner,
+        ):
+            direct_hint = financial_lookup_recovery.normalize_lookup_slot_unit(
+                slot,
+                evidence_by_id={"ev_metric": direct_hint_evidence},
+            )
+        owner.assert_not_called()
+        self.assertEqual(direct_hint["raw_unit"], "백만원")
+        self.assertEqual(direct_hint["rendered_value"], "100백만원")
+
+        visible_unit_evidence = {
+            "evidence_id": "ev_metric",
+            "claim": "metric 100원",
+            "metadata": {"unit_hint": "백만원"},
+        }
+        owner.reset_mock()
+        with patch.object(
+            financial_lookup_recovery,
+            "coerce_operand_unit_from_evidence",
+            owner,
+        ):
+            normalized = financial_lookup_recovery.normalize_lookup_slot_unit(
+                slot,
+                evidence_by_id={"ev_metric": visible_unit_evidence},
+            )
+        owner.assert_called_once_with(
+            raw_value="100",
+            raw_unit="원",
+            evidence_item=visible_unit_evidence,
+        )
+        self.assertEqual(normalized["raw_unit"], "억원")
+        self.assertEqual(normalized["normalized_value"], 10_000_000_000.0)
+        self.assertEqual(normalized["rendered_value"], "100억원")
+        self.assertEqual(slot["raw_unit"], "원")
+
+        for metadata in ({}, {"unit_hint": "원"}):
+            with self.subTest(metadata=metadata):
+                same_or_missing_hint_evidence = {
+                    "evidence_id": "ev_metric",
+                    "claim": "metric 100원",
+                    "metadata": metadata,
+                }
+                owner.reset_mock()
+                with patch.object(
+                    financial_lookup_recovery,
+                    "coerce_operand_unit_from_evidence",
+                    owner,
+                ):
+                    financial_lookup_recovery.normalize_lookup_slot_unit(
+                        slot,
+                        evidence_by_id={"ev_metric": same_or_missing_hint_evidence},
+                    )
+                owner.assert_called_once_with(
+                    raw_value="100",
+                    raw_unit="원",
+                    evidence_item=same_or_missing_hint_evidence,
+                )
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+            ) as later_normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                financial_lookup_recovery.normalize_lookup_slot_unit(
+                    slot,
+                    evidence_by_id={"ev_metric": visible_unit_evidence},
+                )
+        later_normalizer.assert_not_called()
+
+    def test_own_evidence_unit_alignment_uses_evidence_local_unit_owner(self) -> None:
+        slot = {
+            "status": "ok",
+            "label": "metric",
+            "raw_value": "100",
+            "raw_unit": "원",
+            "normalized_value": 100.0,
+            "normalized_unit": "KRW",
+            "rendered_value": "100원",
+            "source_row_id": "ev_metric",
+            "source_row_ids": ["ev_metric"],
+        }
+        row = {
+            "task_id": "task_lookup",
+            "operation_family": "lookup",
+            "status": "ok",
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {"primary_value": slot},
+            },
+        }
+        evidence_item = {
+            "evidence_id": "ev_metric",
+            "claim": "metric 100",
+            "metadata": {"unit_hint": "억원"},
+        }
+        original_rows = [row]
+
+        with patch.object(
+            financial_graph_calculation,
+            "coerce_operand_unit_from_evidence",
+            return_value="억원",
+        ) as owner:
+            aligned = self.agent._align_lookup_result_units_from_own_evidence(
+                original_rows,
+                [evidence_item],
+            )
+
+        owner.assert_called_once_with(
+            raw_value="100",
+            raw_unit="원",
+            evidence_item=evidence_item,
+        )
+        self.assertIsNot(aligned, original_rows)
+        self.assertEqual(
+            aligned[0]["calculation_result"]["answer_slots"]["primary_value"]["raw_unit"],
+            "억원",
+        )
+        self.assertEqual(aligned[0]["answer"], "metric 100억원")
+        self.assertEqual(slot["raw_unit"], "원")
+
+        with patch.object(
+            financial_graph_calculation,
+            "coerce_operand_unit_from_evidence",
+            return_value="원",
+        ) as owner:
+            unchanged = self.agent._align_lookup_result_units_from_own_evidence(
+                original_rows,
+                [evidence_item],
+            )
+        owner.assert_called_once()
+        self.assertIs(unchanged, original_rows)
+
+        with patch.object(
+            financial_graph_calculation,
+            "coerce_operand_unit_from_evidence",
+        ) as owner:
+            self.assertIs(
+                self.agent._align_lookup_result_units_from_own_evidence(original_rows, []),
+                original_rows,
+            )
+        owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "replace_lookup_primary_slot",
+            ) as later_replacement,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                self.agent._align_lookup_result_units_from_own_evidence(
+                    original_rows,
+                    [evidence_item],
+                )
+        later_replacement.assert_not_called()
+
     def test_lookup_recovery_aligns_current_slot_unit_without_preferred_replacement(self) -> None:
         state = {
             "calc_subtasks": [

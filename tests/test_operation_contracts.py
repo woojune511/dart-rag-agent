@@ -18,6 +18,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent import financial_calculation_execution, financial_graph_calculation
+from src.agent import financial_graph_evidence, financial_operand_resolution
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _assign_ratio_roles_to_concepts,
@@ -914,7 +915,37 @@ class OperationContractTests(unittest.TestCase):
             "quote_span": "2022년 판매 대수는 78.1만 대였다.",
         }
 
-        coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
+        owner_events = []
+        current_unit_owner = financial_operand_resolution.coerce_operand_unit_from_evidence
+        current_period_owner = (
+            financial_operand_resolution.coerce_operand_period_from_evidence_surface
+        )
+
+        def record_unit_owner(*, raw_value, raw_unit, evidence_item):
+            owner_events.append(("unit", raw_value, raw_unit, evidence_item))
+            return current_unit_owner(
+                raw_value=raw_value,
+                raw_unit=raw_unit,
+                evidence_item=evidence_item,
+            )
+
+        def record_period_owner(operand_row, evidence_item):
+            owner_events.append(("period", deepcopy(operand_row), evidence_item))
+            return current_period_owner(operand_row, evidence_item)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                side_effect=record_unit_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+                side_effect=record_period_owner,
+            ),
+        ):
+            coerced = agent._coerce_operand_row_from_evidence(row, evidence_item)
 
         self.assertEqual(coerced["period"], "2022")
         self.assertEqual(coerced["period_source"], "evidence_surface")
@@ -932,6 +963,57 @@ class OperationContractTests(unittest.TestCase):
                 },
             )
         )
+        self.assertEqual([event[0] for event in owner_events], ["unit", "period"])
+        self.assertEqual(owner_events[0][1:3], ("78.1", "원"))
+        self.assertIs(owner_events[0][3], evidence_item)
+        self.assertEqual(owner_events[1][1]["raw_unit"], "만 대")
+        self.assertEqual(owner_events[1][1]["normalized_value"], 781000.0)
+        self.assertIs(owner_events[1][2], evidence_item)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+            ) as later_period_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                agent._coerce_operand_row_from_evidence(row, evidence_item)
+        later_period_owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                return_value="만 대",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+                side_effect=RuntimeError("period owner failed"),
+            ),
+            patch.object(
+                agent,
+                "_coerce_operand_value_from_direct_structured_evidence",
+            ) as later_direct_value,
+            patch.object(
+                financial_graph_calculation,
+                "coerce_lookup_magnitude_record",
+            ) as later_magnitude,
+            patch.object(
+                agent,
+                "_refine_operand_precision_from_evidence_table",
+            ) as later_precision,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period owner failed"):
+                agent._coerce_operand_row_from_evidence(row, evidence_item)
+        later_direct_value.assert_not_called()
+        later_magnitude.assert_not_called()
+        later_precision.assert_not_called()
         self.assertTrue(
             _operand_row_matches_requirement(
                 {**coerced, "matched_operand_role": "prior_period"},
@@ -3834,14 +3916,13 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(value, "6,769억원")
 
     def test_operand_unit_coercion_prefers_value_local_unit_over_table_unit_hint(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         evidence_item = {
             "claim": "영업이익: 2,163,234 (백만원), IRA Tax Credit: 6,769 (억원)",
             "quote_span": "IRA Tax Credit: 6,769 (억원)",
             "metadata": {"unit_hint": "백만원"},
         }
 
-        unit = agent._coerce_operand_unit_from_evidence(
+        unit = financial_operand_resolution.coerce_operand_unit_from_evidence(
             raw_value="6,769",
             raw_unit="",
             evidence_item=evidence_item,
@@ -3850,20 +3931,100 @@ class OperationContractTests(unittest.TestCase):
         self.assertEqual(unit, "억원")
 
     def test_operand_unit_coercion_overrides_current_krw_unit_with_value_local_unit(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         evidence_item = {
             "claim": "segment revenue 2,176,431,531,380 (원)",
             "quote_span": "2,176,431,531,380",
             "metadata": {"unit_hint": "천원"},
         }
 
-        unit = agent._coerce_operand_unit_from_evidence(
+        unit = financial_operand_resolution.coerce_operand_unit_from_evidence(
             raw_value="2,176,431,531,380",
             raw_unit="천원",
             evidence_item=evidence_item,
         )
 
         self.assertEqual(unit, "원")
+
+    def test_required_operand_builder_uses_evidence_local_unit_owner(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        candidate = {
+            "evidence_id": "ev_metric",
+            "source_anchor": "anchor",
+            "claim": "metric 100",
+            "raw_row_text": "metric 100",
+            "matched_value": "100",
+            "matched_unit": "원",
+            "metadata": {},
+        }
+        operand = {
+            "label": "metric",
+            "role": "primary_value",
+            "concept": "metric",
+            "required": True,
+            "unit_family": "KRW",
+        }
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "coerce_operand_unit_from_evidence",
+                return_value="억원",
+            ) as owner,
+            patch.object(
+                agent,
+                "_coerce_operand_row_from_evidence",
+                side_effect=lambda row, _evidence: row,
+            ) as row_coercion,
+        ):
+            rows = agent._build_required_operands_from_candidates(
+                [candidate],
+                required_operands=[operand],
+                query="metric",
+                report_scope={},
+            )
+
+        owner.assert_called_once_with(
+            raw_value="100",
+            raw_unit="원",
+            evidence_item=candidate,
+        )
+        row_coercion.assert_called_once()
+        self.assertIs(row_coercion.call_args.args[1], candidate)
+        self.assertEqual(row_coercion.call_args.args[0]["raw_unit"], "억원")
+        self.assertEqual(rows[0]["raw_unit"], "억원")
+        self.assertEqual(rows[0]["normalized_value"], 10_000_000_000.0)
+
+        with patch.object(
+            financial_graph_evidence,
+            "coerce_operand_unit_from_evidence",
+        ) as owner:
+            self.assertEqual(
+                agent._build_required_operands_from_candidates(
+                    [],
+                    required_operands=[operand],
+                    query="metric",
+                    report_scope={},
+                ),
+                [],
+            )
+        owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit owner failed"),
+            ),
+            patch.object(agent, "_coerce_operand_row_from_evidence") as later_row_coercion,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
+                agent._build_required_operands_from_candidates(
+                    [candidate],
+                    required_operands=[operand],
+                    query="metric",
+                    report_scope={},
+                )
+        later_row_coercion.assert_not_called()
 
     def test_structured_direct_operand_row_uses_value_local_unit_from_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

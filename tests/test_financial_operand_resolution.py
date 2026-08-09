@@ -10,7 +10,6 @@ from typing import Any, Dict, List
 from unittest.mock import patch
 
 import src.agent.financial_operand_resolution as operand_resolution
-from src.agent import financial_graph_calculation
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_operand_resolution import (
     DirectStructuredPreferredSlotAdoptionInput,
@@ -146,6 +145,640 @@ def _merge_operand_row(
 
 
 class FinancialOperandResolutionTests(unittest.TestCase):
+    def test_evidence_local_unit_and_period_behavior_matrix(self) -> None:
+        coerce_unit = operand_resolution.coerce_operand_unit_from_evidence
+        coerce_period = operand_resolution.coerce_operand_period_from_evidence_surface
+
+        class MissingGroupMatch:
+            def end(self, _group_name: str) -> int:
+                raise IndexError("missing group")
+
+        class PolicyBomb(Mapping):
+            def __getitem__(self, _key: str) -> Any:
+                raise AssertionError("policy must stay lazy")
+
+            def __iter__(self):
+                raise AssertionError("policy must stay lazy")
+
+            def __len__(self) -> int:
+                raise AssertionError("policy must stay lazy")
+
+        with patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", PolicyBomb()):
+            self.assertTrue(
+                operand_resolution._inline_unit_match_has_right_boundary(
+                    "unit suffix",
+                    MissingGroupMatch(),
+                )
+            )
+            end_match = re.search(r"(?P<unit>unit)", "unit")
+            self.assertIsNotNone(end_match)
+            self.assertTrue(
+                operand_resolution._inline_unit_match_has_right_boundary(
+                    "unit",
+                    end_match,
+                )
+            )
+
+        unit_cases = [
+            ("not numeric", "  원 ", None, "원"),
+            ("not numeric", "", {"metadata": {"unit_hint": " 백만원 "}}, "백만원"),
+            ("not numeric", "KRW", {"metadata": {"unit_hint": " krw "}}, "KRW"),
+            ("1,000", "원", {"metadata": {"unit_hint": "백만원"}}, "백만원"),
+            ("about 1,000", "원", {"metadata": {"unit_hint": "백만원"}}, "원"),
+            ("100", "개", {"claim": "100원"}, "원"),
+            ("100", "", {"source_context": "100원"}, "원"),
+            ("100", "개", {"source_context": "100원"}, "개"),
+            ("100", "백만원", {"source_context": "100원"}, "원"),
+            ("100", "", {"metadata": {"unit_hint": "%"}, "source_context": "100원"}, "%"),
+            ("100", "", {"claim": "100억"}, "억원"),
+            ("100", "개", {"claim": "100원화"}, "개"),
+            ("100", "개", {"claim": "100원이 지급됐다"}, "원"),
+        ]
+        for raw_value, raw_unit, evidence_item, expected in unit_cases:
+            with self.subTest(raw_value=raw_value, raw_unit=raw_unit, evidence=evidence_item):
+                self.assertEqual(
+                    coerce_unit(
+                        raw_value=raw_value,
+                        raw_unit=raw_unit,
+                        evidence_item=evidence_item,
+                    ),
+                    expected,
+                )
+
+        unit_evidence = {
+            "claim": "100원",
+            "metadata": {"unit_hint": "백만원", "nested": {"kept": True}},
+        }
+        unit_evidence_snapshot = deepcopy(unit_evidence)
+        nested_metadata = unit_evidence["metadata"]["nested"]
+        self.assertEqual(
+            coerce_unit(
+                raw_value="100",
+                raw_unit="개",
+                evidence_item=unit_evidence,
+            ),
+            "원",
+        )
+        self.assertEqual(unit_evidence, unit_evidence_snapshot)
+        self.assertIs(unit_evidence["metadata"]["nested"], nested_metadata)
+
+        nested = {"kept": True}
+        same_period = {"period": "2022년", "label": "metric", "nested": nested}
+        self.assertIs(
+            coerce_period(
+                same_period,
+                {"claim": "2022년 metric", "quote_span": "2023년 comparison"},
+            ),
+            same_period,
+        )
+        self.assertIs(
+            coerce_period(
+                same_period,
+                {"claim": "2022년 metric and 2022년 repeated"},
+            ),
+            same_period,
+        )
+        non_year_row = {"period": "current", "label": "metric"}
+        self.assertIs(
+            coerce_period(
+                non_year_row,
+                {"claim": "metric without a year"},
+            ),
+            non_year_row,
+        )
+        self.assertIs(
+            coerce_period(
+                same_period,
+                {"source_context": "2023년 context only"},
+            ),
+            same_period,
+        )
+
+        realigned = coerce_period(
+            same_period,
+            {"claim": "2023년 metric 100"},
+        )
+        self.assertIsNot(realigned, same_period)
+        self.assertEqual(realigned["period"], "2023")
+        self.assertEqual(realigned["period_source"], "evidence_surface")
+        self.assertIs(realigned["nested"], nested)
+        self.assertNotIn("period_source", same_period)
+
+        label_aligned = {"period": "", "label": "2023년 metric", "matched_operand_label": "metric"}
+        self.assertIs(
+            coerce_period(
+                label_aligned,
+                {"raw_row_text": "2023년 metric 100"},
+            ),
+            label_aligned,
+        )
+        periodless = {"period": "", "label": "metric", "matched_operand_label": "metric"}
+        inferred = coerce_period(
+            periodless,
+            {"quote_span": "2023년 metric 100"},
+        )
+        self.assertEqual(inferred, {**periodless, "period": "2023", "period_source": "evidence_surface"})
+        self.assertIsNot(inferred, periodless)
+
+    def test_evidence_local_unit_and_period_access_and_exception_contract(self) -> None:
+        coerce_unit = operand_resolution.coerce_operand_unit_from_evidence
+        coerce_period = operand_resolution.coerce_operand_period_from_evidence_surface
+        events: List[tuple[str, str]] = []
+
+        class AccessMapping(Mapping):
+            def __init__(self, name: str, values: Dict[str, Any]) -> None:
+                self.name = name
+                self.values = values
+
+            def __bool__(self) -> bool:
+                events.append((self.name, "bool"))
+                return bool(self.values)
+
+            def get(self, key: str, default: Any = None) -> Any:
+                events.append((self.name, f"get:{key}"))
+                return self.values.get(key, default)
+
+            def __getitem__(self, key: str) -> Any:
+                events.append((self.name, f"item:{key}"))
+                return self.values[key]
+
+            def __iter__(self):
+                events.append((self.name, "iter"))
+                return iter(self.values)
+
+            def __len__(self) -> int:
+                events.append((self.name, "len"))
+                return len(self.values)
+
+        class StringProbe(str):
+            def __new__(cls, name: str, value: str):
+                instance = super().__new__(cls, value)
+                instance.name = name
+                return instance
+
+            def __str__(self) -> str:
+                events.append((self.name, "str"))
+                return super().__str__()
+
+        metadata = AccessMapping("metadata", {"unit_hint": StringProbe("hint", "백만원")})
+        evidence = AccessMapping(
+            "evidence",
+            {
+                "metadata": metadata,
+                "claim": StringProbe("claim", "100 백만원"),
+                "quote_span": StringProbe("quote", ""),
+                "raw_row_text": StringProbe("raw-row", ""),
+                "source_context": StringProbe("context", ""),
+            },
+        )
+        self.assertEqual(
+            coerce_unit(
+                raw_value=StringProbe("raw-value", "100"),
+                raw_unit=StringProbe("raw-unit", "원"),
+                evidence_item=evidence,
+            ),
+            "백만원",
+        )
+        milestones = [
+            ("evidence", "bool"),
+            ("evidence", "get:metadata"),
+            ("metadata", "iter"),
+            ("hint", "str"),
+            ("raw-unit", "str"),
+            ("raw-value", "str"),
+            ("evidence", "get:claim"),
+            ("evidence", "get:quote_span"),
+            ("evidence", "get:raw_row_text"),
+            ("evidence", "get:source_context"),
+        ]
+        positions = [events.index(milestone) for milestone in milestones]
+        self.assertEqual(positions, sorted(positions))
+
+        events.clear()
+        core_evidence = AccessMapping(
+            "core-evidence",
+            {
+                "claim": "100원",
+                "quote_span": "",
+                "raw_row_text": "",
+                "source_context": StringProbe("core-context", "100개"),
+            },
+        )
+        self.assertTrue(
+            operand_resolution._evidence_core_surface_contains_value_unit(
+                raw_value="100",
+                raw_unit="원",
+                evidence_item=core_evidence,
+            )
+        )
+        self.assertEqual(
+            [event for event in events if event[0] == "core-evidence" and event[1].startswith("get:")],
+            [
+                ("core-evidence", "get:claim"),
+                ("core-evidence", "get:quote_span"),
+                ("core-evidence", "get:raw_row_text"),
+            ],
+        )
+        self.assertNotIn(("core-context", "str"), events)
+
+        finditer_patterns: List[str] = []
+        current_finditer = operand_resolution.re.finditer
+
+        def record_finditer(pattern: str, text: str, *args: Any, **kwargs: Any):
+            finditer_patterns.append(pattern)
+            return current_finditer(pattern, text, *args, **kwargs)
+
+        with patch.object(
+            operand_resolution.re,
+            "finditer",
+            side_effect=record_finditer,
+        ):
+            self.assertEqual(
+                operand_resolution._infer_operand_unit_from_value_surface(
+                    raw_value="100",
+                    evidence_item={"claim": "100억"},
+                ),
+                "억원",
+            )
+        self.assertEqual(len(finditer_patterns), 2)
+        self.assertIn("surface_unit", finditer_patterns[0])
+        self.assertIn("?P<unit>", finditer_patterns[1])
+
+        class PoisonSurfaceMapping(AccessMapping):
+            def get(self, key: str, default: Any = None) -> Any:
+                if key != "metadata":
+                    raise AssertionError("surface access must stay lazy")
+                return super().get(key, default)
+
+        events.clear()
+        self.assertEqual(
+            coerce_unit(
+                raw_value="not numeric",
+                raw_unit="원",
+                evidence_item=PoisonSurfaceMapping("lazy-evidence", {"metadata": {}}),
+            ),
+            "원",
+        )
+        self.assertEqual(
+            [event for event in events if event[0] == "lazy-evidence"],
+            [("lazy-evidence", "bool"), ("lazy-evidence", "get:metadata")],
+        )
+
+        known_surface_events: List[str] = []
+        current_normalizer = operand_resolution._normalise_operand_value
+        current_space_normalizer = operand_resolution._normalise_spaces
+
+        def record_infer(**_kwargs: Any) -> str:
+            known_surface_events.append("infer")
+            return "원"
+
+        def record_value_normalizer(raw_value: str, raw_unit: str):
+            known_surface_events.append(f"value:{raw_unit}")
+            return current_normalizer(raw_value, raw_unit)
+
+        def record_family_normalizer(value: str) -> str:
+            known_surface_events.append(f"family:{value}")
+            return current_space_normalizer(value)
+
+        def record_core_match(**_kwargs: Any) -> bool:
+            known_surface_events.append("core")
+            return False
+
+        with (
+            patch.object(
+                operand_resolution,
+                "_infer_operand_unit_from_value_surface",
+                side_effect=record_infer,
+            ),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=record_value_normalizer,
+            ),
+            patch.object(
+                operand_resolution,
+                "_normalise_spaces",
+                side_effect=record_family_normalizer,
+            ),
+            patch.object(
+                operand_resolution,
+                "_evidence_core_surface_contains_value_unit",
+                side_effect=record_core_match,
+            ),
+        ):
+            self.assertEqual(
+                coerce_unit(
+                    raw_value="100",
+                    raw_unit="개",
+                    evidence_item={"metadata": {"unit_hint": "%"}},
+                ),
+                "개",
+            )
+        self.assertEqual(
+            known_surface_events,
+            [
+                "infer",
+                "value:원",
+                "value:개",
+                "value:%",
+                "family:KRW",
+                "family:COUNT",
+                "family:PERCENT",
+                "core",
+            ],
+        )
+
+        no_surface_policy_events: List[str] = []
+
+        class RepeatedPolicyString:
+            def __init__(self, name: str, value: str) -> None:
+                self.name = name
+                self.value = value
+
+            def __str__(self) -> str:
+                no_surface_policy_events.append(self.name)
+                return self.value
+
+        with (
+            patch.object(operand_resolution, "_infer_operand_unit_from_value_surface", return_value=""),
+            patch.object(
+                operand_resolution,
+                "CALCULATION_RENDER_POLICY",
+                {
+                    "operand_unit_bare_numeric_pattern": RepeatedPolicyString(
+                        "bare-pattern",
+                        r"[\(\)\-]?\d[\d,]*(?:\.\d+)?",
+                    ),
+                    "operand_unit_ambiguous_krw_units": (
+                        RepeatedPolicyString("ambiguous", "원"),
+                    ),
+                    "krw_display_units": (
+                        RepeatedPolicyString("display", "백만원"),
+                    ),
+                },
+            ),
+        ):
+            self.assertEqual(
+                coerce_unit(
+                    raw_value="100",
+                    raw_unit="원",
+                    evidence_item={"metadata": {"unit_hint": "백만원"}},
+                ),
+                "백만원",
+            )
+        self.assertEqual(no_surface_policy_events.count("bare-pattern"), 1)
+        self.assertEqual(no_surface_policy_events.count("ambiguous"), 2)
+        self.assertEqual(no_surface_policy_events.count("display"), 2)
+        self.assertLess(
+            no_surface_policy_events.index("bare-pattern"),
+            no_surface_policy_events.index("ambiguous"),
+        )
+        self.assertLess(
+            no_surface_policy_events.index("ambiguous"),
+            no_surface_policy_events.index("display"),
+        )
+
+        row_events: List[str] = []
+
+        class PeriodRow(Mapping):
+            def __init__(self) -> None:
+                self.values = {
+                    "period": "",
+                    "label": "metric",
+                    "matched_operand_label": "metric",
+                    "nested": metadata,
+                }
+
+            def get(self, key: str, default: Any = None) -> Any:
+                row_events.append(f"get:{key}")
+                return self.values.get(key, default)
+
+            def __getitem__(self, key: str) -> Any:
+                row_events.append(f"item:{key}")
+                return self.values[key]
+
+            def __iter__(self):
+                row_events.append("iter")
+                return iter(self.values)
+
+            def __len__(self) -> int:
+                row_events.append("len")
+                return len(self.values)
+
+        period_row = PeriodRow()
+        period_result = coerce_period(
+            period_row,
+            {"claim": "2023년 metric 100"},
+        )
+        self.assertEqual(
+            [event for event in row_events if event.startswith("get:")],
+            ["get:period", "get:period", "get:label", "get:matched_operand_label"],
+        )
+        self.assertLess(row_events.index("get:matched_operand_label"), row_events.index("iter"))
+        self.assertEqual(period_result["period"], "2023")
+        self.assertIs(period_result["nested"], metadata)
+
+        class GetBomb(Mapping):
+            def __bool__(self) -> bool:
+                return True
+
+            def get(self, _key: str, _default: Any = None) -> Any:
+                raise RuntimeError("get failed")
+
+            def __getitem__(self, _key: str) -> Any:
+                raise RuntimeError("item failed")
+
+            def __iter__(self):
+                raise RuntimeError("iteration failed")
+
+            def __len__(self) -> int:
+                return 1
+
+        with self.assertRaisesRegex(RuntimeError, "get failed"):
+            coerce_unit(
+                raw_value="100",
+                raw_unit="원",
+                evidence_item=GetBomb(),
+            )
+        with self.assertRaisesRegex(RuntimeError, "get failed"):
+            coerce_period(
+                GetBomb(),
+                {"claim": "2023년 metric"},
+            )
+
+        class MetadataCopyBomb(Mapping):
+            def __getitem__(self, _key: str) -> Any:
+                raise RuntimeError("metadata item failed")
+
+            def __iter__(self):
+                raise RuntimeError("metadata copy failed")
+
+            def __len__(self) -> int:
+                return 1
+
+        with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+            coerce_unit(
+                raw_value="100",
+                raw_unit="원",
+                evidence_item={"metadata": MetadataCopyBomb()},
+            )
+
+        class StringBomb:
+            def __str__(self) -> str:
+                raise RuntimeError("string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            coerce_unit(
+                raw_value="100",
+                raw_unit=StringBomb(),
+                evidence_item=None,
+            )
+
+        with (
+            patch.object(operand_resolution, "_infer_operand_unit_from_value_surface", return_value="원"),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=RuntimeError("normalizer failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                coerce_unit(
+                    raw_value="100",
+                    raw_unit="원",
+                    evidence_item=None,
+                )
+
+        with (
+            patch.object(operand_resolution, "_infer_operand_unit_from_value_surface", return_value=""),
+            patch.object(
+                operand_resolution,
+                "CALCULATION_RENDER_POLICY",
+                MetadataCopyBomb(),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                coerce_unit(
+                    raw_value="100",
+                    raw_unit="원",
+                    evidence_item={"metadata": {"unit_hint": "백만원"}},
+                )
+
+        with patch.object(
+            operand_resolution.re,
+            "search",
+            side_effect=RuntimeError("regex failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "regex failed"):
+                operand_resolution._infer_operand_unit_from_value_surface(
+                    raw_value="100",
+                    evidence_item={"claim": "100원"},
+                )
+
+        class MatchGroupBomb:
+            def end(self, _group_name: str) -> int:
+                return len("100원")
+
+            def group(self, _group_name: str) -> str:
+                raise RuntimeError("match group failed")
+
+        with patch.object(
+            operand_resolution.re,
+            "finditer",
+            return_value=[MatchGroupBomb()],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "match group failed"):
+                operand_resolution._infer_operand_unit_from_value_surface(
+                    raw_value="100",
+                    evidence_item={"claim": "100원"},
+                )
+
+        class EndBomb:
+            def end(self, _group_name: str) -> int:
+                raise RuntimeError("end failed")
+
+        with self.assertRaisesRegex(RuntimeError, "end failed"):
+            operand_resolution._inline_unit_match_has_right_boundary("100원", EndBomb())
+
+        policy_events: List[str] = []
+
+        class PolicyString:
+            def __init__(self, name: str, value: str) -> None:
+                self.name = name
+                self.value = value
+
+            def __str__(self) -> str:
+                policy_events.append(self.name)
+                return self.value
+
+        allowed = re.search(r"(?P<unit>원)", "100원이")
+        self.assertIsNotNone(allowed)
+        with (
+            patch.object(
+                operand_resolution,
+                "CALCULATION_RENDER_POLICY",
+                {
+                    "inline_unit_right_boundary_allowed_prefixes": (
+                        PolicyString("first-prefix", "이"),
+                        PolicyString("retained-prefix", "가"),
+                    ),
+                    "inline_unit_right_boundary_block_pattern": PolicyString(
+                        "lazy-block-pattern",
+                        r"[0-9A-Za-z가-힣]",
+                    ),
+                },
+            ),
+            patch.object(
+                operand_resolution.re,
+                "match",
+                side_effect=AssertionError("block regex must stay lazy"),
+            ),
+        ):
+            self.assertTrue(
+                operand_resolution._inline_unit_match_has_right_boundary(
+                    "100원이",
+                    allowed,
+                )
+            )
+        self.assertEqual(policy_events.count("first-prefix"), 2)
+        self.assertEqual(policy_events.count("retained-prefix"), 2)
+        self.assertNotIn("lazy-block-pattern", policy_events)
+
+        policy_events.clear()
+        blocked = re.search(r"(?P<unit>원)", "100원화폐")
+        self.assertIsNotNone(blocked)
+        real_match = re.match
+        regex_texts: List[str] = []
+
+        def tracked_match(pattern: str, text: str, *args: Any, **kwargs: Any):
+            policy_events.append("regex")
+            regex_texts.append(text)
+            return real_match(pattern, text, *args, **kwargs)
+
+        with (
+            patch.object(
+                operand_resolution,
+                "CALCULATION_RENDER_POLICY",
+                {
+                    "inline_unit_right_boundary_allowed_prefixes": (PolicyString("prefix", "이"),),
+                    "inline_unit_right_boundary_block_pattern": PolicyString(
+                        "block-pattern",
+                        r"[0-9A-Za-z가-힣]",
+                    ),
+                },
+            ),
+            patch.object(operand_resolution.re, "match", side_effect=tracked_match),
+        ):
+            self.assertFalse(
+                operand_resolution._inline_unit_match_has_right_boundary(
+                    "100원화폐",
+                    blocked,
+                )
+            )
+        self.assertLess(policy_events.index("prefix"), policy_events.index("block-pattern"))
+        self.assertLess(policy_events.index("block-pattern"), policy_events.index("regex"))
+        self.assertEqual(regex_texts, ["화"])
+
     def test_ratio_context_metric_surface_preserves_behavior_contract(self) -> None:
         matches = operand_resolution.ratio_context_has_metric_surface
 
