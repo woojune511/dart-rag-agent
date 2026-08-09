@@ -29,7 +29,7 @@ if TYPE_CHECKING:
         ReviewTrace,
         RuntimeCalculationTrace,
     )
-from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+from src.agent.financial_numeric_surface import answer_covers_numeric_answer, extract_numeric_surface_candidates
 from src.agent.financial_operation_policies import _requires_direct_numeric_grounding
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, SECTION_BIAS_BY_QUERY_TYPE
@@ -235,7 +235,7 @@ class FinancialAgent(
         )
         if not replacement_answer:
             return "", {}
-        if self._answer_covers_numeric_answer(public_answer, replacement_answer) and self._answer_covers_numeric_answer(
+        if answer_covers_numeric_answer(public_answer, replacement_answer) and answer_covers_numeric_answer(
             replacement_answer,
             public_answer,
         ):
@@ -370,7 +370,7 @@ class FinancialAgent(
                         or ""
                     )
                 )
-                if not row_answer or not self._answer_covers_numeric_answer(answer_text, row_answer):
+                if not row_answer or not answer_covers_numeric_answer(answer_text, row_answer):
                     continue
             projection = self._rebuild_aggregate_projection([row], answer_text)
             projection = _attach_runtime_projection_metadata(

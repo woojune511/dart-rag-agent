@@ -1,7 +1,9 @@
 import unittest
 from copy import deepcopy
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
+import src.agent.financial_graph as financial_graph
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
@@ -976,6 +978,70 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertTrue(
             result["resolved_calculation_trace"]["runtime_projection"]["public_answer_repaired"]
         )
+
+    def test_structured_result_projection_uses_numeric_coverage_owner_at_replacement_boundary(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        public_answer = "target share is 10%."
+        replacement_answer = "target share is 20%."
+        row = {
+            "task_id": "task_ratio",
+            "operation_family": "ratio",
+            "answer": replacement_answer,
+            "calculation_result": {
+                "status": "ok",
+                "formatted_result": replacement_answer,
+            },
+        }
+        structured_result = {"subtask_results": [row]}
+        projection = {
+            "calculation_result": {
+                "status": "ok",
+                "subtask_results": [row],
+            }
+        }
+        replacement_builder = Mock(return_value=replacement_answer)
+        coverage = Mock(side_effect=(False, True, True, RuntimeError("coverage owner failed")))
+        projection_builder = Mock(return_value=projection)
+
+        def project_result(structured=structured_result):
+            return agent._structured_result_projection_for_stale_public_numeric_answer(
+                {"query": "target share"},
+                public_answer=public_answer,
+                structured_result=structured,
+                evidence_items=[],
+            )
+
+        with patch.object(
+            agent,
+            "_complete_numeric_projection_replacement_answer",
+            replacement_builder,
+        ), patch.multiple(
+            financial_graph,
+            answer_covers_numeric_answer=coverage,
+            _build_aggregate_calculation_projection=projection_builder,
+        ):
+            self.assertEqual(project_result({}), ("", {}))
+            replacement_builder.assert_not_called()
+            coverage.assert_not_called()
+
+            answer, projected = project_result()
+            self.assertEqual(project_result(), ("", {}))
+            with self.assertRaisesRegex(RuntimeError, "coverage owner failed"):
+                project_result()
+
+        self.assertEqual(
+            [item.args for item in coverage.call_args_list],
+            [
+                (public_answer, replacement_answer),
+                (public_answer, replacement_answer),
+                (replacement_answer, public_answer),
+                (public_answer, replacement_answer),
+            ],
+        )
+        projection_builder.assert_called_once_with([row], replacement_answer)
+        self.assertEqual(answer, replacement_answer)
+        self.assertEqual(projected["calculation_result"]["subtask_results"], [row])
+        self.assertEqual(projected["runtime_projection"]["source"], "structured_result_subtasks")
 
     def test_run_refreshes_public_answer_from_resolved_ratio_trace(self) -> None:
         final_state = self._base_final_state()

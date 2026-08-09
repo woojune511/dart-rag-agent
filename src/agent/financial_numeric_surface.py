@@ -323,6 +323,42 @@ def numeric_surface_candidates_equivalent(left: Dict[str, Any], right: Dict[str,
     return abs(left_value - right_value) <= tolerance
 
 
+def answer_covers_numeric_answer(
+    answer: str,
+    numeric_answer: str,
+) -> bool:
+    answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+    numeric_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(numeric_answer or "")))
+    if not numeric_candidates:
+        return True
+    if not answer_candidates:
+        return False
+    return all(
+        any(
+            numeric_surface_candidates_equivalent(answer_candidate, numeric_candidate)
+            for answer_candidate in answer_candidates
+        )
+        for numeric_candidate in numeric_candidates
+    )
+
+
+def answer_has_numeric_material_outside_reference(
+    answer: str,
+    reference_answer: str,
+) -> bool:
+    answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
+    reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference_answer or "")))
+    if not answer_candidates or not reference_candidates:
+        return False
+    return any(
+        not any(
+            numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
+            for reference_candidate in reference_candidates
+        )
+        for answer_candidate in answer_candidates
+    )
+
+
 def numeric_evidence_relevance_score(
     evidence: Dict[str, Any],
     *,

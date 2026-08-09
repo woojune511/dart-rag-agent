@@ -5,8 +5,9 @@ import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Optional
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnableLambda
@@ -4980,6 +4981,77 @@ class SubtaskLoopTests(unittest.TestCase):
         ratio_row = next(row for row in updated["subtask_results"] if row["task_id"] == "task_ratio")
         self.assertTrue(ratio_row.get("aligned_from_source_task_slots"))
 
+    def test_initial_aggregate_state_uses_numeric_outside_reference_owner(self) -> None:
+        fallback_answer = "target share is 10%."
+        complete_answer = "target share is 20%."
+        row = {"task_id": "task_ratio", "operation_family": "ratio", "answer": fallback_answer}
+        state = {
+            "calc_subtasks": [{"task_id": "task_ratio"}],
+            "subtask_results": [row],
+        }
+
+        def preserve_rows(rows, *_args):
+            return rows
+
+        complete_owner = Mock(return_value=complete_answer)
+        replacement_gate = Mock(return_value=True)
+        later_composer = Mock(return_value="")
+        patched_owners = {
+            "_capture_current_subtask_result": Mock(return_value={}),
+            "_upsert_subtask_result": Mock(return_value=[row]),
+            "_dedupe_aggregate_subtask_results": Mock(side_effect=preserve_rows),
+            "_recover_lookup_results_from_sibling_table_evidence": Mock(side_effect=preserve_rows),
+            "_promote_stronger_nested_aggregate_results": Mock(side_effect=preserve_rows),
+            "_align_lookup_result_units_from_peer_source_slots": Mock(side_effect=preserve_rows),
+            "_append_ratio_result_from_retrieved_context": Mock(side_effect=preserve_rows),
+            "_append_ratio_result_from_task_outputs": Mock(side_effect=preserve_rows),
+            "_sync_ratio_result_displays_in_ordered_results": Mock(side_effect=preserve_rows),
+            "_preferred_aggregate_fallback_answer": Mock(return_value=fallback_answer),
+            "_rebuild_aggregate_projection": Mock(return_value={}),
+            "_align_lookup_results_with_dependency_projection": Mock(side_effect=preserve_rows),
+            "_supported_aggregate_subtask_answer": Mock(return_value=""),
+            "_preferred_complete_numeric_answer": complete_owner,
+            "_row_is_narrative_summary": Mock(return_value=False),
+            "_answer_covers_numeric_projection": Mock(return_value=True),
+            "_complete_numeric_answer_can_replace_final": replacement_gate,
+            "_compose_lookup_list_numeric_answer": later_composer,
+        }
+        with (
+            patch.multiple(self.agent, **patched_owners),
+            patch.object(
+                financial_graph_calculation,
+                "answer_has_numeric_material_outside_reference",
+                side_effect=(False, True, RuntimeError("outside owner failed")),
+            ) as outside_owner,
+        ):
+            preserved = self.agent._prepare_initial_aggregate_state(state)
+            adopted = self.agent._prepare_initial_aggregate_state(state)
+            with self.assertRaisesRegex(RuntimeError, "outside owner failed"):
+                self.agent._prepare_initial_aggregate_state(state)
+
+            self.assertEqual(
+                [item.args for item in outside_owner.call_args_list],
+                [
+                    (fallback_answer, complete_answer),
+                    (fallback_answer, complete_answer),
+                    (fallback_answer, complete_answer),
+                ],
+            )
+            replacement_gate.assert_called_once_with(complete_answer, adopted.ordered_results)
+            self.assertEqual(later_composer.call_count, 2)
+            self.assertEqual(preserved.fallback_answer, fallback_answer)
+            self.assertEqual(adopted.fallback_answer, complete_answer)
+
+            outside_owner.reset_mock()
+            outside_owner.side_effect = RuntimeError("outside owner accessed")
+            complete_owner.return_value = ""
+            replacement_gate.reset_mock()
+            owner_zero = self.agent._prepare_initial_aggregate_state(state)
+        outside_owner.assert_not_called()
+        replacement_gate.assert_not_called()
+        self.assertEqual(owner_zero.complete_numeric_answer, "")
+        self.assertEqual(owner_zero.fallback_answer, fallback_answer)
+
     def test_aggregate_compact_ratio_preserves_uncovered_lookup_item(self) -> None:
         packaging_events, base_patch, refreshed_patch = _record_aggregate_candidate_packaging()
         base_patch.start()
@@ -5233,6 +5305,7 @@ class SubtaskLoopTests(unittest.TestCase):
         row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
         sentence_owner = self.agent._answer_sentence_for_projection_subtask_row
         conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
+        coverage_owner = financial_graph_calculation.answer_covers_numeric_answer
 
         with patch.object(
             financial_graph_calculation,
@@ -5265,6 +5338,11 @@ class SubtaskLoopTests(unittest.TestCase):
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as row_sync_spy,
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_numeric_answer",
+                wraps=coverage_owner,
+            ) as coverage_spy,
         ):
             ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
@@ -5277,6 +5355,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIsNot(first_sentence_row, stale_ratio_row)
         self.assertEqual(first_sentence_row, stale_ratio_row)
         conflict_spy.assert_called_once_with({"answer": final_answer}, first_sentence_row)
+        coverage_spy.assert_called_once_with(final_answer, "target share is 400.00%.")
         row_sync_spy.assert_called_once()
         ratio_sync_input = row_sync_spy.call_args.args[0]
         self.assertEqual(ratio_sync_input.projection_row["task_id"], "task_ratio")
@@ -5309,6 +5388,10 @@ class SubtaskLoopTests(unittest.TestCase):
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as gated_row_sync,
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_numeric_answer",
+            ) as gated_coverage,
         ):
             unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
@@ -5316,6 +5399,7 @@ class SubtaskLoopTests(unittest.TestCase):
                 final_answer,
             )
         gated_conflict.assert_not_called()
+        gated_coverage.assert_not_called()
         gated_row_sync.assert_not_called()
         self.assertIs(unchanged_results[0], stale_ratio_row)
         self.assertIs(unchanged_projection, empty_projection)
@@ -5346,6 +5430,69 @@ class SubtaskLoopTests(unittest.TestCase):
         false_row_sync.assert_not_called()
         self.assertIs(unchanged_results[0], stale_ratio_row)
         self.assertIs(unchanged_projection, projection)
+
+        with (
+            patch.object(
+                self.agent,
+                "_answer_sentence_for_projection_subtask_row",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_numeric_answer",
+                return_value=True,
+            ) as covering_owner,
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as covered_row_sync,
+        ):
+            unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                projection,
+                final_answer,
+            )
+        covering_owner.assert_called_once_with(final_answer, "target share is 400.00%.")
+        covered_row_sync.assert_not_called()
+        self.assertIs(unchanged_results[0], stale_ratio_row)
+        self.assertIs(unchanged_projection, projection)
+
+        with (
+            patch.object(
+                self.agent,
+                "_answer_sentence_for_projection_subtask_row",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                return_value=True,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_numeric_answer",
+                side_effect=RuntimeError("coverage owner failed"),
+            ) as failing_coverage,
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as stopped_row_sync,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coverage owner failed"):
+                self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                    [stale_ratio_row],
+                    projection,
+                    final_answer,
+                )
+        failing_coverage.assert_called_once_with(final_answer, "target share is 400.00%.")
+        stopped_row_sync.assert_not_called()
 
         with (
             patch.object(
@@ -6049,6 +6196,92 @@ class SubtaskLoopTests(unittest.TestCase):
         magnitude_projection.assert_called_once()
         coherence.assert_not_called()
         self.assertEqual(absolute_state, state_before)
+
+    def test_stale_projection_repair_uses_numeric_outside_reference_owner(self) -> None:
+        repaired_answer = "target share is 20%."
+        aggregate_state = _AggregateSynthesisState(
+            [{"task_id": "task_ratio", "operation_family": "ratio"}],
+            {"calculation_result": {"status": "ok", "formatted_result": "target share is 10%."}},
+            "target share is 10%.",
+            ["ev_old"],
+        )
+        repaired_result = {
+            "status": "ok",
+            "formatted_result": repaired_answer,
+            "answer_slots": {"operation_family": "ratio"},
+        }
+        stale_repair = SimpleNamespace(
+            repair_applied=True,
+            calculation_operands=[],
+            calculation_plan={"operation": "ratio"},
+            calculation_result=repaired_result,
+            selected_evidence_ids=("ev_new",),
+        )
+        adopted_state = aggregate_state.with_updates(final_answer="adopted 20%")
+        repair_owner = Mock(
+            side_effect=lambda *_args, **_kwargs: (
+                {"calculation_result": dict(repaired_result)},
+                stale_repair,
+            )
+        )
+        coherence_owner = Mock(return_value=1)
+        replacement_builder = Mock(return_value="complete target share is 20%.")
+        answer_adoption = Mock(return_value=adopted_state)
+        provenance_owner = Mock(return_value=SimpleNamespace(selected_claim_ids=("ev_new",)))
+        outside_owner = Mock(side_effect=(False, True, RuntimeError("outside owner failed")))
+        patched_owners = {
+            "_repair_stale_aggregate_projection_result": repair_owner,
+            "_aggregate_dependency_slot_coherence_rank_for_operands": coherence_owner,
+            "_compact_ratio_answer_from_projection": Mock(return_value=repaired_answer),
+            "_answer_covers_numeric_projection": Mock(return_value=True),
+            "_complete_numeric_projection_replacement_answer": replacement_builder,
+            "_apply_numeric_answer_to_aggregate_state": answer_adoption,
+        }
+
+        def repair():
+            return self.agent._apply_stale_projection_repair_to_aggregate_state(
+                state={"query": "target share"},
+                aggregate_state=aggregate_state,
+                evidence_items=[],
+                prefer_compact_ratio_answer=True,
+            )
+
+        with patch.multiple(self.agent, **patched_owners), patch.multiple(
+            financial_graph_calculation,
+            _select_aggregate_stale_repair_provenance=provenance_owner,
+            answer_has_numeric_material_outside_reference=outside_owner,
+        ):
+            preserved = repair()
+            adopted = repair()
+            with self.assertRaisesRegex(RuntimeError, "outside owner failed"):
+                repair()
+
+            self.assertEqual(
+                [item.args for item in outside_owner.call_args_list],
+                [(aggregate_state.final_answer, repaired_answer)] * 3,
+            )
+            replacement_builder.assert_called_once_with(
+                final_answer=repaired_answer,
+                ordered_results=aggregate_state.ordered_results,
+                query="target share",
+                evidence_items=[],
+            )
+            answer_adoption.assert_called_once()
+            self.assertEqual(preserved.final_answer, aggregate_state.final_answer)
+            self.assertEqual(preserved.selected_claim_ids, ["ev_new"])
+            self.assertEqual(
+                preserved.aggregate_projection["calculation_result"]["formatted_result"],
+                aggregate_state.final_answer,
+            )
+            self.assertIs(adopted, adopted_state)
+
+            coherence_owner.return_value = 0
+            provenance_owner.reset_mock()
+            outside_owner.reset_mock(side_effect=True)
+            outside_owner.side_effect = RuntimeError("outside owner accessed")
+            self.assertIs(repair(), aggregate_state)
+        provenance_owner.assert_not_called()
+        outside_owner.assert_not_called()
 
     def test_stale_projection_repair_rejects_dependency_incoherent_operands(self) -> None:
         source_lookup = {

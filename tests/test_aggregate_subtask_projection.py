@@ -8242,22 +8242,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             )
         )
 
-    def test_numeric_answer_coverage_requires_all_trace_values(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-
-        self.assertFalse(
-            agent._answer_covers_numeric_answer(
-                "The final answer is 258.77% using 259백만원 and 100백만원.",
-                "Debt ratio is 25.36%. Current ratio is 258.77%.",
-            )
-        )
-        self.assertTrue(
-            agent._answer_covers_numeric_answer(
-                "Debt ratio is 25.4%. Current ratio is 258.77%.",
-                "Debt ratio is 25.36%. Current ratio is 258.77%.",
-            )
-        )
-
     def test_existing_complete_aggregate_artifact_beats_late_partial_answer(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         ordered_results = [

@@ -1,7 +1,7 @@
 import unittest
 from collections.abc import Mapping
 from copy import deepcopy
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import src.agent.financial_numeric_surface as financial_numeric_surface
 from src.agent.financial_graph import FinancialAgent
@@ -118,6 +118,240 @@ class FinancialNumericProvenanceTests(unittest.TestCase):
 
         self.assertFalse(numeric_surface_candidates_equivalent(positive, negative))
         self.assertTrue(numeric_surface_candidates_equivalent(negative, dict(negative)))
+
+    def test_numeric_answer_coverage_and_outside_reference_preserve_behavior_contract(self) -> None:
+        covers = financial_numeric_surface.answer_covers_numeric_answer
+        outside = financial_numeric_surface.answer_has_numeric_material_outside_reference
+
+        for name, answer, reference, expected in (
+            ("empty reference", "target 10%", "no numeric material", True),
+            ("empty answer", "no numeric material", "target 10%", False),
+            ("answer extras allowed", "target 10% and peer 20%", "target 10%", True),
+            ("missing reference item", "target 10%", "target 10% and peer 20%", False),
+            ("rounded equivalent", "debt 25.4% and current 258.77%", "debt 25.36% and current 258.77%", True),
+        ):
+            with self.subTest(covers=name):
+                self.assertEqual(covers(answer, reference), expected)
+
+        for name, answer, reference, expected in (
+            ("empty answer", "no numeric material", "target 10%", False),
+            ("empty reference", "target 10%", "no numeric material", False),
+            ("equivalent", "target 10%", "target 10%", False),
+            ("answer extra", "target 10% and peer 20%", "target 10%", True),
+            ("reference extra", "target 10%", "target 10% and peer 20%", False),
+        ):
+            with self.subTest(outside=name):
+                self.assertEqual(outside(answer, reference), expected)
+
+    def test_numeric_answer_coverage_and_outside_reference_preserve_access_contract(self) -> None:
+        covers = financial_numeric_surface.answer_covers_numeric_answer
+        outside = financial_numeric_surface.answer_has_numeric_material_outside_reference
+        events = []
+
+        class TrackedText:
+            def __init__(self, name):
+                self.name = name
+
+            def __bool__(self):
+                events.append(f"bool:{self.name}")
+                return True
+
+            def __str__(self):
+                events.append(f"str:{self.name}")
+                return self.name
+
+        def normalize(value):
+            events.append(f"normalize:{value}")
+            return value
+
+        input_events = [
+            "bool:answer",
+            "str:answer",
+            "normalize:answer",
+            "extract:answer",
+            "bool:reference",
+            "str:reference",
+            "normalize:reference",
+            "extract:reference",
+        ]
+
+        coverage_answer = [{"id": "a1"}, {"id": "a2"}, {"id": "a3"}]
+        coverage_reference = [{"id": "n1"}, {"id": "n2"}, {"id": "n3"}]
+        coverage_before = deepcopy((coverage_answer, coverage_reference))
+        coverage_pairs = []
+
+        def extract_coverage(value):
+            events.append(f"extract:{value}")
+            return coverage_answer if value == "answer" else coverage_reference
+
+        def equivalent_coverage(answer_candidate, numeric_candidate):
+            pair = (answer_candidate["id"], numeric_candidate["id"])
+            coverage_pairs.append(pair)
+            if pair == ("a3", "n1") or numeric_candidate["id"] == "n3":
+                raise RuntimeError("coverage short circuit failed")
+            return pair == ("a2", "n1")
+
+        with (
+            patch.object(financial_numeric_surface, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=extract_coverage,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=equivalent_coverage,
+            ),
+        ):
+            self.assertFalse(covers(TrackedText("answer"), TrackedText("reference")))
+        self.assertEqual(events, input_events)
+        self.assertEqual(
+            coverage_pairs,
+            [("a1", "n1"), ("a2", "n1"), ("a1", "n2"), ("a2", "n2"), ("a3", "n2")],
+        )
+        self.assertEqual((coverage_answer, coverage_reference), coverage_before)
+
+        outside_answer = [{"id": "a1"}, {"id": "a2"}, {"id": "a3"}]
+        outside_reference = [{"id": "r1"}, {"id": "r2"}, {"id": "r3"}]
+        outside_before = deepcopy((outside_answer, outside_reference))
+        outside_pairs = []
+
+        def extract_outside(value):
+            events.append(f"extract:{value}")
+            return outside_answer if value == "answer" else outside_reference
+
+        def equivalent_outside(answer_candidate, reference_candidate):
+            pair = (answer_candidate["id"], reference_candidate["id"])
+            outside_pairs.append(pair)
+            if pair == ("a1", "r3") or answer_candidate["id"] == "a3":
+                raise RuntimeError("outside short circuit failed")
+            return pair == ("a1", "r2")
+
+        events.clear()
+        with (
+            patch.object(financial_numeric_surface, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=extract_outside,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=equivalent_outside,
+            ),
+        ):
+            self.assertTrue(outside(TrackedText("answer"), TrackedText("reference")))
+        self.assertEqual(events, input_events)
+        self.assertEqual(
+            outside_pairs,
+            [("a1", "r1"), ("a1", "r2"), ("a2", "r1"), ("a2", "r2"), ("a2", "r3")],
+        )
+        self.assertEqual((outside_answer, outside_reference), outside_before)
+
+        empty_extract = Mock(
+            side_effect=([{"id": "answer"}], [], [], [{"id": "reference"}])
+        )
+        equivalence_poison = Mock(side_effect=RuntimeError("equivalence accessed"))
+        with patch.multiple(
+            financial_numeric_surface,
+            extract_numeric_surface_candidates=empty_extract,
+            numeric_surface_candidates_equivalent=equivalence_poison,
+        ):
+            self.assertTrue(covers("answer", "reference"))
+            self.assertFalse(outside("answer", "reference"))
+        self.assertEqual(
+            [item.args for item in empty_extract.call_args_list],
+            [("answer",), ("reference",), ("answer",), ("reference",)],
+        )
+        equivalence_poison.assert_not_called()
+
+        gate_events = []
+
+        class CandidateList:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def __bool__(self):
+                gate_events.append(f"bool:{self.name}")
+                return bool(self.values)
+
+            def __iter__(self):
+                raise RuntimeError(f"iterated:{self.name}")
+
+        class PoisonCandidates:
+            def __bool__(self):
+                raise RuntimeError("later candidate list accessed")
+
+        gate_extract = Mock(
+            side_effect=(
+                CandidateList("coverage-answer", []),
+                CandidateList("coverage-reference", [{"id": "reference"}]),
+                CandidateList("outside-answer", [{"id": "answer"}]),
+                CandidateList("outside-reference", []),
+                PoisonCandidates(),
+                CandidateList("empty-coverage-reference", []),
+                CandidateList("empty-outside-answer", []),
+                PoisonCandidates(),
+            )
+        )
+        with patch.object(
+            financial_numeric_surface,
+            "extract_numeric_surface_candidates",
+            gate_extract,
+        ):
+            self.assertFalse(covers("answer", "reference"))
+            self.assertFalse(outside("answer", "reference"))
+            self.assertTrue(covers("answer", "reference"))
+            self.assertFalse(outside("answer", "reference"))
+        self.assertEqual(
+            gate_events,
+            [
+                "bool:coverage-reference",
+                "bool:coverage-answer",
+                "bool:outside-answer",
+                "bool:outside-reference",
+                "bool:empty-coverage-reference",
+                "bool:empty-outside-answer",
+            ],
+        )
+
+        class StringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            covers(StringBomb(), "reference")
+        for owner_name, patched_owner in (
+            ("normalizer", "_normalise_spaces"),
+            ("extractor", "extract_numeric_surface_candidates"),
+        ):
+            with self.subTest(propagates=owner_name), patch.object(
+                financial_numeric_surface,
+                patched_owner,
+                side_effect=RuntimeError(f"{owner_name} failed"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, f"{owner_name} failed"):
+                    outside("answer", "reference")
+        with (
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=([{"id": "answer"}], [{"id": "reference"}]),
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=RuntimeError("equivalence failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "equivalence failed"):
+                covers("answer", "reference")
 
     def test_table_numeric_support_promotion_preserves_behavior_contract(self) -> None:
         promote = financial_numeric_surface.promote_table_numeric_support_evidence

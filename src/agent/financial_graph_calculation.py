@@ -234,6 +234,8 @@ from src.agent.financial_row_surfaces import (
 from src.agent.financial_structured_cells import _structured_cell_period_text
 from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
 from src.agent.financial_numeric_surface import (
+    answer_covers_numeric_answer,
+    answer_has_numeric_material_outside_reference,
     evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
@@ -962,7 +964,7 @@ class FinancialAgentCalculationMixin:
         answer: str,
         task_summary: str,
     ) -> bool:
-        if not self._answer_covers_numeric_answer(answer, task_summary):
+        if not answer_covers_numeric_answer(answer, task_summary):
             return False
         summary_candidates = extract_numeric_surface_candidates(task_summary)
         percent_surfaces = [
@@ -1305,7 +1307,7 @@ class FinancialAgentCalculationMixin:
                 require_primary_slot=True,
                 require_numeric=True,
             )
-            if not item_answer or self._answer_covers_numeric_answer(answer_text, item_answer):
+            if not item_answer or answer_covers_numeric_answer(answer_text, item_answer):
                 continue
             lookup_slot = self._aggregate_row_primary_answer_slot(row)
             lookup_label = _normalise_spaces(str(lookup_slot.get("label") or row.get("metric_label") or ""))
@@ -3046,7 +3048,7 @@ class FinancialAgentCalculationMixin:
         targets = self._numeric_projection_coverage_targets(ordered_results)
         if not targets:
             return True
-        return all(self._answer_covers_numeric_answer(answer, target) for target in targets)
+        return all(answer_covers_numeric_answer(answer, target) for target in targets)
 
     def _preferred_existing_aggregate_artifact_candidate(
         self,
@@ -3068,7 +3070,7 @@ class FinancialAgentCalculationMixin:
             if not normalized_answer:
                 return (0, 0, 0, 0)
             covered_count = sum(
-                1 for target in targets if self._answer_covers_numeric_answer(normalized_answer, target)
+                1 for target in targets if answer_covers_numeric_answer(normalized_answer, target)
             )
             complete = int(covered_count == len(targets))
             no_missing_marker = int(
@@ -4856,14 +4858,14 @@ class FinancialAgentCalculationMixin:
             )
             if not row_surface:
                 continue
-            if operation_family == "lookup" and self._answer_covers_numeric_answer(final_answer, row_surface):
+            if operation_family == "lookup" and answer_covers_numeric_answer(final_answer, row_surface):
                 continue
             synced_answer = self._answer_sentence_for_projection_subtask_row(final_answer, row)
             if not synced_answer:
                 continue
             if not subtask_numeric_answers_conflict({"answer": synced_answer}, row):
                 continue
-            if operation_family in {"ratio", "growth_rate"} and self._answer_covers_numeric_answer(final_answer, row_surface):
+            if operation_family in {"ratio", "growth_rate"} and answer_covers_numeric_answer(final_answer, row_surface):
                 continue
             if operation_family == "lookup" and len(extract_numeric_surface_candidates(synced_answer)) != 1:
                 continue
@@ -4973,7 +4975,7 @@ class FinancialAgentCalculationMixin:
                     or ""
                 )
             )
-            if row_answer and self._answer_covers_numeric_answer(answer_text, row_answer):
+            if row_answer and answer_covers_numeric_answer(answer_text, row_answer):
                 return [dict(row)]
         return ordered_results
 
@@ -5834,7 +5836,7 @@ class FinancialAgentCalculationMixin:
                     repaired_answer,
                     aggregate_state.ordered_results,
                 )
-                or not self._answer_has_numeric_material_outside_reference(
+                or not answer_has_numeric_material_outside_reference(
                     aggregate_state.final_answer,
                     repaired_answer,
                 )
@@ -5998,42 +6000,6 @@ class FinancialAgentCalculationMixin:
             final_answer=final_answer,
         )
         return filtered_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids
-
-    def _answer_covers_numeric_answer(
-        self,
-        answer: str,
-        numeric_answer: str,
-    ) -> bool:
-        answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
-        numeric_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(numeric_answer or "")))
-        if not numeric_candidates:
-            return True
-        if not answer_candidates:
-            return False
-        return all(
-            any(
-                numeric_surface_candidates_equivalent(answer_candidate, numeric_candidate)
-                for answer_candidate in answer_candidates
-            )
-            for numeric_candidate in numeric_candidates
-        )
-
-    def _answer_has_numeric_material_outside_reference(
-        self,
-        answer: str,
-        reference_answer: str,
-    ) -> bool:
-        answer_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(answer or "")))
-        reference_candidates = extract_numeric_surface_candidates(_normalise_spaces(str(reference_answer or "")))
-        if not answer_candidates or not reference_candidates:
-            return False
-        return any(
-            not any(
-                numeric_surface_candidates_equivalent(answer_candidate, reference_candidate)
-                for reference_candidate in reference_candidates
-            )
-            for answer_candidate in answer_candidates
-        )
 
     def _evidence_supports_final_answer_numeric_material(
         self,
@@ -16199,7 +16165,7 @@ class FinancialAgentCalculationMixin:
                 not self._answer_covers_numeric_projection(fallback_answer, ordered_results)
                 or (
                     self._answer_covers_numeric_projection(complete_numeric_answer, ordered_results)
-                    and self._answer_has_numeric_material_outside_reference(
+                    and answer_has_numeric_material_outside_reference(
                         fallback_answer,
                         complete_numeric_answer,
                     )
