@@ -473,7 +473,11 @@ state-free owner 경계:
   raw-unit/unit 및 raw/value/rendered/display fallback, digit threshold,
   normalized-value access와 raw-value truthiness fallback 순서를 유지하며 input을
   변경하거나 exception을 catch하지 않는다. Trace row/source-id 준비와 key/dedupe/
-  append는 predicate 밖 runtime-trace orchestration에 남는다.
+  append는 predicate 밖 runtime-trace orchestration에 남는다. 같은 owner의 plain
+  `overlay_calculation_operands_from_slots(...)`는 stable shallow operand copy,
+  matched-role precedence, optional normalized-role lookup, falsy-slot no-op, 고정된
+  일곱 field overwrite, fresh list/top-level rows, nested alias와 uncaught exception
+  순서를 보존한다.
 - `financial_aggregate_state.py`: public `AggregateCompositionState`와 공통
   state-free composition transition을 소유한다. Answer normalization 뒤 lazy
   current fallback, current-first claim cleanup/dedupe, projection reset/override
@@ -609,7 +613,10 @@ graph adapter에 남은 orchestration 역할군:
 - 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
   acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
 - collapsed-ratio runtime trace/eligibility/completeness/query gate, prepared
-  copies, downstream coherence/compact-answer/coverage/final projection과 기타
+  role-map과 default overlay call, empty result를 포함한 unconditional adoption,
+  single-period evidence/realignment gate와 four-alias role-map, normalized overlay
+  call과 truthy-only adoption, prepared copies, downstream coherence/compact-answer/
+  coverage/final projection과 기타
   absolute-ratio 및 trend projection/error 경계
 - full aggregate result dedupe/rank tuple/nested promotion. Canonical signature와
   growth sign-rank의 7개/4개 호출은 기존 위치와 반복 평가를 유지한다.
@@ -684,8 +691,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   projection-row surface synchronization, arithmetic component/series/delta
   synchronization, compact aggregate-synthesis prompt-row projection, and typed
   base/refreshed aggregate-answer candidate payload packaging/application
-- `financial_runtime_trace.py`: runtime calculation-trace projection and the public
-  shared operand material-numeric predicate
+- `financial_runtime_trace.py`: runtime calculation-trace projection, the public
+  shared operand material-numeric predicate, and prepared calculation-operand slot
+  overlay
 - `financial_aggregate_state.py`: public aggregate composition carrier and
   state-free answer/claim/projection/lock/feedback transition
 - `financial_task_artifacts.py`: task/artifact ledger projection, typed prepared

@@ -1272,6 +1272,39 @@ initial-state policy, evidence support, behavior or performance improvement,
 total-code or broad executed-path reduction, broader private-mesh cleanup,
 end-to-end calculation ownership, or complete Phase 3.
 
+### Prepared calculation-operand slot-overlay ownership
+
+- `db3e58e69e778d32b8be28fe2c265f27acea8f48` moves graph
+  `_updated_operands_from_slots` into the plain public
+  `financial_runtime_trace.overlay_calculation_operands_from_slots(...)` function.
+  The two graph calls remain in place. The old private definition and self
+  references are deleted without a wrapper, carrier, reason, flag, callback,
+  config input, compatibility alias, or trace field.
+- The owner preserves eager calculation-operand list materialization, stable shallow
+  row copies, matched-role before lazy role fallback, optional lookup-key-only
+  normalization, per-row slot lookup, falsy-slot no-op, and the fixed seven-field
+  overwrite order. Fresh list/top-level rows, nested and adopted slot-value aliases,
+  input immutability, and uncaught exception order remain unchanged.
+- Graph retains collapsed-ratio evidence, eligibility, formula and prepared role-map
+  construction, its default-mode owner call and unconditional result adoption before
+  calculation-result assignment. It also retains the single-period evidence and
+  realignment gates, four-alias role map, normalized-mode call and truthy-only
+  adoption, plus all slot/result repair, state, artifact, and final orchestration.
+- Production source is `+32/-31`, net 1: the calculation graph changes from 18,253
+  to 18,225 lines (`+3/-31`, net -28) and the runtime-trace owner from 1,065 to
+  1,094 lines (`+29/-0`, net 29). Tests are `+412/-0`, net 412; the whole commit is
+  `+444/-31`, net 413.
+- Validation passed targeted 4/4 tests, affected 582/582 tests, the 217-literal
+  runtime audit, full discovery over 1,535/1,535 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving prepared role-slot-to-calculation-operand overlay
+ownership plus deletion of the 28 old graph definition lines, not collapsed-ratio
+or single-period repair ownership, evidence selection, ranking, formula/query
+policy, realignment, call-placement/adoption policy, slot/result repair, behavior
+or performance improvement, total-code or broad executed-path reduction, broader
+private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

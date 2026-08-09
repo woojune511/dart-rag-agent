@@ -160,7 +160,12 @@ Last updated: 2026-08-10
   순서, fresh container와 nested alias 계약을 유지한다. Runtime-trace owner의
   public material-numeric predicate를 공유하며, 그 predicate는 `missing` gate,
   raw/unit 및 raw/value/rendered/display fallback, digit gate와 normalized-value
-  access 순서를 기존 그대로 보존한다.
+  access 순서를 기존 그대로 보존한다. 같은 runtime-trace owner의 plain
+  `overlay_calculation_operands_from_slots(...)`는 trace operand를 stable order로
+  shallow-copy하고 matched-role 우선 lookup key로 graph가 준비한 slot의 일곱
+  value/unit/source field를 overlay한다. Falsy slot no-op, optional normalized-role
+  lookup, fresh list/top-level rows, nested aliases, input immutability와 uncaught
+  exception 순서를 보존한다.
   같은 owner의 plain `subtask_numeric_answers_conflict(...)`는 candidate row를
   current row보다 먼저 answer/formatted/rendered fallback 순서로 resolve하고 두
   numeric surface를 모두 추출한 뒤, candidate-major/current-minor
@@ -223,7 +228,10 @@ Last updated: 2026-08-10
   dependency candidate-input construction/execution, query/absolute transform,
   task-artifact/ledger conflict short-circuit와 formatter, sibling-table evidence selection과
   candidate realignment 및 preparation/map propagation, collapsed-ratio
-  trace/eligibility/completeness/query gate와 prepared
+  trace/eligibility/completeness/query gate와 prepared role-map, default-mode overlay
+  owner call 및 empty result까지 unconditional adoption, single-period comparison의
+  evidence/realignment gate와 four-alias role-map, normalized-mode owner call 및
+  truthy-only adoption, prepared
   copies, retrieved ratio-context의 existing-result iteration, signature/status/artifact-
   backed/value/completeness/tolerance gate와 metric-surface owner call placement/inversion,
   downstream coherence/compact-answer/coverage/final projection, structured
@@ -267,7 +275,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 6/6, affected 644/644, full unittest 1,531/1,531 PASS |
+| Latest calculation runtime validation | targeted 4/4, affected 582/582, full unittest 1,535/1,535 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

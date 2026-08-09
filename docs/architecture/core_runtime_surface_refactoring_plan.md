@@ -350,7 +350,14 @@ Current calculation ownership is:
   `missing` gate, lazy unit/value fallbacks, digit threshold, normalized-value
   access, raw-value fallback, no-mutation, and uncaught-exception contract remain
   unchanged; trace-owned source normalization, key construction, dedupe, and append
-  stay outside the predicate.
+  stay outside the predicate. The same owner now owns plain prepared calculation-
+  operand slot overlay. Stable operand order, matched-role precedence, optional
+  normalized-role lookup, falsy-slot no-op, fixed seven-field overwrite, fresh
+  list/top-level rows, nested aliases, input immutability, and uncaught exception
+  order remain unchanged. Graph retains both repair callers' evidence, role-map
+  construction, applicability/ranking/formula/realignment gates, call placement,
+  unconditional-empty versus truthy-only adoption, slot/result repair, state, and
+  final orchestration.
 - `financial_aggregate_state.py` owns the public `AggregateCompositionState`
   carrier and its common state-free transition. The transition preserves answer
   normalization and lazy fallback, current-first claim cleanup/dedupe, projection
@@ -383,14 +390,14 @@ Current calculation ownership is:
   initial-state policy, later filtering, state/artifact work, and final orchestration
   remain graph-owned.
 
-At the latest checkpoint, the calculation graph adapter is 18,253 lines, the
+At the latest checkpoint, the calculation graph adapter is 18,225 lines, the
 public graph is 1,200, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,831, the answer-slot owner is 625, the aggregate owner is 1,151, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
-owner is 1,250, the numeric-surface owner is 575, the runtime-trace owner is 1,065,
-and the execution owner is 837. The latest owner slice passed targeted 6/6 tests,
-affected 644/644 tests, the 217-literal audit, and full discovery over 1,531/1,531
+owner is 1,250, the numeric-surface owner is 575, the runtime-trace owner is 1,094,
+and the execution owner is 837. The latest owner slice passed targeted 4/4 tests,
+affected 582/582 tests, the 217-literal audit, and full discovery over 1,535/1,535
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in

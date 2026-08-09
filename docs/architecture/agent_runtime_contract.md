@@ -1393,6 +1393,38 @@ shared public material-predicate ownership, not LLM/template/answer policy, toke
 or prompt-size improvement, total-code or executed-path reduction, performance,
 broad private-surface cleanup, or Phase 3 completion.
 
+Prepared calculation-operand slot overlay is a second plain, state-free
+`financial_runtime_trace.py` owner seam through
+`overlay_calculation_operands_from_slots(trace, slot_by_role, *, normalize_role=False)`.
+It evaluates `(trace or {}).get("calculation_operands") or []` and materializes that
+operand sequence before processing rows. It always returns a fresh list and shallow-
+copies every operand in stable order. Per row it resolves the lookup role through
+truthy `matched_operand_role`, lazy `role`, and `""`, then stringifies it. The
+`normalize_role` flag is tested for every row; when true, whitespace normalization
+and lowercasing affect only the lookup key.
+
+The owner performs one `slot_by_role.get(role)` per copied row. A missing or falsy
+slot preserves the otherwise-fresh row. A truthy slot overwrites `raw_value`,
+`raw_unit`, `normalized_value`, `normalized_unit`, `source_row_id`,
+`source_row_ids`, and `source_anchor` in that exact order, including absent-key
+`None` values. Unrelated nested values and adopted slot values retain their exact
+identities. The trace, operand rows, slot map, and slots remain unmodified. The
+owner catches no truthiness, access, list materialization, iteration, copy, string,
+normalization, lowercasing, getter, update, or other exception and does not dedupe,
+pre-copy the slot map, or cache role resolution across rows.
+
+The collapsed-ratio repair caller still builds its numerator/denominator role map,
+passes the exact original trace with default role handling, and adopts the owner
+result unconditionally before assigning the repaired calculation result. The
+single-period comparison caller still builds current/prior plus minuend/subtrahend
+aliases, passes `normalize_role=True`, and adopts the owner result only when it is
+truthy. Graph retains all evidence, applicability, ranking, formula, slot/result
+repair, realignment, call-placement/adoption, state, artifact, and finalization
+policy. This seam claims only prepared role-slot-to-calculation-operand overlay
+ownership plus old-body deletion, not either repair workflow, behavior or
+performance improvement, total-code or executed-path reduction, broad private-
+surface cleanup, or Phase 3 completion.
+
 Generic numeric-answer coverage and outside-reference comparison are plain,
 state-free `financial_numeric_surface.py` owner seams through
 `answer_covers_numeric_answer(answer, numeric_answer)` and
