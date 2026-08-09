@@ -462,7 +462,12 @@ state-free owner 경계:
   evidence identity, retained-line
   normalization과 answer-major/stable first-four matching, supported-path fresh
   evidence/metadata copy, nested aliases, header와 claim/quote 순서, input
-  immutability, uncaught exceptions을 보존한다.
+  immutability, uncaught exceptions을 보존한다. 같은 owner의 plain
+  `answer_covers_numeric_answer(...)`와
+  `answer_has_numeric_material_outside_reference(...)`는 eager answer-first
+  extraction, numeric-list-first coverage와 answer-list-first outside gate,
+  numeric-major/answer-major nested equivalence 및 uncaught exception 순서를
+  보존한다.
 - `financial_runtime_trace.py`: public state-free material-numeric predicate를
   runtime-trace append와 aggregate prompt projection에 제공한다. `missing` gate,
   raw-unit/unit 및 raw/value/rendered/display fallback, digit threshold,
@@ -535,6 +540,10 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate task-ledger replacement gate와 conflict-before-preservation fallback,
   projection sentence scorer 및 arithmetic-surface synchronizer의 numeric-conflict
   call placement/polarity
+- public/structured projection, task-answer preservation, artifact scoring,
+  arithmetic synchronization, recovered-ratio selection, stale repair와 initial-
+  state의 numeric coverage/outside-reference target 준비, 12 owner call placement와
+  결과 polarity
 - aggregate answer candidate discovery/scoring/selection, narrative refresh,
   packaging과 composition-transition call placement/laziness, application
   invocation/broader answer precedence,
@@ -686,7 +695,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
 - `financial_numeric_surface.py`: numeric display surface extraction/equivalence,
-  private table-support text assembly, and public prepared evidence promotion
+  plain answer-coverage/outside-reference comparison, private table-support text
+  assembly, and public prepared evidence promotion
 
 ## 10. Rendering Helpers
 

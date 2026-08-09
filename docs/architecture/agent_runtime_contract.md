@@ -1393,6 +1393,40 @@ shared public material-predicate ownership, not LLM/template/answer policy, toke
 or prompt-size improvement, total-code or executed-path reduction, performance,
 broad private-surface cleanup, or Phase 3 completion.
 
+Generic numeric-answer coverage and outside-reference comparison are plain,
+state-free `financial_numeric_surface.py` owner seams through
+`answer_covers_numeric_answer(answer, numeric_answer)` and
+`answer_has_numeric_material_outside_reference(answer, reference_answer)`. Both
+owners evaluate and extract the answer first and the second input afterward. Each
+input preserves truthiness, `str`, whitespace-normalization, and numeric-surface-
+extraction order; both extractions complete before candidate-list truthiness is
+tested.
+
+Coverage tests the numeric-answer candidate list before the answer list. An empty
+numeric list returns `True` without testing answer-list truthiness; otherwise an
+empty answer list returns `False`. Its nonempty comparison remains numeric-major in
+the outer iteration and answer-minor inside: every numeric-answer candidate must match some
+answer candidate through stable lazy `all(any(...))`. Outside-reference comparison
+tests answer-list truthiness before reference-list truthiness, returns `False` when
+either is empty, and retains answer-major, reference-minor
+`any(not any(...))`, stopping on the first answer candidate unmatched by every
+reference candidate. Equivalence argument order and nested short-circuit order are
+unchanged. Neither owner copies or mutates inputs, and neither catches truthiness,
+string, normalization, extraction, list-truthiness, iteration, equivalence, or
+other exceptions.
+
+The three `financial_graph.py` and nine calculation-graph calls remain at their
+existing positions. The graph modules retain all prepared answer/reference
+targets; projection, preservation, scoring, arithmetic-surface synchronization,
+recovered-ratio, stale-repair, and initial-state gates; result polarity and later
+adoption/mutation; and state, evidence, artifact/ledger, and final orchestration.
+`_numeric_surface_conflicts_with_reference` and the evidence/text numeric-support
+helpers remain graph-owned. This seam claims only generic numeric coverage and
+outside-reference comparison ownership plus old-body deletion, not public
+projection, preservation, scoring, synchronization, stale or initial-state policy,
+evidence support, behavior improvement, performance, total-code or executed-path
+reduction, broad private-surface cleanup, or Phase 3 completion.
+
 Table numeric-support text and evidence promotion are plain, state-free
 `financial_numeric_surface.py` owner seams. The owner-private support helper first
 copies evidence metadata, then reads and splits the table-value-label surface.

@@ -176,6 +176,11 @@ Last updated: 2026-08-10
   support 경로는 fresh top-level evidence와 metadata copy를 만들되 다른 nested alias를
   보존한다. Stable first-four line, answer-major equivalence, header laziness, claim/quote
   access와 uncaught exception 순서도 기존과 같다.
+  같은 numeric-surface owner의 plain `answer_covers_numeric_answer(...)`와
+  `answer_has_numeric_material_outside_reference(...)`는 두 input surface를 모두
+  answer-first로 추출한 뒤 각각 numeric-major `all(any(...))` coverage와
+  answer-major `any(not any(...))` outside-reference 비교를 수행한다. Empty-list gate,
+  stable lazy equivalence, input immutability와 uncaught exception 순서를 보존한다.
   Task-artifact owner는 graph가 준비한 artifact records, final answer와 aggregate
   projection으로 첫 exact-id aggregate artifact의 payload와 summary를 동기화한다.
   Stable order, copy-all-before-search, shallow alias와 예외 순서를 유지한다. 같은
@@ -243,6 +248,9 @@ Last updated: 2026-08-10
   aggregate task-ledger finalization의 replacement gate와 numeric-conflict-before-
   preservation disposition, projection-row sentence scorer 및 arithmetic-surface
   synchronizer의 numeric-conflict call placement와 polarity,
+  public/structured projection, task-answer preservation, score, arithmetic sync,
+  recovered-ratio row, stale repair와 initial-state 경로의 numeric coverage/outside-
+  reference owner call placement, 선행 gate와 결과 polarity,
   aggregate artifact의 initial copy, ratio/render/completeness/formatter/projection
   mutation과 `None`/blank-id gate, ledger creation/finalization, mutable state/evidence,
   reconciliation-ref owner의 두 call placement와 artifact/task/state input 구성,
@@ -259,7 +267,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 5/5, affected 633/633, full unittest 1,527/1,527 PASS |
+| Latest calculation runtime validation | targeted 6/6, affected 644/644, full unittest 1,531/1,531 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

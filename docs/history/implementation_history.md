@@ -1236,6 +1236,42 @@ nested promotion or ranking, source selection or provenance policy, behavior or
 performance improvement, total-code or broad executed-path reduction, broader
 private-mesh cleanup, end-to-end aggregate ownership, or complete Phase 3.
 
+### Numeric-answer coverage and outside-reference comparison ownership
+
+- `e15445dc45f39eec2fe54c7ab2ec5400e100481c` moves graph
+  `_answer_covers_numeric_answer` and
+  `_answer_has_numeric_material_outside_reference` into plain public
+  `financial_numeric_surface.py` functions. All ten coverage calls and both
+  outside-reference calls remain at their exact graph-module positions. The old
+  private definitions and self references are deleted without a wrapper, carrier,
+  reason, flag, callback, config input, compatibility alias, or trace field.
+- Both predicates preserve answer-first then second-input truthiness, string,
+  normalization, and extraction. Coverage keeps numeric-list-before-answer-list
+  gates and numeric-major/answer-minor lazy `all(any(...))`; outside-reference
+  comparison keeps answer-list-before-reference-list gates and answer-major/
+  reference-minor lazy `any(not any(...))`. Inputs remain unmodified and the
+  existing access/exception order is unchanged.
+- Graph retains every prepared answer/reference target, all public and structured
+  projection, task-answer preservation, scoring, arithmetic synchronization,
+  recovered-ratio, stale-repair, and initial-state gates and polarity, plus
+  evidence/text numeric support, state/evidence, artifact/ledger, and final
+  orchestration.
+- Production source is `+50/-48`, net 2: `financial_graph.py` remains 1,200 lines
+  (`+3/-3`), the calculation graph changes from 18,287 to 18,253 lines
+  (`+11/-45`, net -34), and the numeric-surface owner from 539 to 575 lines
+  (`+36/-0`, net 36). Tests are `+535/-18`, net 517; the whole commit is
+  `+585/-66`, net 519.
+- Validation passed targeted 6/6 tests, affected 644/644 tests, the 217-literal
+  runtime audit, full discovery over 1,531/1,531 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving generic numeric-answer coverage and outside-reference
+comparison ownership plus deletion of the 34 old graph definition lines, not
+public projection, preservation, scoring, arithmetic synchronization, stale or
+initial-state policy, evidence support, behavior or performance improvement,
+total-code or broad executed-path reduction, broader private-mesh cleanup,
+end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -374,17 +374,23 @@ Current calculation ownership is:
   and the plain public prepared-evidence promoter. Empty/no-support paths preserve
   exact evidence identity; supported paths preserve stable first-four selection,
   fresh evidence/metadata copies, nested aliases, claim/quote order, header laziness,
-  input immutability, and uncaught exception order. Evidence selection, retrieved-
-  narrative skipping, local row preparation, later filtering, state/artifact work,
-  and final orchestration remain graph-owned.
+  input immutability, and uncaught exception order. It also owns plain numeric-answer
+  coverage and outside-reference comparison. Those predicates preserve eager
+  answer-first extraction, their opposite numeric-major versus answer-major nested
+  comparisons, empty-list gates, stable laziness, and uncaught exception order.
+  Evidence selection, retrieved-narrative skipping, local row preparation, public
+  projection and preservation, scoring and arithmetic synchronization, stale and
+  initial-state policy, later filtering, state/artifact work, and final orchestration
+  remain graph-owned.
 
-At the latest checkpoint, the graph is 18,287 lines, the graph helper module is
+At the latest checkpoint, the calculation graph adapter is 18,253 lines, the
+public graph is 1,200, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,831, the answer-slot owner is 625, the aggregate owner is 1,151, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
-owner is 1,250, the numeric-surface owner is 539, the runtime-trace owner is 1,065,
-and the execution owner is 837. The latest owner slice passed targeted 5/5 tests,
-affected 633/633 tests, the 217-literal audit, and full discovery over 1,527/1,527
+owner is 1,250, the numeric-surface owner is 575, the runtime-trace owner is 1,065,
+and the execution owner is 837. The latest owner slice passed targeted 6/6 tests,
+affected 644/644 tests, the 217-literal audit, and full discovery over 1,531/1,531
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
