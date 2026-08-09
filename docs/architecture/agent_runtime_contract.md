@@ -1417,6 +1417,38 @@ formula or ratio calculation, query policy, compact-answer rendering, row
 selection/propagation, aggregate precedence, state/evidence, or artifact/ledger
 work.
 
+Source-task display compatibility for a prepared answer slot is a plain,
+state-free `financial_answer_slots.py` owner seam through
+`source_task_display_compatible_with_slot(slot, source_display)`. The owner first
+applies source-display truthiness, stringification, and normalization; blank input
+returns `False` before slot access. It resolves the slot display from
+`rendered_value` before `raw_value`, and normalized exact equality returns `True`.
+A normalized `source_row_id` beginning with `task_output:` also returns `True`.
+It then normalizes `raw_unit`; blank units and units already contained in the
+source display return `True` before normalized-unit or policy access.
+
+Only the remaining path normalizes and uppercases `normalized_unit`, then
+stringifies and uppercases configured `krw_normalized_unit`. When they match, the
+configured `krw_display_units` tuple is fully materialized in its existing
+filter-then-storage order, so each retained item is stringified twice and each
+blank item once before containment begins. A configured KRW display unit found in
+the source display returns `False`; all other paths return `True`. The owner does
+not copy or mutate inputs and catches no mapping, truthiness, string, iteration,
+containment, normalization, policy, or other exception.
+
+The graph retains source-task and source-slot lookup, calculation-result/answer-
+slot copies, and the source-slot material gate. `_growth_slot_display_value`
+obtains that source display first; blank output is owner-zero. A truthy display
+calls the public owner once with the exact slot and prepared string. Owner `True`
+adopts the source display; owner `False` repeats the graph's normalized
+`rendered_value`-then-`raw_value` fallback, and an owner exception stops that
+fallback and later growth-material work. Source-task lookup, growth calculation
+and material semantics, state, artifact, and final orchestration remain graph-
+owned. This seam claims only source-task display-compatibility ownership, not
+lookup or growth semantics, numeric/render-policy improvement, behavior or
+performance improvement, total-code or executed-path reduction, broad private-
+surface cleanup, or Phase 3 completion.
+
 Prepared late aggregate-artifact payload synchronization is a typed, state-free
 `financial_task_artifacts.py` owner seam. It first creates a fresh top-level copy
 of every supplied artifact, then scans in stable order for the first raw exact-id

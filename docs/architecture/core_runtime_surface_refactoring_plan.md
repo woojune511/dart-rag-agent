@@ -309,7 +309,12 @@ Current calculation ownership is:
   calculation-result and primary-slot display synchronization. It preserves the
   formula-mismatch copy versus ordinary in-place update distinction, current-
   surface precedence, percent policy, and exception order; graph callers retain
-  compact-answer and ordered-row orchestration.
+  compact-answer and ordered-row orchestration. The same owner now exposes plain
+  `source_task_display_compatible_with_slot(...)`, preserving source-display-first
+  normalization, rendered/raw equality, `task_output:`, raw-unit, normalized-unit,
+  configured KRW-display short circuits, input immutability, and uncaught exception
+  order. Graph retains source-task/slot lookup, material gating, call placement,
+  False-path rendered/raw fallback, and all growth/state/artifact orchestration.
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection, canonical aggregate operation-family normalization, canonical
   aggregate-result signature and growth operand sign-consistency rank primitives,
@@ -365,13 +370,13 @@ Current calculation ownership is:
   narrative skipping, local row preparation, later filtering, state/artifact work,
   and final orchestration remain graph-owned.
 
-At the latest checkpoint, the graph is 18,359 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,328 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,831, the answer-slot owner is 594, the aggregate owner is 1,106, the
+is 2,831, the answer-slot owner is 625, the aggregate owner is 1,106, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
 owner is 1,250, the numeric-surface owner is 539, the runtime-trace owner is 1,065,
 and the execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 679/679 tests, the 217-literal audit, and full discovery over 1,523/1,523
+affected 676/676 tests, the 217-literal audit, and full discovery over 1,525/1,525
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in

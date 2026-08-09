@@ -125,6 +125,13 @@ Last updated: 2026-08-10
   typed result로 동기화한다. Formula-trace mismatch에서는 top-level result와
   derived metrics를 복사하고, 그 외 성공 경로에서는 전달된 result identity를
   그대로 갱신하며 status/unit/current-surface gate와 예외 순서를 보존한다.
+  같은 owner의 plain `source_task_display_compatible_with_slot(...)`는 graph가 찾은
+  source-task display를 prepared answer slot과 비교한다. Blank display, rendered/raw
+  equality, `task_output:` source, raw-unit blank/containment, normalized-unit 및
+  configured KRW display gate의 short-circuit/access/exception 순서를 보존하고 input을
+  변경하지 않는다. Graph는 source-task/slot lookup과 material gate, source-display
+  truthy call gate, owner True adoption/False rendered-then-raw fallback, growth material,
+  state/artifact 및 final orchestration을 유지한다.
   Aggregate owner는 pure stale provenance target selection, canonical aggregate
   operation-family normalization, aggregate-result signature와 growth operand
   sign-consistency rank primitive, graph가 준비한
@@ -223,6 +230,8 @@ Last updated: 2026-08-10
   update map, ordered/slot propagation과 final projection rebuild,
   ordered ratio-row gate와 before/after display comparison, compact-answer construction,
   row answer/result propagation과 state/active-subtask/operand/period/metric formatting,
+  source-task display lookup과 material gate, truthy compatibility-owner call placement,
+  False-path rendered/raw fallback 및 이후 growth calculation/material sequencing,
   aggregate artifact의 initial copy, ratio/render/completeness/formatter/projection
   mutation과 `None`/blank-id gate, ledger creation/finalization, mutable state/evidence,
   reconciliation-ref owner의 두 call placement와 artifact/task/state input 구성,
@@ -238,7 +247,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 679/679, full unittest 1,523/1,523 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 676/676, full unittest 1,525/1,525 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

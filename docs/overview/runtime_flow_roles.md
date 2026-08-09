@@ -302,6 +302,12 @@ state-free owner 경계:
   calculation-result/primary-slot display synchronization. Status/operation/source-
   stated gate, formula-mismatch copy와 ordinary in-place update, percent policy,
   primary/result/formatted surface precedence, nested identity와 예외 순서를 보존한다.
+  Plain `source_task_display_compatible_with_slot(...)`도 source-display-first
+  normalization, rendered/raw equality, `task_output:`, raw/normalized unit와
+  configured KRW-display shortcut, repeated policy stringification, input
+  immutability와 uncaught exception 순서대로 적용한다. Graph는 source-task/slot
+  lookup, material gate, call placement, False fallback와 growth orchestration을
+  유지한다.
 - `financial_operand_resolution.py`: candidate matching, grounding, generic
   candidate selection, merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면
   abstain하고 값이 동등한 tie만 stable key로 선택한다. Required candidate
@@ -512,6 +518,9 @@ graph adapter에 남은 orchestration 역할군:
   artifact-backed/value/completeness/tolerance gate, metric-surface owner의 exact-object
   call placement와 logical conflict inversion, 이후 recalculation/adoption/evidence/
   state/artifact/final orchestration
+- source-task/source-slot lookup과 material gate, truthy display-compatibility owner
+  call placement, True source-display adoption, False rendered/raw fallback 및 이후
+  growth calculation/material/state/artifact/final orchestration
 - aggregate evidence/kept-id selection, rebuild gate, selected-claim filtering,
   final-answer surface-operand append
 - aggregate nested-result promotion, preliminary/final projection rebuild,
@@ -624,8 +633,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 
 ### Extracted calculation helpers
 
-- `financial_answer_slots.py`: answer slot payload construction and typed ratio
-  calculation-result/primary-slot display synchronization
+- `financial_answer_slots.py`: answer slot payload construction, typed ratio
+  calculation-result/primary-slot display synchronization, and plain source-task
+  display compatibility through `source_task_display_compatible_with_slot(...)`
 - `financial_operand_resolution.py`: state-free generic operand candidate
   resolution, typed required-candidate precedence/merge, and typed direct
   structured acceptance, typed direct structured-evidence base scoring, and the

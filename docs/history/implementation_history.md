@@ -1170,6 +1170,36 @@ policy, ratio recalculation or adoption, evidence selection, behavior or policy
 improvement, total-code or broad executed-path reduction, performance, broader
 private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Source-task display-compatibility ownership
+
+- `544f99d7bf2745d41d86e7c06266f111300ae57d` moves graph
+  `_source_task_display_compatible_with_slot` into the plain public answer-slot
+  owner as `source_task_display_compatible_with_slot(...)`. The sole graph caller
+  invokes the public owner at the same truthy-source position; the old private
+  definition and self references are deleted without a wrapper, carrier, reason,
+  flag, callback, config input, compatibility alias, or trace field.
+- Source-display-first normalization, rendered/raw equality, `task_output:` source,
+  raw-unit blank/containment, normalized-unit and configured KRW-display short
+  circuits, repeated policy-item stringification, input immutability, and uncaught
+  exception order remain unchanged.
+- Graph retains source-task/source-slot lookup and material gating, calculation-
+  result/answer-slot preparation, blank-source owner-zero, exact call placement,
+  True-path source-display adoption, False-path rendered/raw fallback, growth
+  calculation/material semantics, state, artifact, and final orchestration.
+- Production source is `+33/-33`, net 0: the graph changes from 18,359 to 18,328
+  lines (`+1/-32`, net -31) and the answer-slot owner from 594 to 625 lines
+  (`+32/-1`, net 31). Tests are `+355/-0`, net 355; the whole commit is
+  `+388/-33`, net 355.
+- Validation passed targeted 3/3 tests, affected 676/676 tests, the 217-literal
+  runtime audit, full discovery over 1,525/1,525 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving source-task display-compatibility ownership and
+deletion of the 30-line old graph body, not source-task lookup, growth semantics,
+numeric/render-policy improvement, new behavior, total-code or broad executed-
+path reduction, performance, broader private-mesh cleanup, end-to-end calculation
+ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
