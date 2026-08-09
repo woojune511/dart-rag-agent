@@ -212,6 +212,7 @@ from src.agent.financial_runtime_trace import (
     _collect_nested_result_evidence,
     _resolve_runtime_calculation_trace,
     _runtime_trace_state_update,
+    overlay_calculation_operands_from_slots,
 )
 from src.agent.financial_reflection_projection import (
     reflection_action_from_plan as _reflection_action_from_plan,
@@ -12503,41 +12504,12 @@ class FinancialAgentCalculationMixin:
             denominator_role: updated_denominator,
         }
         updated_trace = dict(trace or {})
-        updated_trace["calculation_operands"] = self._updated_operands_from_slots(
+        updated_trace["calculation_operands"] = overlay_calculation_operands_from_slots(
             trace,
             role_updates,
         )
         updated_trace["calculation_result"] = updated_result
         return updated_trace
-
-    def _updated_operands_from_slots(
-        self,
-        trace: Dict[str, Any],
-        slot_by_role: Dict[str, Dict[str, Any]],
-        *,
-        normalize_role: bool = False,
-    ) -> List[Dict[str, Any]]:
-        updated_operands: List[Dict[str, Any]] = []
-        for operand in list((trace or {}).get("calculation_operands") or []):
-            row = dict(operand)
-            role = str(row.get("matched_operand_role") or row.get("role") or "")
-            if normalize_role:
-                role = _normalise_spaces(role).lower()
-            slot = slot_by_role.get(role)
-            if slot:
-                row.update(
-                    {
-                        "raw_value": slot.get("raw_value"),
-                        "raw_unit": slot.get("raw_unit"),
-                        "normalized_value": slot.get("normalized_value"),
-                        "normalized_unit": slot.get("normalized_unit"),
-                        "source_row_id": slot.get("source_row_id"),
-                        "source_row_ids": slot.get("source_row_ids"),
-                        "source_anchor": slot.get("source_anchor"),
-                    }
-                )
-            updated_operands.append(row)
-        return updated_operands
 
     def _runtime_evidence_rows_with_context_docs(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
         evidence_rows = [
@@ -12761,7 +12733,7 @@ class FinancialAgentCalculationMixin:
             "minuend": dict((updated_result.get("answer_slots") or {}).get("current_value") or {}),
             "subtrahend": dict((updated_result.get("answer_slots") or {}).get("prior_value") or {}),
         }
-        updated_operands = self._updated_operands_from_slots(
+        updated_operands = overlay_calculation_operands_from_slots(
             trace,
             slot_by_role,
             normalize_role=True,

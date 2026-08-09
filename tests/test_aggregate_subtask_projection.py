@@ -11,6 +11,7 @@ from src.agent import (
     financial_aggregate_projection,
     financial_calculation_execution,
     financial_graph_calculation,
+    financial_runtime_trace,
 )
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_aggregate_state import (
@@ -98,6 +99,251 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_overlay_calculation_operands_from_slots_preserves_copy_and_overlay_contract(self) -> None:
+        update = financial_runtime_trace.overlay_calculation_operands_from_slots
+        nested = {"keep": True}
+        original_ids = ["old"]
+        adopted_ids = ["new"]
+        operands = [
+            {
+                "operand_id": "current",
+                "matched_operand_role": " Current_Period ",
+                "role": "ignored_role",
+                "raw_value": "old-current",
+                "source_row_ids": original_ids,
+                "nested": nested,
+            },
+            {
+                "operand_id": "prior",
+                "matched_operand_role": "",
+                "role": "prior_period",
+                "raw_value": "old-prior",
+                "nested": nested,
+            },
+            {"operand_id": "other", "role": "other", "raw_value": "unchanged", "nested": nested},
+        ]
+        trace = {"calculation_operands": operands, "nested": nested}
+        current_slot = {
+            "raw_value": "10",
+            "raw_unit": "unit",
+            "normalized_value": 10.0,
+            "normalized_unit": "COUNT",
+            "source_row_id": "row-current",
+            "source_row_ids": adopted_ids,
+            "source_anchor": "table-current",
+        }
+        partial_prior_slot = {"raw_value": "5"}
+        before = deepcopy((trace, current_slot, partial_prior_slot))
+
+        default_rows = update(
+            trace,
+            {"current_period": current_slot, "prior_period": partial_prior_slot},
+        )
+        self.assertEqual(default_rows[0]["raw_value"], "old-current")
+        self.assertEqual(
+            {key: default_rows[1][key] for key in current_slot},
+            {
+                "raw_value": "5",
+                "raw_unit": None,
+                "normalized_value": None,
+                "normalized_unit": None,
+                "source_row_id": None,
+                "source_row_ids": None,
+                "source_anchor": None,
+            },
+        )
+
+        normalized_rows = update(
+            trace,
+            {"current_period": current_slot, "prior_period": partial_prior_slot},
+            normalize_role=True,
+        )
+        self.assertEqual(
+            {key: normalized_rows[0][key] for key in current_slot},
+            current_slot,
+        )
+        self.assertEqual([row["operand_id"] for row in normalized_rows], ["current", "prior", "other"])
+        self.assertEqual(normalized_rows[2], operands[2])
+        self.assertIsNot(normalized_rows, operands)
+        self.assertTrue(all(current is not original for current, original in zip(normalized_rows, operands)))
+        self.assertTrue(all(row["nested"] is nested for row in normalized_rows))
+        self.assertIs(normalized_rows[0]["source_row_ids"], adopted_ids)
+        self.assertEqual((trace, current_slot, partial_prior_slot), before)
+
+        class FalsySlot(dict):
+            get_count = 0
+
+            def get(self, key, default=None):
+                self.get_count += 1
+                return super().get(key, default)
+
+        shared = {"keep": "shared"}
+        duplicate_operands = [
+            {"operand_id": "dup-a", "role": "duplicate", "nested": shared},
+            {"operand_id": "dup-b", "role": "duplicate", "nested": shared},
+        ]
+        falsy_slot = FalsySlot()
+        duplicate_rows = update(
+            {"calculation_operands": duplicate_operands},
+            {"duplicate": falsy_slot},
+        )
+        self.assertEqual(duplicate_rows, duplicate_operands)
+        self.assertEqual([row["operand_id"] for row in duplicate_rows], ["dup-a", "dup-b"])
+        self.assertTrue(all(current is not original for current, original in zip(duplicate_rows, duplicate_operands)))
+        self.assertTrue(all(row["nested"] is shared for row in duplicate_rows))
+        self.assertEqual(falsy_slot.get_count, 0)
+
+        class PoisonSlots:
+            def get(self, *_args):
+                raise RuntimeError("slots accessed")
+
+        empty_first = update({}, PoisonSlots())
+        empty_second = update({}, PoisonSlots())
+        self.assertEqual(empty_first, [])
+        self.assertIsNot(empty_first, empty_second)
+
+        class FalsyTrace:
+            def __bool__(self):
+                return False
+
+            def get(self, *_args):
+                raise RuntimeError("falsy trace accessed")
+
+        class FalsyOperands:
+            def __bool__(self):
+                return False
+
+            def __iter__(self):
+                raise RuntimeError("falsy operands iterated")
+
+        class TruthyTrace:
+            def __bool__(self):
+                return True
+
+            def get(self, key, default=None):
+                return FalsyOperands()
+
+        self.assertEqual(update(FalsyTrace(), PoisonSlots()), [])
+        self.assertEqual(update(TruthyTrace(), PoisonSlots()), [])
+
+    def test_overlay_calculation_operands_from_slots_preserves_access_and_exception_contract(self) -> None:
+        update = financial_runtime_trace.overlay_calculation_operands_from_slots
+        events = []
+        source_ids = ["row-current"]
+
+        class Role:
+            def __str__(self):
+                events.append("str:role")
+                return " Current_Period "
+
+        class Trace:
+            def get(self, key, default=None):
+                events.append(f"trace.get:{key}")
+                return [{"matched_operand_role": Role(), "role": "poison"}]
+
+        class Slot(Mapping):
+            values = {
+                "raw_value": "10",
+                "raw_unit": "unit",
+                "normalized_value": 10.0,
+                "normalized_unit": "COUNT",
+                "source_row_id": "row-current",
+                "source_row_ids": source_ids,
+                "source_anchor": "table-current",
+            }
+
+            def __len__(self):
+                events.append("slot.len")
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(f"slot.get:{key}")
+                return self.values.get(key, default)
+
+        class SlotMap:
+            def get(self, key, default=None):
+                events.append(f"slots.get:{key}")
+                return Slot()
+
+        class RecordingDict(dict):
+            def __init__(self, source):
+                events.append("copy:operand")
+                super().__init__(source)
+
+            def get(self, key, default=None):
+                events.append(f"row.get:{key}")
+                return super().get(key, default)
+
+        def normalize(value):
+            events.append(f"normalize:{value}")
+            return value.strip()
+
+        with (
+            patch.object(financial_runtime_trace, "dict", RecordingDict, create=True),
+            patch.object(financial_runtime_trace, "_normalise_spaces", side_effect=normalize),
+        ):
+            updated = update(Trace(), SlotMap(), normalize_role=True)
+        self.assertEqual(
+            events,
+            [
+                "trace.get:calculation_operands",
+                "copy:operand",
+                "row.get:matched_operand_role",
+                "str:role",
+                "normalize: Current_Period ",
+                "slots.get:current_period",
+                "slot.len",
+                "slot.get:raw_value",
+                "slot.get:raw_unit",
+                "slot.get:normalized_value",
+                "slot.get:normalized_unit",
+                "slot.get:source_row_id",
+                "slot.get:source_row_ids",
+                "slot.get:source_anchor",
+            ],
+        )
+        self.assertIs(updated[0]["source_row_ids"], source_ids)
+
+        class GetBomb:
+            def get(self, *_args):
+                raise RuntimeError("get failed")
+
+        class CopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("copy failed")
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        for message, trace, slots in (
+            ("get failed", GetBomb(), {}),
+            ("copy failed", {"calculation_operands": [CopyBomb()]}, {}),
+            ("string failed", {"calculation_operands": [{"role": StringBomb()}]}, {}),
+            ("get failed", {"calculation_operands": [{"role": "current"}]}, GetBomb()),
+        ):
+            with self.subTest(propagates=message), self.assertRaisesRegex(RuntimeError, message):
+                update(trace, slots)
+        with patch.object(
+            financial_runtime_trace,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalize failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalize failed"):
+                update({"calculation_operands": [{"role": "current"}]}, {}, normalize_role=True)
+
     def test_aggregate_synthesis_prompt_rows_preserve_projection_contract(self) -> None:
         project = financial_aggregate_projection.aggregate_synthesis_prompt_rows
         nested = {"keep": True}

@@ -34,6 +34,35 @@ def _trace_has_material(trace: Mapping[str, Any]) -> bool:
     )
 
 
+def overlay_calculation_operands_from_slots(
+    trace: Mapping[str, Any],
+    slot_by_role: Mapping[str, Mapping[str, Any]],
+    *,
+    normalize_role: bool = False,
+) -> List[Dict[str, Any]]:
+    updated_operands: List[Dict[str, Any]] = []
+    for operand in list((trace or {}).get("calculation_operands") or []):
+        row = dict(operand)
+        role = str(row.get("matched_operand_role") or row.get("role") or "")
+        if normalize_role:
+            role = _normalise_spaces(role).lower()
+        slot = slot_by_role.get(role)
+        if slot:
+            row.update(
+                {
+                    "raw_value": slot.get("raw_value"),
+                    "raw_unit": slot.get("raw_unit"),
+                    "normalized_value": slot.get("normalized_value"),
+                    "normalized_unit": slot.get("normalized_unit"),
+                    "source_row_id": slot.get("source_row_id"),
+                    "source_row_ids": slot.get("source_row_ids"),
+                    "source_anchor": slot.get("source_anchor"),
+                }
+            )
+        updated_operands.append(row)
+    return updated_operands
+
+
 def _attach_runtime_projection_metadata(
     trace: Dict[str, Any],
     *,

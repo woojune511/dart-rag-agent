@@ -5999,6 +5999,172 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(ratio_row["calculation_result"]["rendered_value"], "80.00%")
         self.assertEqual(ratio_row["calculation_operands"][0]["consolidation_scope"], "consolidated")
 
+    def test_collapsed_ratio_trace_adopts_operand_overlay_even_when_empty(self) -> None:
+        trace = {
+            "calculation_operands": [{"matched_operand_role": "numerator_1", "raw_value": "old"}],
+            "calculation_plan": {"operation": "ratio"},
+            "calculation_result": {
+                "status": "ok",
+                "answer_slots": {
+                    "operation_family": "ratio",
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "role": "numerator_1",
+                                "label": "numerator",
+                                "normalized_value": 1.0,
+                                "source_row_id": "same",
+                            }
+                        ],
+                        "denominator": [
+                            {
+                                "role": "denominator_1",
+                                "label": "denominator",
+                                "normalized_value": 1.0,
+                                "source_row_id": "same",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+        state = {
+            "evidence_items": [
+                {"evidence_id": "ev_n", "claim": "numerator 10", "source_anchor": "source-n"},
+                {"evidence_id": "ev_d", "claim": "denominator 20", "source_anchor": "source-d"},
+            ]
+        }
+        trace_before = deepcopy(trace)
+        empty_overlay = []
+
+        def candidates(surface):
+            numerator = "numerator" in surface
+            return [
+                {
+                    "normalized_value": 10.0 if numerator else 20.0,
+                    "value_text": "10" if numerator else "20",
+                    "unit_text": "",
+                    "span": (len(surface) - 2, len(surface)),
+                }
+            ]
+
+        overlay_owner = Mock(side_effect=(empty_overlay, RuntimeError("overlay owner failed")))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "extract_numeric_surface_candidates",
+                side_effect=candidates,
+            ) as extractor,
+            patch.object(
+                financial_graph_calculation,
+                "numeric_candidates_with_spans_from_surface",
+                return_value=[],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "overlay_calculation_operands_from_slots",
+                overlay_owner,
+            ),
+        ):
+            non_ratio = {"calculation_result": {"answer_slots": {"operation_family": "difference"}}}
+            self.assertIs(self.agent._repair_collapsed_ratio_trace_from_evidence({}, non_ratio), non_ratio)
+            overlay_owner.assert_not_called()
+            extractor.assert_not_called()
+
+            updated = self.agent._repair_collapsed_ratio_trace_from_evidence(state, trace)
+            with self.assertRaisesRegex(RuntimeError, "overlay owner failed"):
+                self.agent._repair_collapsed_ratio_trace_from_evidence(state, trace)
+
+        self.assertEqual(len(overlay_owner.call_args_list), 2)
+        first_args, second_args = [item.args for item in overlay_owner.call_args_list]
+        self.assertIs(first_args[0], trace)
+        self.assertIs(second_args[0], trace)
+        self.assertEqual(overlay_owner.call_args_list[0].kwargs, {})
+        self.assertEqual(overlay_owner.call_args_list[1].kwargs, {})
+        self.assertEqual(list(first_args[1]), ["numerator_1", "denominator_1"])
+        self.assertEqual(
+            [first_args[1][role]["raw_value"] for role in ("numerator_1", "denominator_1")],
+            ["10", "20"],
+        )
+        self.assertIs(updated["calculation_operands"], empty_overlay)
+        self.assertEqual(updated["calculation_result"]["result_value"], 50.0)
+        self.assertEqual(trace, trace_before)
+
+    def test_period_comparison_trace_adopts_only_nonempty_operand_overlay(self) -> None:
+        original_operands = [{"matched_operand_role": " Current_Period ", "raw_value": "old"}]
+        trace = {"calculation_operands": original_operands, "keep": True}
+        calculation_result = {"status": "ok", "formatted_result": "old"}
+        current_slot = {"raw_value": "10", "raw_unit": "unit", "nested": {"keep": "current"}}
+        prior_slot = {"raw_value": "5", "raw_unit": "unit", "nested": {"keep": "prior"}}
+        realigned = [
+            {
+                "period_comparison_recovered_from_table_label_context": True,
+                "calculation_result": {
+                    "status": "ok",
+                    "formatted_result": "new",
+                    "answer_slots": {
+                        "current_value": current_slot,
+                        "prior_value": prior_slot,
+                    },
+                },
+            }
+        ]
+        nonempty_overlay = [{"matched_operand_role": "current_period", "raw_value": "10"}]
+        overlay_owner = Mock(
+            side_effect=([], nonempty_overlay, RuntimeError("overlay owner failed"))
+        )
+        evidence_owner = Mock(side_effect=([], [{}], [{}], [{}]))
+        trace_before = deepcopy(trace)
+
+        def repair():
+            return self.agent._repair_single_period_comparison_trace_from_evidence(
+                state={},
+                trace=trace,
+                calculation_plan={},
+                calculation_result=calculation_result,
+                answer_slots={"metric_label": "metric"},
+                operation_family="growth_rate",
+            )
+
+        with (
+            patch.object(
+                self.agent,
+                "_runtime_evidence_rows_with_context_docs",
+                evidence_owner,
+            ),
+            patch.object(
+                self.agent,
+                "_realign_period_comparison_results_from_table_label_context",
+                return_value=realigned,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "overlay_calculation_operands_from_slots",
+                overlay_owner,
+            ),
+        ):
+            self.assertIs(repair(), trace)
+            empty = repair()
+            nonempty = repair()
+            with self.assertRaisesRegex(RuntimeError, "overlay owner failed"):
+                repair()
+
+        self.assertEqual(len(overlay_owner.call_args_list), 3)
+        expected_slots = {
+            "current_period": current_slot,
+            "prior_period": prior_slot,
+            "minuend": current_slot,
+            "subtrahend": prior_slot,
+        }
+        for item in overlay_owner.call_args_list:
+            self.assertIs(item.args[0], trace)
+            self.assertEqual(item.args[1], expected_slots)
+            self.assertEqual(item.kwargs, {"normalize_role": True})
+        self.assertIs(empty["calculation_operands"], original_operands)
+        self.assertIs(nonempty["calculation_operands"], nonempty_overlay)
+        self.assertTrue(nonempty["calculation_result"]["stale_result_repaired_from_evidence"])
+        self.assertEqual(trace, trace_before)
+
     def test_collapsed_ratio_runtime_override_rejects_dependency_incoherent_trace(self) -> None:
         source_lookup = {
             "task_id": "task_num",
