@@ -238,19 +238,20 @@ Current calculation ownership is:
 - `financial_aggregate_projection.py` owns pure stale provenance target
   selection, canonical aggregate operation-family normalization, the typed
   state-free negative runtime-ratio absolute-magnitude transformation over
-  graph-prepared mutable result/slot/primary copies, and typed prepared answer
-  candidate application/final-answer projection synchronization. It also owns
+  graph-prepared mutable result/slot/primary copies, typed base/refreshed answer-
+  candidate payload packaging, and typed prepared candidate application/final-
+  answer projection synchronization. It also owns
   typed state-free filtering of generated aggregate provenance from a graph-
   prepared projection and kept-evidence-id sequence, plus recursive consistency
   synchronization of graph-prepared nested subtask rows against current ordered
   task results.
 
-At the latest checkpoint, the graph is 19,498 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,482 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 669, the dependency owner is 3,089, and the
+is 2,437, the aggregate owner is 735, the dependency owner is 3,089, and the
 execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 325/325 tests, the 217-literal audit, and full discovery over
-1,492/1,492 tests.
+affected 326/326 tests, the 217-literal audit, and full discovery over
+1,493/1,493 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

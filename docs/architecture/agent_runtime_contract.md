@@ -866,6 +866,36 @@ application flag, or runtime trace field is added by this seam, and it does not
 move query policy, rendering policy, aggregate sequencing, ledger state, or
 final projection into the aggregate owner.
 
+Prepared aggregate answer-candidate packaging is a typed, state-free aggregate-
+owner seam. Base packaging receives the raw answer, optional claim-id iterable,
+and existing `sync_projection`, `sync_rendered_for_aggregate`, and `status_ok`
+values. It returns a fresh candidate dictionary whose insertion and evaluation
+order remains answer, selected claim ids, then the three flags. The answer is
+normalized with `_normalise_spaces(str(answer or ""))`. Claim ids retain source
+order and duplicates, blanks are removed, and every retained id preserves the
+existing two `str(claim_id).strip()` evaluations. The flags are coerced to
+`bool` in their existing order. The returned claim list is new and the input
+iterable is not mutated.
+
+Refreshed packaging first executes `dict(refreshed_answer or {})`, then evaluates
+the copied payload's answer with the fallback, then its selected-claim ids, and
+only then delegates to base packaging. A truthy whitespace-only refreshed answer
+therefore still suppresses the fallback before normalizing to empty. Neither path
+catches mapping, string, iteration, or boolean-conversion failures; the existing
+cross-function access and stop order remains observable. The result adds no new
+decision reason or trace field.
+
+Seven direct base-packaging calls remain at their original graph branch or loop
+positions, and the single refreshed-packaging call remains after graph-owned
+narrative refresh. Candidate discovery, scoring and selection, branch gates,
+refresh policy, call placement and laziness, application invocation and answer
+precedence, projection/state/evidence mutation, rebuild, and final orchestration
+remain graph-owned. This seam claims only prepared candidate payload/schema
+ownership and deletion of the two specific private graph packagers, not
+application-policy or composition ownership, broad private-surface cleanup,
+total-code or executed-path reduction, performance improvement, or Phase 3
+completion.
+
 Prepared aggregate answer-candidate application and final-answer projection
 synchronization are separate typed owner seams. The application owner receives
 the graph-prepared mutable aggregate projection, the current selected-claim

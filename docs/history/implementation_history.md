@@ -557,6 +557,35 @@ answer precedence or final orchestration, and not a total-code, broad executed-
 path, performance, broad private-mesh, end-to-end calculation-owner, or complete
 Phase 3 reduction claim.
 
+### Aggregate answer-candidate payload packaging ownership
+
+- `3e7394b` moves the base and refreshed aggregate-answer candidate packagers to
+  the aggregate owner beside its existing candidate application seam. The typed
+  state-free owner preserves answer normalization, stable blank-filtered but
+  duplicate-retaining claim-id order, the three existing boolean flags, fresh
+  candidate/list identities, input immutability, refreshed mapping copy and
+  fallback behavior, and the exact mapping/string/boolean access and exception
+  order. It adds no new decision reason or trace field.
+- Seven direct base calls and the single refreshed call remain at their original
+  graph branch or loop positions. The graph retains candidate discovery,
+  scoring/selection, narrative refresh and refresh policy, call placement and
+  laziness, application invocation and answer precedence, projection/state/
+  evidence mutation, rebuild, and final orchestration. The two old graph-private
+  packagers and all exact private self references are deleted.
+- Production source is `+130/-80`, net 50: the graph changes from 19,498 to
+  19,482 lines (`+64/-80`, net -16) and the aggregate owner from 669 to 735
+  (`+66`). Tests are `+210/-1`, net 209; the whole commit is `+340/-81`, net 259.
+- Validation passed targeted 3/3 tests, affected 326/326 tests, the 217-literal
+  runtime audit, and full discovery over 1,493/1,493 tests. Benchmark refresh was
+  NOT RUN.
+
+This is a behavior-preserving prepared candidate payload/schema ownership
+relocation, not a move of candidate discovery or selection, refresh policy,
+application or answer precedence, aggregate composition, projection/state/
+evidence mutation, rebuild, or final orchestration, and not a total-code, broad
+executed-path, performance, broad private-mesh, end-to-end calculation-owner, or
+complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -366,7 +366,9 @@ state-free owner 경계:
   sequence와 nested row identity를 변경하지 않는다. 또한 graph가 준비한 mutable
   calculation-result/slot/primary copies에 query-approved negative runtime-ratio
   absolute-magnitude projection을 적용한다. 기존 mutation/formatter/exception
-  순서와 same result identity를 유지한다. Prepared answer candidate에는 normalized
+  순서와 same result identity를 유지한다. Base/refreshed answer candidate payload에는
+  normalized answer, stable blank-filtered/duplicate-retaining claim ids와 세 flag를
+  기존 평가 순서로 담고 fresh dict/list를 반환한다. Prepared answer candidate에는 normalized
   answer, same aggregate-projection identity, current-first stable claim-id merge를
   적용하고 final answer를 formatted, aggregate-mode rendered, optional ok-status
   순서로 동기화한다. Graph가 준비한 aggregate projection과 kept evidence ids에는
@@ -401,7 +403,9 @@ graph adapter에 남은 orchestration 역할군:
   final-answer surface-operand append
 - aggregate nested-result promotion, preliminary/final projection rebuild,
   dependency alignment, preserved-field merge
-- aggregate answer candidate build/refresh/selection, mutable state/evidence,
+- aggregate answer candidate discovery/scoring/selection, narrative refresh,
+  packaging call placement/laziness, application invocation/answer precedence,
+  mutable state/evidence,
   artifact/ledger, stale repair와 final orchestration
 - unit conversion/repair
 - period alignment
@@ -502,7 +506,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
   normalization, graph-prepared runtime-ratio magnitude projection, generated
-  provenance filtering, and recursive nested-subtask row consistency
+  provenance filtering, recursive nested-subtask row consistency, and typed
+  base/refreshed aggregate-answer candidate payload packaging/application
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
