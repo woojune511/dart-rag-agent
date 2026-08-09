@@ -378,7 +378,9 @@ state-free owner 경계:
   raw plan과 ready/guarded selected plan을 보존하는 typed
   `DeterministicOperationPlanDecision`도 같은 owner가 반환한다.
 - `financial_aggregate_projection.py`: typed state-free stale-repair provenance
-  selection과 canonical `aggregate_result_operation_family` normalization을 소유한다.
+  selection, canonical `aggregate_result_operation_family` normalization,
+  aggregate-result signature와 growth operand sign-consistency rank primitive를
+  소유한다.
   unique provenance target만 supersede하고 ambiguous refs는 보존하며, input
   sequence와 nested row identity를 변경하지 않는다. 또한 graph가 준비한 mutable
   calculation-result/slot/primary copies에 query-approved negative runtime-ratio
@@ -501,7 +503,8 @@ graph adapter에 남은 orchestration 역할군:
 - collapsed-ratio runtime trace/eligibility/completeness/query gate, prepared
   copies, downstream coherence/compact-answer/coverage/final projection과 기타
   absolute-ratio 및 trend projection/error 경계
-- aggregate result dedupe/ranking
+- full aggregate result dedupe/rank tuple/nested promotion. Canonical signature와
+  growth sign-rank의 7개/4개 호출은 기존 위치와 반복 평가를 유지한다.
 - narrative context preservation
 
 Commit별 behavior/structural 경계, source metrics와 validation은
@@ -559,7 +562,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   outcome, and typed state-free value-only stale freshness assessment
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
-  normalization, graph-prepared runtime-ratio magnitude projection, generated
+  normalization, aggregate-result signature와 growth sign-consistency rank,
+  graph-prepared runtime-ratio magnitude projection, generated
   provenance filtering, recursive nested-subtask row consistency, prepared
   projection-row surface synchronization, arithmetic component/series/delta
   synchronization, and typed base/refreshed aggregate-answer candidate payload

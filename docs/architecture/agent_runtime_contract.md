@@ -1110,6 +1110,30 @@ series, and delta synchronization; it does not own lookup selection, projection-
 row surface selection, row-map propagation, aggregate precedence, or final
 projection.
 
+Canonical aggregate-result identity and growth sign consistency are plain,
+state-free `financial_aggregate_projection.py` primitives. Signature resolution
+copies the calculation result and then the selected answer slots before applying
+metric precedence from the row, answer slots, and task id. A metric that normalizes
+to blank returns before operation-family resolution; otherwise the canonical
+aggregate operation-family owner supplies the optional `family:metric` prefix.
+
+Growth sign ranking resolves that same operation-family owner first. A non-growth
+row returns rank `1` after that first owner access but before the rank body's
+repeated/direct calculation-result copy. A growth row then copies calculation
+result, answer slots, current slot, and prior slot in that order, converts current
+before prior, catches only `TypeError` and `ValueError`, and returns same-sign `2`,
+opposite-sign `0`, or unknown `1` for zero, `NaN`, missing, or invalid values;
+infinities retain their numeric signs. Mapping and other access exceptions remain
+uncaught.
+
+The graph keeps all seven signature and four rank calls at their existing semantic
+positions, including the explicit `dict(row)` repair input and repeated calls in
+comprehensions and nested ranking. It still owns full dedupe, rank tuples, nested
+promotion, result precedence, and state/evidence/artifact/ledger orchestration.
+This boundary claims only the two canonical primitives, not full aggregate ranking
+or promotion ownership, total-code or executed-path reduction, performance,
+broader private-surface cleanup, or Phase 3 completion.
+
 Ratio calculation-result display synchronization is a typed, state-free
 `financial_answer_slots.py` owner seam. The owner receives the exact prepared
 calculation-result dictionary. Status and operation-family gates return the same

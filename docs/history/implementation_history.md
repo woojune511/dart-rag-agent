@@ -828,6 +828,32 @@ final-orchestration ownership, and not a total-code, broad executed-path,
 performance, broad private-mesh, end-to-end calculation-owner, or complete
 Phase 3 reduction claim.
 
+### Aggregate signature and growth sign-rank primitive ownership
+
+- `3d3948b` moves canonical aggregate-result signature and growth operand
+  sign-consistency ranking from the graph into plain public
+  `financial_aggregate_projection.py` primitives. Seven signature and four rank
+  calls remain at their existing graph positions, including the explicit repair
+  `dict(row)` input and repeated comprehension/nested-ranking calls; the old graph
+  definitions and private self references are deleted.
+- Signature metric/family precedence, copy and lazy-return order, growth/non-growth
+  disposition, current-before-prior conversion, `TypeError`/`ValueError`, zero,
+  `NaN`, infinity, identity, immutability, and uncaught access behavior are
+  preserved. Full dedupe, rank tuples, nested promotion, result precedence, and
+  graph state/evidence/artifact/ledger orchestration remain graph-owned.
+- Production source is `+61/-57`, net 4: the graph changes from 18,943 to 18,899
+  lines (`+13/-57`, net -44) and the aggregate owner from 971 to 1,019 (`+48`).
+  Tests are `+384/-9`, net 375; the whole commit is `+445/-66`, net 379.
+- Validation passed targeted 6/6 tests, affected 576/576 tests, the 217-literal
+  runtime audit, full discovery over 1,504/1,504 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving canonical signature/sign-rank primitive ownership
+relocation, not full aggregate ranking, dedupe, promotion, precedence, state,
+artifact, ledger, or final-orchestration ownership, and not a total-code, broad
+executed-path, performance, broad private-mesh, end-to-end calculation-owner, or
+complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

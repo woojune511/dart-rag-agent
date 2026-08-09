@@ -256,8 +256,9 @@ Current calculation ownership is:
   surface precedence, percent policy, and exception order; graph callers retain
   compact-answer and ordered-row orchestration.
 - `financial_aggregate_projection.py` owns pure stale provenance target
-  selection, canonical aggregate operation-family normalization, the typed
-  state-free negative runtime-ratio absolute-magnitude transformation over
+  selection, canonical aggregate operation-family normalization, canonical
+  aggregate-result signature and growth operand sign-consistency rank primitives,
+  the typed state-free negative runtime-ratio absolute-magnitude transformation over
   graph-prepared mutable result/slot/primary copies, typed base/refreshed answer-
   candidate payload packaging, and typed prepared candidate application/final-
   answer projection synchronization. It also owns
@@ -283,13 +284,13 @@ Current calculation ownership is:
   exceptions. Artifact creation/finalization and ledger-level id/order remain
   graph-owned.
 
-At the latest checkpoint, the graph is 18,943 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,899 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,610, the answer-slot owner is 594, the aggregate owner is 971, the
+is 2,610, the answer-slot owner is 594, the aggregate owner is 1,019, the
 aggregate-state owner is 161, the dependency owner is 3,164, the task-artifact
 owner is 1,180, and the execution owner is 837. The latest owner slice passed
-targeted 2/2 tests, affected 594/594 tests, the 217-literal audit, and full
-discovery over 1,503/1,503 tests.
+targeted 6/6 tests, affected 576/576 tests, the 217-literal audit, and full
+discovery over 1,504/1,504 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

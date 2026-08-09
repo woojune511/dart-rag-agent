@@ -88,7 +88,9 @@ Last updated: 2026-08-09
   typed result로 동기화한다. Formula-trace mismatch에서는 top-level result와
   derived metrics를 복사하고, 그 외 성공 경로에서는 전달된 result identity를
   그대로 갱신하며 status/unit/current-surface gate와 예외 순서를 보존한다.
-  Aggregate owner는 pure stale provenance target selection, graph가 준비한
+  Aggregate owner는 pure stale provenance target selection, canonical aggregate
+  operation-family normalization, aggregate-result signature와 growth operand
+  sign-consistency rank primitive, graph가 준비한
   calculation-result/slot/primary copies의 negative runtime-ratio
   absolute-magnitude projection, base/refreshed answer candidate payload packaging,
   prepared candidate application과 final-answer projection synchronization을 소유한다.
@@ -149,7 +151,8 @@ Last updated: 2026-08-09
   aggregate artifact의 initial copy, ratio/render/completeness/formatter/projection
   mutation과 `None`/blank-id gate, ledger creation/finalization, mutable state/evidence,
   stale repair와 final
-  orchestration, 기타 absolute-ratio 및 fallback orchestration도 graph에 남는다. 전체 ledger
+  orchestration, full aggregate dedupe/rank tuple/nested promotion, 기타 absolute-ratio 및
+  fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
 
 ## 현재 검증 기준
@@ -159,7 +162,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 2/2, affected 594/594, full unittest 1,503/1,503 PASS |
+| Latest calculation runtime validation | targeted 6/6, affected 576/576, full unittest 1,504/1,504 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |
