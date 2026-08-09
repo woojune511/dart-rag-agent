@@ -194,7 +194,9 @@ Current calculation ownership is:
   ratio-recovered flag projection, retry gates,
   post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
   exception/fallback orchestration, graph-private candidate preparation,
-  state/task/artifact projection, repair acceptance, aggregate/filter
+  state/task/artifact projection, prepared reconciliation-reference owner inputs
+  and its two call placements, operand-set artifact and integrity/replan consumers,
+  repair acceptance, aggregate/filter
   sequencing, recalculated ratio-value coercion, dependency candidate-input
   construction/execution, absolute-ratio query/transform invocation,
   task-artifact/ledger conflict short-circuit and formatting, collapsed-ratio
@@ -294,16 +296,23 @@ Current calculation ownership is:
 - `financial_task_artifacts.py` owns prepared late aggregate-artifact payload and
   summary synchronization. It preserves copy-all-before-search, raw exact first-
   match, shallow aliases, overwrite/access order, input immutability, and uncaught
-  exceptions. Artifact creation/finalization and ledger-level id/order remain
-  graph-owned.
+  exceptions. It also owns the private strict-dictionary ten-field operand-ref
+  collector and public prepared reconciliation-artifact evidence-ref enrichment.
+  That seam preserves empty-ref identity/laziness, old-first stable ref order,
+  fresh top-level copies on the nonempty path, nested aliases, task/kind/payload/
+  result/status gates, and exact uncaught exception order. The owner imports the
+  private source-id cleaner from `financial_runtime_normalization.py`; it does not
+  export the collector. Artifact creation/finalization, ledger-level id/order,
+  graph state/input preparation, integrity/replan policy, and final orchestration
+  remain graph-owned.
 
-At the latest checkpoint, the graph is 18,805 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,738 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,663, the answer-slot owner is 594, the aggregate owner is 1,019, the
 aggregate-state owner is 161, the dependency owner is 3,209, the task-artifact
-owner is 1,180, and the execution owner is 837. The latest owner slice passed
-targeted 5/5 tests, affected 632/632 tests, the 217-literal audit, and full
-discovery over 1,507/1,507 tests.
+owner is 1,250, and the execution owner is 837. The latest owner slice passed
+targeted 5/5 tests, affected 610/610 tests, the 217-literal audit, and full
+discovery over 1,510/1,510 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

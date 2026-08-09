@@ -124,7 +124,14 @@ Last updated: 2026-08-09
   match, stable first-slot, overlay와 예외 순서를 유지한다.
   Task-artifact owner는 graph가 준비한 artifact records, final answer와 aggregate
   projection으로 첫 exact-id aggregate artifact의 payload와 summary를 동기화한다.
-  Stable order, copy-all-before-search, shallow alias와 예외 순서를 유지한다.
+  Stable order, copy-all-before-search, shallow alias와 예외 순서를 유지한다. 같은
+  owner의 private collector와 public enrichment primitive는 graph가 준비한 operand
+  rows와 extra refs를 reconciliation artifact evidence refs에 반영한다. Empty refs는
+  exact artifact-list identity와 access laziness를, nonempty refs는 모든 artifact의
+  fresh top-level copy와 nested alias를 유지한다. Strict-dict row gate, 열 개 source-ref
+  field 순서, stable old-first dedupe, task/kind/payload/result/status gate와 uncaught
+  exception 순서는 바뀌지 않으며 runtime-normalization의 private source-id cleaner를
+  owner가 직접 사용한다. Public enrichment만 export되고 collector는 private다.
 - Aggregate-state owner는 public `AggregateCompositionState`와 공통 state-free
   composition transition을 소유한다. 이 transition은 answer fallback, current-first
   claim merge, projection reset/override, narrative lock와 feedback clear/preserve를
@@ -166,7 +173,8 @@ Last updated: 2026-08-09
   row answer/result propagation과 state/active-subtask/operand/period/metric formatting,
   aggregate artifact의 initial copy, ratio/render/completeness/formatter/projection
   mutation과 `None`/blank-id gate, ledger creation/finalization, mutable state/evidence,
-  stale repair와 final
+  reconciliation-ref owner의 두 call placement와 artifact/task/state input 구성,
+  operand-set artifact 및 integrity/replan 소비, stale repair와 final
   orchestration, full aggregate dedupe/rank tuple/nested promotion, 기타 absolute-ratio 및
   fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
@@ -178,7 +186,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 5/5, affected 632/632, full unittest 1,507/1,507 PASS |
+| Latest calculation runtime validation | targeted 5/5, affected 610/610, full unittest 1,510/1,510 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

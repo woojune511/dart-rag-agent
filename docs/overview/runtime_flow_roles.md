@@ -430,6 +430,12 @@ state-free owner 경계:
   payload와 summary를 동기화한다. 모든 top-level artifact를 먼저 복사하고 stable
   raw exact-id first-match, payload/result shallow-copy alias, input immutability와
   uncaught access/copy/slice 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
+  같은 owner의 private strict-dictionary collector는 operand row의 열 개 source-ref
+  field를 고정 순서로 읽고 runtime-normalization의 private cleaner로 정리한다. Public
+  enrichment는 operand refs 뒤 extra refs를 stable dedupe하며 empty-ref exact list
+  identity/laziness, nonempty-path all-artifact top-level copies, nested aliases,
+  old-first refs, task/kind/payload/result/status gate와 uncaught exception 순서를
+  보존한다. Public enrichment만 export되고 collector는 private다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -471,6 +477,9 @@ graph adapter에 남은 orchestration 역할군:
 - late aggregate artifact의 initial copy, ratio/render/completeness/compact formatter와
   projection mutation, `artifacts is not None`/blank-id gate, artifact creation/
   finalization과 final ledger orchestration. Empty-list+nonblank-id는 owner를 호출한다.
+- reconciliation evidence-ref enrichment의 두 call placement, artifact/task/state와
+  integrity input 준비, owner result를 소비하는 operand-set artifact 및 integrity/replan
+  처리와 final orchestration
 - ordered ratio-row copy/family/truthy-result gate, before/after rendered comparison,
   compact-answer construction과 row answer/result propagation; compact caller의 state,
   active-subtask, operand, period, metric formatting
@@ -586,8 +595,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   packaging/application
 - `financial_aggregate_state.py`: public aggregate composition carrier and
   state-free answer/claim/projection/lock/feedback transition
-- `financial_task_artifacts.py`: task/artifact ledger projection and typed prepared
-  aggregate artifact payload/summary synchronization
+- `financial_task_artifacts.py`: task/artifact ledger projection, typed prepared
+  aggregate artifact payload/summary synchronization, and public prepared
+  reconciliation evidence-ref enrichment backed by a private ten-field collector
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers

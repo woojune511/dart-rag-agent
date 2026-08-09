@@ -933,6 +933,42 @@ evidence selection ownership, period/context/scope/ambiguity/tie/grouping policy
 total-code or broad executed-path reduction, performance, broader private-mesh
 cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Reconciliation artifact evidence-reference ownership
+
+- `45aa2de` moves the graph-private reconciliation evidence-reference pair into
+  `financial_task_artifacts.py`. The strict-dictionary ten-field operand-ref
+  collector remains owner-private; it uses the private `_clean_source_row_ids`
+  import from `financial_runtime_normalization.py`. Only the plain public
+  `enrich_reconciliation_artifact_refs(...)` function enters the owner export
+  surface. The two graph calls remain at their existing semantic positions, and
+  the old graph definitions and private self references are deleted.
+- The empty-ref path returns the exact artifact-list identity before task-id or
+  artifact access. The nonempty path returns a fresh list and fresh top-level copy
+  of every artifact with untouched nested aliases. Operand-before-extra and
+  existing-raw-before-new stable ref order, task-id union, kind/task/repeated-
+  payload/result/status gates, input immutability, and uncaught mapping/copy/
+  truthiness/string/iteration/hash/access exception order are unchanged.
+- The first graph adapter still prepares artifacts, tasks, active task id, and
+  operand rows before enrichment and passes the owner result into operand-set
+  artifact construction. The aggregate-feedback adapter still prepares source
+  task ids, operands, and integrity refs before enrichment and passes the result
+  into task-artifact trace and integrity/replan work. Owner exceptions still stop
+  those downstream consumers.
+- Production source is `+74/-71`, net 3: the graph changes from 18,805 to 18,738
+  lines (`+3/-70`, net -67) and the task-artifact owner from 1,180 to 1,250
+  (`+71/-1`, net 70). Tests are `+528/-3`, net 525; the whole commit is
+  `+602/-74`, net 528.
+- Validation passed targeted 5/5 tests, affected 610/610 tests, the 217-literal
+  runtime audit, full discovery over 1,510/1,510 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared reconciliation evidence-reference
+collection/enrichment ownership relocation and 66-line old graph-body deletion,
+not artifact creation/finalization, whole-ledger or graph-state ownership,
+integrity/replan policy, total-code or broad executed-path reduction, performance,
+broader private-mesh cleanup, end-to-end calculation ownership, or complete
+Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

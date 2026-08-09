@@ -1241,6 +1241,42 @@ later ledger/final orchestration remain graph-owned. This seam does not establis
 artifact creation or ledger-level id/order ownership, whole-ledger synchronization,
 ratio/query/formatting policy, state ownership, or final-projection ownership.
 
+Prepared reconciliation evidence-reference enrichment is a separate plain,
+state-free `financial_task_artifacts.py` owner seam. Its owner-private collector
+accepts only strict dictionary operand rows and reads `evidence_id`,
+`evidence_ids`, `source_evidence_id`, `source_evidence_ids`, `source_row_id`,
+`source_row_ids`, `row_id`, `row_ids`, `candidate_id`, and `candidate_ids` in that
+order. It cleans each row through the private source-id helper imported from
+`financial_runtime_normalization.py`, then performs stable first-seen dedupe. The
+collector remains private; only `enrich_reconciliation_artifact_refs(...)` is a
+public owner export.
+
+The public owner collects operand refs before cleaned extra refs. If their stable
+dedupe is empty, it returns the exact supplied artifact-list identity before
+task-id, optional task-id, or artifact access. Otherwise it normalizes the primary
+task id and optional task-id sequence in the existing filter-before-expression
+order, including repeated string conversion for retained ids. It returns a fresh
+list and a fresh top-level copy of every artifact while retaining untouched nested
+aliases and stable artifact order. Exact reconciliation kind, optional task-id
+membership, repeated payload access, reconciliation-result type, and lowercased
+`ok`/`ready` status gates keep their existing short-circuit order. Matching
+artifacts receive existing raw `evidence_refs` first and newly collected refs
+second under stable dedupe; the pre-existing raw refs are not cleaned. A blank
+target-id union matches every otherwise eligible reconciliation artifact. Inputs
+remain unmodified, and mapping, copy, truthiness, string, iteration, hashing, and
+access exceptions remain uncaught.
+
+The graph retains the two call placements and all prepared inputs. The operand-set
+path calls the owner after artifact/task/active-task preparation and passes its
+result to operand-set artifact construction. The aggregate-feedback path builds
+source task ids, operand rows, and integrity refs before the owner, then passes the
+owner result into task-artifact trace and integrity/replan work. An owner exception
+still stops those downstream consumers. This seam owns only prepared
+reconciliation evidence-reference collection and enrichment; it does not own
+artifact creation/finalization, whole-ledger or graph state, integrity/replan
+policy, or final orchestration, and it establishes no total-code, executed-path,
+performance, broad private-surface, or Phase 3 completion claim.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 
