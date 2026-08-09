@@ -350,7 +350,13 @@ state-free owner 경계:
   반환하고 evidence surface-field와 requirement predicate를 고정 순서로 평가한다.
   Global first-seen key dedupe, duplicate-continue/unique-break, stable order, fresh
   retained top-level rows, nested aliases, input immutability와 uncaught exception
-  순서를 보존한다.
+  순서를 보존한다. 같은 owner의 plain `ratio_context_has_metric_surface(...)`는
+  task metric-label/alias 수집과 repeated normalization, stable dedupe, 모든 retrieved
+  ratio-context evidence/metadata copy와 fixed-surface materialization을 matching 전에
+  수행하고 first-match laziness, input immutability, uncaught exception 순서를
+  보존한다. Graph는 existing ratio-result gate/iteration, exact-object call과 logical
+  inversion, recalculation/adoption 및 evidence/state/artifact/final orchestration을
+  유지한다.
 - `financial_dependency_projection.py`: dependency-binding summary, state-free
   dependency projection, direct-versus-dependency source-set selector와 typed
   main-path application. selector는 co-located period-conflict/alignment 결정을
@@ -502,6 +508,10 @@ graph adapter에 남은 orchestration 역할군:
 - percent-point query gate, finalization input 구성, post-filter coverage 결정
 - 기타 deterministic/LLM fallback
 - aggregate projection/repair sequencing
+- retrieved ratio-context existing-result iteration과 family/task/signature/status/
+  artifact-backed/value/completeness/tolerance gate, metric-surface owner의 exact-object
+  call placement와 logical conflict inversion, 이후 recalculation/adoption/evidence/
+  state/artifact/final orchestration
 - aggregate evidence/kept-id selection, rebuild gate, selected-claim filtering,
   final-answer surface-operand append
 - aggregate nested-result promotion, preliminary/final projection rebuild,
@@ -623,7 +633,9 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   and plain direct target-metric fallback conflict predicate, plus plain single-row
   embedded/rendered-unit normalization repair and shared-context multi-row ratio
   display-unit alignment, plus plain required-operand prose numeric-evidence
-  filtering through `surface_contract_numeric_evidence_items(...)`
+  filtering through `surface_contract_numeric_evidence_items(...)` and retrieved
+  ratio-context task-metric surface detection through
+  `ratio_context_has_metric_surface(...)`
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate

@@ -75,6 +75,14 @@ Last updated: 2026-08-10
   empty list를 반환하고, retained evidence는 fresh top-level copy와 nested alias를
   유지한다. Fixed surface-field order, positive/negative/numeric predicate laziness,
   global first-seen key dedupe, input immutability와 uncaught exception 순서도 보존한다.
+  같은 owner의 plain `ratio_context_has_metric_surface(...)`는 task의 metric-label
+  surfaces와 graph가 전달한 retrieved ratio context를 state-free bool로 비교한다.
+  Task field/alias 수집과 repeated normalization, stable label dedupe, 모든 context
+  evidence/metadata의 eager shallow-copy 및 fixed-surface materialization, first-match
+  laziness, input immutability와 uncaught exception 순서를 보존한다. Graph는 existing
+  ratio-result row의 family/task/signature/status/artifact/value/completeness/tolerance
+  gate, exact-object owner call과 결과 inversion, recalculation/adoption, evidence,
+  state/artifact 및 final orchestration을 유지한다.
   Dependency owner는 graph가 준비한 source slot, operand와 optional
   structured-realigned operand sequence만 받는 plain equivalence predicate도 소유한다.
   Marker-first direct copy와 fallback role/raw/id filtering, final non-task source-id
@@ -196,7 +204,9 @@ Last updated: 2026-08-10
   task-artifact/ledger conflict short-circuit와 formatter, sibling-table evidence selection과
   candidate realignment 및 preparation/map propagation, collapsed-ratio
   trace/eligibility/completeness/query gate와 prepared
-  copies, downstream coherence/compact-answer/coverage/final projection, structured
+  copies, retrieved ratio-context의 existing-result iteration, signature/status/artifact-
+  backed/value/completeness/tolerance gate와 metric-surface owner call placement/inversion,
+  downstream coherence/compact-answer/coverage/final projection, structured
   provenance lookup과 후속 evidence lookup/coercion/append, aggregate evidence와
   kept-id selection, rebuild gate, selected claims, final-answer surface-operand append,
   nested-result promotion, preliminary/final projection rebuild, dependency alignment,
@@ -228,7 +238,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 4/4, affected 639/639, full unittest 1,521/1,521 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 679/679, full unittest 1,523/1,523 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

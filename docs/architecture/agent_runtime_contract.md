@@ -771,6 +771,42 @@ faithfulness or filtering-policy improvement, new behavior, performance,
 total-code or executed-path reduction, broad private-surface cleanup, or Phase 3
 completion.
 
+Retrieved ratio-context task-metric surface detection through
+`ratio_context_has_metric_surface(context_evidence, task)` is another plain,
+state-free `financial_operand_resolution.py` owner seam. It reads task
+`metric_label`, `target_metric`, `label`, and `name` before eagerly materializing
+`aliases`. Retained values are stringified and normalized in the comprehension
+filter and again for storage; an empty result returns `False` before context
+access. Otherwise stable `dict.fromkeys` dedupe and hashing create one label-only
+operand per retained metric surface.
+
+The owner then shallow-copies every context evidence and metadata mapping and
+materializes all context surfaces before attempting any match. Evidence fields
+are read as `claim`, `quote_span`, `raw_row_text`, and `source_context`; metadata
+fields are read as `row_label`, `semantic_label`, `aggregate_label`,
+`table_summary_text`, `table_title`, `table_context`,
+`table_row_labels_text`, `table_value_labels_text`, and `row_text`, followed by
+list materialization of `semantic_aliases` and `row_headers`. The later matching
+pass normalizes surfaces in stable order, skips blanks, and tests metric operands
+lazily. The first match returns `True`; otherwise the result is `False`. Inputs
+remain unmodified, and mapping, copy, truthiness, list, iteration, string,
+normalization, hashing, equality, and matcher exceptions remain uncaught in the
+existing order.
+
+The graph retains existing ratio-result iteration and every family, task,
+signature, status, artifact-backed, numeric-value, component-completeness, and
+scaled-tolerance gate. Only the first eligible conflicting row invokes the owner
+with the exact current context-evidence and task objects; the graph preserves the
+logical inversion in which an owner `True` means no conflict and `False` means
+conflict. Earlier exits are owner-zero, and an owner exception stops later rows
+and downstream conflict work. Ratio recalculation, projection/adoption,
+precedence, evidence selection, state, artifact, and final orchestration remain
+graph-owned. This seam claims only retrieved ratio-context task-metric surface-
+detection ownership, not conflict or precedence policy, recalculation or
+adoption, evidence selection, behavior or policy improvement, performance,
+total-code or executed-path reduction, broad private-surface cleanup, or Phase 3
+completion.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment

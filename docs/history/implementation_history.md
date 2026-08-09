@@ -1141,6 +1141,35 @@ selection, faithfulness or filtering-policy improvement, new runtime behavior,
 total-code or broad executed-path reduction, performance, broader private-mesh
 cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Retrieved ratio-context task-metric surface-detection ownership
+
+- `d40ecc2603221a6eafd660a673d4f55604d9ed63` moves graph
+  `_ratio_context_has_metric_surface` into the plain public operand owner as
+  `ratio_context_has_metric_surface(...)`. The sole graph caller imports the
+  public function at the same first-conflicting-row position; the old private
+  definition and self references are deleted without a wrapper, carrier, reason,
+  flag, callback, config input, compatibility alias, or trace field.
+- Task metric-field and alias collection, repeated string normalization, stable
+  label dedupe, all-context evidence/metadata copies and fixed-surface
+  materialization before matching, first-match laziness, input immutability, and
+  uncaught exception order remain unchanged.
+- Graph retains existing ratio-result iteration and family/task/signature/status/
+  artifact-backed/value/completeness/tolerance gates, exact context/task object
+  invocation and logical result inversion, ratio recalculation/adoption,
+  evidence selection, state, artifact, and final orchestration.
+- Production source is `+53/-52`, net 1: the graph changes from 18,409 to 18,359
+  lines (`+2/-52`, net -50) and the operand owner from 2,780 to 2,831 lines
+  (`+51`). Tests are `+416/-0`, net 416; the whole commit is `+469/-52`, net 417.
+- Validation passed targeted 3/3 tests, affected 679/679 tests, the 217-literal
+  runtime audit, full discovery over 1,523/1,523 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving retrieved ratio-context task-metric surface-detection
+ownership and deletion of the 50-line old graph body, not conflict or precedence
+policy, ratio recalculation or adoption, evidence selection, behavior or policy
+improvement, total-code or broad executed-path reduction, performance, broader
+private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

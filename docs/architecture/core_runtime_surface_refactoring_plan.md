@@ -259,6 +259,15 @@ Current calculation ownership is:
   evidence/reconciliation and required-list preparation, the unconditional call
   after direct-grounding computation, narrative/restriction gates, both result
   merge paths, LLM/state work, and final orchestration.
+  It also owns plain `ratio_context_has_metric_surface(...)` over graph-prepared
+  context evidence and task metadata. The predicate preserves eager task-label
+  and alias collection, repeated normalization, stable dedupe, all-context
+  evidence/metadata copies and fixed-surface materialization before matching,
+  first-match laziness, input immutability, and uncaught exception order. Graph
+  retains existing-result iteration, family/task/signature/status/artifact/value/
+  completeness/tolerance gates, exact-object call placement and result inversion,
+  ratio recalculation/adoption, evidence selection, state, artifact, and final
+  orchestration.
 - `financial_dependency_projection.py` owns dependency binding/projection,
   direct-versus-dependency selection, typed main/late/final application, and
   dependency recalculation plan disposition. Executable `single_value` plans
@@ -356,13 +365,13 @@ Current calculation ownership is:
   narrative skipping, local row preparation, later filtering, state/artifact work,
   and final orchestration remain graph-owned.
 
-At the latest checkpoint, the graph is 18,409 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,359 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,780, the answer-slot owner is 594, the aggregate owner is 1,106, the
+is 2,831, the answer-slot owner is 594, the aggregate owner is 1,106, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
 owner is 1,250, the numeric-surface owner is 539, the runtime-trace owner is 1,065,
-and the execution owner is 837. The latest owner slice passed targeted 4/4 tests,
-affected 639/639 tests, the 217-literal audit, and full discovery over 1,521/1,521
+and the execution owner is 837. The latest owner slice passed targeted 3/3 tests,
+affected 679/679 tests, the 217-literal audit, and full discovery over 1,523/1,523
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in

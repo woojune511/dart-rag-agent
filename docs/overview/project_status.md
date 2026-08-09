@@ -300,22 +300,31 @@ imports or an unconfigured `FinancialAgent` invocation.
   Graph keeps evidence/reconciliation and required-list preparation, direct-
   grounding computation, unconditional pre-narrative call placement, narrative/
   restriction gates, both result merge paths, LLM/state work, and final orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 18,409 lines,
+- Retrieved ratio-context task-metric surface detection through public
+  `ratio_context_has_metric_surface(...)` now belongs to the plain operand owner.
+  It preserves eager task-field/alias collection, repeated normalization, stable
+  label dedupe, all-context evidence/metadata copies and fixed-surface
+  materialization before matching, first-match laziness, input immutability, and
+  uncaught exceptions. Graph retains existing-result iteration, family/task/
+  signature/status/artifact/value/completeness/tolerance gates, exact-object call
+  placement and result inversion, ratio recalculation/adoption, evidence
+  selection, state, artifact, and final orchestration.
+- At the current checkpoint, `financial_graph_calculation.py` is 18,359 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_answer_slots.py` is 594,
   `financial_aggregate_projection.py` is 1,106,
   `financial_aggregate_state.py` is 161,
-  `financial_operand_resolution.py` is 2,780,
+  `financial_operand_resolution.py` is 2,831,
   `financial_dependency_projection.py` is 3,257,
   `financial_task_artifacts.py` is 1,250,
   `financial_numeric_surface.py` is 539,
   `financial_runtime_trace.py` is 1,065, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 4/4 and affected 639/639
-  tests, the 217-literal runtime audit, and full discovery over 1,521/1,521 tests.
+- The latest calculation checkpoint passed targeted 3/3 and affected 679/679
+  tests, the 217-literal runtime audit, and full discovery over 1,523/1,523 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -334,7 +343,7 @@ current-state document does not duplicate that commit diary.
 | Structure expansion and evidence construction | `financial_graph_evidence.py` |
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
-| Generic operand candidate resolution, unit normalization/alignment, and required-operand prose evidence filtering | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring, the neutral ordered aggregate-role predicate, plain table-label metadata lookup scoring, the plain direct target-metric fallback unit/value conflict and aggregate-preference predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, required match/surface, lookup-rematch, direct-first merge, the plain embedded/rendered single-row repair, shared-context multi-row ratio display-unit alignment, and plain `surface_contract_numeric_evidence_items(...)` while graph retains scope/target policy, table-label slot builders and downstream selection, direct-target construction/evidence coercion/scope/adoption, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, ratio-recovered/runtime projection, row construction/provenance, plan/map propagation, evidence-driven sibling candidate alignment, filter input preparation/call placement/result merging, and ratio append/merge policy |
+| Generic operand candidate resolution, unit normalization/alignment, required-operand prose evidence filtering, and retrieved ratio-context metric-surface detection | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring, the neutral ordered aggregate-role predicate, plain table-label metadata lookup scoring, the plain direct target-metric fallback unit/value conflict and aggregate-preference predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, required match/surface, lookup-rematch, direct-first merge, the plain embedded/rendered single-row repair, shared-context multi-row ratio display-unit alignment, plain `surface_contract_numeric_evidence_items(...)`, and plain `ratio_context_has_metric_surface(...)` while graph retains scope/target policy, table-label slot builders and downstream selection, direct-target construction/evidence coercion/scope/adoption, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, ratio-recovered/runtime projection, row construction/provenance, plan/map propagation, evidence-driven sibling candidate alignment, filter input preparation/call placement/result merging, existing ratio-result gate/iteration and conflict inversion, and ratio append/merge policy |
 | Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, structured-unit/source-slot equivalence, prepared dependency-source ratio-result projection, dependency-row unit inference, and task-output normalized-KRW consistency | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, the structured-unit predicate preserves marker/fallback and final source-id matching order, the ratio-result seam builds fresh canonical result/slot containers with exact source/component aliases, the unit primitive preserves slot-before-sibling raw precedence plus `UNKNOWN`-only policy inference, and the task-output predicate preserves its early gates, tolerance, and conversion exception boundary; graph retains row construction/normalization and conditional re-inference, row coercion and table-metadata repair, evidence coercion/append, raw-plan and candidate construction/execution, source-slot/candidate/marked-row preparation and coherence-rank orchestration, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots and ratio result-display synchronization | `financial_answer_slots.py`; owns answer-slot construction plus typed calculation-result/primary-slot display consistency, including formula-mismatch copy versus ordinary in-place update and current-surface/percent-policy/exception order, while graph callers retain ordered-row gating and propagation, compact-answer construction, and state/task/operand/period/metric formatting |
@@ -366,9 +375,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 4/4 and affected 639/639 tests on 2026-08-10 |
+| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 679/679 tests on 2026-08-10 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-10 |
-| Full unittest discovery | PASS, 1,521/1,521 tests locally on 2026-08-10 |
+| Full unittest discovery | PASS, 1,523/1,523 tests locally on 2026-08-10 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -421,7 +430,8 @@ coercion LLM selection, scalar plan disposition, ratio-artifact conflict selecti
 two-stage post-candidate finalization, structured-provenance adoption, dependency-
 source ratio-result projection, dependency-row unit inference, task-output
 normalized-KRW consistency, prepared structured-unit/source-slot equivalence, and
-required-operand prose numeric-evidence surface filtering.
+required-operand prose numeric-evidence surface filtering, plus retrieved ratio-
+context task-metric surface detection.
 Named answer-slot,
 calculation, and aggregate owners cover ratio result/primary-slot display
 consistency, deterministic planning/execution, stale and generated provenance
@@ -464,6 +474,9 @@ dependency alignment and preserved-field merge,
 required-operand/evidence list preparation and direct-grounding computation around
 the prose numeric-evidence filter call, narrative/restriction gates, surface-result
 merge/dedupe/logging and later missing-required fallback-row merge,
+retrieved ratio-context existing-result iteration and family/task/signature/status/
+artifact-backed/value/completeness/tolerance gates around the metric-surface owner
+call, logical conflict inversion and downstream recalculation/adoption,
 aggregate candidate discovery/scoring/selection, narrative refresh, packaging
 and composition-transition call placement/laziness, application invocation/
 broader answer precedence, aggregate-synthesis LLM/model/prompt setup,
@@ -496,67 +509,60 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is retrieved ratio-context task-metric surface
-detection. Move only graph `_ratio_context_has_metric_surface` (`13137-13186`) and
-replace its sole call (`13230`) with the plain public
-`financial_operand_resolution.ratio_context_has_metric_surface(context_evidence: List[Dict[str, Any]], task: Dict[str, Any]) -> bool`.
+The next bounded architecture work is source-task display compatibility for a
+prepared answer slot. Move only graph `_source_task_display_compatible_with_slot`
+(`3180-3209`) and replace its sole call (`3217`) with plain public
+`financial_answer_slots.source_task_display_compatible_with_slot(slot: Mapping[str, Any], source_display: str) -> bool`.
 Move the literal body and add no wrapper, carrier, reason, flag, callback, config
-input, compatibility alias, or trace field. The operand owner already imports
-`_normalise_spaces`, `_operand_text_match`, and the required collection types, so
-the relocation adds no module edge, reverse dependency, or cycle.
+input, compatibility alias, or trace field. The answer-slot owner already imports
+`_normalise_spaces` and `CALCULATION_RENDER_POLICY`; only the typing import extends,
+so the relocation adds no module edge, reverse dependency, or cycle.
 
-Characterization must preserve task metric-label collection exactly. The task
-reads `metric_label`, `target_metric`, `label`, and `name` before eagerly
-list-materializing `aliases`. Each retained value is stringified and normalized
-once for the comprehension filter and again for the stored label. Empty labels
-return `False` before context access; otherwise stable `dict.fromkeys` dedupe and
-hashing precede creation of one label-only operand per retained metric surface.
+Characterization must preserve the literal short-circuit order. Normalize the
+stringified `source_display` first and return `False` on blank input before any
+slot access. Next resolve the slot display from `rendered_value` before
+`raw_value`; exact equality returns `True`. A normalized `source_row_id` beginning
+with `task_output:` also returns `True`. Then normalize `raw_unit`: blank units and
+units already contained in the source display each return `True` before normalized-
+unit or policy access.
 
-The nonempty path first materializes every context surface before attempting any
-match. For each context item it shallow-copies the evidence and metadata, then
-stringifies the evidence fields `claim`, `quote_span`, `raw_row_text`, and
-`source_context` in order. It next reads metadata `row_label`, `semantic_label`,
-`aggregate_label`, `table_summary_text`, `table_title`, `table_context`,
-`table_row_labels_text`, `table_value_labels_text`, and `row_text`, then
-list-materializes and stringifies `semantic_aliases` before `row_headers`. Only
-after all evidence access completes does the matching pass normalize surfaces in
-stable order, skip blanks, and lazily test metric operands through
-`_operand_text_match`. The first match returns `True`; otherwise the owner returns
-`False`. Inputs remain unmodified and no mapping, copy, truthiness, string,
-iteration, normalization, hashing, matching, or other exception is caught.
+Only the remaining path normalizes and uppercases `normalized_unit`, then reads
+and uppercases configured `krw_normalized_unit`. When they match, materialize the
+configured `krw_display_units` tuple in its current repeated `str(item)` filter/
+storage order. A configured KRW display unit found in the source display returns
+`False`; every other path returns `True`. Do not precompute, copy, normalize,
+dedupe, or catch any input or policy access. Inputs remain unmodified, and mapping,
+truthiness, string, iteration, containment, normalization, and policy exceptions
+propagate at their existing stages.
 
-Graph retains `_retrieved_ratio_projection_conflicts_with_existing_complete_result`
-and every earlier gate: task id and signature preparation, ordered-result iteration,
-row type/family/task/signature checks, result/status and artifact-backed handling,
-numeric extraction, component-completeness checks, and scaled tolerance. Only the
-first eligible conflicting row calls the owner with the exact current
-`context_evidence` and `task` objects. Graph preserves the logical inversion:
-owner `True` means no conflict and owner `False` means conflict. Earlier exits are
-owner-zero, and an owner exception stops later rows and downstream conflict work.
-Stop before that graph conflict method and retain all ratio recalculation,
-projection/adoption, evidence selection, precedence, state, artifact, and final
-orchestration there.
+Graph retains `_slot_display_from_source_task`, its task/source-slot lookup and
+material gate, and `_growth_slot_display_value`. The caller obtains the source
+display first; blank output is owner-zero. A truthy source display invokes the
+owner exactly once with the exact slot object and prepared string. Owner `True`
+adopts that source display; owner `False` falls back to the graph's normalized
+slot `rendered_value` then `raw_value`. Owner exceptions stop fallback and later
+growth-material work. Stop before `_growth_slot_display_value`; keep all source-
+task lookup, growth calculation/material semantics, state, artifact, and final
+orchestration graph-owned.
 
-Current-source profiling reaches this helper twice in one existing fixture and
-both results are `False`; full discovery over 1,521/1,521 tests is green, but there
-are no direct behavioral references. Add a compact direct owner matrix for empty-
-metric laziness, repeated label normalization, stable label dedupe, eager evidence/
-metadata collection, fixed field and list access, matching order/short-circuit,
-input immutability, copies, and uncaught exceptions. Add one graph binding fixture
-that pins earlier owner-zero gates, exact-object first-conflict invocation, the
-inverted true/false disposition, and exception stop. The existing
-`tests/test_subtask_loop.py:4394-4574` path remains representative integration
-coverage. The numeric-coverage primitive pair remains the runner-up because its
-165-call/40-fixture and 32-call/8-fixture reachability spans five call sites and
-four outer consumers.
+Current-source profiling reaches the helper 433 times across four fixtures, but
+there are no direct behavioral references. Add a compact direct owner matrix for
+blank-input laziness, rendered/raw precedence, exact equality, the `task_output:`
+shortcut, raw-unit blank/containment shortcuts, normalized-unit and configured KRW
+display mismatch, policy access, input immutability, and uncaught exceptions. Add
+one graph binding fixture that pins blank-source owner-zero, exact prepared
+arguments, `True` adoption, `False` fallback, and exception stop. Existing
+`tests/test_operation_contracts.py:8353-8386` remains representative integration
+coverage. The aggregate numeric-conflict/direct-source-ref pair is the runner-up:
+its helpers reach 165 calls/40 fixtures and 32 calls/8 fixtures respectively, but
+require five call-site substitutions across four outer consumers.
 
-Acceptance deletes only the 50-line graph definition and old self references,
+Acceptance deletes only the 30-line graph definition and old self references,
 leaves one public owner definition and one graph call, and adds no alias. The
-allowed claim is only retrieved ratio-context task-metric surface-detection
-ownership and old-body deletion—not conflict/precedence policy, ratio
-recalculation or adoption, evidence selection, behavior improvement, performance,
-total-code or executed-path reduction, broader private-mesh cleanup, or Phase 3
-completion.
+allowed claim is only source-task display-compatibility ownership and old-body
+deletion—not source-task lookup, growth semantics, numeric/render policy
+improvement, behavior improvement, performance, total-code or executed-path
+reduction, broader private-mesh cleanup, or Phase 3 completion.
 The Phase 3 backlog in the refactoring plan is unordered; this section is the
 authority for priority.
 
