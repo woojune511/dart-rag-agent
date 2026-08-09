@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequen
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_numeric_surface import (
     extract_numeric_surface_candidates,
+    numeric_surface_candidates_equivalent,
     numeric_surface_slot_components,
 )
 from src.agent.financial_row_surfaces import _operand_text_match
@@ -478,6 +479,50 @@ def apply_aggregate_answer_candidate(
         final_answer=final_answer,
         selected_claim_ids=merged_claim_ids,
     )
+
+
+def subtask_numeric_answers_conflict(
+    candidate_row: Mapping[str, Any],
+    current_row: Mapping[str, Any],
+) -> bool:
+    candidate_answer = _normalise_spaces(
+        str(
+            candidate_row.get("answer")
+            or (candidate_row.get("calculation_result") or {}).get("formatted_result")
+            or (candidate_row.get("calculation_result") or {}).get("rendered_value")
+            or ""
+        )
+    )
+    current_answer = _normalise_spaces(
+        str(
+            current_row.get("answer")
+            or (current_row.get("calculation_result") or {}).get("formatted_result")
+            or (current_row.get("calculation_result") or {}).get("rendered_value")
+            or ""
+        )
+    )
+    candidate_numbers = extract_numeric_surface_candidates(candidate_answer)
+    current_numbers = extract_numeric_surface_candidates(current_answer)
+    if not candidate_numbers or not current_numbers:
+        return False
+    return not all(
+        any(
+            numeric_surface_candidates_equivalent(candidate_number, current_number)
+            for current_number in current_numbers
+        )
+        for candidate_number in candidate_numbers
+    )
+
+
+def subtask_row_has_direct_source_refs(row: Mapping[str, Any]) -> bool:
+    calculation_result = dict(row.get("calculation_result") or {})
+    source_ids = _clean_source_row_ids([
+        row.get("source_row_ids"),
+        calculation_result.get("source_row_ids"),
+        row.get("selected_claim_ids"),
+        calculation_result.get("source_evidence_ids"),
+    ])
+    return any(source_id and not source_id.startswith("task_output:") for source_id in source_ids)
 
 
 def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:

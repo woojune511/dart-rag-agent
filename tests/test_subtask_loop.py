@@ -5231,16 +5231,52 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        sentence_owner = self.agent._answer_sentence_for_projection_subtask_row
+        conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
+
         with patch.object(
             financial_graph_calculation,
-            "synchronize_aggregate_projection_row_surface",
-            wraps=row_sync,
-        ) as row_sync_spy:
+            "subtask_numeric_answers_conflict",
+            wraps=conflict_owner,
+        ) as scorer_conflict:
+            selected_sentence = sentence_owner(final_answer, stale_ratio_row)
+        self.assertEqual(selected_sentence, final_answer)
+        self.assertTrue(scorer_conflict.called)
+        self.assertTrue(
+            all(
+                call.args == ({"answer": final_answer}, stale_ratio_row)
+                for call in scorer_conflict.call_args_list
+            )
+        )
+
+        with (
+            patch.object(
+                self.agent,
+                "_answer_sentence_for_projection_subtask_row",
+                return_value=final_answer,
+            ) as sentence_spy,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                wraps=conflict_owner,
+            ) as conflict_spy,
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as row_sync_spy,
+        ):
             ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
                 projection,
                 final_answer,
             )
+        self.assertEqual(sentence_spy.call_count, 2)
+        first_sentence_row = sentence_spy.call_args_list[0].args[1]
+        self.assertIs(first_sentence_row, sentence_spy.call_args_list[1].args[1])
+        self.assertIsNot(first_sentence_row, stale_ratio_row)
+        self.assertEqual(first_sentence_row, stale_ratio_row)
+        conflict_spy.assert_called_once_with({"answer": final_answer}, first_sentence_row)
         row_sync_spy.assert_called_once()
         ratio_sync_input = row_sync_spy.call_args.args[0]
         self.assertEqual(ratio_sync_input.projection_row["task_id"], "task_ratio")
@@ -5263,19 +5299,79 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("400.00%", projected_ratio_row["answer"])
 
         empty_projection = {"calculation_result": {"subtask_results": []}}
-        with patch.object(
-            financial_graph_calculation,
-            "synchronize_aggregate_projection_row_surface",
-            wraps=row_sync,
-        ) as gated_row_sync:
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+            ) as gated_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as gated_row_sync,
+        ):
             unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
                 empty_projection,
                 final_answer,
             )
+        gated_conflict.assert_not_called()
         gated_row_sync.assert_not_called()
         self.assertIs(unchanged_results[0], stale_ratio_row)
         self.assertIs(unchanged_projection, empty_projection)
+
+        with (
+            patch.object(
+                self.agent,
+                "_answer_sentence_for_projection_subtask_row",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                return_value=False,
+            ) as no_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as false_row_sync,
+        ):
+            unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                [stale_ratio_row],
+                projection,
+                final_answer,
+            )
+        no_conflict.assert_called_once()
+        false_row_sync.assert_not_called()
+        self.assertIs(unchanged_results[0], stale_ratio_row)
+        self.assertIs(unchanged_projection, projection)
+
+        with (
+            patch.object(
+                self.agent,
+                "_answer_sentence_for_projection_subtask_row",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=RuntimeError("conflict owner failed"),
+            ) as failing_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_projection_row_surface",
+                wraps=row_sync,
+            ) as stopped_row_sync,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
+                self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                    [stale_ratio_row],
+                    projection,
+                    final_answer,
+                )
+        failing_conflict.assert_called_once()
+        stopped_row_sync.assert_not_called()
 
     def test_aggregate_trace_sync_updates_difference_scalar_from_final_answer(self) -> None:
         stale_difference_row = {
@@ -8039,11 +8135,198 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+        source_ref_owner = financial_graph_calculation.subtask_row_has_direct_source_refs
+        family_owner = self.agent._aggregate_result_operation_family
+        conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
+        sign_rank_owner = financial_graph_calculation.growth_operand_sign_consistency_rank
+        owner_events = []
+        source_ref_seen = False
+
+        def invoke_source_ref(row):
+            nonlocal source_ref_seen
+            owner_events.append(("source_ref", row))
+            source_ref_seen = True
+            return source_ref_owner(row)
+
+        def invoke_family(row):
+            family = family_owner(row)
+            if source_ref_seen:
+                owner_events.append(("family", row, family))
+            return family
+
+        def invoke_conflict(candidate, current):
+            owner_events.append(("conflict", candidate, current))
+            return conflict_owner(candidate, current)
+
+        def invoke_sign_rank(row):
+            owner_events.append(("rank", row))
+            return sign_rank_owner(row)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "subtask_row_has_direct_source_refs",
+                side_effect=invoke_source_ref,
+            ),
+            patch.object(
+                self.agent,
+                "_aggregate_result_operation_family",
+                side_effect=invoke_family,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=invoke_conflict,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_operand_sign_consistency_rank",
+                side_effect=invoke_sign_rank,
+            ),
+        ):
+            promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+
+        self.assertEqual(
+            [event[0] for event in owner_events],
+            ["source_ref", "family", "family", "conflict", "rank", "rank"],
+        )
+        current_owner_row = owner_events[0][1]
+        nested_owner_row = owner_events[2][1]
+        self.assertIs(owner_events[1][1], current_owner_row)
+        self.assertEqual(owner_events[1][2], "growth_rate")
+        self.assertEqual(owner_events[2][2], "growth_rate")
+        self.assertIs(owner_events[3][1], nested_owner_row)
+        self.assertIs(owner_events[3][2], current_owner_row)
+        self.assertIs(owner_events[4][1], nested_owner_row)
+        self.assertIs(owner_events[5][1], current_owner_row)
+        self.assertIsNot(current_owner_row, current_growth)
+        self.assertIsNot(nested_owner_row, conflicting_nested_growth)
+        self.assertEqual(current_owner_row, current_growth)
+        self.assertEqual(nested_owner_row, conflicting_nested_growth)
 
         self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
         self.assertIn("84.3%", promoted[0]["answer"])
         self.assertNotIn("76.08%", promoted[0]["answer"])
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "subtask_row_has_direct_source_refs",
+                return_value=False,
+            ) as no_direct_ref,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+            ) as gated_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "growth_operand_sign_consistency_rank",
+            ) as gated_rank,
+            patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
+            patch.object(
+                self.agent,
+                "_aggregate_result_dependency_coherence_ranks",
+                return_value=(1, 1),
+            ),
+        ):
+            promoted_without_direct_ref = self.agent._promote_stronger_nested_aggregate_results(
+                [current_growth, aggregate_row]
+            )
+        no_direct_ref.assert_called_once()
+        gated_conflict.assert_not_called()
+        gated_rank.assert_not_called()
+        self.assertTrue(promoted_without_direct_ref[0]["promoted_from_nested_aggregate"])
+
+        family_gate_active = False
+        post_source_families = []
+
+        def enable_family_gate(_row):
+            nonlocal family_gate_active
+            family_gate_active = True
+            return True
+
+        def mismatch_after_source_ref(row):
+            family = family_owner(row)
+            if not family_gate_active:
+                return family
+            post_source_families.append(row)
+            return "growth_rate" if len(post_source_families) == 1 else "ratio"
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "subtask_row_has_direct_source_refs",
+                side_effect=enable_family_gate,
+            ),
+            patch.object(
+                self.agent,
+                "_aggregate_result_operation_family",
+                side_effect=mismatch_after_source_ref,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+            ) as family_gated_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "growth_operand_sign_consistency_rank",
+            ) as family_gated_rank,
+            patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
+            patch.object(
+                self.agent,
+                "_aggregate_result_dependency_coherence_ranks",
+                return_value=(1, 1),
+            ),
+        ):
+            promoted_with_family_mismatch = self.agent._promote_stronger_nested_aggregate_results(
+                [current_growth, aggregate_row]
+            )
+        self.assertEqual(len(post_source_families), 2)
+        family_gated_conflict.assert_not_called()
+        family_gated_rank.assert_not_called()
+        self.assertTrue(promoted_with_family_mismatch[0]["promoted_from_nested_aggregate"])
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                return_value=False,
+            ) as no_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "growth_operand_sign_consistency_rank",
+            ) as conflict_gated_rank,
+            patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
+            patch.object(
+                self.agent,
+                "_aggregate_result_dependency_coherence_ranks",
+                return_value=(1, 1),
+            ),
+        ):
+            promoted_without_conflict = self.agent._promote_stronger_nested_aggregate_results(
+                [current_growth, aggregate_row]
+            )
+        no_conflict.assert_called_once()
+        conflict_gated_rank.assert_not_called()
+        self.assertTrue(promoted_without_conflict[0]["promoted_from_nested_aggregate"])
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=RuntimeError("conflict owner failed"),
+            ) as failing_conflict,
+            patch.object(
+                financial_graph_calculation,
+                "growth_operand_sign_consistency_rank",
+            ) as stopped_rank,
+            patch.object(self.agent, "_nested_aggregate_result_rank") as later_nested_rank,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
+                self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+        failing_conflict.assert_called_once()
+        stopped_rank.assert_not_called()
+        later_nested_rank.assert_not_called()
 
     def test_nested_aggregate_does_not_promote_material_gap_growth_row(self) -> None:
         current_growth = {
@@ -14389,15 +14672,47 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
-            tasks,
-            artifacts,
-            ordered_results=ordered_results,
-            aggregate_projection=aggregate_projection,
-            aggregate_artifact_id="aggregate:002",
-            final_answer=final_answer,
-        )
+        conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
+        preserve_owner = self.agent._answer_preserves_task_numeric_surface
+        with (
+            patch.object(
+                self.agent,
+                "_task_aggregate_replacement_summary",
+                return_value=final_answer,
+            ) as replacement_summary_owner,
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                wraps=conflict_owner,
+            ) as conflict_spy,
+            patch.object(
+                self.agent,
+                "_answer_preserves_task_numeric_surface",
+                wraps=preserve_owner,
+            ) as preserve_spy,
+        ):
+            updated_tasks, updated_artifacts = self.agent._finalize_aggregate_task_ledger(
+                tasks,
+                artifacts,
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                aggregate_artifact_id="aggregate:002",
+                final_answer=final_answer,
+            )
         trace = _project_task_artifact_trace(updated_tasks, updated_artifacts)
+
+        replacement_summary_owner.assert_called_once()
+        conflict_spy.assert_called_once_with(
+            {"answer": final_answer},
+            {"answer": "target metric 70.24%"},
+        )
+        self.assertEqual(
+            [call.args for call in preserve_spy.call_args_list],
+            [
+                (final_answer, "target metric 70.24%"),
+                (final_answer, final_answer),
+            ],
+        )
 
         self.assertEqual(trace["integrity_status"], "ok")
         self.assertEqual(trace["tasks"][0]["status"], "superseded")
@@ -14408,6 +14723,101 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(trace["tasks"][0]["latest_artifact_status"], "superseded_by_aggregate_result")
         self.assertEqual(trace["tasks"][0]["latest_artifact_summary"], final_answer)
         self.assertEqual(len(updated_artifacts), 2)
+
+        replacement_answer = "target metric 70.28%."
+        latest_summary = "target metric 70.24%"
+        for fallback_preserves, expected_status, expected_artifact_count in (
+            (True, "completed", 1),
+            (False, "superseded", 2),
+        ):
+            with self.subTest(fallback_preserves=fallback_preserves):
+                fallback_calls = []
+
+                def preserve_for_false_conflict(answer, reference):
+                    pair = (answer, reference)
+                    if pair == (final_answer, latest_summary):
+                        return False
+                    if pair == (replacement_answer, final_answer):
+                        return True
+                    if pair == (replacement_answer, latest_summary):
+                        fallback_calls.append(pair)
+                        return fallback_preserves
+                    raise AssertionError(f"unexpected preservation pair: {pair!r}")
+
+                with (
+                    patch.object(
+                        self.agent,
+                        "_task_aggregate_replacement_summary",
+                        return_value=replacement_answer,
+                    ),
+                    patch.object(
+                        financial_graph_calculation,
+                        "subtask_numeric_answers_conflict",
+                        return_value=False,
+                    ) as false_conflict,
+                    patch.object(
+                        self.agent,
+                        "_answer_preserves_task_numeric_surface",
+                        side_effect=preserve_for_false_conflict,
+                    ),
+                ):
+                    branch_tasks, branch_artifacts = self.agent._finalize_aggregate_task_ledger(
+                        tasks,
+                        artifacts,
+                        ordered_results=ordered_results,
+                        aggregate_projection=aggregate_projection,
+                        aggregate_artifact_id="aggregate:002",
+                        final_answer=final_answer,
+                    )
+                false_conflict.assert_called_once_with(
+                    {"answer": replacement_answer},
+                    {"answer": latest_summary},
+                )
+                self.assertEqual(fallback_calls, [(replacement_answer, latest_summary)])
+                self.assertEqual(branch_tasks[0]["status"], expected_status)
+                self.assertEqual(len(branch_artifacts), expected_artifact_count)
+
+        with patch.object(
+            financial_graph_calculation,
+            "subtask_numeric_answers_conflict",
+        ) as gated_conflict:
+            self.agent._finalize_aggregate_task_ledger(
+                tasks,
+                artifacts,
+                ordered_results=ordered_results,
+                aggregate_projection=aggregate_projection,
+                aggregate_artifact_id="aggregate:002",
+                final_answer="target metric 70.24%",
+            )
+        gated_conflict.assert_not_called()
+
+        with (
+            patch.object(
+                self.agent,
+                "_task_aggregate_replacement_summary",
+                return_value=final_answer,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "subtask_numeric_answers_conflict",
+                side_effect=RuntimeError("conflict owner failed"),
+            ) as failing_conflict,
+            patch.object(self.agent, "_aggregate_projection_row_for_task") as later_projection,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
+                self.agent._finalize_aggregate_task_ledger(
+                    tasks,
+                    artifacts,
+                    ordered_results=ordered_results,
+                    aggregate_projection=aggregate_projection,
+                    aggregate_artifact_id="aggregate:002",
+                    final_answer=final_answer,
+                )
+        failing_conflict.assert_called_once_with(
+            {"answer": final_answer},
+            {"answer": "target metric 70.24%"},
+        )
+        later_projection.assert_not_called()
 
     def test_aggregate_ledger_keeps_non_conflicting_completed_task_summary(self) -> None:
         tasks = [

@@ -58,6 +58,8 @@ from src.agent.financial_aggregate_projection import (
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
+    subtask_numeric_answers_conflict,
+    subtask_row_has_direct_source_refs,
     synchronize_aggregate_arithmetic_components,
     synchronize_aggregate_projection_row_surface,
     synchronize_nested_aggregate_subtask_rows,
@@ -1064,7 +1066,7 @@ class FinancialAgentCalculationMixin:
                     replacement_summary = aggregate_answer
                 if not replacement_summary:
                     continue
-                replacement_conflicts = self._subtask_numeric_answers_conflict(
+                replacement_conflicts = subtask_numeric_answers_conflict(
                     {"answer": replacement_summary},
                     {"answer": latest_summary},
                 ) or not self._answer_preserves_task_numeric_surface(
@@ -4767,7 +4769,7 @@ class FinancialAgentCalculationMixin:
             label_score = _label_match_score(normalized)
             percent_score = int(operation_family in {"ratio", "growth_rate"} and "%" in normalized)
             arithmetic_score = len(numeric_candidates) if operation_family in {"difference", "sum"} else 0
-            conflict_score = int(self._subtask_numeric_answers_conflict({"answer": normalized}, row))
+            conflict_score = int(subtask_numeric_answers_conflict({"answer": normalized}, row))
             return (label_score, percent_score, arithmetic_score, conflict_score, len(normalized))
 
         best_sentence = max(sentences, key=_score, default="")
@@ -4859,7 +4861,7 @@ class FinancialAgentCalculationMixin:
             synced_answer = self._answer_sentence_for_projection_subtask_row(final_answer, row)
             if not synced_answer:
                 continue
-            if not self._subtask_numeric_answers_conflict({"answer": synced_answer}, row):
+            if not subtask_numeric_answers_conflict({"answer": synced_answer}, row):
                 continue
             if operation_family in {"ratio", "growth_rate"} and self._answer_covers_numeric_answer(final_answer, row_surface):
                 continue
@@ -8512,49 +8514,6 @@ class FinancialAgentCalculationMixin:
             len(answer_text),
         )
 
-    def _subtask_numeric_answers_conflict(
-        self,
-        candidate_row: Dict[str, Any],
-        current_row: Dict[str, Any],
-    ) -> bool:
-        candidate_answer = _normalise_spaces(
-            str(
-                candidate_row.get("answer")
-                or (candidate_row.get("calculation_result") or {}).get("formatted_result")
-                or (candidate_row.get("calculation_result") or {}).get("rendered_value")
-                or ""
-            )
-        )
-        current_answer = _normalise_spaces(
-            str(
-                current_row.get("answer")
-                or (current_row.get("calculation_result") or {}).get("formatted_result")
-                or (current_row.get("calculation_result") or {}).get("rendered_value")
-                or ""
-            )
-        )
-        candidate_numbers = extract_numeric_surface_candidates(candidate_answer)
-        current_numbers = extract_numeric_surface_candidates(current_answer)
-        if not candidate_numbers or not current_numbers:
-            return False
-        return not all(
-            any(
-                numeric_surface_candidates_equivalent(candidate_number, current_number)
-                for current_number in current_numbers
-            )
-            for candidate_number in candidate_numbers
-        )
-
-    def _subtask_row_has_direct_source_refs(self, row: Dict[str, Any]) -> bool:
-        calculation_result = dict(row.get("calculation_result") or {})
-        source_ids = _clean_source_row_ids([
-            row.get("source_row_ids"),
-            calculation_result.get("source_row_ids"),
-            row.get("selected_claim_ids"),
-            calculation_result.get("source_evidence_ids"),
-        ])
-        return any(source_id and not source_id.startswith("task_output:") for source_id in source_ids)
-
     def _promote_stronger_nested_aggregate_results(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -8587,9 +8546,9 @@ class FinancialAgentCalculationMixin:
                 if (
                     current_status == "ok"
                     and not self._material_gap_feedback_for_subtask_result(current_row)
-                    and self._subtask_row_has_direct_source_refs(current_row)
+                    and subtask_row_has_direct_source_refs(current_row)
                     and self._aggregate_result_operation_family(current_row) == self._aggregate_result_operation_family(nested_row)
-                    and self._subtask_numeric_answers_conflict(nested_row, current_row)
+                    and subtask_numeric_answers_conflict(nested_row, current_row)
                     and growth_operand_sign_consistency_rank(nested_row)
                     <= growth_operand_sign_consistency_rank(current_row)
                 ):

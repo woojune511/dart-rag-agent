@@ -579,6 +579,323 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     },
                 )
 
+    def test_subtask_numeric_conflict_and_direct_source_refs_preserve_behavior(self) -> None:
+        conflict = financial_aggregate_projection.subtask_numeric_answers_conflict
+        has_direct_refs = financial_aggregate_projection.subtask_row_has_direct_source_refs
+        nested = {"keep": True}
+        candidate = {
+            "answer": "",
+            "calculation_result": {
+                "formatted_result": "metric is 10.00%",
+                "rendered_value": "must stay fallback",
+                "nested": nested,
+            },
+        }
+        current = {
+            "answer": "metric is 10%",
+            "calculation_result": {"formatted_result": "must stay lazy"},
+        }
+        source_row = {
+            "source_row_ids": ["", "task_output:lookup"],
+            "selected_claim_ids": ["task_output:claim"],
+            "calculation_result": {
+                "source_row_ids": ["task_output:result"],
+                "source_evidence_ids": ["ev_direct"],
+                "nested": nested,
+            },
+        }
+        before = deepcopy((candidate, current, source_row))
+
+        self.assertFalse(conflict(candidate, current))
+        self.assertFalse(conflict({"answer": "metric is 10%"}, {"answer": "10% and 20%"}))
+        self.assertTrue(conflict({"answer": "10% and 20%"}, {"answer": "metric is 10%"}))
+        self.assertTrue(
+            conflict(
+                {"calculation_result": {"formatted_result": "", "rendered_value": "20%"}},
+                {"calculation_result": {"formatted_result": "10%", "rendered_value": "20%"}},
+            )
+        )
+        self.assertFalse(conflict({"answer": "no number"}, {"answer": "10%"}))
+        self.assertFalse(has_direct_refs({"source_row_ids": ["", "task_output:lookup"]}))
+        self.assertTrue(has_direct_refs(source_row))
+        self.assertEqual((candidate, current, source_row), before)
+        self.assertIs(candidate["calculation_result"]["nested"], nested)
+        self.assertIs(source_row["calculation_result"]["nested"], nested)
+
+    def test_subtask_numeric_conflict_and_direct_source_refs_preserve_access_contract(self) -> None:
+        conflict = financial_aggregate_projection.subtask_numeric_answers_conflict
+        has_direct_refs = financial_aggregate_projection.subtask_row_has_direct_source_refs
+        events = []
+
+        class TrackedGet(Mapping):
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(f"get:{self.name}:{key}")
+                return self.values.get(key, default)
+
+        class TrackedString:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(f"str:{self.name}")
+                return self.value
+
+        candidate_result = TrackedGet(
+            "candidate_result",
+            {"formatted_result": "", "rendered_value": TrackedString("candidate_rendered", "candidate")},
+        )
+        candidate_row = TrackedGet(
+            "candidate",
+            {"answer": "", "calculation_result": candidate_result},
+        )
+        current_row = TrackedGet(
+            "current",
+            {"answer": TrackedString("current_answer", "current")},
+        )
+
+        def normalize(value):
+            events.append(f"normalize:{value}")
+            return value
+
+        def extract(value):
+            events.append(f"extract:{value}")
+            return ["c1", "c2", "c3"] if value == "candidate" else ["r1", "r2", "r3"]
+
+        def equivalent(left, right):
+            events.append(f"equivalent:{left}:{right}")
+            if left == "c3" or (left, right) == ("c1", "r3"):
+                raise RuntimeError("short-circuited equivalence must stay lazy")
+            return (left, right) == ("c1", "r2")
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", side_effect=extract),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", side_effect=equivalent),
+        ):
+            self.assertTrue(conflict(candidate_row, current_row))
+        self.assertEqual(
+            events,
+            [
+                "get:candidate:answer",
+                "get:candidate:calculation_result",
+                "get:candidate_result:formatted_result",
+                "get:candidate:calculation_result",
+                "get:candidate_result:rendered_value",
+                "str:candidate_rendered",
+                "normalize:candidate",
+                "get:current:answer",
+                "str:current_answer",
+                "normalize:current",
+                "extract:candidate",
+                "extract:current",
+                "equivalent:c1:r1",
+                "equivalent:c1:r2",
+                "equivalent:c2:r1",
+                "equivalent:c2:r2",
+                "equivalent:c2:r3",
+            ],
+        )
+
+        for extracted in (
+            [[], [{"text": "current"}]],
+            [[{"text": "candidate"}], []],
+        ):
+            with (
+                patch.object(
+                    financial_aggregate_projection,
+                    "extract_numeric_surface_candidates",
+                    side_effect=extracted,
+                ) as extractor,
+                patch.object(
+                    financial_aggregate_projection,
+                    "numeric_surface_candidates_equivalent",
+                    side_effect=RuntimeError("equivalence must stay lazy"),
+                ) as lazy_equivalence,
+            ):
+                self.assertFalse(conflict({"answer": "candidate"}, {"answer": "current"}))
+            self.assertEqual(extractor.call_count, 2)
+            lazy_equivalence.assert_not_called()
+
+        events.clear()
+        row_source_ids = object()
+        result_source_ids = object()
+        selected_claim_ids = object()
+        source_evidence_ids = object()
+
+        class TruthyCalculation:
+            def __bool__(self):
+                events.append("bool:calculation_input")
+                return True
+
+        calculation_input = TruthyCalculation()
+        copied_result = TrackedGet(
+            "copied_result",
+            {
+                "source_row_ids": result_source_ids,
+                "source_evidence_ids": source_evidence_ids,
+            },
+        )
+        tracked_row = TrackedGet(
+            "row",
+            {
+                "calculation_result": calculation_input,
+                "source_row_ids": row_source_ids,
+                "selected_claim_ids": selected_claim_ids,
+            },
+        )
+
+        class SourceId:
+            def __init__(self, name, *, truthy=True, task_output=False):
+                self.name = name
+                self.truthy = truthy
+                self.task_output = task_output
+
+            def __bool__(self):
+                events.append(f"bool:{self.name}")
+                return self.truthy
+
+            def startswith(self, prefix):
+                events.append(f"startswith:{self.name}:{prefix}")
+                return self.task_output
+
+        class LaterSource:
+            def __bool__(self):
+                raise RuntimeError("later source must stay lazy")
+
+        cleaner_inputs = []
+
+        def copy_result(value):
+            events.append("copy:calculation_input")
+            self.assertIs(value, calculation_input)
+            return copied_result
+
+        def clean_source_ids(values):
+            events.append("clean")
+            cleaner_inputs.append(values)
+            return [
+                SourceId("blank", truthy=False),
+                SourceId("task", task_output=True),
+                SourceId("direct"),
+                LaterSource(),
+            ]
+
+        with (
+            patch.object(financial_aggregate_projection, "dict", side_effect=copy_result, create=True),
+            patch.object(financial_aggregate_projection, "_clean_source_row_ids", side_effect=clean_source_ids),
+        ):
+            self.assertTrue(has_direct_refs(tracked_row))
+        self.assertEqual(
+            events,
+            [
+                "get:row:calculation_result",
+                "bool:calculation_input",
+                "copy:calculation_input",
+                "get:row:source_row_ids",
+                "get:copied_result:source_row_ids",
+                "get:row:selected_claim_ids",
+                "get:copied_result:source_evidence_ids",
+                "clean",
+                "bool:blank",
+                "bool:blank",
+                "bool:task",
+                "startswith:task:task_output:",
+                "bool:direct",
+                "startswith:direct:task_output:",
+            ],
+        )
+        self.assertEqual(len(cleaner_inputs), 1)
+        for actual, expected in zip(
+            cleaner_inputs[0],
+            (row_source_ids, result_source_ids, selected_claim_ids, source_evidence_ids),
+        ):
+            self.assertIs(actual, expected)
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 0
+
+            def __iter__(self):
+                return iter(())
+
+            def __getitem__(self, _key):
+                raise KeyError
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        class StartswithBomb:
+            def __bool__(self):
+                return True
+
+            def startswith(self, _prefix):
+                raise RuntimeError("startswith failed")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            conflict(GetBomb(), {"answer": "1"})
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            conflict({"answer": StringBomb()}, {"answer": "1"})
+        with patch.object(
+            financial_aggregate_projection,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                conflict({"answer": "1"}, {"answer": "1"})
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("extraction failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "extraction failed"):
+                conflict({"answer": "1"}, {"answer": "1"})
+        with patch.object(
+            financial_aggregate_projection,
+            "numeric_surface_candidates_equivalent",
+            side_effect=RuntimeError("equivalence failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "equivalence failed"):
+                conflict({"answer": "10%"}, {"answer": "20%"})
+        with patch.object(
+            financial_aggregate_projection,
+            "dict",
+            side_effect=RuntimeError("mapping copy failed"),
+            create=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+                has_direct_refs({"calculation_result": {"source_row_ids": ["ev"]}})
+        with patch.object(
+            financial_aggregate_projection,
+            "_clean_source_row_ids",
+            side_effect=RuntimeError("source cleaning failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source cleaning failed"):
+                has_direct_refs({})
+        with patch.object(
+            financial_aggregate_projection,
+            "_clean_source_row_ids",
+            return_value=[StartswithBomb()],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "startswith failed"):
+                has_direct_refs({})
+
     def test_aggregate_signature_and_growth_sign_rank_preserve_primitive_contract(self) -> None:
         def signature(row, *, delegate=None):
             if delegate is None:
