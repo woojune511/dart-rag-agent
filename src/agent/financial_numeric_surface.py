@@ -9,6 +9,92 @@ from src.agent.financial_runtime_normalization import _normalise_spaces, _parse_
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
 
 
+def _table_numeric_support_text_for_final_answer(
+    evidence: Dict[str, Any],
+    *,
+    final_answer: str,
+    answer_candidates: List[Dict[str, Any]],
+) -> str:
+    metadata = dict(evidence.get("metadata") or {})
+    table_lines = [
+        _normalise_spaces(line)
+        for line in str(metadata.get("table_value_labels_text") or "").splitlines()
+        if _normalise_spaces(line)
+    ]
+    if not table_lines:
+        return ""
+    answer_surface = re.sub(r"\s+", "", _normalise_spaces(final_answer))
+    unit_terms = sorted(
+        {
+            *[str(unit) for unit in dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})],
+            *[str(unit) for unit in (NUMERIC_UNIT_NORMALIZATION_POLICY.get("percent_units") or ())],
+        },
+        key=len,
+        reverse=True,
+    )
+    unit_pattern = "|".join(re.escape(unit) for unit in unit_terms if unit)
+
+    def _line_label(line: str) -> str:
+        label = re.sub(r"\(?-?\d[\d,]*(?:\.\d+)?\)?", " ", line)
+        if unit_pattern:
+            label = re.sub(unit_pattern, " ", label)
+        label = re.sub(r"[|:;()\[\]/,]+", " ", label)
+        return re.sub(r"\s+", "", _normalise_spaces(label))
+
+    support_lines: List[str] = []
+    for line in table_lines:
+        label = _line_label(line)
+        if len(label) < 2 or label not in answer_surface:
+            continue
+        line_candidates = extract_numeric_surface_candidates(line)
+        if not line_candidates:
+            continue
+        if any(
+            numeric_surface_candidates_equivalent(answer_candidate, line_candidate)
+            for answer_candidate in answer_candidates
+            for line_candidate in line_candidates
+        ):
+            support_lines.append(line)
+        if len(support_lines) >= 4:
+            break
+    if not support_lines:
+        return ""
+    header = _normalise_spaces(
+        " ".join(
+            str(value or "")
+            for value in (
+                metadata.get("table_header_context"),
+                metadata.get("table_context"),
+            )
+        )
+    )
+    return _normalise_spaces(" ; ".join([header, *support_lines] if header else support_lines))
+
+
+def promote_table_numeric_support_evidence(
+    evidence: Dict[str, Any],
+    *,
+    final_answer: str,
+    answer_candidates: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    support_text = _table_numeric_support_text_for_final_answer(
+        evidence,
+        final_answer=final_answer,
+        answer_candidates=answer_candidates,
+    )
+    if not support_text:
+        return evidence
+    promoted = dict(evidence)
+    claim = _normalise_spaces(str(promoted.get("claim") or ""))
+    quote_span = _normalise_spaces(str(promoted.get("quote_span") or ""))
+    promoted["claim"] = _normalise_spaces(" | ".join(part for part in (claim, support_text) if part))
+    promoted["quote_span"] = _normalise_spaces(" | ".join(part for part in (quote_span, support_text) if part))
+    metadata = dict(promoted.get("metadata") or {})
+    metadata["final_answer_table_numeric_support"] = support_text
+    promoted["metadata"] = metadata
+    return promoted
+
+
 def _numeric_unit_terms() -> tuple[Dict[str, float], List[str], List[str]]:
     render_policy = dict(CALCULATION_RENDER_POLICY)
     unit_scale = {

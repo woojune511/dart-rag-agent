@@ -722,6 +722,101 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         self.assertIn("credit loss provision expense 1,848", filtered[0]["quote_span"])
         self.assertIn("final_answer_table_numeric_support", filtered[0]["metadata"])
 
+    def test_final_answer_evidence_filter_uses_table_numeric_support_owner(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"keep": True}
+        retrieved = {
+            "evidence_id": "retrieved_narrative::skip",
+            "claim": "retrieved narrative 10%",
+        }
+        eligible = {
+            "evidence_id": "ev_selected",
+            "claim": "original 10%",
+            "metadata": {"nested": nested},
+        }
+        second_nested = {"keep": "second"}
+        second_eligible = {
+            "evidence_id": "ev_second",
+            "claim": "second 10%",
+            "metadata": {"nested": second_nested},
+        }
+        promoted = {
+            "evidence_id": "ev_selected",
+            "claim": "promoted 10%",
+            "metadata": {"promoted": True},
+        }
+        second_promoted = {
+            "evidence_id": "ev_second",
+            "claim": "second promoted 10%",
+            "metadata": {"promoted": "second"},
+        }
+        final_answer = "target metric is 10%"
+        expected_candidates = financial_graph_calculation.extract_numeric_surface_candidates(
+            final_answer
+        )
+        owner_calls = []
+
+        def promote_owner(evidence, *, final_answer, answer_candidates):
+            owner_calls.append((evidence, final_answer, answer_candidates))
+            return {
+                "ev_selected": promoted,
+                "ev_second": second_promoted,
+            }[evidence["evidence_id"]]
+
+        with patch.object(
+            financial_graph_calculation,
+            "promote_table_numeric_support_evidence",
+            side_effect=promote_owner,
+        ) as owner:
+            filtered = agent._filter_aggregate_evidence_for_final_answer(
+                [retrieved, eligible, second_eligible],
+                final_answer=final_answer,
+                selected_claim_ids=[
+                    "retrieved_narrative::skip",
+                    "ev_selected",
+                    "ev_second",
+                ],
+            )
+
+        self.assertEqual(owner.call_count, 2)
+        for call, original, original_nested in zip(
+            owner_calls,
+            (eligible, second_eligible),
+            (nested, second_nested),
+        ):
+            called_evidence, called_answer, called_candidates = call
+            self.assertEqual(called_evidence, original)
+            self.assertIsNot(called_evidence, original)
+            self.assertIs(called_evidence["metadata"]["nested"], original_nested)
+            self.assertEqual(called_answer, final_answer)
+            self.assertEqual(called_candidates, expected_candidates)
+        self.assertIs(owner_calls[0][2], owner_calls[1][2])
+        self.assertEqual([row["evidence_id"] for row in filtered], [
+            "retrieved_narrative::skip",
+            "ev_selected",
+            "ev_second",
+        ])
+        self.assertIsNot(filtered[0], retrieved)
+        self.assertIs(filtered[1], promoted)
+        self.assertIs(filtered[2], second_promoted)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "promote_table_numeric_support_evidence",
+                side_effect=RuntimeError("promotion failed"),
+            ) as failing_owner,
+            patch.object(agent, "_evidence_supports_final_answer_numeric_material") as later_support,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "promotion failed"):
+                agent._filter_aggregate_evidence_for_final_answer(
+                    [eligible, {"evidence_id": "later", "claim": "later 10%"}],
+                    final_answer=final_answer,
+                    selected_claim_ids=[],
+                )
+        failing_owner.assert_called_once()
+        later_support.assert_not_called()
+
     def test_final_answer_appends_matching_operand_evidence(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         evidence_items = []

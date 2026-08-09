@@ -1,5 +1,7 @@
 import unittest
+from collections.abc import Mapping
 from copy import deepcopy
+from unittest.mock import patch
 
 import src.agent.financial_numeric_surface as financial_numeric_surface
 from src.agent.financial_graph import FinancialAgent
@@ -116,6 +118,375 @@ class FinancialNumericProvenanceTests(unittest.TestCase):
 
         self.assertFalse(numeric_surface_candidates_equivalent(positive, negative))
         self.assertTrue(numeric_surface_candidates_equivalent(negative, dict(negative)))
+
+    def test_table_numeric_support_promotion_preserves_behavior_contract(self) -> None:
+        promote = financial_numeric_surface.promote_table_numeric_support_evidence
+
+        class Poison:
+            def __str__(self):
+                raise RuntimeError("later input accessed")
+
+            def __iter__(self):
+                raise RuntimeError("later input iterated")
+
+        for name, evidence in (
+            ("missing metadata", {"claim": Poison()}),
+            ("blank table text", {"metadata": {"table_value_labels_text": " \n "}}),
+        ):
+            with self.subTest(owner_zero=name):
+                self.assertIs(
+                    promote(evidence, final_answer=Poison(), answer_candidates=Poison()),
+                    evidence,
+                )
+
+        final_answer = (
+            "alpha metric 10%, alpha metric 20%, beta metric 30%, "
+            "gamma metric 40%, delta metric 50%"
+        )
+        answer_candidates = extract_numeric_surface_candidates(final_answer)
+        nested = {"keep": True}
+        metadata_nested = {"keep": "metadata"}
+        evidence = {
+            "evidence_id": "ev_table",
+            "claim": "existing claim",
+            "quote_span": "existing quote",
+            "metadata": {
+                "table_header_context": " Item | 2023 ",
+                "table_context": " Consolidated ",
+                "table_value_labels_text": "\n".join(
+                    [
+                        " alpha metric 10% ",
+                        "alpha metric 20%",
+                        "beta metric 30%",
+                        "gamma metric 40%",
+                        "delta metric 50%",
+                    ]
+                ),
+                "nested": metadata_nested,
+            },
+            "nested": nested,
+        }
+        before = deepcopy((evidence, answer_candidates))
+        support_text = (
+            "Item | 2023 Consolidated ; alpha metric 10% ; alpha metric 20% ; "
+            "beta metric 30% ; gamma metric 40%"
+        )
+
+        real_line_extract = financial_numeric_surface.extract_numeric_surface_candidates
+        real_line_equivalent = financial_numeric_surface.numeric_surface_candidates_equivalent
+
+        def extract_before_cap(line):
+            if "delta metric" in line:
+                raise RuntimeError("fifth line extracted")
+            return real_line_extract(line)
+
+        def equivalent_before_cap(answer_candidate, line_candidate):
+            if line_candidate.get("text") == "50%":
+                raise RuntimeError("fifth line compared")
+            return real_line_equivalent(answer_candidate, line_candidate)
+
+        with (
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=extract_before_cap,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=equivalent_before_cap,
+            ),
+        ):
+            promoted = promote(
+                evidence,
+                final_answer=final_answer,
+                answer_candidates=answer_candidates,
+            )
+
+        self.assertEqual(
+            promoted,
+            {
+                **evidence,
+                "claim": f"existing claim | {support_text}",
+                "quote_span": f"existing quote | {support_text}",
+                "metadata": {
+                    **evidence["metadata"],
+                    "final_answer_table_numeric_support": support_text,
+                },
+            },
+        )
+        self.assertIsNot(promoted, evidence)
+        self.assertIsNot(promoted["metadata"], evidence["metadata"])
+        self.assertIs(promoted["nested"], nested)
+        self.assertIs(promoted["metadata"]["nested"], metadata_nested)
+        self.assertEqual((evidence, answer_candidates), before)
+
+        headerless = {
+            "claim": "",
+            "quote_span": "",
+            "metadata": {"table_value_labels_text": "target 10%"},
+        }
+        headerless_promoted = promote(
+            headerless,
+            final_answer="target 10%",
+            answer_candidates=extract_numeric_surface_candidates("target 10%"),
+        )
+        self.assertEqual(
+            headerless_promoted,
+            {
+                "claim": "target 10%",
+                "quote_span": "target 10%",
+                "metadata": {
+                    "table_value_labels_text": "target 10%",
+                    "final_answer_table_numeric_support": "target 10%",
+                },
+            },
+        )
+
+        for name, table_text, answer in (
+            ("short label", "x 10%", "x 10%"),
+            ("label mismatch", "other metric 10%", "target metric 10%"),
+            ("missing number", "target metric", "target metric 10%"),
+            ("numeric mismatch", "target metric 10%", "target metric 20%"),
+        ):
+            with self.subTest(no_support=name):
+                row = {"metadata": {"table_value_labels_text": table_text}}
+                self.assertIs(
+                    promote(
+                        row,
+                        final_answer=answer,
+                        answer_candidates=extract_numeric_surface_candidates(answer),
+                    ),
+                    row,
+                )
+
+    def test_table_numeric_support_promotion_preserves_access_and_exception_contract(self) -> None:
+        promote = financial_numeric_surface.promote_table_numeric_support_evidence
+        events = []
+
+        class TrackedMapping(Mapping):
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def __len__(self):
+                events.append(f"len:{self.name}")
+                return len(self.values)
+
+            def __iter__(self):
+                events.append(f"iter:{self.name}")
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                events.append(f"item:{self.name}:{key}")
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(f"get:{self.name}:{key}")
+                return self.values.get(key, default)
+
+        metadata = TrackedMapping(
+            "metadata",
+            {
+                "table_value_labels_text": " target 10% ",
+                "table_header_context": " Header ",
+                "table_context": " Context ",
+            },
+        )
+        evidence = TrackedMapping(
+            "evidence",
+            {
+                "evidence_id": "ev_table",
+                "claim": " claim ",
+                "quote_span": " quote ",
+                "metadata": metadata,
+            },
+        )
+        real_normalize = financial_numeric_surface._normalise_spaces
+
+        def normalize(value):
+            events.append(f"normalize:{value!r}")
+            return real_normalize(value)
+
+        def extract(value):
+            events.append(f"extract:{value!r}")
+            return [{"kind": "percent", "value": 10.0, "unit": "%", "text": "10%"}]
+
+        def equivalent(left, right):
+            events.append(f"equivalent:{left.get('text')}:{right.get('text')}")
+            return True
+
+        tracked_answer_candidates = extract_numeric_surface_candidates("target 10%")
+        with (
+            patch.object(financial_numeric_surface, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=extract,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=equivalent,
+            ),
+        ):
+            promoted = promote(
+                evidence,
+                final_answer="target 10%",
+                answer_candidates=tracked_answer_candidates,
+            )
+        self.assertEqual(
+            promoted["metadata"]["final_answer_table_numeric_support"],
+            "Header Context ; target 10%",
+        )
+        milestones = [
+            "get:evidence:metadata",
+            "normalize:' target 10% '",
+            "normalize:' target 10% '",
+            "normalize:'target 10%'",
+            "normalize:'target   '",
+            "extract:'target 10%'",
+            "equivalent:10%:10%",
+            "normalize:' Header   Context '",
+            "normalize:'Header Context ; target 10%'",
+            "iter:evidence",
+            "normalize:' claim '",
+            "normalize:' quote '",
+            "normalize:'claim | Header Context ; target 10%'",
+            "normalize:'quote | Header Context ; target 10%'",
+        ]
+        cursor = 0
+        for event in events:
+            if cursor < len(milestones) and event == milestones[cursor]:
+                cursor += 1
+        self.assertEqual(cursor, len(milestones))
+        self.assertEqual(events.count("normalize:' target 10% '"), 2)
+
+        comparison_order = []
+        answer_rows = [{"id": "answer_a"}, {"id": "answer_b"}]
+        line_rows = [{"id": "line_a"}, {"id": "line_b"}]
+
+        def compare_rows(answer_row, line_row):
+            comparison_order.append((answer_row["id"], line_row["id"]))
+            return answer_row["id"] == "answer_b" and line_row["id"] == "line_b"
+
+        with (
+            patch.object(
+                financial_numeric_surface,
+                "extract_numeric_surface_candidates",
+                return_value=line_rows,
+            ),
+            patch.object(
+                financial_numeric_surface,
+                "numeric_surface_candidates_equivalent",
+                side_effect=compare_rows,
+            ),
+        ):
+            comparison_promoted = promote(
+                {"metadata": {"table_value_labels_text": "target 10%"}},
+                final_answer="target 10%",
+                answer_candidates=answer_rows,
+            )
+        self.assertEqual(
+            comparison_order,
+            [
+                ("answer_a", "line_a"),
+                ("answer_a", "line_b"),
+                ("answer_b", "line_a"),
+                ("answer_b", "line_b"),
+            ],
+        )
+        self.assertEqual(
+            comparison_promoted["metadata"]["final_answer_table_numeric_support"],
+            "target 10%",
+        )
+
+        class HeaderPoisonDict(dict):
+            def get(self, key, default=None):
+                if key in {"table_header_context", "table_context"}:
+                    raise RuntimeError("header accessed")
+                return super().get(key, default)
+
+        no_support = {
+            "metadata": {
+                "table_value_labels_text": "target 10%",
+                "table_header_context": "poison",
+                "table_context": "poison",
+            }
+        }
+        with patch.object(financial_numeric_surface, "dict", HeaderPoisonDict, create=True):
+            self.assertIs(
+                promote(
+                    no_support,
+                    final_answer="target 20%",
+                    answer_candidates=extract_numeric_surface_candidates("target 20%"),
+                ),
+                no_support,
+            )
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("metadata",))
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class CopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("mapping copy failed")
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            promote(GetBomb(), final_answer="10%", answer_candidates=[])
+        with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+            promote({"metadata": CopyBomb()}, final_answer="10%", answer_candidates=[])
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            promote(
+                {"metadata": {"table_value_labels_text": StringBomb()}},
+                final_answer="10%",
+                answer_candidates=[],
+            )
+        for owner_name, error_text, patch_name in (
+            ("normalizer", "normalizer failed", "_normalise_spaces"),
+            ("extractor", "extractor failed", "extract_numeric_surface_candidates"),
+        ):
+            with self.subTest(propagates=owner_name), patch.object(
+                financial_numeric_surface,
+                patch_name,
+                side_effect=RuntimeError(error_text),
+            ):
+                with self.assertRaisesRegex(RuntimeError, error_text):
+                    promote(
+                        {"metadata": {"table_value_labels_text": "target 10%"}},
+                        final_answer="target 10%",
+                        answer_candidates=[],
+                    )
+        with patch.object(
+            financial_numeric_surface,
+            "numeric_surface_candidates_equivalent",
+            side_effect=RuntimeError("equivalence failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "equivalence failed"):
+                promote(
+                    {"metadata": {"table_value_labels_text": "target 10%"}},
+                    final_answer="target 10%",
+                    answer_candidates=extract_numeric_surface_candidates("target 10%"),
+                )
 
     def test_final_answer_surface_prefers_matching_label_and_period_provenance(self) -> None:
         final_answer = "2023 target metric is 1,000백만원."
