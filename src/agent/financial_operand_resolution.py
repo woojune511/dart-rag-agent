@@ -1705,6 +1705,59 @@ def operand_prefers_aggregate_value_role(operand: Mapping[str, Any]) -> bool:
     )
 
 
+def table_label_metadata_lookup_score(
+    slot: Mapping[str, Any],
+    evidence_item: Mapping[str, Any],
+) -> float:
+    if not slot:
+        return 0.0
+    normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+    metadata = dict(evidence_item.get("metadata") or {})
+    if not _normalise_spaces(str(metadata.get("table_value_labels_text") or "")):
+        return 0.0
+    raw_unit = _normalise_spaces(str(slot.get("raw_unit") or metadata.get("unit_hint") or ""))
+    raw_digit_count = len(re.findall(r"\d", str(slot.get("raw_value") or "")))
+    if normalized_unit in {"", "UNKNOWN"} and not raw_unit and raw_digit_count < 4:
+        return 0.0
+    score = 6.5
+    if _normalise_spaces(str(metadata.get("unit_hint") or "")):
+        score += 0.5
+    if _normalise_spaces(str(metadata.get("table_source_id") or "")):
+        score += 0.5
+    if _normalise_spaces(str(slot.get("source_anchor") or evidence_item.get("source_anchor") or "")):
+        score += 0.25
+    value_role = _normalise_spaces(str(slot.get("value_role") or "")).lower()
+    aggregation_stage = _normalise_spaces(str(slot.get("aggregation_stage") or "")).lower()
+    if value_role == "aggregate":
+        score += 2.0
+    if aggregation_stage == "final":
+        score += 2.5
+    elif aggregation_stage in {"direct", "subtotal"}:
+        score += 1.25
+    matched_line_label = _normalise_spaces(str(slot.get("_matched_line_label") or ""))
+    if matched_line_label:
+        slot_surfaces = [
+            _normalise_spaces(str(value or ""))
+            for value in (
+                slot.get("label"),
+                slot.get("matched_operand_label"),
+                slot.get("concept"),
+            )
+            if _normalise_spaces(str(value or ""))
+        ]
+        matched_line_compact = re.sub(r"\s+", "", matched_line_label)
+        if matched_line_label in slot_surfaces or (
+            matched_line_compact
+            and matched_line_compact in {re.sub(r"\s+", "", surface) for surface in slot_surfaces}
+        ):
+            score += 2.0
+    if normalized_unit in {"", "UNKNOWN"}:
+        score -= 1.5
+    else:
+        score += 0.25
+    return score
+
+
 def score_direct_structured_lookup_evidence(
     score_input: DirectStructuredLookupEvidenceScoreInput,
 ) -> DirectStructuredLookupEvidenceScoreResult:

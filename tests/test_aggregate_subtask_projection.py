@@ -6503,17 +6503,86 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         ]
 
-        rows = agent._build_period_comparison_operands_from_table_label_context(
-            [evidence],
-            required_operands=required_operands,
-            query="calculate year-over-year operating profit growth and summarize the MD&A impact",
-            operation_family="growth_rate",
-        )
+        table_lookup = agent._lookup_value_from_table_label_metadata
+        table_scorer = financial_graph_calculation.table_label_metadata_lookup_score
+        lookup_calls = []
+        score_calls = []
+
+        def build_rows():
+            return agent._build_period_comparison_operands_from_table_label_context(
+                [evidence],
+                required_operands=required_operands,
+                query="calculate year-over-year operating profit growth and summarize the MD&A impact",
+                operation_family="growth_rate",
+            )
+
+        def record_lookup(operand, local_evidence):
+            slot = table_lookup(operand, local_evidence)
+            lookup_calls.append((operand, local_evidence, slot))
+            return slot
+
+        def record_score(slot, local_evidence):
+            result = table_scorer(slot, local_evidence)
+            score_calls.append((slot, local_evidence, result))
+            return result
+
+        with patch.object(
+            agent,
+            "_lookup_value_from_table_label_metadata",
+            side_effect=record_lookup,
+        ), patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=record_score,
+        ):
+            rows = build_rows()
 
         self.assertEqual([row["matched_operand_role"] for row in rows], ["current_period", "prior_period"])
         self.assertEqual([row["raw_value"] for row in rows], ["409,219", "2,600,786"])
         self.assertEqual(rows[0]["stated_change_raw_value"], "-84.3")
         self.assertEqual(rows[0]["table_source_id"], "mda::table:1")
+        self.assertEqual(
+            [
+                (call[0].get("role"), call[2].get("raw_value"))
+                for call in lookup_calls
+            ],
+            [("current_period", "409,219"), ("prior_period", "2,600,786")],
+        )
+        self.assertEqual([call[2] for call in score_calls], [8.0, 8.0])
+        for index, (lookup_call, score_call) in enumerate(zip(lookup_calls, score_calls)):
+            self.assertIs(lookup_call[0], required_operands[index])
+            self.assertIs(score_call[0], lookup_call[2])
+            self.assertIs(score_call[1], lookup_call[1])
+            self.assertIsNot(lookup_call[1], evidence)
+            self.assertEqual(lookup_call[1], evidence)
+        self.assertIs(lookup_calls[0][1], lookup_calls[1][1])
+
+        gated_slots = []
+
+        def skip_current_slot(operand, local_evidence):
+            slot = (
+                {}
+                if operand.get("role") == "current_period"
+                else table_lookup(operand, local_evidence)
+            )
+            gated_slots.append((operand, local_evidence, slot))
+            return slot
+
+        with patch.object(
+            agent,
+            "_lookup_value_from_table_label_metadata",
+            side_effect=skip_current_slot,
+        ), patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=RuntimeError("period table score stopped"),
+        ) as gated_scorer, self.assertRaisesRegex(RuntimeError, "period table score stopped"):
+            build_rows()
+        self.assertEqual(len(gated_slots), 2)
+        self.assertEqual(gated_slots[0][2], {})
+        self.assertEqual(gated_scorer.call_count, 1)
+        self.assertIs(gated_scorer.call_args.args[0], gated_slots[1][2])
+        self.assertIs(gated_scorer.call_args.args[1], gated_slots[1][1])
 
     def test_period_comparison_table_label_context_prefers_source_stated_mda_change(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

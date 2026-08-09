@@ -211,6 +211,9 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         events = []
         score_evidence = financial_graph_calculation.score_direct_structured_lookup_evidence
         table_label_lookup = agent._lookup_value_from_table_label_metadata
+        table_label_score = financial_graph_calculation.table_label_metadata_lookup_score
+        lookup_calls = []
+        table_score_calls = []
 
         def _record_score(score_input):
             events.append(("score", score_input.evidence_item.get("evidence_id")))
@@ -218,7 +221,17 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         def _record_table_label_lookup(scoring_operand, evidence):
             events.append(("table_label", evidence.get("evidence_id")))
-            return table_label_lookup(scoring_operand, evidence)
+            slot = table_label_lookup(scoring_operand, evidence)
+            lookup_calls.append((scoring_operand, evidence, slot))
+            return slot
+
+        def _record_table_label_score(slot, evidence):
+            result = table_label_score(slot, evidence)
+            events.append(
+                ("table_label_score", evidence.get("evidence_id"), slot.get("raw_value"), result)
+            )
+            table_score_calls.append((slot, evidence))
+            return result
 
         with patch.object(
             financial_graph_calculation,
@@ -228,6 +241,10 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             agent,
             "_lookup_value_from_table_label_metadata",
             side_effect=_record_table_label_lookup,
+        ), patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=_record_table_label_score,
         ):
             slot, score = agent._best_direct_lookup_slot_from_evidence_pool(operand, evidence_pool)
 
@@ -239,10 +256,38 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             [
                 ("score", "ev_unknown"),
                 ("table_label", "ev_unknown"),
+                ("table_label_score", "ev_unknown", "9", 0.0),
                 ("score", "ev_precise"),
                 ("table_label", "ev_precise"),
+                ("table_label_score", "ev_precise", "3,146,409", 8.25),
             ],
         )
+        self.assertEqual(len(lookup_calls), 2)
+        self.assertEqual(len(table_score_calls), 2)
+        for index, ((scoring_operand, local_evidence, returned_slot), score_call) in enumerate(
+            zip(lookup_calls, table_score_calls)
+        ):
+            self.assertIs(scoring_operand, operand)
+            self.assertIs(score_call[0], returned_slot)
+            self.assertIs(score_call[1], local_evidence)
+            self.assertIsNot(local_evidence, evidence_pool[index])
+            self.assertEqual(local_evidence, evidence_pool[index])
+
+        empty_slot = {}
+        with patch.object(
+            agent,
+            "_lookup_value_from_table_label_metadata",
+            return_value=empty_slot,
+        ) as stopped_lookup, patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=RuntimeError("table score stopped"),
+        ) as stopped_scorer, self.assertRaisesRegex(RuntimeError, "table score stopped"):
+            agent._best_direct_lookup_slot_from_evidence_pool(operand, evidence_pool)
+        self.assertEqual(stopped_lookup.call_count, 1)
+        self.assertEqual(stopped_scorer.call_count, 1)
+        self.assertIs(stopped_scorer.call_args.args[0], empty_slot)
+        self.assertIs(stopped_scorer.call_args.args[1], stopped_lookup.call_args.args[1])
 
     def test_growth_refresh_prefers_conflicting_narrative_summary_over_wrong_trace(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)

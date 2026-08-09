@@ -1234,11 +1234,84 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        table_lookup = self.agent._lookup_value_from_table_label_metadata
+        table_scorer = financial_graph_calculation.table_label_metadata_lookup_score
+        lookup_calls = []
+        score_calls = []
+        events = []
+
+        def table_score_caller():
+            return next(
+                frame.function
+                for frame in inspect.stack()
+                if frame.function
+                in {"_best_direct_lookup_slot_from_evidence_pool", "_build_dependency_operand_rows"}
+            )
+
+        def record_lookup(binding, evidence):
+            caller = table_score_caller()
+            slot = table_lookup(binding, evidence)
+            lookup_calls.append((caller, binding, evidence, slot))
+            events.append(("lookup", caller, evidence.get("evidence_id"), slot.get("raw_value")))
+            return slot
+
+        def record_score(slot, evidence):
+            caller = table_score_caller()
+            result = table_scorer(slot, evidence)
+            score_calls.append((caller, slot, evidence, result))
+            events.append(("score", caller, evidence.get("evidence_id"), result))
+            return result
+
+        with patch.object(
+            self.agent,
+            "_lookup_value_from_table_label_metadata",
+            side_effect=record_lookup,
+        ), patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=record_score,
+        ):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["raw_value"], "4,145,647")
         self.assertEqual(rows[0]["source_row_ids"], ["task_output:task_short", "ev_borrowings"])
+        self.assertEqual(
+            events,
+            [
+                ("lookup", "_best_direct_lookup_slot_from_evidence_pool", "ev_borrowings", "4,145,647"),
+                ("score", "_best_direct_lookup_slot_from_evidence_pool", "ev_borrowings", 10.0),
+                ("lookup", "_build_dependency_operand_rows", "ev_borrowings", "4,145,647"),
+                ("score", "_build_dependency_operand_rows", "ev_borrowings", 10.0),
+            ],
+        )
+        for lookup_call, score_call in zip(lookup_calls, score_calls):
+            self.assertEqual(score_call[0], lookup_call[0])
+            self.assertIs(score_call[1], lookup_call[3])
+            self.assertIs(score_call[2], lookup_call[2])
+        original_evidence = state["subtask_results"][0]["runtime_evidence"][0]
+        self.assertIsNot(lookup_calls[1][2], original_evidence)
+        self.assertEqual(lookup_calls[1][2], original_evidence)
+
+        stopped_callers = []
+
+        def stop_at_dependency_score(slot, evidence):
+            caller = table_score_caller()
+            stopped_callers.append(caller)
+            if caller == "_build_dependency_operand_rows":
+                raise RuntimeError("dependency table score stopped")
+            return table_scorer(slot, evidence)
+
+        with patch.object(
+            financial_graph_calculation,
+            "table_label_metadata_lookup_score",
+            side_effect=stop_at_dependency_score,
+        ), self.assertRaisesRegex(RuntimeError, "dependency table score stopped"):
+            self.agent._build_dependency_operand_rows(state)
+        self.assertEqual(
+            stopped_callers,
+            ["_best_direct_lookup_slot_from_evidence_pool", "_build_dependency_operand_rows"],
+        )
 
     def test_dependency_rows_repair_prior_task_output_from_period_table_context(self) -> None:
         period_table_evidence = {

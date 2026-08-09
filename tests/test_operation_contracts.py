@@ -49,6 +49,7 @@ from src.agent.financial_operand_resolution import (
     _llm_lookup_operand_has_direct_support,
     _operand_row_matches_requirement,
     _operand_row_satisfies_required_surface_contract,
+    table_label_metadata_lookup_score,
 )
 from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
 from src.agent.financial_row_surfaces import (
@@ -5257,7 +5258,7 @@ class OperationContractTests(unittest.TestCase):
             },
             evidence,
         )
-        score = agent._table_label_metadata_lookup_score(slot, evidence)
+        score = table_label_metadata_lookup_score(slot, evidence)
 
         self.assertEqual(slot["raw_value"], "300")
         self.assertEqual(slot["value_role"], "aggregate")

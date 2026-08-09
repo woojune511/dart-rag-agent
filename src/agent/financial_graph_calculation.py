@@ -160,6 +160,7 @@ from src.agent.financial_operand_resolution import (
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
     score_direct_structured_lookup_evidence,
+    table_label_metadata_lookup_score,
 )
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
@@ -1698,59 +1699,6 @@ class FinancialAgentCalculationMixin:
             semantic_label=semantic_label,
         )
 
-    def _table_label_metadata_lookup_score(
-        self,
-        slot: Dict[str, Any],
-        evidence_item: Dict[str, Any],
-    ) -> float:
-        if not slot:
-            return 0.0
-        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
-        metadata = dict(evidence_item.get("metadata") or {})
-        if not _normalise_spaces(str(metadata.get("table_value_labels_text") or "")):
-            return 0.0
-        raw_unit = _normalise_spaces(str(slot.get("raw_unit") or metadata.get("unit_hint") or ""))
-        raw_digit_count = len(re.findall(r"\d", str(slot.get("raw_value") or "")))
-        if normalized_unit in {"", "UNKNOWN"} and not raw_unit and raw_digit_count < 4:
-            return 0.0
-        score = 6.5
-        if _normalise_spaces(str(metadata.get("unit_hint") or "")):
-            score += 0.5
-        if _normalise_spaces(str(metadata.get("table_source_id") or "")):
-            score += 0.5
-        if _normalise_spaces(str(slot.get("source_anchor") or evidence_item.get("source_anchor") or "")):
-            score += 0.25
-        value_role = _normalise_spaces(str(slot.get("value_role") or "")).lower()
-        aggregation_stage = _normalise_spaces(str(slot.get("aggregation_stage") or "")).lower()
-        if value_role == "aggregate":
-            score += 2.0
-        if aggregation_stage == "final":
-            score += 2.5
-        elif aggregation_stage in {"direct", "subtotal"}:
-            score += 1.25
-        matched_line_label = _normalise_spaces(str(slot.get("_matched_line_label") or ""))
-        if matched_line_label:
-            slot_surfaces = [
-                _normalise_spaces(str(value or ""))
-                for value in (
-                    slot.get("label"),
-                    slot.get("matched_operand_label"),
-                    slot.get("concept"),
-                )
-                if _normalise_spaces(str(value or ""))
-            ]
-            matched_line_compact = re.sub(r"\s+", "", matched_line_label)
-            if matched_line_label in slot_surfaces or (
-                matched_line_compact
-                and matched_line_compact in {re.sub(r"\s+", "", surface) for surface in slot_surfaces}
-            ):
-                score += 2.0
-        if normalized_unit in {"", "UNKNOWN"}:
-            score -= 1.5
-        else:
-            score += 0.25
-        return score
-
     def _lookup_row_from_direct_structured_evidence(
         self,
         operand: Dict[str, Any],
@@ -2080,7 +2028,7 @@ class FinancialAgentCalculationMixin:
                     structured_slot_selected_for_evidence = True
 
             table_label_slot = self._lookup_value_from_table_label_metadata(operand, evidence)
-            table_label_score = self._table_label_metadata_lookup_score(table_label_slot, evidence)
+            table_label_score = table_label_metadata_lookup_score(table_label_slot, evidence)
             table_has_period_columns = bool(
                 _normalise_spaces(str(metadata.get("period_labels") or ""))
                 or re.search(
@@ -7539,7 +7487,7 @@ class FinancialAgentCalculationMixin:
                 for evidence_item in evidence_pool:
                     evidence = dict(evidence_item or {})
                     table_label_slot = self._lookup_value_from_table_label_metadata(binding, evidence)
-                    table_label_score = self._table_label_metadata_lookup_score(table_label_slot, evidence)
+                    table_label_score = table_label_metadata_lookup_score(table_label_slot, evidence)
                     if (
                         table_label_slot
                         and table_label_score > sibling_candidate_score
@@ -11800,7 +11748,7 @@ class FinancialAgentCalculationMixin:
                     slot = self._lookup_value_from_table_label_metadata(operand, item)
                     if not slot:
                         continue
-                    slot_score = self._table_label_metadata_lookup_score(slot, item)
+                    slot_score = table_label_metadata_lookup_score(slot, item)
                     if slot_score > best_slot_score:
                         best_slot = slot
                         best_slot_score = slot_score

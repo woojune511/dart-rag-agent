@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import unittest
+from collections.abc import Mapping
 from copy import deepcopy
 from itertools import permutations
 from types import SimpleNamespace
@@ -1557,6 +1558,298 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                         surface_check.call_args.kwargs["require_direct_support"],
                         operation_family == "ratio",
                     )
+
+    def test_table_label_metadata_lookup_score_matrix(self) -> None:
+        score = operand_resolution.table_label_metadata_lookup_score
+
+        class AccessMapping(dict):
+            def __init__(self, values, events, owner, *, failure_key=None):
+                super().__init__(values)
+                self._events = events
+                self._owner = owner
+                self._failure_key = failure_key
+
+            def get(self, key, default=None):
+                self._events.append(f"{self._owner}.get:{key}")
+                if key == self._failure_key:
+                    raise RuntimeError(f"{self._owner}:{key}")
+                return super().get(key, default)
+
+        class CopyMapping(Mapping):
+            def __init__(self, values, events, *, failure_key=None):
+                self._values = values
+                self._events = events
+                self._failure_key = failure_key
+
+            def __iter__(self):
+                self._events.append("metadata.iter")
+                return iter(self._values)
+
+            def __len__(self):
+                return len(self._values)
+
+            def __getitem__(self, key):
+                self._events.append(f"metadata.getitem:{key}")
+                if key == self._failure_key:
+                    raise RuntimeError(f"metadata:{key}")
+                return self._values[key]
+
+        class CountingString:
+            def __init__(self, value):
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                return self.value
+
+        class ExplodingString:
+            def __str__(self):
+                raise RuntimeError("string conversion")
+
+        events = []
+        lazy_evidence = AccessMapping({}, events, "evidence", failure_key="metadata")
+        self.assertEqual(score({}, lazy_evidence), 0.0)
+        self.assertEqual(events, [])
+
+        events = []
+        gated_slot = AccessMapping({"normalized_unit": "KRW"}, events, "slot")
+        gated_metadata = CopyMapping({"table_value_labels_text": "  "}, events)
+        gated_evidence = AccessMapping({"metadata": gated_metadata}, events, "evidence")
+        self.assertEqual(score(gated_slot, gated_evidence), 0.0)
+        self.assertEqual(
+            events,
+            [
+                "slot.get:normalized_unit",
+                "evidence.get:metadata",
+                "metadata.iter",
+                "metadata.getitem:table_value_labels_text",
+            ],
+        )
+
+        table_metadata = {"table_value_labels_text": "metric 123", "unit_hint": "million"}
+        for name, raw_unit, expected in (
+            ("metadata unit fallback", "", 5.5),
+            ("truthy whitespace suppresses fallback", "  ", 0.0),
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    score(
+                        {
+                            "normalized_unit": "UNKNOWN",
+                            "raw_unit": raw_unit,
+                            "raw_value": "123",
+                        },
+                        {"metadata": table_metadata},
+                    ),
+                    expected,
+                )
+
+        unknown_evidence = {"metadata": {"table_value_labels_text": "metric"}}
+        for raw_value, expected in (("123", 0.0), ("1,234", 5.0)):
+            with self.subTest(raw_value=raw_value):
+                self.assertEqual(
+                    score(
+                        {
+                            "normalized_unit": "UNKNOWN",
+                            "raw_unit": "",
+                            "raw_value": raw_value,
+                        },
+                        unknown_evidence,
+                    ),
+                    expected,
+                )
+
+        known_slot = {"normalized_unit": "KRW", "raw_value": "1"}
+        known_evidence = {"metadata": {"table_value_labels_text": "metric 1"}}
+
+        def known_score(slot_update=None, metadata_update=None):
+            return score(
+                {**known_slot, **(slot_update or {})},
+                {
+                    "metadata": {
+                        **known_evidence["metadata"],
+                        **(metadata_update or {}),
+                    }
+                },
+            )
+
+        self.assertEqual(known_score(), 6.75)
+        repeated_unit_hint = CountingString("million")
+        for name, slot_update, metadata_update, expected in (
+            ("unit hint", {}, {"unit_hint": repeated_unit_hint}, 7.25),
+            ("table source", {}, {"table_source_id": "table:1"}, 7.25),
+            ("aggregate role", {"value_role": "aggregate"}, {}, 8.75),
+        ):
+            with self.subTest(additive=name):
+                self.assertEqual(
+                    known_score(slot_update, metadata_update),
+                    expected,
+                )
+        self.assertEqual(repeated_unit_hint.calls, 2)
+        for stage, expected in (
+            ("final", 9.25),
+            ("direct", 8.0),
+            ("subtotal", 8.0),
+            ("detail", 6.75),
+        ):
+            with self.subTest(aggregation_stage=stage):
+                self.assertEqual(
+                    known_score({"aggregation_stage": stage}),
+                    expected,
+                )
+
+        events = []
+        all_weight_slot = AccessMapping(
+            {
+                "normalized_unit": "KRW",
+                "raw_unit": "million",
+                "raw_value": "1,234",
+                "source_anchor": "slot-anchor",
+                "value_role": "aggregate",
+                "aggregation_stage": "final",
+                "_matched_line_label": "Revenue Total",
+                "label": "Revenue Total",
+                "matched_operand_label": "",
+                "concept": "revenue",
+            },
+            events,
+            "slot",
+        )
+        all_weight_evidence = AccessMapping(
+            {
+                "source_anchor": "evidence-anchor",
+                "metadata": {
+                    "table_value_labels_text": "Revenue Total 1,234",
+                    "unit_hint": "million",
+                    "table_source_id": "table:1",
+                },
+            },
+            events,
+            "evidence",
+            failure_key="source_anchor",
+        )
+        slot_before = deepcopy(dict(all_weight_slot))
+        evidence_before = deepcopy(dict(all_weight_evidence))
+        self.assertEqual(score(all_weight_slot, all_weight_evidence), 14.5)
+        self.assertEqual(dict(all_weight_slot), slot_before)
+        self.assertEqual(dict(all_weight_evidence), evidence_before)
+        self.assertEqual(
+            events,
+            [
+                "slot.get:normalized_unit",
+                "evidence.get:metadata",
+                "slot.get:raw_unit",
+                "slot.get:raw_value",
+                "slot.get:source_anchor",
+                "slot.get:value_role",
+                "slot.get:aggregation_stage",
+                "slot.get:_matched_line_label",
+                "slot.get:label",
+                "slot.get:matched_operand_label",
+                "slot.get:concept",
+            ],
+        )
+
+        events = []
+        fallback_slot = AccessMapping(known_slot, events, "slot")
+        fallback_evidence = AccessMapping(
+            {**known_evidence, "source_anchor": "evidence-anchor"},
+            events,
+            "evidence",
+        )
+        self.assertEqual(score(fallback_slot, fallback_evidence), 7.0)
+        self.assertIn("evidence.get:source_anchor", events)
+
+        for name, matched_label, label, expected in (
+            ("exact", "Revenue Total", "Revenue Total", 8.75),
+            ("compact", "RevenueTotal", "Revenue Total", 8.75),
+            ("mismatch", "Other", "Revenue Total", 6.75),
+        ):
+            with self.subTest(label_match=name):
+                self.assertEqual(
+                    known_score({"_matched_line_label": matched_label, "label": label}),
+                    expected,
+                )
+
+        repeated_surface = CountingString("Revenue Total")
+        self.assertEqual(
+            known_score(
+                {"_matched_line_label": "RevenueTotal", "label": repeated_surface}
+            ),
+            8.75,
+        )
+        self.assertEqual(repeated_surface.calls, 2)
+
+        events = []
+        with self.assertRaisesRegex(RuntimeError, "slot:normalized_unit"):
+            score(
+                AccessMapping({"sentinel": True}, events, "slot", failure_key="normalized_unit"),
+                AccessMapping({}, events, "evidence", failure_key="metadata"),
+            )
+        self.assertEqual(events, ["slot.get:normalized_unit"])
+
+        events = []
+        with self.assertRaisesRegex(RuntimeError, "metadata:table_value_labels_text"):
+            score(
+                AccessMapping({"normalized_unit": "KRW"}, events, "slot"),
+                AccessMapping(
+                    {
+                        "metadata": CopyMapping(
+                            {"table_value_labels_text": "metric"},
+                            events,
+                            failure_key="table_value_labels_text",
+                        )
+                    },
+                    events,
+                    "evidence",
+                ),
+            )
+        self.assertEqual(
+            events,
+            [
+                "slot.get:normalized_unit",
+                "evidence.get:metadata",
+                "metadata.iter",
+                "metadata.getitem:table_value_labels_text",
+            ],
+        )
+
+        events = []
+        with self.assertRaisesRegex(RuntimeError, "string conversion"):
+            score(
+                AccessMapping({"normalized_unit": ExplodingString()}, events, "slot"),
+                AccessMapping({}, events, "evidence", failure_key="metadata"),
+            )
+        self.assertEqual(events, ["slot.get:normalized_unit"])
+
+        regex_slot = AccessMapping(
+            {"normalized_unit": "KRW", "raw_unit": "million", "raw_value": "123"},
+            [],
+            "slot",
+        )
+        with patch.object(
+            operand_resolution.re,
+            "findall",
+            side_effect=RuntimeError("digit regex"),
+        ), self.assertRaisesRegex(RuntimeError, "digit regex"):
+            score(regex_slot, known_evidence)
+
+        real_sub = re.sub
+
+        def fail_compaction(pattern, replacement, value, *args, **kwargs):
+            if pattern == r"\s+" and replacement == "":
+                raise RuntimeError("compact regex")
+            return real_sub(pattern, replacement, value, *args, **kwargs)
+
+        with patch.object(
+            operand_resolution.re,
+            "sub",
+            side_effect=fail_compaction,
+        ), self.assertRaisesRegex(RuntimeError, "compact regex"):
+            known_score(
+                {"_matched_line_label": "Revenue Total", "label": "Revenue Total"}
+            )
 
     def test_direct_structured_preferred_slot_adoption_matrix(self) -> None:
         nested_context = {"keep": "current"}
