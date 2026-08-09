@@ -868,6 +868,40 @@ behavior improvement, evidence construction, structured-value/magnitude/precisio
 ownership, performance, total-code or executed-path reduction, broad private-
 surface cleanup, or Phase 3 completion.
 
+Ontology-driven ratio denominator sign handling is another plain, state-free
+`financial_operand_resolution.py` seam. Public
+`apply_operation_sign_policy(operands, *, operation, operation_family)` normalizes
+`operation` first. A normalized `ratio` skips operation-family normalization;
+otherwise the family is normalized once. When neither is ratio, the function
+returns the exact input list before any row access.
+
+The ratio path shallow-copies rows in stable order. Role resolution uses truthy
+`matched_operand_role`, lazy `role`, then `""`; non-denominator rows skip policy
+resolution. The owner-private `_binding_policy_for_operand_row` first shallow-
+copies the row policy, then resolves truthy `matched_operand_concept`, lazy
+`concept`, and `""` before stringification and stripping. A blank concept returns
+the copied row policy without ontology access. Otherwise it shallow-copies the
+ontology binding policy and overlays the row policy so explicit row values win.
+
+Only exact normalized `ratio_denominator_sign == "magnitude"` reaches value
+conversion. `None`, float `TypeError` or `ValueError`, zero, positive, and `NaN`
+leave the row unchanged. A negative value writes positive `normalized_value`,
+`sign_policy_applied`, the pre-transform float as `source_normalized_value`, and
+the merged `binding_policy` in that order. If any row changes, every returned row
+is a fresh top-level copy and nested aliases remain; otherwise the exact original
+list and row identities are returned. Inputs remain unmodified and exceptions
+outside the two conversion catches propagate in their existing order.
+
+The graph calls this owner once for a surviving prepared candidate after growth
+recovery and the growth-period conflict exit, and before equality-gated operand-
+map/runtime propagation, lookup-magnitude coercion, execution, state, artifact,
+and final projection. All preparation, evidence/dependency repair, recovery,
+conflict, propagation, execution, and orchestration remain graph-owned. This seam
+claims only binding-policy merge and ratio-denominator magnitude-transform
+ownership plus old-body deletion—not sign-policy improvement, broader ontology
+ownership, behavior, performance, total-code or executed-path reduction, or
+Phase 3 completion.
+
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
 selector. The selector calls the co-located period-conflict and sibling-alignment
@@ -1325,12 +1359,50 @@ nested aliases, repeated operation-family resolution, and uncaught mapping/list/
 normalization exception order remain unchanged. Inputs are not mutated, and no
 reason, application flag, or trace field is added.
 
-The graph retains candidate-index and answer-sentence selection, numeric-conflict
-owner call placement and coverage gates, rendered-value extraction, row iteration,
-lookup primary-slot preparation and its truthy gate, updated-row task mapping, ordered/slot-row
-propagation, projection rebuild, and final orchestration. This seam does not own
-answer selection, aggregate precedence, arithmetic-component synchronization,
-final projection, state/evidence, or artifact/ledger work.
+Aggregate projection row, answer-sentence, and rendered-value selection are now
+three additional plain `financial_aggregate_projection.py` owner seams. Public
+`select_aggregate_projection_row_for_task(task_id, ordered_results,
+aggregate_projection)` normalizes the target id first and returns `{}` before any
+other input access when it is blank. It shallow-copies calculation result and
+answer slots, then scans calculation-result subtask rows, answer-slot subtask
+rows, and ordered results in that precedence. Each group is materialized only
+when reached; non-dictionaries are skipped, the first normalized exact task-id
+match wins, and a match returns a fresh shallow row with nested aliases retained.
+
+Public `select_aggregate_projection_answer_sentence(final_answer, row)` normalizes
+the answer and returns before row access when blank. It shallow-copies calculation
+result, answer slots, and primary slot, then reads metric label, row label, and
+primary-slot label in order. Each label is normalized, lowercased, optionally
+period-prefix-stripped, and stably deduped. The aggregate operation-family owner
+is resolved before sentence splitting; a falsy split falls back to the normalized
+whole answer.
+
+Each numeric sentence receives a lexicographic score of label match, ratio/growth
+percent presence, difference/sum numeric-candidate count, numeric conflict, and
+normalized length. Label scoring preserves exact substring precedence over token
+overlap and operand-text matching. `max` keeps the first stable tie. The selected
+sentence is scored again and is returned only when label, percent, or arithmetic
+score is nonzero; conflict or length alone cannot make it eligible. Repeated
+numeric extraction/conflict calls and their exception order remain observable.
+
+Public `aggregate_projection_rendered_value(answer_sentence, operation_family)`
+normalizes the sentence and returns before family work when blank. Ratio and
+growth families use the first signed percent/percent-point regex match and do not
+invoke generic numeric extraction. Other families extract candidates once and
+return the normalized text of the last candidate, or `""` when none exists. These
+selectors do not mutate inputs and catch no mapping, copy, string, regex,
+extraction, scoring, iteration, or other exception.
+
+The three ledger-path calls (two row selections and one answer-sentence
+selection) preserve task-id preparation, replacement fallback, conflict checks,
+payload copy, supersession, and all ledger mutation. The three arithmetic-surface
+synchronization calls (two answer-sentence selections and one rendered-value
+selection) preserve candidate iteration, conflict and coverage gates,
+operation-family resolution, prepared surface-sync input, lookup-slot work,
+row-map propagation, projection rebuild, and final orchestration. Exceptions stop
+later caller work. These seams do not own nested promotion, rebuild policy,
+aggregate precedence, mutable state/evidence, artifact/ledger synchronization,
+callbacks, or final projection.
 
 Prepared aggregate arithmetic-component synchronization is a separate typed,
 state-free aggregate-owner seam. It receives one graph-prepared projection row
@@ -1513,12 +1585,42 @@ existing positions. The graph modules retain all prepared answer/reference
 targets; projection, preservation, scoring, arithmetic-surface synchronization,
 recovered-ratio, stale-repair, and initial-state gates; result polarity and later
 adoption/mutation; and state, evidence, artifact/ledger, and final orchestration.
-`_numeric_surface_conflicts_with_reference` and the evidence/text numeric-support
-helpers remain graph-owned. This seam claims only generic numeric coverage and
-outside-reference comparison ownership plus old-body deletion, not public
-projection, preservation, scoring, synchronization, stale or initial-state policy,
-evidence support, behavior improvement, performance, total-code or executed-path
-reduction, broad private-surface cleanup, or Phase 3 completion.
+This seam claims only generic numeric coverage and outside-reference comparison
+ownership plus old-body deletion, not public projection, preservation, scoring,
+synchronization, stale or initial-state policy, evidence support, behavior
+improvement, performance, total-code or executed-path reduction, broad private-
+surface cleanup, or Phase 3 completion.
+
+Numeric conflict and evidence/text candidate support are separate plain,
+state-free `financial_numeric_surface.py` owner seams. Public
+`numeric_surface_conflicts_with_reference(answer, reference)` normalizes and
+extracts the answer before the reference. It returns truthy only when both lists
+are nonempty and some answer candidate is unmatched by every reference candidate,
+preserving answer-major/reference-minor lazy equivalence order. Its outer
+`bool(answer_candidates and reference_candidates and ...)` also preserves the
+original repeated truth tests: a decisive empty answer container is tested twice;
+with a nonempty answer, a decisive empty reference container is tested twice after
+the answer container is tested once. This is intentionally distinct from the
+single-gate outside-reference predicate.
+
+Public `evidence_supports_numeric_candidates(evidence, answer_candidates)` first
+constructs the owner-standard numeric-support evidence text, extracts evidence
+candidates, and returns `False` before answer-candidate iteration when none exist.
+Public `text_supports_numeric_candidates(text, answer_candidates)` applies the
+same contract to direct text. Both support predicates retain answer-major then
+support-candidate-minor stable `any(...)` evaluation. None of the three functions
+copies or mutates inputs beyond their existing local support-text construction,
+and none catches normalization, extraction, mapping, iteration, equivalence, or
+other exceptions.
+
+The graph retains all seven calls and their prepared inputs: answer/evidence
+candidate construction, evidence and quote gates, selected/unselected filtering,
+aggregate conflict/stale-answer policy, call polarity, later projection, state,
+artifact/ledger, and final orchestration. Earlier gates remain owner-zero and an
+owner exception stops later caller work. These seams claim only generic numeric
+conflict and support-predicate ownership plus old-body deletion—not evidence
+selection, answer policy, behavior or accuracy improvement, performance, total-
+code or executed-path reduction, public-surface change, or Phase 3 completion.
 
 Table numeric-support text and evidence promotion are plain, state-free
 `financial_numeric_surface.py` owner seams. The owner-private support helper first

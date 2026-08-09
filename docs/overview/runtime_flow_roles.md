@@ -253,396 +253,63 @@ lookup surface matching, retry query 생성이다.
 
 ### `src/agent/financial_graph_calculation.py::FinancialAgentCalculationMixin`
 
-큰 파일이지만 state-free 계산 규칙의 owner는 아니다. 이 mixin은 graph state를
-읽고 갱신하며 각 owner의 실행 시점을 정하고, 반환값을 trace/task/artifact state로
-투영하는 adapter/orchestrator다.
+이 mixin은 큰 파일이지만 state-free 계산 규칙의 최종 owner가 아니다. Graph state를
+읽고 갱신하고, evidence/query/row 입력을 준비하고, owner 호출 시점을 정하고,
+반환값을 trace/task/artifact/final state로 투영하는 adapter/orchestrator다.
 
-- `_extract_calculation_operands(state)`: reconciliation direct row, evidence
-  fallback, dependency output을 모은다. Graph는 required candidate와
-  producer-scope filter, lazy coherent-context builder를 유지한다. Direct row를
-  구성·coerce·scope-filter한 뒤 typed direct-acceptance owner를 조건부 호출하고,
-  required-candidate merge와 acceptance 결과를 operand set에 반영한다. Direct
-  preference에서는 graph가 runtime evidence, peer unit, strongest slot과 score를
-  준비하고 typed owner가 adoption decision과 exact overlay를 적용한다. Graph가 만든
-  recovered period/ratio rows와 evidence는 typed adoption owner가
-  merge/replacement한다. Recovery eligibility와 builder, logging, ratio flag 및
-  runtime projection은 graph에 남는다. Post-coercion LLM 경로에서는 graph가
-  evidence lookup, scope skip, `op_{index}` id, coercion과 applicability를 준비하고,
-  typed owner가 per-row lookup direct-support와 required match/surface, lookup
-  rematch, direct-first merge를 두 단계로 적용한다. Enclosing exception과 fallback은
-  graph에 남는다.
-- `_plan_formula_calculation(state)`: state/query context를 state-free plan owner
-  입력으로 바꾸고, primary 경로에서는 selected plan을 runtime/task/artifact
-  state로 투영하는 graph adapter다.
-- `_run_calculation_candidate(state)`: strict calculation trace에서 graph-private
-  typed `_CalculationCandidateRun`을 만들고 candidate preparation과 deterministic
-  result projection까지만 수행한다. `_run_calculation_candidate_input()`은 이미
-  구성된 typed input에 같은 pipeline을 적용한다. 둘 다 state/ledger projection은
-  하지 않는다.
-- `_execute_calculation(state)`: 검증된 operand id/binding을 execution owner에
-  넘기고 typed outcome을 calculation trace와 artifact에 반영한다. primary
-  graph-node adapter로서 `_run_calculation_candidate()` 뒤 기존 state/ledger
-  projector를 유지한다.
-- `_render_calculation_answer(state)`: 계산 결과를 answer text와 answer slots로
-  렌더링한다.
-- `_verify_calculation_answer(state)`: answer text, result, operands의 일관성을
-  확인한다.
-- `_advance_calculation_subtask(state)`: 현재 subtask를 완료/실패 처리하고 다음
-  subtask로 이동한다.
-- `_aggregate_calculation_subtasks(state)`: 여러 subtask 결과를 최종 aggregate
-  answer로 합친다.
-- `_prepare_reflection_retry(state)`: reflection action에 따라 retry state를
-  구성한다.
-- `_format_citations(state)`: 마지막 citation/result payload를 정리한다.
-- `_route_after_*`: graph conditional edge를 결정한다.
+주요 graph node는 다음과 같다.
 
-state-free owner 경계:
+- `_extract_calculation_operands(state)`: direct, recovered, dependency operand를
+  준비하고 state-free resolution owner를 호출한다.
+- `_plan_formula_calculation(state)`: state/query를 deterministic plan 입력으로
+  바꾸고 selected plan을 runtime state에 투영한다.
+- `_run_calculation_candidate(state)`와
+  `_run_calculation_candidate_input(...)`: prepared candidate pipeline을 실행한다.
+- `_execute_calculation(state)`: validated binding을 execution owner에 넘기고
+  result/trace/artifact를 반영한다.
+- `_render_calculation_answer(state)`와
+  `_verify_calculation_answer(state)`: answer rendering과 consistency gate를 담당한다.
+- `_advance_calculation_subtask(state)`와
+  `_aggregate_calculation_subtasks(state)`: subtask progression과 aggregate
+  orchestration을 담당한다.
+- `_prepare_reflection_retry(state)`, `_format_citations(state)`,
+  `_route_after_*`: retry, final citation, graph edge를 담당한다.
 
-- `financial_answer_slots.py`: answer-slot payload construction과 prepared ratio
-  calculation-result/primary-slot display synchronization. Status/operation/source-
-  stated gate, formula-mismatch copy와 ordinary in-place update, percent policy,
-  primary/result/formatted surface precedence, nested identity와 예외 순서를 보존한다.
-  Plain `source_task_display_compatible_with_slot(...)`도 source-display-first
-  normalization, rendered/raw equality, `task_output:`, raw/normalized unit와
-  configured KRW-display shortcut, repeated policy stringification, input
-  immutability와 uncaught exception 순서대로 적용한다. Graph는 source-task/slot
-  lookup, material gate, call placement, False fallback와 growth orchestration을
-  유지한다.
-- `financial_operand_resolution.py`: candidate matching, grounding, generic
-  candidate selection, merge. 입력 순서와 무관하게 선택하며, 동순위 값이 충돌하면
-  abstain하고 값이 동등한 tie만 stable key로 선택한다. Required candidate
-  경로에서는 coherent rows를 candidate set에 먼저 merge하고 required coverage를
-  판정한 뒤, complete ratio candidate-first 또는 그 밖의 current-first precedence를
-  typed state-free result로 반환한다. Direct structured acceptance에서는 required
-  match/surface와 ambiguity를 먼저 적용하고, required operand가 있는 surviving
-  `lookup`/`single_value` row에 direct-support와 두 번째 ambiguity gate를 적용한다.
-  Required operand가 없는 lookup은 ambiguity gate만 적용한다. 적용된 filter는 row
-  identity와 순서를 보존하며, no-stage 경로는 input list identity를 유지한다. Graph가
-  준비한 direct preferred slot에는 score precedence와 ratio peer-unit alignment를
-  적용하고, 채택 시 exact overlay를 새 top-level row로 반환한다. Reject는 prepared
-  current-row identity를 유지하며 reason/alignment 필드는 runtime trace가 아니다.
-  Graph가 복구한 period context에는 recovered-first/current missing-fill을, coherent
-  ratio context에는 recovered-only replacement를 적용하고, recovered row가 참조한
-  evidence만 기존 evidence 뒤에 source order대로 채택한다. 기존 id는 제외하고 새
-  candidate duplicate는 보존하며 input은 변경하지 않는다. Graph가 coerce한 LLM
-  row에는 lookup direct-support를 identity-preserving decision으로 적용하고, required
-  operand가 있으면 ordered match/surface, lookup rematch, direct-first missing-fill을
-  별도 typed result로 적용한다. 이 두 seam의 reason/flag도 runtime trace가 아니다.
-  Direct structured evidence base scorer는 operand와 evidence item만 받아
-  `no_structured_cells`, `surface_contract_not_satisfied`, `evidence_scored` reason과
-  score를 반환한다. Ordered aggregate-role preference predicate도 같은 neutral
-  owner에 있으며 원래 guard 안에서만 평가된다. Graph와 lookup recovery는 owner를
-  직접 호출하고 scorer callback을 주입하지 않는다. 같은 owner의 plain public
-  table-label metadata scorer는 graph-built slot과 evidence item만 받아 empty-slot,
-  label, raw-unit, digit-threshold gate와 기존 additive weights를 literal 순서로
-  적용한다. 첫 두 caller는 empty slot도 호출하고 period-context caller는 먼저
-  건너뛰며, graph는 세 slot builder와 후속 context/scope/ambiguity/tie/grouping/
-  selection policy를 유지한다. 같은 owner의 plain direct target-metric fallback
-  predicate는 prepared target/existing/required rows만 받아 unit/value conflict와
-  aggregate preference를 판정한다. Target/existing gate, matcher별 row-copy 반복,
-  unit normalization, aggregate-role veto, aggregate-like/structured-source lazy
-  access와 stable first-conflict를 보존한다. Value-difference helper의 float
-  `TypeError`/`ValueError`는 raw/value fallback으로 이어지고 그 밖의 예외는
-  전파된다. 같은 owner의 plain public
-  transform은 graph-built 단일 operand row의 embedded/rendered unit normalization을
-  repair한다. 모든 경로에서 fresh top-level dict와 nested alias를 유지하고 scaled
-  tolerance, `NaN` 비대칭, first rendered match, original-field precedence와 uncaught
-  exception 순서를 보존한다. 같은 owner의 plain multi-row transform은 shared table id
-  또는 complete section/statement/scope context 안의 ratio display units를 configured
-  largest scale로 정렬한다. No-change exact identity, changed-path all-row shallow copy,
-  nested alias, partial repair와 uncaught exception 순서를 보존한다. 두 transform 모두
-  input을 변경하지 않고 reason/flag/trace를 추가하지 않는다. 같은 owner의 plain
-  `surface_contract_numeric_evidence_items(...)`는 falsy input에 fresh empty list를
-  반환하고 evidence surface-field와 requirement predicate를 고정 순서로 평가한다.
-  Global first-seen key dedupe, duplicate-continue/unique-break, stable order, fresh
-  retained top-level rows, nested aliases, input immutability와 uncaught exception
-  순서를 보존한다. 같은 owner의 plain `ratio_context_has_metric_surface(...)`는
-  task metric-label/alias 수집과 repeated normalization, stable dedupe, 모든 retrieved
-  ratio-context evidence/metadata copy와 fixed-surface materialization을 matching 전에
-  수행하고 first-match laziness, input immutability, uncaught exception 순서를
-  보존한다. Graph는 existing ratio-result gate/iteration, exact-object call과 logical
-  inversion, recalculation/adoption 및 evidence/state/artifact/final orchestration을
-  유지한다.
-  같은 owner의 public `coerce_operand_unit_from_evidence(...)`는 metadata hint,
-  current unit과 value-local surface unit을 state-free하게 resolve한다. Parenthetical-
-  before-inline inference, source-context/core asymmetry, right-boundary와 unit/render
-  policy, family/fallback precedence, repeated access, input immutability와 uncaught
-  exception 순서를 보존한다. Public
-  `coerce_operand_period_from_evidence_surface(...)`는 exact no-change row identity와
-  conflicting/inferred-year shallow copy, nested aliases를 보존하며 네 supporting
-  helper는 private다. Lookup recovery는 public unit owner를 직접 import하고 injected
-  callback을 받지 않는다.
-- `financial_dependency_projection.py`: dependency-binding summary, state-free
-  dependency projection, direct-versus-dependency source-set selector와 typed
-  main-path application. selector는 co-located period-conflict/alignment 결정을
-  직접 호출하며 callback seam을 두지 않는다. 최종 ratio override/purge,
-  producer-scope filter, duplicate guard, missing-binding fill도 같은 owner가
-  state-free result로 반환한다. graph가 sibling/coherent evidence context를 만든
-  뒤에는 coherent-first merge, alignment/preference, complete-context veto,
-  dependency re-merge도 typed late result로 반환한다. terminal finalization은
-  graph가 전달한 generic `required_normalized_unit` filter를 적용하고, filter가
-  없으면서 late rows가 비었을 때만 post-main selected snapshot, active dependency
-  snapshot 순서로 shallow-copy 보존한다. late/finalization reason은 owner contract
-  필드이며 현재 runtime trace 필드는 아니다. override에는 explicit reason과
-  양쪽 provenance가 필요하다. Dependency recalculation plan selection은 current
-  plan과 rebuild가 필요할 때 graph가 만든 explicit raw plan을 받는다.
-  Invalid/absent plan은 rebuild하고 executable `single_value` plan은 reuse하며,
-  executable non-`single_value` plan은 `unsupported_mode`다. Graph-state나
-  builder callback은 받지 않는다. Graph가 준비한 ordered artifact rows와 이미
-  coerce한 recalculated ratio value에는 outer-status fallback, artifact numeric
-  precedence, scaled tolerance, stable first-conflict selection과 shallow-copy marker를
-  typed result로 적용한다. Supported candidate 뒤 Stage 1은 operand-row/plan/result
-  shallow copy, 두 번째 mutable result와 `calculation_result.status` disposition을,
-  Stage 2는 truthy formatted-result mutation과 trace-first/fallback operands/plan,
-  result-first/current-row source ids의 final row projection을 소유한다. 같은 result
-  identity를 유지하며 reason/flag는 runtime trace가 아니고 selected-evidence
-  projection은 추가하지 않는다. Graph가 stateful lookup으로 준비한 structured
-  provenance와 graph-built mutable dependency row에는 같은 row identity로 source
-  anchor/chunk id를 채택하고, converted-display 보존 또는 unit realignment 뒤
-  nonempty consolidation/statement/table metadata를 overlay한다. Provenance input과
-  nested identity는 유지하며 typed reason/application flag는 runtime trace가 아니다.
-  Graph가 source selection, ratio/query policy와 source-id cleaning까지 끝낸 prepared
-  dependency-source ratio payload에는 fresh calculation-result/answer-slot/primary/group/
-  role/list container를 만들고, exact source-id list의 네 surface alias와 numerator/
-  denominator slot의 group/role identity를 유지한다. Compact formatting과 owner
-  applicability는 graph에 남으며 reason/flag/trace field는 추가하지 않는다. 같은
-  owner의 plain dependency-row unit inference는 slot raw unit을 sibling result보다
-  우선하고 normalized unit이 `UNKNOWN`일 때만 percent, KRW, count policy를 기존
-  순서로 읽는다. 입력을 변경하거나 exception을 catch하지 않으며 graph가 네 call
-  gate, conditional re-inference와 row construction을 유지한다. 같은 owner의 plain
-  task-output normalized-KRW predicate는 dependency/source/unit gate, raw/result-unit
-  fallback, exact tolerance와 conversion `try`를 소유한다. Normalized-value getter의
-  `TypeError`/`ValueError`는 `False`이며 earlier mapping error와 `RuntimeError`는
-  전파된다. 같은 owner의 plain structured-unit/source-slot predicate는 marker-first
-  direct copy와 fallback-sequence laziness, fallback role/raw/id filter와 final non-task
-  source-id intersection을 기존 순서로 적용한다. Input을 변경하거나 exception을
-  catch하지 않는다. Graph는 두 KRW caller 위치, row coercion과 table repair, 그리고
-  coherence predicate의 source-slot/candidate/marked-row preparation, source-task/
-  material/anchor-projection gates, rank/ratio scope와 이후 mutation을 유지한다.
-- `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
-  operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
-  prepared canonical value와 projected result를 비교하는 typed state-free
-  `StaleCalculationValueAssessment`를 소유한다. source-stated flag가 활성화된
-  경우에는 public display 값 대신 traced formula value를 비교하며 기존 tolerance와
-  NaN 동작을 유지한다. supported difference/growth plan을 state-free로 만들고,
-  raw plan과 ready/guarded selected plan을 보존하는 typed
-  `DeterministicOperationPlanDecision`도 같은 owner가 반환한다.
-- `financial_aggregate_projection.py`: typed state-free stale-repair provenance
-  selection, canonical `aggregate_result_operation_family` normalization,
-  aggregate-result signature와 growth operand sign-consistency rank primitive를
-  소유한다.
-  unique provenance target만 supersede하고 ambiguous refs는 보존하며, input
-  sequence와 nested row identity를 변경하지 않는다. 또한 graph가 준비한 mutable
-  calculation-result/slot/primary copies에 query-approved negative runtime-ratio
-  absolute-magnitude projection을 적용한다. 기존 mutation/formatter/exception
-  순서와 same result identity를 유지한다. Base/refreshed answer candidate payload에는
-  normalized answer, stable blank-filtered/duplicate-retaining claim ids와 세 flag를
-  기존 평가 순서로 담고 fresh dict/list를 반환한다. Prepared answer candidate에는 normalized
-  answer, same aggregate-projection identity, current-first stable claim-id merge를
-  적용하고 final answer를 formatted, aggregate-mode rendered, optional ok-status
-  순서로 동기화한다. Graph가 준비한 aggregate projection과 kept evidence ids에는
-  generated `ev_`/`recon::` provenance filter를 적용하며 empty-kept identity와
-  nonempty shallow-copy/stable-order 계약을 유지한다. Graph가 준비한 ordered
-  result rows에는 current-row authority map을 먼저 구성한 뒤 세 nested subtask
-  surface를 재귀 동기화하고, last-id-wins, stable order, invalid-item skip,
-  cycle/depth와 conditional shallow-copy 계약을 보존한다. 이 seam들은
-  reason/flag/trace field를 추가하지 않는다. Graph가 선택한 projection row와 raw
-  answer/rendered surface에는 ratio/growth first-candidate 또는 other last-candidate
-  numeric selection과 conditional result/slot/lookup synchronization을 적용한다.
-  Fresh/retained identity, raw surface, input immutability와 access/exception 순서를
-  유지하며 reason/flag/trace field를 추가하지 않는다. Graph가 준비한 lookup primary
-  slots에는 arithmetic component, series와 difference/sum delta synchronization을
-  적용한다. Empty/ineligible exact identity, eligible conditional shallow-copy,
-  concept-first/label first-match, `None`-only overlay, source alias와 uncaught
-  exception 순서를 보존하며 reason/flag/trace field를 추가하지 않는다. 또한 graph가
-  준비한 ordered results와 aggregate projection을 compact synthesis prompt rows로
-  투영한다. Result/answer-slot/ordered fallback precedence, material operand copy와
-  filtering, stable task grouping, fixed field/getter order, strict dictionary row
-  gate, fresh containers, nested aliases와 uncaught exceptions을 보존한다. 같은
-  owner의 plain `subtask_numeric_answers_conflict(...)`는 candidate-before-current
-  answer fallback과 extraction, empty-side gate, asymmetric candidate-major
-  equivalence를 보존한다. Plain `subtask_row_has_direct_source_refs(...)`는
-  calculation-result copy, 네 source surface의 cleaner order, lazy non-
-  `task_output:` match를 보존한다. 두 predicate 모두 input을 변경하거나 exception을
-  catch하지 않는다.
-- `financial_numeric_surface.py`: numeric surface extraction/equivalence와 함께
-  table numeric-support text helper를 private하게, 준비된 evidence를 위한 public
-  `promote_table_numeric_support_evidence(...)`를 소유한다. Empty/no-support exact
-  evidence identity, retained-line
-  normalization과 answer-major/stable first-four matching, supported-path fresh
-  evidence/metadata copy, nested aliases, header와 claim/quote 순서, input
-  immutability, uncaught exceptions을 보존한다. 같은 owner의 plain
-  `answer_covers_numeric_answer(...)`와
-  `answer_has_numeric_material_outside_reference(...)`는 eager answer-first
-  extraction, numeric-list-first coverage와 answer-list-first outside gate,
-  numeric-major/answer-major nested equivalence 및 uncaught exception 순서를
-  보존한다.
-- `financial_runtime_trace.py`: public state-free material-numeric predicate를
-  runtime-trace append와 aggregate prompt projection에 제공한다. `missing` gate,
-  raw-unit/unit 및 raw/value/rendered/display fallback, digit threshold,
-  normalized-value access와 raw-value truthiness fallback 순서를 유지하며 input을
-  변경하거나 exception을 catch하지 않는다. Trace row/source-id 준비와 key/dedupe/
-  append는 predicate 밖 runtime-trace orchestration에 남는다. 같은 owner의 plain
-  `overlay_calculation_operands_from_slots(...)`는 stable shallow operand copy,
-  matched-role precedence, optional normalized-role lookup, falsy-slot no-op, 고정된
-  일곱 field overwrite, fresh list/top-level rows, nested alias와 uncaught exception
-  순서를 보존한다.
-- `financial_aggregate_state.py`: public `AggregateCompositionState`와 공통
-  state-free composition transition을 소유한다. Answer normalization 뒤 lazy
-  current fallback, current-first claim cleanup/dedupe, projection reset/override
-  alias precedence, lock `None` fallback, feedback별 독립 clear truthiness,
-  fresh carrier/list와 uncaught exception 순서를 보존한다. Graph는 다섯 producer,
-  모든 gate와 순차 호출, later `_replace`, broader answer precedence와 final
-  orchestration을 유지한다.
-- `financial_task_artifacts.py`: graph가 준비한 artifact sequence, exact artifact
-  id, final answer와 aggregate projection으로 첫 matching aggregate artifact의
-  payload와 summary를 동기화한다. 모든 top-level artifact를 먼저 복사하고 stable
-  raw exact-id first-match, payload/result shallow-copy alias, input immutability와
-  uncaught access/copy/slice 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
-  같은 owner의 private strict-dictionary collector는 operand row의 열 개 source-ref
-  field를 고정 순서로 읽고 runtime-normalization의 private cleaner로 정리한다. Public
-  enrichment는 operand refs 뒤 extra refs를 stable dedupe하며 empty-ref exact list
-  identity/laziness, nonempty-path all-artifact top-level copies, nested aliases,
-  old-first refs, task/kind/payload/result/status gate와 uncaught exception 순서를
-  보존한다. Public enrichment만 export되고 collector는 private다.
+State-free owner topology:
 
-graph adapter에 남은 orchestration 역할군:
+| Owner | 역할 |
+| --- | --- |
+| `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, ratio display alignment, ratio denominator sign policy |
+| `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency |
+| `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
+| `financial_answer_slots.py` | answer-slot construction and ratio/source display compatibility |
+| `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support and numeric-support predicates |
+| `financial_aggregate_projection.py` | aggregate signatures/rank primitives, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
+| `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
+| `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
+| `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
+| `financial_graph_calculation_rendering.py` | calculation answer rendering helpers |
 
-- main context/evidence retrieval gate와 typed input 구성
-- dependency row construction, stateful `vsm` structured-provenance lookup,
-  no-provenance owner-call skip, downstream evidence lookup/coercion/append;
-  dependency-unit inference의 네 call placement와 conditional second inference,
-  task-output KRW predicate의 row-coercion/table-repair call placement,
-  structured-unit/source-slot predicate 전후의 candidate/marked-row/source-task/
-  material/anchor-projection gate와 coherence-rank/ratio-scope orchestration,
-  single-row repair 전후의 caller gates와 plan/operand-map propagation,
-  evidence-driven sibling candidate selection/realignment과 shared-context owner
-  호출 배치
-- direct row/evidence construction, coercion, scope/target policy, acceptance
-  applicability gate, direct preference runtime evidence overlay, row
-  matching/iteration, peer-unit preparation, strongest-slot builder,
-  query/report-scope score 보강, ambiguity/tie-break와 sequential adoption;
-  direct target-metric builder, evidence pool/coercion, scope gate, conflict-owner
-  call placement, adoption/evidence append와 candidate preparation
-- evidence-local unit/period owner 전후의 graph-evidence raw-value/unit fallback,
-  header/year 및 desired-family gate와 row construction; own-evidence result/slot/
-  evidence selection, normalization, copy/adoption; row-coordinator dependency/
-  structured-provenance guard, metadata overlay, period-before-direct-value/magnitude/
-  precision order; lookup slot/evidence preparation, direct-hint bypass, local
-  normalize closure와 lookup-result orchestration
-- post-coercion LLM invocation/model dump, evidence lookup, scope-conflict skip,
-  operand-id assignment, coercion, applicability, enclosing exception과 fallback
-- recovered-context eligibility, document/evidence collection, period/ratio row
-  builder, logging, ratio-recovered flag와 runtime projection
-- required-candidate/evidence builder, dependency producer-scope filter, lazy
-  coherent-context builder gate; required-operand prose evidence filter 전후의
-  evidence/reconciliation 및 required-list 준비, direct-grounding computation,
-  unconditional owner call placement, narrative/restriction gate, surface-result
-  merge/dedupe/logging과 later missing-required fallback-row merge
-- retry/dependency guard, logging, trace/artifact/state projection
-- late sibling/coherent evidence context 구성
-- percent-point query gate, finalization input 구성, post-filter coverage 결정
-- 기타 deterministic/LLM fallback
-- aggregate projection/repair sequencing
-- retrieved ratio-context existing-result iteration과 family/task/signature/status/
-  artifact-backed/value/completeness/tolerance gate, metric-surface owner의 exact-object
-  call placement와 logical conflict inversion, 이후 recalculation/adoption/evidence/
-  state/artifact/final orchestration
-- source-task/source-slot lookup과 material gate, truthy display-compatibility owner
-  call placement, True source-display adoption, False rendered/raw fallback 및 이후
-  growth calculation/material/state/artifact/final orchestration
-- aggregate evidence/kept-id selection, rebuild gate, selected-claim filtering,
-  final-answer surface-operand append
-- aggregate nested-result promotion, preliminary/final projection rebuild,
-  dependency alignment, preserved-field merge; nested promotion의 status/material/
-  direct-source/family/numeric-conflict/sign-rank short-circuit chain
-- aggregate task-ledger replacement gate와 conflict-before-preservation fallback,
-  projection sentence scorer 및 arithmetic-surface synchronizer의 numeric-conflict
-  call placement/polarity
-- public/structured projection, task-answer preservation, artifact scoring,
-  arithmetic synchronization, recovered-ratio selection, stale repair와 initial-
-  state의 numeric coverage/outside-reference target 준비, 12 owner call placement와
-  결과 polarity
-- aggregate answer candidate discovery/scoring/selection, narrative refresh,
-  packaging과 composition-transition call placement/laziness, application
-  invocation/broader answer precedence,
-  mutable state/evidence,
-- aggregate synthesis의 LLM gate, model/structured-LLM/prompt construction,
-  post-period-realignment input 준비, compact owner call placement, JSON/debug/prompt
-  및 LLM invocation, enclosing catch/fallback,
-- final-answer evidence filter의 answer-candidate/selection/support gate, local
-  evidence/metadata copy, evidence-id 처리, retrieved-narrative promoter skip,
-  table-support owner call placement과 returned-row adoption, later filtering,
-- aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
-  extraction과 iteration; lookup primary-slot 준비/truthy gate, per-row owner 호출,
-  task-id/equality update map, ordered/slot propagation과 final rebuild,
-  artifact/ledger, stale repair와 final orchestration
-- late aggregate artifact의 initial copy, ratio/render/completeness/compact formatter와
-  projection mutation, `artifacts is not None`/blank-id gate, artifact creation/
-  finalization과 final ledger orchestration. Empty-list+nonblank-id는 owner를 호출한다.
-- reconciliation evidence-ref enrichment의 두 call placement, artifact/task/state와
-  integrity input 준비, owner result를 소비하는 operand-set artifact 및 integrity/replan
-  처리와 final orchestration
-- ordered ratio-row copy/family/truthy-result gate, before/after rendered comparison,
-  compact-answer construction과 row answer/result propagation; compact caller의 state,
-  active-subtask, operand, period, metric formatting
-- unit conversion/repair의 evidence/row preparation, owner call gate, normalization과
-  returned-row adoption
-- period alignment의 context/evidence selection, owner call placement와 downstream
-  result/state propagation
-- source-visible display 보존
-- graph-private typed candidate preparation/result/state projection seam.
-  dependency recovery는 explicit `_CalculationCandidateInput`을 직접 실행하고,
-  period recovery는 기존 state wrapper를 통해 같은 typed projection을 소비한다.
-  두 contract-valid scalar 경로 모두 내부 `_execute_calculation()`과 버려지는
-  state/ledger projection을 만들지 않는다. Dependency 경로는 strict trace를
-  재조회하지 않으며 결과/order와 caller-owned ordered/state/projection 입력
-  불변성을 유지한다. Non-`ok` nested branch는
-  graph가 전달한 local row를 반환하고, 원본 list/row identity는 enclosing pass에서
-  다른 row change가 없을 때 유지된다.
-- deterministic difference/growth planning의 thin state/query adapter와 primary
-  planner runtime/task/artifact projection. Adapter는 complete plan을 만든 뒤
-  percent-point policy를 평가한다. Eligible `%p` query와 두 `PERCENT` operand는
-  복사된 plan의 `result_unit="%p"`를 받고 non-eligible/no-plan 경로는 유지된다.
-  Period ready/guarded recovery는 selected plan을 직접 소비하고,
-  `not_applicable`은 builder 재호출 없이 기존 fallback으로 이어진다.
-- dependency recalculation의 typed plan disposition과 lazy raw-plan adapter.
-  Executable `single_value` plan은 raw builder 없이 reuse하고 invalid/absent
-  plan은 raw plan을 한 번 만든다. Executable non-`single_value` plan은
-  `unsupported_mode`로 해당 row를 재계산하지 않으며 raw builder, candidate,
-  formatter를 호출하지 않는다. 다른 row도 바뀌지 않은 경로는 원본 list/row
-  identity를 유지한다. Supported plan은 updated operands와 함께 direct candidate
-  input으로 전달되고 ratio formatter는 active task와 같은 pre-candidate
-  operands를 explicit override로 받는다. Candidate 실행 뒤 graph는
-  absolute-ratio query/transform invocation, task-artifact/ledger conflict
-  short-circuit와 formatter를 Stage 1과 Stage 2 사이에 유지한다. Ratio artifact
-  conflict에서는 graph가
-  recalculated result value를 coerce하고 invalid value면 artifact builder를 호출하지
-  않으며, task-artifact/ledger row를 준비한 뒤 owner result를 소비한다. Absolute
-  transform의 query gate/invocation과 no-change/final projection은 graph에 남으므로
-  selected artifact가 항상 final output에 도달하는 계약은 아니다.
-- stale applicability/same-slot guard, current 결과의 prepare/evaluate-once와
-  stale-only result projection. accepted repair 뒤 render는 selected/kept refs와
-  same-id latest calculation-result artifact를, planning capture는 반환 row refs만,
-  aggregate는 pre-filter snapshot의 unique provenance target과 accepted refilter를
-  동기화한다. numeric freshness/acceptance는 바꾸지 않고, ambiguous refs와 그
-  밖의 ledger surface는 보존한다. 전체 ledger synchronization 완료 경계는 아니다.
-- 기존 68개 caller를 위한 1-line aggregate operation-family delegate와 stale repair
-  acceptance, pre-filter snapshot, accepted re-filter, answer/state orchestration
-- collapsed-ratio runtime trace/eligibility/completeness/query gate, prepared
-  role-map과 default overlay call, empty result를 포함한 unconditional adoption,
-  single-period evidence/realignment gate와 four-alias role-map, normalized overlay
-  call과 truthy-only adoption, prepared copies, downstream coherence/compact-answer/
-  coverage/final projection과 기타
-  absolute-ratio 및 trend projection/error 경계
-- full aggregate result dedupe/rank tuple/nested promotion. Canonical signature와
-  growth sign-rank의 7개/4개 호출은 기존 위치와 반복 평가를 유지한다.
-- narrative context preservation
+Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 
-Commit별 behavior/structural 경계, source metrics와 validation은
-[implementation_history.md](../history/implementation_history.md)에만 기록한다.
-July public-projection milestone은 완료됐지만 broader single-calculation-path
-Phase 3에는 위 graph-owned 경계가 여전히 남아 있다.
+1. graph-state, query, task, evidence와 artifact lookup
+2. direct/recovered/dependency row construction, coercion, scope와 applicability gate
+3. owner 입력 preparation, caller placement, sequential adoption과 equality gate
+4. LLM invocation, prompt/debug payload, retry와 exception/fallback orchestration
+5. mutable calculation/task/artifact/ledger state projection
+6. aggregate evidence selection, rebuild, nested promotion와 final-answer sequencing
+7. broader ledger synchronization과 아직 선택되지 않은 private helper mesh
+
+최근 owner 이동에는 ratio sign policy, numeric-support detection, aggregate
+projection row/answer-sentence/rendered selection이 포함된다. Graph는 이 함수들의
+호출 위치와 ledger/sync coordinator를 유지한다. 특히 aggregate selector 이동은
+nested-promotion synchronization, rebuild, mutable state/evidence, ledger 또는 callback
+ownership을 이동한 것이 아니다.
+
+함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
+[Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.
+현재 gate와 다음 작업은 [Project Status](project_status.md), commit별 이동 수치와
+claim limit은 [Implementation History](../history/implementation_history.md)를 본다.
 
 ## 9. Projection And Helper Modules
 
@@ -674,57 +341,13 @@ projection 문제를 일반 numeric-surface consistency로 처리한다.
 `_preferred_complete_aggregate_subtask_answer`는 compatibility를 위해 여기서
 re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 
-### Extracted calculation helpers
+### Calculation owner index
 
-- `financial_answer_slots.py`: answer slot payload construction, typed ratio
-  calculation-result/primary-slot display synchronization, and plain source-task
-  display compatibility through `source_task_display_compatible_with_slot(...)`
-- `financial_operand_resolution.py`: state-free generic operand candidate
-  resolution, typed required-candidate precedence/merge, and typed direct
-  structured acceptance, typed direct structured-evidence base scoring, and the
-  neutral ordered aggregate-role preference predicate, plain table-label scoring,
-  and plain direct target-metric fallback conflict predicate, plus plain single-row
-  embedded/rendered-unit normalization repair and shared-context multi-row ratio
-  display-unit alignment, plus plain required-operand prose numeric-evidence
-  filtering through `surface_contract_numeric_evidence_items(...)` and retrieved
-  ratio-context task-metric surface detection through
-  `ratio_context_has_metric_surface(...)`, plus public evidence-local unit and period
-  coercion through `coerce_operand_unit_from_evidence(...)` and
-  `coerce_operand_period_from_evidence_surface(...)` with private inference/core/
-  boundary helpers
-- `financial_dependency_projection.py`: dependency-binding summary, projection,
-  source-set selector, typed main/late/terminal application, recalculation plan
-  disposition, ratio-artifact conflict selection, two-stage post-candidate
-  finalization, in-place prepared structured-provenance adoption, and prepared
-  dependency-source ratio-result projection, plus plain dependency-row display/
-  normalized-unit inference, task-output normalized-KRW consistency, and prepared
-  structured-unit-realigned operand/source-slot equivalence
-- `financial_calculation_execution.py`: state-free difference/growth plan
-  construction, typed raw/guarded plan decision, plan validation, typed execution
-  outcome, and typed state-free value-only stale freshness assessment
-- `financial_aggregate_projection.py`: aggregate projection helpers, typed
-  stale-repair provenance selection, canonical aggregate operation-family
-  normalization, aggregate-result signature와 growth sign-consistency rank,
-  plain aggregate-subtask numeric-conflict/direct-source-reference predicates,
-  graph-prepared runtime-ratio magnitude projection, generated
-  provenance filtering, recursive nested-subtask row consistency, prepared
-  projection-row surface synchronization, arithmetic component/series/delta
-  synchronization, compact aggregate-synthesis prompt-row projection, and typed
-  base/refreshed aggregate-answer candidate payload packaging/application
-- `financial_runtime_trace.py`: runtime calculation-trace projection, the public
-  shared operand material-numeric predicate, and prepared calculation-operand slot
-  overlay
-- `financial_aggregate_state.py`: public aggregate composition carrier and
-  state-free answer/claim/projection/lock/feedback transition
-- `financial_task_artifacts.py`: task/artifact ledger projection, typed prepared
-  aggregate artifact payload/summary synchronization, and public prepared
-  reconciliation evidence-ref enrichment backed by a private ten-field collector
-- `financial_graph_calculation_rendering.py`: calculation answer rendering
-- `financial_reflection_projection.py`: reflection/task-artifact projection
-- `financial_text_surface.py`: text/narrative surface helpers
-- `financial_numeric_surface.py`: numeric display surface extraction/equivalence,
-  plain answer-coverage/outside-reference comparison, private table-support text
-  assembly, and public prepared evidence promotion
+계산 owner의 현재 역할은 위
+[Calculation Layer](#8-calculation-layer) 표를 사용한다. 이 section에서는 같은
+owner 계약을 반복하지 않는다. Public API의 정확한 semantics는
+[Agent Runtime Contract](../architecture/agent_runtime_contract.md), 파일별 위치는
+[Codebase Map](codebase_map.md)을 따른다.
 
 ## 10. Rendering Helpers
 

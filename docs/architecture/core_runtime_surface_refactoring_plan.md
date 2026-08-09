@@ -178,287 +178,83 @@ Completion conditions:
 
 Status: in progress. The July canonical public-projection milestone is complete:
 legacy flat mirrors cannot override `agent_answer` or the resolved trace. The
-broader single-calculation-path phase is not complete.
+broader single-calculation-path and ledger ownership phase remains open.
 
-Current calculation ownership is:
-
-- `financial_graph_calculation.py` remains the graph-state adapter and
-  orchestrator. It constructs and coerces direct rows, applies consolidation
-  scope and target-override policy, prepares evidence/query inputs, builds
-  required candidates, applies dependency producer-scope filtering, and invokes
-  the coherent-context builder lazily. It also owns direct structured preference
-  preparation through runtime evidence overlay, row iteration, peer-unit
-  preparation, strongest-slot building, query/report-scope score augmentation,
-  ambiguity/tie-break policy and sequential adoption, direct target-metric
-  fallback construction/evidence coercion/scope gating plus target adoption and
-  evidence append around the owner conflict call, recovered-context
-  eligibility, document/evidence and context-row builders, recovery logging and
-  ratio-recovered flag projection, retry gates,
-  post-coercion LLM invocation, evidence/scope/id/coercion/applicability and
-  exception/fallback orchestration, graph-private candidate preparation,
-  required-operand/evidence preparation and direct-grounding computation around
-  the unconditional prose numeric-evidence filter call, narrative/restriction
-  gates, surface-result merge/dedupe/logging and later fallback-row merge,
-  state/task/artifact projection, prepared reconciliation-reference owner inputs
-  and its two call placements, operand-set artifact and integrity/replan consumers,
-  repair acceptance, aggregate/filter
-  sequencing, recalculated ratio-value coercion, dependency candidate-input
-  construction/execution, absolute-ratio query/transform invocation,
-  task-artifact/ledger conflict short-circuit and formatting, collapsed-ratio
-  trace/eligibility/completeness/query gates and prepared-copy
-  construction, downstream coherence/answer/coverage/final projection,
-  dependency-row construction, stateful structured-provenance lookup and
-  downstream evidence coercion/append, dependency-coherence source-slot/candidate/
-  marked-row preparation, source-task/material/anchor-projection gates, rank and
-  ratio-scope orchestration around the owner equivalence call, evidence-driven
-  sibling-table candidate alignment and preparation/map propagation,
-  other ratio/absolute
-  orchestration, and remaining fallbacks.
-- `financial_operand_resolution.py` owns state-free candidate matching,
-  grounding, selection, and merge behavior, including coherent-first required
-  candidate merge followed by complete-ratio candidate-first or current-first
-  precedence. It also owns ordered typed direct structured acceptance across
-  required match/surface, ambiguity, and lookup direct-support gates, plus typed
-  prepared preferred-slot score/ratio-alignment adoption and exact overlay. It
-  owns recovered-context period merge or coherent-ratio replacement and
-  referenced evidence adoption after graph-owned builders run. It also owns the
-  post-coercion per-row lookup direct-support decision and the required
-  match/surface, lookup-rematch, direct-first merge decision as separate typed
-  state-free seams. Its typed direct structured-evidence base scorer and neutral
-  ordered aggregate-role preference predicate are also state-free; graph and
-  lookup-recovery callers consume the scorer directly without the former
-  graph-private method or callback parameters. The same owner exposes the plain
-  table-label metadata lookup scorer over a graph-built slot and evidence item.
-  It preserves the literal empty-slot/label/unit/digit gates, additive weights,
-  repeated access and exception order, while graph retains all three slot builders,
-  their empty-slot invocation asymmetry, and downstream selection policy.
-  It also owns the plain direct target-metric fallback conflict predicate over a
-  graph-prepared target row, existing rows, and required operands. The predicate
-  preserves target/existing gates, matcher-specific row-copy repetition, known-unit
-  construction, aggregate-role veto, aggregate-like and structured-source lazy
-  access, input immutability, and exact exception behavior. In particular,
-  `operand_row_values_differ` retains its helper-local float `TypeError`/`ValueError`
-  catch and raw/value fallback while other exceptions propagate. Graph retains
-  target construction, evidence pool/coercion, scope, adoption/evidence append,
-  candidate preparation, state, artifact, and final orchestration.
-  The same owner also owns the plain state-free single-row embedded/rendered-unit
-  normalization repair transform. It preserves fresh top-level copy and nested-
-  alias behavior, scaled tolerance and `NaN` semantics, stable first rendered
-  match, original-field precedence, input immutability, and exact access/exception
-  order. It also owns plain shared-context multi-row ratio display-unit alignment,
-  preserving policy/grouping order, partial repair, exact no-change identity,
-  changed-path copies and nested aliases, and uncaught exceptions. Graph retains
-  all row construction, provenance, plan/map and evidence-driven sibling
-  alignment, ratio/append, state, artifact, and final orchestration.
-  The same owner owns plain `surface_contract_numeric_evidence_items(...)` for
-  required-operand prose numeric-evidence filtering. It preserves fresh-empty
-  falsy results, fixed evidence surface-field
-  access, per-attempt row copies, positive/negative/numeric predicate laziness,
-  global first-seen key dedupe, stable order, fresh retained top-level rows,
-  nested aliases, input immutability, and uncaught exception order. Graph retains
-  evidence/reconciliation and required-list preparation, the unconditional call
-  after direct-grounding computation, narrative/restriction gates, both result
-  merge paths, LLM/state work, and final orchestration.
-  It also owns plain `ratio_context_has_metric_surface(...)` over graph-prepared
-  context evidence and task metadata. The predicate preserves eager task-label
-  and alias collection, repeated normalization, stable dedupe, all-context
-  evidence/metadata copies and fixed-surface materialization before matching,
-  first-match laziness, input immutability, and uncaught exception order. Graph
-  retains existing-result iteration, family/task/signature/status/artifact/value/
-  completeness/tolerance gates, exact-object call placement and result inversion,
-  ratio recalculation/adoption, evidence selection, state, artifact, and final
-  orchestration.
-  The same owner now exposes plain evidence-local unit and period coercion. Public
-  `coerce_operand_unit_from_evidence(...)` preserves metadata/current/surface
-  precedence, parenthetical-before-inline inference, core/source-context asymmetry,
-  right-boundary and unit/render policy order, input immutability, and uncaught
-  exceptions. Public `coerce_operand_period_from_evidence_surface(...)` preserves
-  exact no-change row identity and shallow-copy period realignment; its four
-  supporting helpers remain owner-private. Graph retains the row coordinator,
-  graph-evidence builder, own-evidence alignment, structured-value/magnitude/
-  precision work, and state orchestration. Lookup recovery now imports the unit
-  owner directly and no longer receives an injected coercion callback.
-- `financial_dependency_projection.py` owns dependency binding/projection,
-  direct-versus-dependency selection, typed main/late/final application, and
-  dependency recalculation plan disposition. Executable `single_value` plans
-  are reused, invalid or absent plans rebuild once, and executable
-  non-`single_value` plans are `unsupported_mode`, do not recalculate that row,
-  and preserve original ordered-result identity on the enclosing no-change path
-  before builder, candidate, or formatter work. For graph-prepared artifact rows
-  and an already-coerced recalculated ratio value, it also owns typed status/numeric
-  precedence, scaled-tolerance, and stable first-conflict selection. After
-  candidate execution it owns typed Stage 1 operand/plan/result shallow copies,
-  the second mutable result and result-status disposition, plus Stage 2 truthy
-  formatted-result mutation and trace-first/fallback final row projection. It
-  also owns typed in-place adoption of graph-resolved structured provenance into
-  a graph-built dependency row: source ids/anchor, converted-display preservation
-  or unit realignment, and nonempty scope/statement/table metadata overlay. For
-  graph-prepared dependency-source ratio fields, it owns the typed fresh
-  calculation-result/answer-slot projection and its exact source-list and
-  component-slot alias contract; source selection, ratio/query policy, source-id
-  cleaning, and compact formatting remain graph-owned. It also owns plain
-  dependency-row display/normalized-unit inference with slot-before-sibling raw
-  precedence and `UNKNOWN`-only percent/KRW/count policy membership. The four
-  call gates, conditional re-inference, row construction, ratio append/merge,
-  and state/evidence/artifact/final orchestration remain graph-owned. The same
-  owner also owns the plain dependency task-output normalized-KRW consistency
-  predicate with its short-circuit gates, raw/result-unit fallback, exact scaled
-  tolerance, input immutability, and conversion-try exception boundary. Row
-  coercion, table-metadata repair, both call placements, mutation, and later
-  orchestration remain graph-owned. The same owner owns the plain prepared
-  structured-unit-realigned operand/source-slot equivalence predicate. It preserves
-  marker-first copy and fallback-sequence laziness, fallback role/raw/id filtering,
-  final non-task source-id intersection, input immutability, and uncaught access/
-  copy/normalization/iteration exceptions. Full coherence-rank preparation,
-  source-task/material/anchor-projection gates, rank disposition, ratio scope, and
-  provenance/adoption/state/artifact/final orchestration remain graph-owned.
-- `financial_calculation_execution.py` owns deterministic difference/growth
-  plan construction, plan validation, formula execution, and value-only stale
-  assessment.
-- `financial_answer_slots.py` owns answer-slot construction plus typed ratio
-  calculation-result and primary-slot display synchronization. It preserves the
-  formula-mismatch copy versus ordinary in-place update distinction, current-
-  surface precedence, percent policy, and exception order; graph callers retain
-  compact-answer and ordered-row orchestration. The same owner now exposes plain
-  `source_task_display_compatible_with_slot(...)`, preserving source-display-first
-  normalization, rendered/raw equality, `task_output:`, raw-unit, normalized-unit,
-  configured KRW-display short circuits, input immutability, and uncaught exception
-  order. Graph retains source-task/slot lookup, material gating, call placement,
-  False-path rendered/raw fallback, and all growth/state/artifact orchestration.
-- `financial_aggregate_projection.py` owns pure stale provenance target
-  selection, canonical aggregate operation-family normalization, canonical
-  aggregate-result signature and growth operand sign-consistency rank primitives,
-  the typed state-free negative runtime-ratio absolute-magnitude transformation over
-  graph-prepared mutable result/slot/primary copies, typed base/refreshed answer-
-  candidate payload packaging, and typed prepared candidate application/final-
-  answer projection synchronization. It also owns
-  typed state-free filtering of generated aggregate provenance from a graph-
-  prepared projection and kept-evidence-id sequence, plus recursive consistency
-  synchronization of graph-prepared nested subtask rows against current ordered
-  task results. It also owns typed state-free synchronization of a graph-selected
-  projection row with prepared raw answer/rendered surfaces, including numeric-
-  candidate selection and conditional result/slot/lookup copy semantics. For
-  graph-prepared lookup primary slots, it owns typed arithmetic component, series,
-  and difference/sum delta synchronization with the existing match, copy/alias,
-  stable-order, and exception contracts. It also owns plain compact aggregate-
-  synthesis prompt-row projection over graph-prepared ordered results and aggregate
-  projection. Projected-row precedence, material operand filtering, stable grouping,
-  fixed field/getter order, fresh containers, nested aliases, and uncaught
-  exceptions remain unchanged. The same owner now exposes plain aggregate-subtask
-  numeric-conflict and direct-source-reference predicates. They preserve candidate-
-  before-current answer fallback and extraction, asymmetric candidate-major
-  equivalence, calculation-result copy before fixed-order source cleaning,
-  `task_output:` filtering, input immutability, and uncaught exception order.
-  Graph retains the LLM gate, model/prompt setup,
-  post-period inputs, JSON/debug/prompt invocation, catch/fallback, composition,
-  state, and evidence orchestration. It also retains task-ledger replacement and
-  conflict/fallback disposition, projection sentence scoring and arithmetic-surface
-  synchronization, plus the status/material/direct-source/family/conflict/sign-rank
-  chain inside full nested promotion.
-- `financial_runtime_trace.py` owns the public shared operand material-numeric
-  predicate consumed by runtime-trace append and aggregate prompt projection. Its
-  `missing` gate, lazy unit/value fallbacks, digit threshold, normalized-value
-  access, raw-value fallback, no-mutation, and uncaught-exception contract remain
-  unchanged; trace-owned source normalization, key construction, dedupe, and append
-  stay outside the predicate. The same owner now owns plain prepared calculation-
-  operand slot overlay. Stable operand order, matched-role precedence, optional
-  normalized-role lookup, falsy-slot no-op, fixed seven-field overwrite, fresh
-  list/top-level rows, nested aliases, input immutability, and uncaught exception
-  order remain unchanged. Graph retains both repair callers' evidence, role-map
-  construction, applicability/ranking/formula/realignment gates, call placement,
-  unconditional-empty versus truthy-only adoption, slot/result repair, state, and
-  final orchestration.
-- `financial_aggregate_state.py` owns the public `AggregateCompositionState`
-  carrier and its common state-free transition. The transition preserves answer
-  normalization and lazy fallback, current-first claim cleanup/dedupe, projection
-  reset/override alias precedence, narrative-lock fallback, independently evaluated
-  feedback clearing, fresh carrier/list identity, and uncaught exception order.
-  Producer construction and gates, sequential invocation, later `_replace`, broader
-  answer precedence, state/evidence/LLM work, and final orchestration remain graph-owned.
-- `financial_task_artifacts.py` owns prepared late aggregate-artifact payload and
-  summary synchronization. It preserves copy-all-before-search, raw exact first-
-  match, shallow aliases, overwrite/access order, input immutability, and uncaught
-  exceptions. It also owns the private strict-dictionary ten-field operand-ref
-  collector and public prepared reconciliation-artifact evidence-ref enrichment.
-  That seam preserves empty-ref identity/laziness, old-first stable ref order,
-  fresh top-level copies on the nonempty path, nested aliases, task/kind/payload/
-  result/status gates, and exact uncaught exception order. The owner imports the
-  private source-id cleaner from `financial_runtime_normalization.py`; it does not
-  export the collector. Artifact creation/finalization, ledger-level id/order,
-  graph state/input preparation, integrity/replan policy, and final orchestration
-  remain graph-owned.
-- `financial_numeric_surface.py` owns the private table numeric-support text helper
-  and the plain public prepared-evidence promoter. Empty/no-support paths preserve
-  exact evidence identity; supported paths preserve stable first-four selection,
-  fresh evidence/metadata copies, nested aliases, claim/quote order, header laziness,
-  input immutability, and uncaught exception order. It also owns plain numeric-answer
-  coverage and outside-reference comparison. Those predicates preserve eager
-  answer-first extraction, their opposite numeric-major versus answer-major nested
-  comparisons, empty-list gates, stable laziness, and uncaught exception order.
-  Evidence selection, retrieved-narrative skipping, local row preparation, public
-  projection and preservation, scoring and arithmetic synchronization, stale and
-  initial-state policy, later filtering, state/artifact work, and final orchestration
-  remain graph-owned.
-
-At the latest checkpoint, the calculation graph adapter is 18,003 lines, the
-public graph is 1,200, the graph-evidence module is 4,581, the graph helper module
-is 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 3,053, the answer-slot owner is 625, the aggregate owner is 1,151, the
-aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
-owner is 1,250, the numeric-surface owner is 575, the runtime-trace owner is 1,094,
-and the execution owner is 837. The latest owner slice passed targeted 6/6 tests,
-affected 860/860 tests, the 217-literal audit, and full discovery over 1,540/1,540
-tests.
-Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
-metrics, and claim limits live in
-`docs/history/implementation_history.md`; they are intentionally not repeated
-in this plan.
-
-Phase 3 remains open for these unordered follow-ups:
-
-- move bounded aggregate repair/precedence decisions behind the aggregate owner;
-- isolate other remaining dependency and ratio/absolute seams without moving
-  graph state lookup;
-- keep broader task/artifact ledger synchronization as a separately specified
-  behavior contract;
-- reduce the remaining private-API mesh and co-locate tests only as their public
-  contracts move.
-
-Priority and sequencing are owned by
-`docs/overview/project_status.md#next-work`; this plan records debt and stop
-lines, not a competing queue.
-
-The canonical path is:
+The target flow is:
 
 ```text
 OperandResolver -> FormulaExecutor -> AnswerRenderer -> Verifier
 ```
 
-Use existing owner modules before adding new ones:
+Current ownership is intentionally split by state boundary:
 
-- `financial_answer_slots.py`
-- `financial_operand_resolution.py`
-- `financial_dependency_projection.py`
-- `financial_calculation_execution.py`
-- `financial_aggregate_projection.py`
-- `financial_aggregate_state.py`
-- `financial_graph_calculation_rendering.py`
-- `financial_numeric_surface.py`
-- `financial_runtime_trace.py`
-- `financial_answer_projection.py`
+| Surface | Owner | Stop line |
+| --- | --- | --- |
+| Graph-state orchestration | `financial_graph_calculation.py` | Reads and writes graph state, prepares evidence/query/rows, places owner calls, and projects task/artifact/final state |
+| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, unit/period coercion and ratio denominator sign policy; no graph-state lookup |
+| Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates |
+| Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
+| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_numeric_surface.py` | Slot/display contracts, numeric comparison, table support, and numeric-support predicates |
+| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate signatures, repair/projection transforms, compact prompt rows, and projection row/sentence/rendered selectors |
+| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, `financial_task_artifacts.py` | State carriers and prepared projection transforms; graph retains surrounding orchestration |
 
-Continue work in `financial_graph_calculation.py` only for a concrete caller
-migration, contract gap, or bug. Each extraction must move callers and delete
-the old implementation. Do not split the file merely to reduce line count.
+Detailed identity, laziness, exception, precedence, and caller-placement semantics
+are normative only in
+[agent_runtime_contract.md](agent_runtime_contract.md). Execution topology is
+summarized in [runtime_flow_roles.md](../overview/runtime_flow_roles.md). This
+plan does not repeat those contracts.
+
+The current checkpoint has explicit owners for the major bounded seams completed
+so far, including ratio sign policy, generic numeric-support detection, and
+aggregate projection row/sentence/rendered selection. Current validation and
+benchmark status belong only in
+[project_status.md](../overview/project_status.md); commit-level diffs and claim
+limits belong only in
+[implementation_history.md](../history/implementation_history.md).
+
+Phase 3 remains open for four durable debt groups:
+
+1. partially advanced: move bounded remaining aggregate repair and precedence
+   decisions behind the aggregate owner;
+2. partially advanced: isolate remaining dependency and ratio/absolute seams
+   that do not require graph-state lookup;
+3. essentially untouched: specify broader task/artifact ledger synchronization
+   as a separate behavior contract before attempting ownership convergence;
+4. partially advanced: reduce the private-API mesh and co-locate tests only as
+   the corresponding public contracts move.
+
+These groups are unordered debt, not four promised implementation slices.
+Priority and sequencing are owned by
+[project_status.md#next-work](../overview/project_status.md#next-work).
+
+Use the existing owner modules before adding a new one. A Phase 3 batch must:
+
+- start from a concrete caller, regression, reviewer gap, or named debt boundary;
+- characterize current behavior before production movement;
+- move adjacent seams together only when they share one owner, caller boundary,
+  and validation surface;
+- keep graph-state lookup, mutable state projection, LLM invocation, evidence
+  construction, artifact/ledger mutation, and final orchestration in the graph
+  unless a separate contract explicitly moves them;
+- replace every selected caller and delete the old implementation in the same
+  batch;
+- add no wrapper, compatibility alias, callback, reason, flag, or trace field
+  merely to make relocation easier;
+- report source movement separately from behavior, total-code, executed-path,
+  and performance claims.
+
+Continue editing `financial_graph_calculation.py` only for a selected caller
+migration, contract gap, or reproduced bug. Do not split the file solely to
+reduce line count.
 
 Completion conditions:
 
-- partial: converge on one source of truth for operands, formula result, and
-  rendered answer;
 - met: legacy flat mirrors cannot override `agent_answer` or the resolved trace;
-- partial: remove wrappers with no runtime caller as each bounded owner move
-  deletes its old implementation;
-- open: organize tests by operand, execution, rendering, verification, and
+- partial: one source of truth exists for operands, formula result, and rendered
+  answer, but graph-owned repair and ledger boundaries remain;
+- partial: wrappers disappear as bounded owner moves delete their old bodies;
+- open: broader ledger synchronization has a reviewed behavior contract;
+- open: tests are organized by operand, execution, rendering, verification, and
   projection contracts rather than private helper location.
 
 ### Phase 4: Isolate optional systems

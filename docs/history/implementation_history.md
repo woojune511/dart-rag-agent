@@ -1345,6 +1345,48 @@ evidence/lookup orchestration ownership, structured-value/magnitude/precision
 ownership, performance, total-code or broad executed-path reduction, broader
 private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
 
+### Three-seam Phase 3 owner milestone
+
+- `c392ce6` moves ontology-driven ratio denominator sign-policy merge and
+  magnitude transformation to public
+  `financial_operand_resolution.apply_operation_sign_policy(...)`, with its
+  binding-policy helper owner-private. The graph retains prepared operand order,
+  growth recovery/conflict gates, equality-gated map propagation, execution,
+  state, artifact, and final orchestration.
+- `a05cc07` moves `numeric_surface_conflicts_with_reference(...)`,
+  `evidence_supports_numeric_candidates(...)`, and
+  `text_supports_numeric_candidates(...)` to `financial_numeric_surface.py`.
+  Graph callers retain answer/evidence preparation, applicability, projection,
+  and final filtering policy.
+- `1897fd1` moves aggregate projection row, answer-sentence, and rendered-value
+  selection to `financial_aggregate_projection.py` through
+  `select_aggregate_projection_row_for_task(...)`,
+  `select_aggregate_projection_answer_sentence(...)`, and
+  `aggregate_projection_rendered_value(...)`. The ledger path consumes two row
+  selections and one answer-sentence selection; arithmetic-surface synchronization
+  consumes two answer-sentence selections and one rendered-value selection.
+  Nested promotion, rebuild, mutable state/evidence, ledger, and callback ownership
+  stay in the graph.
+- Across the three seams, eight graph methods spanning 191 old definition lines
+  were deleted. Seven public APIs replace 14 graph calls; retired private
+  references are zero, while owner-private `_binding_policy_for_operand_row`
+  intentionally remains. Relevant production source changed `+226/-215`, net
+  `+11`: the graph changed `+21/-214`, from 18,003 to 17,810 physical lines,
+  while the three owner files were net `+204` and reached operand 3,105, numeric
+  619, and aggregate 1,259 lines. Tests changed `+1,542/-51`, including ten added
+  and one removed test method; the whole milestone changed `+1,768/-266`.
+- Final validation passed focused 4/4, affected `tests.test_subtask_loop`
+  252/252, the 217-literal runtime
+  audit, full discovery over 1,549/1,549 tests, and `git diff --check`.
+  Benchmark refresh was **NOT RUN**.
+
+This milestone closes three bounded state-free owner seams. It does not close
+the four Phase 3 debt groups, establish an end-to-end calculation or ledger
+owner, change numeric or ranking behavior, or prove total-code, executed-path,
+performance, or benchmark improvement. The accompanying current-state document
+compaction removes repeated owner diaries while keeping this history and the
+runtime contract as detailed authorities.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
