@@ -246,7 +246,11 @@ Current calculation ownership is:
   graph-prepared dependency-source ratio fields, it owns the typed fresh
   calculation-result/answer-slot projection and its exact source-list and
   component-slot alias contract; source selection, ratio/query policy, source-id
-  cleaning, and compact formatting remain graph-owned.
+  cleaning, and compact formatting remain graph-owned. It also owns plain
+  dependency-row display/normalized-unit inference with slot-before-sibling raw
+  precedence and `UNKNOWN`-only percent/KRW/count policy membership. The four
+  call gates, conditional re-inference, row construction, ratio append/merge,
+  and state/evidence/artifact/final orchestration remain graph-owned.
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
@@ -284,13 +288,13 @@ Current calculation ownership is:
   exceptions. Artifact creation/finalization and ledger-level id/order remain
   graph-owned.
 
-At the latest checkpoint, the graph is 18,899 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,877 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,610, the answer-slot owner is 594, the aggregate owner is 1,019, the
-aggregate-state owner is 161, the dependency owner is 3,164, the task-artifact
+aggregate-state owner is 161, the dependency owner is 3,187, the task-artifact
 owner is 1,180, and the execution owner is 837. The latest owner slice passed
-targeted 6/6 tests, affected 576/576 tests, the 217-literal audit, and full
-discovery over 1,504/1,504 tests.
+targeted 4/4 tests, affected 632/632 tests, the 217-literal audit, and full
+discovery over 1,505/1,505 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

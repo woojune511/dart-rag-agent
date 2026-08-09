@@ -854,6 +854,32 @@ artifact, ledger, or final-orchestration ownership, and not a total-code, broad
 executed-path, performance, broad private-mesh, end-to-end calculation-owner, or
 complete Phase 3 reduction claim.
 
+### Dependency row unit inference ownership
+
+- `db89499` moves dependency-row display and normalized-unit inference from the
+  graph into the plain public `financial_dependency_projection.py` primitive.
+  The four calls remain at their existing semantic positions, including the
+  conditional second inference; the old graph definition and private self
+  references are deleted.
+- Slot raw-unit precedence, lazy sibling-result fallback, whitespace suppression,
+  normalized-unit handling, `UNKNOWN`-only policy access, percent/KRW/count
+  membership order, KRW configured-unit fallback, input immutability, and uncaught
+  access/exception order are preserved. Caller characterization records the
+  combined retrieved-context/task-output sequence as `17454` twice followed by
+  `17199` twice, with a separate fixture exercising `17199` three times.
+- Production source is `+28/-27`, net 1: the graph changes from 18,899 to 18,877
+  lines (`+5/-27`, net -22) and the dependency owner from 3,164 to 3,187 (`+23`).
+  Tests are `+254/-2`, net 252; the whole commit is `+282/-29`, net 253.
+- Validation passed targeted 4/4 tests, affected 632/632 tests, the 217-literal
+  runtime audit, full discovery over 1,505/1,505 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving dependency-row unit-inference ownership relocation,
+not dependency binding, row construction, conditional re-inference orchestration,
+ratio policy, unit-policy cleanup, state/evidence/artifact/final orchestration,
+and not a total-code, broad executed-path, performance, broad private-mesh,
+end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

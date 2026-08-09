@@ -897,6 +897,25 @@ policy, result extraction, source-id cleaning, owner applicability/laziness, and
 compact-ratio formatting. This seam does not own dependency precedence or final
 answer selection.
 
+Dependency-row display and normalized-unit inference is a plain public,
+state-free `financial_dependency_projection.py` primitive. It reads the slot raw
+unit first, then lazily falls back to the sibling result unit and finally the
+empty string. A truthy whitespace-only slot value therefore still suppresses
+the sibling fallback before normalization. It then reads and normalizes the
+slot normalized unit, using `UNKNOWN` for a missing or normalized-empty value.
+Known normalized units return without reading the render policy.
+
+Only `UNKNOWN` takes a fresh render-policy snapshot. Policy membership is
+evaluated in percent, KRW, then count order; the KRW branch uppercases the
+configured normalized unit with `KRW` fallback without adding another whitespace
+normalization step. No mapping, truthiness, string, normalization, policy-copy,
+iteration, or set-construction exception is caught, and neither input is mutated.
+The four graph calls remain at their existing semantic positions, including the
+conditional second inference after a prepared row changes. The graph retains all
+state, task, binding, slot/source selection, row repair and construction,
+task-output and retrieved-context ratio append/merge, evidence, artifact, and
+final orchestration.
+
 The nested non-`ok` path returns the graph-supplied local row. The enclosing pass
 returns the original ordered-result and original row identities only when no
 other row changes; when another row changes, an unchanged row may be the graph's

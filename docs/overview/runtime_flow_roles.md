@@ -368,7 +368,11 @@ state-free owner 경계:
   dependency-source ratio payload에는 fresh calculation-result/answer-slot/primary/group/
   role/list container를 만들고, exact source-id list의 네 surface alias와 numerator/
   denominator slot의 group/role identity를 유지한다. Compact formatting과 owner
-  applicability는 graph에 남으며 reason/flag/trace field는 추가하지 않는다.
+  applicability는 graph에 남으며 reason/flag/trace field는 추가하지 않는다. 같은
+  owner의 plain dependency-row unit inference는 slot raw unit을 sibling result보다
+  우선하고 normalized unit이 `UNKNOWN`일 때만 percent, KRW, count policy를 기존
+  순서로 읽는다. 입력을 변경하거나 exception을 catch하지 않으며 graph가 네 call
+  gate, conditional re-inference와 row construction을 유지한다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -423,6 +427,7 @@ graph adapter에 남은 orchestration 역할군:
 - main context/evidence retrieval gate와 typed input 구성
 - dependency row construction, stateful `vsm` structured-provenance lookup,
   no-provenance owner-call skip, downstream evidence lookup/coercion/append;
+  dependency-unit inference의 네 call placement와 conditional second inference,
   single-row repair 전후의 caller gates와 plan/operand-map propagation,
   evidence-driven sibling candidate selection/realignment과 shared-context owner
   호출 배치
@@ -556,7 +561,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate
   finalization, in-place prepared structured-provenance adoption, and prepared
-  dependency-source ratio-result projection
+  dependency-source ratio-result projection, plus plain dependency-row display/
+  normalized-unit inference
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
   outcome, and typed state-free value-only stale freshness assessment
