@@ -1200,6 +1200,42 @@ numeric/render-policy improvement, new behavior, total-code or broad executed-
 path reduction, performance, broader private-mesh cleanup, end-to-end calculation
 ownership, or complete Phase 3.
 
+### Aggregate-subtask numeric-conflict and direct-source-reference ownership
+
+- `8d5e2c23eede1f73ce33ab650f20cd7022750e78` moves graph
+  `_subtask_numeric_answers_conflict` and
+  `_subtask_row_has_direct_source_refs` into plain public
+  `financial_aggregate_projection.py` functions. The four numeric-conflict calls
+  and sole direct-source call remain at their exact graph positions; the old
+  private definitions and self references are deleted without a wrapper, carrier,
+  reason, flag, callback, config input, compatibility alias, or trace field.
+- Numeric conflict preserves candidate-before-current answer/formatted/rendered
+  fallback, repeated calculation-result access, both extractor calls before the
+  empty-side gate, and asymmetric candidate-major/current-minor lazy equivalence.
+  Direct-source detection preserves calculation-result copy before the fixed four-
+  field cleaner input, stable source order, and the first non-`task_output:` lazy
+  match. Inputs remain unmodified and the existing access/exception order is
+  unchanged.
+- Graph retains aggregate task-ledger replacement gates and conflict-before-
+  preservation disposition, projection sentence scoring, arithmetic-surface
+  synchronization, and the status/material/direct-source/family/conflict/sign-rank
+  chain inside full nested promotion, plus all state, evidence, provenance,
+  artifact/ledger, and final orchestration.
+- Production source is `+52/-48`, net 4: the graph changes from 18,328 to 18,287
+  lines (`+7/-48`, net -41) and the aggregate owner from 1,106 to 1,151 lines
+  (`+45/-0`, net 45). Tests are `+744/-17`, net 727; the whole commit is
+  `+796/-65`, net 731.
+- Validation passed targeted 5/5 tests, affected 633/633 tests, the 217-literal
+  runtime audit, full discovery over 1,527/1,527 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is behavior-preserving aggregate-subtask numeric-conflict and direct-source-
+reference predicate ownership plus deletion of the 41 old graph definition lines,
+not ledger replacement, sentence selection, arithmetic-surface synchronization,
+nested promotion or ranking, source selection or provenance policy, behavior or
+performance improvement, total-code or broad executed-path reduction, broader
+private-mesh cleanup, end-to-end aggregate ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

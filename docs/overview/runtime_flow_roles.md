@@ -449,7 +449,13 @@ state-free owner 경계:
   준비한 ordered results와 aggregate projection을 compact synthesis prompt rows로
   투영한다. Result/answer-slot/ordered fallback precedence, material operand copy와
   filtering, stable task grouping, fixed field/getter order, strict dictionary row
-  gate, fresh containers, nested aliases와 uncaught exceptions을 보존한다.
+  gate, fresh containers, nested aliases와 uncaught exceptions을 보존한다. 같은
+  owner의 plain `subtask_numeric_answers_conflict(...)`는 candidate-before-current
+  answer fallback과 extraction, empty-side gate, asymmetric candidate-major
+  equivalence를 보존한다. Plain `subtask_row_has_direct_source_refs(...)`는
+  calculation-result copy, 네 source surface의 cleaner order, lazy non-
+  `task_output:` match를 보존한다. 두 predicate 모두 input을 변경하거나 exception을
+  catch하지 않는다.
 - `financial_numeric_surface.py`: numeric surface extraction/equivalence와 함께
   table numeric-support text helper를 private하게, 준비된 evidence를 위한 public
   `promote_table_numeric_support_evidence(...)`를 소유한다. Empty/no-support exact
@@ -524,7 +530,11 @@ graph adapter에 남은 orchestration 역할군:
 - aggregate evidence/kept-id selection, rebuild gate, selected-claim filtering,
   final-answer surface-operand append
 - aggregate nested-result promotion, preliminary/final projection rebuild,
-  dependency alignment, preserved-field merge
+  dependency alignment, preserved-field merge; nested promotion의 status/material/
+  direct-source/family/numeric-conflict/sign-rank short-circuit chain
+- aggregate task-ledger replacement gate와 conflict-before-preservation fallback,
+  projection sentence scorer 및 arithmetic-surface synchronizer의 numeric-conflict
+  call placement/polarity
 - aggregate answer candidate discovery/scoring/selection, narrative refresh,
   packaging과 composition-transition call placement/laziness, application
   invocation/broader answer precedence,
@@ -659,6 +669,7 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_aggregate_projection.py`: aggregate projection helpers, typed
   stale-repair provenance selection, canonical aggregate operation-family
   normalization, aggregate-result signature와 growth sign-consistency rank,
+  plain aggregate-subtask numeric-conflict/direct-source-reference predicates,
   graph-prepared runtime-ratio magnitude projection, generated
   provenance filtering, recursive nested-subtask row consistency, prepared
   projection-row surface synchronization, arithmetic component/series/delta

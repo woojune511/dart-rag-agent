@@ -317,12 +317,22 @@ imports or an unconfigured `FinancialAgent` invocation.
   signature/status/artifact/value/completeness/tolerance gates, exact-object call
   placement and result inversion, ratio recalculation/adoption, evidence
   selection, state, artifact, and final orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 18,328 lines,
+- Aggregate-subtask numeric-answer conflict and direct-source-reference detection
+  now belong to plain public `financial_aggregate_projection.py` predicates.
+  Numeric conflict preserves candidate-before-current answer fallback, both
+  extractor calls, empty-side gating, and asymmetric candidate-major equivalence.
+  Direct-source detection preserves calculation-result copy, the four fixed
+  source surfaces, source-id cleaning order, and lazy non-`task_output:` matching.
+  Both inputs and uncaught exception order remain unchanged. Graph keeps task-
+  ledger conflict/fallback disposition, sentence scoring, arithmetic-surface
+  synchronization, the direct-source/family/conflict/sign-rank nested-promotion
+  chain, and all state/evidence/provenance/artifact/final orchestration.
+- At the current checkpoint, `financial_graph_calculation.py` is 18,287 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_answer_slots.py` is 625,
-  `financial_aggregate_projection.py` is 1,106,
+  `financial_aggregate_projection.py` is 1,151,
   `financial_aggregate_state.py` is 161,
   `financial_operand_resolution.py` is 2,831,
   `financial_dependency_projection.py` is 3,257,
@@ -331,8 +341,8 @@ imports or an unconfigured `FinancialAgent` invocation.
   `financial_runtime_trace.py` is 1,065, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 3/3 and affected 676/676
-  tests, the 217-literal runtime audit, and full discovery over 1,525/1,525 tests.
+- The latest calculation checkpoint passed targeted 5/5 and affected 633/633
+  tests, the 217-literal runtime audit, and full discovery over 1,527/1,527 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -356,7 +366,7 @@ current-state document does not duplicate that commit diary.
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Answer slots, ratio result-display synchronization, and source-task display compatibility | `financial_answer_slots.py`; owns answer-slot construction, typed calculation-result/primary-slot display consistency, and plain `source_task_display_compatible_with_slot(...)`, including formula-mismatch copy versus ordinary in-place update, current-surface/percent-policy order, source-display/rendered/raw and unit-policy shortcuts, and exception order, while graph callers retain ordered-row gating/propagation, source-task/slot lookup and material gate, compatibility call placement and fallback, compact-answer construction, growth semantics, and state/task/operand/period/metric formatting |
 | Numeric surface extraction/equivalence and prepared table-support promotion | `financial_numeric_surface.py`; owns the private table-support text helper and public `promote_table_numeric_support_evidence(...)` with no-support identity, stable first-four answer-major matching, supported evidence/metadata copies, nested aliases, and exact lazy/access/exception behavior, while graph retains evidence/candidate/support gates, local copies, retrieved-narrative skip, later filtering, append-evidence behavior, state/artifact work, and final orchestration |
-| Aggregate projection, stale provenance selection, signature/sign rank, compact synthesis prompt-row projection, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, generated-provenance filtering, nested-row consistency, prepared projection-row surface synchronization, and prepared arithmetic-component synchronization | `financial_aggregate_projection.py`; canonical operation-family normalization, aggregate-result signature and growth sign-consistency primitives, state-free target selection, compact synthesis-input projection, prepared result/slot transforms, candidate packaging/application, claim-id merge, provenance filtering, nested-row recursion, selected-row numeric/result/slot/lookup synchronization, and lookup-slot to component/series/delta synchronization are owner-owned, while full dedupe/rank tuples/nested promotion, LLM/model/prompt construction and invocation, JSON/debug projection and catch/fallback, evidence/kept-id and candidate/sentence selection, conflict/coverage/render gates, lookup primary-slot preparation and gating, per-row task mapping/propagation, rebuild gating, selected claims, surface-operand append, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
+| Aggregate projection, stale provenance selection, signature/sign rank, compact synthesis prompt-row projection, aggregate-subtask numeric predicates, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, generated-provenance filtering, nested-row consistency, prepared projection-row surface synchronization, and prepared arithmetic-component synchronization | `financial_aggregate_projection.py`; canonical operation-family normalization, aggregate-result signature and growth sign-consistency primitives, plain numeric-conflict/direct-source predicates, state-free target selection, compact synthesis-input projection, prepared result/slot transforms, candidate packaging/application, claim-id merge, provenance filtering, nested-row recursion, selected-row numeric/result/slot/lookup synchronization, and lookup-slot to component/series/delta synchronization are owner-owned, while task-ledger replacement and conflict fallback, sentence scoring, arithmetic-surface synchronization, full dedupe/rank tuples/nested promotion, LLM/model/prompt construction and invocation, JSON/debug projection and catch/fallback, evidence/kept-id and candidate/sentence selection, conflict/coverage/render gates, lookup primary-slot preparation and gating, per-row task mapping/propagation, rebuild gating, selected claims, surface-operand append, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
 | Shared operand material-numeric predicate | `financial_runtime_trace.py`; owns the public state-free `missing`/unit/value/digit/normalized-value disposition shared by runtime-trace append and aggregate prompt projection, while runtime trace retains row/source-id preparation plus key/dedupe/append and graph retains synthesis orchestration |
 | Aggregate composition carrier and common transition | `financial_aggregate_state.py`; owns public `AggregateCompositionState` and the state-free answer/claim/projection/lock/feedback transition, while graph retains all producers and gates, call placement, sequential state handoff, later `_replace`, broader answer precedence, state/evidence/LLM work, and final orchestration |
 | Task/artifact projection, prepared late aggregate-artifact payload synchronization, and prepared reconciliation evidence-ref enrichment | `financial_task_artifacts.py`; owns artifact/task projection helpers, typed first exact-id payload/summary replacement over graph-prepared artifacts, a private strict-dictionary ten-field operand-ref collector, and public empty-ref identity/nonempty-copy reconciliation enrichment; the latter uses the private runtime-normalization source-id cleaner and exports only the public function, while graph retains both reconciliation caller placements and prepared inputs, downstream operand-set artifact and integrity/replan work, the aggregate artifact initial copy and ratio/render/completeness/formatter/projection mutation gates, artifact creation/finalization, ledger-level id/order, and final orchestration |
@@ -383,9 +393,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 676/676 tests on 2026-08-10 |
+| Latest calculation runtime checkpoint | PASS: targeted 5/5 and affected 633/633 tests on 2026-08-10 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-10 |
-| Full unittest discovery | PASS, 1,525/1,525 tests locally on 2026-08-10 |
+| Full unittest discovery | PASS, 1,527/1,527 tests locally on 2026-08-10 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -449,7 +459,9 @@ packaging/application and final-answer synchronization, nested aggregate-row
 consistency, prepared projection-row surface synchronization, and prepared
 lookup-slot to arithmetic component/series/delta synchronization, plus compact
 aggregate-synthesis prompt-row projection backed by the shared public runtime-
-trace material predicate. The task-artifact
+trace material predicate. The aggregate owner also owns the plain subtask numeric-
+conflict and direct-source-reference predicates, including their asymmetric
+numeric equivalence and fixed source-cleaning contracts. The task-artifact
 owner also covers prepared late aggregate-artifact payload/summary replacement,
 a private ten-field operand-ref collector, and public prepared reconciliation
 evidence-ref enrichment, while the aggregate-state owner covers the public
@@ -494,6 +506,10 @@ and composition-transition call placement/laziness, application invocation/
 broader answer precedence, aggregate-synthesis LLM/model/prompt setup,
 post-period-realignment inputs, JSON/debug/prompt and structured-LLM invocation,
 catch/fallback, mutable state/evidence,
+aggregate task-ledger conflict/fallback disposition, projection sentence scoring
+and arithmetic-surface synchronization around the numeric-conflict calls, the
+status/material/direct-source/family/conflict/sign-rank chain inside full nested
+promotion,
 final-answer table-support owner call placement and returned-row adoption inside
 the broader evidence filter,
 aggregate evidence/kept-id selection, rebuild gating, selected-claim filtering,
@@ -521,67 +537,78 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is the aggregate-subtask numeric-conflict and
-direct-source-reference predicate pair. Move only graph
-`_subtask_numeric_answers_conflict` (`8515-8546`) and
-`_subtask_row_has_direct_source_refs` (`8548-8556`) to plain public
-`financial_aggregate_projection.subtask_numeric_answers_conflict(candidate_row: Mapping[str, Any], current_row: Mapping[str, Any]) -> bool`
-and `subtask_row_has_direct_source_refs(row: Mapping[str, Any]) -> bool`. Replace
-the four conflict calls (`1067`, `4770`, `4862`, `8592`) and the sole source-ref
-call (`8590`) in place. Add no wrapper, carrier, reason, flag, callback, config
-input, compatibility alias, or trace field. The aggregate owner already imports
-the numeric extractor and source-id cleaner; adding numeric equivalence extends an
-existing numeric-surface edge, so there is no new reverse dependency or cycle.
+The next bounded architecture work is the generic numeric-answer coverage and
+outside-reference comparison pair. Move only graph
+`_answer_covers_numeric_answer` (`6002-6019`) and
+`_answer_has_numeric_material_outside_reference` (`6021-6036`) to the plain
+public APIs
+`financial_numeric_surface.answer_covers_numeric_answer(answer: str, numeric_answer: str) -> bool`
+and
+`financial_numeric_surface.answer_has_numeric_material_outside_reference(answer: str, reference_answer: str) -> bool`.
+Replace all calls in place: coverage at `financial_graph.py:238` twice and `:373`,
+plus `financial_graph_calculation.py:965`, `:1308`, `:3049`, `:3071`, `:4859`,
+`:4866`, and `:4976`; outside-reference comparison at
+`financial_graph_calculation.py:5837` and `:16202`. Add no wrapper, carrier,
+reason, flag, callback, config input, compatibility alias, or trace field. The
+numeric-surface owner already has the normalizer, numeric extractor, and
+equivalence dependency, both caller modules already consume that owner, and no
+new reverse dependency or cycle is required.
 
-Numeric-conflict characterization must preserve candidate-before-current
-resolution and extraction. Each row resolves `answer` first, then
-`calculation_result.formatted_result`, then a second `calculation_result` access
-for `rendered_value`, before string normalization. Candidate numeric extraction
-precedes current extraction. If either side is empty the result is `False`.
-Otherwise preserve the asymmetric candidate-major `all(any(...))`: every
-candidate number must match at least one current number for no conflict; an extra
-unmatched current number alone does not create conflict. Equivalent checks retain
-their stable nested order and short-circuit behavior. Do not copy or mutate inputs,
-and catch no mapping, truthiness, string, normalization, extraction, equivalence,
-iteration, or other exception.
+Coverage characterization must preserve eager answer-first and numeric-answer-
+second extraction. Each input is evaluated as truthiness, `str`, whitespace
+normalization, then numeric-surface extraction. Both extractions happen before
+the first candidate-list gate. An empty numeric candidate list returns `True`
+before the answer-list gate; a nonempty numeric list with no answer candidates
+returns `False`. Otherwise preserve the asymmetric numeric-major outer
+`all(...)` and answer-minor inner `any(...)`: every numeric-answer candidate must
+match some answer candidate, in stable nested order with current short-circuit
+behavior.
 
-Direct-source characterization first copies `row.calculation_result`, then passes
-the exact ordered surfaces `row.source_row_ids`, result `source_row_ids`,
-`row.selected_claim_ids`, and result `source_evidence_ids` to the existing source-
-id cleaner. The final `any` retains cleaned order and returns on the first truthy
-id that does not begin with `task_output:`. The output is a bool; the input row and
-nested values remain unmodified. Preserve all row/result copy, getter, cleaner,
-iteration, truthiness, string-prefix, and exception stages without a catch.
+Outside-reference characterization likewise extracts the answer first and the
+reference second before either list is tested. Its answer-list truthiness is
+evaluated before reference-list truthiness in the falsy `or` gate, and either
+empty list returns `False`. Otherwise preserve the asymmetric answer-major outer
+`any(...)` and reference-minor inner `any(...)`: return `True` on the first answer
+candidate for which no reference candidate is equivalent. Both functions leave
+inputs unmodified, perform no copies, and catch no truthiness, string,
+normalization, extraction, list-truthiness, iteration, equivalence, or other
+exception. Do not precompute, reorder, tuple-convert, or symmetrize either nested
+comparison.
 
-Graph retains all four outer consumers and their short-circuit order. Ledger
-finalization evaluates numeric conflict before the answer-preservation fallback.
-Sentence scoring evaluates it after label/percent/arithmetic preparation. The
-arithmetic-surface synchronizer calls it after synced-answer gates and before
-family-specific coverage and single-number gates. Nested promotion evaluates
-direct-source refs after status/material checks, then family equality, numeric
-conflict, and growth-sign ranks in the current chain. Stop before
-`_promote_stronger_nested_aggregate_results` (`8558`); keep ledger replacement,
-sentence selection, surface synchronization, nested promotion/ranking, source
-selection, state, artifact, and final orchestration graph-owned.
+The graph modules retain every prepared answer/reference target, preservation and
+projection gate, score and arithmetic-surface synchronization rule, stale and
+initial-state check, call placement, polarity, later adoption or mutation, and
+state/evidence/artifact/ledger/final orchestration. Keep
+`_numeric_surface_conflicts_with_reference` and the evidence/text numeric-support
+helpers graph-owned. Delete only `6002-6036` and stop before
+`_evidence_supports_final_answer_numeric_material` (`6038`); the owner must not
+absorb evidence selection or support policy.
 
-Current-source profiling reaches numeric conflict 165 times across 40 fixtures
-and direct-source detection 32 times across eight fixtures; direct behavioral
-references are zero. Add two compact owner methods covering answer fallback and
-repeated access, extraction and empty-side gates, asymmetric equivalence order,
-calculation-result/source-field copy order, cleaner input, prefix short-circuit,
-input immutability, and uncaught exceptions. Strengthen three focused existing
-graph fixtures to bind ledger finalization, sentence/surface synchronization, and
-the nested direct-ref/family/conflict/rank chain without pinning suite-wide call
-counts. The numeric coverage/outside-reference pair is the runner-up; the prepared
-trace operand-overlay seam remains third.
+Current-source profiling reaches coverage 226 times across 65 fixtures
+(`True` 178, `False` 48) and outside-reference comparison 24 times across 24
+fixtures (`True` 2, `False` 22), with the full 1,527-test baseline green. Coverage
+has one direct method with two calls; outside-reference comparison has no direct
+behavioral reference. Migrate and consolidate the existing direct coverage
+contract into two compact owner methods that pin answer-first extraction, both
+empty-list truth tables, numeric-major versus answer-major nesting, inner and
+outer short-circuit order, representative propagated exceptions, and input
+immutability. Add four focused wiring checks: the `financial_graph.py` public-
+projection binding, one coverage binding in graph calculation, and the two
+outside-reference gate sites.
+They must pin exact prepared arguments, owner-zero outer gates where applicable,
+result polarity and adoption, and exception stop without asserting all 226 or 24
+runtime calls or broad final outputs.
 
-Acceptance deletes only the 41 graph definition lines and old self references,
-leaves two public owner definitions and five graph calls, and adds no alias. The
-allowed claim is only aggregate-subtask numeric-conflict/direct-source predicate
-ownership and old-body deletion—not ledger replacement, sentence selection,
-surface synchronization, nested promotion/ranking, source selection or provenance
-policy, behavior improvement, performance, total-code or executed-path reduction,
-broader private-mesh cleanup, or Phase 3 completion.
+Acceptance deletes only the 34 graph definition lines, leaves two public owner
+definitions and all 12 calls, and requires old graph definitions, self references,
+wrappers, and aliases to be zero. The allowed claim is only generic numeric-answer
+coverage/outside-reference comparison ownership and old-body deletion—not public
+projection, preservation, scoring, arithmetic synchronization, stale or initial-
+state policy, evidence/text support, behavior improvement, performance, total-code
+or executed-path reduction, broader private-mesh cleanup, or Phase 3 completion.
+The prepared runtime-trace operand overlay is the runner-up. Evidence/text support
+and the broader evidence-local unit cluster remain deferred because their shared
+support, regex, policy, and orchestration boundaries need separate characterization.
 The Phase 3 backlog in the refactoring plan is unordered; this section is the
 authority for priority.
 

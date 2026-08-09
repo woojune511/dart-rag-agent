@@ -161,6 +161,14 @@ Last updated: 2026-08-10
   public material-numeric predicate를 공유하며, 그 predicate는 `missing` gate,
   raw/unit 및 raw/value/rendered/display fallback, digit gate와 normalized-value
   access 순서를 기존 그대로 보존한다.
+  같은 owner의 plain `subtask_numeric_answers_conflict(...)`는 candidate row를
+  current row보다 먼저 answer/formatted/rendered fallback 순서로 resolve하고 두
+  numeric surface를 모두 추출한 뒤, candidate-major/current-minor
+  `all(any(...))` equivalence를 기존 비대칭과 short-circuit 순서로 적용한다.
+  Plain `subtask_row_has_direct_source_refs(...)`는 calculation-result를 먼저
+  shallow-copy하고 row/result의 네 source surface를 기존 cleaner 순서로 합친 뒤
+  `task_output:`이 아닌 첫 direct ref를 판정한다. 두 predicate 모두 input을
+  변경하거나 exception을 catch하지 않는다.
   Numeric-surface owner는 table metadata에서 final-answer numeric support text를
   만드는 helper를 private하게 소유하고, 준비된 evidence를 promote하는 plain public
   `promote_table_numeric_support_evidence(...)`를 제공한다. Empty/no-support 경로는
@@ -232,11 +240,15 @@ Last updated: 2026-08-10
   row answer/result propagation과 state/active-subtask/operand/period/metric formatting,
   source-task display lookup과 material gate, truthy compatibility-owner call placement,
   False-path rendered/raw fallback 및 이후 growth calculation/material sequencing,
+  aggregate task-ledger finalization의 replacement gate와 numeric-conflict-before-
+  preservation disposition, projection-row sentence scorer 및 arithmetic-surface
+  synchronizer의 numeric-conflict call placement와 polarity,
   aggregate artifact의 initial copy, ratio/render/completeness/formatter/projection
   mutation과 `None`/blank-id gate, ledger creation/finalization, mutable state/evidence,
   reconciliation-ref owner의 두 call placement와 artifact/task/state input 구성,
   operand-set artifact 및 integrity/replan 소비, stale repair와 final
-  orchestration, full aggregate dedupe/rank tuple/nested promotion, 기타 absolute-ratio 및
+  orchestration, full aggregate dedupe/rank tuple/nested promotion의 status/material/
+  direct-source/family/numeric-conflict/sign-rank chain, 기타 absolute-ratio 및
   fallback orchestration도 graph에 남는다. 전체 ledger
   synchronization과 broader single-calculation-path Phase 3는 완료되지 않았다.
 
@@ -247,7 +259,7 @@ Last updated: 2026-08-10
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 676/676, full unittest 1,525/1,525 PASS |
+| Latest calculation runtime validation | targeted 5/5, affected 633/633, full unittest 1,527/1,527 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

@@ -1264,9 +1264,9 @@ nested aliases, repeated operation-family resolution, and uncaught mapping/list/
 normalization exception order remain unchanged. Inputs are not mutated, and no
 reason, application flag, or trace field is added.
 
-The graph retains candidate-index and answer-sentence selection, numeric conflict
-and coverage gates, rendered-value extraction, row iteration, lookup primary-slot
-preparation and its truthy gate, updated-row task mapping, ordered/slot-row
+The graph retains candidate-index and answer-sentence selection, numeric-conflict
+owner call placement and coverage gates, rendered-value extraction, row iteration,
+lookup primary-slot preparation and its truthy gate, updated-row task mapping, ordered/slot-row
 propagation, projection rebuild, and final orchestration. This seam does not own
 answer selection, aggregate precedence, arithmetic-component synchronization,
 final projection, state/evidence, or artifact/ledger work.
@@ -1320,6 +1320,47 @@ promotion, result precedence, and state/evidence/artifact/ledger orchestration.
 This boundary claims only the two canonical primitives, not full aggregate ranking
 or promotion ownership, total-code or executed-path reduction, performance,
 broader private-surface cleanup, or Phase 3 completion.
+
+Aggregate-subtask numeric-answer conflict and direct-source-reference detection
+are plain, state-free `financial_aggregate_projection.py` owner seams through
+`subtask_numeric_answers_conflict(candidate_row, current_row)` and
+`subtask_row_has_direct_source_refs(row)`. The conflict owner completely resolves
+the candidate answer before accessing the current row. Each side evaluates
+`answer`, then `calculation_result.formatted_result`, then a repeated
+`calculation_result` access for `rendered_value`, and only then stringifies and
+normalizes the selected surface. Both answers are resolved before candidate and
+current numeric extraction. Both extractors run before the candidate-first,
+current-second empty-result gate; either empty side returns `False`.
+
+For nonempty surfaces, conflict remains the asymmetric candidate-major,
+current-minor `not all(any(...))`: every candidate number must match at least one
+current number for no conflict, an extra unmatched current number alone does not
+create conflict, and both nested iterations retain their stable lazy order. The
+owner does not pre-copy or mutate either row and catches no mapping, truthiness,
+string, normalization, extraction, equivalence, iteration, or other exception.
+
+The direct-source owner first evaluates and shallow-copies
+`row.calculation_result`. It then passes a fresh four-element list to the existing
+source-id cleaner in exact order: row `source_row_ids`, copied-result
+`source_row_ids`, row `selected_claim_ids`, and copied-result
+`source_evidence_ids`. The final lazy `any` skips falsy ids and ids beginning
+case-sensitively with `task_output:`, and returns on the first remaining id. The
+input row and nested values remain unmodified; row/result access, copy, cleaner,
+iteration, truthiness, prefix, and other exceptions remain uncaught.
+
+The graph retains all four consumers and their existing gates and short-circuit
+order. Aggregate task-ledger finalization calls numeric conflict before the
+answer-preservation fallback in the existing `or` expression. Projection-row
+sentence scoring calls it after numeric, label, percent, and arithmetic-score
+preparation; the arithmetic-surface synchronizer calls it after row/sentence
+eligibility and before family-specific coverage and single-number gates. Nested
+promotion keeps status and material checks before direct-source detection, then
+family equality, numeric conflict, and the two growth sign ranks. Ledger mutation,
+sentence selection, surface synchronization, full nested promotion/ranking,
+source selection and provenance policy, state/evidence, artifact/ledger, and final
+orchestration remain graph-owned. This pair claims only predicate ownership and
+old-body deletion, not behavior or policy improvement, performance, total-code or
+executed-path reduction, broad private-surface cleanup, or Phase 3 completion.
 
 Compact aggregate-synthesis prompt-row projection is a plain, state-free
 `financial_aggregate_projection.py` owner seam. It copies the prepared aggregate

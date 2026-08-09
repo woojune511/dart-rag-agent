@@ -334,9 +334,17 @@ Current calculation ownership is:
   synthesis prompt-row projection over graph-prepared ordered results and aggregate
   projection. Projected-row precedence, material operand filtering, stable grouping,
   fixed field/getter order, fresh containers, nested aliases, and uncaught
-  exceptions remain unchanged. Graph retains the LLM gate, model/prompt setup,
+  exceptions remain unchanged. The same owner now exposes plain aggregate-subtask
+  numeric-conflict and direct-source-reference predicates. They preserve candidate-
+  before-current answer fallback and extraction, asymmetric candidate-major
+  equivalence, calculation-result copy before fixed-order source cleaning,
+  `task_output:` filtering, input immutability, and uncaught exception order.
+  Graph retains the LLM gate, model/prompt setup,
   post-period inputs, JSON/debug/prompt invocation, catch/fallback, composition,
-  state, and evidence orchestration.
+  state, and evidence orchestration. It also retains task-ledger replacement and
+  conflict/fallback disposition, projection sentence scoring and arithmetic-surface
+  synchronization, plus the status/material/direct-source/family/conflict/sign-rank
+  chain inside full nested promotion.
 - `financial_runtime_trace.py` owns the public shared operand material-numeric
   predicate consumed by runtime-trace append and aggregate prompt projection. Its
   `missing` gate, lazy unit/value fallbacks, digit threshold, normalized-value
@@ -370,13 +378,13 @@ Current calculation ownership is:
   narrative skipping, local row preparation, later filtering, state/artifact work,
   and final orchestration remain graph-owned.
 
-At the latest checkpoint, the graph is 18,328 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,287 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,831, the answer-slot owner is 625, the aggregate owner is 1,106, the
+is 2,831, the answer-slot owner is 625, the aggregate owner is 1,151, the
 aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
 owner is 1,250, the numeric-surface owner is 539, the runtime-trace owner is 1,065,
-and the execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 676/676 tests, the 217-literal audit, and full discovery over 1,525/1,525
+and the execution owner is 837. The latest owner slice passed targeted 5/5 tests,
+affected 633/633 tests, the 217-literal audit, and full discovery over 1,527/1,527
 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
