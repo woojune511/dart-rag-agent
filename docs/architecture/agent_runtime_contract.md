@@ -1069,6 +1069,28 @@ formula or ratio calculation, query policy, compact-answer rendering, row
 selection/propagation, aggregate precedence, state/evidence, or artifact/ledger
 work.
 
+Prepared late aggregate-artifact payload synchronization is a typed, state-free
+`financial_task_artifacts.py` owner seam. It first creates a fresh top-level copy
+of every supplied artifact, then scans in stable order for the first raw exact-id
+match. A match receives a fresh payload and artifact dictionary: the raw final
+answer, fresh operand list, fresh plan/result dictionaries, and raw-answer
+`[:200]` summary overwrite their existing fields in the original evaluation
+order. No match still returns a fresh list and fresh top-level artifacts. Untouched
+nested values, operand items, and plan/result nested values retain their aliases;
+inputs remain unmodified and mapping, truthiness, conversion, iteration, and
+slice exceptions remain uncaught. The seam adds no reason, application flag, or
+trace field.
+
+The graph retains its initial artifact-list copy before all ratio, rendered,
+completeness, compact-formatting, and projection-mutation gates. It calls the
+owner after projection mutation only when the original artifact argument is not
+`None` and the artifact id is truthy: `None` or a blank id remains owner-zero,
+while an empty list plus a nonblank id remains owner-one and the applicable path
+keeps both top-level copy passes. Aggregate artifact creation/finalization and all
+later ledger/final orchestration remain graph-owned. This seam does not establish
+artifact creation or ledger-level id/order ownership, whole-ledger synchronization,
+ratio/query/formatting policy, state ownership, or final-projection ownership.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 

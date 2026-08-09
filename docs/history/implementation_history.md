@@ -701,6 +701,37 @@ state/evidence or artifact/ledger ownership, final projection, and not a total-
 code, broad executed-path, performance, broad private-mesh, end-to-end
 calculation-owner, or complete Phase 3 reduction claim.
 
+### Aggregate artifact payload synchronization ownership
+
+- `49cbb78` moves the graph-private late aggregate-artifact payload synchronizer
+  into `financial_task_artifacts.py` behind a typed, state-free input/result seam.
+  It preserves copy-all-before-search, raw exact-id stable first-match, no-match
+  fresh top-level copies, target payload/artifact and projection-surface shallow
+  copies, raw final-answer summary slicing, nested aliases, input immutability,
+  and uncaught access/copy/slice order. It adds no reason, application flag, or
+  trace field.
+- The graph retains its initial artifact-list copy, all ratio, rendered,
+  completeness, compact-formatter and projection-mutation gates, and the exact
+  `artifacts is not None` plus truthy-id gate. `None` or blank id remains owner-
+  zero, while an empty list plus nonblank id remains owner-one and the applicable
+  path retains both copy passes. Aggregate artifact creation/finalization and
+  final ledger orchestration remain graph-owned. The old graph definition and
+  exact private self reference are deleted.
+- Production source is `+62/-35`, net 27: the graph changes from 19,184 to
+  19,159 lines (`+10/-35`, net -25) and the task-artifact owner from 1,128 to
+  1,180 (`+52`). Tests are `+295/-4`, net 291; the whole commit is `+357/-39`,
+  net 318.
+- Validation passed targeted 4/4 tests, affected 348/348 tests, the 217-literal
+  runtime audit, full discovery over 1,498/1,498 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared aggregate artifact payload and summary
+synchronization ownership relocation, not artifact creation, ledger-level id/
+order or whole-ledger synchronization, ratio/query/formatting policy, state or
+final-projection ownership, and not a total-code, broad executed-path,
+performance, broad private-mesh, end-to-end calculation-owner, or complete
+Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

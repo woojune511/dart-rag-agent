@@ -395,6 +395,11 @@ state-free owner 경계:
   적용한다. Empty/ineligible exact identity, eligible conditional shallow-copy,
   concept-first/label first-match, `None`-only overlay, source alias와 uncaught
   exception 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
+- `financial_task_artifacts.py`: graph가 준비한 artifact sequence, exact artifact
+  id, final answer와 aggregate projection으로 첫 matching aggregate artifact의
+  payload와 summary를 동기화한다. 모든 top-level artifact를 먼저 복사하고 stable
+  raw exact-id first-match, payload/result shallow-copy alias, input immutability와
+  uncaught access/copy/slice 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -427,6 +432,9 @@ graph adapter에 남은 orchestration 역할군:
   extraction과 iteration; lookup primary-slot 준비/truthy gate, per-row owner 호출,
   task-id/equality update map, ordered/slot propagation과 final rebuild,
   artifact/ledger, stale repair와 final orchestration
+- late aggregate artifact의 initial copy, ratio/render/completeness/compact formatter와
+  projection mutation, `artifacts is not None`/blank-id gate, artifact creation/
+  finalization과 final ledger orchestration. Empty-list+nonblank-id는 owner를 호출한다.
 - ordered ratio-row copy/family/truthy-result gate, before/after rendered comparison,
   compact-answer construction과 row answer/result propagation; compact caller의 state,
   active-subtask, operand, period, metric formatting
@@ -532,8 +540,11 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   stale-repair provenance selection, canonical aggregate operation-family
   normalization, graph-prepared runtime-ratio magnitude projection, generated
   provenance filtering, recursive nested-subtask row consistency, prepared
-  projection-row surface synchronization, and typed base/refreshed aggregate-
-  answer candidate payload packaging/application
+  projection-row surface synchronization, arithmetic component/series/delta
+  synchronization, and typed base/refreshed aggregate-answer candidate payload
+  packaging/application
+- `financial_task_artifacts.py`: task/artifact ledger projection and typed prepared
+  aggregate artifact payload/summary synchronization
 - `financial_graph_calculation_rendering.py`: calculation answer rendering
 - `financial_reflection_projection.py`: reflection/task-artifact projection
 - `financial_text_surface.py`: text/narrative surface helpers
