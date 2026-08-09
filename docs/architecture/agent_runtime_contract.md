@@ -1009,11 +1009,37 @@ normalization exception order remain unchanged. Inputs are not mutated, and no
 reason, application flag, or trace field is added.
 
 The graph retains candidate-index and answer-sentence selection, numeric conflict
-and coverage gates, rendered-value extraction, row iteration, lookup-component
-propagation, updated-row task mapping, ordered/slot-row propagation, projection
-rebuild, and final orchestration. This seam does not own answer selection,
-aggregate precedence, lookup propagation, final projection, state/evidence, or
-artifact/ledger work.
+and coverage gates, rendered-value extraction, row iteration, lookup primary-slot
+preparation and its truthy gate, updated-row task mapping, ordered/slot-row
+propagation, projection rebuild, and final orchestration. This seam does not own
+answer selection, aggregate precedence, arithmetic-component synchronization,
+final projection, state/evidence, or artifact/ledger work.
+
+Prepared aggregate arithmetic-component synchronization is a separate typed,
+state-free aggregate-owner seam. It receives one graph-prepared projection row
+and the ordered lookup primary-slot sequence. Empty lookup input returns the
+exact row before operation-family access; an ineligible row returns the exact
+row after one family resolution. An eligible row returns a fresh top-level row,
+copies a truthy calculation result, and conditionally creates fresh answer-slot,
+role/group, series, and difference/sum delta containers. Untouched nested values
+and non-dictionary role/group items retain their identities. Empty or all-invalid
+series keep the original key/list alias, while an attached nonempty dictionary
+series drops non-dictionary items.
+
+Concept equality precedes bidirectional label matching and the first matching
+lookup slot wins. Replacement values retain the existing `None`-only overlay,
+repeated getter, source-field fallback, and alias behavior. Operation family is
+resolved again before delta projection. The owner normalizes or copies no input
+eagerly, mutates no input, catches no exception, and adds no reason, application
+flag, or trace field.
+
+The graph retains lookup primary-slot preparation and its truthy gate, sequential
+per-row owner calls, task-id/equality update mapping, ordered/slot-row propagation,
+projection rebuild, and later state/evidence/artifact/ledger and answer
+orchestration. This seam owns only prepared lookup-slot to arithmetic component,
+series, and delta synchronization; it does not own lookup selection, projection-
+row surface selection, row-map propagation, aggregate precedence, or final
+projection.
 
 Ratio calculation-result display synchronization is a typed, state-free
 `financial_answer_slots.py` owner seam. The owner receives the exact prepared

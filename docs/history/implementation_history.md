@@ -673,6 +673,34 @@ precedence, state/evidence or artifact/ledger ownership, and not a total-code,
 broad executed-path, performance, broad private-mesh, end-to-end calculation-
 owner, or complete Phase 3 reduction claim.
 
+### Aggregate arithmetic-component synchronization ownership
+
+- `bfb5887` moves the three graph-private prepared lookup-slot arithmetic-
+  component helpers into `financial_aggregate_projection.py` behind a typed,
+  state-free input/result seam. It preserves empty/ineligible exact identity,
+  eligible conditional shallow-copy and nested aliases, concept-first then
+  bidirectional-label stable first-match, `None`-only value overlay, source
+  fallback/aliases, role/group/series/delta behavior, input immutability, and
+  access/exception order. It adds no reason, application flag, or trace field.
+- The graph retains lookup primary-slot preparation and its truthy gate,
+  sequential per-row owner invocation, task-id/equality update mapping,
+  ordered/slot-row propagation, projection rebuild, and all later state/evidence,
+  artifact/ledger, repair, and answer orchestration. The old graph definitions
+  and exact private self references are deleted.
+- Production source is `+119/-88`, net 31: the graph changes from 19,264 to
+  19,184 lines (`+8/-88`, net -80) and the aggregate owner from 860 to 971
+  (`+111`). Tests are `+320/-1`, net 319; the whole commit is `+439/-89`, net 350.
+- Validation passed targeted 2/2 tests, affected aggregate/subtask 327/327 tests,
+  the 217-literal runtime audit, full discovery over 1,496/1,496 tests, and
+  `git diff --check`. Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared lookup-slot to arithmetic component,
+series, and delta synchronization ownership relocation, not lookup selection,
+projection-row surface selection, row-map propagation, aggregate precedence,
+state/evidence or artifact/ledger ownership, final projection, and not a total-
+code, broad executed-path, performance, broad private-mesh, end-to-end
+calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

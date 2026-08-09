@@ -255,14 +255,17 @@ Current calculation ownership is:
   synchronization of graph-prepared nested subtask rows against current ordered
   task results. It also owns typed state-free synchronization of a graph-selected
   projection row with prepared raw answer/rendered surfaces, including numeric-
-  candidate selection and conditional result/slot/lookup copy semantics.
+  candidate selection and conditional result/slot/lookup copy semantics. For
+  graph-prepared lookup primary slots, it owns typed arithmetic component, series,
+  and difference/sum delta synchronization with the existing match, copy/alias,
+  stable-order, and exception contracts.
 
-At the latest checkpoint, the graph is 19,264 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,184 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the answer-slot owner is 594, the aggregate owner is 860, the
+is 2,437, the answer-slot owner is 594, the aggregate owner is 971, the
 dependency owner is 3,164, and the execution owner is 837. The latest owner slice
-passed targeted 3/3 tests, affected 249/249 tests, the 217-literal audit, and full
-discovery over 1,495/1,495 tests.
+passed targeted 2/2 tests, affected 327/327 tests, the 217-literal audit, and full
+discovery over 1,496/1,496 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

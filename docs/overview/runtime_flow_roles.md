@@ -390,7 +390,11 @@ state-free owner 경계:
   answer/rendered surface에는 ratio/growth first-candidate 또는 other last-candidate
   numeric selection과 conditional result/slot/lookup synchronization을 적용한다.
   Fresh/retained identity, raw surface, input immutability와 access/exception 순서를
-  유지하며 reason/flag/trace field를 추가하지 않는다.
+  유지하며 reason/flag/trace field를 추가하지 않는다. Graph가 준비한 lookup primary
+  slots에는 arithmetic component, series와 difference/sum delta synchronization을
+  적용한다. Empty/ineligible exact identity, eligible conditional shallow-copy,
+  concept-first/label first-match, `None`-only overlay, source alias와 uncaught
+  exception 순서를 보존하며 reason/flag/trace field를 추가하지 않는다.
 
 graph adapter에 남은 orchestration 역할군:
 
@@ -420,7 +424,8 @@ graph adapter에 남은 orchestration 역할군:
   packaging call placement/laziness, application invocation/answer precedence,
   mutable state/evidence,
 - aggregate projection-row candidate/sentence/conflict/coverage gate, rendered
-  extraction, iteration, lookup-component propagation, updated-row map과 final rebuild,
+  extraction과 iteration; lookup primary-slot 준비/truthy gate, per-row owner 호출,
+  task-id/equality update map, ordered/slot propagation과 final rebuild,
   artifact/ledger, stale repair와 final orchestration
 - ordered ratio-row copy/family/truthy-result gate, before/after rendered comparison,
   compact-answer construction과 row answer/result propagation; compact caller의 state,
