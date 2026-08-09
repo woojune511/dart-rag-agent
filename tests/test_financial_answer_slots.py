@@ -1,5 +1,6 @@
 import math
 import unittest
+from collections.abc import Mapping
 from copy import deepcopy
 from unittest.mock import patch
 
@@ -17,6 +18,274 @@ from src.agent.financial_answer_slots import (
 
 
 class FinancialAnswerSlotTests(unittest.TestCase):
+    def test_source_task_display_compatibility_preserves_behavior_contract(self) -> None:
+        compatible = financial_answer_slots.source_task_display_compatible_with_slot
+
+        class SlotBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("slot accessed for blank source display")
+
+        self.assertFalse(compatible(SlotBomb(), "  "))  # type: ignore[arg-type]
+
+        nested = {"preserve": True}
+
+        def slot(**updates):
+            row = {
+                "rendered_value": "slot 100 million",
+                "raw_value": "100",
+                "source_row_id": "source:row",
+                "raw_unit": "million",
+                "normalized_unit": "KRW",
+                "nested": nested,
+            }
+            row.update(updates)
+            return row
+
+        policy = {
+            "krw_normalized_unit": "KRW",
+            "krw_display_units": ["won", "thousand won"],
+        }
+        cases = [
+            ("normalized exact rendered", slot(rendered_value="slot   100 million"), " slot 100  million ", True),
+            ("raw display fallback", slot(rendered_value="", raw_value="raw 100"), "raw 100", True),
+            ("task output source", slot(source_row_id="task_output:lookup"), "100 won", True),
+            ("blank raw unit", slot(raw_unit=""), "100 items", True),
+            ("raw unit present", slot(raw_unit="million"), "100 million", True),
+            ("krw display conflicts", slot(normalized_unit="krw"), "100 won", False),
+            ("non-krw display tolerated", slot(normalized_unit="COUNT"), "100 won", True),
+            ("krw non-display tolerated", slot(normalized_unit="KRW"), "100 items", True),
+        ]
+        with patch.object(financial_answer_slots, "CALCULATION_RENDER_POLICY", policy):
+            for name, slot_row, source_display, expected in cases:
+                with self.subTest(case=name):
+                    before = deepcopy(slot_row)
+                    self.assertEqual(compatible(slot_row, source_display), expected)
+                    self.assertEqual(slot_row, before)
+                    self.assertIs(slot_row["nested"], nested)
+
+    def test_source_task_display_compatibility_preserves_access_lazy_and_exception_contract(self) -> None:
+        compatible = financial_answer_slots.source_task_display_compatible_with_slot
+
+        class AccessDict(dict):
+            def __init__(self, values, events, *, failure_key=None):
+                super().__init__(values)
+                self.events = events
+                self.failure_key = failure_key
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == self.failure_key:
+                    raise RuntimeError(f"{key} accessed")
+                return super().get(key, default)
+
+        events = []
+        self.assertTrue(
+            compatible(
+                AccessDict({"rendered_value": "same", "raw_value": "unused"}, events, failure_key="raw_value"),
+                " same ",
+            )
+        )
+        self.assertEqual(events, ["rendered_value"])
+
+        events = []
+        self.assertTrue(
+            compatible(
+                AccessDict(
+                    {"rendered_value": "", "raw_value": "slot", "source_row_id": "task_output:lookup"},
+                    events,
+                    failure_key="raw_unit",
+                ),
+                "source",
+            )
+        )
+        self.assertEqual(events, ["rendered_value", "raw_value", "source_row_id"])
+
+        for name, values, failure_key, source_display, expected_events in (
+            (
+                "blank raw unit",
+                {"rendered_value": "slot", "source_row_id": "source", "raw_unit": ""},
+                "normalized_unit",
+                "source",
+                ["rendered_value", "source_row_id", "raw_unit"],
+            ),
+            (
+                "contained raw unit",
+                {"rendered_value": "slot", "source_row_id": "source", "raw_unit": "million"},
+                "normalized_unit",
+                "source million",
+                ["rendered_value", "source_row_id", "raw_unit"],
+            ),
+        ):
+            with self.subTest(case=name):
+                events = []
+                self.assertTrue(
+                    compatible(
+                        AccessDict(values, events, failure_key=failure_key),
+                        source_display,
+                    )
+                )
+                self.assertEqual(events, expected_events)
+
+        class AccessPolicy(dict):
+            def __init__(self, values, events, *, failure_key=None):
+                super().__init__(values)
+                self.events = events
+                self.failure_key = failure_key
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == self.failure_key:
+                    raise RuntimeError(f"policy {key} accessed")
+                return super().get(key, default)
+
+        policy_events = []
+        lazy_policy = AccessPolicy(
+            {"krw_normalized_unit": "KRW"},
+            policy_events,
+            failure_key="krw_display_units",
+        )
+        with patch.object(financial_answer_slots, "CALCULATION_RENDER_POLICY", lazy_policy):
+            self.assertTrue(
+                compatible(
+                    {
+                        "rendered_value": "slot",
+                        "source_row_id": "source",
+                        "raw_unit": "million",
+                        "normalized_unit": "COUNT",
+                    },
+                    "source won",
+                )
+            )
+        self.assertEqual(policy_events, ["krw_normalized_unit"])
+
+        ordered_events = []
+
+        class OrderedSlot(dict):
+            def get(self, key, default=None):
+                ordered_events.append(f"slot:{key}")
+                return super().get(key, default)
+
+        class OrderedPolicy(dict):
+            def get(self, key, default=None):
+                ordered_events.append(f"policy:{key}")
+                return super().get(key, default)
+
+        with patch.object(
+            financial_answer_slots,
+            "CALCULATION_RENDER_POLICY",
+            OrderedPolicy(krw_normalized_unit="KRW", krw_display_units=[]),
+        ):
+            self.assertTrue(
+                compatible(
+                    OrderedSlot(
+                        rendered_value="slot",
+                        source_row_id="source",
+                        raw_unit="million",
+                        normalized_unit="KRW",
+                    ),
+                    "source",
+                )
+            )
+        self.assertEqual(
+            ordered_events,
+            [
+                "slot:rendered_value",
+                "slot:source_row_id",
+                "slot:raw_unit",
+                "slot:normalized_unit",
+                "policy:krw_normalized_unit",
+                "policy:krw_display_units",
+            ],
+        )
+
+        class CountingString:
+            def __init__(self, value):
+                self.value = value
+                self.calls = 0
+
+            def __str__(self):
+                self.calls += 1
+                return self.value
+
+        retained_unit = CountingString("won")
+        blank_unit = CountingString("")
+        policy_events = []
+        counted_policy = AccessPolicy(
+            {"krw_normalized_unit": "KRW", "krw_display_units": [retained_unit, blank_unit]},
+            policy_events,
+        )
+        with patch.object(financial_answer_slots, "CALCULATION_RENDER_POLICY", counted_policy):
+            self.assertFalse(
+                compatible(
+                    {
+                        "rendered_value": "slot",
+                        "source_row_id": "source",
+                        "raw_unit": "million",
+                        "normalized_unit": "KRW",
+                    },
+                    "source won",
+                )
+            )
+        self.assertEqual(policy_events, ["krw_normalized_unit", "krw_display_units"])
+        self.assertEqual((retained_unit.calls, blank_unit.calls), (2, 1))
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("rendered_value",))
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            compatible({}, BoolBomb())
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            compatible({}, StringBomb())
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            compatible(GetBomb(), "source")  # type: ignore[arg-type]
+        with patch.object(
+            financial_answer_slots,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                compatible({}, "source")
+        with patch.object(
+            financial_answer_slots,
+            "CALCULATION_RENDER_POLICY",
+            {"krw_normalized_unit": "KRW", "krw_display_units": IterBomb()},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+                compatible(
+                    {
+                        "rendered_value": "slot",
+                        "source_row_id": "source",
+                        "raw_unit": "million",
+                        "normalized_unit": "KRW",
+                    },
+                    "source won",
+                )
+
     def test_ratio_display_sync_preserves_gate_copy_and_exception_contract(self) -> None:
         def sync(payload):
             return synchronize_ratio_result_display(

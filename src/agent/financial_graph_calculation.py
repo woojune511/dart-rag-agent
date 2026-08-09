@@ -3177,44 +3177,13 @@ class FinancialAgentCalculationMixin:
                 )
         return ""
 
-    def _source_task_display_compatible_with_slot(
-        self,
-        slot: Dict[str, Any],
-        source_display: str,
-    ) -> bool:
-        display = _normalise_spaces(str(source_display or ""))
-        if not display:
-            return False
-        slot_display = _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
-        if slot_display and display == slot_display:
-            return True
-        source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
-        if source_row_id.startswith("task_output:"):
-            return True
-        raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
-        if not raw_unit:
-            return True
-        if raw_unit in display:
-            return True
-        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
-        krw_normalized_unit = str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "").upper()
-        if normalized_unit == krw_normalized_unit:
-            krw_display_units = tuple(
-                str(item)
-                for item in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
-                if str(item)
-            )
-            if any(unit in display for unit in krw_display_units):
-                return False
-        return True
-
     def _growth_slot_display_value(
         self,
         slot: Dict[str, Any],
         ordered_results: List[Dict[str, Any]],
     ) -> str:
         source_display = self._slot_display_from_source_task(slot, ordered_results)
-        if source_display and self._source_task_display_compatible_with_slot(slot, source_display):
+        if source_display and financial_answer_slots.source_task_display_compatible_with_slot(slot, source_display):
             return source_display
         return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
 

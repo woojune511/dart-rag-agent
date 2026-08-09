@@ -1,7 +1,7 @@
 """Answer slot construction helpers for calculation traces."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from src.agent.financial_graph_calculation_rendering import (
     adjusted_difference_source_display_unit,
@@ -21,6 +21,37 @@ from src.agent.financial_runtime_normalization import (
     _normalise_spaces,
 )
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
+
+
+def source_task_display_compatible_with_slot(
+    slot: Mapping[str, Any],
+    source_display: str,
+) -> bool:
+    display = _normalise_spaces(str(source_display or ""))
+    if not display:
+        return False
+    slot_display = _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+    if slot_display and display == slot_display:
+        return True
+    source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
+    if source_row_id.startswith("task_output:"):
+        return True
+    raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
+    if not raw_unit:
+        return True
+    if raw_unit in display:
+        return True
+    normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+    krw_normalized_unit = str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "").upper()
+    if normalized_unit == krw_normalized_unit:
+        krw_display_units = tuple(
+            str(item)
+            for item in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
+            if str(item)
+        )
+        if any(unit in display for unit in krw_display_units):
+            return False
+    return True
 
 
 @dataclass(frozen=True)

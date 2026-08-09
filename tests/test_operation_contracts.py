@@ -8385,6 +8385,92 @@ class OperationContractTests(unittest.TestCase):
             "1조 8,011억원",
         )
 
+        with patch.object(agent, "_slot_display_from_source_task", return_value="") as source_owner, patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "source_task_display_compatible_with_slot",
+        ) as compatibility_owner:
+            self.assertEqual(agent._growth_slot_display_value(slot, ordered_results), slot["rendered_value"])
+        source_owner.assert_called_once_with(slot, ordered_results)
+        compatibility_owner.assert_not_called()
+
+        for owner_result, expected in ((True, "source display"), (False, slot["rendered_value"])):
+            with self.subTest(owner_result=owner_result), patch.object(
+                agent,
+                "_slot_display_from_source_task",
+                return_value="source display",
+            ), patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "source_task_display_compatible_with_slot",
+                return_value=owner_result,
+            ) as compatibility_owner:
+                self.assertEqual(agent._growth_slot_display_value(slot, ordered_results), expected)
+            compatibility_owner.assert_called_once()
+            slot_arg, display_arg = compatibility_owner.call_args.args
+            self.assertIs(slot_arg, slot)
+            self.assertEqual(display_arg, "source display")
+
+        class TrackedSlot(dict):
+            def __init__(self, values):
+                super().__init__(values)
+                self.events = []
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                return super().get(key, default)
+
+        tracked_slot = TrackedSlot(
+            {
+                "rendered_value": "",
+                "raw_value": "slot fallback",
+                "source_row_id": "source",
+                "raw_unit": "million",
+                "normalized_unit": "KRW",
+            }
+        )
+        with patch.object(
+            agent,
+            "_slot_display_from_source_task",
+            return_value="source won",
+        ), patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "CALCULATION_RENDER_POLICY",
+            {"krw_normalized_unit": "KRW", "krw_display_units": ["won"]},
+        ):
+            self.assertEqual(
+                agent._growth_slot_display_value(tracked_slot, ordered_results),
+                "slot fallback",
+            )
+        self.assertEqual(
+            tracked_slot.events,
+            [
+                "rendered_value",
+                "raw_value",
+                "source_row_id",
+                "raw_unit",
+                "normalized_unit",
+                "rendered_value",
+                "raw_value",
+            ],
+        )
+
+        class FallbackBomb(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("fallback accessed")
+
+        fallback_bomb = FallbackBomb(slot)
+        with patch.object(
+            agent,
+            "_slot_display_from_source_task",
+            return_value="source display",
+        ), patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "source_task_display_compatible_with_slot",
+            side_effect=RuntimeError("compatibility owner failed"),
+        ) as compatibility_owner:
+            with self.assertRaisesRegex(RuntimeError, "compatibility owner failed"):
+                agent._growth_slot_display_value(fallback_bomb, ordered_results)
+        compatibility_owner.assert_called_once_with(fallback_bomb, "source display")
+
     def test_growth_numeric_answer_uses_magnitude_for_parenthesized_currency_displays(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         growth_row = {
