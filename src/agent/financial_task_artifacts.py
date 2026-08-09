@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
@@ -17,6 +18,8 @@ from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.schema.runtime_enums import ArtifactKind, TaskKind, TaskStatus
 
 __all__ = [
+    "AggregateArtifactProjectionPayloadSyncInput",
+    "AggregateArtifactProjectionPayloadSyncResult",
     "aggregate_answer_artifact_update",
     "calculation_plan_artifact_update",
     "calculation_result_artifact_update",
@@ -26,9 +29,58 @@ __all__ = [
     "reconciliation_result_artifact_update",
     "reflection_report_artifact_update",
     "semantic_plan_artifact_update",
+    "synchronize_aggregate_artifact_projection_payload",
     "supersede_task_with_aggregate_result",
     "project_task_artifact_trace",
 ]
+
+
+@dataclass(frozen=True)
+class AggregateArtifactProjectionPayloadSyncInput:
+    """Prepared aggregate artifact payload replacement inputs."""
+
+    artifacts: Sequence[Mapping[str, Any]]
+    artifact_id: str
+    final_answer: str
+    aggregate_projection: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class AggregateArtifactProjectionPayloadSyncResult:
+    """Fresh artifact records after the first matching payload replacement."""
+
+    artifacts: List[Dict[str, Any]]
+
+
+def synchronize_aggregate_artifact_projection_payload(
+    sync_input: AggregateArtifactProjectionPayloadSyncInput,
+) -> AggregateArtifactProjectionPayloadSyncResult:
+    """Replace one prepared aggregate artifact payload without ledger access."""
+
+    artifacts = sync_input.artifacts
+    artifact_id = sync_input.artifact_id
+    final_answer = sync_input.final_answer
+    aggregate_projection = sync_input.aggregate_projection
+    updated_artifacts = [dict(item) for item in (artifacts or [])]
+    for index, artifact in enumerate(updated_artifacts):
+        if str((artifact or {}).get("artifact_id") or "") != artifact_id:
+            continue
+        payload = dict((artifact or {}).get("payload") or {})
+        payload.update(
+            {
+                "final_answer": final_answer,
+                "calculation_operands": list(aggregate_projection.get("calculation_operands") or []),
+                "calculation_plan": dict(aggregate_projection.get("calculation_plan") or {}),
+                "calculation_result": dict(aggregate_projection.get("calculation_result") or {}),
+            }
+        )
+        updated_artifacts[index] = {
+            **dict(artifact),
+            "summary": final_answer[:200],
+            "payload": payload,
+        }
+        break
+    return AggregateArtifactProjectionPayloadSyncResult(artifacts=updated_artifacts)
 
 
 def next_reflection_task_id(

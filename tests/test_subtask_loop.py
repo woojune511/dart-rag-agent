@@ -3442,11 +3442,16 @@ class SubtaskLoopTests(unittest.TestCase):
             financial_graph_calculation,
             "apply_aggregate_answer_candidate",
             wraps=financial_graph_calculation.apply_aggregate_answer_candidate,
-        ) as candidate_apply:
+        ) as candidate_apply, patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            wraps=financial_graph_calculation.synchronize_aggregate_artifact_projection_payload,
+        ) as artifact_payload_sync:
             updated = self.agent._aggregate_calculation_subtasks(state)
 
         trace = _resolve_runtime_calculation_trace(updated)
         candidate_apply.assert_not_called()
+        artifact_payload_sync.assert_not_called()
         final_answer_sync.assert_called_once()
         self.assertEqual(
             (
@@ -3465,6 +3470,156 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         self.assertIn("37.47%", trace_ratio_row["answer"])
         self.assertNotIn("0.04%", trace_ratio_row["answer"])
+
+    def test_ratio_projection_fallback_syncs_prepared_artifact_payload_once(self) -> None:
+        def projection():
+            return {
+                "calculation_operands": [{"operand_id": "num"}],
+                "calculation_plan": {"operation": "ratio"},
+                "calculation_result": {
+                    "status": "ok",
+                    "rendered_value": "80%",
+                    "answer_slots": {
+                        "operation_family": "ratio",
+                        "components_by_group": {
+                            "numerator": [{"label": "numerator", "raw_value": "80"}],
+                            "denominator": [{"label": "denominator", "raw_value": "100"}],
+                        },
+                    },
+                },
+            }
+
+        original_artifacts = [
+            {
+                "artifact_id": "aggregate:001",
+                "summary": "stale",
+                "payload": {"preserve": True},
+            }
+        ]
+        original_artifacts_before = deepcopy(original_artifacts)
+        aggregate_projection = projection()
+        owner = financial_graph_calculation.synchronize_aggregate_artifact_projection_payload
+        owner_events = []
+        owner_results = []
+
+        def record_owner(sync_input):
+            owner_events.append(
+                (
+                    sync_input.artifacts,
+                    sync_input.artifact_id,
+                    sync_input.final_answer,
+                    sync_input.aggregate_projection["calculation_result"]["formatted_result"],
+                    sync_input.aggregate_projection,
+                )
+            )
+            result = owner(sync_input)
+            owner_results.append(result)
+            return result
+
+        with patch.object(
+            self.agent,
+            "_compact_ratio_answer_from_projection",
+            return_value="target share is 80%.",
+        ) as formatter, patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            side_effect=record_owner,
+        ) as artifact_owner:
+            updated_projection, final_answer, updated_artifacts = (
+                self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                    {},
+                    aggregate_projection,
+                    final_answer="stale answer",
+                    artifacts=original_artifacts,
+                    artifact_id="aggregate:001",
+                )
+            )
+
+        formatter.assert_called_once()
+        artifact_owner.assert_called_once()
+        prepared_artifacts, artifact_id, owner_answer, formatted_result, owner_projection = owner_events[0]
+        self.assertIsNot(prepared_artifacts, original_artifacts)
+        self.assertIsNot(prepared_artifacts[0], original_artifacts[0])
+        self.assertEqual(
+            (artifact_id, owner_answer, formatted_result),
+            ("aggregate:001", "target share is 80%.", "target share is 80%."),
+        )
+        self.assertIs(owner_projection, aggregate_projection)
+        self.assertIs(updated_projection, aggregate_projection)
+        self.assertEqual(final_answer, "target share is 80%.")
+        self.assertIs(updated_artifacts, owner_results[0].artifacts)
+        self.assertIsNot(updated_artifacts, prepared_artifacts)
+        self.assertIsNot(updated_artifacts[0], prepared_artifacts[0])
+        self.assertEqual(updated_artifacts[0]["summary"], "target share is 80%.")
+        self.assertEqual(updated_artifacts[0]["payload"]["final_answer"], final_answer)
+        self.assertEqual(original_artifacts, original_artifacts_before)
+
+        empty_projection = projection()
+        with patch.object(
+            self.agent,
+            "_compact_ratio_answer_from_projection",
+            return_value="target share is 80%.",
+        ), patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            side_effect=record_owner,
+        ) as empty_owner:
+            _, _, empty_artifacts = self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                {},
+                empty_projection,
+                final_answer="stale answer",
+                artifacts=[],
+                artifact_id="aggregate:001",
+            )
+        empty_owner.assert_called_once()
+        self.assertEqual(owner_events[1][0], [])
+        self.assertIs(owner_events[1][4], empty_projection)
+        self.assertIs(empty_artifacts, owner_results[1].artifacts)
+
+        raising_projection = projection()
+        with patch.object(
+            self.agent,
+            "_compact_ratio_answer_from_projection",
+            return_value="target share is 80%.",
+        ), patch.object(
+            financial_graph_calculation,
+            "synchronize_aggregate_artifact_projection_payload",
+            side_effect=RuntimeError("artifact owner failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "artifact owner failed"):
+                self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                    {},
+                    raising_projection,
+                    final_answer="stale answer",
+                    artifacts=[],
+                    artifact_id="aggregate:001",
+                )
+        self.assertEqual(
+            raising_projection["calculation_result"]["formatted_result"],
+            "target share is 80%.",
+        )
+
+        for case_name, artifacts, artifact_id in (
+            ("none", None, "aggregate:001"),
+            ("blank_id", original_artifacts, ""),
+        ):
+            with self.subTest(owner_zero=case_name), patch.object(
+                self.agent,
+                "_compact_ratio_answer_from_projection",
+                return_value="target share is 80%.",
+            ), patch.object(
+                financial_graph_calculation,
+                "synchronize_aggregate_artifact_projection_payload",
+                side_effect=AssertionError("artifact owner must stay lazy"),
+            ) as artifact_owner:
+                self.agent._apply_ratio_projection_answer_if_rendered_missing(
+                    {},
+                    projection(),
+                    final_answer="stale answer",
+                    artifacts=artifacts,
+                    artifact_id=artifact_id,
+                )
+            artifact_owner.assert_not_called()
 
     def test_aggregate_recovers_ratio_from_retrieved_same_table_context(self) -> None:
         stale_lookup_rows = [

@@ -51,6 +51,7 @@ from src.agent.financial_dependency_projection import dependency_operand_can_use
 from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_task_artifacts import (
+    AggregateArtifactProjectionPayloadSyncInput,
     aggregate_answer_artifact_update,
     calculation_plan_artifact_update,
     calculation_result_artifact_update,
@@ -58,6 +59,7 @@ from src.agent.financial_task_artifacts import (
     reconciliation_result_artifact_update,
     reflection_report_artifact_update,
     semantic_plan_artifact_update,
+    synchronize_aggregate_artifact_projection_payload,
     supersede_task_with_aggregate_result,
 )
 
@@ -870,6 +872,140 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         self.assertEqual(updated["artifacts"][0]["artifact_id"], "aggregate:001")
         self.assertEqual(updated["tasks"][0]["status"], "partial")
+
+    def test_aggregate_artifact_projection_payload_sync_preserves_copy_and_access_contract(self) -> None:
+        def sync(artifacts, *, artifact_id="aggregate:target", final_answer="final", projection=None):
+            return synchronize_aggregate_artifact_projection_payload(
+                AggregateArtifactProjectionPayloadSyncInput(
+                    artifacts=artifacts,
+                    artifact_id=artifact_id,
+                    final_answer=final_answer,
+                    aggregate_projection={} if projection is None else projection,
+                )
+            ).artifacts
+
+        empty_artifacts = []
+        empty_result = sync(empty_artifacts)
+        self.assertEqual(empty_result, [])
+        self.assertIsNot(empty_result, empty_artifacts)
+
+        preserved_payload = {"nested": {"preserve": True}}
+        no_match = [{"artifact_id": " aggregate:target ", "payload": preserved_payload}]
+
+        class LazyProjection(dict):
+            def get(self, key, default=None):
+                raise RuntimeError(f"projection must stay lazy: {key}")
+
+        no_match_result = sync(no_match, projection=LazyProjection())
+        self.assertEqual(no_match_result, no_match)
+        self.assertIsNot(no_match_result, no_match)
+        self.assertIsNot(no_match_result[0], no_match[0])
+        self.assertIs(no_match_result[0]["payload"], preserved_payload)
+
+        payload_nested = {"payload": "alias"}
+        artifact_nested = {"artifact": "alias"}
+        other_payload = {"other": "alias"}
+        duplicate_payload = {"duplicate": "untouched"}
+        operand_nested = {"operand": "alias"}
+        plan_nested = {"plan": "alias"}
+        result_nested = {"result": "alias"}
+        operands = [{"operand_id": "op_1", "nested": operand_nested}]
+        plan = {"operation": "ratio", "nested": plan_nested}
+        calculation_result = {"status": "ok", "nested": result_nested}
+        projection = {
+            "calculation_operands": operands,
+            "calculation_plan": plan,
+            "calculation_result": calculation_result,
+        }
+        target_payload = {
+            "keep": payload_nested,
+            "final_answer": "stale",
+            "calculation_operands": ["stale"],
+            "calculation_plan": {"stale": True},
+            "calculation_result": {"stale": True},
+        }
+        artifacts = [
+            {"artifact_id": "aggregate:other", "payload": other_payload},
+            {
+                "artifact_id": "aggregate:target",
+                "summary": "stale",
+                "payload": target_payload,
+                "metadata": artifact_nested,
+            },
+            {"artifact_id": "aggregate:target", "payload": duplicate_payload},
+        ]
+        artifacts_before = deepcopy(artifacts)
+        projection_before = deepcopy(projection)
+        final_answer = "answer:" + ("x" * 205)
+
+        updated = sync(artifacts, final_answer=final_answer, projection=projection)
+
+        self.assertIsNot(updated, artifacts)
+        self.assertTrue(all(current is not original for current, original in zip(updated, artifacts)))
+        self.assertIs(updated[0]["payload"], other_payload)
+        self.assertIs(updated[2]["payload"], duplicate_payload)
+        target = updated[1]
+        payload = target["payload"]
+        self.assertEqual(target["summary"], final_answer[:200])
+        self.assertIs(target["metadata"], artifact_nested)
+        self.assertIsNot(payload, target_payload)
+        self.assertIs(payload["keep"], payload_nested)
+        self.assertEqual(payload["final_answer"], final_answer)
+        self.assertEqual(payload["calculation_operands"], operands)
+        self.assertIsNot(payload["calculation_operands"], operands)
+        self.assertIs(payload["calculation_operands"][0], operands[0])
+        self.assertEqual(payload["calculation_plan"], plan)
+        self.assertIsNot(payload["calculation_plan"], plan)
+        self.assertIs(payload["calculation_plan"]["nested"], plan_nested)
+        self.assertEqual(payload["calculation_result"], calculation_result)
+        self.assertIsNot(payload["calculation_result"], calculation_result)
+        self.assertIs(payload["calculation_result"]["nested"], result_nested)
+        self.assertEqual(artifacts, artifacts_before)
+        self.assertEqual(projection, projection_before)
+
+        falsy = sync(
+            [{"artifact_id": "aggregate:target", "payload": []}],
+            projection={
+                "calculation_operands": None,
+                "calculation_plan": "",
+                "calculation_result": 0,
+            },
+        )[0]["payload"]
+        self.assertEqual(
+            falsy,
+            {
+                "final_answer": "final",
+                "calculation_operands": [],
+                "calculation_plan": {},
+                "calculation_result": {},
+            },
+        )
+
+        class TrackingProjection(dict):
+            def __init__(self):
+                super().__init__(calculation_operands=[])
+                self.events = []
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == "calculation_plan":
+                    raise RuntimeError("plan access failed")
+                return super().get(key, default)
+
+        tracking_projection = TrackingProjection()
+        with self.assertRaisesRegex(RuntimeError, "plan access failed"):
+            sync([{"artifact_id": "aggregate:target"}], projection=tracking_projection)
+        self.assertEqual(
+            tracking_projection.events,
+            ["calculation_operands", "calculation_plan"],
+        )
+
+        class FailingArtifact:
+            def __iter__(self):
+                raise RuntimeError("late artifact copy failed")
+
+        with self.assertRaisesRegex(RuntimeError, "late artifact copy failed"):
+            sync([{"artifact_id": "aggregate:target"}, FailingArtifact()])
 
     def test_reflection_report_artifact_update_attaches_reflection_task(self) -> None:
         updated = reflection_report_artifact_update(

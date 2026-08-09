@@ -236,12 +236,14 @@ from src.agent.financial_text_surface import (
     topic_particle as _topic_particle,
 )
 from src.agent.financial_task_artifacts import (
+    AggregateArtifactProjectionPayloadSyncInput,
     aggregate_answer_artifact_update as _build_aggregate_answer_artifact_update,
     calculation_plan_artifact_update as _build_calculation_plan_artifact_update,
     next_reflection_task_id,
     operand_set_artifact_update as _build_operand_set_artifact_update,
     project_task_artifact_trace as _project_task_artifact_trace,
     reflection_report_artifact_update as _build_reflection_report_artifact_update,
+    synchronize_aggregate_artifact_projection_payload,
     synchronize_calculation_result_artifact as _synchronize_calculation_result_artifact,
     supersede_task_with_aggregate_result as _supersede_task_with_aggregate_result,
 )
@@ -5855,35 +5857,6 @@ class FinancialAgentCalculationMixin:
         value_changed = promoted_results != ordered_results or aligned_results != promoted_results
         return aligned_results, identity_changed, value_changed, alignment_value_changed
 
-    def _sync_aggregate_artifact_projection_payload(
-        self,
-        artifacts: List[Dict[str, Any]],
-        *,
-        artifact_id: str,
-        final_answer: str,
-        aggregate_projection: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
-        updated_artifacts = [dict(item) for item in (artifacts or [])]
-        for index, artifact in enumerate(updated_artifacts):
-            if str((artifact or {}).get("artifact_id") or "") != artifact_id:
-                continue
-            payload = dict((artifact or {}).get("payload") or {})
-            payload.update(
-                {
-                    "final_answer": final_answer,
-                    "calculation_operands": list(aggregate_projection.get("calculation_operands") or []),
-                    "calculation_plan": dict(aggregate_projection.get("calculation_plan") or {}),
-                    "calculation_result": dict(aggregate_projection.get("calculation_result") or {}),
-                }
-            )
-            updated_artifacts[index] = {
-                **dict(artifact),
-                "summary": final_answer[:200],
-                "payload": payload,
-            }
-            break
-        return updated_artifacts
-
     def _apply_ratio_projection_answer_if_rendered_missing(
         self,
         state: FinancialAgentState,
@@ -5927,12 +5900,14 @@ class FinancialAgentCalculationMixin:
             "formatted_result": final_answer,
         }
         if artifacts is not None and artifact_id:
-            updated_artifacts = self._sync_aggregate_artifact_projection_payload(
-                updated_artifacts,
-                artifact_id=artifact_id,
-                final_answer=final_answer,
-                aggregate_projection=aggregate_projection,
-            )
+            updated_artifacts = synchronize_aggregate_artifact_projection_payload(
+                AggregateArtifactProjectionPayloadSyncInput(
+                    artifacts=updated_artifacts,
+                    artifact_id=artifact_id,
+                    final_answer=final_answer,
+                    aggregate_projection=aggregate_projection,
+                )
+            ).artifacts
         return aggregate_projection, final_answer, updated_artifacts
 
     def _repair_stale_aggregate_projection_result(

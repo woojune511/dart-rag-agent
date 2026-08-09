@@ -544,12 +544,12 @@ class ImportSideEffectTests(unittest.TestCase):
         path = PROJECT_ROOT / "src" / "agent" / "financial_task_artifacts.py"
         tree = ast.parse(path.read_text(encoding="utf-8-sig"))
         exported = set(financial_task_artifacts.__all__)
-        public_functions = {
+        public_contracts = {
             node.name
             for node in tree.body
-            if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+            if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and not node.name.startswith("_")
         }
-        self.assertEqual(public_functions, exported)
+        self.assertEqual(public_contracts, exported)
         low_level_helpers = {
             "append_artifact",
             "upsert_task",
