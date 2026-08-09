@@ -70,7 +70,12 @@ Last updated: 2026-08-09
   unit을 largest configured scale로 정렬한다. No-change는 exact input list/row identity를,
   changed path는 모든 row의 fresh top-level copy와 nested alias를 보존한다. Graph는
   evidence-driven sibling aligner와 candidate selection, caller gate와 operand-map propagation을
-  유지한다. Dependency owner는
+  유지한다. Dependency owner는 graph가 준비한 source slot, operand와 optional
+  structured-realigned operand sequence만 받는 plain equivalence predicate도 소유한다.
+  Marker-first direct copy와 fallback role/raw/id filtering, final non-task source-id
+  intersection, input immutability와 uncaught exception 순서를 보존한다. Graph는
+  operation-family/source-slot/candidate preparation, source-task/material/
+  anchor-projection mismatch gate, coherence rank와 ratio scope를 유지한다. 같은 owner는
   main precedence, late re-merge, terminal finalization, dependency recalculation plan
   disposition을 소유한다. Graph가 준비한 ordered artifact rows와 이미 coerce한
   recalculated numeric authority에는 status fallback, artifact numeric precedence,
@@ -195,7 +200,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 552/552, full unittest 1,509/1,509 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 632/632, full unittest 1,511/1,511 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

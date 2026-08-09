@@ -205,8 +205,10 @@ Current calculation ownership is:
   trace/eligibility/completeness/query gates and prepared-copy
   construction, downstream coherence/answer/coverage/final projection,
   dependency-row construction, stateful structured-provenance lookup and
-  downstream evidence coercion/append, evidence-driven sibling-table candidate
-  alignment and preparation/map propagation,
+  downstream evidence coercion/append, dependency-coherence source-slot/candidate/
+  marked-row preparation, source-task/material/anchor-projection gates, rank and
+  ratio-scope orchestration around the owner equivalence call, evidence-driven
+  sibling-table candidate alignment and preparation/map propagation,
   other ratio/absolute
   orchestration, and remaining fallbacks.
 - `financial_operand_resolution.py` owns state-free candidate matching,
@@ -272,7 +274,13 @@ Current calculation ownership is:
   predicate with its short-circuit gates, raw/result-unit fallback, exact scaled
   tolerance, input immutability, and conversion-try exception boundary. Row
   coercion, table-metadata repair, both call placements, mutation, and later
-  orchestration remain graph-owned.
+  orchestration remain graph-owned. The same owner owns the plain prepared
+  structured-unit-realigned operand/source-slot equivalence predicate. It preserves
+  marker-first copy and fallback-sequence laziness, fallback role/raw/id filtering,
+  final non-task source-id intersection, input immutability, and uncaught access/
+  copy/normalization/iteration exceptions. Full coherence-rank preparation,
+  source-task/material/anchor-projection gates, rank disposition, ratio scope, and
+  provenance/adoption/state/artifact/final orchestration remain graph-owned.
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
@@ -317,13 +325,13 @@ Current calculation ownership is:
   graph state/input preparation, integrity/replan policy, and final orchestration
   remain graph-owned.
 
-At the latest checkpoint, the graph is 18,667 lines, the graph helper module is
+At the latest checkpoint, the graph is 18,620 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
 is 2,735, the answer-slot owner is 594, the aggregate owner is 1,019, the
-aggregate-state owner is 161, the dependency owner is 3,209, the task-artifact
+aggregate-state owner is 161, the dependency owner is 3,257, the task-artifact
 owner is 1,250, and the execution owner is 837. The latest owner slice passed
-targeted 3/3 tests, affected 552/552 tests, the 217-literal audit, and full
-discovery over 1,509/1,509 tests.
+targeted 3/3 tests, affected 632/632 tests, the 217-literal audit, and full
+discovery over 1,511/1,511 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

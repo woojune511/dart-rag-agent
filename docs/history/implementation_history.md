@@ -1005,6 +1005,41 @@ scope/evidence selection, whole-operand precedence, scoring or policy improvemen
 callback/private-mesh cleanup, total-code or broad executed-path reduction,
 performance, end-to-end calculation ownership, or complete Phase 3.
 
+### Structured-unit source-slot equivalence ownership
+
+- `2662dfa` moves the graph-private structured-unit-realigned operand/source-slot
+  equivalence predicate into the plain public dependency owner. The graph imports
+  and calls the owner once at the same position inside dependency-coherence ranking;
+  the old graph definition and private self references are deleted. No wrapper,
+  result carrier, reason, flag, callback, config input, compatibility alias, or
+  trace field is added.
+- Marker-first direct copy and fallback-sequence laziness are unchanged. Without
+  the marker, operand role/raw/ids and each fallback row's role/raw filters precede
+  cleaned-id overlap and the survivor copy. A nonempty candidate list retains
+  source-id cleaning with `task_output:` exclusion before source raw/unit access,
+  then candidate raw/unit and cleaned non-task-id scanning, stable first match,
+  input immutability, and uncaught
+  mapping/copy/truthiness/string/normalization/cleaning/iteration/hash/prefix
+  exceptions. Fallback preselection still includes task-output ids.
+- Graph retains operation-family gating, source-slot/candidate/marked-row building,
+  source-task selection, material and anchor/projection mismatch gates, rank
+  disposition, ratio-scope checks, and all provenance/adoption/state/artifact/final
+  orchestration. The owner matrix pins the direct and fallback decision/access/
+  exception contract; the graph fixture pins owner-zero gates, exact prepared
+  copies, true/false rank disposition, and exception stop before later scope work.
+- Production source is `+50/-49`, net 1: the graph changes from 18,667 to 18,620
+  lines (`+2/-49`, net -47) and the dependency owner from 3,209 to 3,257 (`+48`).
+  Tests are `+404/-0`, net 404; the whole commit is `+454/-49`, net 405.
+- Validation passed targeted 3/3 tests, affected 632/632 tests, the 217-literal
+  runtime audit, full discovery over 1,511/1,511 tests, and `git diff --check`.
+  Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared structured-unit/source-slot equivalence
+predicate relocation and 47-line old graph-body deletion, not source-task or slot
+selection, complete coherence-rank/provenance-adoption ownership, unit-policy
+improvement, total-code or broad executed-path reduction, performance, broader
+private-mesh cleanup, end-to-end calculation ownership, or complete Phase 3.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

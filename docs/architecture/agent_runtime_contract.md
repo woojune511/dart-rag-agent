@@ -913,6 +913,36 @@ added, and an exception after source-anchor or chunk-id adoption still propagate
 with those earlier in-place mutations intact. The graph retains downstream
 evidence lookup, row coercion, append/order, and all stateful provenance lookup.
 
+The dependency owner also exposes the plain public structured-unit-realigned
+operand/source-slot equivalence predicate. It receives only a graph-prepared
+source slot, operand, and optional ordered structured-realigned operand sequence.
+The operand marker is the first access. A truthy marker creates a fresh top-level
+operand copy without touching the fallback sequence, role, raw value, or source-id
+surfaces. Without the marker, operand role uses `role` before lazy
+`matched_operand_role`, followed by raw value and cleaned ids. Fallback rows retain
+their order: role and raw value are read before their filters, and only survivors
+reach cleaned-id overlap and a top-level copy. No candidate returns `False` before
+source-slot access.
+
+For a nonempty candidate list, source ids are cleaned and `task_output:` ids are
+excluded before source raw value and normalized unit. Candidates are scanned in
+order through raw equality, normalized-unit equality, cleaned non-task ids, and a
+nonempty source/candidate-id intersection. The fallback preselection deliberately
+does not remove `task_output:` ids. The predicate does not mutate inputs and adds
+no catch: mapping, copy, truthiness, string, normalization, source-id cleaning,
+iteration, hashing, prefix-check, and other exceptions propagate.
+
+The sole graph call remains inside the dependency-coherence rank method after
+operation-family, source-task, source-slot material, anchor, and projection-
+mismatch preparation. Graph retains source-slot maps, candidate and marked-row
+construction, source-task selection, rank disposition, ratio-scope checks, and all
+provenance/adoption/state/artifact/final orchestration. This seam owns only the
+prepared equivalence predicate and adds no wrapper, result carrier, reason, flag,
+callback, config input, compatibility alias, or trace field. It does not establish
+whole coherence-rank or provenance-adoption ownership, unit-policy improvement,
+total-code or executed-path reduction, performance, private-mesh cleanup, or
+Phase 3 completion.
+
 For supported ratio recalculation, artifact precedence is split at a narrower
 boundary. The graph coerces the recalculated top-level `result_value`; an
 unavailable value returns before artifact-row construction. It then builds the

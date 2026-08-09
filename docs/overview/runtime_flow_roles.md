@@ -387,7 +387,12 @@ state-free owner 경계:
   task-output normalized-KRW predicate는 dependency/source/unit gate, raw/result-unit
   fallback, exact tolerance와 conversion `try`를 소유한다. Normalized-value getter의
   `TypeError`/`ValueError`는 `False`이며 earlier mapping error와 `RuntimeError`는
-  전파된다. Graph는 두 caller 위치, row coercion, table repair와 이후 mutation을 유지한다.
+  전파된다. 같은 owner의 plain structured-unit/source-slot predicate는 marker-first
+  direct copy와 fallback-sequence laziness, fallback role/raw/id filter와 final non-task
+  source-id intersection을 기존 순서로 적용한다. Input을 변경하거나 exception을
+  catch하지 않는다. Graph는 두 KRW caller 위치, row coercion과 table repair, 그리고
+  coherence predicate의 source-slot/candidate/marked-row preparation, source-task/
+  material/anchor-projection gates, rank/ratio scope와 이후 mutation을 유지한다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -450,6 +455,8 @@ graph adapter에 남은 orchestration 역할군:
   no-provenance owner-call skip, downstream evidence lookup/coercion/append;
   dependency-unit inference의 네 call placement와 conditional second inference,
   task-output KRW predicate의 row-coercion/table-repair call placement,
+  structured-unit/source-slot predicate 전후의 candidate/marked-row/source-task/
+  material/anchor-projection gate와 coherence-rank/ratio-scope orchestration,
   single-row repair 전후의 caller gates와 plan/operand-map propagation,
   evidence-driven sibling candidate selection/realignment과 shared-context owner
   호출 배치
@@ -590,7 +597,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
   disposition, ratio-artifact conflict selection, two-stage post-candidate
   finalization, in-place prepared structured-provenance adoption, and prepared
   dependency-source ratio-result projection, plus plain dependency-row display/
-  normalized-unit inference and task-output normalized-KRW consistency
+  normalized-unit inference, task-output normalized-KRW consistency, and prepared
+  structured-unit-realigned operand/source-slot equivalence
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
   outcome, and typed state-free value-only stale freshness assessment
