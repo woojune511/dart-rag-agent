@@ -1,3 +1,4 @@
+import inspect
 import json
 import sys
 import tempfile
@@ -1049,9 +1050,35 @@ class SubtaskLoopTests(unittest.TestCase):
             "normalized_value": -11_526_297_000_000.0,
         }
 
-        rows = self.agent._build_dependency_operand_rows(state)
+        unit_calls = []
+        unit_callers = []
+        current_unit_owner = financial_graph_calculation.infer_dependency_row_unit
+
+        def record_unit_owner(slot, sibling_result):
+            unit_calls.append((slot, sibling_result))
+            unit_callers.append(inspect.currentframe().f_back.f_code.co_name)
+            return current_unit_owner(slot, sibling_result)
+
+        with patch.object(financial_graph_calculation, "infer_dependency_row_unit", new=record_unit_owner):
+            rows = self.agent._build_dependency_operand_rows(state)
 
         self.assertEqual(len(rows), 1)
+        self.assertEqual(unit_callers, ["_build_dependency_operand_rows"] * 2)
+        self.assertEqual(
+            [
+                (
+                    slot.get("raw_value"),
+                    slot.get("normalized_value"),
+                    slot.get("role"),
+                )
+                for slot, _sibling_result in unit_calls
+            ],
+            [
+                ("(11,526,297)", -11_526_297_000_000.0, None),
+                ("6,566,976", 6_566_976_000_000.0, "numerator"),
+            ],
+        )
+        self.assertIs(unit_calls[0][1], unit_calls[1][1])
         self.assertEqual(
             rows[0]["source_anchor"],
             "[ACME | 2023 | III. Financial Statements > 2. Consolidated Financial Statements]",
@@ -4016,15 +4043,30 @@ class SubtaskLoopTests(unittest.TestCase):
             owner_events.append(str(row.get("operand_id") or ""))
             return current_repair(row)
 
+        unit_calls = []
+        unit_callers = []
+        current_unit_owner = financial_graph_calculation.infer_dependency_row_unit
+
+        def record_unit_owner(slot, sibling_result):
+            unit_calls.append((slot, sibling_result))
+            unit_callers.append(inspect.currentframe().f_back.f_code.co_name)
+            return current_unit_owner(slot, sibling_result)
+
         with (
             patch.object(
                 financial_graph_calculation,
                 "repair_operand_normalization_from_rendered_unit",
                 side_effect=record_repair,
             ) as repair_owner,
+            patch.object(
+                financial_graph_calculation,
+                "infer_dependency_row_unit",
+                new=record_unit_owner,
+            ),
         ):
             prepared = self.agent._prepare_initial_aggregate_state(state)
             owner_call_count = repair_owner.call_count
+            unit_owner_call_count = len(unit_calls)
             empty_results = []
             self.assertIs(
                 self.agent._append_ratio_result_from_task_outputs(
@@ -4042,6 +4084,28 @@ class SubtaskLoopTests(unittest.TestCase):
             )
 
         self.assertEqual(repair_owner.call_count, owner_call_count)
+        self.assertEqual(len(unit_calls), unit_owner_call_count)
+        self.assertEqual(
+            unit_callers,
+            ["_append_ratio_result_from_retrieved_context"] * 2
+            + ["_append_ratio_result_from_task_outputs"] * 2,
+        )
+        self.assertEqual(
+            [
+                (
+                    slot.get("role"),
+                    slot.get("raw_value"),
+                    sibling_result.get("result_unit"),
+                )
+                for slot, sibling_result in unit_calls
+            ],
+            [
+                ("numerator_1", "181,624,107", None),
+                ("denominator_1", "342,736,271", None),
+                ("numerator_1", "181,624,107", None),
+                ("denominator_1", "342,736,271", None),
+            ],
+        )
         self.assertEqual(
             owner_events,
             [
@@ -7243,8 +7307,34 @@ class SubtaskLoopTests(unittest.TestCase):
             ],
         }
 
-        updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+        unit_calls = []
+        unit_callers = []
+        current_unit_owner = financial_graph_calculation.infer_dependency_row_unit
 
+        def record_unit_owner(slot, sibling_result):
+            unit_calls.append((slot, sibling_result))
+            unit_callers.append(inspect.currentframe().f_back.f_code.co_name)
+            return current_unit_owner(slot, sibling_result)
+
+        with patch.object(financial_graph_calculation, "infer_dependency_row_unit", new=record_unit_owner):
+            updated = self.agent._append_ratio_result_from_task_outputs(ordered, state)
+
+        self.assertEqual(unit_callers, ["_append_ratio_result_from_task_outputs"] * 3)
+        self.assertEqual(
+            [
+                (
+                    slot.get("role"),
+                    slot.get("raw_value"),
+                    sibling_result.get("result_unit"),
+                )
+                for slot, sibling_result in unit_calls
+            ],
+            [
+                ("numerator_1", "4,145,647", "million"),
+                ("numerator_2", "10,121,033", "백만원"),
+                ("denominator_1", "100,000,000", "백만원"),
+            ],
+        )
         ratio_row = next(row for row in updated if row.get("task_id") == "task_ratio")
         short_row = next(
             row for row in ratio_row["calculation_operands"] if row["matched_operand_role"] == "numerator_1"

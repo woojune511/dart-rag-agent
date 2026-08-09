@@ -34,6 +34,168 @@ from src.agent.financial_dependency_projection import (
 
 
 class FinancialDependencyProjectionTests(unittest.TestCase):
+    def test_dependency_row_unit_inference_preserves_policy_and_access_contract(self) -> None:
+        def infer(slot, sibling_result):
+            return dependency_projection.infer_dependency_row_unit(slot, sibling_result)
+
+        slot = {"raw_unit": "  million  ", "normalized_unit": " krw ", "nested": {"keep": True}}
+        sibling_result = {"result_unit": "%", "nested": {"keep": True}}
+        inputs_before = deepcopy((slot, sibling_result))
+        self.assertEqual(infer(slot, sibling_result), ("million", "KRW"))
+        self.assertEqual((slot, sibling_result), inputs_before)
+        self.assertEqual(
+            infer({"raw_unit": "", "normalized_unit": "count"}, {"result_unit": " units "}),
+            ("units", "COUNT"),
+        )
+
+        events = []
+
+        class _TrackedMapping(Mapping[str, Any]):
+            def __init__(self, name, values, *, fail_key=""):
+                self.name = name
+                self.values = values
+                self.fail_key = fail_key
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                events.append(f"getitem:{self.name}:{key}")
+                return self.values[key]
+
+            def keys(self):
+                events.append(f"keys:{self.name}")
+                return self.values.keys()
+
+            def get(self, key, default=None):
+                events.append(f"get:{self.name}:{key}")
+                if key == self.fail_key:
+                    raise RuntimeError(f"failed to read {self.name}.{key}")
+                return self.values.get(key, default)
+
+        class _TrackedUnits:
+            def __init__(self, name, values, *, fail=False):
+                self.name = name
+                self.values = values
+                self.fail = fail
+
+            def __iter__(self):
+                events.append(f"iter:{self.name}")
+                if self.fail:
+                    raise RuntimeError(f"failed to iterate {self.name}")
+                return iter(self.values)
+
+        lazy_sibling = _TrackedMapping("sibling", {}, fail_key="result_unit")
+        with patch.object(
+            dependency_projection,
+            "CALCULATION_RENDER_POLICY",
+            _TrackedMapping("policy", {}, fail_key="keys"),
+        ):
+            self.assertEqual(
+                infer(_TrackedMapping("slot", {"raw_unit": " % ", "normalized_unit": "percent"}), lazy_sibling),
+                ("%", "PERCENT"),
+            )
+        self.assertEqual(events, ["get:slot:raw_unit", "get:slot:normalized_unit"])
+
+        events.clear()
+        whitespace_sibling = _TrackedMapping("sibling", {}, fail_key="result_unit")
+        self.assertEqual(
+            infer(_TrackedMapping("slot", {"raw_unit": "   ", "normalized_unit": "UNKNOWN"}), whitespace_sibling),
+            ("", "UNKNOWN"),
+        )
+        self.assertNotIn("get:sibling:result_unit", events)
+
+        policy = {
+            "percent_display_units": ("%", "shared"),
+            "krw_display_units": ("won", "shared", "krw_count"),
+            "krw_normalized_unit": "custom_krw",
+            "count_display_units": ("count", "shared", "krw_count"),
+        }
+        for raw_unit, expected in (
+            ("%", "PERCENT"),
+            ("shared", "PERCENT"),
+            ("won", "CUSTOM_KRW"),
+            ("krw_count", "CUSTOM_KRW"),
+            ("count", "COUNT"),
+            ("other", "UNKNOWN"),
+        ):
+            with self.subTest(raw_unit=raw_unit), patch.object(
+                dependency_projection,
+                "CALCULATION_RENDER_POLICY",
+                policy,
+            ):
+                self.assertEqual(infer({"raw_unit": raw_unit}, {}), (raw_unit, expected))
+
+        for configured_unit, expected in (("", "KRW"), (" custom_krw ", " CUSTOM_KRW ")):
+            with self.subTest(configured_unit=configured_unit), patch.object(
+                dependency_projection,
+                "CALCULATION_RENDER_POLICY",
+                {
+                    "percent_display_units": (),
+                    "krw_display_units": ("won",),
+                    "krw_normalized_unit": configured_unit,
+                    "count_display_units": (),
+                },
+            ):
+                self.assertEqual(infer({"raw_unit": "won"}, {}), ("won", expected))
+
+        events.clear()
+        tracked_policy = _TrackedMapping(
+            "policy",
+            {
+                "percent_display_units": _TrackedUnits("percent", ["%"]),
+                "krw_display_units": _TrackedUnits("krw", ["won"]),
+                "krw_normalized_unit": "KRW",
+                "count_display_units": _TrackedUnits("count", ["count"]),
+            },
+        )
+        with patch.object(dependency_projection, "CALCULATION_RENDER_POLICY", tracked_policy):
+            self.assertEqual(
+                infer(
+                    _TrackedMapping("slot", {"raw_unit": "", "normalized_unit": "UNKNOWN"}),
+                    _TrackedMapping("sibling", {"result_unit": "%"}),
+                ),
+                ("%", "PERCENT"),
+            )
+        self.assertEqual(
+            events,
+            [
+                "get:slot:raw_unit",
+                "get:sibling:result_unit",
+                "get:slot:normalized_unit",
+                "keys:policy",
+                "getitem:policy:percent_display_units",
+                "getitem:policy:krw_display_units",
+                "getitem:policy:krw_normalized_unit",
+                "getitem:policy:count_display_units",
+                "iter:percent",
+            ],
+        )
+
+        events.clear()
+        failing_policy = {
+            "percent_display_units": _TrackedUnits("percent", [], fail=True),
+            "krw_display_units": _TrackedUnits("krw", ["won"]),
+        }
+        with patch.object(
+            dependency_projection,
+            "CALCULATION_RENDER_POLICY",
+            failing_policy,
+        ), self.assertRaisesRegex(RuntimeError, "failed to iterate percent"):
+            infer({"raw_unit": "won"}, {})
+        self.assertEqual(events, ["iter:percent"])
+
+        events.clear()
+        with self.assertRaisesRegex(RuntimeError, "failed to read slot.raw_unit"):
+            infer(
+                _TrackedMapping("slot", {}, fail_key="raw_unit"),
+                _TrackedMapping("sibling", {}, fail_key="result_unit"),
+            )
+        self.assertEqual(events, ["get:slot:raw_unit"])
+
     def test_dependency_ratio_result_projection_preserves_aliases_and_access_order(self) -> None:
         marker = {"preserve": True}
         numerator = {"slot": "numerator", "metadata": marker}

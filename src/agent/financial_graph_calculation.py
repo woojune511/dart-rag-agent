@@ -105,6 +105,7 @@ from src.agent.financial_dependency_projection import (
     fill_missing_ratio_dependency_operands,
     finalize_dependency_recalculated_row,
     filter_direct_rows_by_dependency_producer_scope,
+    infer_dependency_row_unit,
     lookup_primary_slot,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
@@ -7332,29 +7333,6 @@ class FinancialAgentCalculationMixin:
 
         return True
 
-    def _infer_dependency_row_unit(
-        self,
-        slot: Dict[str, Any],
-        sibling_result: Dict[str, Any],
-    ) -> tuple[str, str]:
-        raw_unit = _normalise_spaces(
-            str(
-                slot.get("raw_unit")
-                or sibling_result.get("result_unit")
-                or ""
-            )
-        )
-        normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "UNKNOWN")).upper() or "UNKNOWN"
-        if normalized_unit == "UNKNOWN":
-            render_policy = dict(CALCULATION_RENDER_POLICY)
-            if raw_unit in set(render_policy.get("percent_display_units") or ()):
-                normalized_unit = "PERCENT"
-            elif raw_unit in set(render_policy.get("krw_display_units") or ()):
-                normalized_unit = str(render_policy.get("krw_normalized_unit") or "KRW").upper()
-            elif raw_unit in set(render_policy.get("count_display_units") or ()):
-                normalized_unit = "COUNT"
-        return raw_unit, normalized_unit
-
     def _build_dependency_operand_rows(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
         active_subtask = dict(state.get("active_subtask") or {})
         input_bindings = [dict(item) for item in (active_subtask.get("inputs") or [])]
@@ -7726,7 +7704,7 @@ class FinancialAgentCalculationMixin:
                     )
                     if preferred_surface_matches:
                         source_slot = preferred_slot
-            raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+            raw_unit, normalized_unit = infer_dependency_row_unit(source_slot, sibling_result)
             normalized_value = source_slot.get("normalized_value")
             if normalized_value is None:
                 normalized_value = sibling_result.get("result_value")
@@ -7791,7 +7769,7 @@ class FinancialAgentCalculationMixin:
                         or source_slot_name
                     )
                     source_slot = updated_slot
-                    raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+                    raw_unit, normalized_unit = infer_dependency_row_unit(source_slot, sibling_result)
                     normalized_value = source_slot.get("normalized_value")
                     if normalized_value is None:
                         normalized_value = sibling_result.get("result_value")
@@ -17196,7 +17174,7 @@ class FinancialAgentCalculationMixin:
                             ),
                             "unit_realigned_from_result_unit": True,
                         }
-                raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+                raw_unit, normalized_unit = infer_dependency_row_unit(source_slot, sibling_result)
                 dependency_rows.append(
                     repair_operand_normalization_from_rendered_unit(
                         {
@@ -17451,7 +17429,7 @@ class FinancialAgentCalculationMixin:
                 source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
                 if not self._answer_slot_has_material(source_slot):
                     continue
-                raw_unit, normalized_unit = self._infer_dependency_row_unit(source_slot, sibling_result)
+                raw_unit, normalized_unit = infer_dependency_row_unit(source_slot, sibling_result)
                 dependency_rows.append(
                     repair_operand_normalization_from_rendered_unit(
                         {

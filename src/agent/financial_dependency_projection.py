@@ -388,6 +388,29 @@ def build_dependency_ratio_result_projection(
     )
 
 
+def infer_dependency_row_unit(
+    slot: Mapping[str, Any],
+    sibling_result: Mapping[str, Any],
+) -> tuple[str, str]:
+    raw_unit = _normalise_spaces(
+        str(
+            slot.get("raw_unit")
+            or sibling_result.get("result_unit")
+            or ""
+        )
+    )
+    normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "UNKNOWN")).upper() or "UNKNOWN"
+    if normalized_unit == "UNKNOWN":
+        render_policy = dict(CALCULATION_RENDER_POLICY)
+        if raw_unit in set(render_policy.get("percent_display_units") or ()):
+            normalized_unit = "PERCENT"
+        elif raw_unit in set(render_policy.get("krw_display_units") or ()):
+            normalized_unit = str(render_policy.get("krw_normalized_unit") or "KRW").upper()
+        elif raw_unit in set(render_policy.get("count_display_units") or ()):
+            normalized_unit = "COUNT"
+    return raw_unit, normalized_unit
+
+
 def dependency_binding_identity(binding: Dict[str, Any]) -> Tuple[str, str]:
     return (
         _normalise_spaces(str(binding.get("label") or "")),
