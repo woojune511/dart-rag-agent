@@ -172,7 +172,7 @@ def _collect_nested_result_evidence(
     return evidence
 
 
-def _operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
+def operand_row_has_material_numeric_payload(row: Mapping[str, Any]) -> bool:
     status = _normalise_spaces(str(row.get("status") or "")).lower()
     if status == "missing":
         return False
@@ -309,7 +309,7 @@ def _append_aggregate_operand(
     if source_ids is not None and cleaned_source_ids:
         row["source_row_id"] = cleaned_source_ids[0]
         row["source_row_ids"] = cleaned_source_ids
-    if not _operand_row_has_material_numeric_payload(row):
+    if not operand_row_has_material_numeric_payload(row):
         return
     operand_key = _aggregate_operand_key(row, cleaned_source_ids)
     if operand_key in seen_operand_keys:

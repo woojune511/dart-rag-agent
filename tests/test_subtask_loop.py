@@ -12324,9 +12324,62 @@ class SubtaskLoopTests(unittest.TestCase):
             "artifacts": [],
         }
 
-        updated = self.agent._aggregate_calculation_subtasks(state)
+        prompt_owner = financial_graph_calculation.aggregate_synthesis_prompt_rows
+        rebuild_owner = self.agent._rebuild_aggregate_projection
+        period_owner = self.agent._apply_period_context_realignment_to_aggregate
+        owner_inputs = []
+        owner_input_refs = []
+        owner_outputs = []
+        rebuild_outputs = []
+        period_records = []
+
+        def record_rebuild(*args, **kwargs):
+            projection = rebuild_owner(*args, **kwargs)
+            rebuild_outputs.append(projection)
+            return projection
+
+        def record_period(*args, **kwargs):
+            aggregate_state = kwargs["aggregate_state"]
+            latest_rebuild = rebuild_outputs[-1]
+            result = period_owner(*args, **kwargs)
+            period_records.append((aggregate_state, latest_rebuild, result))
+            return result
+
+        def record_prompt_rows(ordered_results, aggregate_projection):
+            owner_input_refs.append((ordered_results, aggregate_projection))
+            owner_inputs.append(deepcopy((ordered_results, aggregate_projection)))
+            projected = prompt_owner(ordered_results, aggregate_projection)
+            owner_outputs.append(projected)
+            return projected
+
+        with (
+            patch.object(self.agent, "_rebuild_aggregate_projection", side_effect=record_rebuild),
+            patch.object(
+                self.agent,
+                "_apply_period_context_realignment_to_aggregate",
+                side_effect=record_period,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_synthesis_prompt_rows",
+                side_effect=record_prompt_rows,
+            ) as prompt_owner_spy,
+        ):
+            updated = self.agent._aggregate_calculation_subtasks(deepcopy(state))
+        prompt_owner_spy.assert_called_once()
         prompt_json = capturing_llm.prompt_text.split("Subtask Results JSON:\n", 1)[1]
         prompt_rows = json.loads(prompt_json)
+        called_ordered_results, called_projection = owner_inputs[0]
+        period_input, latest_rebuild, period_output = period_records[0]
+        self.assertIs(period_input.aggregate_projection, latest_rebuild)
+        self.assertIs(owner_input_refs[0][0], period_output.ordered_results)
+        self.assertIs(owner_input_refs[0][1], period_output.aggregate_projection)
+        self.assertEqual(called_ordered_results[0]["task_id"], "task_1")
+        self.assertEqual(
+            called_projection["calculation_result"]["subtask_results"][0]["task_id"],
+            "task_1",
+        )
+        self.assertEqual(prompt_rows, owner_outputs[0])
 
         self.assertEqual(len(prompt_rows), 1)
         self.assertEqual(prompt_rows[0]["task_id"], "task_1")
@@ -12339,6 +12392,37 @@ class SubtaskLoopTests(unittest.TestCase):
             updated["subtask_debug_trace"]["aggregate_synthesis_prompt"]["input_json_chars"],
             len(json.dumps([state], ensure_ascii=False)),
         )
+        self.assertEqual(
+            updated["subtask_debug_trace"]["aggregate_synthesis_prompt"],
+            {
+                "row_count": len(prompt_rows),
+                "input_json_chars": len(
+                    json.dumps(owner_outputs[0], ensure_ascii=False, separators=(",", ":"))
+                ),
+                "source": "projection_compact_rows",
+            },
+        )
+
+        self.agent.llm = None
+        with patch.object(financial_graph_calculation, "aggregate_synthesis_prompt_rows") as disabled_owner:
+            self.agent._aggregate_calculation_subtasks(deepcopy(state))
+        disabled_owner.assert_not_called()
+
+        fallback_llm = _CapturingLLM(
+            AggregateSynthesisOutput.model_validate(
+                {"final_answer": "unused", "planner_feedback": "unused"}
+            )
+        )
+        self.agent.llm = fallback_llm
+        with patch.object(
+            financial_graph_calculation,
+            "aggregate_synthesis_prompt_rows",
+            side_effect=RuntimeError("prompt row projection failed"),
+        ) as failing_owner:
+            fallback_update = self.agent._aggregate_calculation_subtasks(deepcopy(state))
+        failing_owner.assert_called_once()
+        self.assertEqual(fallback_llm.prompt_text, "")
+        self.assertEqual(fallback_update["answer"], state["answer"])
 
     def test_aggregate_subtasks_dedupes_nested_operand_mirrors(self) -> None:
         projection = self.agent._build_aggregate_calculation_projection(

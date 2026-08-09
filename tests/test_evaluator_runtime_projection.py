@@ -2,7 +2,10 @@ import json
 import subprocess
 import sys
 import unittest
+from collections.abc import Mapping
+from copy import deepcopy
 from pathlib import Path
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
@@ -41,6 +44,7 @@ from src.ops.evaluator import (
     _should_override_numeric_grounding_from_runtime_evidence,
     _should_override_structured_summary_faithfulness,
 )
+from src.agent import financial_runtime_trace
 from src.agent.financial_runtime_trace import _runtime_trace_state_update
 
 
@@ -76,6 +80,293 @@ class _RecordingJudgeLLM:
 
 
 class EvaluatorRuntimeProjectionTests(unittest.TestCase):
+    def test_operand_row_material_numeric_payload_preserves_value_policy(self) -> None:
+        has_material = financial_runtime_trace.operand_row_has_material_numeric_payload
+
+        cases = (
+            ("missing status", {"status": " missing ", "normalized_value": 1}, False),
+            ("unknown short raw", {"normalized_unit": "UNKNOWN", "raw_value": "123"}, False),
+            ("unknown four digits", {"normalized_unit": "UNKNOWN", "raw_value": "1,234"}, True),
+            (
+                "whitespace raw unit suppresses fallback",
+                {"raw_unit": " ", "unit": "count", "normalized_unit": "UNKNOWN", "raw_value": "123"},
+                False,
+            ),
+            (
+                "empty raw unit uses fallback",
+                {"raw_unit": "", "unit": " count ", "normalized_unit": "UNKNOWN", "raw_value": "123"},
+                True,
+            ),
+            (
+                "display fallback",
+                {
+                    "normalized_unit": "UNKNOWN",
+                    "raw_value": "",
+                    "value": "",
+                    "rendered_value": "",
+                    "display_value": "1234",
+                },
+                True,
+            ),
+            ("zero normalized value", {"normalized_unit": "COUNT", "normalized_value": 0}, True),
+            ("known unit without value", {"normalized_unit": "COUNT"}, False),
+            ("unit with nonnumeric raw", {"raw_unit": "unit", "raw_value": "value"}, True),
+        )
+        for name, row, expected in cases:
+            with self.subTest(name=name):
+                before = deepcopy(row)
+                self.assertEqual(has_material(row), expected)
+                self.assertEqual(row, before)
+
+    def test_operand_row_material_numeric_payload_preserves_access_and_exception_contract(self) -> None:
+        has_material = financial_runtime_trace.operand_row_has_material_numeric_payload
+        events = []
+
+        class TrackedRow(Mapping):
+            def __init__(self, values, *, poison_keys=()):
+                self.values = values
+                self.poison_keys = set(poison_keys)
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(key)
+                if key in self.poison_keys:
+                    raise RuntimeError(f"unexpected getter: {key}")
+                return self.values.get(key, default)
+
+        self.assertTrue(
+            has_material(
+                TrackedRow(
+                    {
+                        "status": "ok",
+                        "raw_unit": "",
+                        "unit": "count",
+                        "normalized_unit": "COUNT",
+                        "raw_value": "",
+                        "value": "",
+                        "rendered_value": "",
+                        "display_value": "1234",
+                        "normalized_value": None,
+                    }
+                )
+            )
+        )
+        self.assertEqual(
+            events,
+            [
+                "status",
+                "raw_unit",
+                "unit",
+                "normalized_unit",
+                "raw_value",
+                "value",
+                "rendered_value",
+                "display_value",
+                "normalized_value",
+            ],
+        )
+
+        events.clear()
+        self.assertFalse(has_material(TrackedRow({"status": "missing"})))
+        self.assertEqual(events, ["status"])
+        events.clear()
+        self.assertFalse(
+            has_material(TrackedRow({"normalized_unit": "UNKNOWN", "raw_value": "123"}))
+        )
+        self.assertNotIn("normalized_value", events)
+
+        events.clear()
+        self.assertTrue(
+            has_material(
+                TrackedRow(
+                    {
+                        "raw_unit": "count",
+                        "normalized_unit": "COUNT",
+                        "raw_value": "1234",
+                    },
+                    poison_keys={"unit", "value", "rendered_value", "display_value"},
+                )
+            )
+        )
+        self.assertEqual(events, ["status", "raw_unit", "normalized_unit", "raw_value", "normalized_value"])
+
+        for name, values, poison_keys, expected_events in (
+            (
+                "raw value",
+                {"normalized_unit": "COUNT", "raw_value": "1234"},
+                {"value", "rendered_value", "display_value"},
+                ["status", "raw_unit", "unit", "normalized_unit", "raw_value", "normalized_value"],
+            ),
+            (
+                "value",
+                {"normalized_unit": "COUNT", "raw_value": "", "value": "1234"},
+                {"rendered_value", "display_value"},
+                ["status", "raw_unit", "unit", "normalized_unit", "raw_value", "value", "normalized_value"],
+            ),
+            (
+                "rendered value",
+                {
+                    "normalized_unit": "COUNT",
+                    "raw_value": "",
+                    "value": "",
+                    "rendered_value": "1234",
+                },
+                {"display_value"},
+                [
+                    "status",
+                    "raw_unit",
+                    "unit",
+                    "normalized_unit",
+                    "raw_value",
+                    "value",
+                    "rendered_value",
+                    "normalized_value",
+                ],
+            ),
+        ):
+            with self.subTest(lazy=name):
+                events.clear()
+                self.assertTrue(has_material(TrackedRow(values, poison_keys=poison_keys)))
+                self.assertEqual(events, expected_events)
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("status",))
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            has_material(GetBomb())
+        with self.assertRaisesRegex(RuntimeError, "string failed"):
+            has_material({"status": StringBomb()})
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            has_material({"raw_unit": TruthBomb()})
+        with patch.object(
+            financial_runtime_trace,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalizer failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalizer failed"):
+                has_material({})
+        with patch.object(
+            financial_runtime_trace.re,
+            "findall",
+            side_effect=RuntimeError("regex failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "regex failed"):
+                has_material({"raw_value": "1234"})
+
+    def test_append_aggregate_operand_uses_material_predicate_contract(self) -> None:
+        nested = {"keep": True}
+        operand = {
+            "task_id": "task_a",
+            "operand_id": "operand_a",
+            "raw_value": "100",
+            "raw_unit": "count",
+            "source_row_id": "stale",
+            "nested": nested,
+        }
+        before = deepcopy(operand)
+        expected = {
+            **operand,
+            "source_row_id": "ev_a",
+            "source_row_ids": ["ev_a", "ev_b"],
+        }
+
+        aggregate_operands = []
+        seen = set()
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "operand_row_has_material_numeric_payload",
+                return_value=False,
+            ) as predicate,
+            patch.object(financial_runtime_trace, "_aggregate_operand_key") as later_key,
+        ):
+            financial_runtime_trace._append_aggregate_operand(
+                aggregate_operands,
+                seen,
+                operand,
+                source_ids=[" ev_a ", "ev_b", "ev_a"],
+            )
+        predicate.assert_called_once()
+        copied_row = predicate.call_args.args[0]
+        self.assertEqual(copied_row, expected)
+        self.assertIsNot(copied_row, operand)
+        self.assertIs(copied_row["nested"], nested)
+        self.assertEqual((aggregate_operands, seen), ([], set()))
+        later_key.assert_not_called()
+
+        aggregate_operands = []
+        seen = set()
+        real_key = financial_runtime_trace._aggregate_operand_key
+        expected_key = real_key(expected, ["ev_a", "ev_b"])
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "operand_row_has_material_numeric_payload",
+                return_value=True,
+            ) as predicate,
+            patch.object(financial_runtime_trace, "_aggregate_operand_key", wraps=real_key) as key_builder,
+        ):
+            financial_runtime_trace._append_aggregate_operand(
+                aggregate_operands,
+                seen,
+                operand,
+                source_ids=[" ev_a ", "ev_b", "ev_a"],
+            )
+        predicate.assert_called_once()
+        copied_row = predicate.call_args.args[0]
+        self.assertEqual(aggregate_operands, [expected])
+        self.assertIs(aggregate_operands[0], copied_row)
+        key_builder.assert_called_once_with(copied_row, ["ev_a", "ev_b"])
+        self.assertEqual(seen, {expected_key})
+
+        aggregate_operands = []
+        seen = set()
+        with (
+            patch.object(
+                financial_runtime_trace,
+                "operand_row_has_material_numeric_payload",
+                side_effect=RuntimeError("material predicate failed"),
+            ) as predicate,
+            patch.object(financial_runtime_trace, "_aggregate_operand_key") as later_key,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "material predicate failed"):
+                financial_runtime_trace._append_aggregate_operand(
+                    aggregate_operands,
+                    seen,
+                    operand,
+                    source_ids=["ev_a", "ev_b"],
+                )
+        predicate.assert_called_once()
+        self.assertEqual((aggregate_operands, seen), ([], set()))
+        later_key.assert_not_called()
+        self.assertEqual(operand, before)
+
     def test_evaluator_import_does_not_load_runtime_trace_owner(self) -> None:
         code = (
             "import sys\n"

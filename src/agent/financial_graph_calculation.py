@@ -50,6 +50,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_result_signature,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_task_ids as _aggregate_source_task_ids,
+    aggregate_synthesis_prompt_rows,
     apply_aggregate_answer_candidate,
     filter_aggregate_projection_provenance,
     growth_operand_sign_consistency_rank,
@@ -205,7 +206,6 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_text_surface import _strip_rerank_metadata, _tokenize_terms
 from src.agent.financial_runtime_trace import (
     _collect_nested_result_evidence,
-    _operand_row_has_material_numeric_payload,
     _resolve_runtime_calculation_trace,
     _runtime_trace_state_update,
 )
@@ -16382,92 +16382,6 @@ class FinancialAgentCalculationMixin:
             },
         }
 
-    def _aggregate_synthesis_prompt_rows(
-        self,
-        ordered_results: List[Dict[str, Any]],
-        aggregate_projection: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
-        """Project subtask rows into the compact contract needed by final synthesis."""
-        calculation_result = dict(aggregate_projection.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        projected_rows = list(calculation_result.get("subtask_results") or answer_slots.get("subtask_results") or [])
-        if not projected_rows:
-            projected_rows = list(ordered_results or [])
-
-        operands_by_task_id: Dict[str, List[Dict[str, Any]]] = {}
-        for operand in list(aggregate_projection.get("calculation_operands") or []):
-            operand_row = dict(operand or {})
-            if not _operand_row_has_material_numeric_payload(operand_row):
-                continue
-            task_id = str(operand_row.get("task_id") or "").strip()
-            compact_operand = {
-                key: operand_row.get(key)
-                for key in (
-                    "operand_id",
-                    "matched_operand_role",
-                    "label",
-                    "label_kr",
-                    "raw_value",
-                    "value",
-                    "raw_unit",
-                    "normalized_value",
-                    "normalized_unit",
-                    "period",
-                    "source_row_id",
-                    "source_row_ids",
-                    "source_evidence_ids",
-                )
-                if operand_row.get(key) not in (None, "", [], {})
-            }
-            if compact_operand:
-                operands_by_task_id.setdefault(task_id, []).append(compact_operand)
-
-        compact_rows: List[Dict[str, Any]] = []
-        for row in projected_rows:
-            if not isinstance(row, dict):
-                continue
-            task_id = str(row.get("task_id") or "").strip()
-            compact_row: Dict[str, Any] = {
-                key: row.get(key)
-                for key in (
-                    "task_id",
-                    "metric_family",
-                    "metric_label",
-                    "operation_family",
-                    "answer",
-                    "rendered_value",
-                    "status",
-                    "source_row_ids",
-                    "source_evidence_ids",
-                )
-                if row.get(key) not in (None, "", [], {})
-            }
-            row_answer_slots = dict(row.get("answer_slots") or {})
-            if row_answer_slots:
-                compact_row["answer_slots"] = row_answer_slots
-            row_result = dict(row.get("calculation_result") or {})
-            if row_result:
-                compact_result = {
-                    key: row_result.get(key)
-                    for key in (
-                        "status",
-                        "rendered_value",
-                        "formatted_result",
-                        "answer_slots",
-                        "source_row_ids",
-                        "source_evidence_ids",
-                    )
-                    if row_result.get(key) not in (None, "", [], {})
-                }
-                if compact_result:
-                    compact_row["calculation_result"] = compact_result
-            row_operands = operands_by_task_id.get(task_id) or []
-            if row_operands:
-                compact_row["calculation_operands"] = row_operands
-            if compact_row:
-                compact_rows.append(compact_row)
-        return compact_rows
-
     def _prepare_initial_aggregate_state(self, state: FinancialAgentState) -> _PreparedAggregateState:
         current_result = self._capture_current_subtask_result(state)
         subtask_results = self._upsert_subtask_result(
@@ -17747,7 +17661,7 @@ class FinancialAgentCalculationMixin:
                 str(CALCULATION_PROMPT_POLICY.get("aggregate_synthesis_prompt_template") or "")
             )
             try:
-                prompt_rows = self._aggregate_synthesis_prompt_rows(ordered_results, preliminary_projection)
+                prompt_rows = aggregate_synthesis_prompt_rows(ordered_results, preliminary_projection)
                 aggregate_synthesis_input_json = json.dumps(prompt_rows, ensure_ascii=False, separators=(",", ":"))
                 aggregate_synthesis_debug = {
                     "row_count": len(prompt_rows),

@@ -98,6 +98,487 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_aggregate_synthesis_prompt_rows_preserve_projection_contract(self) -> None:
+        project = financial_aggregate_projection.aggregate_synthesis_prompt_rows
+        nested = {"keep": True}
+        row_slots = {"primary_value": {"nested": nested}}
+        result_slots = {"primary_value": {"rendered_value": "100", "nested": nested}}
+        source_ids = ["ev_a"]
+        projected_row = {
+            "task_id": "task_a",
+            "metric_family": "concept_lookup",
+            "metric_label": "metric a",
+            "operation_family": "lookup",
+            "answer": "metric a is 100",
+            "rendered_value": "",
+            "status": "ok",
+            "source_row_ids": source_ids,
+            "source_evidence_ids": [],
+            "answer_slots": row_slots,
+            "calculation_result": {
+                "status": "ok",
+                "rendered_value": "100",
+                "formatted_result": "",
+                "answer_slots": result_slots,
+                "source_row_ids": source_ids,
+                "source_evidence_ids": [],
+                "drop": "result debug",
+            },
+            "runtime_evidence": ["drop"],
+        }
+        blank_task_row = {"task_id": "", "answer": "blank task"}
+        projection = {
+            "calculation_operands": [
+                {
+                    "task_id": "task_a",
+                    "operand_id": "op_a",
+                    "matched_operand_role": "primary_value",
+                    "label": "metric a",
+                    "label_kr": "",
+                    "raw_value": "100",
+                    "value": None,
+                    "raw_unit": "count",
+                    "normalized_value": 0,
+                    "normalized_unit": "COUNT",
+                    "period": "2023",
+                    "source_row_id": "ev_a",
+                    "source_row_ids": source_ids,
+                    "source_evidence_ids": [],
+                    "drop": "operand debug",
+                },
+                {"task_id": "task_a", "operand_id": "filtered", "raw_value": "12"},
+                {"task_id": "", "operand_id": "blank_task", "raw_value": "1234"},
+            ],
+            "calculation_result": {
+                "subtask_results": [projected_row, "skip", blank_task_row],
+                "answer_slots": {"subtask_results": [{"task_id": "answer_slot_fallback"}]},
+            },
+        }
+        ordered_results = [{"task_id": "ordered_fallback", "answer": "ordered"}]
+        before = deepcopy((ordered_results, projection))
+
+        compact_rows = project(ordered_results, projection)
+
+        self.assertEqual(
+            compact_rows,
+            [
+                {
+                    "task_id": "task_a",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "metric a",
+                    "operation_family": "lookup",
+                    "answer": "metric a is 100",
+                    "status": "ok",
+                    "source_row_ids": source_ids,
+                    "answer_slots": row_slots,
+                    "calculation_result": {
+                        "status": "ok",
+                        "rendered_value": "100",
+                        "answer_slots": result_slots,
+                        "source_row_ids": source_ids,
+                    },
+                    "calculation_operands": [
+                        {
+                            "operand_id": "op_a",
+                            "matched_operand_role": "primary_value",
+                            "label": "metric a",
+                            "raw_value": "100",
+                            "raw_unit": "count",
+                            "normalized_value": 0,
+                            "normalized_unit": "COUNT",
+                            "period": "2023",
+                            "source_row_id": "ev_a",
+                            "source_row_ids": source_ids,
+                        }
+                    ],
+                },
+                {
+                    "answer": "blank task",
+                    "calculation_operands": [{"operand_id": "blank_task", "raw_value": "1234"}],
+                },
+            ],
+        )
+        self.assertEqual(
+            list(compact_rows[0]),
+            [
+                "task_id",
+                "metric_family",
+                "metric_label",
+                "operation_family",
+                "answer",
+                "status",
+                "source_row_ids",
+                "answer_slots",
+                "calculation_result",
+                "calculation_operands",
+            ],
+        )
+        self.assertEqual(
+            list(compact_rows[0]["calculation_result"]),
+            ["status", "rendered_value", "answer_slots", "source_row_ids"],
+        )
+        self.assertEqual(
+            list(compact_rows[0]["calculation_operands"][0]),
+            [
+                "operand_id",
+                "matched_operand_role",
+                "label",
+                "raw_value",
+                "raw_unit",
+                "normalized_value",
+                "normalized_unit",
+                "period",
+                "source_row_id",
+                "source_row_ids",
+            ],
+        )
+        self.assertIsNot(compact_rows[0]["answer_slots"], row_slots)
+        self.assertIsNot(compact_rows, projection["calculation_result"]["subtask_results"])
+        self.assertIsNot(compact_rows[0], projected_row)
+        self.assertIsNot(compact_rows[1], blank_task_row)
+        self.assertIs(compact_rows[0]["answer_slots"]["primary_value"]["nested"], nested)
+        self.assertIs(compact_rows[0]["calculation_result"]["answer_slots"], result_slots)
+        self.assertIs(compact_rows[0]["source_row_ids"], source_ids)
+        self.assertIs(compact_rows[0]["calculation_operands"][0]["source_row_ids"], source_ids)
+        self.assertEqual((ordered_results, projection), before)
+
+        fallback_nested = {"keep": "fallback"}
+        answer_slot_row = {
+            "task_id": "answer_slot",
+            "answer": "answer slot",
+            "answer_slots": {"primary_value": fallback_nested},
+        }
+        answer_slot_rows = [answer_slot_row]
+        answer_fallback = project(
+            ordered_results,
+            {
+                "calculation_result": {
+                    "subtask_results": [],
+                    "answer_slots": {"subtask_results": answer_slot_rows},
+                }
+            },
+        )
+        self.assertEqual(answer_fallback, answer_slot_rows)
+        self.assertIsNot(answer_fallback, answer_slot_rows)
+        self.assertIsNot(answer_fallback[0], answer_slot_row)
+        self.assertIsNot(answer_fallback[0]["answer_slots"], answer_slot_row["answer_slots"])
+        self.assertIs(answer_fallback[0]["answer_slots"]["primary_value"], fallback_nested)
+
+        ordered_nested = {"keep": "ordered"}
+        ordered_fallback_rows = [
+            {
+                "task_id": "ordered_fallback",
+                "answer": "ordered",
+                "answer_slots": {"primary_value": ordered_nested},
+            }
+        ]
+        ordered_fallback = project(
+            ordered_fallback_rows,
+            {"calculation_result": {"subtask_results": [], "answer_slots": {"subtask_results": []}}},
+        )
+        self.assertEqual(ordered_fallback, ordered_fallback_rows)
+        self.assertIsNot(ordered_fallback, ordered_fallback_rows)
+        self.assertIsNot(ordered_fallback[0], ordered_fallback_rows[0])
+        self.assertIsNot(ordered_fallback[0]["answer_slots"], ordered_fallback_rows[0]["answer_slots"])
+        self.assertIs(ordered_fallback[0]["answer_slots"]["primary_value"], ordered_nested)
+
+    def test_aggregate_synthesis_prompt_rows_preserve_access_and_exception_contract(self) -> None:
+        project = financial_aggregate_projection.aggregate_synthesis_prompt_rows
+        events = []
+
+        class AccessMapping(Mapping):
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                events.append(f"getitem:{self.name}:{key}")
+                return self.values[key]
+
+            def keys(self):
+                events.append(f"keys:{self.name}")
+                return self.values.keys()
+
+            def get(self, key, default=None):
+                events.append(f"get:{self.name}:{key}")
+                return self.values.get(key, default)
+
+        class PoisonRows:
+            def __bool__(self):
+                raise RuntimeError("fallback rows accessed")
+
+            def __iter__(self):
+                raise RuntimeError("fallback rows iterated")
+
+        tracked_projection = AccessMapping(
+            "projection",
+            {
+                "calculation_result": AccessMapping(
+                    "result",
+                    {
+                        "answer_slots": AccessMapping("slots", {"subtask_results": PoisonRows()}),
+                        "subtask_results": [{"task_id": "task_a"}],
+                    },
+                ),
+                "calculation_operands": [],
+            },
+        )
+        self.assertEqual(project(PoisonRows(), tracked_projection), [{"task_id": "task_a"}])
+        self.assertEqual(
+            events,
+            [
+                "get:projection:calculation_result",
+                "keys:result",
+                "getitem:result:answer_slots",
+                "getitem:result:subtask_results",
+                "keys:slots",
+                "getitem:slots:subtask_results",
+                "get:projection:calculation_operands",
+            ],
+        )
+
+        with patch.object(
+            financial_aggregate_projection,
+            "operand_row_has_material_numeric_payload",
+            side_effect=RuntimeError("material predicate accessed"),
+        ) as material_predicate:
+            self.assertEqual(project([], {"calculation_result": {}, "calculation_operands": []}), [])
+        material_predicate.assert_not_called()
+
+        packaging_events = []
+
+        class CopySource(Mapping):
+            def __init__(self, copy_name, values):
+                self.copy_name = copy_name
+                self.values = values
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+        tracked_keys = {
+            "operand-a-copy": {"task_id", "operand_id", "label_kr", "raw_value"},
+            "operand-b-copy": {"task_id", "operand_id", "label_kr", "raw_value"},
+            "row": {"task_id", "metric_family", "rendered_value", "answer_slots", "calculation_result"},
+            "row-result-copy": {"status", "formatted_result", "answer_slots"},
+        }
+
+        class RecordingDict(dict):
+            def __init__(self, *args, **kwargs):
+                source = args[0] if args else None
+                copy_name = str(getattr(source, "copy_name", "") or "")
+                if copy_name:
+                    packaging_events.append(f"copy:{copy_name}")
+                super().__init__(*args, **kwargs)
+                self.track_name = f"{copy_name}-copy" if copy_name else ""
+
+            def get(self, key, default=None):
+                if key in tracked_keys.get(self.track_name, set()):
+                    packaging_events.append(f"get:{self.track_name}:{key}")
+                return super().get(key, default)
+
+        shared_nested = {"keep": "nested"}
+        operand_a = CopySource(
+            "operand-a",
+            {
+                "task_id": "task_a",
+                "operand_id": "op_a",
+                "label_kr": "",
+                "raw_value": "1234",
+                "nested": shared_nested,
+            },
+        )
+        operand_b = CopySource(
+            "operand-b",
+            {
+                "task_id": "task_a",
+                "operand_id": "op_b",
+                "label_kr": "retained",
+                "raw_value": "5678",
+                "nested": shared_nested,
+            },
+        )
+        tracked_row = RecordingDict(
+            {
+                "task_id": "task_a",
+                "metric_family": "lookup",
+                "rendered_value": "",
+                "answer_slots": CopySource("row-slots", {"primary_value": shared_nested}),
+                "calculation_result": CopySource(
+                    "row-result",
+                    {"status": "ok", "formatted_result": "", "answer_slots": {"primary_value": shared_nested}},
+                ),
+            }
+        )
+        tracked_row.track_name = "row"
+        copied_operands = []
+
+        def accept_material(copied_operand):
+            packaging_events.append(f"predicate:{copied_operand['operand_id']}")
+            copied_operands.append(copied_operand)
+            return True
+
+        with (
+            patch.object(financial_aggregate_projection, "dict", RecordingDict, create=True),
+            patch.object(
+                financial_aggregate_projection,
+                "operand_row_has_material_numeric_payload",
+                side_effect=accept_material,
+            ),
+        ):
+            tracked_result = project(
+                [],
+                {
+                    "calculation_operands": [operand_a, operand_b],
+                    "calculation_result": {"subtask_results": [tracked_row]},
+                },
+            )
+        self.assertEqual(
+            packaging_events,
+            [
+                "copy:operand-a",
+                "predicate:op_a",
+                "get:operand-a-copy:task_id",
+                "get:operand-a-copy:operand_id",
+                "get:operand-a-copy:operand_id",
+                "get:operand-a-copy:label_kr",
+                "get:operand-a-copy:raw_value",
+                "get:operand-a-copy:raw_value",
+                "copy:operand-b",
+                "predicate:op_b",
+                "get:operand-b-copy:task_id",
+                "get:operand-b-copy:operand_id",
+                "get:operand-b-copy:operand_id",
+                "get:operand-b-copy:label_kr",
+                "get:operand-b-copy:label_kr",
+                "get:operand-b-copy:raw_value",
+                "get:operand-b-copy:raw_value",
+                "get:row:task_id",
+                "get:row:task_id",
+                "get:row:task_id",
+                "get:row:metric_family",
+                "get:row:metric_family",
+                "get:row:rendered_value",
+                "get:row:answer_slots",
+                "copy:row-slots",
+                "get:row:calculation_result",
+                "copy:row-result",
+                "get:row-result-copy:status",
+                "get:row-result-copy:status",
+                "get:row-result-copy:formatted_result",
+                "get:row-result-copy:answer_slots",
+                "get:row-result-copy:answer_slots",
+            ],
+        )
+        self.assertEqual([row["operand_id"] for row in copied_operands], ["op_a", "op_b"])
+        self.assertIsNot(copied_operands[0], operand_a)
+        self.assertIs(copied_operands[0]["nested"], shared_nested)
+        self.assertEqual(
+            [row["operand_id"] for row in tracked_result[0]["calculation_operands"]],
+            ["op_a", "op_b"],
+        )
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("calculation_result",))
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class CopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("value",))
+
+            def __getitem__(self, _key):
+                raise RuntimeError("mapping copy failed")
+
+            def __bool__(self):
+                return True
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("row iteration failed")
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("truthiness failed")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        class EqualityBomb:
+            def __eq__(self, _other):
+                raise RuntimeError("equality failed")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            project([], GetBomb())
+        with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+            project([], {"calculation_result": CopyBomb()})
+        with self.assertRaisesRegex(RuntimeError, "row iteration failed"):
+            project([], {"calculation_result": {"subtask_results": IterBomb()}})
+        with self.assertRaisesRegex(RuntimeError, "truthiness failed"):
+            project([], {"calculation_result": {}, "calculation_operands": [TruthBomb()]})
+        with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+            project([], {"calculation_result": {}, "calculation_operands": [CopyBomb()]})
+        with patch.object(
+            financial_aggregate_projection,
+            "operand_row_has_material_numeric_payload",
+            return_value=True,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "string failed"):
+                project(
+                    [],
+                    {
+                        "calculation_result": {},
+                        "calculation_operands": [{"task_id": StringBomb(), "raw_value": "1234"}],
+                    },
+                )
+            with self.assertRaisesRegex(RuntimeError, "equality failed"):
+                project(
+                    [],
+                    {
+                        "calculation_result": {},
+                        "calculation_operands": [{"operand_id": EqualityBomb(), "raw_value": "1234"}],
+                    },
+                )
+        with patch.object(
+            financial_aggregate_projection,
+            "operand_row_has_material_numeric_payload",
+            side_effect=RuntimeError("material predicate failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "material predicate failed"):
+                project(
+                    [{"task_id": "later"}],
+                    {
+                        "calculation_result": {},
+                        "calculation_operands": [{"task_id": StringBomb(), "raw_value": "1234"}],
+                    },
+                )
+
     def test_aggregate_signature_and_growth_sign_rank_preserve_primitive_contract(self) -> None:
         def signature(row, *, delegate=None):
             if delegate is None:
