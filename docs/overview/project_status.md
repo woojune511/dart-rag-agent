@@ -363,46 +363,47 @@ acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
 The next bounded architecture work is to characterize and relocate only the
-aggregate composition-state transition helper
-`_apply_aggregate_composition_answer`
-(`financial_graph_calculation.py:5203-5248`; five producer calls at
-`5336`, `5350`, `5363`, `5374`, and `5385`) into
-`financial_aggregate_state.py`. In the same atomic move, rename the private
-`_AggregateCompositionState` carrier (`financial_aggregate_state.py:59-65`) to
-public `AggregateCompositionState`, migrate all callers, and leave no
-compatibility alias or private reference. The planned typed seam is
-`AggregateCompositionAnswerTransitionInput(composition_state, answer='',
-selected_claim_ids=None, calculation_projection_override=None,
-reset_projection_override=False, narrative_answer_locked=None,
-clear_feedback=True)`,
-`AggregateCompositionAnswerTransitionResult(composition_state=...)`, and
-`apply_aggregate_composition_answer`; it needs no graph state or callback.
+rendered-unit operand-normalization repair helper
+`_repair_operand_normalization_from_rendered_unit`
+(`financial_graph_calculation.py:11594-11686`; four calls at `7934`, `16044`,
+`17461`, and `17716`) into `financial_operand_resolution.py`. The owner should
+expose the plain typed transform
+`repair_operand_normalization_from_rendered_unit(row: Mapping[str, Any]) ->
+Dict[str, Any]`; a one-field input/result dataclass, reason, application flag,
+graph state, or callback would add facade without strengthening the boundary.
 
-The owner must preserve normalized-answer fallback to the current answer,
-current-first cleaned claim-id order, repeated string conversion, stable dedupe,
-and a fresh claim-id list. Projection override behavior remains retain by
-default, reset-before-dict replacement when requested, and exact alias reuse for
-an accepted dictionary. `None` retains the current narrative lock while any
-supplied value is coerced to `bool`; feedback is either cleared or preserved as
-a pair. Every accepted call returns a fresh public carrier without mutating its
-inputs. Direct characterization must lock the exact access, truthiness,
-conversion, dedupe, and exception order as well as the override, lock, feedback,
-alias, and identity contracts.
+The owner must preserve the literal fresh top-level `dict(row or {})` result and
+untouched nested aliases on every path. Raw value, rendered value, normalized
+unit, and KRW policy access keep their current order and early returns. Embedded
+raw-unit recovery precedes rendered-value scanning. Both paths retain their
+scaled tolerance, repeated float conversion, `NaN` behavior, and original-field
+preserve-versus-fill rules. The embedded path keeps exact inline raw-unit
+extraction and aliasing; rendered-value scanning keeps the stable first eligible
+regex match and rendered-unit aliasing. Only the existing normalized-value `TypeError`/`ValueError`
+conversions are caught; mapping, truthiness, string, policy, regex, iteration,
+and normalizer failures remain uncaught in the same order. Inputs remain
+unmodified.
 
-The graph retains all five answer producers and their gates, narrative/evidence/
-query policy, exact sequential assignment and call laziness, and every downstream
-augmentation, repair, numeric-lock, state, and final-orchestration step.
-Representative caller characterization must fix all five producer placements
-and owner-zero behavior when their gates do not select a transition. Acceptance
-deletes only graph `5203-5248`, migrates the five calls, renames the carrier, and
-leaves no old helper or private-carrier reference. The allowed claim is prepared
-composition-state transition and public carrier ownership, not producer or
-answer selection, aggregate precedence, repair, mutable-state orchestration,
-total-code or executed-path reduction, performance, broader private-mesh cleanup,
-or Phase 3 completion. Artifact/ledger synchronization, stale repair, other
-ratio/absolute handling, remaining fallbacks, and private facade/API cleanup
-remain separate debt. The Phase 3 backlog in the refactoring plan is unordered;
-this section is the authority for priority.
+Direct characterization must cover missing and gated rows, KRW/`UNKNOWN` versus
+other normalized units, inline and rendered repair, within/outside tolerance,
+invalid and `NaN` current values, first-match behavior, blank policy surfaces,
+original-field precedence, fresh-copy/nested identity, input immutability, and
+exception order. Caller characterization must preserve dependency-row repair
+before structured provenance/evidence coercion at `7934`; per-operand sequential
+repair and map propagation before sibling ratio alignment at `16044`; and both
+prepared append positions at `17461` and `17716`, including their owner-zero
+gates, returned-row adoption, and exception laziness.
+
+The graph retains row construction, binding/evidence/provenance lookup, plan and
+material gates, operand-map propagation, multi-row sibling-table alignment,
+ratio synthesis, append/merge policy, and later state/artifact/final
+orchestration. Acceptance deletes only graph `11594-11686`, migrates the four
+calls, and leaves no old definition or private self reference. The allowed
+claim is embedded/rendered-unit single-operand normalization-repair ownership,
+not multi-row unit alignment, dependency binding, ratio policy, aggregate
+composition, stale repair, total-code or executed-path reduction, performance,
+broader private-mesh cleanup, or Phase 3 completion. The Phase 3 backlog in the
+refactoring plan is unordered; this section is the authority for priority.
 
 Before publishing a new score for the latest calculation changes, verify that a
 local store matches the active profile and cache signature, then prefer a
