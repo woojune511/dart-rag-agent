@@ -146,6 +146,363 @@ def _merge_operand_row(
 
 
 class FinancialOperandResolutionTests(unittest.TestCase):
+    def test_ratio_context_metric_surface_preserves_behavior_contract(self) -> None:
+        matches = operand_resolution.ratio_context_has_metric_surface
+
+        class IterBomb:
+            def __iter__(self):
+                raise RuntimeError("evidence accessed without a metric label")
+
+        self.assertFalse(
+            matches(
+                IterBomb(),  # type: ignore[arg-type]
+                {
+                    "metric_label": " ",
+                    "target_metric": "",
+                    "label": None,
+                    "name": "\t",
+                    "aliases": ["", "  "],
+                },
+            )
+        )
+
+        task = {"metric_label": "target metric"}
+        surface_locations = [
+            ("claim", False),
+            ("quote_span", False),
+            ("raw_row_text", False),
+            ("source_context", False),
+            ("row_label", True),
+            ("semantic_label", True),
+            ("aggregate_label", True),
+            ("table_summary_text", True),
+            ("table_title", True),
+            ("table_context", True),
+            ("table_row_labels_text", True),
+            ("table_value_labels_text", True),
+            ("row_text", True),
+            ("semantic_aliases", True),
+            ("row_headers", True),
+        ]
+        for key, in_metadata in surface_locations:
+            with self.subTest(surface=key):
+                value: Any = ["target metric 10"] if key in {"semantic_aliases", "row_headers"} else "target metric 10"
+                evidence = {"metadata": {key: value}} if in_metadata else {key: value}
+                self.assertTrue(matches([evidence], task))
+        self.assertFalse(matches([{"claim": "unrelated 10"}], task))
+
+        nested_metadata = {"row_label": "surface three", "semantic_aliases": ["surface four"], "row_headers": ["surface five"]}
+        evidence_items = [
+            {
+                "claim": " ",
+                "quote_span": "surface one",
+                "raw_row_text": "",
+                "source_context": "surface two",
+                "metadata": nested_metadata,
+            },
+            {"claim": "surface six", "quote_span": "later surface"},
+        ]
+        aliases = ["metric b", " metric c ", ""]
+        ordered_task = {
+            "metric_label": " metric a ",
+            "target_metric": "metric a",
+            "label": "metric b",
+            "name": "",
+            "aliases": aliases,
+        }
+        before = deepcopy((evidence_items, ordered_task))
+        calls = []
+
+        def operand_match(surface, operand):
+            calls.append((surface, operand))
+            return surface == "surface six" and operand["label"] == "metric c"
+
+        with patch.object(operand_resolution, "_operand_text_match", side_effect=operand_match):
+            self.assertTrue(matches(evidence_items, ordered_task))
+
+        expected_surfaces = [
+            "surface one",
+            "surface two",
+            "surface three",
+            "surface four",
+            "surface five",
+            "surface six",
+        ]
+        self.assertEqual(
+            [(surface, operand["label"]) for surface, operand in calls],
+            [
+                (surface, label)
+                for surface in expected_surfaces
+                for label in ("metric a", "metric b", "metric c")
+            ],
+        )
+        self.assertEqual((evidence_items, ordered_task), before)
+        self.assertIs(evidence_items[0]["metadata"], nested_metadata)
+        self.assertIs(ordered_task["aliases"], aliases)
+
+    def test_ratio_context_metric_surface_preserves_access_and_exception_contract(self) -> None:
+        matches = operand_resolution.ratio_context_has_metric_surface
+        events: List[str] = []
+
+        class AccessDict(dict):
+            def __init__(self, values, owner):
+                super().__init__(values)
+                self.owner = owner
+
+            def get(self, key, default=None):
+                events.append(f"get:{self.owner}:{key}")
+                return super().get(key, default)
+
+        class CopyMapping(Mapping):
+            def __init__(self, values, owner):
+                self.values = values
+                self.owner = owner
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+        real_dict = dict
+
+        class RecordingDict(real_dict):
+            def __init__(self, source=(), **kwargs):
+                owner = getattr(source, "owner", "generated")
+                if owner != "generated":
+                    events.append(f"copy:{owner}")
+                super().__init__(source, **kwargs)
+                self.owner = owner
+
+            def get(self, key, default=None):
+                if self.owner != "generated":
+                    events.append(f"get:{self.owner}:{key}")
+                return super().get(key, default)
+
+        metadata = CopyMapping(
+            {
+                "row_label": "",
+                "semantic_label": "",
+                "aggregate_label": "",
+                "table_summary_text": "",
+                "table_title": "",
+                "table_context": "",
+                "table_row_labels_text": "",
+                "table_value_labels_text": "",
+                "row_text": "",
+                "semantic_aliases": [],
+                "row_headers": [],
+            },
+            "metadata",
+        )
+        evidence = CopyMapping(
+            {
+                "claim": "target metric 10",
+                "quote_span": "",
+                "raw_row_text": "",
+                "source_context": "",
+                "metadata": metadata,
+            },
+            "evidence",
+        )
+        tracked_task = AccessDict(
+            {
+                "metric_label": "target metric",
+                "target_metric": "",
+                "label": "",
+                "name": "",
+                "aliases": [],
+            },
+            "task",
+        )
+        real_match = operand_resolution._operand_text_match
+
+        def tracked_match(surface, operand):
+            events.append(f"match:{surface}:{operand['label']}")
+            return real_match(surface, operand)
+
+        with (
+            patch.object(operand_resolution, "dict", RecordingDict, create=True),
+            patch.object(operand_resolution, "_operand_text_match", side_effect=tracked_match),
+        ):
+            self.assertTrue(matches([evidence], tracked_task))
+
+        milestones = [
+            "get:task:metric_label",
+            "get:task:target_metric",
+            "get:task:label",
+            "get:task:name",
+            "get:task:aliases",
+            "copy:evidence",
+            "get:evidence:metadata",
+            "copy:metadata",
+            "get:evidence:claim",
+            "get:evidence:quote_span",
+            "get:evidence:raw_row_text",
+            "get:evidence:source_context",
+            "get:metadata:row_label",
+            "get:metadata:semantic_label",
+            "get:metadata:aggregate_label",
+            "get:metadata:table_summary_text",
+            "get:metadata:table_title",
+            "get:metadata:table_context",
+            "get:metadata:table_row_labels_text",
+            "get:metadata:table_value_labels_text",
+            "get:metadata:row_text",
+            "get:metadata:semantic_aliases",
+            "get:metadata:row_headers",
+            "match:target metric 10:target metric",
+        ]
+        cursor = 0
+        for event in events:
+            if cursor < len(milestones) and event == milestones[cursor]:
+                cursor += 1
+        self.assertEqual(cursor, len(milestones))
+
+        real_normalize = operand_resolution._normalise_spaces
+
+        def later_normalize(value):
+            if value == "later surface":
+                raise RuntimeError("later surface normalized")
+            return real_normalize(value)
+
+        with patch.object(operand_resolution, "_normalise_spaces", side_effect=later_normalize):
+            self.assertTrue(
+                matches(
+                    [{"claim": "target metric 10", "quote_span": "later surface"}],
+                    {"metric_label": "target metric"},
+                )
+            )
+
+        class GetBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                return iter(("metric_label",))
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+            def get(self, _key, _default=None):
+                raise RuntimeError("mapping get failed")
+
+        class CopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("mapping copy failed")
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+        class IterBomb:
+            def __iter__(self):
+                raise RuntimeError("iteration failed")
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("string failed")
+
+        class CountingString:
+            def __init__(self, value):
+                self.value = value
+                self.calls = 0
+
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                self.calls += 1
+                return self.value
+
+        retained_label = CountingString("retained")
+        blank_label = CountingString("   ")
+        normalized_values = []
+
+        def count_normalize(value):
+            normalized_values.append(value)
+            return real_normalize(value)
+
+        with patch.object(operand_resolution, "_normalise_spaces", side_effect=count_normalize):
+            self.assertFalse(
+                matches(
+                    [],
+                    {
+                        "metric_label": retained_label,
+                        "target_metric": blank_label,
+                    },
+                )
+            )
+        self.assertEqual((retained_label.calls, blank_label.calls), (2, 1))
+        self.assertEqual((normalized_values.count("retained"), normalized_values.count("   ")), (2, 1))
+
+        with self.assertRaisesRegex(RuntimeError, "mapping get failed"):
+            matches([], GetBomb())  # type: ignore[arg-type]
+        with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+            matches([], {"metric_label": "target", "aliases": IterBomb()})
+        with self.assertRaisesRegex(RuntimeError, "iteration failed"):
+            matches(IterBomb(), {"metric_label": "target"})  # type: ignore[arg-type]
+        with patch.object(operand_resolution, "_operand_text_match") as matcher:
+            with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+                matches(
+                    [{"claim": "target 10"}, CopyBomb()],
+                    {"metric_label": "target"},
+                )
+        matcher.assert_not_called()
+        with patch.object(operand_resolution, "_operand_text_match") as matcher:
+            with self.assertRaisesRegex(RuntimeError, "string failed"):
+                matches(
+                    [{"claim": "target 10"}, {"claim": StringBomb()}],
+                    {"metric_label": "target"},
+                )
+        matcher.assert_not_called()
+        with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+            matches(
+                [{"metadata": CopyBomb()}],
+                {"metric_label": "target"},
+            )
+
+        class UnhashableLabel:
+            __hash__ = None
+
+            def __bool__(self):
+                return True
+
+        with patch.object(
+            operand_resolution,
+            "_normalise_spaces",
+            return_value=UnhashableLabel(),
+        ):
+            with self.assertRaisesRegex(TypeError, "unhashable"):
+                matches([], {"metric_label": "target"})
+        for name, context, task in (
+            ("task", [], {"metric_label": StringBomb()}),
+            ("evidence", [{"claim": StringBomb()}], {"metric_label": "target"}),
+            (
+                "metadata list",
+                [{"metadata": {"semantic_aliases": [StringBomb()]}}],
+                {"metric_label": "target"},
+            ),
+        ):
+            with self.subTest(string=name), self.assertRaisesRegex(RuntimeError, "string failed"):
+                matches(context, task)
+        for owner, patch_name in (
+            ("normalizer", "_normalise_spaces"),
+            ("matcher", "_operand_text_match"),
+        ):
+            with self.subTest(owner=owner), patch.object(
+                operand_resolution,
+                patch_name,
+                side_effect=RuntimeError(f"{owner} failed"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, f"{owner} failed"):
+                    matches([{"claim": "target 10"}], {"metric_label": "target"})
+
     def test_surface_contract_numeric_evidence_items_preserves_behavior_contract(self) -> None:
         select = operand_resolution.surface_contract_numeric_evidence_items
 

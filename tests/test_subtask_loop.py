@@ -4571,6 +4571,65 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(append_candidate, candidate_row)
         self.assertIs(appended_filter, appended_value)
         self.assertIs(appended_filter, appended[0])
+
+        conflict_task = {
+            "task_id": "task_ratio",
+            "metric_family": "concept_ratio",
+            "metric_label": metric_label,
+        }
+        conflict_context = [{"evidence_id": "ctx", "claim": "context without the metric surface"}]
+        incomplete_row = deepcopy(existing_row)
+        incomplete_row["calculation_result"]["answer_slots"]["components_by_group"] = {}
+        with patch.object(financial_graph_calculation, "ratio_context_has_metric_surface") as metric_surface_owner:
+            for rows, result_value in (([incomplete_row], 10.0), ([existing_row], 25.0)):
+                self.assertFalse(
+                    self.agent._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                        rows,
+                        conflict_task,
+                        result_value=result_value,
+                        context_evidence=conflict_context,
+                    )
+                )
+        metric_surface_owner.assert_not_called()
+
+        for owner_result, expected_conflict in ((False, True), (True, False)):
+            with self.subTest(metric_surface=owner_result), patch.object(
+                financial_graph_calculation,
+                "ratio_context_has_metric_surface",
+                return_value=owner_result,
+            ) as metric_surface_owner:
+                self.assertEqual(
+                    self.agent._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                        [existing_row],
+                        conflict_task,
+                        result_value=10.0,
+                        context_evidence=conflict_context,
+                    ),
+                    expected_conflict,
+                )
+            metric_surface_owner.assert_called_once()
+            context_arg, task_arg = metric_surface_owner.call_args.args
+            self.assertIs(context_arg, conflict_context)
+            self.assertIs(task_arg, conflict_task)
+
+        class LaterRow(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("later row accessed")
+
+        with patch.object(
+            financial_graph_calculation,
+            "ratio_context_has_metric_surface",
+            side_effect=RuntimeError("metric surface owner failed"),
+        ) as metric_surface_owner:
+            with self.assertRaisesRegex(RuntimeError, "metric surface owner failed"):
+                self.agent._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                    [existing_row, LaterRow()],
+                    conflict_task,
+                    result_value=10.0,
+                    context_evidence=conflict_context,
+                )
+        metric_surface_owner.assert_called_once()
+
         artifact_state = {
             "artifacts": [
                 {

@@ -156,6 +156,7 @@ from src.agent.financial_operand_resolution import (
     operand_row_values_materially_conflict,
     align_ratio_operand_units_with_shared_table_context,
     repair_operand_normalization_from_rendered_unit,
+    ratio_context_has_metric_surface,
     resolve_direct_structured_operand_acceptance,
     resolve_direct_structured_preferred_slot_adoption,
     resolve_post_coercion_llm_direct_support,
@@ -13134,57 +13135,6 @@ class FinancialAgentCalculationMixin:
                 return numeric_value
         return None
 
-    def _ratio_context_has_metric_surface(
-        self,
-        context_evidence: List[Dict[str, Any]],
-        task: Dict[str, Any],
-    ) -> bool:
-        metric_labels = [
-            _normalise_spaces(str(value or ""))
-            for value in (
-                task.get("metric_label"),
-                task.get("target_metric"),
-                task.get("label"),
-                task.get("name"),
-                *list(task.get("aliases") or []),
-            )
-            if _normalise_spaces(str(value or ""))
-        ]
-        if not metric_labels:
-            return False
-        metric_operands = [{"label": label, "aliases": []} for label in dict.fromkeys(metric_labels)]
-        surfaces: List[str] = []
-        for evidence in context_evidence:
-            evidence_data = dict(evidence or {})
-            metadata = dict(evidence_data.get("metadata") or {})
-            surfaces.extend(
-                str(evidence_data.get(key) or "")
-                for key in ("claim", "quote_span", "raw_row_text", "source_context")
-            )
-            surfaces.extend(
-                str(metadata.get(key) or "")
-                for key in (
-                    "row_label",
-                    "semantic_label",
-                    "aggregate_label",
-                    "table_summary_text",
-                    "table_title",
-                    "table_context",
-                    "table_row_labels_text",
-                    "table_value_labels_text",
-                    "row_text",
-                )
-            )
-            for key in ("semantic_aliases", "row_headers"):
-                surfaces.extend(str(item or "") for item in list(metadata.get(key) or []))
-        for surface in surfaces:
-            normalized_surface = _normalise_spaces(surface)
-            if not normalized_surface:
-                continue
-            if any(_operand_text_match(normalized_surface, operand) for operand in metric_operands):
-                return True
-        return False
-
     def _retrieved_ratio_projection_conflicts_with_existing_complete_result(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -13227,7 +13177,7 @@ class FinancialAgentCalculationMixin:
             tolerance = max(max(abs(float(existing_value)), abs(float(result_value)), 1.0) * 5e-4, 1e-6)
             if abs(float(existing_value) - float(result_value)) <= tolerance:
                 continue
-            return not self._ratio_context_has_metric_surface(context_evidence, task)
+            return not ratio_context_has_metric_surface(context_evidence, task)
         return False
 
     def _ratio_result_rows_from_task_artifacts(

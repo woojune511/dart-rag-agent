@@ -1112,6 +1112,57 @@ def surface_contract_numeric_evidence_items(
     return preserved
 
 
+def ratio_context_has_metric_surface(
+    context_evidence: List[Dict[str, Any]],
+    task: Dict[str, Any],
+) -> bool:
+    metric_labels = [
+        _normalise_spaces(str(value or ""))
+        for value in (
+            task.get("metric_label"),
+            task.get("target_metric"),
+            task.get("label"),
+            task.get("name"),
+            *list(task.get("aliases") or []),
+        )
+        if _normalise_spaces(str(value or ""))
+    ]
+    if not metric_labels:
+        return False
+    metric_operands = [{"label": label, "aliases": []} for label in dict.fromkeys(metric_labels)]
+    surfaces: List[str] = []
+    for evidence in context_evidence:
+        evidence_data = dict(evidence or {})
+        metadata = dict(evidence_data.get("metadata") or {})
+        surfaces.extend(
+            str(evidence_data.get(key) or "")
+            for key in ("claim", "quote_span", "raw_row_text", "source_context")
+        )
+        surfaces.extend(
+            str(metadata.get(key) or "")
+            for key in (
+                "row_label",
+                "semantic_label",
+                "aggregate_label",
+                "table_summary_text",
+                "table_title",
+                "table_context",
+                "table_row_labels_text",
+                "table_value_labels_text",
+                "row_text",
+            )
+        )
+        for key in ("semantic_aliases", "row_headers"):
+            surfaces.extend(str(item or "") for item in list(metadata.get(key) or []))
+    for surface in surfaces:
+        normalized_surface = _normalise_spaces(surface)
+        if not normalized_surface:
+            continue
+        if any(_operand_text_match(normalized_surface, operand) for operand in metric_operands):
+            return True
+    return False
+
+
 def _lookup_task_requests_context_dependent_scope(
     *,
     query: str,
