@@ -352,6 +352,11 @@ state-free owner 경계:
   anchor/chunk id를 채택하고, converted-display 보존 또는 unit realignment 뒤
   nonempty consolidation/statement/table metadata를 overlay한다. Provenance input과
   nested identity는 유지하며 typed reason/application flag는 runtime trace가 아니다.
+  Graph가 source selection, ratio/query policy와 source-id cleaning까지 끝낸 prepared
+  dependency-source ratio payload에는 fresh calculation-result/answer-slot/primary/group/
+  role/list container를 만들고, exact source-id list의 네 surface alias와 numerator/
+  denominator slot의 group/role identity를 유지한다. Compact formatting과 owner
+  applicability는 graph에 남으며 reason/flag/trace field는 추가하지 않는다.
 - `financial_calculation_execution.py`: ordered operand ids와 variable bindings를
   operand set에 대해 검증하고 `CalculationExecutionOutcome`을 반환한다. 또한
   prepared canonical value와 projected result를 비교하는 typed state-free
@@ -499,7 +504,8 @@ re-export되지만 실제 구현은 `financial_answer_projection.py`에 있다.
 - `financial_dependency_projection.py`: dependency-binding summary, projection,
   source-set selector, typed main/late/terminal application, recalculation plan
   disposition, ratio-artifact conflict selection, two-stage post-candidate
-  finalization, and in-place prepared structured-provenance adoption
+  finalization, in-place prepared structured-provenance adoption, and prepared
+  dependency-source ratio-result projection
 - `financial_calculation_execution.py`: state-free difference/growth plan
   construction, typed raw/guarded plan decision, plan validation, typed execution
   outcome, and typed state-free value-only stale freshness assessment

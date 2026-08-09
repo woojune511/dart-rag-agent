@@ -69,6 +69,10 @@ Last updated: 2026-08-09
   owner가 같은 mutable row에 source anchor/chunk id, converted-display 보존 또는 unit
   realignment, consolidation/statement/table metadata를 runtime 순서대로 적용한다.
   Typed reason과 application flag는 trace가 아니며 provenance input은 변경하지 않는다.
+  Dependency-source ratio rebuild의 이미 준비된 result/slot/value/unit/source-id
+  payload도 같은 owner가 fresh canonical calculation result로 투영한다. 네 result/slot
+  surface는 exact source-id list를 공유하고 numerator/denominator slot identity를
+  group/role list에서 유지한다.
 - Execution owner는 deterministic difference/growth plan construction, plan
   validation, formula execution, value-only freshness assessment를 소유한다.
   Aggregate owner는 pure stale provenance target selection, graph가 준비한
@@ -94,6 +98,8 @@ Last updated: 2026-08-09
   assignment, coercion, applicability gate, enclosing try와 fallback을 유지한다.
   Recovery logging과 ratio-recovered flag projection, retry/query gate,
   state/task/artifact projection, repair acceptance, aggregate/filter sequencing,
+  dependency source-slot 선택과 component ranking, ratio formula/query policy,
+  source-id cleaning, compact formatting,
   recalculated result-value coercion과 invalid-value artifact-builder skip,
   dependency candidate-input construction/execution, query/absolute transform,
   task-artifact/ledger conflict short-circuit와 formatter, collapsed-ratio
@@ -115,7 +121,7 @@ Last updated: 2026-08-09
 | Recorded benchmark evidence | 정확한 수치와 raw-artifact 경계는 [project_status.md](docs/overview/project_status.md)를 단일 기준으로 사용 |
 | Demo fixture contract | `fixture_contract_ready`; SHA-256 manifest verified, live replay 아님 |
 | Portfolio review surface | `review_surface_ready`; unit test/domain audit은 이 명령에서 `not_run` |
-| Latest calculation runtime validation | targeted 3/3, affected 326/326, full unittest 1,493/1,493 PASS |
+| Latest calculation runtime validation | targeted 3/3, affected 297/297, full unittest 1,494/1,494 PASS |
 | Runtime domain-term audit | 217개 reviewed literal PASS |
 | Benchmark refresh after latest calculation changes | NOT RUN; 이전 recorded benchmark를 최신 변경의 검증 근거로 사용하지 않음 |
 | Publication validation | [validation.yml](.github/workflows/validation.yml)과 [project_status.md](docs/overview/project_status.md)를 기준으로 확인 |

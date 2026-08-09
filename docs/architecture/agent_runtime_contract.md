@@ -831,6 +831,25 @@ when the enclosing pass accepts no other alignment, its no-change identity contr
 discard the local selected-row copy; owner selection is not a guarantee that the
 artifact row reaches final output.
 
+Prepared dependency-source ratio-result projection is another typed, state-free
+dependency-owner seam. It receives only the graph-prepared calculation result,
+answer slots, metric label, numerator and denominator slots, numeric result and
+units, rendered value, and cleaned source-row-id list. It returns a fresh
+calculation-result dictionary with fresh answer-slot, primary-value, group/role,
+and singleton-list containers while retaining untouched nested identities. The
+exact source-row-id list is shared by result source rows, result evidence ids,
+answer-slot source rows, and primary-value source rows; the exact numerator and
+denominator slot objects are reused in their group and role lists. Mapping
+expansion, literal overwrite, source-list truthiness/indexing, input immutability,
+and uncaught exception order remain unchanged. This seam adds no reason,
+application flag, or runtime trace field.
+
+The graph retains source-slot construction and selection, component ranking and
+slot construction, same-slot and numeric gates, ratio formula/query and absolute
+policy, result extraction, source-id cleaning, owner applicability/laziness, and
+compact-ratio formatting. This seam does not own dependency precedence or final
+answer selection.
+
 The nested non-`ok` path returns the graph-supplied local row. The enclosing pass
 returns the original ordered-result and original row identities only when no
 other row changes; when another row changes, an unchanged row may be the graph's

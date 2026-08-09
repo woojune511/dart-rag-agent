@@ -134,6 +134,14 @@ imports or an unconfigured `FinancialAgent` invocation.
   nested identity and provenance input immutability are retained. Its typed reason
   and application flag are not trace fields. The corrected graph fixtures attach
   their structure graph to the production `vsm` surface.
+- Prepared dependency-source ratio-result projection now has a typed state-free
+  dependency-owner seam. It builds fresh calculation-result, answer-slot,
+  primary-value, group/role, and component-list containers while preserving
+  untouched nested identities, the exact four-surface source-id-list alias, and
+  numerator/denominator slot reuse. The graph retains source-slot selection,
+  component ranking and gates, ratio/query/absolute policy, source-id cleaning,
+  compact formatting, and all owner applicability/laziness. The seam adds no
+  reason, application flag, or trace field.
 - Prepared aggregate answer-candidate application and final-answer projection
   synchronization now have typed owner seams. The owner keeps the same aggregate
   projection and existing calculation-result identities, normalizes the answer,
@@ -161,17 +169,17 @@ imports or an unconfigured `FinancialAgent` invocation.
   exact access/exception order. The graph retains discovery, scoring/selection,
   narrative refresh, branch-local call placement/laziness, application invocation,
   answer precedence, and later projection/state/evidence/rebuild/orchestration.
-- At the current checkpoint, `financial_graph_calculation.py` is 19,482 lines,
+- At the current checkpoint, `financial_graph_calculation.py` is 19,431 lines,
   `financial_graph_helpers.py` is 6,311,
   `financial_graph_reconciliation.py` is 2,428,
   `financial_lookup_recovery.py` is 609,
   `financial_aggregate_projection.py` is 735,
   `financial_operand_resolution.py` is 2,437,
-  `financial_dependency_projection.py` is 3,089, and
+  `financial_dependency_projection.py` is 3,164, and
   `financial_calculation_execution.py` is 837. These figures are not a
   total-code or broad executed-path/performance reduction claim.
-- The latest calculation checkpoint passed targeted 3/3 and affected 326/326
-  tests, the 217-literal runtime audit, and full discovery over 1,493/1,493 tests.
+- The latest calculation checkpoint passed targeted 3/3 and affected 297/297
+  tests, the 217-literal runtime audit, and full discovery over 1,494/1,494 tests.
   Benchmark refresh remains NOT RUN.
 
 Detailed correctness/relocation chronology, intermediate metrics, and validation
@@ -191,7 +199,7 @@ current-state document does not duplicate that commit diary.
 | Semantic plan | LLM-backed planning contract |
 | Calculation graph-state orchestration | `financial_graph_calculation.py` adapter |
 | Generic operand candidate resolution | `financial_operand_resolution.py`; owns coherent-first required-candidate merge, complete-ratio candidate-first/current-first precedence, ordered typed direct structured acceptance, typed direct structured-evidence base scoring and the neutral ordered aggregate-role predicate, prepared preferred-slot adoption/overlay, recovered-context merge/replacement plus referenced-evidence adoption, post-coercion per-row lookup direct-support, and required match/surface, lookup-rematch, direct-first merge while graph retains scope/target policy, model/evidence/id/coercion/applicability/exception/fallback orchestration, stateful preferred-slot preparation, query/report-scope score augmentation, ambiguity/tie-break, recovery eligibility/builders/logging, and ratio-recovered/runtime projection |
-| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, and prepared structured-provenance adoption | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, while graph retains row construction/normalization and evidence coercion/append; Stage 1 owns candidate field copies and result-status disposition, Stage 2 owns truthy formatted-result/final-row projection, while graph retains raw-plan and candidate construction/execution, recalculated-value coercion and invalid-value artifact-builder laziness, absolute-ratio query/transform invocation, task-artifact/ledger conflict short-circuit, formatter, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
+| Dependency binding summary, projection, source-set selector, typed main/late/final application, recalculation plan disposition, prepared ratio-artifact conflict selection, two-stage post-candidate finalization, prepared structured-provenance adoption, and prepared dependency-source ratio-result projection | `financial_dependency_projection.py`; the provenance seam mutates the graph-built row in place after graph-owned stateful lookup, while the ratio-result seam builds the fresh canonical result/slot containers with exact source/component aliases; graph retains row construction/normalization and evidence coercion/append, raw-plan and candidate construction/execution, source-slot selection and component ranking, ratio/query/absolute policy, source-id cleaning, task-artifact/ledger conflict short-circuit, compact formatting, caller iteration/projection, repair acceptance, other fallback, and aggregate sequencing |
 | Deterministic difference/growth plan decision, primary plan validation, formula execution, and value-only stale freshness assessment | `financial_calculation_execution.py`; state-free construction plus typed raw/guarded selection are owner-owned, while the state/query adapter, lazy dependency raw-plan construction, and primary runtime/task/artifact projection remain graph-owned; dependency receives the raw plan explicitly and broader ledger synchronization remains open |
 | Aggregate projection, stale provenance selection, prepared collapsed-ratio magnitude transformation, answer-candidate packaging/application/final-answer synchronization, and generated-provenance filtering | `financial_aggregate_projection.py`; canonical aggregate operation-family normalization, typed state-free target selection, the result/slot/primary prepared-copy transform, base/refreshed candidate payload packaging, same-projection candidate application, stable claim-id merge, and graph-prepared projection/kept-id filtering are owner-owned, while evidence/kept-id selection, rebuild gating, selected claims, surface-operand append, candidate discovery/scoring/selection, narrative refresh, packaging call placement/laziness, application invocation/precedence, trace/eligibility/completeness/query gates, mutable state/evidence, artifact/ledger, stale repair, downstream coherence/answer/coverage, and final orchestration remain graph-owned |
 | Public calculation projection | `resolved_calculation_trace` and `structured_result` |
@@ -217,9 +225,9 @@ data artifacts. Runtime control flow implements generic mechanisms only.
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; bound manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and domain audit explicitly `not_run` by this command |
-| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 326/326 tests on 2026-08-09 |
+| Latest calculation runtime checkpoint | PASS: targeted 3/3 and affected 297/297 tests on 2026-08-09 |
 | Runtime domain-term audit | PASS, 217 reviewed literals on 2026-08-09 |
-| Full unittest discovery | PASS, 1,493/1,493 tests locally on 2026-08-09 |
+| Full unittest discovery | PASS, 1,494/1,494 tests locally on 2026-08-09 |
 | Benchmark refresh after the latest calculation changes | NOT RUN; recorded benchmark evidence predates the latest behavior changes |
 | GitHub Actions validation | Workflow defined; no remote run observed for the local branch |
 
@@ -314,56 +322,47 @@ deterministic calculation, provenance, task/artifact integrity, and critic
 acceptance in a coherent trace. Optional cache and promotion surfaces are
 separate deep-validation paths.
 
-The next bounded architecture work is to characterize and relocate only
-`_rebuilt_ratio_result_from_dependency_slots`
-(`financial_graph_calculation.py:8796-8849`, sole caller `8967`) into
-`financial_dependency_projection.py`. The public typed seam should be
-`DependencyRatioResultProjectionInput`, carrying the prepared calculation result,
-answer slots, metric label, numerator and denominator slots, result value/unit,
-normalized unit, rendered value, and source-row-id list;
-`DependencyRatioResultProjectionResult(calculation_result=...)`; and
-`build_dependency_ratio_result_projection`.
+The next bounded architecture work is to characterize and relocate only the
+prepared aggregate projection-row surface-sync cluster
+`_numeric_slot_from_synced_answer_sentence` and
+`_with_synced_projection_row_surface`
+(`financial_graph_calculation.py:4920-5013`, sole adapter at `5190`) into
+`financial_aggregate_projection.py`. The public typed seam should be
+`AggregateProjectionRowSurfaceSyncInput(projection_row, answer, rendered_value)`,
+`AggregateProjectionRowSurfaceSyncResult(projection_row=...)`, and
+`synchronize_aggregate_projection_row_surface`; it needs no reason, application
+flag, graph state, or callback.
 
-The owner must create a fresh top-level calculation-result dictionary by
-expanding the prepared result, then overwrite `status`, `operation_family`,
-`result_value`, `result_unit`, `rendered_value`, `formatted_result`,
-`source_row_ids`, `source_evidence_ids`, and `answer_slots` in the current literal
-order. It creates fresh answer-slot, primary-value, `components_by_group`, and
-`components_by_role` dictionaries and fresh one-element component lists.
-Unoverwritten nested values from the prepared result and answer slots retain
-their identities.
+The owner must preserve the prepared-row transform exactly. It selects the first
+numeric surface for ratio/growth and the last surface otherwise, always returns
+a fresh top-level row, attaches a fresh calculation-result copy only when the
+prepared result is truthy, and creates slot copies only behind the existing
+gates. Untouched nested identities remain shared. Lookup rows keep the current
+series, primary slot, role/group container, current-value/period, and derived-metric
+update order, including dict-only filtering, first-item replacement, and empty-
+container fallbacks. Empty answer, no-numeric, missing calculation-result, empty
+rendered value, and ratio-without-primary paths keep their present conditional
+copy and key-presence behavior. Inputs remain unmodified; repeated operation-
+family resolution, mapping/string/numeric-surface access, and uncaught exception
+order must not change.
 
-The exact input `source_row_ids` list object must be reused by result
-`source_row_ids`, result `source_evidence_ids`, answer-slot `source_row_ids`, and
-primary-value `source_row_ids`; primary `source_row_id` remains
-`source_row_ids[0] if source_row_ids else ""`. The exact numerator and denominator
-slot objects are each reused in both their group and role lists. Inputs remain
-unmodified. Do not normalize, coerce, pre-copy, tuple-convert, or dedupe owner
-inputs. Mapping expansion, dictionary-literal evaluation, source-list truthiness,
-first-element indexing, and all uncaught mapping/iteration/truthiness/indexing
-exceptions must retain their current order.
+Characterization needs one compact owner matrix for empty/no-numeric input,
+missing calculation result, empty rendered value, ratio without a primary slot,
+first-versus-last numeric selection, existing and empty lookup series/containers/
+derived metrics, shallow-copy and retained nested identity, input immutability,
+and exception order. The existing ratio, difference, and lookup aggregate-trace
+sync fixtures must additionally fix prepared input wiring and owner-zero/once
+laziness without duplicating their end-to-end assertions.
 
-Characterization needs a compact direct owner matrix for stale-key overwrite
-order, all fresh containers, unrelated nested aliases, input immutability, empty
-and nonempty source-id list aliasing, exact component-slot reuse, and access/
-exception order. The existing full success fixture
-`test_preferred_complete_numeric_answer_rebuilds_ratio_from_dependency_source_slots`
-and early no-op fixture
-`test_preferred_complete_numeric_answer_skips_dependency_incoherent_ratio_row`
-must additionally fix the production order as ratio projection, source-id cleaning,
-owner once, compact formatting, with every earlier return keeping owner calls at
-zero.
-
-The stop line keeps dependency source-slot map construction, component seed/
-ranking/selection, numerator and denominator slot construction, same-slot and
-numeric gates, query/absolute-aware ratio projection, prepared float/string
-extraction, `_clean_source_row_ids`, all owner applicability/laziness, and final
-compact-ratio formatting in the graph. Acceptance deletes only graph
-`8796-8849` and requires the old definition and self references to be absent.
-The allowed claim is prepared dependency-source ratio-result projection
-ownership, not source selection, ratio formula/query policy, formatting,
-dependency precedence, aggregate projection, total-code or executed-path
-reduction, performance, broader private-mesh cleanup, or Phase 3 completion.
+The stop line keeps candidate-index and answer-sentence selection, numeric-
+conflict and coverage gates, rendered-value extraction, row iteration, lookup-
+component propagation, updated-row task mapping, ordered/slot-row propagation,
+projection rebuild, and final orchestration in the graph. Acceptance deletes
+only graph `4920-5013` and all exact private self references. The allowed claim is
+prepared projection-row numeric-surface synchronization ownership, not candidate
+or answer selection, aggregate precedence, lookup propagation, final projection,
+state/evidence/artifact/ledger work, total-code or executed-path reduction,
+performance, broader private-mesh cleanup, or Phase 3 completion.
 Aggregate composition, stale repair, other ratio/absolute handling, remaining
 fallbacks, and private facade/API cleanup remain separate debt. The Phase 3
 backlog in the refactoring plan is unordered; this section is the authority for

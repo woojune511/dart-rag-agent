@@ -231,7 +231,11 @@ Current calculation ownership is:
   formatted-result mutation and trace-first/fallback final row projection. It
   also owns typed in-place adoption of graph-resolved structured provenance into
   a graph-built dependency row: source ids/anchor, converted-display preservation
-  or unit realignment, and nonempty scope/statement/table metadata overlay.
+  or unit realignment, and nonempty scope/statement/table metadata overlay. For
+  graph-prepared dependency-source ratio fields, it owns the typed fresh
+  calculation-result/answer-slot projection and its exact source-list and
+  component-slot alias contract; source selection, ratio/query policy, source-id
+  cleaning, and compact formatting remain graph-owned.
 - `financial_calculation_execution.py` owns deterministic difference/growth
   plan construction, plan validation, formula execution, and value-only stale
   assessment.
@@ -246,12 +250,12 @@ Current calculation ownership is:
   synchronization of graph-prepared nested subtask rows against current ordered
   task results.
 
-At the latest checkpoint, the graph is 19,482 lines, the graph helper module is
+At the latest checkpoint, the graph is 19,431 lines, the graph helper module is
 6,311, graph reconciliation is 2,428, lookup recovery is 609, the operand owner
-is 2,437, the aggregate owner is 735, the dependency owner is 3,089, and the
+is 2,437, the aggregate owner is 735, the dependency owner is 3,164, and the
 execution owner is 837. The latest owner slice passed targeted 3/3 tests,
-affected 326/326 tests, the 217-literal audit, and full discovery over
-1,493/1,493 tests.
+affected 297/297 tests, the 217-literal audit, and full discovery over
+1,494/1,494 tests.
 Benchmark refresh is NOT RUN. Exact commit boundaries, intermediate
 metrics, and claim limits live in
 `docs/history/implementation_history.md`; they are intentionally not repeated

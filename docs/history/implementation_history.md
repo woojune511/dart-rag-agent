@@ -586,6 +586,33 @@ evidence mutation, rebuild, or final orchestration, and not a total-code, broad
 executed-path, performance, broad private-mesh, end-to-end calculation-owner, or
 complete Phase 3 reduction claim.
 
+### Dependency-source ratio-result projection ownership
+
+- `c932a17` moves the graph-private dependency-source ratio-result builder into
+  `financial_dependency_projection.py` as a typed state-free owner seam. It
+  receives only graph-prepared result/slot/value/unit/render/source-id inputs and
+  preserves literal overwrite and exception order, fresh result/answer-slot/
+  primary/group/role/list containers, untouched nested identities, the exact
+  four-surface source-id-list alias, and exact numerator/denominator slot reuse.
+- The graph keeps dependency source-slot construction and selection, component
+  ranking and slot construction, same-slot/numeric gates, ratio formula/query and
+  absolute policy, value/unit extraction, source-id cleaning, owner applicability
+  and laziness, and compact formatting. The old private builder and all exact self
+  references are deleted.
+- Production source is `+91/-67`, net 24: the graph changes from 19,482 to
+  19,431 lines (`+16/-67`, net -51) and the dependency owner from 3,089 to
+  3,164 (`+75`). Tests are `+246/-3`, net 243; the whole commit is `+337/-70`,
+  net 267.
+- Validation passed targeted 3/3 tests, affected owner/subtask 297/297 tests, the
+  217-literal runtime audit, full discovery over 1,494/1,494 tests, and
+  `git diff --check`. Benchmark refresh was NOT RUN.
+
+This is a behavior-preserving prepared dependency-source ratio-result projection
+ownership relocation, not source selection, ratio formula/query policy,
+formatting, dependency precedence, aggregate projection, state/ledger or final-
+answer ownership, and not a total-code, broad executed-path, performance, broad
+private-mesh, end-to-end calculation-owner, or complete Phase 3 reduction claim.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
