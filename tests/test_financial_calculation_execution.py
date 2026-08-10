@@ -1,5 +1,8 @@
+import ast
 import unittest
+from collections.abc import Mapping
 from copy import deepcopy
+from pathlib import Path
 from unittest.mock import patch
 
 import src.agent.financial_graph_calculation as graph_calculation
@@ -23,6 +26,184 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import CalculationResult
 
 class FinancialCalculationExecutionTests(unittest.TestCase):
+    def test_prepare_candidate_binds_krw_raw_unit_repair_once_in_exact_order(self) -> None:
+        tree = ast.parse(Path(graph_calculation.__file__).read_text(encoding="utf-8"))
+        target = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "_prepare_calculation_candidate"
+        )
+        parents = {
+            child: parent
+            for parent in ast.walk(target)
+            for child in ast.iter_child_nodes(parent)
+        }
+        module_owner_calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "repair_krw_normalized_values_from_raw_units"
+        ]
+        self.assertEqual(len(module_owner_calls), 1)
+        owner_call = module_owner_calls[0]
+        self.assertIn(owner_call, list(ast.walk(target)))
+        self.assertEqual(len(owner_call.args), 1)
+        self.assertEqual(ast.dump(owner_call.args[0]), ast.dump(ast.Name(id="runtime_operands", ctx=ast.Load())))
+        self.assertEqual(owner_call.keywords, [])
+
+        def top_level_statement(node):
+            while parents.get(node) is not target:
+                node = parents[node]
+            return node
+
+        def statement_index_for_call(attribute):
+            call = next(
+                node
+                for node in ast.walk(target)
+                if isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+                and node.func.attr == attribute
+            )
+            return target.body.index(top_level_statement(call))
+
+        table_index = statement_index_for_call("_repair_krw_operand_units_from_table_metadata")
+        owner_index = target.body.index(top_level_statement(owner_call))
+        operands_index = next(
+            index
+            for index, statement in enumerate(target.body)
+            if isinstance(statement, ast.Assign)
+            and any(isinstance(item, ast.Name) and item.id == "operands" for item in statement.targets)
+        )
+        plan_index = next(
+            index
+            for index, statement in enumerate(target.body)
+            if isinstance(statement, ast.Assign)
+            and any(isinstance(item, ast.Name) and item.id == "plan" for item in statement.targets)
+        )
+        self.assertEqual((owner_index - table_index, operands_index - owner_index, plan_index - operands_index), (1, 1, 1))
+        self.assertFalse(any(isinstance(parent, ast.Try) for parent in parents if owner_call in ast.walk(parent)))
+
+    def test_prepare_candidate_adopts_krw_raw_unit_repair_before_plan_gate_and_stops_on_exception(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        shared = {"preserve": True}
+
+        class RowProbe(dict):
+            def __init__(self, *args, events, **kwargs):
+                super().__init__(*args, **kwargs)
+                self._events = events
+
+            def get(self, key, default=None):
+                if key == "operand_id":
+                    self._events.append(("operand_index", self))
+                return super().get(key, default)
+
+        class PlanProbe(Mapping):
+            def __init__(self, events):
+                self._events = events
+                self._data = {
+                    "mode": "none",
+                    "operation": "none",
+                    "ordered_operand_ids": [],
+                    "variable_bindings": [],
+                    "result_unit": "",
+                }
+
+            def __getitem__(self, key):
+                self._events.append(("plan_item", key))
+                return self._data[key]
+
+            def __iter__(self):
+                self._events.append(("plan_iter", None))
+                return iter(self._data)
+
+            def __len__(self):
+                return len(self._data)
+
+        def candidate_input(events):
+            return graph_calculation._CalculationCandidateInput(
+                calculation_operands=({"operand_id": "input", "nested": shared},),
+                calculation_plan=PlanProbe(events),
+                active_subtask={"operation_family": "lookup", "required_operands": []},
+                query="lookup",
+                evidence_items=(),
+                runtime_evidence=(),
+            )
+
+        events = []
+        table_rows = [{"operand_id": "table", "normalized_value": 1.0, "nested": shared}]
+        owner_rows = [RowProbe(
+            {"operand_id": "owner", "normalized_value": 2.0, "nested": shared},
+            events=events,
+        )]
+
+        def coerce(row, evidence):
+            events.append(("coerce", row, evidence))
+            return row
+
+        def table_repair(rows, evidence_items):
+            events.append(("table_repair", rows, evidence_items))
+            return table_rows
+
+        def owner_repair(rows):
+            events.append(("owner_repair", rows))
+            self.assertIs(rows, table_rows)
+            return owner_rows
+
+        with (
+            patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=coerce),
+            patch.object(agent, "_repair_krw_operand_units_from_table_metadata", side_effect=table_repair),
+            patch.object(
+                graph_calculation,
+                "repair_krw_normalized_values_from_raw_units",
+                side_effect=owner_repair,
+            ) as owner,
+            patch.object(graph_calculation, "apply_operation_sign_policy") as sign_policy,
+            patch.object(graph_calculation, "execute_prepared_calculation_plan") as executor,
+        ):
+            result = agent._prepare_calculation_candidate(candidate_input(events))
+
+        self.assertEqual(result.status, "insufficient_operands")
+        owner.assert_called_once_with(table_rows)
+        self.assertEqual(result.calculation_operands[0]["operand_id"], "owner")
+        self.assertEqual(result.calculation_operands[0]["normalized_value"], 2.0)
+        self.assertIs(result.calculation_operands[0]["nested"], shared)
+        event_names = [event[0] for event in events]
+        self.assertLess(event_names.index("coerce"), event_names.index("table_repair"))
+        self.assertLess(event_names.index("table_repair"), event_names.index("owner_repair"))
+        self.assertLess(event_names.index("owner_repair"), event_names.index("operand_index"))
+        self.assertLess(event_names.index("operand_index"), event_names.index("plan_iter"))
+        sign_policy.assert_not_called()
+        executor.assert_not_called()
+
+        stop_events = []
+        stop_table_rows = [RowProbe({"operand_id": "table"}, events=stop_events)]
+        with (
+            patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
+            patch.object(
+                agent,
+                "_repair_krw_operand_units_from_table_metadata",
+                side_effect=lambda _rows, _evidence: (stop_events.append(("table_repair", None)) or stop_table_rows),
+            ),
+            patch.object(
+                graph_calculation,
+                "repair_krw_normalized_values_from_raw_units",
+                side_effect=lambda rows: (
+                    stop_events.append(("owner_repair", rows)),
+                    (_ for _ in ()).throw(RuntimeError("raw-unit repair")),
+                )[1],
+            ),
+            patch.object(graph_calculation, "apply_operation_sign_policy") as stopped_sign,
+            patch.object(graph_calculation, "execute_prepared_calculation_plan") as stopped_executor,
+            self.assertRaisesRegex(RuntimeError, "raw-unit repair"),
+        ):
+            agent._prepare_calculation_candidate(candidate_input(stop_events))
+        self.assertEqual([event[0] for event in stop_events], ["table_repair", "owner_repair"])
+        stopped_sign.assert_not_called()
+        stopped_executor.assert_not_called()
+
     def test_prepare_candidate_binds_operation_sign_policy_before_execution(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         numerator = {
@@ -95,8 +276,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     side_effect=lambda rows, _evidence: rows,
                 ),
                 patch.object(
-                    agent,
-                    "_repair_krw_normalized_values_from_raw_units",
+                    graph_calculation,
+                    "repair_krw_normalized_values_from_raw_units",
                     side_effect=lambda rows: rows,
                 ),
                 patch.object(

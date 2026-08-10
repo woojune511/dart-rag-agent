@@ -145,6 +145,398 @@ def _merge_operand_row(
 
 
 class FinancialOperandResolutionTests(unittest.TestCase):
+    def test_krw_raw_unit_repair_preserves_branch_identity_copy_and_mutation_contract(self) -> None:
+        shared = {"preserve": True}
+        rows = [
+            {
+                "operand_id": "non_krw",
+                "normalized_unit": "COUNT",
+                "raw_unit": "ignored",
+                "raw_value": "ignored",
+                "nested": shared,
+            },
+            {
+                "operand_id": "small_distortion",
+                "normalized_unit": "KRW",
+                "normalized_value": 99.0,
+                "raw_unit": "원",
+                "raw_value": "small",
+                "nested": shared,
+            },
+            {
+                "operand_id": "boundary_repair",
+                "normalized_unit": " krw ",
+                "normalized_value": 10000.0,
+                "raw_unit": "원",
+                "raw_value": "boundary",
+                "nested": shared,
+            },
+            {
+                "operand_id": "trailing_unchanged",
+                "normalized_unit": "COUNT",
+                "raw_unit": "ignored",
+                "raw_value": "ignored",
+                "nested": shared,
+            },
+        ]
+        original = deepcopy(rows)
+
+        def normalize(raw_value, raw_unit):
+            self.assertEqual(raw_unit, "원")
+            return {
+                "small": (1.0, "KRW"),
+                "boundary": (100.0, "KRW"),
+            }[raw_value]
+
+        with patch.object(operand_resolution, "_normalise_operand_value", side_effect=normalize):
+            repaired = operand_resolution.repair_krw_normalized_values_from_raw_units(rows)
+
+        self.assertIsNot(repaired, rows)
+        self.assertEqual([row["operand_id"] for row in repaired], [row["operand_id"] for row in rows])
+        self.assertTrue(all(after is not before for after, before in zip(repaired, rows)))
+        self.assertTrue(all(after["nested"] is shared for after in repaired))
+        self.assertEqual(rows, original)
+        self.assertEqual(
+            {
+                key: value
+                for key, value in repaired[2].items()
+                if original[2].get(key) != value
+            },
+            {
+                "normalized_unit": "KRW",
+                "source_normalized_value": 10000.0,
+                "normalized_value": 100.0,
+                "unit_normalization_repair_source": "raw_unit_scale",
+            },
+        )
+        self.assertEqual(repaired[1], rows[1])
+
+        unchanged = [
+            {"normalized_unit": "COUNT", "raw_unit": "ignored", "raw_value": "ignored"},
+            {"normalized_unit": "KRW", "raw_unit": "원", "raw_value": "equal", "normalized_value": 5.0},
+            {"normalized_unit": "KRW", "raw_unit": "원", "raw_value": "zero", "normalized_value": 0.0},
+            {"normalized_unit": "KRW", "raw_unit": "원", "raw_value": "expected_zero", "normalized_value": 9.0},
+            {"normalized_unit": "KRW", "raw_unit": "원", "raw_value": "missing", "normalized_value": 9.0},
+            {"normalized_unit": "KRW", "raw_unit": "원", "raw_value": "wrong_unit", "normalized_value": 9.0},
+        ]
+        unchanged_original = deepcopy(unchanged)
+        unchanged_ids = [id(row) for row in unchanged]
+
+        def unchanged_normalize(raw_value, _raw_unit):
+            return {
+                "equal": (5.0, "KRW"),
+                "zero": (1.0, "KRW"),
+                "expected_zero": (0.0, "KRW"),
+                "missing": (None, "unit_bomb_is_not_read"),
+                "wrong_unit": (1.0, "krw"),
+            }[raw_value]
+
+        with patch.object(operand_resolution, "_normalise_operand_value", side_effect=unchanged_normalize):
+            same = operand_resolution.repair_krw_normalized_values_from_raw_units(unchanged)
+            empty = []
+            same_empty = operand_resolution.repair_krw_normalized_values_from_raw_units(empty)
+
+        self.assertIs(same, unchanged)
+        self.assertEqual([id(row) for row in same], unchanged_ids)
+        self.assertEqual(unchanged, unchanged_original)
+        self.assertIs(same_empty, empty)
+
+    def test_krw_raw_unit_repair_preserves_access_laziness_and_exception_contract(self) -> None:
+        events = []
+
+        class Probe:
+            def __init__(self, name, value, *, truth=True, float_error=None):
+                self.name = name
+                self.value = value
+                self.truth = truth
+                self.float_error = float_error
+
+            def __bool__(self):
+                events.append(("bool", self.name))
+                return self.truth
+
+            def __str__(self):
+                events.append(("str", self.name))
+                return str(self.value)
+
+            def __float__(self):
+                events.append(("float", self.name))
+                if self.float_error is not None:
+                    raise self.float_error(self.name)
+                return float(self.value)
+
+        class Bomb:
+            def __getattribute__(self, name):
+                if name.startswith("__"):
+                    return object.__getattribute__(self, name)
+                raise RuntimeError(f"unexpected access: {name}")
+
+            def __bool__(self):
+                raise RuntimeError("unexpected bool")
+
+            def __str__(self):
+                raise RuntimeError("unexpected str")
+
+            def __float__(self):
+                raise RuntimeError("unexpected float")
+
+        class StrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("unexpected str")
+
+        class ComparisonBomb:
+            def __eq__(self, _other):
+                raise RuntimeError("unexpected unit comparison")
+
+            def __ne__(self, _other):
+                raise RuntimeError("unexpected unit comparison")
+
+        def spaces(value):
+            events.append(("spaces", value))
+            return value.strip()
+
+        def normalize(raw_value, raw_unit):
+            events.append(("normalize", raw_value, raw_unit))
+            return Probe("expected", 100.0), "KRW"
+
+        row = {
+            "normalized_unit": Probe("normalized_unit", " krw "),
+            "raw_unit": Probe("raw_unit", " 원 "),
+            "result_unit": Bomb(),
+            "raw_value": Probe("raw_value", " 100 "),
+            "normalized_value": Probe("current", 10000.0),
+        }
+        with (
+            patch.object(operand_resolution, "_normalise_spaces", side_effect=spaces),
+            patch.object(operand_resolution, "_normalise_operand_value", side_effect=normalize),
+        ):
+            repaired = operand_resolution.repair_krw_normalized_values_from_raw_units([row])
+        self.assertEqual(
+            events,
+            [
+                ("bool", "normalized_unit"),
+                ("str", "normalized_unit"),
+                ("spaces", " krw "),
+                ("bool", "raw_unit"),
+                ("str", "raw_unit"),
+                ("spaces", " 원 "),
+                ("bool", "raw_value"),
+                ("str", "raw_value"),
+                ("spaces", " 100 "),
+                ("normalize", "100", "원"),
+                ("float", "current"),
+                ("float", "expected"),
+            ],
+        )
+        self.assertEqual(repaired[0]["normalized_value"], 100.0)
+
+        non_krw_rows = [{
+            "normalized_unit": "COUNT",
+            "raw_unit": Bomb(),
+            "result_unit": Bomb(),
+            "raw_value": Bomb(),
+        }]
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            side_effect=AssertionError("non-KRW normalizer access"),
+        ):
+            self.assertIs(
+                operand_resolution.repair_krw_normalized_values_from_raw_units(non_krw_rows),
+                non_krw_rows,
+            )
+
+        blank_unit_rows = [{
+            "normalized_unit": Probe("blank_unit_normalized", "KRW"),
+            "raw_unit": Probe("blank_raw_unit", "", truth=False),
+            "result_unit": Probe("blank_result_unit", "", truth=False),
+            "raw_value": Probe("eager_raw_value", "7"),
+            "normalized_value": Bomb(),
+        }]
+        events.clear()
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            side_effect=AssertionError("blank-unit normalizer access"),
+        ):
+            self.assertIs(
+                operand_resolution.repair_krw_normalized_values_from_raw_units(blank_unit_rows),
+                blank_unit_rows,
+            )
+        self.assertIn(("bool", "eager_raw_value"), events)
+        self.assertIn(("str", "eager_raw_value"), events)
+        self.assertFalse(any(event[0] in {"normalize", "float"} for event in events))
+
+        blank_value_rows = [{
+            "normalized_unit": "KRW",
+            "raw_unit": "원",
+            "raw_value": Probe("blank_raw_value", "", truth=False),
+            "normalized_value": Bomb(),
+        }]
+        events.clear()
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            side_effect=AssertionError("blank-value normalizer access"),
+        ):
+            self.assertIs(
+                operand_resolution.repair_krw_normalized_values_from_raw_units(blank_value_rows),
+                blank_value_rows,
+            )
+        self.assertEqual([event for event in events if event[0] == "bool"], [("bool", "blank_raw_value")])
+        self.assertFalse(any(event[0] in {"normalize", "float"} for event in events))
+
+        wrong_unit_rows = [{
+            "normalized_unit": "KRW",
+            "raw_unit": "원",
+            "raw_value": "1",
+            "normalized_value": Bomb(),
+        }]
+        with patch.object(operand_resolution, "_normalise_operand_value", return_value=(1.0, "COUNT")):
+            self.assertIs(
+                operand_resolution.repair_krw_normalized_values_from_raw_units(wrong_unit_rows),
+                wrong_unit_rows,
+            )
+
+        events.clear()
+        current_bomb = Bomb()
+
+        def no_value_normalizer(raw_value, raw_unit):
+            events.append(("normalize", raw_value, raw_unit))
+            return None, ComparisonBomb()
+
+        fallback_row = {
+            "normalized_unit": Probe("normalized_unit", "KRW"),
+            "raw_unit": Probe("raw_unit", "", truth=False),
+            "result_unit": Probe("result_unit", "원"),
+            "raw_value": Probe("raw_value", "1"),
+            "normalized_value": current_bomb,
+        }
+        fallback_rows = [fallback_row]
+        with (
+            patch.object(operand_resolution, "_normalise_spaces", side_effect=spaces),
+            patch.object(operand_resolution, "_normalise_operand_value", side_effect=no_value_normalizer),
+        ):
+            same = operand_resolution.repair_krw_normalized_values_from_raw_units(fallback_rows)
+        self.assertIs(same, fallback_rows)
+        self.assertEqual(
+            events,
+            [
+                ("bool", "normalized_unit"),
+                ("str", "normalized_unit"),
+                ("spaces", "KRW"),
+                ("bool", "raw_unit"),
+                ("bool", "result_unit"),
+                ("str", "result_unit"),
+                ("spaces", "원"),
+                ("bool", "raw_value"),
+                ("str", "raw_value"),
+                ("spaces", "1"),
+                ("normalize", "1", "원"),
+            ],
+        )
+
+        for current_error, expected_error, expected_float_events in (
+            (TypeError, RuntimeError, [("float", "current_soft")]),
+            (None, ValueError, [("float", "current_soft"), ("float", "expected_soft")]),
+        ):
+            events.clear()
+            current = Probe("current_soft", 10.0, float_error=current_error)
+            expected = Probe("expected_soft", 1.0, float_error=expected_error)
+            soft_rows = [{
+                "normalized_unit": "KRW",
+                "raw_unit": "원",
+                "raw_value": "1",
+                "normalized_value": current,
+            }]
+            with patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(expected, "KRW"),
+            ):
+                self.assertIs(
+                    operand_resolution.repair_krw_normalized_values_from_raw_units(soft_rows),
+                    soft_rows,
+                )
+            self.assertEqual([event for event in events if event[0] == "float"], expected_float_events)
+
+        class IterationBomb:
+            def __iter__(self):
+                raise RuntimeError("operand iteration")
+
+        class CopyBomb(Mapping):
+            def __getitem__(self, _key):
+                raise AssertionError("unreachable")
+
+            def __iter__(self):
+                raise RuntimeError("row copy")
+
+            def __len__(self):
+                return 1
+
+        with self.assertRaisesRegex(RuntimeError, "operand iteration"):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(IterationBomb())
+        with self.assertRaisesRegex(RuntimeError, "row copy"):
+            operand_resolution.repair_krw_normalized_values_from_raw_units([CopyBomb()])
+        with self.assertRaisesRegex(RuntimeError, "unexpected bool"):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(
+                [{"normalized_unit": Bomb()}]
+            )
+        with self.assertRaisesRegex(RuntimeError, "unexpected str"):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(
+                [{"normalized_unit": StrBomb()}]
+            )
+        with (
+            patch.object(operand_resolution, "_normalise_spaces", side_effect=RuntimeError("spaces")),
+            self.assertRaisesRegex(RuntimeError, "spaces"),
+        ):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(
+                [{"normalized_unit": "KRW"}]
+            )
+        with (
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=RuntimeError("normalizer"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "normalizer"),
+        ):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(
+                [{"normalized_unit": "KRW", "raw_unit": "원", "raw_value": "1"}]
+            )
+        with (
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(Probe("expected_runtime", 1.0), "KRW"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "current_runtime"),
+        ):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(
+                [{
+                    "normalized_unit": "KRW",
+                    "raw_unit": "원",
+                    "raw_value": "1",
+                    "normalized_value": Probe("current_runtime", 10.0, float_error=RuntimeError),
+                }]
+            )
+        with (
+            patch.object(operand_resolution, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch("builtins.max", side_effect=RuntimeError("arithmetic")),
+            self.assertRaisesRegex(RuntimeError, "arithmetic"),
+        ):
+            operand_resolution.repair_krw_normalized_values_from_raw_units(
+                [{
+                    "normalized_unit": "KRW",
+                    "raw_unit": "원",
+                    "raw_value": "1",
+                    "normalized_value": 1000.0,
+                }]
+            )
+
     def test_operation_sign_policy_preserves_identity_and_applies_ontology_override(self) -> None:
         class IterationBomb(list):
             def __iter__(self):

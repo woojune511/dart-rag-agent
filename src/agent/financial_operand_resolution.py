@@ -760,6 +760,54 @@ def repair_operand_normalization_from_rendered_unit(
     return updated
 
 
+def repair_krw_normalized_values_from_raw_units(
+    operands: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    updated: List[Dict[str, Any]] = []
+    changed = False
+    for row in operands:
+        next_row = dict(row)
+        if _normalise_spaces(str(next_row.get("normalized_unit") or "")).upper() != "KRW":
+            updated.append(next_row)
+            continue
+        raw_unit = _normalise_spaces(str(next_row.get("raw_unit") or next_row.get("result_unit") or ""))
+        raw_value = _normalise_spaces(str(next_row.get("raw_value") or ""))
+        if not raw_unit or not raw_value:
+            updated.append(next_row)
+            continue
+        expected_value, expected_unit = _normalise_operand_value(raw_value, raw_unit)
+        if expected_value is None or expected_unit != "KRW":
+            updated.append(next_row)
+            continue
+        current_value = next_row.get("normalized_value")
+        try:
+            current_numeric = float(current_value)
+            expected_numeric = float(expected_value)
+        except (TypeError, ValueError):
+            updated.append(next_row)
+            continue
+        if current_numeric == expected_numeric:
+            updated.append(next_row)
+            continue
+        if not current_numeric or not expected_numeric:
+            updated.append(next_row)
+            continue
+        distortion = max(abs(current_numeric), abs(expected_numeric)) / min(
+            abs(current_numeric),
+            abs(expected_numeric),
+        )
+        if distortion < 100.0:
+            updated.append(next_row)
+            continue
+        next_row["source_normalized_value"] = current_numeric
+        next_row["normalized_value"] = expected_numeric
+        next_row["normalized_unit"] = expected_unit
+        next_row["unit_normalization_repair_source"] = "raw_unit_scale"
+        changed = True
+        updated.append(next_row)
+    return updated if changed else operands
+
+
 def align_ratio_operand_units_with_shared_table_context(
     ordered_operands: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
