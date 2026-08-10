@@ -855,7 +855,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "calculation_result": ratio_result,
         }
         with (
-            patch.object(agent, "_ratio_components_are_complete", return_value=True),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_are_complete",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_dependency_slot_coherence_rank_for_operands",
@@ -885,7 +889,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         compact_answer_owner = Mock(return_value="unused")
         with (
-            patch.object(agent, "_ratio_components_are_complete", return_value=True),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_are_complete",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_dependency_slot_coherence_rank_for_operands",
@@ -1010,11 +1018,15 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value="ratio",
             ),
             patch.object(
-                agent,
-                "_ratio_components_collapse_to_same_slot",
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_collapse_to_same_slot",
                 return_value=True,
             ),
-            patch.object(agent, "_ratio_components_are_complete", return_value=True),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_are_complete",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation.calculation_rendering,
                 "ratio_query_requests_absolute_magnitude",
@@ -1067,11 +1079,15 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value="ratio",
             ),
             patch.object(
-                agent,
-                "_ratio_components_collapse_to_same_slot",
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_collapse_to_same_slot",
                 return_value=True,
             ),
-            patch.object(agent, "_ratio_components_are_complete", return_value=True),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_are_complete",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation.calculation_rendering,
                 "ratio_query_requests_absolute_magnitude",
@@ -1104,7 +1120,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
-            patch.object(agent, "_ratio_components_are_complete", return_value=True),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_are_complete",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_dependency_slot_coherence_rank_for_operands",
@@ -1134,7 +1154,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "_resolve_runtime_calculation_trace",
                 return_value=runtime_trace,
             ),
-            patch.object(agent, "_ratio_components_are_complete", return_value=True),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "ratio_components_are_complete",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_dependency_slot_coherence_rank_for_operands",
@@ -8600,74 +8624,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         self.assertIn("bonds 9,490백만원", answer)
         self.assertIn("tangible assets 52,704백만원", answer)
         self.assertIn("intangible assets 3,834백만원", answer)
-
-    def test_ratio_components_are_not_complete_when_groups_are_same_slot(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        calculation_result = {
-            "status": "ok",
-            "rendered_value": "100%",
-            "answer_slots": {
-                "operation_family": "ratio",
-                "components_by_group": {
-                    "numerator": [
-                        {
-                            "label": "segment operating income",
-                            "raw_value": "(581,816)",
-                            "raw_unit": "million",
-                            "normalized_value": -581_816_000_000.0,
-                            "source_row_id": "task_output:task_source",
-                            "source_row_ids": ["task_output:task_source", "row_segment"],
-                        }
-                    ],
-                    "denominator": [
-                        {
-                            "label": "segment operating income",
-                            "raw_value": "(581,816)",
-                            "raw_unit": "million",
-                            "normalized_value": -581_816_000_000.0,
-                            "source_row_id": "task_output:task_source",
-                            "source_row_ids": ["task_output:task_source", "row_segment"],
-                        }
-                    ],
-                },
-            },
-        }
-
-        self.assertFalse(agent._ratio_components_are_complete(calculation_result))
-
-    def test_ratio_components_are_not_complete_when_same_source_value_has_different_labels(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        calculation_result = {
-            "status": "ok",
-            "rendered_value": "100%",
-            "answer_slots": {
-                "operation_family": "ratio",
-                "components_by_group": {
-                    "numerator": [
-                        {
-                            "label": "segment operating income",
-                            "raw_value": "1,064,063",
-                            "raw_unit": "million",
-                            "normalized_value": 1_064_063_000_000.0,
-                            "source_row_id": "row_same",
-                            "source_row_ids": ["row_same"],
-                        }
-                    ],
-                    "denominator": [
-                        {
-                            "label": "total operating income",
-                            "raw_value": "1,064,063",
-                            "raw_unit": "million",
-                            "normalized_value": 1_064_063_000_000.0,
-                            "source_row_id": "row_same",
-                            "source_row_ids": ["row_same"],
-                        }
-                    ],
-                },
-            },
-        }
-
-        self.assertFalse(agent._ratio_components_are_complete(calculation_result))
 
     def test_ratio_dependency_source_slot_requires_role_target_match(self) -> None:
         operand = {

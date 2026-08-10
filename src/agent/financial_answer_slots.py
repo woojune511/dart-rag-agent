@@ -56,6 +56,82 @@ def period_match_key(value: str) -> str:
     return re.sub(r"\D", "", _normalise_spaces(str(value or "")))
 
 
+def ratio_component_consolidation_scope(
+    calculation_result: Dict[str, Any],
+    operands: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    scopes: List[str] = []
+    for entries in dict(answer_slots.get("components_by_group") or {}).values():
+        for entry in entries or []:
+            scope = _normalise_spaces(str((entry or {}).get("consolidation_scope") or ""))
+            if scope in {"consolidated", "separate"} and scope not in scopes:
+                scopes.append(scope)
+    for operand in operands or []:
+        scope = _normalise_spaces(str((operand or {}).get("consolidation_scope") or ""))
+        if scope in {"consolidated", "separate"} and scope not in scopes:
+            scopes.append(scope)
+    return scopes[0] if len(scopes) == 1 else ""
+
+
+def ratio_components_collapse_to_same_slot(calculation_result: Dict[str, Any]) -> bool:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components_by_group = dict(answer_slots.get("components_by_group") or {})
+    numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
+    denominator_slots = [
+        dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
+    ]
+
+    def _slot_identity(slot: Dict[str, Any]) -> tuple[str, str, str, str, str]:
+        source_ids = "|".join(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
+        normalized_value = slot.get("normalized_value")
+        try:
+            normalized_text = f"{float(normalized_value):.6f}" if normalized_value is not None else ""
+        except (TypeError, ValueError):
+            normalized_text = _normalise_spaces(str(normalized_value or ""))
+        return (
+            _normalise_spaces(str(slot.get("label") or "")),
+            _normalise_spaces(str(slot.get("raw_value") or "")),
+            _normalise_spaces(str(slot.get("raw_unit") or "")),
+            normalized_text,
+            source_ids,
+        )
+
+    if numerator_slots and denominator_slots:
+        numerator_identities = {_slot_identity(slot) for slot in numerator_slots if answer_slot_has_material(slot)}
+        denominator_identities = {_slot_identity(slot) for slot in denominator_slots if answer_slot_has_material(slot)}
+        if numerator_identities and numerator_identities == denominator_identities:
+            return True
+        numerator_value_identities = {identity[1:] for identity in numerator_identities if identity[-1]}
+        denominator_value_identities = {identity[1:] for identity in denominator_identities if identity[-1]}
+        if numerator_value_identities and numerator_value_identities & denominator_value_identities:
+            return True
+    return False
+
+
+def ratio_components_are_complete(calculation_result: Dict[str, Any]) -> bool:
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    components_by_group = dict(answer_slots.get("components_by_group") or {})
+    numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
+    denominator_slots = [
+        dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
+    ]
+
+    def _slot_has_value(slot: Dict[str, Any]) -> bool:
+        return bool(
+            _normalise_spaces(
+                str(slot.get("rendered_value") or slot.get("raw_value") or slot.get("normalized_value") or "")
+            )
+        )
+
+    if ratio_components_collapse_to_same_slot(calculation_result):
+        return False
+
+    return any(_slot_has_value(slot) for slot in numerator_slots) and any(
+        _slot_has_value(slot) for slot in denominator_slots
+    )
+
+
 def source_task_display_compatible_with_slot(
     slot: Mapping[str, Any],
     source_display: str,

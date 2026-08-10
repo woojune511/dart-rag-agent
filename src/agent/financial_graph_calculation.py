@@ -2718,7 +2718,7 @@ class FinancialAgentCalculationMixin:
             if status != "ok" or material_gap_feedback_for_subtask_result(row):
                 continue
             calculation_result = dict(row.get("calculation_result") or {})
-            if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
+            if operation_family == "ratio" and financial_answer_slots.ratio_components_are_complete(calculation_result):
                 components_by_group = dict((calculation_result.get("answer_slots") or {}).get("components_by_group") or {})
                 has_multi_component_side = any(
                     len([item for item in list(components_by_group.get(group) or []) if isinstance(item, dict)]) > 1
@@ -2758,7 +2758,7 @@ class FinancialAgentCalculationMixin:
                 if answer:
                     _append_ranked_answer(row, answer)
                     continue
-            if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
+            if operation_family == "ratio" and financial_answer_slots.ratio_components_are_complete(calculation_result):
                 answer = self._compact_ratio_answer(
                     {
                         "active_subtask": {
@@ -2929,7 +2929,7 @@ class FinancialAgentCalculationMixin:
                     item for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
                 ]
                 if (
-                    self._ratio_components_are_complete(calculation_result)
+                    financial_answer_slots.ratio_components_are_complete(calculation_result)
                     and numerator_slots
                     and denominator_slots
                     and (len(numerator_slots) > 1 or len(denominator_slots) > 1)
@@ -4821,7 +4821,7 @@ class FinancialAgentCalculationMixin:
                 or ""
             )
         ).lower()
-        if operation != "ratio" or not self._ratio_components_are_complete(result):
+        if operation != "ratio" or not financial_answer_slots.ratio_components_are_complete(result):
             return ""
         trace_operands = list(operands if operands is not None else aggregate_projection.get("calculation_operands") or [])
         ordered_results = [
@@ -5522,7 +5522,7 @@ class FinancialAgentCalculationMixin:
             projection_operation != "ratio"
             or not projection_rendered
             or projection_rendered in final_answer
-            or not self._ratio_components_are_complete(projection_result)
+            or not financial_answer_slots.ratio_components_are_complete(projection_result)
         ):
             return aggregate_projection, final_answer, updated_artifacts
 
@@ -5720,13 +5720,13 @@ class FinancialAgentCalculationMixin:
         ).lower()
         has_invalid_self_ratio_row = any(
             self._aggregate_result_operation_family(row) == "ratio"
-            and self._ratio_components_collapse_to_same_slot(dict(row.get("calculation_result") or {}))
+            and financial_answer_slots.ratio_components_collapse_to_same_slot(dict(row.get("calculation_result") or {}))
             for row in ordered_results
         )
         if (
             not has_invalid_self_ratio_row
             or runtime_operation != "ratio"
-            or not self._ratio_components_are_complete(runtime_result)
+            or not financial_answer_slots.ratio_components_are_complete(runtime_result)
         ):
             return aggregate_projection, final_answer
 
@@ -11366,7 +11366,7 @@ class FinancialAgentCalculationMixin:
         if not rendered_value:
             return ""
         answer_text = _normalise_spaces(str(final_answer or ""))
-        if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
+        if operation_family == "ratio" and financial_answer_slots.ratio_components_are_complete(calculation_result):
             if (
                 aggregate_dependency_slot_coherence_rank_for_operands(
                     operation_family="ratio",
@@ -12009,7 +12009,7 @@ class FinancialAgentCalculationMixin:
             resolved_calculation_operands = list(trace.get("calculation_operands") or [])
         else:
             resolved_calculation_operands = [dict(item) for item in calculation_operands]
-        scope = self._ratio_component_consolidation_scope(
+        scope = financial_answer_slots.ratio_component_consolidation_scope(
             calculation_result,
             resolved_calculation_operands,
         )
@@ -12129,80 +12129,6 @@ class FinancialAgentCalculationMixin:
             )
         return rendered_value or metric_label
 
-    def _ratio_component_consolidation_scope(
-        self,
-        calculation_result: Dict[str, Any],
-        operands: Optional[List[Dict[str, Any]]] = None,
-    ) -> str:
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        scopes: List[str] = []
-        for entries in dict(answer_slots.get("components_by_group") or {}).values():
-            for entry in entries or []:
-                scope = _normalise_spaces(str((entry or {}).get("consolidation_scope") or ""))
-                if scope in {"consolidated", "separate"} and scope not in scopes:
-                    scopes.append(scope)
-        for operand in operands or []:
-            scope = _normalise_spaces(str((operand or {}).get("consolidation_scope") or ""))
-            if scope in {"consolidated", "separate"} and scope not in scopes:
-                scopes.append(scope)
-        return scopes[0] if len(scopes) == 1 else ""
-
-    def _ratio_components_collapse_to_same_slot(self, calculation_result: Dict[str, Any]) -> bool:
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        components_by_group = dict(answer_slots.get("components_by_group") or {})
-        numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
-        denominator_slots = [
-            dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
-        ]
-
-        def _slot_identity(slot: Dict[str, Any]) -> tuple[str, str, str, str, str]:
-            source_ids = "|".join(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
-            normalized_value = slot.get("normalized_value")
-            try:
-                normalized_text = f"{float(normalized_value):.6f}" if normalized_value is not None else ""
-            except (TypeError, ValueError):
-                normalized_text = _normalise_spaces(str(normalized_value or ""))
-            return (
-                _normalise_spaces(str(slot.get("label") or "")),
-                _normalise_spaces(str(slot.get("raw_value") or "")),
-                _normalise_spaces(str(slot.get("raw_unit") or "")),
-                normalized_text,
-                source_ids,
-            )
-
-        if numerator_slots and denominator_slots:
-            numerator_identities = {_slot_identity(slot) for slot in numerator_slots if answer_slot_has_material(slot)}
-            denominator_identities = {_slot_identity(slot) for slot in denominator_slots if answer_slot_has_material(slot)}
-            if numerator_identities and numerator_identities == denominator_identities:
-                return True
-            numerator_value_identities = {identity[1:] for identity in numerator_identities if identity[-1]}
-            denominator_value_identities = {identity[1:] for identity in denominator_identities if identity[-1]}
-            if numerator_value_identities and numerator_value_identities & denominator_value_identities:
-                return True
-        return False
-
-    def _ratio_components_are_complete(self, calculation_result: Dict[str, Any]) -> bool:
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        components_by_group = dict(answer_slots.get("components_by_group") or {})
-        numerator_slots = [dict(item) for item in list(components_by_group.get("numerator") or []) if isinstance(item, dict)]
-        denominator_slots = [
-            dict(item) for item in list(components_by_group.get("denominator") or []) if isinstance(item, dict)
-        ]
-
-        def _slot_has_value(slot: Dict[str, Any]) -> bool:
-            return bool(
-                _normalise_spaces(
-                    str(slot.get("rendered_value") or slot.get("raw_value") or slot.get("normalized_value") or "")
-                )
-            )
-
-        if self._ratio_components_collapse_to_same_slot(calculation_result):
-            return False
-
-        return any(_slot_has_value(slot) for slot in numerator_slots) and any(
-            _slot_has_value(slot) for slot in denominator_slots
-        )
-
     def _ratio_result_numeric_value(self, row: Dict[str, Any]) -> Optional[float]:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
@@ -12255,7 +12181,7 @@ class FinancialAgentCalculationMixin:
             existing_value = self._ratio_result_numeric_value(row)
             if existing_value is None:
                 continue
-            if not artifact_backed_complete_result and not self._ratio_components_are_complete(calculation_result):
+            if not artifact_backed_complete_result and not financial_answer_slots.ratio_components_are_complete(calculation_result):
                 continue
             tolerance = max(max(abs(float(existing_value)), abs(float(result_value)), 1.0) * 5e-4, 1e-6)
             if abs(float(existing_value) - float(result_value)) <= tolerance:
@@ -15012,8 +14938,8 @@ class FinancialAgentCalculationMixin:
             calculation_result=calculation_result,
         )
         if operation_family == "ratio" and (
-            self._ratio_components_are_complete(calculation_result)
-            or self._ratio_component_consolidation_scope(calculation_result, operands)
+            financial_answer_slots.ratio_components_are_complete(calculation_result)
+            or financial_answer_slots.ratio_component_consolidation_scope(calculation_result, operands)
             or self._ratio_components_have_suspicious_scale(calculation_result)
         ):
             answer = self._compact_ratio_answer(state, calculation_result)
@@ -15115,8 +15041,8 @@ class FinancialAgentCalculationMixin:
                 calculation_result=calculation_result,
             )
             if operation_family == "ratio" and (
-                self._ratio_components_are_complete(calculation_result)
-                or self._ratio_component_consolidation_scope(calculation_result, operands)
+                financial_answer_slots.ratio_components_are_complete(calculation_result)
+                or financial_answer_slots.ratio_component_consolidation_scope(calculation_result, operands)
                 or self._ratio_components_have_suspicious_scale(calculation_result)
             ):
                 final_answer = self._compact_ratio_answer(state, calculation_result)
@@ -15860,7 +15786,7 @@ class FinancialAgentCalculationMixin:
             and row.get("recovered_from_retrieved_ratio_context")
             and _normalise_spaces(str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")).lower()
             == "ok"
-            and self._ratio_components_are_complete(dict((row.get("calculation_result") or {})))
+            and financial_answer_slots.ratio_components_are_complete(dict((row.get("calculation_result") or {})))
             for row in ordered_results
             if isinstance(row, dict)
         ):
