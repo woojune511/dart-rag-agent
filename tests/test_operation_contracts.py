@@ -5161,8 +5161,7 @@ class OperationContractTests(unittest.TestCase):
         )
 
     def test_krw_unit_repair_uses_alternate_table_surface_for_count_like_operand(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
-        repaired = agent._repair_krw_operand_units_from_table_metadata(
+        repaired = financial_operand_resolution.repair_krw_operand_units_from_table_metadata(
             [
                 {
                     "operand_id": "op_001",

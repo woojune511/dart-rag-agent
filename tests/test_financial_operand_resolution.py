@@ -5817,6 +5817,861 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             ["ev_ratio", "ev_doc_001"],
         )
 
+    def test_table_krw_unit_repair_pins_empty_dependency_and_alternate_surface_contract(self) -> None:
+        repair = operand_resolution.repair_krw_operand_units_from_table_metadata
+        shared = {"preserve": True}
+        policy = {
+            "krw_display_units": ("won",),
+            "krw_display_unit_scales": {"won": 1.0},
+        }
+        row = {
+            "operand_id": "target",
+            "label": "target",
+            "raw_value": "100",
+            "raw_unit": "count",
+            "normalized_value": 100.0,
+            "normalized_unit": "COUNT",
+            "nested": shared,
+        }
+        operands = [row]
+        operands_before = deepcopy(operands)
+
+        class PolicyBomb(Mapping):
+            def __getitem__(self, key):
+                raise AssertionError(f"policy item must stay lazy: {key}")
+
+            def __iter__(self):
+                raise AssertionError("policy iteration must stay lazy")
+
+            def __len__(self):
+                raise AssertionError("policy length must stay lazy")
+
+            def keys(self):
+                raise RuntimeError("policy keys failed")
+
+        with patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", PolicyBomb()):
+            self.assertIs(repair(operands, []), operands)
+        self.assertEqual(operands, operands_before)
+
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", PolicyBomb()),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+            ) as stopped_gate,
+            self.assertRaisesRegex(RuntimeError, "policy keys failed"),
+        ):
+            repair(operands, [{"evidence_id": "ev"}])
+        stopped_gate.assert_not_called()
+        self.assertEqual(operands, operands_before)
+
+        dependency_evidence = [{"evidence_id": "ev", "metadata": {"block_type": "table"}}]
+        dependency_before = deepcopy(dependency_evidence)
+        seen_dependency_rows = []
+
+        class StringBomb:
+            def __bool__(self):
+                raise RuntimeError("raw truthiness must stay lazy")
+
+            def __str__(self):
+                raise RuntimeError("raw string must stay lazy")
+
+        dependency_row = {
+            **row,
+            "raw_value": StringBomb(),
+            "raw_unit": StringBomb(),
+        }
+        dependency_operands = [dependency_row]
+
+        def accept_dependency(candidate):
+            seen_dependency_rows.append(candidate)
+            return True
+
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=accept_dependency,
+            ),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=AssertionError("normalizer must stay lazy"),
+            ),
+        ):
+            self.assertIs(repair(dependency_operands, dependency_evidence), dependency_operands)
+        self.assertEqual(dependency_evidence, dependency_before)
+        self.assertEqual(len(seen_dependency_rows), 1)
+        self.assertIsNot(seen_dependency_rows[0], dependency_row)
+        self.assertIs(seen_dependency_rows[0]["raw_value"], dependency_row["raw_value"])
+        self.assertIs(seen_dependency_rows[0]["raw_unit"], dependency_row["raw_unit"])
+        self.assertIs(seen_dependency_rows[0]["nested"], shared)
+
+        evidence_items = [
+            {
+                "evidence_id": "ev_other",
+                "raw_row_text": "other 100won",
+                "metadata": {"block_type": "table"},
+            },
+            {
+                "evidence_id": "ev_target",
+                "raw_row_text": "target 100won",
+                "metadata": {"block_type": "table"},
+            },
+            {
+                "evidence_id": "ev_later",
+                "raw_row_text": "later 100won",
+                "metadata": {"block_type": "table"},
+            },
+        ]
+        evidence_before = deepcopy(evidence_items)
+        match_events = []
+
+        def match(surface, requirement):
+            match_events.append((surface, requirement))
+            return surface.startswith("target")
+
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                return_value=False,
+            ),
+            patch.object(operand_resolution, "_operand_text_match", side_effect=match),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as normalizer,
+        ):
+            repaired = repair(operands, evidence_items)
+        self.assertIsNot(repaired, operands)
+        self.assertIsNot(repaired[0], row)
+        self.assertIs(repaired[0]["nested"], shared)
+        self.assertEqual(operands, operands_before)
+        self.assertEqual(evidence_items, evidence_before)
+        self.assertEqual([event[0] for event in match_events], ["other 100won", "target 100won"])
+        self.assertTrue(all(event[1] == {"label": "target", "aliases": []} for event in match_events))
+        normalizer.assert_called_once_with("100", "won")
+        self.assertEqual(
+            {
+                key: repaired[0].get(key)
+                for key in (
+                    "source_raw_unit",
+                    "source_normalized_value",
+                    "raw_unit",
+                    "normalized_value",
+                    "normalized_unit",
+                    "rendered_value",
+                    "unit_normalization_repair_source",
+                )
+            },
+            {
+                "source_raw_unit": "count",
+                "source_normalized_value": 100.0,
+                "raw_unit": "won",
+                "normalized_value": 100.0,
+                "normalized_unit": "KRW",
+                "rendered_value": "100won",
+                "unit_normalization_repair_source": "alternate_table_krw_surface",
+            },
+        )
+
+        hinted_surface = [{
+            "evidence_id": "ev_hint",
+            "raw_row_text": "target 100",
+            "metadata": {"block_type": "table", "unit_hint": "won"},
+        }]
+        hinted_before = deepcopy(hinted_surface)
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                return_value=False,
+            ),
+            patch.object(operand_resolution, "_operand_text_match", return_value=True),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as hinted_normalizer,
+        ):
+            hinted = repair(operands, hinted_surface)
+        self.assertEqual(hinted_surface, hinted_before)
+        self.assertEqual(hinted[0]["raw_unit"], "won")
+        self.assertEqual(hinted[0]["unit_normalization_repair_source"], "alternate_table_krw_surface")
+        hinted_normalizer.assert_called_once_with("100", "won")
+
+        for name, candidate, expected_label in (
+            (
+                "matched label precedence",
+                {
+                    **row,
+                    "normalized_unit": "UNKNOWN",
+                    "matched_operand_label": "matched",
+                    "label": "wrong",
+                    "semantic_label": "semantic",
+                },
+                "matched",
+            ),
+            (
+                "semantic label fallback",
+                {
+                    **row,
+                    "normalized_unit": "",
+                    "matched_operand_label": "",
+                    "label": "",
+                    "semantic_label": "semantic",
+                },
+                "semantic",
+            ),
+        ):
+            label_evidence = [{
+                "evidence_id": "ev_label",
+                "raw_row_text": f"{expected_label} 100won",
+                "metadata": {"block_type": "table"},
+            }]
+            requirements = []
+
+            def capture_requirement(_surface, requirement):
+                requirements.append(requirement)
+                return True
+
+            with (
+                self.subTest(label_source=name),
+                patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+                patch.object(
+                    operand_resolution,
+                    "dependency_task_output_has_consistent_krw_unit",
+                    return_value=False,
+                ),
+                patch.object(operand_resolution, "_operand_text_match", side_effect=capture_requirement),
+                patch.object(
+                    operand_resolution,
+                    "_normalise_operand_value",
+                    return_value=(100.0, "KRW"),
+                ),
+            ):
+                label_repaired = repair([candidate], label_evidence)
+            self.assertEqual(requirements, [{"label": expected_label, "aliases": []}])
+            self.assertEqual(label_repaired[0]["raw_unit"], "won")
+            self.assertEqual(label_repaired[0]["normalized_unit"], "KRW")
+
+        cases = (
+            ("unit family", {**row, "normalized_unit": "PERCENT"}, evidence_items, (100.0, "KRW")),
+            ("blank value", {**row, "raw_value": ""}, evidence_items, (100.0, "KRW")),
+            (
+                "not table",
+                row,
+                [{"evidence_id": "ev", "raw_row_text": "target 100won", "metadata": {}}],
+                (100.0, "KRW"),
+            ),
+            (
+                "value gate",
+                row,
+                [{"evidence_id": "ev", "raw_row_text": "target 999won", "metadata": {"block_type": "table"}}],
+                (100.0, "KRW"),
+            ),
+            (
+                "label gate",
+                row,
+                [{"evidence_id": "ev", "raw_row_text": "other 100won", "metadata": {"block_type": "table"}}],
+                (100.0, "KRW"),
+            ),
+            (
+                "unit gate",
+                row,
+                [{
+                    "evidence_id": "ev",
+                    "raw_row_text": "target 100count",
+                    "metadata": {"block_type": "table", "unit_hint": "count"},
+                }],
+                (100.0, "KRW"),
+            ),
+            ("normalizer value", row, evidence_items[1:2], (None, "KRW")),
+            ("normalizer unit", row, evidence_items[1:2], (100.0, "COUNT")),
+        )
+        for name, candidate, current_evidence, normalizer_result in cases:
+            current_operands = [candidate]
+            current_before = deepcopy((current_operands, current_evidence))
+            with (
+                self.subTest(name=name),
+                patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+                patch.object(
+                    operand_resolution,
+                    "dependency_task_output_has_consistent_krw_unit",
+                    return_value=False,
+                ),
+                patch.object(
+                    operand_resolution,
+                    "_normalise_operand_value",
+                    side_effect=(
+                        None if name.startswith("normalizer")
+                        else AssertionError("normalizer must stay lazy")
+                    ),
+                    return_value=normalizer_result,
+                ) as current_normalizer,
+            ):
+                self.assertIs(repair(current_operands, current_evidence), current_operands)
+            self.assertEqual(current_normalizer.call_count, 1 if name.startswith("normalizer") else 0)
+            self.assertEqual((current_operands, current_evidence), current_before)
+
+        class AlternateFloatBomb:
+            def __init__(self, error_type):
+                self.error_type = error_type
+
+            def __float__(self):
+                raise self.error_type("alternate current value failed")
+
+        for error_type, propagates in ((TypeError, False), (ValueError, False), (RuntimeError, True)):
+            alternate_operands = [{**row, "normalized_value": AlternateFloatBomb(error_type)}]
+            alternate_before = list(alternate_operands)
+            with (
+                self.subTest(alternate_float_error=error_type),
+                patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+                patch.object(
+                    operand_resolution,
+                    "dependency_task_output_has_consistent_krw_unit",
+                    return_value=False,
+                ),
+                patch.object(operand_resolution, "_operand_text_match", return_value=True),
+                patch.object(
+                    operand_resolution,
+                    "_normalise_operand_value",
+                    return_value=(100.0, "KRW"),
+                ),
+            ):
+                if propagates:
+                    with self.assertRaisesRegex(RuntimeError, "alternate current value failed"):
+                        repair(alternate_operands, evidence_items[1:2])
+                else:
+                    alternate_repaired = repair(alternate_operands, evidence_items[1:2])
+                    self.assertNotIn("source_normalized_value", alternate_repaired[0])
+                    self.assertEqual(alternate_repaired[0]["raw_unit"], "won")
+            self.assertEqual(alternate_operands, alternate_before)
+
+        exception_operands = [dict(row)]
+        exception_evidence = deepcopy(evidence_items[1:2])
+        exception_before = deepcopy((exception_operands, exception_evidence))
+        with patch.object(
+            operand_resolution,
+            "_evidence_items_by_id",
+            side_effect=RuntimeError("index failed"),
+        ), self.assertRaisesRegex(RuntimeError, "index failed"):
+            repair(exception_operands, exception_evidence)
+        self.assertEqual((exception_operands, exception_evidence), exception_before)
+
+        for stage in ("dependency", "label", "normalizer"):
+            exception_operands = [dict(row)]
+            exception_evidence = deepcopy(evidence_items[1:2])
+            exception_before = deepcopy((exception_operands, exception_evidence))
+            with (
+                self.subTest(exception_stage=stage),
+                patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy),
+                patch.object(
+                    operand_resolution,
+                    "dependency_task_output_has_consistent_krw_unit",
+                    side_effect=RuntimeError("dependency failed") if stage == "dependency" else None,
+                    return_value=False,
+                ),
+                patch.object(
+                    operand_resolution,
+                    "_operand_text_match",
+                    side_effect=RuntimeError("label failed") if stage == "label" else None,
+                    return_value=True,
+                ),
+                patch.object(
+                    operand_resolution,
+                    "_normalise_operand_value",
+                    side_effect=RuntimeError("normalizer failed") if stage == "normalizer" else None,
+                    return_value=(100.0, "KRW"),
+                ),
+                self.assertRaisesRegex(RuntimeError, f"{stage} failed"),
+            ):
+                repair(exception_operands, exception_evidence)
+            self.assertEqual((exception_operands, exception_evidence), exception_before)
+
+    def test_table_krw_unit_repair_pins_metadata_hint_gates_threshold_copy_and_exception_contract(self) -> None:
+        repair = operand_resolution.repair_krw_operand_units_from_table_metadata
+        shared = {"preserve": True}
+
+        def policy(raw_scale=100.0, hint_scale=1.0, *, include_scales=True):
+            return {
+                "krw_display_units": ("hundred", "won", "other"),
+                "krw_display_unit_scales": (
+                    {"hundred": raw_scale, "won": hint_scale} if include_scales else {"hundred": raw_scale}
+                ),
+            }
+
+        row = {
+            "operand_id": "target",
+            "evidence_id": "ev_target",
+            "source_row_id": "ev_target",
+            "raw_value": "100",
+            "raw_unit": "hundred",
+            "normalized_value": 10_000.0,
+            "normalized_unit": "KRW",
+            "nested": shared,
+        }
+        evidence = {
+            "evidence_id": "ev_target",
+            "raw_row_text": "target 100 won",
+            "metadata": {"block_type": "table", "unit_hint": "won"},
+        }
+        rows = [{**row, "operand_id": "dependency"}, row]
+        evidence_items = [evidence]
+        before = deepcopy((rows, evidence_items))
+        helper_events = []
+
+        def select_evidence(candidate, evidence_by_id):
+            helper_events.append((candidate, evidence_by_id))
+            return evidence
+
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy()),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=[True, False],
+            ),
+            patch.object(
+                operand_resolution,
+                "_evidence_item_for_operand_row",
+                side_effect=select_evidence,
+            ),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as normalizer,
+        ):
+            repaired = repair(rows, evidence_items)
+        self.assertEqual((rows, evidence_items), before)
+        self.assertIsNot(repaired, rows)
+        self.assertTrue(all(repaired[index] is not rows[index] for index in range(2)))
+        self.assertTrue(all(item["nested"] is shared for item in repaired))
+        self.assertEqual(len(helper_events), 1)
+        self.assertIsNot(helper_events[0][0], row)
+        self.assertEqual(helper_events[0][1]["ev_target"], evidence)
+        normalizer.assert_called_once_with("100", "won")
+        self.assertEqual(
+            {
+                key: repaired[1].get(key)
+                for key in (
+                    "source_raw_unit",
+                    "source_normalized_value",
+                    "raw_unit",
+                    "normalized_value",
+                    "normalized_unit",
+                    "rendered_value",
+                    "unit_normalization_repair_source",
+                )
+            },
+            {
+                "source_raw_unit": "hundred",
+                "source_normalized_value": 10_000.0,
+                "raw_unit": "won",
+                "normalized_value": 100.0,
+                "normalized_unit": "KRW",
+                "rendered_value": "100won",
+                "unit_normalization_repair_source": "table_metadata_unit_hint",
+            },
+        )
+
+        fallback_row = {**row, "raw_unit": "", "result_unit": "hundred"}
+        fallback_rows = [fallback_row]
+        fallback_before = deepcopy(fallback_rows)
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy()),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                return_value=False,
+            ),
+            patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=evidence),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as fallback_normalizer,
+        ):
+            fallback_repaired = repair(fallback_rows, evidence_items)
+        self.assertEqual(fallback_rows, fallback_before)
+        self.assertEqual(
+            (
+                fallback_repaired[0]["source_raw_unit"],
+                fallback_repaired[0]["raw_unit"],
+                fallback_repaired[0]["normalized_value"],
+            ),
+            ("hundred", "won", 100.0),
+        )
+        fallback_normalizer.assert_called_once_with("100", "won")
+
+        same_hint = {**evidence, "metadata": {"block_type": "table", "unit_hint": "hundred"}}
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy()),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                return_value=False,
+            ),
+            patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=same_hint),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=AssertionError("normalizer must stay lazy"),
+            ) as same_hint_normalizer,
+        ):
+            self.assertIs(repair(fallback_rows, [same_hint]), fallback_rows)
+        same_hint_normalizer.assert_not_called()
+
+        class ResultUnitBomb:
+            def __bool__(self):
+                raise RuntimeError("result unit truthiness must stay lazy")
+
+            def __str__(self):
+                raise RuntimeError("result unit string must stay lazy")
+
+        whitespace_row = {**row, "raw_unit": "   ", "result_unit": ResultUnitBomb()}
+        whitespace_rows = [whitespace_row]
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy()),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                return_value=False,
+            ),
+            patch.object(
+                operand_resolution,
+                "_evidence_item_for_operand_row",
+                side_effect=AssertionError("evidence lookup must stay lazy"),
+            ) as whitespace_evidence,
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=AssertionError("normalizer must stay lazy"),
+            ) as whitespace_normalizer,
+        ):
+            self.assertIs(repair(whitespace_rows, evidence_items), whitespace_rows)
+        whitespace_evidence.assert_not_called()
+        whitespace_normalizer.assert_not_called()
+
+        cases = (
+            ("blank value", {**row, "raw_value": ""}, evidence, policy(), (100.0, "KRW")),
+            ("raw unit", {**row, "raw_unit": "count"}, evidence, policy(), (100.0, "KRW")),
+            ("no evidence", row, None, policy(), (100.0, "KRW")),
+            ("not table", row, {**evidence, "metadata": {"unit_hint": "won"}}, policy(), (100.0, "KRW")),
+            ("blank hint", row, {**evidence, "metadata": {"block_type": "table"}}, policy(), (100.0, "KRW")),
+            (
+                "same hint",
+                row,
+                {**evidence, "metadata": {"block_type": "table", "unit_hint": "hundred"}},
+                policy(),
+                (100.0, "KRW"),
+            ),
+            (
+                "unknown hint",
+                row,
+                {**evidence, "metadata": {"block_type": "table", "unit_hint": "unknown"}},
+                policy(),
+                (100.0, "KRW"),
+            ),
+            ("missing scale", row, evidence, policy(include_scales=False), (100.0, "KRW")),
+            ("below threshold", row, evidence, policy(raw_scale=99.0), (100.0, "KRW")),
+            ("surface value", row, {**evidence, "raw_row_text": "target 999 won"}, policy(), (100.0, "KRW")),
+            ("normalizer value", row, evidence, policy(), (None, "KRW")),
+            ("normalizer unit", row, evidence, policy(), (100.0, "COUNT")),
+        )
+        for name, candidate, selected_evidence, current_policy, normalizer_result in cases:
+            current_rows = [candidate]
+            current_evidence = [selected_evidence or evidence]
+            current_before = deepcopy((current_rows, current_evidence))
+            with (
+                self.subTest(name=name),
+                patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", current_policy),
+                patch.object(
+                    operand_resolution,
+                    "dependency_task_output_has_consistent_krw_unit",
+                    return_value=False,
+                ),
+                patch.object(
+                    operand_resolution,
+                    "_evidence_item_for_operand_row",
+                    return_value=selected_evidence,
+                ),
+                patch.object(
+                    operand_resolution,
+                    "_normalise_operand_value",
+                    side_effect=(
+                        None if name.startswith("normalizer")
+                        else AssertionError("normalizer must stay lazy")
+                    ),
+                    return_value=normalizer_result,
+                ) as current_normalizer,
+            ):
+                self.assertIs(repair(current_rows, current_evidence), current_rows)
+            self.assertEqual(current_normalizer.call_count, 1 if name.startswith("normalizer") else 0)
+            self.assertEqual((current_rows, current_evidence), current_before)
+
+        class FloatBomb:
+            def __init__(self, error_type):
+                self.error_type = error_type
+
+            def __float__(self):
+                raise self.error_type("current value failed")
+
+        for error_type, propagates in ((TypeError, False), (ValueError, False), (RuntimeError, True)):
+            current_rows = [{**row, "normalized_value": FloatBomb(error_type)}]
+            current_before = list(current_rows)
+            with (
+                self.subTest(float_error=error_type),
+                patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy()),
+                patch.object(
+                    operand_resolution,
+                    "dependency_task_output_has_consistent_krw_unit",
+                    return_value=False,
+                ),
+                patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=evidence),
+                patch.object(
+                    operand_resolution,
+                    "_normalise_operand_value",
+                    return_value=(100.0, "KRW"),
+                ),
+            ):
+                if propagates:
+                    with self.assertRaisesRegex(RuntimeError, "current value failed"):
+                        repair(current_rows, evidence_items)
+                else:
+                    repaired = repair(current_rows, evidence_items)
+                    self.assertNotIn("source_normalized_value", repaired[0])
+                    self.assertEqual(repaired[0]["raw_unit"], "won")
+            self.assertEqual(current_rows, current_before)
+
+        class EvidenceBomb(dict):
+            def get(self, key, default=None):
+                if key == "raw_row_text":
+                    raise RuntimeError("surface failed")
+                return super().get(key, default)
+
+        bomb = EvidenceBomb(evidence)
+        with (
+            patch.object(operand_resolution, "CALCULATION_RENDER_POLICY", policy()),
+            patch.object(
+                operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                return_value=False,
+            ),
+            patch.object(operand_resolution, "_evidence_item_for_operand_row", return_value=bomb),
+            patch.object(operand_resolution, "_normalise_operand_value") as stopped_normalizer,
+            self.assertRaisesRegex(RuntimeError, "surface failed"),
+        ):
+            repair([row], [bomb])
+        stopped_normalizer.assert_not_called()
+
+    def test_table_krw_unit_repair_static_surface_pins_public_owner_sole_call_and_prepare_order(self) -> None:
+        import ast
+        import inspect
+
+        from src.agent import financial_graph_calculation as graph_calculation
+
+        source_lines, start_line = inspect.getsourcelines(
+            operand_resolution.repair_krw_operand_units_from_table_metadata
+        )
+        self.assertEqual((start_line, len(source_lines)), (787, 165))
+        tree = ast.parse(inspect.getsource(graph_calculation))
+        graph_definitions = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and node.name == "repair_krw_operand_units_from_table_metadata"
+        ]
+        self.assertEqual(graph_definitions, [])
+        bindings = [
+            alias
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_operand_resolution"
+            for alias in node.names
+            if alias.name == "repair_krw_operand_units_from_table_metadata"
+        ]
+        self.assertEqual(
+            [(alias.name, alias.asname) for alias in bindings],
+            [("repair_krw_operand_units_from_table_metadata", None)],
+        )
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "repair_krw_operand_units_from_table_metadata"
+        ]
+        self.assertEqual(len(calls), 1)
+        prepare = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "_prepare_calculation_candidate"
+        )
+        call = calls[0]
+        self.assertIn(call, list(ast.walk(prepare)))
+        self.assertEqual(
+            ([ast.dump(argument) for argument in call.args], call.keywords),
+            ([
+                ast.dump(ast.Name(id="runtime_operands", ctx=ast.Load())),
+                ast.dump(ast.Name(id="execution_evidence_items", ctx=ast.Load())),
+            ], []),
+        )
+        parents = {
+            child: parent
+            for parent in ast.walk(prepare)
+            for child in ast.iter_child_nodes(parent)
+        }
+
+        def top_statement(node):
+            while parents.get(node) is not prepare:
+                node = parents[node]
+            return node
+
+        def statement_index_for_call(name, *, attribute=False):
+            selected = next(
+                node
+                for node in ast.walk(prepare)
+                if isinstance(node, ast.Call)
+                and (
+                    (
+                        attribute
+                        and isinstance(node.func, ast.Attribute)
+                        and node.func.attr == name
+                    )
+                    or (not attribute and isinstance(node.func, ast.Name) and node.func.id == name)
+                )
+            )
+            return prepare.body.index(top_statement(selected))
+
+        coerce_index = statement_index_for_call("_coerce_operand_row_from_evidence", attribute=True)
+        table_index = prepare.body.index(top_statement(call))
+        raw_index = statement_index_for_call("repair_krw_normalized_values_from_raw_units")
+        operands_index = next(
+            index
+            for index, statement in enumerate(prepare.body)
+            if isinstance(statement, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "operands" for target in statement.targets)
+        )
+        plan_index = next(
+            index
+            for index, statement in enumerate(prepare.body)
+            if isinstance(statement, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "plan" for target in statement.targets)
+        )
+        self.assertEqual(
+            (table_index - coerce_index, raw_index - table_index, operands_index - raw_index, plan_index - operands_index),
+            (1, 1, 1, 1),
+        )
+        self.assertFalse(any(isinstance(parent, ast.Try) for parent in parents if call in ast.walk(parent)))
+
+    def test_prepare_candidate_adopts_table_krw_unit_repair_and_stops_before_later_work_on_exception(self) -> None:
+        from src.agent import financial_graph_calculation as graph_calculation
+
+        agent = FinancialAgentCalculationMixin()
+        shared = {"preserve": True}
+        events = []
+        table_rows = [{"operand_id": "table", "normalized_value": 2.0, "nested": shared}]
+
+        def coerce(row, evidence):
+            events.append(("coerce", row, evidence))
+            return row
+
+        def table_repair(rows, evidence_items):
+            events.append(("table", rows, evidence_items))
+            return table_rows
+
+        def raw_repair(rows):
+            events.append(("raw", rows))
+            self.assertIs(rows, table_rows)
+            return rows
+
+        candidate_input = graph_calculation._CalculationCandidateInput(
+            calculation_operands=({"operand_id": "input", "nested": shared},),
+            calculation_plan={
+                "mode": "none",
+                "operation": "none",
+                "ordered_operand_ids": [],
+                "variable_bindings": [],
+                "result_unit": "",
+            },
+            active_subtask={"operation_family": "lookup", "required_operands": []},
+            query="lookup",
+            evidence_items=({"evidence_id": "ev"},),
+            runtime_evidence=({"evidence_id": "runtime"},),
+        )
+        with (
+            patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=coerce),
+            patch.object(
+                graph_calculation,
+                "repair_krw_operand_units_from_table_metadata",
+                side_effect=table_repair,
+            ) as table,
+            patch.object(
+                graph_calculation,
+                "repair_krw_normalized_values_from_raw_units",
+                side_effect=raw_repair,
+            ) as raw,
+            patch.object(graph_calculation, "apply_operation_sign_policy") as sign,
+            patch.object(graph_calculation, "execute_prepared_calculation_plan") as executor,
+        ):
+            result = agent._prepare_calculation_candidate(candidate_input)
+        self.assertEqual(result.status, "insufficient_operands")
+        self.assertEqual(result.calculation_operands[0]["operand_id"], "table")
+        self.assertIs(result.calculation_operands[0]["nested"], shared)
+        table.assert_called_once()
+        self.assertEqual(
+            table.call_args.args[1],
+            [{"evidence_id": "ev"}, {"evidence_id": "runtime"}],
+        )
+        raw.assert_called_once_with(table_rows)
+        self.assertEqual([event[0] for event in events], ["coerce", "table", "raw"])
+        sign.assert_not_called()
+        executor.assert_not_called()
+
+        class PlanBomb(Mapping):
+            def __getitem__(self, key):
+                raise RuntimeError(f"plan touched: {key}")
+
+            def __iter__(self):
+                raise RuntimeError("plan touched")
+
+            def __len__(self):
+                return 0
+
+        stopped_input = candidate_input._replace(calculation_plan=PlanBomb())
+        stop_events = []
+        with (
+            patch.object(
+                agent,
+                "_coerce_operand_row_from_evidence",
+                side_effect=lambda row, _evidence: (stop_events.append("coerce") or row),
+            ),
+            patch.object(
+                graph_calculation,
+                "repair_krw_operand_units_from_table_metadata",
+                side_effect=lambda _rows, _evidence: (
+                    stop_events.append("table"),
+                    (_ for _ in ()).throw(RuntimeError("table repair failed")),
+                )[1],
+            ),
+            patch.object(graph_calculation, "repair_krw_normalized_values_from_raw_units") as stopped_raw,
+            patch.object(graph_calculation, "apply_operation_sign_policy") as stopped_sign,
+            patch.object(graph_calculation, "execute_prepared_calculation_plan") as stopped_executor,
+            self.assertRaisesRegex(RuntimeError, "table repair failed"),
+        ):
+            agent._prepare_calculation_candidate(stopped_input)
+        self.assertEqual(stop_events, ["coerce", "table"])
+        stopped_raw.assert_not_called()
+        stopped_sign.assert_not_called()
+        stopped_executor.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

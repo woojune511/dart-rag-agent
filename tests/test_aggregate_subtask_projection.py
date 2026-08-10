@@ -7137,6 +7137,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 new=record_gate,
             ),
             patch.object(
+                financial_operand_resolution,
+                "dependency_task_output_has_consistent_krw_unit",
+                new=record_gate,
+            ),
+            patch.object(
                 financial_graph_calculation,
                 "coerce_operand_unit_from_evidence",
                 new=record_unit_coercion,
@@ -7169,9 +7174,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     "task_output:task_revenue",
                     True,
                 ),
-                ("_repair_krw_operand_units_from_table_metadata", "op_numerator", False, None, False),
+                ("repair_krw_operand_units_from_table_metadata", "op_numerator", False, None, False),
                 (
-                    "_repair_krw_operand_units_from_table_metadata",
+                    "repair_krw_operand_units_from_table_metadata",
                     "op_denominator",
                     True,
                     "task_output:task_revenue",
@@ -7205,14 +7210,14 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_operand_resolution,
                 "dependency_task_output_has_consistent_krw_unit",
                 side_effect=RuntimeError("dependency unit gate failed"),
             ),
-            patch.object(financial_graph_calculation, "_normalise_operand_value") as later_normalizer,
+            patch.object(financial_operand_resolution, "_normalise_operand_value") as later_normalizer,
         ):
             with self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"):
-                agent._repair_krw_operand_units_from_table_metadata(
+                financial_operand_resolution.repair_krw_operand_units_from_table_metadata(
                     [numerator_row],
                     state["evidence_items"],
                 )

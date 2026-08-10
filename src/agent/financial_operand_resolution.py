@@ -784,6 +784,173 @@ def dependency_task_output_has_consistent_krw_unit(row: Mapping[str, Any]) -> bo
     return abs(current_value - expected_numeric) <= max(1e-6, abs(expected_numeric) * 1e-9)
 
 
+def repair_krw_operand_units_from_table_metadata(
+    operands: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    evidence_by_id = _evidence_items_by_id(evidence_items)
+    if not evidence_by_id:
+        return operands
+
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    krw_units = {
+        _normalise_spaces(str(item))
+        for item in (render_policy.get("krw_display_units") or ())
+        if str(item).strip()
+    }
+    scales = {
+        _normalise_spaces(str(key)): float(value)
+        for key, value in dict(render_policy.get("krw_display_unit_scales") or {}).items()
+        if str(key).strip()
+    }
+
+    def table_surface_contains_value(evidence_item: Dict[str, Any], raw_value: str) -> bool:
+        compact_value = re.sub(r"[,\s()]", "", raw_value)
+        if not compact_value:
+            return False
+        metadata = dict(evidence_item.get("metadata") or {})
+        surface = table_surface_text(evidence_item, metadata)
+        return compact_value in re.sub(r"[,\s()]", "", surface)
+
+    def table_surface_text(evidence_item: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> str:
+        current_metadata = metadata if metadata is not None else dict(evidence_item.get("metadata") or {})
+        return _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in [
+                    evidence_item.get("raw_row_text"),
+                    evidence_item.get("quote_span"),
+                    evidence_item.get("claim"),
+                    current_metadata.get("row_text"),
+                    current_metadata.get("table_summary_text"),
+                    current_metadata.get("table_value_labels_text"),
+                    current_metadata.get("table_row_labels_text"),
+                    current_metadata.get("semantic_label"),
+                    current_metadata.get("row_label"),
+                ]
+            )
+        )
+
+    def is_table_backed(evidence_item: Dict[str, Any]) -> bool:
+        metadata = dict(evidence_item.get("metadata") or {})
+        return any(
+            [
+                _normalise_spaces(str(metadata.get("block_type") or "")).lower() == "table",
+                bool(_normalise_spaces(str(metadata.get("table_source_id") or ""))),
+                bool(metadata.get("structured_cells")),
+                bool(_normalise_spaces(str(metadata.get("table_summary_text") or ""))),
+                bool(_normalise_spaces(str(metadata.get("table_value_labels_text") or ""))),
+            ]
+        )
+
+    def krw_unit_from_alternate_table_surface(row: Dict[str, Any], raw_value: str) -> str:
+        label = _normalise_spaces(
+            str(row.get("matched_operand_label") or row.get("label") or row.get("semantic_label") or "")
+        )
+        compact_value = re.sub(r"[,\s()]", "", raw_value)
+        if not compact_value:
+            return ""
+        for evidence_item in evidence_items:
+            if not isinstance(evidence_item, dict) or not is_table_backed(evidence_item):
+                continue
+            metadata = dict(evidence_item.get("metadata") or {})
+            surface = table_surface_text(evidence_item, metadata)
+            if not surface or compact_value not in re.sub(r"[,\s()]", "", surface):
+                continue
+            if label and not _operand_text_match(surface, {"label": label, "aliases": []}):
+                continue
+            compact_surface = re.sub(r"[\s,()]", "", surface)
+            for unit in krw_units:
+                compact_unit = re.sub(r"\s+", "", unit)
+                if compact_unit and f"{compact_value}{compact_unit}" in compact_surface:
+                    return unit
+            unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+            if unit_hint in krw_units:
+                return unit_hint
+        return ""
+
+    updated: List[Dict[str, Any]] = []
+    changed = False
+    for row in operands:
+        next_row = dict(row)
+        if dependency_task_output_has_consistent_krw_unit(next_row):
+            updated.append(next_row)
+            continue
+        raw_value = _normalise_spaces(str(next_row.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(next_row.get("raw_unit") or next_row.get("result_unit") or ""))
+        normalized_unit = _normalise_spaces(str(next_row.get("normalized_unit") or "")).upper()
+        if normalized_unit != "KRW":
+            if normalized_unit not in {"COUNT", "UNKNOWN", ""} or not raw_value:
+                updated.append(next_row)
+                continue
+            repaired_unit = krw_unit_from_alternate_table_surface(next_row, raw_value)
+            if not repaired_unit:
+                updated.append(next_row)
+                continue
+            repaired_value, repaired_normalized_unit = _normalise_operand_value(raw_value, repaired_unit)
+            if repaired_value is None or repaired_normalized_unit != "KRW":
+                updated.append(next_row)
+                continue
+            try:
+                current_value = float(next_row.get("normalized_value"))
+            except (TypeError, ValueError):
+                current_value = None
+            next_row["source_raw_unit"] = raw_unit
+            if current_value is not None:
+                next_row["source_normalized_value"] = current_value
+            next_row["raw_unit"] = repaired_unit
+            next_row["normalized_value"] = repaired_value
+            next_row["normalized_unit"] = repaired_normalized_unit
+            next_row["rendered_value"] = f"{raw_value}{repaired_unit}"
+            next_row["unit_normalization_repair_source"] = "alternate_table_krw_surface"
+            changed = True
+            updated.append(next_row)
+            continue
+        if not raw_value or raw_unit not in krw_units:
+            updated.append(next_row)
+            continue
+        evidence_item = _evidence_item_for_operand_row(next_row, evidence_by_id)
+        if not evidence_item or not is_table_backed(evidence_item):
+            updated.append(next_row)
+            continue
+        metadata = dict(evidence_item.get("metadata") or {})
+        unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+        if not unit_hint or unit_hint == raw_unit or unit_hint not in krw_units:
+            updated.append(next_row)
+            continue
+        current_scale = scales.get(raw_unit)
+        hint_scale = scales.get(unit_hint)
+        if not current_scale or not hint_scale:
+            updated.append(next_row)
+            continue
+        scale_distortion = max(current_scale, hint_scale) / min(current_scale, hint_scale)
+        if scale_distortion < 100.0:
+            updated.append(next_row)
+            continue
+        if not table_surface_contains_value(evidence_item, raw_value):
+            updated.append(next_row)
+            continue
+        hinted_value, hinted_unit = _normalise_operand_value(raw_value, unit_hint)
+        if hinted_value is None or hinted_unit != "KRW":
+            updated.append(next_row)
+            continue
+        try:
+            current_value = float(next_row.get("normalized_value"))
+        except (TypeError, ValueError):
+            current_value = None
+        next_row["source_raw_unit"] = raw_unit
+        if current_value is not None:
+            next_row["source_normalized_value"] = current_value
+        next_row["raw_unit"] = unit_hint
+        next_row["normalized_value"] = hinted_value
+        next_row["normalized_unit"] = hinted_unit
+        next_row["rendered_value"] = f"{raw_value}{unit_hint}"
+        next_row["unit_normalization_repair_source"] = "table_metadata_unit_hint"
+        changed = True
+        updated.append(next_row)
+    return updated if changed else operands
+
+
 def repair_krw_normalized_values_from_raw_units(
     operands: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:

@@ -185,7 +185,11 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
 
             with (
                 patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
-                patch.object(agent, "_repair_krw_operand_units_from_table_metadata", side_effect=lambda rows, _evidence: rows),
+                patch.object(
+                    graph_calculation,
+                    "repair_krw_operand_units_from_table_metadata",
+                    side_effect=lambda rows, _evidence: rows,
+                ),
                 patch.object(graph_calculation, "repair_krw_normalized_values_from_raw_units", side_effect=lambda rows: rows),
                 patch.object(graph_calculation, "guard_operation_plan", return_value={}),
                 patch.object(graph_calculation, "repair_operand_normalization_from_rendered_unit", side_effect=lambda row: row),
@@ -449,7 +453,11 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
 
             with (
                 patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
-                patch.object(agent, "_repair_krw_operand_units_from_table_metadata", side_effect=lambda rows, _evidence: rows),
+                patch.object(
+                    graph_calculation,
+                    "repair_krw_operand_units_from_table_metadata",
+                    side_effect=lambda rows, _evidence: rows,
+                ),
                 patch.object(graph_calculation, "repair_krw_normalized_values_from_raw_units", side_effect=lambda rows: rows),
                 patch.object(graph_calculation, "guard_operation_plan", return_value={}),
                 patch.object(graph_calculation, "repair_operand_normalization_from_rendered_unit", side_effect=lambda row: row),
@@ -554,7 +562,14 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             )
             return target.body.index(top_level_statement(call))
 
-        table_index = statement_index_for_call("_repair_krw_operand_units_from_table_metadata")
+        table_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "repair_krw_operand_units_from_table_metadata"
+        )
+        table_index = target.body.index(top_level_statement(table_call))
         owner_index = target.body.index(top_level_statement(owner_call))
         operands_index = next(
             index
@@ -639,7 +654,11 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
 
         with (
             patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=coerce),
-            patch.object(agent, "_repair_krw_operand_units_from_table_metadata", side_effect=table_repair),
+            patch.object(
+                graph_calculation,
+                "repair_krw_operand_units_from_table_metadata",
+                side_effect=table_repair,
+            ),
             patch.object(
                 graph_calculation,
                 "repair_krw_normalized_values_from_raw_units",
@@ -668,8 +687,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         with (
             patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
             patch.object(
-                agent,
-                "_repair_krw_operand_units_from_table_metadata",
+                graph_calculation,
+                "repair_krw_operand_units_from_table_metadata",
                 side_effect=lambda _rows, _evidence: (stop_events.append(("table_repair", None)) or stop_table_rows),
             ),
             patch.object(
@@ -756,8 +775,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     side_effect=lambda row, _evidence: row,
                 ),
                 patch.object(
-                    agent,
-                    "_repair_krw_operand_units_from_table_metadata",
+                    graph_calculation,
+                    "repair_krw_operand_units_from_table_metadata",
                     side_effect=lambda rows, _evidence: rows,
                 ),
                 patch.object(

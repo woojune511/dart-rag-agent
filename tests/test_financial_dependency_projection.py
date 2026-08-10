@@ -1080,6 +1080,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
         function_name = "dependency_task_output_has_consistent_krw_unit"
         tree = ast.parse(inspect.getsource(graph_calculation))
+        owner_tree = ast.parse(inspect.getsource(operand_resolution))
         bindings = [
             alias
             for node in tree.body
@@ -1089,26 +1090,50 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             if alias.name == function_name
         ]
         self.assertEqual([(alias.name, alias.asname) for alias in bindings], [(function_name, None)])
+        repair_bindings = [
+            alias
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_operand_resolution"
+            for alias in node.names
+            if alias.name == "repair_krw_operand_units_from_table_metadata"
+        ]
+        self.assertEqual(
+            [(alias.name, alias.asname) for alias in repair_bindings],
+            [("repair_krw_operand_units_from_table_metadata", None)],
+        )
 
-        calls = [
+        graph_calls = [
             node
             for node in ast.walk(tree)
             if isinstance(node, ast.Call)
             and isinstance(node.func, ast.Name)
             and node.func.id == function_name
         ]
-        self.assertEqual(len(calls), 2)
-        methods = {
+        owner_calls = [
+            node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == function_name
+        ]
+        self.assertEqual((len(graph_calls), len(owner_calls)), (1, 1))
+        graph_methods = {
             node.name: node
             for node in ast.walk(tree)
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
+        owner_methods = {
+            node.name: node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
         expected = {
-            "_coerce_operand_row_from_evidence": "updated",
-            "_repair_krw_operand_units_from_table_metadata": "next_row",
+            "_coerce_operand_row_from_evidence": (graph_methods, graph_calls, "updated"),
+            "repair_krw_operand_units_from_table_metadata": (owner_methods, owner_calls, "next_row"),
         }
         distributed = {}
-        for method_name, argument_name in expected.items():
+        for method_name, (methods, calls, argument_name) in expected.items():
             method = methods[method_name]
             method_calls = [call for call in calls if call in ast.walk(method)]
             self.assertEqual(len(method_calls), 1, method_name)
@@ -1118,9 +1143,9 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 ([ast.dump(ast.Name(id=argument_name, ctx=ast.Load()))], []),
             )
             distributed[method_name] = call
-        self.assertEqual(set(distributed.values()), set(calls))
+        self.assertEqual(set(distributed.values()), set([*graph_calls, *owner_calls]))
 
-        coerce = methods["_coerce_operand_row_from_evidence"]
+        coerce = graph_methods["_coerce_operand_row_from_evidence"]
         self.assertEqual(
             [ast.dump(statement) for statement in coerce.body[:2]],
             [
@@ -1143,7 +1168,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             ],
         )
 
-        table_repair = methods["_repair_krw_operand_units_from_table_metadata"]
+        table_repair = owner_methods["repair_krw_operand_units_from_table_metadata"]
         operand_loop = next(
             node
             for node in ast.walk(table_repair)
@@ -1165,7 +1190,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         ))
         self.assertIsInstance(operand_loop.body[1], ast.If)
         self.assertEqual(ast.dump(operand_loop.body[1].test), ast.dump(distributed[
-            "_repair_krw_operand_units_from_table_metadata"
+            "repair_krw_operand_units_from_table_metadata"
         ]))
 
     def test_dependency_task_output_krw_consistency_graph_callers_pin_gate_adoption_and_exception_stop(self) -> None:
@@ -1234,17 +1259,17 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         }]
         with (
             patch.object(
-                graph_calculation,
+                operand_resolution,
                 "dependency_task_output_has_consistent_krw_unit",
                 side_effect=[True, False],
             ) as table_gate,
             patch.object(
-                graph_calculation,
+                operand_resolution,
                 "_normalise_operand_value",
                 return_value=(100.0, "KRW"),
             ) as table_normalizer,
         ):
-            repaired = agent._repair_krw_operand_units_from_table_metadata(rows, evidence_items)
+            repaired = operand_resolution.repair_krw_operand_units_from_table_metadata(rows, evidence_items)
         self.assertEqual(rows, rows_before)
         self.assertIsNot(repaired, rows)
         self.assertIsNot(repaired[0], rows[0])
@@ -1281,14 +1306,14 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
-                graph_calculation,
+                operand_resolution,
                 "dependency_task_output_has_consistent_krw_unit",
                 side_effect=RuntimeError("dependency unit gate failed"),
             ),
-            patch.object(graph_calculation, "_normalise_operand_value") as stopped_table_normalizer,
+            patch.object(operand_resolution, "_normalise_operand_value") as stopped_table_normalizer,
             self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"),
         ):
-            agent._repair_krw_operand_units_from_table_metadata([base], evidence_items)
+            operand_resolution.repair_krw_operand_units_from_table_metadata([base], evidence_items)
         stopped_table_normalizer.assert_not_called()
 
     def test_dependency_ratio_result_projection_preserves_aliases_and_access_order(self) -> None:
