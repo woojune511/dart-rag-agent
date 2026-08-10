@@ -537,6 +537,423 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 }]
             )
 
+    def test_growth_raw_scale_alignment_preserves_roles_threshold_identity_and_copy_contract(self) -> None:
+        shared = {"preserve": True}
+        rows = [
+            {
+                "operand_id": "prior",
+                "matched_operand_role": "prior_period",
+                "matched_operand_concept": "revenue",
+                "raw_value": "1000",
+                "raw_unit": "천원",
+                "normalized_value": 1.0,
+                "normalized_unit": "krw",
+                "nested": shared,
+            },
+            {
+                "operand_id": "current",
+                "matched_operand_role": "current_period",
+                "matched_operand_concept": "revenue",
+                "raw_value": "2000",
+                "raw_unit": "백만원",
+                "normalized_value": 200.0,
+                "normalized_unit": "KRW",
+                "nested": shared,
+            },
+        ]
+        original = deepcopy(rows)
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=lambda value: float(value)),
+            patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(1_000_000.0, "KRW"),
+            ) as normalizer,
+        ):
+            aligned = operand_resolution.align_growth_operand_units_when_raw_scale_matches(rows)
+
+        self.assertIsNot(aligned, rows)
+        self.assertIs(aligned[1], rows[1])
+        self.assertIsNot(aligned[0], rows[0])
+        self.assertIs(aligned[0]["nested"], shared)
+        self.assertEqual(rows, original)
+        normalizer.assert_called_once_with("1000", "백만원")
+        self.assertEqual(
+            {key: value for key, value in aligned[0].items() if original[0].get(key) != value},
+            {
+                "raw_unit": "백만원",
+                "normalized_value": 1_000_000.0,
+                "normalized_unit": "KRW",
+                "unit_alignment_source": "growth_raw_scale_match",
+            },
+        )
+
+        for role_pair, expected_prior_index in (
+            (("", ""), 1),
+            (("current_period", ""), 1),
+            (("", "prior_period"), 1),
+        ):
+            inferred = [
+                {
+                    "operand_id": "current",
+                    "matched_operand_role": role_pair[0],
+                    "matched_operand_concept": "revenue",
+                    "raw_value": "2000",
+                    "raw_unit": "백만원",
+                    "normalized_value": 200.0,
+                    "normalized_unit": "KRW",
+                },
+                {
+                    "operand_id": "prior",
+                    "matched_operand_role": role_pair[1],
+                    "matched_operand_concept": "revenue",
+                    "raw_value": "1000",
+                    "raw_unit": "천원",
+                    "normalized_value": 1.0,
+                    "normalized_unit": "KRW",
+                },
+            ]
+            with (
+                patch.object(operand_resolution, "_parse_number_text", side_effect=lambda value: float(value)),
+                patch.object(operand_resolution, "_normalise_operand_value", return_value=(1_000_000.0, "KRW")),
+            ):
+                inferred_aligned = operand_resolution.align_growth_operand_units_when_raw_scale_matches(inferred)
+            self.assertIsNot(inferred_aligned, inferred)
+            self.assertIsNot(inferred_aligned[expected_prior_index], inferred[expected_prior_index])
+            self.assertIs(inferred_aligned[1 - expected_prior_index], inferred[1 - expected_prior_index])
+
+        class NoAccess:
+            def get(self, *_args, **_kwargs):
+                raise RuntimeError("row access")
+
+        for short_rows in ([], [NoAccess()], [NoAccess(), NoAccess(), NoAccess()]):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(short_rows),
+                short_rows,
+            )
+
+    def test_growth_raw_scale_alignment_preserves_gate_access_laziness_and_exception_contract(self) -> None:
+        class Bomb:
+            def __bool__(self):
+                raise RuntimeError("unexpected bool")
+
+            def __str__(self):
+                raise RuntimeError("unexpected str")
+
+            def __float__(self):
+                raise RuntimeError("unexpected float")
+
+        class ComparisonBomb:
+            def __eq__(self, _other):
+                raise RuntimeError("unexpected comparison")
+
+            def __ne__(self, _other):
+                raise RuntimeError("unexpected comparison")
+
+        def base_rows():
+            return [
+                {
+                    "matched_operand_role": "current_period",
+                    "matched_operand_concept": "revenue",
+                    "raw_value": "2000",
+                    "raw_unit": "백만원",
+                    "normalized_value": 200.0,
+                    "normalized_unit": "KRW",
+                },
+                {
+                    "matched_operand_role": "prior_period",
+                    "matched_operand_concept": "revenue",
+                    "raw_value": "1000",
+                    "raw_unit": "천원",
+                    "normalized_value": 1.0,
+                    "normalized_unit": "KRW",
+                },
+            ]
+
+        access_events = []
+
+        class TraceRow(Mapping):
+            def __init__(self, name, data, *, copy_error=False):
+                self.name = name
+                self.data = data
+                self.copy_error = copy_error
+
+            def get(self, key, default=None):
+                access_events.append(("get", self.name, key))
+                return self.data.get(key, default)
+
+            def __iter__(self):
+                access_events.append(("copy", self.name))
+                if self.copy_error:
+                    raise RuntimeError(f"{self.name} copy")
+                return iter(self.data)
+
+            def __getitem__(self, key):
+                return self.data[key]
+
+            def __len__(self):
+                return len(self.data)
+
+        traced_current = TraceRow(
+            "current",
+            {
+                **base_rows()[0],
+                "matched_operand_concept": "revenue",
+                "raw_unit": Bomb(),
+            },
+        )
+        traced_prior = TraceRow(
+            "prior",
+            {
+                **base_rows()[1],
+                "matched_operand_concept": "profit",
+                "raw_unit": Bomb(),
+            },
+        )
+        traced_rows = [traced_current, traced_prior]
+        self.assertIs(
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(traced_rows),
+            traced_rows,
+        )
+        self.assertEqual(
+            [event for event in access_events if event[0] == "copy" or event[2] == "matched_operand_role"],
+            [
+                ("get", "current", "matched_operand_role"),
+                ("get", "current", "matched_operand_role"),
+                ("get", "prior", "matched_operand_role"),
+                ("copy", "current"),
+                ("copy", "prior"),
+            ],
+        )
+
+        access_events.clear()
+        copy_bomb_rows = [
+            TraceRow("current", base_rows()[0]),
+            TraceRow("prior", base_rows()[1], copy_error=True),
+        ]
+        with self.assertRaisesRegex(RuntimeError, "prior copy"):
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(copy_bomb_rows)
+        self.assertEqual(
+            [event for event in access_events if event[0] == "copy"],
+            [("copy", "current"), ("copy", "prior")],
+        )
+
+        mismatch = base_rows()
+        mismatch[1]["matched_operand_concept"] = "profit"
+        mismatch[0]["raw_unit"] = Bomb()
+        self.assertIs(operand_resolution.align_growth_operand_units_when_raw_scale_matches(mismatch), mismatch)
+
+        equal_units = base_rows()
+        equal_units[1]["raw_unit"] = "백만원"
+        equal_units[0]["normalized_unit"] = Bomb()
+        self.assertIs(
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(equal_units),
+            equal_units,
+        )
+
+        non_krw = base_rows()
+        non_krw[0]["normalized_unit"] = "COUNT"
+        non_krw[1]["normalized_unit"] = Bomb()
+        self.assertIs(operand_resolution.align_growth_operand_units_when_raw_scale_matches(non_krw), non_krw)
+
+        blank_concept = base_rows()
+        blank_concept[0]["matched_operand_concept"] = ""
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=[2.0, 1.0]),
+            patch.object(operand_resolution, "_normalise_operand_value", return_value=(7.0, "KRW")),
+        ):
+            self.assertIsNot(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(blank_concept),
+                blank_concept,
+            )
+
+        blank_unit = base_rows()
+        blank_unit[1]["raw_unit"] = ""
+        with patch.object(operand_resolution, "_parse_number_text", side_effect=AssertionError("raw parse")):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(blank_unit),
+                blank_unit,
+            )
+
+        prior_non_krw = base_rows()
+        prior_non_krw[1]["normalized_unit"] = "COUNT"
+        with patch.object(operand_resolution, "_parse_number_text", side_effect=AssertionError("raw parse")):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(prior_non_krw),
+                prior_non_krw,
+            )
+
+        parse_events = []
+        missing_raw = base_rows()
+        missing_raw[0]["normalized_value"] = None
+        with patch.object(
+            operand_resolution,
+            "_parse_number_text",
+            side_effect=lambda value: (parse_events.append(value) or (None if value == "2000" else 1.0)),
+        ):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(missing_raw),
+                missing_raw,
+            )
+        self.assertEqual(parse_events, ["2000", "1000"])
+
+        for missing_index in (0, 1):
+            missing_normalized = base_rows()
+            missing_normalized[missing_index]["normalized_value"] = None
+            with patch.object(operand_resolution, "_parse_number_text", side_effect=[2.0, 1.0]):
+                self.assertIs(
+                    operand_resolution.align_growth_operand_units_when_raw_scale_matches(missing_normalized),
+                    missing_normalized,
+                )
+
+        zero_ratio = base_rows()
+        zero_ratio[0]["normalized_value"] = 0.0
+        with patch.object(operand_resolution, "_parse_number_text", side_effect=[2.0, 1.0]):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(zero_ratio),
+                zero_ratio,
+            )
+
+        value_events = []
+
+        class ValueProbe:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __bool__(self):
+                value_events.append(("bool", self.name))
+                return True
+
+            def __str__(self):
+                value_events.append(("str", self.name))
+                return self.value
+
+        repeated_prior = base_rows()
+        repeated_prior[0]["raw_unit"] = ValueProbe("current_unit", "백만원")
+        repeated_prior[1]["raw_unit"] = ValueProbe("prior_unit", "천원")
+        repeated_prior[0]["raw_value"] = ValueProbe("current_raw", "2000")
+        repeated_prior[1]["raw_value"] = ValueProbe("prior_raw", "1000")
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=lambda value: float(value)),
+            patch.object(operand_resolution, "_normalise_operand_value", return_value=(7.0, "KRW")),
+        ):
+            self.assertIsNot(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(repeated_prior),
+                repeated_prior,
+            )
+        self.assertEqual(
+            [event for event in value_events if event[0] == "str"],
+            [
+                ("str", "current_unit"),
+                ("str", "prior_unit"),
+                ("str", "current_raw"),
+                ("str", "prior_raw"),
+                ("str", "prior_raw"),
+            ],
+        )
+
+        for current_raw, prior_raw, current_normalized, prior_normalized, should_align in (
+            (0.009, 1.0, 1.0, 1.0, False),
+            (0.01, 1.0, 1.0, 1.0, True),
+            (1.0, 100.0, 100.0, 1.0, True),
+            (100.0, 1.0, 1.0, 100.0, True),
+            (100.01, 1.0, 1.0, 100.0, False),
+            (2.0, 1.0, 198.0, 1.0, False),
+        ):
+            threshold_rows = base_rows()
+            threshold_rows[0]["normalized_value"] = current_normalized
+            threshold_rows[1]["normalized_value"] = prior_normalized
+            with (
+                patch.object(
+                    operand_resolution,
+                    "_parse_number_text",
+                    side_effect=[current_raw, prior_raw],
+                ),
+                patch.object(operand_resolution, "_normalise_operand_value", return_value=(7.0, "KRW")),
+            ):
+                result = operand_resolution.align_growth_operand_units_when_raw_scale_matches(threshold_rows)
+            self.assertEqual(result is not threshold_rows, should_align)
+
+        for current_raw, prior_raw, current_normalized, prior_normalized in (
+            (TypeError("raw"), 1.0, 100.0, 1.0),
+            (1.0, 0.0, 100.0, 1.0),
+            (1.0, 1.0, ValueError("normalized"), 1.0),
+        ):
+            caught_rows = base_rows()
+            caught_rows[0]["normalized_value"] = current_normalized
+            caught_rows[1]["normalized_value"] = prior_normalized
+
+            class FloatValue:
+                def __init__(self, value):
+                    self.value = value
+
+                def __bool__(self):
+                    return True
+
+                def __float__(self):
+                    if isinstance(self.value, BaseException):
+                        raise self.value
+                    return float(self.value)
+
+            with patch.object(
+                operand_resolution,
+                "_parse_number_text",
+                side_effect=[FloatValue(current_raw), FloatValue(prior_raw)],
+            ):
+                if isinstance(current_normalized, BaseException):
+                    caught_rows[0]["normalized_value"] = FloatValue(current_normalized)
+                self.assertIs(
+                    operand_resolution.align_growth_operand_units_when_raw_scale_matches(caught_rows),
+                    caught_rows,
+                )
+
+        owner_gate_rows = base_rows()
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=[2.0, 1.0]),
+            patch.object(operand_resolution, "_normalise_operand_value", return_value=(None, ComparisonBomb())),
+        ):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(owner_gate_rows),
+                owner_gate_rows,
+            )
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=[2.0, 1.0]),
+            patch.object(operand_resolution, "_normalise_operand_value", return_value=(7.0, "COUNT")),
+        ):
+            self.assertIs(
+                operand_resolution.align_growth_operand_units_when_raw_scale_matches(owner_gate_rows),
+                owner_gate_rows,
+            )
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=[2.0, 1.0]),
+            patch.object(operand_resolution, "_normalise_operand_value", side_effect=RuntimeError("owner")),
+            self.assertRaisesRegex(RuntimeError, "owner"),
+        ):
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(base_rows())
+        with (
+            patch.object(operand_resolution, "_parse_number_text", side_effect=RuntimeError("parse")),
+            self.assertRaisesRegex(RuntimeError, "parse"),
+        ):
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(base_rows())
+        with (
+            patch.object(operand_resolution, "_normalise_spaces", side_effect=RuntimeError("spaces")),
+            self.assertRaisesRegex(RuntimeError, "spaces"),
+        ):
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(base_rows())
+
+        class StrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("string")
+
+        string_rows = base_rows()
+        string_rows[0]["matched_operand_role"] = StrBomb()
+        with self.assertRaisesRegex(RuntimeError, "string"):
+            operand_resolution.align_growth_operand_units_when_raw_scale_matches(string_rows)
+
     def test_operation_sign_policy_preserves_identity_and_applies_ontology_override(self) -> None:
         class IterationBomb(list):
             def __iter__(self):

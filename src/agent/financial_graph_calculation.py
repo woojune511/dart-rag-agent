@@ -183,6 +183,7 @@ from src.agent.financial_operand_resolution import (
     _ratio_operand_rows_collapse_to_same_slot,
     operand_row_values_differ,
     operand_row_values_materially_conflict,
+    align_growth_operand_units_when_raw_scale_matches,
     apply_operation_sign_policy,
     align_ratio_operand_units_with_shared_table_context,
     repair_operand_normalization_from_rendered_unit,
@@ -10882,97 +10883,6 @@ class FinancialAgentCalculationMixin:
             )
         return context_items
 
-    def _align_growth_operand_units_when_raw_scale_matches(
-        self,
-        ordered_operands: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        if len(ordered_operands) != 2:
-            return ordered_operands
-        current_index = next(
-            (
-                index
-                for index, row in enumerate(ordered_operands)
-                if str(row.get("matched_operand_role") or "").strip() == "current_period"
-            ),
-            None,
-        )
-        prior_index = next(
-            (
-                index
-                for index, row in enumerate(ordered_operands)
-                if str(row.get("matched_operand_role") or "").strip() == "prior_period"
-            ),
-            None,
-        )
-        if current_index is None and prior_index is None:
-            current_index, prior_index = 0, 1
-        elif current_index is None and prior_index is not None:
-            current_index = next((index for index in range(len(ordered_operands)) if index != prior_index), None)
-        elif prior_index is None and current_index is not None:
-            prior_index = next((index for index in range(len(ordered_operands)) if index != current_index), None)
-        if current_index is None or prior_index is None or current_index == prior_index:
-            return ordered_operands
-        current_row = dict(ordered_operands[current_index])
-        prior_row = dict(ordered_operands[prior_index])
-        current_concept = _normalise_spaces(str(current_row.get("matched_operand_concept") or ""))
-        prior_concept = _normalise_spaces(str(prior_row.get("matched_operand_concept") or ""))
-        if current_concept and prior_concept and current_concept != prior_concept:
-            return ordered_operands
-
-        current_unit = _normalise_spaces(str(current_row.get("raw_unit") or ""))
-        prior_unit = _normalise_spaces(str(prior_row.get("raw_unit") or ""))
-        if not current_unit or not prior_unit or current_unit == prior_unit:
-            return ordered_operands
-        if str(current_row.get("normalized_unit") or "").upper() != "KRW":
-            return ordered_operands
-        if str(prior_row.get("normalized_unit") or "").upper() != "KRW":
-            return ordered_operands
-
-        current_raw_number = _parse_number_text(str(current_row.get("raw_value") or ""))
-        prior_raw_number = _parse_number_text(str(prior_row.get("raw_value") or ""))
-        current_normalized = current_row.get("normalized_value")
-        prior_normalized = prior_row.get("normalized_value")
-        if (
-            current_raw_number is None
-            or prior_raw_number is None
-            or not current_raw_number
-            or not prior_raw_number
-            or current_normalized is None
-            or prior_normalized is None
-        ):
-            return ordered_operands
-        try:
-            raw_ratio = abs(float(current_raw_number) / float(prior_raw_number))
-            normalized_ratio = abs(float(current_normalized) / float(prior_normalized))
-        except (TypeError, ValueError, ZeroDivisionError):
-            return ordered_operands
-        if raw_ratio <= 0 or normalized_ratio <= 0:
-            return ordered_operands
-        scale_distortion = max(raw_ratio, normalized_ratio) / min(raw_ratio, normalized_ratio)
-        if not (0.01 <= raw_ratio <= 100.0 and scale_distortion >= 100.0):
-            return ordered_operands
-
-        aligned_prior_value, aligned_prior_unit = _normalise_operand_value(
-            str(prior_row.get("raw_value") or ""),
-            current_unit,
-        )
-        if aligned_prior_value is None or aligned_prior_unit != "KRW":
-            return ordered_operands
-        updated_prior = {
-            **prior_row,
-            "raw_unit": current_unit,
-            "normalized_value": aligned_prior_value,
-            "normalized_unit": aligned_prior_unit,
-            "unit_alignment_source": "growth_raw_scale_match",
-        }
-        updated_rows = []
-        for index, row in enumerate(ordered_operands):
-            if index == prior_index:
-                updated_rows.append(updated_prior)
-            else:
-                updated_rows.append(row)
-        return updated_rows
-
     def _recover_duplicate_growth_prior_operand(
         self,
         ordered_operands: List[Dict[str, Any]],
@@ -14088,7 +13998,7 @@ class FinancialAgentCalculationMixin:
                         ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
                 if operation_family == "growth_rate":
-                    aligned_operands = self._align_growth_operand_units_when_raw_scale_matches(ordered_operands)
+                    aligned_operands = align_growth_operand_units_when_raw_scale_matches(ordered_operands)
                     if aligned_operands != ordered_operands:
                         for aligned_row in aligned_operands:
                             aligned_id = str(aligned_row.get("operand_id") or "").strip()

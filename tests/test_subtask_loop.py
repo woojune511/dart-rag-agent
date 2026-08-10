@@ -1942,7 +1942,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         ]
 
-        aligned = self.agent._align_growth_operand_units_when_raw_scale_matches(rows)
+        aligned = financial_operand_resolution.align_growth_operand_units_when_raw_scale_matches(rows)
         prior = next(row for row in aligned if row["operand_id"] == "prior")
 
         self.assertEqual(prior["raw_unit"], "백만원")

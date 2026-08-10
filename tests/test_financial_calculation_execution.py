@@ -26,6 +26,250 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import CalculationResult
 
 class FinancialCalculationExecutionTests(unittest.TestCase):
+    def test_prepare_candidate_binds_growth_raw_scale_alignment_once_in_exact_gate_order(self) -> None:
+        tree = ast.parse(Path(graph_calculation.__file__).read_text(encoding="utf-8"))
+        target = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "_prepare_calculation_candidate"
+        )
+        parents = {
+            child: parent
+            for parent in ast.walk(target)
+            for child in ast.iter_child_nodes(parent)
+        }
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "align_growth_operand_units_when_raw_scale_matches"
+        ]
+        self.assertEqual(len(calls), 1)
+        owner_call = calls[0]
+        self.assertIn(owner_call, list(ast.walk(target)))
+        self.assertEqual(len(owner_call.args), 1)
+        self.assertEqual(ast.unparse(owner_call.args[0]), "ordered_operands")
+        self.assertEqual(owner_call.keywords, [])
+        ancestor_tests = []
+        parent = parents[owner_call]
+        while parent is not target:
+            if isinstance(parent, ast.If):
+                ancestor_tests.append(ast.unparse(parent.test))
+            self.assertNotIsInstance(parent, ast.Try)
+            parent = parents[parent]
+        self.assertTrue(any("operation_family == 'growth_rate'" in test for test in ancestor_tests))
+        self.assertTrue(any("len(concept_keys) <= 1" in test for test in ancestor_tests))
+        self.assertTrue(
+            any("operation_family in {'difference', 'growth_rate'}" in test and "len(ordered_operands) == 2" in test for test in ancestor_tests)
+        )
+
+        donor_calls = [
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_normalise_operand_value"
+            and node.lineno < owner_call.lineno
+        ]
+        duplicate_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "_recover_duplicate_growth_prior_operand"
+        )
+        conflict_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "_growth_operand_periods_conflict"
+        )
+        sign_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "apply_operation_sign_policy"
+        )
+        self.assertTrue(donor_calls)
+        self.assertLess(max(node.lineno for node in donor_calls), owner_call.lineno)
+        self.assertLess(owner_call.lineno, duplicate_call.lineno)
+        self.assertLess(duplicate_call.lineno, conflict_call.lineno)
+        self.assertLess(conflict_call.lineno, sign_call.lineno)
+
+    def test_prepare_candidate_adopts_growth_raw_scale_alignment_after_donor_and_stops_on_exception(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        def candidate_input(*, operation_family="growth_rate", concepts=("revenue", "revenue")):
+            return graph_calculation._CalculationCandidateInput(
+                calculation_operands=(
+                    {
+                        "operand_id": "current",
+                        "matched_operand_role": "current_period",
+                        "matched_operand_concept": concepts[0],
+                        "raw_value": "20",
+                        "raw_unit": "백만원",
+                        "normalized_value": 20.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "prior",
+                        "matched_operand_role": "prior_period",
+                        "matched_operand_concept": concepts[1],
+                        "raw_value": "10",
+                        "raw_unit": "",
+                        "normalized_value": None,
+                        "normalized_unit": "UNKNOWN",
+                    },
+                ),
+                calculation_plan={
+                    "mode": "scalar",
+                    "operation": operation_family,
+                    "ordered_operand_ids": ["current", "prior"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "current"},
+                        {"variable": "B", "operand_id": "prior"},
+                    ],
+                    "formula": "(A - B) / B * 100",
+                    "pairwise_formula": "",
+                    "result_unit": "PERCENT",
+                },
+                active_subtask={"operation_family": operation_family, "required_operands": []},
+                query="growth",
+                evidence_items=(),
+                runtime_evidence=(),
+            )
+
+        def execute(**kwargs):
+            ordered = tuple(kwargs["operands_by_id"][item] for item in kwargs["ordered_operand_ids"])
+            return CalculationExecutionOutcome(
+                status="ok",
+                reason="",
+                result_value=100.0,
+                normalized_unit="PERCENT",
+                source_normalized_unit="PERCENT",
+                ordered_operands=ordered,
+                selected_evidence_ids=(),
+            )
+
+        def invoke(
+            owner_effect,
+            *,
+            operation_family="growth_rate",
+            concepts=("revenue", "revenue"),
+            events=None,
+        ):
+            events = [] if events is None else events
+
+            def donor_normalizer(raw_value, raw_unit):
+                events.append(("donor", raw_value, raw_unit))
+                return 10.0, "KRW"
+
+            def duplicate(rows, _evidence):
+                events.append(("duplicate", rows))
+                return rows
+
+            def conflict(rows):
+                events.append(("conflict", rows))
+                return False
+
+            def sign(rows, **_kwargs):
+                events.append(("sign", rows))
+                return rows
+
+            def tracked_execute(**kwargs):
+                events.append(("execute", kwargs["operands_by_id"]))
+                return execute(**kwargs)
+
+            with (
+                patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
+                patch.object(agent, "_repair_krw_operand_units_from_table_metadata", side_effect=lambda rows, _evidence: rows),
+                patch.object(graph_calculation, "repair_krw_normalized_values_from_raw_units", side_effect=lambda rows: rows),
+                patch.object(graph_calculation, "guard_operation_plan", return_value={}),
+                patch.object(graph_calculation, "repair_operand_normalization_from_rendered_unit", side_effect=lambda row: row),
+                patch.object(graph_calculation, "_normalise_operand_value", side_effect=donor_normalizer),
+                patch.object(
+                    graph_calculation,
+                    "align_growth_operand_units_when_raw_scale_matches",
+                    side_effect=owner_effect,
+                ) as owner,
+                patch.object(agent, "_recover_duplicate_growth_prior_operand", side_effect=duplicate) as duplicate_mock,
+                patch.object(agent, "_growth_operand_periods_conflict", side_effect=conflict) as conflict_mock,
+                patch.object(graph_calculation, "apply_operation_sign_policy", side_effect=sign) as sign_mock,
+                patch.object(graph_calculation, "coerce_lookup_magnitude_record", side_effect=lambda row, _evidence: row),
+                patch.object(graph_calculation, "execute_prepared_calculation_plan", side_effect=tracked_execute) as executor,
+            ):
+                result = agent._prepare_calculation_candidate(
+                    candidate_input(operation_family=operation_family, concepts=concepts)
+                )
+            return result, events, owner, duplicate_mock, conflict_mock, sign_mock, executor
+
+        def align(rows):
+            prior = dict(rows[1])
+            self.assertEqual(prior["raw_unit"], "백만원")
+            self.assertEqual(prior["normalized_value"], 10.0)
+            self.assertEqual(prior["normalized_unit"], "KRW")
+            prior["aligned_by_owner"] = True
+            return [rows[0], prior]
+
+        result, events, owner, duplicate, conflict, sign, executor = invoke(align)
+        owner.assert_called_once()
+        self.assertEqual(result.status, "ok")
+        self.assertTrue(result.calculation_operands[1]["aligned_by_owner"])
+        event_names = [event[0] for event in events]
+        self.assertLess(event_names.index("donor"), event_names.index("duplicate"))
+        self.assertLess(event_names.index("duplicate"), event_names.index("conflict"))
+        self.assertLess(event_names.index("conflict"), event_names.index("sign"))
+        self.assertLess(event_names.index("sign"), event_names.index("execute"))
+        self.assertTrue(events[event_names.index("duplicate")][1][1]["aligned_by_owner"])
+        self.assertTrue(events[event_names.index("execute")][1]["prior"]["aligned_by_owner"])
+        duplicate.assert_called_once()
+        conflict.assert_called_once()
+        sign.assert_called_once()
+        executor.assert_called_once()
+
+        gated, _events, gated_owner, *_ = invoke(
+            lambda _rows: (_ for _ in ()).throw(AssertionError("difference owner call")),
+            operation_family="difference",
+        )
+        self.assertEqual(gated.status, "ok")
+        gated_owner.assert_not_called()
+
+        concept_gated, _events, concept_owner, *_ = invoke(
+            lambda _rows: (_ for _ in ()).throw(AssertionError("concept owner call")),
+            concepts=("revenue", "profit"),
+        )
+        self.assertEqual(concept_gated.status, "ok")
+        concept_owner.assert_not_called()
+
+        owner_input_rows = []
+        equal_return_rows = []
+
+        def equal_owner(rows):
+            owner_input_rows.extend(rows)
+            equal_return_rows.extend(dict(row) for row in rows)
+            return equal_return_rows
+
+        _equal_result, equal_events, equal_owner_mock, *_ = invoke(equal_owner)
+        equal_owner_mock.assert_called_once()
+        duplicate_rows = next(event[1] for event in equal_events if event[0] == "duplicate")
+        self.assertIs(duplicate_rows[0], owner_input_rows[0])
+        self.assertIs(duplicate_rows[1], owner_input_rows[1])
+        self.assertIsNot(duplicate_rows[0], equal_return_rows[0])
+        self.assertIsNot(duplicate_rows[1], equal_return_rows[1])
+
+        stop_events = []
+
+        def owner_failure(rows):
+            stop_events.append(("owner", rows))
+            raise RuntimeError("growth alignment")
+
+        with self.assertRaisesRegex(RuntimeError, "growth alignment"):
+            invoke(owner_failure, events=stop_events)
+        self.assertEqual([event[0] for event in stop_events], ["donor", "owner"])
+
     def test_prepare_candidate_binds_krw_raw_unit_repair_once_in_exact_order(self) -> None:
         tree = ast.parse(Path(graph_calculation.__file__).read_text(encoding="utf-8"))
         target = next(
@@ -286,8 +530,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     side_effect=lambda rows, _evidence: rows,
                 ),
                 patch.object(
-                    agent,
-                    "_align_growth_operand_units_when_raw_scale_matches",
+                    graph_calculation,
+                    "align_growth_operand_units_when_raw_scale_matches",
                     side_effect=lambda rows: rows,
                 ),
                 patch.object(
