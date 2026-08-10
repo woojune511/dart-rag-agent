@@ -7,6 +7,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
+from src.agent.financial_answer_slots import answer_slot_has_material
+from src.agent.financial_dependency_projection import dependency_lookup_slot_match_score
 from src.agent.financial_numeric_surface import (
     extract_numeric_surface_candidates,
     numeric_surface_candidates_equivalent,
@@ -15,6 +17,7 @@ from src.agent.financial_numeric_surface import (
 from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading_period_qualifiers
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
+from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.agent.financial_text_surface import _tokenize_terms, split_narrative_sentences as _split_narrative_sentences
 
 
@@ -561,6 +564,62 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
         "addition": "sum",
     }
     return operation_aliases.get(operation_family, operation_family)
+
+
+def aggregate_row_primary_answer_slot(row: Dict[str, Any]) -> Dict[str, Any]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    return dict(answer_slots.get("primary_value") or {})
+
+
+def aggregate_source_slot_by_task_id(ordered_results: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    source_slot_by_task_id: Dict[str, Dict[str, Any]] = {}
+    for row in ordered_results:
+        if not isinstance(row, dict):
+            continue
+        task_id = _normalise_spaces(str(row.get("task_id") or ""))
+        if not task_id:
+            continue
+        slot = aggregate_row_primary_answer_slot(dict(row))
+        if not slot:
+            continue
+        scope = known_consolidation_scope_value(
+            slot.get("consolidation_scope"),
+            row.get("consolidation_scope"),
+        )
+        if scope and not slot.get("consolidation_scope"):
+            slot["consolidation_scope"] = scope
+        metric_label = _normalise_spaces(str(row.get("metric_label") or ""))
+        if metric_label and not slot.get("metric_label"):
+            slot["metric_label"] = metric_label
+        source_slot_by_task_id[task_id] = slot
+    return source_slot_by_task_id
+
+
+def aggregate_source_task_ids_for_operand(
+    operand: Dict[str, Any],
+    source_slots: Dict[str, Dict[str, Any]],
+) -> List[str]:
+    source_task_ids = [
+        _normalise_spaces(str(operand.get("source_task_id") or "")),
+        *[
+            source_id.removeprefix("task_output:")
+            for source_id in _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")])
+            if source_id.startswith("task_output:")
+        ],
+    ]
+    source_task_ids = [task_id for task_id in source_task_ids if task_id]
+    if source_task_ids or not source_slots:
+        return list(dict.fromkeys(source_task_ids))
+    role = _normalise_spaces(str(operand.get("role") or operand.get("matched_operand_role") or ""))
+    inferred_task_ids = []
+    for task_id, source_slot in source_slots.items():
+        slot = dict(source_slot or {})
+        if not answer_slot_has_material(slot):
+            continue
+        if dependency_lookup_slot_match_score(slot, operand, role) >= 12:
+            inferred_task_ids.append(task_id)
+    return inferred_task_ids
 
 
 def select_aggregate_projection_row_for_task(

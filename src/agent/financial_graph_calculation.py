@@ -50,7 +50,10 @@ from src.agent.financial_aggregate_projection import (
     aggregate_projection_for_integrity as _aggregate_projection_for_integrity,
     aggregate_result_operation_family as _aggregate_result_operation_family,
     aggregate_result_signature,
+    aggregate_row_primary_answer_slot,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
+    aggregate_source_slot_by_task_id,
+    aggregate_source_task_ids_for_operand,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     aggregate_synthesis_prompt_rows,
     apply_aggregate_answer_candidate,
@@ -1211,7 +1214,7 @@ class FinancialAgentCalculationMixin:
         def _lookup_conflicts_with_ratio_component(result_row: Dict[str, Any]) -> bool:
             if not ratio_component_slots:
                 return False
-            lookup_slot = self._aggregate_row_primary_answer_slot(result_row)
+            lookup_slot = aggregate_row_primary_answer_slot(result_row)
             lookup_label = _normalise_spaces(str(lookup_slot.get("label") or result_row.get("metric_label") or ""))
             if not lookup_label:
                 return False
@@ -1259,7 +1262,7 @@ class FinancialAgentCalculationMixin:
             )
             if not item_answer or answer_covers_numeric_answer(answer_text, item_answer):
                 continue
-            lookup_slot = self._aggregate_row_primary_answer_slot(row)
+            lookup_slot = aggregate_row_primary_answer_slot(row)
             lookup_label = _normalise_spaces(str(lookup_slot.get("label") or row.get("metric_label") or ""))
             if (
                 lookup_label
@@ -7742,34 +7745,6 @@ class FinancialAgentCalculationMixin:
     def _aggregate_result_operation_family(self, row: Dict[str, Any]) -> str:
         return _aggregate_result_operation_family(row)
 
-    def _aggregate_row_primary_answer_slot(self, row: Dict[str, Any]) -> Dict[str, Any]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        return dict(answer_slots.get("primary_value") or {})
-
-    def _aggregate_source_slot_by_task_id(self, ordered_results: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        source_slot_by_task_id: Dict[str, Dict[str, Any]] = {}
-        for row in ordered_results:
-            if not isinstance(row, dict):
-                continue
-            task_id = _normalise_spaces(str(row.get("task_id") or ""))
-            if not task_id:
-                continue
-            slot = self._aggregate_row_primary_answer_slot(dict(row))
-            if not slot:
-                continue
-            scope = known_consolidation_scope_value(
-                slot.get("consolidation_scope"),
-                row.get("consolidation_scope"),
-            )
-            if scope and not slot.get("consolidation_scope"):
-                slot["consolidation_scope"] = scope
-            metric_label = _normalise_spaces(str(row.get("metric_label") or ""))
-            if metric_label and not slot.get("metric_label"):
-                slot["metric_label"] = metric_label
-            source_slot_by_task_id[task_id] = slot
-        return source_slot_by_task_id
-
     def _aggregate_dependency_source_slot_by_task_id(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -7791,7 +7766,7 @@ class FinancialAgentCalculationMixin:
                 lookup_task_ids.add(task_id)
         source_slots = {
             task_id: slot
-            for task_id, slot in self._aggregate_source_slot_by_task_id(ordered_results).items()
+            for task_id, slot in aggregate_source_slot_by_task_id(ordered_results).items()
             if task_id in lookup_task_ids
         }
         dependency_slots = build_dependency_lookup_slots_by_task(
@@ -7903,7 +7878,7 @@ class FinancialAgentCalculationMixin:
             ),
         }
         excluded = set(excluded_task_ids or set())
-        inferred_task_ids = set(self._aggregate_source_task_ids_for_operand(seed, source_slots))
+        inferred_task_ids = set(aggregate_source_task_ids_for_operand(seed, source_slots))
         ranked: List[tuple[int, str, Dict[str, Any]]] = []
         for task_id, slot in source_slots.items():
             if task_id in excluded:
@@ -8129,32 +8104,6 @@ class FinancialAgentCalculationMixin:
                 candidate_operands.extend(dict(item) for item in list(entries or []) if isinstance(item, dict))
         return candidate_operands
 
-    def _aggregate_source_task_ids_for_operand(
-        self,
-        operand: Dict[str, Any],
-        source_slots: Dict[str, Dict[str, Any]],
-    ) -> List[str]:
-        source_task_ids = [
-            _normalise_spaces(str(operand.get("source_task_id") or "")),
-            *[
-                source_id.removeprefix("task_output:")
-                for source_id in _clean_source_row_ids([operand.get("source_row_id"), operand.get("source_row_ids")])
-                if source_id.startswith("task_output:")
-            ],
-        ]
-        source_task_ids = [task_id for task_id in source_task_ids if task_id]
-        if source_task_ids or not source_slots:
-            return list(dict.fromkeys(source_task_ids))
-        role = _normalise_spaces(str(operand.get("role") or operand.get("matched_operand_role") or ""))
-        inferred_task_ids = []
-        for task_id, source_slot in source_slots.items():
-            slot = dict(source_slot or {})
-            if not answer_slot_has_material(slot):
-                continue
-            if dependency_lookup_slot_match_score(slot, operand, role) >= 12:
-                inferred_task_ids.append(task_id)
-        return inferred_task_ids
-
     def _aggregate_result_dependency_coherence_ranks(
         self,
         row: Dict[str, Any],
@@ -8173,7 +8122,7 @@ class FinancialAgentCalculationMixin:
             if isinstance(operand, dict) and operand.get("unit_realigned_from_structured_provenance")
         ]
         for operand in candidate_operands:
-            source_task_ids = self._aggregate_source_task_ids_for_operand(operand, source_slots)
+            source_task_ids = aggregate_source_task_ids_for_operand(operand, source_slots)
             source_task_id = source_task_ids[0] if source_task_ids else ""
             if source_task_id and source_slots:
                 source_slot = dict(source_slots.get(source_task_id) or {})
@@ -8226,7 +8175,7 @@ class FinancialAgentCalculationMixin:
                 ],
                 "calculation_result": dict(calculation_result or {}),
             },
-            self._aggregate_source_slot_by_task_id(ordered_results),
+            aggregate_source_slot_by_task_id(ordered_results),
         )[0]
 
     def _aggregate_result_rank(
@@ -8313,7 +8262,7 @@ class FinancialAgentCalculationMixin:
             for row in ordered_results
             if _normalise_spaces(str(row.get("task_id") or ""))
         }
-        source_slot_by_task_id = self._aggregate_source_slot_by_task_id(list(by_task_id.values()))
+        source_slot_by_task_id = aggregate_source_slot_by_task_id(list(by_task_id.values()))
         replacements: Dict[str, Dict[str, Any]] = {}
         for row in ordered_results:
             if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
@@ -8429,7 +8378,7 @@ class FinancialAgentCalculationMixin:
         self,
         ordered_results: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
-        source_slot_by_task_id = self._aggregate_source_slot_by_task_id(ordered_results)
+        source_slot_by_task_id = aggregate_source_slot_by_task_id(ordered_results)
         winners: Dict[str, tuple[int, tuple[int, int, int, int, int, int, int], Dict[str, Any]]] = {}
         passthrough: List[tuple[int, Dict[str, Any]]] = []
         for index, row in enumerate(ordered_results):

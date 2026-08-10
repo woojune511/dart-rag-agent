@@ -4,11 +4,12 @@ import unittest
 from collections.abc import Mapping
 from copy import deepcopy
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from src.agent import (
     financial_aggregate_state,
     financial_aggregate_projection,
+    financial_answer_slots,
     financial_calculation_execution,
     financial_graph_calculation,
     financial_operand_resolution,
@@ -100,6 +101,811 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_aggregate_source_slot_preparation_preserves_copy_order_and_overlay_contract(self) -> None:
+        nested = {"preserve": True}
+
+        class RowFallbackBomb(dict):
+            def get(self, key, default=None):
+                if key == "answer_slots":
+                    raise RuntimeError("row answer slots accessed")
+                return super().get(key, default)
+
+        calculation_primary = {
+            "normalized_value": 1.0,
+            "nested": nested,
+        }
+        calculation_row = RowFallbackBomb(
+            calculation_result={
+                "answer_slots": {
+                    "primary_value": calculation_primary,
+                }
+            },
+            answer_slots={"primary_value": {"normalized_value": 99.0}},
+        )
+        selected = financial_aggregate_projection.aggregate_row_primary_answer_slot(
+            calculation_row
+        )
+        self.assertEqual(selected, calculation_primary)
+        self.assertIsNot(selected, calculation_primary)
+        self.assertIs(selected["nested"], nested)
+
+        row_primary = {"normalized_value": 2.0, "nested": nested}
+        fallback_row = {
+            "calculation_result": {"answer_slots": {}},
+            "answer_slots": {"primary_value": row_primary},
+        }
+        fallback_selected = financial_aggregate_projection.aggregate_row_primary_answer_slot(
+            fallback_row
+        )
+        self.assertEqual(fallback_selected, row_primary)
+        self.assertIsNot(fallback_selected, row_primary)
+        self.assertIs(fallback_selected["nested"], nested)
+
+        self.assertEqual(
+            financial_aggregate_projection.aggregate_row_primary_answer_slot(
+                {
+                    "calculation_result": {"answer_slots": {"secondary": {"value": 1}}},
+                    "answer_slots": {"primary_value": {"normalized_value": 3.0}},
+                }
+            ),
+            {},
+        )
+
+        first_slot = {"normalized_value": 10.0, "nested": nested}
+        second_slot = {
+            "normalized_value": 20.0,
+            "consolidation_scope": "slot_scope",
+            "metric_label": "slot metric",
+            "nested": nested,
+        }
+        replacement_slot = {"normalized_value": 30.0, "nested": nested}
+        first_row = {
+            "task_id": " task_a ",
+            "consolidation_scope": " row_scope_a ",
+            "metric_label": " Metric A ",
+            "calculation_result": {"answer_slots": {"primary_value": first_slot}},
+        }
+        second_row = {
+            "task_id": "task_b",
+            "consolidation_scope": "row_scope_b",
+            "metric_label": "row metric b",
+            "answer_slots": {"primary_value": second_slot},
+        }
+        replacement_row = {
+            "task_id": "task_a",
+            "consolidation_scope": "row_scope_last",
+            "metric_label": "Metric Last",
+            "answer_slots": {"primary_value": replacement_slot},
+        }
+        snapshots = deepcopy([first_row, second_row, replacement_row])
+        scope_calls = []
+
+        def known_scope(*values):
+            scope_calls.append(values)
+            return next((str(value).strip() for value in values if str(value or "").strip()), "")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "known_consolidation_scope_value",
+            side_effect=known_scope,
+        ):
+            source_slots = financial_aggregate_projection.aggregate_source_slot_by_task_id(
+                [None, {"task_id": "   ", "answer_slots": RowFallbackBomb()}, first_row, second_row, replacement_row]
+            )
+
+        self.assertEqual(list(source_slots), ["task_a", "task_b"])
+        self.assertEqual(source_slots["task_a"]["normalized_value"], 30.0)
+        self.assertEqual(source_slots["task_a"]["consolidation_scope"], "row_scope_last")
+        self.assertEqual(source_slots["task_a"]["metric_label"], "Metric Last")
+        self.assertEqual(source_slots["task_b"]["consolidation_scope"], "slot_scope")
+        self.assertEqual(source_slots["task_b"]["metric_label"], "slot metric")
+        self.assertIs(source_slots["task_a"]["nested"], nested)
+        self.assertIs(source_slots["task_b"]["nested"], nested)
+        self.assertIsNot(source_slots["task_a"], replacement_slot)
+        self.assertIsNot(source_slots["task_b"], second_slot)
+        self.assertEqual([first_row, second_row, replacement_row], snapshots)
+        self.assertEqual(
+            scope_calls,
+            [
+                (None, " row_scope_a "),
+                ("slot_scope", "row_scope_b"),
+                (None, "row_scope_last"),
+            ],
+        )
+
+    def test_aggregate_source_slot_preparation_preserves_lazy_access_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+
+        class AccessRow(dict):
+            def __init__(self, values, events, *, failure_key=None):
+                super().__init__(values)
+                self.events = events
+                self.failure_key = failure_key
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == self.failure_key:
+                    raise RuntimeError(f"{key} accessed")
+                return super().get(key, default)
+
+        blank_events = []
+        valid_events = []
+        blank_row = AccessRow(
+            {"task_id": "  ", "answer_slots": {"primary_value": {"normalized_value": 1.0}}},
+            blank_events,
+            failure_key="answer_slots",
+        )
+        valid_row = AccessRow(
+            {"task_id": "task_a", "nested": nested, "consolidation_scope": "poison"},
+            valid_events,
+            failure_key="consolidation_scope",
+        )
+        prepared_rows = []
+
+        def empty_primary(row):
+            prepared_rows.append(row)
+            return {}
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_row_primary_answer_slot",
+                side_effect=empty_primary,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "known_consolidation_scope_value",
+                side_effect=RuntimeError("scope accessed"),
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.aggregate_source_slot_by_task_id(
+                    [None, blank_row, valid_row]
+                ),
+                {},
+            )
+        self.assertEqual(blank_events, ["task_id"])
+        self.assertEqual(valid_events, ["task_id"])
+        self.assertEqual(prepared_rows, [valid_row])
+        self.assertIsNot(prepared_rows[0], valid_row)
+        self.assertIs(prepared_rows[0]["nested"], nested)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_row_primary_answer_slot",
+                side_effect=RuntimeError("primary failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "known_consolidation_scope_value",
+            ) as scope_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "primary failed"):
+                financial_aggregate_projection.aggregate_source_slot_by_task_id(
+                    [{"task_id": "task_a"}]
+                )
+        scope_owner.assert_not_called()
+
+        scope_events = []
+        scope_row = AccessRow(
+            {
+                "task_id": "task_a",
+                "consolidation_scope": "row_scope",
+                "metric_label": "poison",
+            },
+            scope_events,
+            failure_key="metric_label",
+        )
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_row_primary_answer_slot",
+                return_value={"normalized_value": 1.0},
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "known_consolidation_scope_value",
+                side_effect=RuntimeError("scope failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "scope failed"):
+                financial_aggregate_projection.aggregate_source_slot_by_task_id(
+                    [scope_row]
+                )
+        self.assertEqual(scope_events, ["task_id", "consolidation_scope"])
+
+        class CalculationResultBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("calculation result copied")
+
+            def __getitem__(self, key):
+                raise KeyError(key)
+
+        with self.assertRaisesRegex(RuntimeError, "calculation result copied"):
+            financial_aggregate_projection.aggregate_row_primary_answer_slot(
+                {"calculation_result": CalculationResultBomb()}
+            )
+
+    def test_aggregate_source_task_ids_preserve_explicit_inference_and_access_contract(self) -> None:
+        class AccessOperand(dict):
+            def __init__(self, values, events, *, failure_key=None):
+                super().__init__(values)
+                self.events = events
+                self.failure_key = failure_key
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == self.failure_key:
+                    raise RuntimeError(f"{key} accessed")
+                return super().get(key, default)
+
+        class SourceSlotsBomb(dict):
+            def __bool__(self):
+                raise RuntimeError("source slots truth-tested")
+
+            def items(self):
+                raise RuntimeError("source slots iterated")
+
+        explicit_events = []
+        explicit_operand = AccessOperand(
+            {
+                "source_task_id": " task_a ",
+                "source_row_id": "task_output:task_b",
+                "source_row_ids": ["task_output:task_a", "task_output:task_b"],
+            },
+            explicit_events,
+            failure_key="role",
+        )
+        self.assertEqual(
+            financial_aggregate_projection.aggregate_source_task_ids_for_operand(
+                explicit_operand,
+                SourceSlotsBomb(task_unused={}),
+            ),
+            ["task_a", "task_b"],
+        )
+        self.assertEqual(
+            explicit_events,
+            ["source_task_id", "source_row_id", "source_row_ids"],
+        )
+
+        empty_events = []
+        empty_operand = AccessOperand({}, empty_events, failure_key="role")
+        self.assertEqual(
+            financial_aggregate_projection.aggregate_source_task_ids_for_operand(
+                empty_operand,
+                {},
+            ),
+            [],
+        )
+        self.assertEqual(
+            empty_events,
+            ["source_task_id", "source_row_id", "source_row_ids"],
+        )
+
+        nested = {"preserve": True}
+        low_slot = {"normalized_value": 1.0, "nested": nested}
+        matching_slot = {"normalized_value": 2.0, "nested": nested}
+        missing_slot = {"status": "missing", "normalized_value": 3.0}
+        source_slots = {
+            " task_low ": low_slot,
+            " task_match ": matching_slot,
+            "task_empty": {},
+            "task_missing": missing_slot,
+        }
+        inference_events = []
+        inference_operand = AccessOperand(
+            {"role": " numerator_1 ", "matched_operand_role": "unused"},
+            inference_events,
+            failure_key="matched_operand_role",
+        )
+        material_calls = []
+        score_calls = []
+
+        def has_material(slot):
+            material_calls.append(slot)
+            return financial_answer_slots.answer_slot_has_material(slot)
+
+        def match_score(slot, operand, role):
+            score_calls.append((slot, operand, role))
+            return 12 if slot.get("normalized_value") == 2.0 else 11
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                side_effect=has_material,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_lookup_slot_match_score",
+                side_effect=match_score,
+            ),
+        ):
+            inferred = financial_aggregate_projection.aggregate_source_task_ids_for_operand(
+                inference_operand,
+                source_slots,
+            )
+
+        self.assertEqual(inferred, [" task_match "])
+        self.assertEqual(
+            inference_events,
+            ["source_task_id", "source_row_id", "source_row_ids", "role"],
+        )
+        self.assertEqual(len(material_calls), 4)
+        self.assertEqual(len(score_calls), 2)
+        self.assertEqual([call[2] for call in score_calls], ["numerator_1", "numerator_1"])
+        self.assertTrue(all(call[1] is inference_operand for call in score_calls))
+        self.assertIsNot(material_calls[0], low_slot)
+        self.assertIs(material_calls[0]["nested"], nested)
+        self.assertIsNot(material_calls[1], matching_slot)
+        self.assertIs(material_calls[1]["nested"], nested)
+
+        fallback_events = []
+        fallback_operand = AccessOperand(
+            {"role": "", "matched_operand_role": " denominator_1 "},
+            fallback_events,
+        )
+        fallback_scores = []
+
+        def fallback_score(slot, operand, role):
+            fallback_scores.append((slot, operand, role))
+            return 12
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                return_value=True,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_lookup_slot_match_score",
+                side_effect=fallback_score,
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.aggregate_source_task_ids_for_operand(
+                    fallback_operand,
+                    {" task_fallback ": {"normalized_value": 1.0}},
+                ),
+                [" task_fallback "],
+            )
+        self.assertEqual(
+            fallback_events,
+            [
+                "source_task_id",
+                "source_row_id",
+                "source_row_ids",
+                "role",
+                "matched_operand_role",
+            ],
+        )
+        self.assertEqual([call[2] for call in fallback_scores], ["denominator_1"])
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                side_effect=RuntimeError("material failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_lookup_slot_match_score",
+            ) as score_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "material failed"):
+                financial_aggregate_projection.aggregate_source_task_ids_for_operand(
+                    {"role": "numerator_1"},
+                    {"task_a": {"normalized_value": 1.0}},
+                )
+        score_owner.assert_not_called()
+
+    def test_aggregate_source_preparation_callers_preserve_exact_args_and_stop(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+
+        lookup_row = {
+            "kind": "lookup",
+            "status": "ok",
+            "metric_label": "metric",
+        }
+        ratio_row = {
+            "kind": "ratio",
+            "calculation_result": {
+                "answer_slots": {
+                    "components_by_group": {
+                        "numerator": [
+                            {
+                                "label": "component",
+                                "normalized_value": 10.0,
+                                "normalized_unit": "COUNT",
+                            }
+                        ]
+                    }
+                }
+            },
+        }
+        lookup_slot = {
+            "label": "metric",
+            "normalized_value": 10.0,
+            "normalized_unit": "COUNT",
+        }
+        with (
+            patch.object(
+                agent,
+                "_aggregate_result_operation_family",
+                side_effect=lambda row: row.get("kind", ""),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_row_primary_answer_slot",
+                side_effect=[lookup_slot, lookup_slot],
+            ) as primary_owner,
+            patch.object(agent, "_row_is_narrative_summary", return_value=False),
+            patch.object(agent, "_material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(agent, "_lookup_numeric_item_answer", return_value="metric 10"),
+            patch.object(financial_graph_calculation, "_operand_text_match", return_value=False),
+            patch.object(financial_graph_calculation, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", return_value=[]),
+        ):
+            appended = agent._append_uncovered_lookup_numeric_items(
+                "aggregate answer 20",
+                [lookup_row, ratio_row],
+            )
+        self.assertIn("metric 10", appended)
+        self.assertEqual(len(primary_owner.call_args_list), 2)
+        self.assertIs(primary_owner.call_args_list[0].args[0], lookup_row)
+        self.assertIs(primary_owner.call_args_list[1].args[0], lookup_row)
+
+        lookup_answer_owner = Mock(return_value="metric 10")
+        with (
+            patch.object(
+                agent,
+                "_aggregate_result_operation_family",
+                side_effect=lambda row: row.get("kind", ""),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_row_primary_answer_slot",
+                side_effect=RuntimeError("primary failed"),
+            ),
+            patch.object(agent, "_row_is_narrative_summary", return_value=False),
+            patch.object(agent, "_material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(agent, "_lookup_numeric_item_answer", lookup_answer_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "primary failed"):
+                agent._append_uncovered_lookup_numeric_items(
+                    "aggregate answer 20",
+                    [lookup_row, ratio_row],
+                )
+        lookup_answer_owner.assert_not_called()
+
+        ordered_results = [{"task_id": "task_a", "nested": {"preserve": True}}]
+        source_slots = {"task_a": {"normalized_value": 1.0}}
+        rank_calls = []
+
+        def rank(row, prepared_source_slots):
+            rank_calls.append((row, prepared_source_slots))
+            return (1, 1, 1, 1, 1, 1, 1)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                return_value=source_slots,
+            ) as source_map_owner,
+            patch.object(financial_graph_calculation, "aggregate_result_signature", return_value="sig"),
+            patch.object(agent, "_aggregate_result_rank", side_effect=rank),
+        ):
+            deduped = agent._dedupe_aggregate_subtask_results(ordered_results)
+        self.assertIs(source_map_owner.call_args.args[0], ordered_results)
+        self.assertEqual(rank_calls, [(ordered_results[0], source_slots)])
+        self.assertEqual(deduped, ordered_results)
+
+        signature_owner = Mock(return_value="sig")
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                side_effect=RuntimeError("source map failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_result_signature",
+                signature_owner,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source map failed"):
+                agent._dedupe_aggregate_subtask_results(ordered_results)
+        signature_owner.assert_not_called()
+
+        seed = {"label": " Metric ", "concept": " Concept ", "nested": {"preserve": True}}
+        source_slots = {"task_a": {"normalized_value": 1.0}}
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_task_ids_for_operand",
+                return_value=["task_a"],
+            ) as task_ids_owner,
+            patch.object(
+                agent,
+                "_dependency_source_slot_match_score",
+                return_value=12,
+            ) as match_owner,
+        ):
+            task_id, selected_slot, prepared_seed, score = agent._best_dependency_source_for_seed(
+                seed,
+                "numerator_1",
+                source_slots=source_slots,
+            )
+        self.assertEqual((task_id, score), ("task_a", 12))
+        self.assertEqual(selected_slot, source_slots["task_a"])
+        self.assertIsNot(selected_slot, source_slots["task_a"])
+        self.assertEqual(prepared_seed["role"], "numerator_1")
+        self.assertEqual(prepared_seed["matched_operand_role"], "numerator_1")
+        self.assertEqual(prepared_seed["matched_operand_label"], "Metric")
+        self.assertEqual(prepared_seed["matched_operand_concept"], "Concept")
+        self.assertIs(prepared_seed["nested"], seed["nested"])
+        self.assertIs(task_ids_owner.call_args.args[0], match_owner.call_args.args[1])
+        self.assertIs(task_ids_owner.call_args.args[1], source_slots)
+        self.assertIs(match_owner.call_args.args[0], source_slots["task_a"])
+        self.assertEqual(match_owner.call_args.args[2], "numerator_1")
+
+        match_owner = Mock(return_value=12)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_task_ids_for_operand",
+                side_effect=RuntimeError("task ids failed"),
+            ),
+            patch.object(agent, "_dependency_source_slot_match_score", match_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "task ids failed"):
+                agent._best_dependency_source_for_seed(
+                    seed,
+                    "numerator_1",
+                    source_slots=source_slots,
+                )
+        match_owner.assert_not_called()
+
+    def test_aggregate_source_preparation_remaining_callers_preserve_exact_args_and_stop(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+
+        lookup_results = [
+            {
+                "task_id": " task_a ",
+                "operation_family": "lookup",
+                "metric_label": "metric",
+            }
+        ]
+        source_slot = {
+            "normalized_value": 1.0,
+            "metric_label": "slot metric",
+        }
+        source_slots = {"task_a": source_slot}
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                return_value=source_slots,
+            ) as dependency_map_owner,
+            patch.object(
+                financial_graph_calculation,
+                "build_dependency_lookup_slots_by_task",
+                return_value={},
+            ) as dependency_builder,
+        ):
+            prepared = agent._aggregate_dependency_source_slot_by_task_id(
+                lookup_results
+            )
+        self.assertIs(dependency_map_owner.call_args.args[0], lookup_results)
+        self.assertIs(dependency_builder.call_args.args[0], lookup_results)
+        self.assertEqual(prepared, source_slots)
+        self.assertIs(prepared["task_a"], source_slot)
+
+        dependency_builder = Mock(return_value={})
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                side_effect=RuntimeError("dependency source map failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "build_dependency_lookup_slots_by_task",
+                dependency_builder,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency source map failed"):
+                agent._aggregate_dependency_source_slot_by_task_id(lookup_results)
+        dependency_builder.assert_not_called()
+
+        nested = {"preserve": True}
+        operands = [
+            {"operand_id": "operand_a", "nested": nested},
+            None,
+        ]
+        ordered_results = [{"task_id": "task_a"}]
+        calculation_result = {"status": "ok", "nested": nested}
+        source_slots = {"task_a": {"normalized_value": 1.0}}
+        coherence_calls = []
+
+        def coherence(row, prepared_source_slots):
+            coherence_calls.append((row, prepared_source_slots))
+            return 7, 8
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                return_value=source_slots,
+            ) as coherence_map_owner,
+            patch.object(
+                agent,
+                "_aggregate_result_dependency_coherence_ranks",
+                side_effect=coherence,
+            ),
+        ):
+            coherence_rank = agent._aggregate_dependency_slot_coherence_rank_for_operands(
+                operation_family="sum",
+                operands=operands,
+                ordered_results=ordered_results,
+                calculation_result=calculation_result,
+            )
+        self.assertEqual(coherence_rank, 7)
+        self.assertIs(coherence_map_owner.call_args.args[0], ordered_results)
+        self.assertEqual(len(coherence_calls), 1)
+        prepared_row, adopted_source_slots = coherence_calls[0]
+        self.assertEqual(prepared_row["operation_family"], "sum")
+        self.assertEqual(prepared_row["calculation_operands"], [operands[0]])
+        self.assertIsNot(prepared_row["calculation_operands"][0], operands[0])
+        self.assertIs(prepared_row["calculation_operands"][0]["nested"], nested)
+        self.assertEqual(prepared_row["calculation_result"], calculation_result)
+        self.assertIsNot(prepared_row["calculation_result"], calculation_result)
+        self.assertIs(prepared_row["calculation_result"]["nested"], nested)
+        self.assertIs(adopted_source_slots, source_slots)
+
+        coherence_owner = Mock(return_value=(7, 8))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                side_effect=RuntimeError("coherence source map failed"),
+            ),
+            patch.object(
+                agent,
+                "_aggregate_result_dependency_coherence_ranks",
+                coherence_owner,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coherence source map failed"):
+                agent._aggregate_dependency_slot_coherence_rank_for_operands(
+                    operation_family="sum",
+                    operands=operands,
+                    ordered_results=ordered_results,
+                    calculation_result=calculation_result,
+                )
+        coherence_owner.assert_not_called()
+
+        nested_result = {
+            "task_id": " task_a ",
+            "operation_family": "lookup",
+            "nested": nested,
+        }
+        nested_results = [nested_result]
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                return_value=source_slots,
+            ) as nested_map_owner,
+            patch.object(
+                agent,
+                "_aggregate_result_operation_family",
+                return_value="lookup",
+            ),
+        ):
+            unpromoted = agent._promote_stronger_nested_aggregate_results(
+                nested_results
+            )
+        prepared_nested_rows = nested_map_owner.call_args.args[0]
+        self.assertEqual(prepared_nested_rows, [nested_result])
+        self.assertIsNot(prepared_nested_rows[0], nested_result)
+        self.assertIs(prepared_nested_rows[0]["nested"], nested)
+        self.assertIs(unpromoted, nested_results)
+
+        operation_owner = Mock(return_value="lookup")
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_slot_by_task_id",
+                side_effect=RuntimeError("nested source map failed"),
+            ),
+            patch.object(
+                agent,
+                "_aggregate_result_operation_family",
+                operation_owner,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "nested source map failed"):
+                agent._promote_stronger_nested_aggregate_results(nested_results)
+        operation_owner.assert_not_called()
+
+        operand = {"operand_id": "operand_a", "nested": nested}
+        coherence_source_slots = {
+            "task_a": {"normalized_value": 1.0, "nested": nested}
+        }
+        with (
+            patch.object(
+                agent,
+                "_aggregate_result_operation_family",
+                return_value="sum",
+            ),
+            patch.object(
+                agent,
+                "_aggregate_result_candidate_operands",
+                return_value=[operand],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_task_ids_for_operand",
+                return_value=["task_a"],
+            ) as coherence_ids_owner,
+            patch.object(
+                financial_graph_calculation,
+                "answer_slot_has_material",
+                return_value=False,
+            ),
+        ):
+            self.assertEqual(
+                agent._aggregate_result_dependency_coherence_ranks(
+                    {"operation_family": "sum"},
+                    coherence_source_slots,
+                ),
+                (1, 1),
+            )
+        self.assertIs(coherence_ids_owner.call_args.args[0], operand)
+        prepared_coherence_slots = coherence_ids_owner.call_args.args[1]
+        self.assertEqual(prepared_coherence_slots, coherence_source_slots)
+        self.assertIsNot(prepared_coherence_slots, coherence_source_slots)
+        self.assertIs(
+            prepared_coherence_slots["task_a"],
+            coherence_source_slots["task_a"],
+        )
+
+        material_owner = Mock(return_value=False)
+        with (
+            patch.object(
+                agent,
+                "_aggregate_result_operation_family",
+                return_value="sum",
+            ),
+            patch.object(
+                agent,
+                "_aggregate_result_candidate_operands",
+                return_value=[operand],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_source_task_ids_for_operand",
+                side_effect=RuntimeError("coherence task ids failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_slot_has_material",
+                material_owner,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coherence task ids failed"):
+                agent._aggregate_result_dependency_coherence_ranks(
+                    {"operation_family": "sum"},
+                    coherence_source_slots,
+                )
+        material_owner.assert_not_called()
+
     def test_overlay_calculation_operands_from_slots_preserves_copy_and_overlay_contract(self) -> None:
         update = financial_runtime_trace.overlay_calculation_operands_from_slots
         nested = {"keep": True}
