@@ -1,7 +1,7 @@
-"""Presentation helpers for calculation results.
+"""State-free presentation policy and rendering helpers for calculation results.
 
-The calculation mixin keeps the public method surface for compatibility; this
-module holds the behavior-neutral rendering logic behind those methods.
+This module owns ratio result-unit and magnitude projection plus shared answer
+rendering; graph modules retain state preparation, orchestration, and adoption.
 """
 
 import re
@@ -67,6 +67,18 @@ def format_calculation_value(value: float, result_unit: str, normalized_unit: st
     return f"{value}"
 
 
+def infer_concept_ratio_result_unit(query: str, metric_label: str, operation_family: str) -> str:
+    if _normalise_spaces(operation_family) != "ratio":
+        return ""
+    text = _normalise_spaces(f"{query} {metric_label}")
+    ratio_policy = dict(CONCEPT_RATIO_RESULT_UNIT_POLICY)
+    multiplier_markers = tuple(str(item) for item in (ratio_policy.get("multiplier_markers") or ()) if str(item))
+    percent_markers = tuple(str(item) for item in (ratio_policy.get("percent_markers") or ()) if str(item))
+    if any(marker in text for marker in multiplier_markers) and not any(marker in text for marker in percent_markers):
+        return str(ratio_policy.get("multiplier_unit") or "")
+    return str(ratio_policy.get("percent_unit") or "")
+
+
 def format_ratio_percent_result(result_value: float) -> str:
     rendered_value = format_calculation_value(result_value, "%", "PERCENT")
     return rendered_value if "%" in rendered_value else f"{result_value:.2f}".rstrip("0").rstrip(".") + "%"
@@ -79,6 +91,42 @@ def format_ratio_result(result_value: float, result_unit: str) -> str:
         rendered_value = format_calculation_value(result_value, unit, "COUNT")
         return f"{rendered_value}{unit}"
     return format_ratio_percent_result(result_value)
+
+
+def ratio_query_requests_absolute_magnitude(query: str) -> bool:
+    query_text = _normalise_spaces(str(query or "")).lower()
+    markers = tuple(
+        _normalise_spaces(str(marker or "")).lower()
+        for marker in (CALCULATION_RENDER_POLICY.get("ratio_absolute_magnitude_markers") or ())
+        if _normalise_spaces(str(marker or ""))
+    )
+    return bool(query_text and markers and any(marker in query_text for marker in markers))
+
+
+def ratio_result_projection(
+    *,
+    numerator_value: float,
+    denominator_value: float,
+    query: str,
+    metric_label: str,
+) -> Dict[str, Any]:
+    result_unit = infer_concept_ratio_result_unit(query, metric_label, "ratio") or "%"
+    multiplier_unit = str(CONCEPT_RATIO_RESULT_UNIT_POLICY.get("multiplier_unit") or "")
+    if result_unit == multiplier_unit:
+        result_value = numerator_value / denominator_value
+        normalized_unit = "COUNT"
+    else:
+        result_unit = "%"
+        result_value = numerator_value / denominator_value * 100.0
+        normalized_unit = "PERCENT"
+    if result_value < 0 and ratio_query_requests_absolute_magnitude(query):
+        result_value = abs(result_value)
+    return {
+        "result_value": result_value,
+        "result_unit": result_unit,
+        "normalized_unit": normalized_unit,
+        "rendered_value": format_ratio_result(result_value, result_unit),
+    }
 
 
 def format_calculation_value_in_display_unit(value: float, display_unit: str) -> str:

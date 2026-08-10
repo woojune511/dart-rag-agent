@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
     CONSOLIDATION_SCOPE_POLICY,
-    CONCEPT_RATIO_RESULT_UNIT_POLICY,
     EXPLICIT_RATIO_DEFINITION_POLICY,
     CONCEPT_METRIC_LABEL_POLICY,
     GENERIC_METRIC_ALIAS_SUBSTITUTIONS,
@@ -51,6 +50,7 @@ from src.config.retrieval_policy import (
     STRUCTURED_CELL_PERIOD_SCORING_POLICY,
     TASK_CONSTRAINT_POLICY,
 )
+from src.agent.financial_graph_calculation_rendering import infer_concept_ratio_result_unit
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
@@ -2641,7 +2641,7 @@ def _compose_concept_numeric_task(
         operand_specs=operand_specs,
         report_scope=report_scope,
     )
-    result_unit = _infer_concept_ratio_result_unit(query, metric_label, operation_family)
+    result_unit = infer_concept_ratio_result_unit(query, metric_label, operation_family)
     return {
         "task_id": "task_1",
         "metric_family": f"concept_{operation_family}",
@@ -2757,18 +2757,6 @@ def _split_multi_lookup_concept_task(
             }
         )
     return split_tasks
-
-
-def _infer_concept_ratio_result_unit(query: str, metric_label: str, operation_family: str) -> str:
-    if _normalise_spaces(operation_family) != "ratio":
-        return ""
-    text = _normalise_spaces(f"{query} {metric_label}")
-    ratio_policy = dict(CONCEPT_RATIO_RESULT_UNIT_POLICY)
-    multiplier_markers = tuple(str(item) for item in (ratio_policy.get("multiplier_markers") or ()) if str(item))
-    percent_markers = tuple(str(item) for item in (ratio_policy.get("percent_markers") or ()) if str(item))
-    if any(marker in text for marker in multiplier_markers) and not any(marker in text for marker in percent_markers):
-        return str(ratio_policy.get("multiplier_unit") or "")
-    return str(ratio_policy.get("percent_unit") or "")
 
 
 def _build_lookup_producer_task_from_binding(

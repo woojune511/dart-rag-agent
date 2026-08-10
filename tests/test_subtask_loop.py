@@ -4204,7 +4204,10 @@ class SubtaskLoopTests(unittest.TestCase):
                 "repair_operand_normalization_from_rendered_unit",
                 side_effect=RuntimeError("rendered-unit owner failed"),
             ),
-            patch.object(self.agent, "_ratio_result_projection") as later_projection,
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "ratio_result_projection",
+            ) as later_projection,
         ):
             with self.assertRaisesRegex(RuntimeError, "rendered-unit owner failed"):
                 self.agent._append_ratio_result_from_task_outputs(dependency_rows, state)
@@ -6993,7 +6996,11 @@ class SubtaskLoopTests(unittest.TestCase):
         absolute_state["resolved_calculation_trace"]["calculation_result"]["result_value"] = -46.67
         state_before = deepcopy(absolute_state)
         with (
-            patch.object(self.agent, "_ratio_query_requests_absolute_magnitude", return_value=True),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "ratio_query_requests_absolute_magnitude",
+                return_value=True,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "project_runtime_ratio_absolute_magnitude",
@@ -8421,7 +8428,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("task_output:task_denominator", denominator["source_row_ids"])
 
     def test_task_output_ratio_projection_uses_multiplier_unit_for_ratio_marker(self) -> None:
-        projection = self.agent._ratio_result_projection(
+        projection = financial_graph_calculation.calculation_rendering.ratio_result_projection(
             numerator_value=350_000_000.0,
             denominator_value=100_000_000.0,
             query="2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
@@ -9009,7 +9016,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(ratio_row["answer"], "cost income ratio is 37.47%.")
 
     def test_ratio_projection_uses_absolute_magnitude_for_coverage_query(self) -> None:
-        projection = self.agent._ratio_result_projection(
+        projection = financial_graph_calculation.calculation_rendering.ratio_result_projection(
             numerator_value=350_000_000.0,
             denominator_value=-100_000_000.0,
             query="절대값 기준 2023년 연결기준 이자보상배율을 계산해 줘.",
@@ -20115,9 +20122,12 @@ class SubtaskLoopTests(unittest.TestCase):
 
         ordered_results_before = deepcopy(ordered_results)
         with patch.object(
-            self.agent,
-            "_ratio_result_projection",
-            side_effect=record("projection", self.agent._ratio_result_projection),
+            financial_graph_calculation.calculation_rendering,
+            "ratio_result_projection",
+            side_effect=record(
+                "projection",
+                financial_graph_calculation.calculation_rendering.ratio_result_projection,
+            ),
         ), patch.object(
             financial_graph_calculation,
             "_clean_source_row_ids",

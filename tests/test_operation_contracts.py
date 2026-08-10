@@ -29,7 +29,6 @@ from src.agent.financial_graph_helpers import (
     _candidate_explicit_years,
     _build_concept_task_constraints,
     _build_semantic_numeric_plan,
-    _infer_concept_ratio_result_unit,
     _build_generic_required_operands,
     _build_generic_retrieval_queries,
     _build_lookup_producer_task_from_binding,
@@ -2221,7 +2220,10 @@ class OperationContractTests(unittest.TestCase):
 
     def test_concept_ratio_result_unit_infers_times_for_coverage_ratio(self) -> None:
         query = "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728(\uc601\uc5c5\uc774\uc775 / \uc774\uc790\ube44\uc6a9)\uc744 \uacc4\uc0b0\ud574\uc918"
-        self.assertEqual(_infer_concept_ratio_result_unit(query, "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728", "ratio"), "\ubc30")
+        self.assertEqual(
+            calculation_rendering.infer_concept_ratio_result_unit(query, "\uc774\uc790\ubcf4\uc0c1\ubc30\uc728", "ratio"),
+            "\ubc30",
+        )
 
     def test_foreign_currency_gain_lookup_coerces_parenthesized_amount_to_magnitude(self) -> None:
         normalized_value, normalized_unit = _normalise_operand_value("(573,884)", "\ubc31\ub9cc\uc6d0")

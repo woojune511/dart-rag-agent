@@ -193,7 +193,6 @@ from src.agent.financial_operand_resolution import (
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
-    _infer_concept_ratio_result_unit,
     _operand_period_focus,
     _resolve_candidate_local_unit_hint,
     _scoped_surface_affinity_priority,
@@ -305,7 +304,6 @@ from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     CALCULATION_RENDER_POLICY,
     CALCULATION_SLOT_POLICY,
-    CONCEPT_RATIO_RESULT_UNIT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     KOREAN_PERIOD_COMPARISON_RE_FRAGMENT,
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
@@ -2575,7 +2573,7 @@ class FinancialAgentCalculationMixin:
                 return row
             recalculated_trace = candidate_projection.recalculated_trace
             recalculated_result = candidate_projection.recalculated_result
-            if operation_family == "ratio" and self._ratio_query_requests_absolute_magnitude(str(state.get("query") or "")):
+            if operation_family == "ratio" and calculation_rendering.ratio_query_requests_absolute_magnitude(str(state.get("query") or "")):
                 recalculated_result = apply_absolute_ratio_magnitude_if_requested(
                     recalculated_result,
                     format_calculation_value=calculation_rendering.format_calculation_value,
@@ -5735,7 +5733,7 @@ class FinancialAgentCalculationMixin:
         runtime_result = dict(runtime_result)
         runtime_slots = dict(runtime_slots)
         runtime_primary = dict(runtime_slots.get("primary_value") or {})
-        if self._ratio_query_requests_absolute_magnitude(str(state.get("query") or "")):
+        if calculation_rendering.ratio_query_requests_absolute_magnitude(str(state.get("query") or "")):
             runtime_result = project_runtime_ratio_absolute_magnitude(
                 RuntimeRatioAbsoluteMagnitudeProjectionInput(
                     calculation_result=runtime_result,
@@ -7773,32 +7771,6 @@ class FinancialAgentCalculationMixin:
         slot["dependency_resolved"] = True
         return slot
 
-    def _ratio_result_projection(
-        self,
-        *,
-        numerator_value: float,
-        denominator_value: float,
-        query: str,
-        metric_label: str,
-    ) -> Dict[str, Any]:
-        result_unit = _infer_concept_ratio_result_unit(query, metric_label, "ratio") or "%"
-        multiplier_unit = str(CONCEPT_RATIO_RESULT_UNIT_POLICY.get("multiplier_unit") or "")
-        if result_unit == multiplier_unit:
-            result_value = numerator_value / denominator_value
-            normalized_unit = "COUNT"
-        else:
-            result_unit = "%"
-            result_value = numerator_value / denominator_value * 100.0
-            normalized_unit = "PERCENT"
-        if result_value < 0 and self._ratio_query_requests_absolute_magnitude(query):
-            result_value = abs(result_value)
-        return {
-            "result_value": result_value,
-            "result_unit": result_unit,
-            "normalized_unit": normalized_unit,
-            "rendered_value": calculation_rendering.format_ratio_result(result_value, result_unit),
-        }
-
     def _ratio_answer_from_dependency_source_slots(
         self,
         row: Dict[str, Any],
@@ -7899,7 +7871,7 @@ class FinancialAgentCalculationMixin:
         denominator_value = financial_answer_slots.coerce_slot_numeric(denominator_slot.get("normalized_value"))
         if numerator_value is None or denominator_value in {None, 0}:
             return ""
-        projection = self._ratio_result_projection(
+        projection = calculation_rendering.ratio_result_projection(
             numerator_value=float(numerator_value),
             denominator_value=float(denominator_value),
             query=query,
@@ -12416,15 +12388,6 @@ class FinancialAgentCalculationMixin:
             "missing_info": [],
         }
 
-    def _ratio_query_requests_absolute_magnitude(self, query: str) -> bool:
-        query_text = _normalise_spaces(str(query or "")).lower()
-        markers = tuple(
-            _normalise_spaces(str(marker or "")).lower()
-            for marker in (CALCULATION_RENDER_POLICY.get("ratio_absolute_magnitude_markers") or ())
-            if _normalise_spaces(str(marker or ""))
-        )
-        return bool(query_text and markers and any(marker in query_text for marker in markers))
-
     def _required_operand_rows_from_candidates(
         self,
         candidate_items: List[Dict[str, Any]],
@@ -14674,7 +14637,7 @@ class FinancialAgentCalculationMixin:
                 "same-unit KRW ratio produced an implausible percent result; retry with better grounded operands",
             )
         if operation_family == "ratio" and result_value < 0:
-            if self._ratio_query_requests_absolute_magnitude(candidate.query):
+            if calculation_rendering.ratio_query_requests_absolute_magnitude(candidate.query):
                 result_value = abs(float(result_value))
         if operation_family == "difference" and normalized_unit == "KRW":
             result_display_unit = calculation_rendering.adjusted_difference_source_display_unit(
@@ -15776,7 +15739,7 @@ class FinancialAgentCalculationMixin:
                 continue
             numerator_value = sum(float(value) for value in numerator_values if value is not None)
             metric_label = _normalise_spaces(str(task_data.get("metric_label") or task_data.get("target_metric") or ""))
-            projection = self._ratio_result_projection(
+            projection = calculation_rendering.ratio_result_projection(
                 numerator_value=numerator_value,
                 denominator_value=denominator_value,
                 query=str(state.get("query") or ""),
@@ -16062,7 +16025,7 @@ class FinancialAgentCalculationMixin:
                 continue
             numerator_value = sum(float(value) for value in numerator_values if value is not None)
             metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
-            projection = self._ratio_result_projection(
+            projection = calculation_rendering.ratio_result_projection(
                 numerator_value=numerator_value,
                 denominator_value=denominator_value,
                 query=str(state.get("query") or ""),

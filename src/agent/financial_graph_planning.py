@@ -15,6 +15,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from src.agent.financial_graph_calculation_rendering import infer_concept_ratio_result_unit
 from src.agent.financial_graph_helpers import (
     _annotate_task_dependencies,
     _build_concept_metric_label,
@@ -25,7 +26,6 @@ from src.agent.financial_graph_helpers import (
     _build_semantic_numeric_plan,
     _extract_segment_labels_from_query,
     _infer_generic_concept_spec,
-    _infer_concept_ratio_result_unit,
     _infer_operation_family_from_query,
     _infer_period_focus,
 )
@@ -1222,7 +1222,7 @@ class FinancialAgentPlanningMixin:
                     "metric_label": metric_label,
                     "query": task_query,
                     "operation_family": operation_family,
-                    "result_unit": _infer_concept_ratio_result_unit(query, metric_label, operation_family),
+                    "result_unit": infer_concept_ratio_result_unit(query, metric_label, operation_family),
                     "required_operands": normalized_operands,
                     "preferred_statement_types": preferred_statement_types,
                     "preferred_sections": preferred_sections,

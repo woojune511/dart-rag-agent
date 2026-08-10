@@ -259,7 +259,7 @@ For each P0 record, classify it as one of:
   retrieval policy. Runtime keeps the generic mechanics: normalize labels,
   build current/prior operands, derive year-aware query surfaces, and assemble
   retry queries from missing operands.
-- `_infer_concept_ratio_result_unit()`, `_build_metric_task_query()`,
+- `infer_concept_ratio_result_unit()`, `_build_metric_task_query()`,
   `_operand_period_focus()`, `_aggregate_like_row_stage()`,
   `_candidate_explicit_years()`, `_is_capex_total_operand()`,
   `_candidate_consolidation_scope()`, `_candidate_source_priority_bonus()`,

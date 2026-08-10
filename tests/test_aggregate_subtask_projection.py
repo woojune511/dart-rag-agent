@@ -1016,8 +1016,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ),
             patch.object(agent, "_ratio_components_are_complete", return_value=True),
             patch.object(
-                agent,
-                "_ratio_query_requests_absolute_magnitude",
+                financial_graph_calculation.calculation_rendering,
+                "ratio_query_requests_absolute_magnitude",
                 return_value=False,
             ),
             patch.object(
@@ -1073,8 +1073,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ),
             patch.object(agent, "_ratio_components_are_complete", return_value=True),
             patch.object(
-                agent,
-                "_ratio_query_requests_absolute_magnitude",
+                financial_graph_calculation.calculation_rendering,
+                "ratio_query_requests_absolute_magnitude",
                 return_value=False,
             ),
             patch.object(
