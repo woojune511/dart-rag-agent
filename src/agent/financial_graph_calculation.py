@@ -48,6 +48,8 @@ from src.agent.financial_aggregate_projection import (
     aggregate_projection_rendered_value,
     aggregate_projection_apply_override as _aggregate_projection_apply_override,
     aggregate_projection_for_integrity as _aggregate_projection_for_integrity,
+    aggregate_dependency_slot_coherence_rank_for_operands,
+    aggregate_result_dependency_coherence_ranks,
     aggregate_result_operation_family as _aggregate_result_operation_family,
     aggregate_result_signature,
     aggregate_row_primary_answer_slot,
@@ -129,7 +131,6 @@ from src.agent.financial_dependency_projection import (
     resolve_main_operand_precedence,
     resolve_ratio_artifact_conflict_selection,
     source_task_id_for_dependency_operand,
-    structured_unit_realigned_operand_matches_source_slot,
     summarize_dependency_bindings,
 )
 from src.agent.financial_operand_resolution import (
@@ -2747,7 +2748,7 @@ class FinancialAgentCalculationMixin:
                     if answer:
                         _append_ranked_answer(row, answer)
                         continue
-            if self._aggregate_result_dependency_coherence_ranks(row, source_slot_by_task_id)[0] == 0:
+            if aggregate_result_dependency_coherence_ranks(row, source_slot_by_task_id)[0] == 0:
                 if operation_family == "ratio":
                     answer = self._ratio_answer_from_dependency_source_slots(row, source_slot_by_task_id, query=query)
                     if answer:
@@ -4864,7 +4865,7 @@ class FinancialAgentCalculationMixin:
             if isinstance(row, dict)
         ]
         if (
-            self._aggregate_dependency_slot_coherence_rank_for_operands(
+            aggregate_dependency_slot_coherence_rank_for_operands(
                 operation_family="ratio",
                 operands=trace_operands,
                 calculation_result=result,
@@ -5639,7 +5640,7 @@ class FinancialAgentCalculationMixin:
         repaired_plan = stale_repair.calculation_plan
         repaired_result = stale_repair.calculation_result
         if (
-            self._aggregate_dependency_slot_coherence_rank_for_operands(
+            aggregate_dependency_slot_coherence_rank_for_operands(
                 operation_family=_normalise_spaces(
                     str(
                         (dict(repaired_result.get("answer_slots") or {})).get("operation_family")
@@ -5778,7 +5779,7 @@ class FinancialAgentCalculationMixin:
 
         runtime_operands = list(runtime_trace.get("calculation_operands") or [])
         if (
-            self._aggregate_dependency_slot_coherence_rank_for_operands(
+            aggregate_dependency_slot_coherence_rank_for_operands(
                 operation_family="ratio",
                 operands=runtime_operands,
                 calculation_result=runtime_result,
@@ -8092,92 +8093,6 @@ class FinancialAgentCalculationMixin:
             rebuilt_result,
         )
 
-    def _aggregate_result_candidate_operands(self, row: Dict[str, Any]) -> List[Dict[str, Any]]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        candidate_operands = [dict(item) for item in list(row.get("calculation_operands") or []) if isinstance(item, dict)]
-        candidate_operands.extend(
-            dict(item) for item in list(calculation_result.get("calculation_operands") or []) if isinstance(item, dict)
-        )
-        for container_key in ("components_by_group", "components_by_role"):
-            for entries in dict(answer_slots.get(container_key) or {}).values():
-                candidate_operands.extend(dict(item) for item in list(entries or []) if isinstance(item, dict))
-        return candidate_operands
-
-    def _aggregate_result_dependency_coherence_ranks(
-        self,
-        row: Dict[str, Any],
-        source_slot_by_task_id: Optional[Dict[str, Dict[str, Any]]] = None,
-    ) -> tuple[int, int]:
-        operation_family = self._aggregate_result_operation_family(row)
-        if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
-            return 1, 1
-        source_slots = dict(source_slot_by_task_id or {})
-        saw_source_slot = False
-        saw_source_scope = False
-        candidate_operands = self._aggregate_result_candidate_operands(row)
-        structured_realigned_operands = [
-            dict(operand)
-            for operand in candidate_operands
-            if isinstance(operand, dict) and operand.get("unit_realigned_from_structured_provenance")
-        ]
-        for operand in candidate_operands:
-            source_task_ids = aggregate_source_task_ids_for_operand(operand, source_slots)
-            source_task_id = source_task_ids[0] if source_task_ids else ""
-            if source_task_id and source_slots:
-                source_slot = dict(source_slots.get(source_task_id) or {})
-                if answer_slot_has_material(source_slot):
-                    saw_source_slot = True
-                    source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
-                    operand_anchor = _normalise_spaces(str(operand.get("source_anchor") or ""))
-                    source_mismatch = bool(source_anchor and operand_anchor and source_anchor != operand_anchor)
-                    projection_mismatch = dependency_projection_slot_differs_from_operand(source_slot, operand)
-                    if (
-                        (source_mismatch or projection_mismatch)
-                        and not structured_unit_realigned_operand_matches_source_slot(
-                            source_slot,
-                            operand,
-                            structured_realigned_operands=structured_realigned_operands,
-                        )
-                    ):
-                        return 0, 2 if saw_source_scope else 1
-            if operation_family == "ratio" and source_slots and source_task_ids:
-                source_scope = next(
-                    (
-                        known_consolidation_scope_value(source_slots.get(task_id, {}).get("consolidation_scope"))
-                        for task_id in source_task_ids
-                        if source_slots.get(task_id)
-                    ),
-                    "",
-                )
-                if source_scope:
-                    saw_source_scope = True
-                    operand_scope = known_consolidation_scope_value(operand.get("consolidation_scope"))
-                    if operand_scope and operand_scope != source_scope:
-                        return 2 if saw_source_slot else 1, 0
-        return 2 if saw_source_slot else 1, 2 if saw_source_scope else 1
-
-    def _aggregate_dependency_slot_coherence_rank_for_operands(
-        self,
-        *,
-        operation_family: str,
-        operands: List[Any],
-        ordered_results: List[Dict[str, Any]],
-        calculation_result: Optional[Dict[str, Any]] = None,
-    ) -> int:
-        return self._aggregate_result_dependency_coherence_ranks(
-            {
-                "operation_family": operation_family,
-                "calculation_operands": [
-                    dict(item)
-                    for item in list(operands or [])
-                    if isinstance(item, dict)
-                ],
-                "calculation_result": dict(calculation_result or {}),
-            },
-            aggregate_source_slot_by_task_id(ordered_results),
-        )[0]
-
     def _aggregate_result_rank(
         self,
         row: Dict[str, Any],
@@ -8202,7 +8117,7 @@ class FinancialAgentCalculationMixin:
         material_rank = 0 if self._material_gap_feedback_for_subtask_result(row) else 1
         answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
         growth_sign_rank = growth_operand_sign_consistency_rank(row)
-        dependency_slot_rank, scope_coherence_rank = self._aggregate_result_dependency_coherence_ranks(
+        dependency_slot_rank, scope_coherence_rank = aggregate_result_dependency_coherence_ranks(
             row,
             source_slot_by_task_id,
         )
@@ -8294,10 +8209,10 @@ class FinancialAgentCalculationMixin:
                     continue
                 if self._nested_aggregate_result_rank(nested_row) <= self._nested_aggregate_result_rank(current_row):
                     continue
-                if self._aggregate_result_dependency_coherence_ranks(
+                if aggregate_result_dependency_coherence_ranks(
                     nested_row,
                     source_slot_by_task_id,
-                )[0] < self._aggregate_result_dependency_coherence_ranks(
+                )[0] < aggregate_result_dependency_coherence_ranks(
                     current_row,
                     source_slot_by_task_id,
                 )[0]:
@@ -11726,7 +11641,7 @@ class FinancialAgentCalculationMixin:
         answer_text = _normalise_spaces(str(final_answer or ""))
         if operation_family == "ratio" and self._ratio_components_are_complete(calculation_result):
             if (
-                self._aggregate_dependency_slot_coherence_rank_for_operands(
+                aggregate_dependency_slot_coherence_rank_for_operands(
                     operation_family="ratio",
                     operands=list(trace.get("calculation_operands") or []),
                     calculation_result=calculation_result,

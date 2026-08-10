@@ -8,7 +8,11 @@ from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequen
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_answer_slots import answer_slot_has_material
-from src.agent.financial_dependency_projection import dependency_lookup_slot_match_score
+from src.agent.financial_dependency_projection import (
+    dependency_lookup_slot_match_score,
+    dependency_projection_slot_differs_from_operand,
+    structured_unit_realigned_operand_matches_source_slot,
+)
 from src.agent.financial_numeric_surface import (
     extract_numeric_surface_candidates,
     numeric_surface_candidates_equivalent,
@@ -620,6 +624,93 @@ def aggregate_source_task_ids_for_operand(
         if dependency_lookup_slot_match_score(slot, operand, role) >= 12:
             inferred_task_ids.append(task_id)
     return inferred_task_ids
+
+
+def _aggregate_result_candidate_operands(row: Dict[str, Any]) -> List[Dict[str, Any]]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    candidate_operands = [dict(item) for item in list(row.get("calculation_operands") or []) if isinstance(item, dict)]
+    candidate_operands.extend(
+        dict(item) for item in list(calculation_result.get("calculation_operands") or []) if isinstance(item, dict)
+    )
+    for container_key in ("components_by_group", "components_by_role"):
+        for entries in dict(answer_slots.get(container_key) or {}).values():
+            candidate_operands.extend(dict(item) for item in list(entries or []) if isinstance(item, dict))
+    return candidate_operands
+
+
+def aggregate_result_dependency_coherence_ranks(
+    row: Dict[str, Any],
+    source_slot_by_task_id: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> tuple[int, int]:
+    operation_family = aggregate_result_operation_family(row)
+    if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
+        return 1, 1
+    source_slots = dict(source_slot_by_task_id or {})
+    saw_source_slot = False
+    saw_source_scope = False
+    candidate_operands = _aggregate_result_candidate_operands(row)
+    structured_realigned_operands = [
+        dict(operand)
+        for operand in candidate_operands
+        if isinstance(operand, dict) and operand.get("unit_realigned_from_structured_provenance")
+    ]
+    for operand in candidate_operands:
+        source_task_ids = aggregate_source_task_ids_for_operand(operand, source_slots)
+        source_task_id = source_task_ids[0] if source_task_ids else ""
+        if source_task_id and source_slots:
+            source_slot = dict(source_slots.get(source_task_id) or {})
+            if answer_slot_has_material(source_slot):
+                saw_source_slot = True
+                source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
+                operand_anchor = _normalise_spaces(str(operand.get("source_anchor") or ""))
+                source_mismatch = bool(source_anchor and operand_anchor and source_anchor != operand_anchor)
+                projection_mismatch = dependency_projection_slot_differs_from_operand(source_slot, operand)
+                if (
+                    (source_mismatch or projection_mismatch)
+                    and not structured_unit_realigned_operand_matches_source_slot(
+                        source_slot,
+                        operand,
+                        structured_realigned_operands=structured_realigned_operands,
+                    )
+                ):
+                    return 0, 2 if saw_source_scope else 1
+        if operation_family == "ratio" and source_slots and source_task_ids:
+            source_scope = next(
+                (
+                    known_consolidation_scope_value(source_slots.get(task_id, {}).get("consolidation_scope"))
+                    for task_id in source_task_ids
+                    if source_slots.get(task_id)
+                ),
+                "",
+            )
+            if source_scope:
+                saw_source_scope = True
+                operand_scope = known_consolidation_scope_value(operand.get("consolidation_scope"))
+                if operand_scope and operand_scope != source_scope:
+                    return 2 if saw_source_slot else 1, 0
+    return 2 if saw_source_slot else 1, 2 if saw_source_scope else 1
+
+
+def aggregate_dependency_slot_coherence_rank_for_operands(
+    *,
+    operation_family: str,
+    operands: List[Any],
+    ordered_results: List[Dict[str, Any]],
+    calculation_result: Optional[Dict[str, Any]] = None,
+) -> int:
+    return aggregate_result_dependency_coherence_ranks(
+        {
+            "operation_family": operation_family,
+            "calculation_operands": [
+                dict(item)
+                for item in list(operands or [])
+                if isinstance(item, dict)
+            ],
+            "calculation_result": dict(calculation_result or {}),
+        },
+        aggregate_source_slot_by_task_id(ordered_results),
+    )[0]
 
 
 def select_aggregate_projection_row_for_task(

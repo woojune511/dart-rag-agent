@@ -6999,7 +6999,10 @@ class SubtaskLoopTests(unittest.TestCase):
                 "format_calculation_value",
                 side_effect=RuntimeError("projection failed"),
             ),
-            patch.object(self.agent, "_aggregate_dependency_slot_coherence_rank_for_operands") as coherence,
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_dependency_slot_coherence_rank_for_operands",
+            ) as coherence,
         ):
             with self.assertRaisesRegex(RuntimeError, "projection failed"):
                 self.agent._apply_runtime_ratio_projection_for_collapsed_rows(
@@ -7046,7 +7049,6 @@ class SubtaskLoopTests(unittest.TestCase):
         outside_owner = Mock(side_effect=(False, True, RuntimeError("outside owner failed")))
         patched_owners = {
             "_repair_stale_aggregate_projection_result": repair_owner,
-            "_aggregate_dependency_slot_coherence_rank_for_operands": coherence_owner,
             "_compact_ratio_answer_from_projection": Mock(return_value=repaired_answer),
             "_answer_covers_numeric_projection": Mock(return_value=True),
             "_complete_numeric_projection_replacement_answer": replacement_builder,
@@ -7065,6 +7067,7 @@ class SubtaskLoopTests(unittest.TestCase):
             financial_graph_calculation,
             _select_aggregate_stale_repair_provenance=provenance_owner,
             answer_has_numeric_material_outside_reference=outside_owner,
+            aggregate_dependency_slot_coherence_rank_for_operands=coherence_owner,
         ):
             preserved = repair()
             adopted = repair()
@@ -9272,8 +9275,8 @@ class SubtaskLoopTests(unittest.TestCase):
             ) as gated_rank,
             patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
             patch.object(
-                self.agent,
-                "_aggregate_result_dependency_coherence_ranks",
+                financial_graph_calculation,
+                "aggregate_result_dependency_coherence_ranks",
                 return_value=(1, 1),
             ),
         ):
@@ -9321,8 +9324,8 @@ class SubtaskLoopTests(unittest.TestCase):
             ) as family_gated_rank,
             patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
             patch.object(
-                self.agent,
-                "_aggregate_result_dependency_coherence_ranks",
+                financial_graph_calculation,
+                "aggregate_result_dependency_coherence_ranks",
                 return_value=(1, 1),
             ),
         ):
@@ -9346,8 +9349,8 @@ class SubtaskLoopTests(unittest.TestCase):
             ) as conflict_gated_rank,
             patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
             patch.object(
-                self.agent,
-                "_aggregate_result_dependency_coherence_ranks",
+                financial_graph_calculation,
+                "aggregate_result_dependency_coherence_ranks",
                 return_value=(1, 1),
             ),
         ):
@@ -19801,7 +19804,9 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         self.assertEqual(
-            self.agent._aggregate_result_dependency_coherence_ranks(row, source_slots)[0],
+            financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(
+                row, source_slots
+            )[0],
             0,
         )
 
@@ -19828,7 +19833,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
 
         def ranks(operand, slot, operation_family="ratio"):
-            return self.agent._aggregate_result_dependency_coherence_ranks(
+            return financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(
                 {
                     "operation_family": operation_family,
                     "calculation_operands": [operand],
@@ -19843,12 +19848,12 @@ class SubtaskLoopTests(unittest.TestCase):
             "source_anchor": source_slot["source_anchor"],
         }
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "structured_unit_realigned_operand_matches_source_slot",
         ) as owner_zero:
             self.assertEqual(ranks(realigned_operand, source_slot, "lookup"), (1, 1))
             self.assertEqual(
-                self.agent._aggregate_result_dependency_coherence_ranks(
+                financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(
                     {"operation_family": "ratio", "calculation_operands": [realigned_operand]},
                     {},
                 ),
@@ -19859,7 +19864,7 @@ class SubtaskLoopTests(unittest.TestCase):
         owner_zero.assert_not_called()
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "structured_unit_realigned_operand_matches_source_slot",
             return_value=True,
         ) as owner_true:
@@ -19875,7 +19880,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIsNot(called_structured[0], called_operand)
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "structured_unit_realigned_operand_matches_source_slot",
             return_value=False,
         ) as owner_false:
@@ -19884,12 +19889,12 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "structured_unit_realigned_operand_matches_source_slot",
                 side_effect=RuntimeError("structured match stopped"),
             ) as owner_error,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "known_consolidation_scope_value",
                 side_effect=AssertionError("scope logic reached"),
             ) as scope_logic,
