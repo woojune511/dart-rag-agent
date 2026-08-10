@@ -680,23 +680,26 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         rank_source_slots = {"task_a": {"normalized_value": 1.0}}
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
                 return_value=3,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 side_effect=RuntimeError("rank coherence failed"),
             ) as result_rank_owner,
         ):
             with self.assertRaisesRegex(RuntimeError, "rank coherence failed"):
-                agent._aggregate_result_rank(ranked_row, rank_source_slots)
+                financial_aggregate_projection._aggregate_result_rank(
+                    ranked_row,
+                    rank_source_slots,
+                )
         self.assertIs(result_rank_owner.call_args.args[0], ranked_row)
         self.assertIs(result_rank_owner.call_args.args[1], rank_source_slots)
 
@@ -707,23 +710,26 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         }
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
                 return_value=3,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 return_value=(7, 8),
             ),
         ):
             self.assertEqual(
-                agent._aggregate_result_rank(material_ranked_row, rank_source_slots),
+                financial_aggregate_projection._aggregate_result_rank(
+                    material_ranked_row,
+                    rank_source_slots,
+                ),
                 (4, 1, 1, 3, 7, 8, 2),
             )
 
@@ -765,8 +771,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value="",
             ),
             patch.object(
-                agent,
-                "_nested_aggregate_result_rank",
+                financial_graph_calculation,
+                "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
@@ -814,8 +820,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value="",
             ),
             patch.object(
-                agent,
-                "_nested_aggregate_result_rank",
+                financial_graph_calculation,
+                "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
@@ -1640,14 +1646,16 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=source_slots,
             ) as source_map_owner,
-            patch.object(financial_graph_calculation, "aggregate_result_signature", return_value="sig"),
-            patch.object(agent, "_aggregate_result_rank", side_effect=rank),
+            patch.object(financial_aggregate_projection, "aggregate_result_signature", return_value="sig"),
+            patch.object(financial_aggregate_projection, "_aggregate_result_rank", side_effect=rank),
         ):
-            deduped = agent._dedupe_aggregate_subtask_results(ordered_results)
+            deduped = financial_aggregate_projection.dedupe_aggregate_subtask_results(
+                ordered_results
+            )
         self.assertIs(source_map_owner.call_args.args[0], ordered_results)
         self.assertEqual(rank_calls, [(ordered_results[0], source_slots)])
         self.assertEqual(deduped, ordered_results)
@@ -1655,18 +1663,20 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         signature_owner = Mock(return_value="sig")
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 side_effect=RuntimeError("source map failed"),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_signature",
                 signature_owner,
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "source map failed"):
-                agent._dedupe_aggregate_subtask_results(ordered_results)
+                financial_aggregate_projection.dedupe_aggregate_subtask_results(
+                    ordered_results
+                )
         signature_owner.assert_not_called()
 
         seed = {"label": " Metric ", "concept": " Concept ", "nested": {"preserve": True}}

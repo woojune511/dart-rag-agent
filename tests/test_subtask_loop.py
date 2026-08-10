@@ -5001,7 +5001,6 @@ class SubtaskLoopTests(unittest.TestCase):
         patched_owners = {
             "_capture_current_subtask_result": Mock(return_value={}),
             "_upsert_subtask_result": Mock(return_value=[row]),
-            "_dedupe_aggregate_subtask_results": Mock(side_effect=preserve_rows),
             "_recover_lookup_results_from_sibling_table_evidence": Mock(side_effect=preserve_rows),
             "_promote_stronger_nested_aggregate_results": Mock(side_effect=preserve_rows),
             "_align_lookup_result_units_from_peer_source_slots": Mock(side_effect=preserve_rows),
@@ -5020,6 +5019,11 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         with (
             patch.multiple(self.agent, **patched_owners),
+            patch.object(
+                financial_graph_calculation,
+                "dedupe_aggregate_subtask_results",
+                side_effect=preserve_rows,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "answer_has_numeric_material_outside_reference",
@@ -6620,18 +6624,18 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        signature_owner = financial_graph_calculation.aggregate_result_signature
-        sign_rank_owner = financial_graph_calculation.growth_operand_sign_consistency_rank
+        signature_owner = financial_aggregate_projection.aggregate_result_signature
+        sign_rank_owner = financial_aggregate_projection.growth_operand_sign_consistency_rank
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "aggregate_result_signature",
             wraps=signature_owner,
         ) as signature_spy, patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "growth_operand_sign_consistency_rank",
             wraps=sign_rank_owner,
         ) as sign_rank_spy:
-            deduped = self.agent._dedupe_aggregate_subtask_results(
+            deduped = financial_aggregate_projection.dedupe_aggregate_subtask_results(
                 [source_lookup, coherent_ratio, conflicting_ratio]
             )
 
@@ -9274,7 +9278,11 @@ class SubtaskLoopTests(unittest.TestCase):
                 financial_graph_calculation,
                 "growth_operand_sign_consistency_rank",
             ) as gated_rank,
-            patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
+            patch.object(
+                financial_graph_calculation,
+                "nested_aggregate_result_rank",
+                side_effect=[2, 1],
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_result_dependency_coherence_ranks",
@@ -9323,7 +9331,11 @@ class SubtaskLoopTests(unittest.TestCase):
                 financial_graph_calculation,
                 "growth_operand_sign_consistency_rank",
             ) as family_gated_rank,
-            patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
+            patch.object(
+                financial_graph_calculation,
+                "nested_aggregate_result_rank",
+                side_effect=[2, 1],
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_result_dependency_coherence_ranks",
@@ -9348,7 +9360,11 @@ class SubtaskLoopTests(unittest.TestCase):
                 financial_graph_calculation,
                 "growth_operand_sign_consistency_rank",
             ) as conflict_gated_rank,
-            patch.object(self.agent, "_nested_aggregate_result_rank", side_effect=[2, 1]),
+            patch.object(
+                financial_graph_calculation,
+                "nested_aggregate_result_rank",
+                side_effect=[2, 1],
+            ),
             patch.object(
                 financial_graph_calculation,
                 "aggregate_result_dependency_coherence_ranks",
@@ -9372,7 +9388,10 @@ class SubtaskLoopTests(unittest.TestCase):
                 financial_graph_calculation,
                 "growth_operand_sign_consistency_rank",
             ) as stopped_rank,
-            patch.object(self.agent, "_nested_aggregate_result_rank") as later_nested_rank,
+            patch.object(
+                financial_graph_calculation,
+                "nested_aggregate_result_rank",
+            ) as later_nested_rank,
         ):
             with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
                 self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
@@ -18285,19 +18304,32 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        sign_rank_owner = financial_graph_calculation.growth_operand_sign_consistency_rank
+        sign_rank_owner = financial_aggregate_projection.growth_operand_sign_consistency_rank
+        sign_rank_rows = []
+
+        def tracked_sign_rank(row):
+            sign_rank_rows.append(row)
+            return sign_rank_owner(row)
+
         with patch.object(
             financial_graph_calculation,
             "growth_operand_sign_consistency_rank",
-            wraps=sign_rank_owner,
-        ) as sign_rank_spy:
+            side_effect=tracked_sign_rank,
+        ) as graph_sign_rank_spy, patch.object(
+            financial_aggregate_projection,
+            "growth_operand_sign_consistency_rank",
+            side_effect=tracked_sign_rank,
+        ) as owner_sign_rank_spy:
             promoted = self.agent._promote_stronger_nested_aggregate_results(
                 [sign_mixed_growth, aggregate_summary]
             )
 
-        self.assertEqual(sign_rank_spy.call_count, 6)
         self.assertEqual(
-            [call.args[0].get("answer") for call in sign_rank_spy.call_args_list],
+            graph_sign_rank_spy.call_count + owner_sign_rank_spy.call_count,
+            6,
+        )
+        self.assertEqual(
+            [row.get("answer") for row in sign_rank_rows],
             ["70.28%", "-270.28%", "70.28%", "-270.28%", "70.28%", "70.28%"],
         )
 

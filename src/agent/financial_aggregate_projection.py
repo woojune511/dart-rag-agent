@@ -8,6 +8,10 @@ from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequen
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_answer_slots import answer_slot_has_material
+from src.agent.financial_answer_projection import (
+    material_gap_feedback_for_subtask_result,
+    subtask_row_has_material,
+)
 from src.agent.financial_dependency_projection import (
     dependency_lookup_slot_match_score,
     dependency_projection_slot_differs_from_operand,
@@ -865,6 +869,104 @@ def growth_operand_sign_consistency_rank(row: Mapping[str, Any]) -> int:
     if current_sign and prior_sign:
         return 2 if current_sign == prior_sign else 0
     return 1
+
+
+def _aggregate_result_rank(
+    row: Dict[str, Any],
+    source_slot_by_task_id: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> tuple[int, int, int, int, int, int, int]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    status = _normalise_spaces(
+        str(
+            row.get("status")
+            or calculation_result.get("status")
+            or ""
+        )
+    ).lower()
+    status_rank = {
+        "ok": 4,
+        "partial": 3,
+        "ready": 3,
+        "insufficient_operands": 1,
+        "retry_retrieval": 1,
+        "missing": 0,
+    }.get(status, 0)
+    material_rank = 0 if material_gap_feedback_for_subtask_result(row) else 1
+    answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
+    growth_sign_rank = growth_operand_sign_consistency_rank(row)
+    dependency_slot_rank, scope_coherence_rank = aggregate_result_dependency_coherence_ranks(
+        row,
+        source_slot_by_task_id,
+    )
+    operand_rank = len(list(calculation_result.get("source_row_ids") or []))
+    return status_rank, material_rank, answer_rank, growth_sign_rank, dependency_slot_rank, scope_coherence_rank, operand_rank
+
+
+def nested_aggregate_result_rank(row: Dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    status = _normalise_spaces(
+        str(row.get("status") or calculation_result.get("status") or "")
+    ).lower()
+    status_rank = {
+        "ok": 4,
+        "partial": 3,
+        "ready": 3,
+        "insufficient_operands": 1,
+        "retry_retrieval": 1,
+        "missing": 0,
+    }.get(status, 0)
+    material_rank = 1 if subtask_row_has_material(row) else 0
+    gap_free_rank = 0 if material_gap_feedback_for_subtask_result(row) else 1
+    operation_family = aggregate_result_operation_family(row)
+    non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
+    growth_sign_rank = growth_operand_sign_consistency_rank(row)
+    source_count = len(_clean_source_row_ids([
+        row.get("source_row_ids"),
+        calculation_result.get("source_row_ids"),
+        row.get("selected_claim_ids"),
+        calculation_result.get("source_evidence_ids"),
+    ]))
+    answer_text = _normalise_spaces(
+        str(
+            row.get("answer")
+            or calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+            or ""
+        )
+    )
+    digit_count = len(re.findall(r"\d", answer_text))
+    return (
+        status_rank,
+        material_rank,
+        gap_free_rank,
+        non_aggregate_rank,
+        growth_sign_rank,
+        source_count,
+        digit_count,
+        len(answer_text),
+    )
+
+
+def dedupe_aggregate_subtask_results(
+    ordered_results: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    source_slot_by_task_id = aggregate_source_slot_by_task_id(ordered_results)
+    winners: Dict[str, tuple[int, tuple[int, int, int, int, int, int, int], Dict[str, Any]]] = {}
+    passthrough: List[tuple[int, Dict[str, Any]]] = []
+    for index, row in enumerate(ordered_results):
+        signature = aggregate_result_signature(row)
+        if not signature:
+            passthrough.append((index, row))
+            continue
+        rank = _aggregate_result_rank(row, source_slot_by_task_id)
+        incumbent = winners.get(signature)
+        if incumbent is None or rank > incumbent[1] or (rank == incumbent[1] and index > incumbent[0]):
+            winners[signature] = (index, rank, row)
+    deduped = sorted(
+        [item for item in winners.values()] + [(index, (0, 0, 0, 0, 0, 0, 0), row) for index, row in passthrough],
+        key=lambda item: item[0],
+    )
+    return [dict(item[2]) for item in deduped]
 
 
 def _replacement_lookup_slot_for_component(

@@ -7,6 +7,7 @@ from copy import deepcopy
 from unittest.mock import Mock, patch
 
 from src.agent import (
+    financial_aggregate_projection,
     financial_answer_projection,
     financial_graph_calculation,
     financial_graph_planning,
@@ -909,6 +910,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
     def test_graph_and_planning_bindings_preserve_external32_args_gates_and_stop(self) -> None:
         modules = {
             "owner": financial_answer_projection,
+            "aggregate": financial_aggregate_projection,
             "graph": financial_graph_calculation,
             "planning": financial_graph_planning,
         }
@@ -1009,8 +1011,8 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                     ("graph", "_preferred_complete_numeric_answer", "row"): 1,
                     ("graph", "_numeric_projection_coverage_targets", "row"): 1,
                     ("graph", "_infer_planner_feedback_from_answer_slots", "row"): 2,
-                    ("graph", "_aggregate_result_rank", "row"): 1,
-                    ("graph", "_nested_aggregate_result_rank", "row"): 1,
+                    ("aggregate", "_aggregate_result_rank", "row"): 1,
+                    ("aggregate", "nested_aggregate_result_rank", "row"): 1,
                     ("graph", "_promote_stronger_nested_aggregate_results", "dict(nested_row)"): 1,
                     ("graph", "_promote_stronger_nested_aggregate_results", "current_row"): 1,
                     ("graph", "_resolve_aggregate_feedback_state", "row"): 1,
@@ -1025,7 +1027,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             ),
             Counter(
                 {
-                    ("graph", "_nested_aggregate_result_rank", "row"): 1,
+                    ("aggregate", "nested_aggregate_result_rank", "row"): 1,
                     ("planning", "_subtask_row_specificity_score", "row"): 1,
                     (
                         "planning",
@@ -1082,7 +1084,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
 
         rank_targets = {
             "_aggregate_result_rank": "material_rank",
-            "_nested_aggregate_result_rank": "gap_free_rank",
+            "nested_aggregate_result_rank": "gap_free_rank",
         }
         for caller, target in rank_targets.items():
             entry = next(item for item in external_gap if item["caller"] == caller)
@@ -1091,7 +1093,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             self.assertIsInstance(entry["statement"].value, ast.IfExp)
 
         nested_row_rank = next(
-            entry for entry in external_row if entry["module"] == "graph"
+            entry for entry in external_row if entry["module"] == "aggregate"
         )
         self.assertEqual(ast.unparse(nested_row_rank["statement"].targets[0]), "material_rank")
         self.assertIsInstance(nested_row_rank["statement"].value, ast.IfExp)
@@ -1158,23 +1160,23 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         }
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="gap",
             ) as gap_owner,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
                 return_value=6,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 return_value=(5, 4),
             ),
         ):
             self.assertEqual(
-                self.calculation_agent._aggregate_result_rank(rank_row),
+                financial_aggregate_projection._aggregate_result_rank(rank_row),
                 (4, 0, 1, 6, 5, 4, 1),
             )
         gap_owner.assert_called_once_with(rank_row)
@@ -1182,43 +1184,43 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         later = Mock()
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 side_effect=RuntimeError("gap binding failed"),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
                 later,
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "gap binding failed"):
-                self.calculation_agent._aggregate_result_rank(rank_row)
+                financial_aggregate_projection._aggregate_result_rank(rank_row)
         later.assert_not_called()
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_row_has_material",
                 return_value=True,
             ) as row_owner,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ) as nested_gap_owner,
             patch.object(
-                self.calculation_agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 return_value="lookup",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
                 return_value=1,
             ),
         ):
-            nested_rank = self.calculation_agent._nested_aggregate_result_rank(rank_row)
+            nested_rank = financial_aggregate_projection.nested_aggregate_result_rank(rank_row)
         self.assertEqual(nested_rank[:5], (4, 1, 1, 1, 1))
         row_owner.assert_called_once_with(rank_row)
         nested_gap_owner.assert_called_once_with(rank_row)
@@ -1226,18 +1228,18 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         nested_gap_owner.reset_mock()
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_row_has_material",
                 side_effect=RuntimeError("row binding failed"),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 nested_gap_owner,
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "row binding failed"):
-                self.calculation_agent._nested_aggregate_result_rank(rank_row)
+                financial_aggregate_projection.nested_aggregate_result_rank(rank_row)
         nested_gap_owner.assert_not_called()
 
         nested = {"preserve": True}

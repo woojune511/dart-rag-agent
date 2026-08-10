@@ -26,7 +26,6 @@ from src.agent.financial_answer_slots import (
 from src.agent.financial_answer_projection import (
     growth_row_has_conflicting_periods,
     material_gap_feedback_for_subtask_result,
-    subtask_row_has_material,
 )
 from src.agent.financial_aggregate_state import (
     AggregateCompositionState,
@@ -68,8 +67,10 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_task_ids as _aggregate_source_task_ids,
     aggregate_synthesis_prompt_rows,
     apply_aggregate_answer_candidate,
+    dedupe_aggregate_subtask_results,
     filter_aggregate_projection_provenance,
     growth_operand_sign_consistency_rank,
+    nested_aggregate_result_rank,
     package_aggregate_answer_candidate,
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
@@ -7944,81 +7945,6 @@ class FinancialAgentCalculationMixin:
             rebuilt_result,
         )
 
-    def _aggregate_result_rank(
-        self,
-        row: Dict[str, Any],
-        source_slot_by_task_id: Optional[Dict[str, Dict[str, Any]]] = None,
-    ) -> tuple[int, int, int, int, int, int, int]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        status = _normalise_spaces(
-            str(
-                row.get("status")
-                or calculation_result.get("status")
-                or ""
-            )
-        ).lower()
-        status_rank = {
-            "ok": 4,
-            "partial": 3,
-            "ready": 3,
-            "insufficient_operands": 1,
-            "retry_retrieval": 1,
-            "missing": 0,
-        }.get(status, 0)
-        material_rank = 0 if material_gap_feedback_for_subtask_result(row) else 1
-        answer_rank = 1 if _normalise_spaces(str(row.get("answer") or "")) else 0
-        growth_sign_rank = growth_operand_sign_consistency_rank(row)
-        dependency_slot_rank, scope_coherence_rank = aggregate_result_dependency_coherence_ranks(
-            row,
-            source_slot_by_task_id,
-        )
-        operand_rank = len(list(calculation_result.get("source_row_ids") or []))
-        return status_rank, material_rank, answer_rank, growth_sign_rank, dependency_slot_rank, scope_coherence_rank, operand_rank
-
-    def _nested_aggregate_result_rank(self, row: Dict[str, Any]) -> tuple[int, int, int, int, int, int, int, int]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        status = _normalise_spaces(
-            str(row.get("status") or calculation_result.get("status") or "")
-        ).lower()
-        status_rank = {
-            "ok": 4,
-            "partial": 3,
-            "ready": 3,
-            "insufficient_operands": 1,
-            "retry_retrieval": 1,
-            "missing": 0,
-        }.get(status, 0)
-        material_rank = 1 if subtask_row_has_material(row) else 0
-        gap_free_rank = 0 if material_gap_feedback_for_subtask_result(row) else 1
-        operation_family = self._aggregate_result_operation_family(row)
-        non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
-        growth_sign_rank = growth_operand_sign_consistency_rank(row)
-        source_count = len(_clean_source_row_ids([
-            row.get("source_row_ids"),
-            calculation_result.get("source_row_ids"),
-            row.get("selected_claim_ids"),
-            calculation_result.get("source_evidence_ids"),
-        ]))
-        answer_text = _normalise_spaces(
-            str(
-                row.get("answer")
-                or calculation_result.get("formatted_result")
-                or calculation_result.get("rendered_value")
-                or ""
-            )
-        )
-        digit_count = len(re.findall(r"\d", answer_text))
-        return (
-            status_rank,
-            material_rank,
-            gap_free_rank,
-            non_aggregate_rank,
-            growth_sign_rank,
-            source_count,
-            digit_count,
-            len(answer_text),
-        )
-
     def _promote_stronger_nested_aggregate_results(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -8058,7 +7984,7 @@ class FinancialAgentCalculationMixin:
                     <= growth_operand_sign_consistency_rank(current_row)
                 ):
                     continue
-                if self._nested_aggregate_result_rank(nested_row) <= self._nested_aggregate_result_rank(current_row):
+                if nested_aggregate_result_rank(nested_row) <= nested_aggregate_result_rank(current_row):
                     continue
                 if aggregate_result_dependency_coherence_ranks(
                     nested_row,
@@ -8139,28 +8065,6 @@ class FinancialAgentCalculationMixin:
             )
         ).ordered_results
         return preserved_results, self._rebuild_aggregate_projection(preserved_results, final_answer)
-
-    def _dedupe_aggregate_subtask_results(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        source_slot_by_task_id = aggregate_source_slot_by_task_id(ordered_results)
-        winners: Dict[str, tuple[int, tuple[int, int, int, int, int, int, int], Dict[str, Any]]] = {}
-        passthrough: List[tuple[int, Dict[str, Any]]] = []
-        for index, row in enumerate(ordered_results):
-            signature = aggregate_result_signature(row)
-            if not signature:
-                passthrough.append((index, row))
-                continue
-            rank = self._aggregate_result_rank(row, source_slot_by_task_id)
-            incumbent = winners.get(signature)
-            if incumbent is None or rank > incumbent[1] or (rank == incumbent[1] and index > incumbent[0]):
-                winners[signature] = (index, rank, row)
-        deduped = sorted(
-            [item for item in winners.values()] + [(index, (0, 0, 0, 0, 0, 0, 0), row) for index, row in passthrough],
-            key=lambda item: item[0],
-        )
-        return [dict(item[2]) for item in deduped]
 
     def _narrative_context_terms(self, query: str) -> List[str]:
         tokens = re.findall(r"[가-힣A-Za-z0-9()]+", _normalise_spaces(str(query or "")))
@@ -15378,11 +15282,11 @@ class FinancialAgentCalculationMixin:
             subtask_results,
             key=lambda row: (order_map.get(str(row.get("task_id") or ""), 10_000), str(row.get("task_id") or "")),
         )
-        ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        ordered_results = dedupe_aggregate_subtask_results(ordered_results)
         ordered_results = self._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
         ordered_results = self._promote_stronger_nested_aggregate_results(ordered_results)
         ordered_results = self._align_lookup_result_units_from_peer_source_slots(ordered_results)
-        ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        ordered_results = dedupe_aggregate_subtask_results(ordered_results)
         ordered_results = self._append_ratio_result_from_retrieved_context(
             ordered_results,
             state,
@@ -15391,7 +15295,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             state,
         )
-        ordered_results = self._dedupe_aggregate_subtask_results(ordered_results)
+        ordered_results = dedupe_aggregate_subtask_results(ordered_results)
         ordered_results = self._sync_ratio_result_displays_in_ordered_results(ordered_results)
         has_growth_rate_result = any(
             self._aggregate_result_operation_family(row) == "growth_rate"
@@ -15413,7 +15317,7 @@ class FinancialAgentCalculationMixin:
             early_projection,
         )
         if early_aligned_results is not ordered_results:
-            ordered_results = self._dedupe_aggregate_subtask_results(early_aligned_results)
+            ordered_results = dedupe_aggregate_subtask_results(early_aligned_results)
             fallback_answer = self._preferred_aggregate_fallback_answer(
                 ordered_results,
                 self._preferred_complete_numeric_answer(ordered_results) or fallback_answer,
@@ -16337,7 +16241,7 @@ class FinancialAgentCalculationMixin:
         own_unit_aligned_results = self._align_lookup_result_units_from_peer_source_slots(own_unit_aligned_results)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if own_unit_aligned_results != ordered_results:
-            ordered_results = self._dedupe_aggregate_subtask_results(own_unit_aligned_results)
+            ordered_results = dedupe_aggregate_subtask_results(own_unit_aligned_results)
             own_unit_projection = self._rebuild_aggregate_projection(ordered_results, fallback_answer)
             own_unit_aligned_results = self._align_lookup_results_with_dependency_projection(
                 ordered_results,
@@ -16345,7 +16249,7 @@ class FinancialAgentCalculationMixin:
                 own_unit_projection,
             )
             if own_unit_aligned_results != ordered_results:
-                ordered_results = self._dedupe_aggregate_subtask_results(own_unit_aligned_results)
+                ordered_results = dedupe_aggregate_subtask_results(own_unit_aligned_results)
             complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
             fallback_answer = self._preferred_aggregate_fallback_answer(
                 ordered_results,
@@ -16919,7 +16823,7 @@ class FinancialAgentCalculationMixin:
         )
         late_unit_aligned_results = self._align_lookup_result_units_from_peer_source_slots(late_unit_aligned_results)
         if late_unit_aligned_results != ordered_results:
-            late_unit_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
+            late_unit_results = dedupe_aggregate_subtask_results(late_unit_aligned_results)
             late_unit_projection = self._rebuild_aggregate_projection(late_unit_results, final_answer)
             late_unit_aligned_results = self._align_lookup_results_with_dependency_projection(
                 late_unit_results,
@@ -16927,7 +16831,7 @@ class FinancialAgentCalculationMixin:
                 late_unit_projection,
             )
             if late_unit_aligned_results != late_unit_results:
-                late_unit_results = self._dedupe_aggregate_subtask_results(late_unit_aligned_results)
+                late_unit_results = dedupe_aggregate_subtask_results(late_unit_aligned_results)
             mutable_state = self._replace_mutable_aggregate_results(
                 mutable_state,
                 state,
