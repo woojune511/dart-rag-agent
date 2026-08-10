@@ -10,6 +10,170 @@ question, or metric-specific branches.
 import re
 from typing import Any, Dict, List, Mapping, Sequence
 
+from src.agent.financial_answer_slots import (
+    answer_slot_has_material,
+    answer_slot_period_hint,
+    period_match_key,
+)
+from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY
+
+
+def growth_row_has_conflicting_periods(row: Dict[str, Any]) -> bool:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+    current_period = period_match_key(
+        answer_slot_period_hint(current_slot) or str(calculation_result.get("current_period") or "")
+    )
+    prior_period = period_match_key(
+        answer_slot_period_hint(prior_slot) or str(calculation_result.get("prior_period") or "")
+    )
+    if not (current_period and prior_period and current_period == prior_period):
+        return False
+    row_text = _normalise_spaces(
+        " ".join(
+            str(row.get(key) or "")
+            for key in ("answer", "formatted_result", "rendered_value")
+        )
+    )
+    result_text = _normalise_spaces(
+        " ".join(
+            str(calculation_result.get(key) or "")
+            for key in ("formatted_result", "rendered_value")
+        )
+    )
+    mentioned_periods = set(re.findall(r"20\d{2}", f"{row_text} {result_text}"))
+    return len(mentioned_periods) < 2
+
+
+def material_gap_feedback_for_subtask_result(row: Dict[str, Any]) -> str:
+    feedback_policy = dict(CALCULATION_FEEDBACK_POLICY)
+    metric_label = _normalise_spaces(
+        str(
+            row.get("metric_label")
+            or row.get("answer")
+            or row.get("task_id")
+            or feedback_policy.get("default_metric_label")
+            or ""
+        )
+    )
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    status = str(
+        row.get("status")
+        or calculation_result.get("status")
+        or ""
+    ).strip().lower()
+    rendered_material = _normalise_spaces(
+        str(
+            calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+            or row.get("answer")
+            or ""
+        )
+    )
+    operation_family = str(
+        answer_slots.get("operation_family")
+        or ((row.get("calculation_plan") or {}).get("operation_family"))
+        or ((calculation_result.get("derived_metrics") or {}).get("operation_family"))
+        or ""
+    ).strip().lower()
+    if not operation_family:
+        operation_family = str((row.get("calculation_plan") or {}).get("operation") or "").strip().lower()
+    if not operation_family:
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if metric_family.startswith("concept_"):
+            operation_family = metric_family.removeprefix("concept_")
+
+    if operation_family == "aggregate_subtasks":
+        nested_results = list(
+            answer_slots.get("subtask_results")
+            or calculation_result.get("subtask_results")
+            or []
+        )
+        for nested_row in reversed(nested_results):
+            nested_metric_label = _normalise_spaces(
+                str(
+                    nested_row.get("metric_label")
+                    or nested_row.get("task_id")
+                    or ""
+                )
+            )
+            if metric_label and nested_metric_label and nested_metric_label != metric_label:
+                continue
+            if not material_gap_feedback_for_subtask_result(dict(nested_row)):
+                return ""
+
+    if operation_family in {"lookup", "single_value"}:
+        if not answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+            return str(feedback_policy.get("lookup_missing_template") or "").format(metric_label=metric_label)
+        return ""
+
+    if operation_family in {"difference", "growth_rate"}:
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        if operation_family == "growth_rate" and growth_row_has_conflicting_periods(row):
+            return str(feedback_policy.get("generic_missing_material_template") or "").format(
+                metric_label=metric_label
+            )
+        missing_labels: List[str] = []
+        if not answer_slot_has_material(current_slot):
+            period = str(
+                current_slot.get("period")
+                or calculation_result.get("current_period")
+                or feedback_policy.get("default_current_period")
+                or ""
+            )
+            missing_labels.append(
+                str(feedback_policy.get("missing_period_value_template") or "").format(period=period)
+            )
+        if not answer_slot_has_material(prior_slot):
+            period = str(
+                prior_slot.get("period")
+                or calculation_result.get("prior_period")
+                or feedback_policy.get("default_prior_period")
+                or ""
+            )
+            missing_labels.append(
+                str(feedback_policy.get("missing_period_value_template") or "").format(period=period)
+            )
+        if operation_family == "difference":
+            if not answer_slot_has_material(dict(answer_slots.get("delta_value") or primary_slot)):
+                missing_labels.append(str(feedback_policy.get("difference_missing_result_label") or ""))
+        else:
+            if not answer_slot_has_material(primary_slot):
+                if not (status == "ok" and rendered_material and re.search(r"\d", rendered_material)):
+                    missing_labels.append(str(feedback_policy.get("growth_missing_result_label") or ""))
+        if missing_labels:
+            return str(feedback_policy.get("missing_material_template") or "").format(
+                metric_label=metric_label,
+                missing_labels=str(feedback_policy.get("missing_material_joiner") or "").join(missing_labels),
+            )
+        return ""
+
+    if operation_family in {"ratio", "sum"}:
+        if not answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+            if status == "ok" and rendered_material and re.search(r"\d", rendered_material):
+                return ""
+            return str(feedback_policy.get("missing_result_template") or "").format(metric_label=metric_label)
+        return ""
+
+    return ""
+
+
+def subtask_row_has_material(row: Dict[str, Any]) -> bool:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    for slot_name in ("primary_value", "current_value", "prior_value", "delta_value"):
+        if answer_slot_has_material(dict(answer_slots.get(slot_name) or {})):
+            return True
+    if str(calculation_result.get("rendered_value") or row.get("answer") or "").strip():
+        return True
+    return bool(list(calculation_result.get("source_row_ids") or []))
+
 
 def _normalise_projection_spaces(text: str) -> str:
     return re.sub(r"\s+", " ", text or "").strip()

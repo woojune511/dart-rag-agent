@@ -35,7 +35,12 @@ from src.agent.financial_graph_model_loaders import (
 )
 from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
-from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
+from src.agent.financial_answer_projection import (
+    _preferred_complete_aggregate_subtask_answer,
+    growth_row_has_conflicting_periods,
+    material_gap_feedback_for_subtask_result,
+    subtask_row_has_material,
+)
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_runtime_normalization import (
@@ -1816,12 +1821,12 @@ class FinancialAgentPlanningMixin:
         for row in ordered_results:
             is_conflicting_growth = (
                 self._aggregate_result_operation_family(dict(row)) == "growth_rate"
-                and self._growth_row_has_conflicting_periods(dict(row))
+                and growth_row_has_conflicting_periods(dict(row))
             )
             if not is_conflicting_growth:
                 projection_rows.append(row)
                 continue
-            material_gap = self._material_gap_feedback_for_subtask_result(dict(row))
+            material_gap = material_gap_feedback_for_subtask_result(dict(row))
             row_copy = dict(row)
             calculation_result = dict(row_copy.get("calculation_result") or {})
             answer_slots = dict(calculation_result.get("answer_slots") or row_copy.get("answer_slots") or {})
@@ -1945,16 +1950,6 @@ class FinancialAgentPlanningMixin:
         _walk(dict(calculation_result or {}))
         return rows
 
-    def _subtask_row_has_material(self, row: Dict[str, Any]) -> bool:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        for slot_name in ("primary_value", "current_value", "prior_value", "delta_value"):
-            if answer_slot_has_material(dict(answer_slots.get(slot_name) or {})):
-                return True
-        if str(calculation_result.get("rendered_value") or row.get("answer") or "").strip():
-            return True
-        return bool(list(calculation_result.get("source_row_ids") or []))
-
     def _subtask_row_operation_family(self, row: Dict[str, Any]) -> str:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
@@ -1998,7 +1993,7 @@ class FinancialAgentPlanningMixin:
             return (0, 0, 0, 0, 0, 0)
 
         status_rank = {"ok": 4, "partial": 2, "ready": 2}.get(status, 0)
-        material_rank = 1 if self._subtask_row_has_material(row) else 0
+        material_rank = 1 if subtask_row_has_material(row) else 0
         operation_rank = 1 if active_operation and operation_family == active_operation else 0
         non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
         family_rank = 1 if active_metric_family and metric_family == active_metric_family else 0
@@ -2039,7 +2034,7 @@ class FinancialAgentPlanningMixin:
 
         candidates.sort(key=lambda item: item[0], reverse=True)
         best_score, best_row = candidates[0]
-        current_material = self._subtask_row_has_material(
+        current_material = subtask_row_has_material(
             {
                 "answer": answer,
                 "status": status,
@@ -2335,7 +2330,7 @@ class FinancialAgentPlanningMixin:
         calculation_result = dict(row.get("calculation_result") or {})
         status = _normalise_spaces(str(row.get("status") or calculation_result.get("status") or "")).lower()
         status_rank = {"ok": 4, "ready": 3, "partial": 2}.get(status, 0)
-        has_material = 1 if self._subtask_row_has_material(row) else 0
+        has_material = 1 if subtask_row_has_material(row) else 0
         has_structured_payload = 1 if (
             calculation_result.get("answer_slots")
             or calculation_result.get("subtask_results")

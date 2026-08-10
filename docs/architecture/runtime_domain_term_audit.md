@@ -376,7 +376,7 @@ For each P0 record, classify it as one of:
   `CALCULATION_RENDER_POLICY`. Runtime keeps the generic mechanics: preserve
   evidence-visible raw values when they already carry a unit and append source
   units only when needed.
-- `_material_gap_feedback_for_subtask_result()` and the generic planner
+- `material_gap_feedback_for_subtask_result()` and the generic planner
   feedback fallback now read fallback metric labels, missing-slot labels,
   joiners, and feedback templates from `CALCULATION_FEEDBACK_POLICY`. Runtime
   keeps the generic mechanics: inspect operation family, status, answer slots,

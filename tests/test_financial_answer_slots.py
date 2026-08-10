@@ -8,9 +8,9 @@ from copy import deepcopy
 from unittest.mock import patch
 
 from src.agent import (
+    financial_answer_projection,
     financial_answer_slots,
     financial_graph_calculation,
-    financial_graph_planning,
 )
 from src.agent.financial_answer_slots import (
     RatioResultDisplaySyncInput,
@@ -221,7 +221,6 @@ class FinancialAnswerSlotTests(unittest.TestCase):
             financial_answer_slots.answer_slot_has_material,
         )
 
-        planning_agent = financial_graph_planning.FinancialAgentPlanningMixin()
         primary_slot = {"normalized_value": 0, "nested": {"preserve": True}}
         predicate_calls = []
 
@@ -230,12 +229,12 @@ class FinancialAnswerSlotTests(unittest.TestCase):
             return True
 
         with patch.object(
-            financial_graph_planning,
+            financial_answer_projection,
             "answer_slot_has_material",
             side_effect=material,
         ):
             self.assertTrue(
-                planning_agent._subtask_row_has_material(
+                financial_answer_projection.subtask_row_has_material(
                     {
                         "answer_slots": {
                             "primary_value": primary_slot,
@@ -602,34 +601,37 @@ class FinancialAnswerSlotTests(unittest.TestCase):
                 period_key("2023")
 
     def test_answer_slot_period_helper_bindings_preserve_static21_and_growth_polarity(self) -> None:
-        tree = ast.parse(inspect.getsource(financial_graph_calculation))
-        parents = {}
-        for parent in ast.walk(tree):
-            for child in ast.iter_child_nodes(parent):
-                parents[child] = parent
-
         def public_callers(name):
             callers = []
-            for node in ast.walk(tree):
-                if not isinstance(node, ast.Call):
-                    continue
-                if not isinstance(node.func, ast.Name) or node.func.id != name:
-                    continue
-                owner = node
-                while owner in parents and not isinstance(owner, ast.FunctionDef):
-                    owner = parents[owner]
-                callers.append(owner.name)
+            for module_name, module in (
+                ("graph", financial_graph_calculation),
+                ("owner", financial_answer_projection),
+            ):
+                tree = ast.parse(inspect.getsource(module))
+                parents = {}
+                for parent in ast.walk(tree):
+                    for child in ast.iter_child_nodes(parent):
+                        parents[child] = parent
+                for node in ast.walk(tree):
+                    if not isinstance(node, ast.Call):
+                        continue
+                    if not isinstance(node.func, ast.Name) or node.func.id != name:
+                        continue
+                    owner = node
+                    while owner in parents and not isinstance(owner, ast.FunctionDef):
+                        owner = parents[owner]
+                    callers.append((module_name, owner.name))
             return Counter(callers)
 
         self.assertEqual(
             public_callers("answer_slot_period_hint"),
             Counter(
                 {
-                    "_lookup_gap_is_satisfied_by_sibling_slots": 2,
-                    "_sibling_lookup_gap_is_satisfied": 3,
-                    "_feedback_gap_is_satisfied_by_derived_slots": 1,
-                    "_matching_resolved_slot_for_task": 1,
-                    "_growth_row_has_conflicting_periods": 2,
+                    ("graph", "_lookup_gap_is_satisfied_by_sibling_slots"): 2,
+                    ("graph", "_sibling_lookup_gap_is_satisfied"): 3,
+                    ("graph", "_feedback_gap_is_satisfied_by_derived_slots"): 1,
+                    ("graph", "_matching_resolved_slot_for_task"): 1,
+                    ("owner", "growth_row_has_conflicting_periods"): 2,
                 }
             ),
         )
@@ -637,17 +639,16 @@ class FinancialAnswerSlotTests(unittest.TestCase):
             public_callers("period_match_key"),
             Counter(
                 {
-                    "_lookup_gap_is_satisfied_by_sibling_slots": 3,
-                    "_feedback_gap_is_satisfied_by_derived_slots": 3,
-                    "_task_target_period_keys": 1,
-                    "_matching_resolved_slot_for_task": 1,
-                    "_growth_row_has_conflicting_periods": 2,
-                    "_growth_operand_periods_conflict": 2,
+                    ("graph", "_lookup_gap_is_satisfied_by_sibling_slots"): 3,
+                    ("graph", "_feedback_gap_is_satisfied_by_derived_slots"): 3,
+                    ("graph", "_task_target_period_keys"): 1,
+                    ("graph", "_matching_resolved_slot_for_task"): 1,
+                    ("owner", "growth_row_has_conflicting_periods"): 2,
+                    ("graph", "_growth_operand_periods_conflict"): 2,
                 }
             ),
         )
 
-        calculation_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
         nested = {"preserve": True}
         current_slot = {"period": "current", "nested": nested}
         prior_slot = {"period": "prior", "nested": nested}
@@ -672,17 +673,17 @@ class FinancialAnswerSlotTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_answer_projection,
                 "answer_slot_period_hint",
                 side_effect=same_hint,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_answer_projection,
                 "period_match_key",
                 side_effect=key,
             ),
         ):
-            self.assertTrue(calculation_agent._growth_row_has_conflicting_periods(row))
+            self.assertTrue(financial_answer_projection.growth_row_has_conflicting_periods(row))
         self.assertEqual([event[0] for event in events], ["hint", "key", "hint", "key"])
         self.assertEqual([event[1] for event in events if event[0] == "key"], ["2023", "2023"])
         prepared_slots = [event[1] for event in events if event[0] == "hint"]
@@ -702,19 +703,19 @@ class FinancialAnswerSlotTests(unittest.TestCase):
         events.clear()
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_answer_projection,
                 "answer_slot_period_hint",
                 side_effect=lambda slot: events.append(("hint", slot))
                 or ("2023" if slot.get("period") == "current" else "2022"),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_answer_projection,
                 "period_match_key",
                 side_effect=lambda value: events.append(("key", value)) or value,
             ),
         ):
             self.assertFalse(
-                calculation_agent._growth_row_has_conflicting_periods(mismatch_row)
+                financial_answer_projection.growth_row_has_conflicting_periods(mismatch_row)
             )
         self.assertEqual([event[0] for event in events], ["hint", "key", "hint", "key"])
 

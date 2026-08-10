@@ -649,8 +649,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value="sum",
             ),
             patch.object(
-                agent,
-                "_material_gap_feedback_for_subtask_result",
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
@@ -680,8 +680,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         rank_source_slots = {"task_a": {"normalized_value": 1.0}}
         with (
             patch.object(
-                agent,
-                "_material_gap_feedback_for_subtask_result",
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
@@ -707,8 +707,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         }
         with (
             patch.object(
-                agent,
-                "_material_gap_feedback_for_subtask_result",
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
@@ -760,8 +760,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value=[dict(nested_row)],
             ),
             patch.object(
-                agent,
-                "_material_gap_feedback_for_subtask_result",
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
@@ -809,8 +809,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value=[dict(nested_row)],
             ),
             patch.object(
-                agent,
-                "_material_gap_feedback_for_subtask_result",
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
@@ -1584,7 +1584,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 side_effect=[lookup_slot, lookup_slot],
             ) as primary_owner,
             patch.object(agent, "_row_is_narrative_summary", return_value=False),
-            patch.object(agent, "_material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
             patch.object(agent, "_lookup_numeric_item_answer", return_value="metric 10"),
             patch.object(financial_graph_calculation, "_operand_text_match", return_value=False),
             patch.object(financial_graph_calculation, "answer_covers_numeric_answer", return_value=False),
@@ -1612,7 +1616,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 side_effect=RuntimeError("primary failed"),
             ),
             patch.object(agent, "_row_is_narrative_summary", return_value=False),
-            patch.object(agent, "_material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(
+                financial_graph_calculation,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
             patch.object(agent, "_lookup_numeric_item_answer", lookup_answer_owner),
         ):
             with self.assertRaisesRegex(RuntimeError, "primary failed"):

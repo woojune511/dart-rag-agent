@@ -21,6 +21,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent import financial_aggregate_projection
+from src.agent import financial_answer_projection
 from src.agent import financial_answer_slots
 from src.agent import financial_graph_calculation
 from src.agent import financial_lookup_recovery
@@ -22400,7 +22401,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        gap = self.agent._material_gap_feedback_for_subtask_result(row)
+        gap = financial_answer_projection.material_gap_feedback_for_subtask_result(row)
 
         self.assertTrue(gap)
         self.assertIn("segment revenue growth", gap)
