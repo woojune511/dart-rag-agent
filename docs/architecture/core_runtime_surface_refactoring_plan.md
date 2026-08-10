@@ -191,7 +191,7 @@ Current ownership is intentionally split by state boundary:
 | Surface | Owner | Stop line |
 | --- | --- | --- |
 | Graph-state orchestration | `financial_graph_calculation.py` | Reads and writes graph state, prepares evidence/query/rows, places owner calls, and projects task/artifact/final state |
-| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, unit/period coercion and ratio denominator sign policy; no graph-state lookup |
+| Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, unit/period coercion, KRW raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, and scale predicates |
@@ -208,8 +208,9 @@ The current checkpoint has explicit owners for the major bounded seams completed
 so far, including ratio sign and presentation/readiness/scale policy, generic
 numeric support, aggregate row/sentence/rendered selection, answer-slot period and
 material policy, aggregate source/coherence preparation, result/nested ranking,
-stable dedupe, and narrative intent/surface/trace validation. Current validation
-and benchmark status belong only in
+stable dedupe, narrative intent/surface/trace validation, and prepared KRW raw-unit/
+growth alignment and period-conflict policy. Current validation and benchmark
+status belong only in
 [project_status.md](../overview/project_status.md); commit-level diffs and claim
 limits belong only in
 [implementation_history.md](../history/implementation_history.md).
@@ -219,9 +220,10 @@ Phase 3 remains open for four durable debt groups:
 1. partially advanced: period/material/source/coherence/rank/dedupe and selected
    narrative-validation policy are owned, while promotion, sync/rebuild, mutable
    state/evidence, and final sequencing remain graph-owned;
-2. partially advanced: ratio presentation/readiness/scale seams are owned; isolate
-   remaining dependency and ratio/absolute seams that do not require graph-state
-   lookup or surrounding orchestration;
+2. partially advanced: ratio presentation/readiness/scale and bounded operand-
+   preparation seams are owned; isolate remaining dependency and ratio/absolute
+   seams that do not require graph-state lookup, table/evidence orchestration, or
+   surrounding sequencing;
 3. essentially untouched: specify broader task/artifact ledger synchronization
    as a separate behavior contract before attempting ownership convergence;
 4. partially advanced: reduce the private-API mesh and co-locate tests only as
@@ -231,12 +233,12 @@ These groups are unordered debt, not four promised implementation slices.
 Priority and sequencing are owned by
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-Selected ratio presentation/readiness/scale and narrative intent/surface/trace
-validation boundaries are complete in their state-free owners. Their retained
-external graph call placements remain, while operand repair, dependency-source lookup, answer
-composition/refresh, evidence construction, promotion, sync/rebuild, mutable
-state/evidence, ledger, callbacks, and final projection remain outside those
-owner batches.
+Selected ratio presentation/readiness/scale, narrative intent/surface/trace, and
+prepared KRW raw-unit/growth alignment/period-conflict boundaries are complete in
+their state-free owners. Their retained external graph call placements remain,
+while broader table/evidence repair, dependency-source lookup, answer composition/
+refresh, evidence construction, promotion, sync/rebuild, mutable state/evidence,
+ledger, callbacks, and final projection remain outside those owner batches.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

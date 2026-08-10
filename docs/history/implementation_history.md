@@ -1557,6 +1557,45 @@ artifact/ledger, callbacks, and final orchestration remain graph-owned. The rang
 proves no behavior, accuracy, ranking, performance, total-code or executed-path
 reduction, benchmark improvement, or Phase 3 completion.
 
+### Operand-preparation owner milestone
+
+- `d13c8cd` publishes
+  `repair_krw_normalized_values_from_raw_units(...)` from operand resolution.
+  Forty-seven old graph definition-span lines were removed and the sole graph
+  call remains. Source is `+50/-49`, tests are `+575/-2`, and the whole commit is
+  `+625/-51`.
+- `ae8acba` publishes
+  `align_growth_operand_units_when_raw_scale_matches(...)` from operand
+  resolution. Ninety old graph definition-span lines were removed and the sole
+  graph call remains. Source is `+94/-92`, tests are `+664/-3`, and the whole
+  commit is `+758/-95`.
+- `d8bb90d` publishes `growth_operand_periods_conflict(...)` from operand
+  resolution. Twenty-four old graph definition-span lines were removed and the
+  sole graph call remains. Source is `+29/-26`, tests are `+511/-6`, and the whole
+  commit is `+540/-32`.
+- Across `abc4552..d8bb90d`, 161 selected old graph definition-span lines were
+  replaced by three public APIs at three retained graph calls; retired exact old
+  identifiers are zero. The range-level source diff is `+173/-167`, net `+6`:
+  the graph moved from 17,097 to 16,936 physical lines and operand resolution from
+  3,105 to 3,272. Tests are `+1,747/-8`, net `+1,739`, and the whole changed-file
+  range is `+1,920/-175`, net `+1,745`. Twelve test methods were added, moving
+  full discovery from 1,594 to 1,606 tests.
+- Final validation passed focused 4/4 and 762/762 across
+  `tests.test_financial_operand_resolution`,
+  `tests.test_financial_calculation_execution`,
+  `tests.test_financial_answer_slots`, `tests.test_aggregate_subtask_projection`,
+  `tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
+  `tests.test_operation_contracts`; the 217-literal runtime audit; full discovery
+  over 1,606/1,606 tests; and `git diff --check`. Benchmark refresh was **NOT
+  RUN**; no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only prepared KRW raw-unit repair, growth raw-scale
+alignment, and growth-period conflict ownership. Table/evidence preparation,
+operand-map and plan access, donor propagation, duplicate recovery, sign/execution,
+mutable state, artifact/ledger, callbacks, and final orchestration remain graph-
+owned. The range proves no behavior, accuracy, ranking, performance, total-code
+or executed-path reduction, benchmark improvement, or Phase 3 completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

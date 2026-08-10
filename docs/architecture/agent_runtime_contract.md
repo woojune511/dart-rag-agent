@@ -896,11 +896,73 @@ The graph calls this owner once for a surviving prepared candidate after growth
 recovery and the growth-period conflict exit, and before equality-gated operand-
 map/runtime propagation, lookup-magnitude coercion, execution, state, artifact,
 and final projection. All preparation, evidence/dependency repair, recovery,
-conflict, propagation, execution, and orchestration remain graph-owned. This seam
+conflict-call/failure projection, propagation, execution, and orchestration remain
+graph-owned. This seam
 claims only binding-policy merge and ratio-denominator magnitude-transform
 ownership plus old-body deletion—not sign-policy improvement, broader ontology
 ownership, behavior, performance, total-code or executed-path reduction, or
 Phase 3 completion.
+
+Prepared KRW raw-unit and growth-operand checks are three more plain, state-free
+`financial_operand_resolution.py` seams. Public
+`repair_krw_normalized_values_from_raw_units(operands)` shallow-copies every row
+in stable order before reading normalized unit. Non-KRW rows skip raw surfaces.
+The KRW path reads `raw_unit` before lazy `result_unit`, then `raw_value`, and
+normalizes that raw pair before reading current normalized value. `None` owner
+values or non-KRW owner units return through the unchanged path. Float conversion
+catches only `TypeError` and `ValueError`; equality and either zero precede the
+absolute-magnitude distortion calculation, and only distortion at least `100.0`
+repairs the row.
+
+A repaired row writes prior numeric value to `source_normalized_value`, then
+owner numeric value, owner unit, and `unit_normalization_repair_source` in that
+order. Any repair returns the fresh stable list with every top-level row copied;
+without a repair the exact input list and row identities return despite transient
+copies. Nested aliases remain and inputs are not mutated. Mapping, copy, string,
+normalizer, comparison, truthiness, and arithmetic exceptions outside the two
+float catches propagate.
+
+Public `align_growth_operand_units_when_raw_scale_matches(ordered_operands)`
+requires exactly two rows. It scans current role and then prior role independently;
+when neither is explicit it assigns positions `0, 1`, and when one is missing it
+uses the other position. It shallow-copies current then prior before concept
+gates. Two truthy unequal concepts stop, while a blank concept does not. Raw
+units must both be truthy and unequal, and both normalized units must uppercase
+to exact `KRW` without whitespace normalization. Raw numbers parse current then
+prior before normalized values are read.
+
+Missing or zero raw numbers and missing normalized values stop. Ratio conversion
+catches only `TypeError`, `ValueError`, and `ZeroDivisionError`; both ratios must
+be positive, raw ratio is inclusively within `0.01..100.0`, and scale distortion
+is at least `100.0`. The owner then normalizes the prior raw value with the current
+raw unit. Only a non-`None` KRW result produces a fresh prior row with raw unit,
+normalized value/unit, and `unit_alignment_source`; the outer list is fresh while
+the non-prior row retains identity and nested aliases. All no-op paths return the
+exact input list, inputs remain unmodified, and uncaught access/copy/string/
+normalization/arithmetic exceptions propagate.
+
+Public `growth_operand_periods_conflict(ordered_operands)` also requires exactly
+two rows before any row access. It scans for current first, then restarts at row
+zero for prior; each scan stops at its first match and shallow-copies only that
+matched row. Missing either role returns `False`. Per row, truthy `period`
+precedes lazy `label`, then the owner calls `period_match_key` for current and
+prior in that order. Both calls occur before the final
+`bool(current and prior and current == prior)` truth/equality chain. Input rows
+remain unmodified and mapping, iteration/copy, string, key-owner, truthiness, and
+equality exceptions propagate.
+
+The graph retains `_prepare_calculation_candidate` and all carriers. Raw-unit
+repair is called after table-metadata repair and before operand indexing and plan
+access. Growth alignment remains after donor-unit propagation and before duplicate-
+prior recovery; only a non-equal owner result is adopted. Period conflict remains
+after duplicate recovery and its adoption, and before sign policy and execution;
+`True` returns exact `insufficient_operands` / `growth operands share the same
+period`, `False` continues, and an owner exception stops downstream work. Evidence
+selection, table repair, donor propagation, duplicate recovery, operand-map/runtime
+adoption, sign/execution, state, artifact, ledger, and final projection remain
+graph-owned. These seams claim ownership relocation and old-body deletion only,
+not behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, or Phase 3 completion.
 
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set

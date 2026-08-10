@@ -279,11 +279,11 @@ State-free owner topology:
 
 | Owner | 역할 |
 | --- | --- |
-| `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, ratio display alignment, ratio denominator sign policy |
+| `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, KRW raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
-| `financial_answer_projection.py` | growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
+| `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
@@ -303,10 +303,11 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 
 최근 owner 이동에는 ratio sign/presentation/readiness/scale policy, numeric support,
 aggregate selector, slot-material/period policy, aggregate source/coherence preparation,
-material-gap, result/nested rank, dedupe와 narrative-answer validation이 포함된다.
-Graph는 query/evidence preparation, answer composition/refresh, promotion,
-sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을
-유지하고, planning은 nested traversal을 유지한다.
+material-gap, result/nested rank, dedupe, narrative-answer validation과 prepared KRW
+raw-unit/growth alignment/period-conflict policy가 포함된다. Graph는 query/evidence 및
+broader table-repair preparation, answer composition/refresh, promotion, sync/rebuild,
+mutable state/evidence, ledger와 callback/final orchestration을 유지하고, planning은
+nested traversal을 유지한다.
 
 함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
 [Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.
