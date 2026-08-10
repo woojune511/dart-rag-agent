@@ -263,12 +263,12 @@ class SubtaskLoopTests(unittest.TestCase):
 
     def test_growth_explanatory_signal_ignores_numeric_direction_only_sentence(self) -> None:
         self.assertFalse(
-            self.agent._sentence_has_growth_explanatory_signal(
+            financial_answer_projection.sentence_has_growth_explanatory_signal(
                 "2023 revenue increased 70.28% compared with 2022."
             )
         )
         self.assertTrue(
-            self.agent._sentence_has_growth_explanatory_signal(
+            financial_answer_projection.sentence_has_growth_explanatory_signal(
                 "The reason was weaker demand and stricter risk management."
             )
         )
@@ -881,11 +881,11 @@ class SubtaskLoopTests(unittest.TestCase):
 
     def test_ratio_definition_phrase_does_not_request_explanatory_context(self) -> None:
         self.assertFalse(
-            self.agent._query_requests_explanatory_context(
+            financial_answer_projection.query_requests_explanatory_context(
                 "2023년 CIR을 계산해 줘. 여기서 CIR은 A 대비 B 비율을 의미한다."
             )
         )
-        self.assertTrue(self.agent._query_requests_explanatory_context("2023년 CIR의 의미를 설명해 줘."))
+        self.assertTrue(financial_answer_projection.query_requests_explanatory_context("2023년 CIR의 의미를 설명해 줘."))
 
     def test_dependency_rows_preserve_sibling_operand_source_anchor(self) -> None:
         state = {

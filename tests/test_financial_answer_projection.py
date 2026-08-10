@@ -1413,5 +1413,564 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         self.assertEqual(upsert_rank[:2], (4, 0))
         upsert_owner.assert_called_once_with({"status": "ok", "answer": "10"})
 
+
+class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
+    def test_query_requests_explanatory_context_preserves_access_laziness_and_exception_contract(self) -> None:
+        events = []
+
+        class Query:
+            def __bool__(self):
+                events.append("query.bool")
+                return True
+
+            def __str__(self):
+                events.append("query.str")
+                return "WHY context"
+
+        class SearchSurface:
+            def __bool__(self):
+                events.append("surface.bool")
+                return True
+
+            def __contains__(self, marker):
+                events.append(f"contains:{marker}")
+                return marker == "why"
+
+        class Normalized:
+            def lower(self):
+                events.append("surface.lower")
+                return SearchSurface()
+
+        class Marker:
+            def __init__(self, value):
+                self.value = value
+
+            def __str__(self):
+                events.append(f"marker.str:{self.value}")
+                return self.value
+
+        class MarkerSource:
+            def __bool__(self):
+                events.append("markers.bool")
+                return True
+
+            def __iter__(self):
+                events.append("markers.iter")
+                return iter([Marker("miss"), Marker("why"), Marker("late")])
+
+        class Policy:
+            def get(self, key):
+                events.append(f"policy.get:{key}")
+                self.assert_key = key
+                return MarkerSource()
+
+        def normalize(value):
+            events.append(f"normalize:{value}")
+            return Normalized()
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", Policy()),
+        ):
+            self.assertTrue(financial_answer_projection.query_requests_explanatory_context(Query()))
+        self.assertEqual(
+            events,
+            [
+                "query.bool",
+                "query.str",
+                "normalize:WHY context",
+                "surface.lower",
+                "surface.bool",
+                "policy.get:explanatory_markers",
+                "markers.bool",
+                "markers.iter",
+                "marker.str:miss",
+                "marker.str:why",
+                "marker.str:late",
+                "contains:miss",
+                "contains:why",
+            ],
+        )
+
+        class PolicyBomb:
+            def get(self, _key):
+                raise AssertionError("blank query accessed policy")
+
+        blank_normalizer = Mock(return_value="")
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", blank_normalizer),
+            patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", PolicyBomb()),
+        ):
+            self.assertFalse(financial_answer_projection.query_requests_explanatory_context(None))
+        blank_normalizer.assert_called_once_with("")
+
+        marker_policy = {"explanatory_markers": [""]}
+        marker_policy_before = deepcopy(marker_policy)
+        with patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", marker_policy):
+            self.assertTrue(financial_answer_projection.query_requests_explanatory_context("anything"))
+        self.assertEqual(marker_policy, marker_policy_before)
+        with patch.object(
+            financial_answer_projection,
+            "CALCULATION_NARRATIVE_POLICY",
+            {"explanatory_markers": ["WHY"]},
+        ):
+            self.assertFalse(financial_answer_projection.query_requests_explanatory_context("WHY"))
+
+        class StrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("query str")
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("query bool")
+
+        class LowerBomb:
+            def lower(self):
+                raise RuntimeError("lower")
+
+        class IterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("marker iter")
+
+        class MarkerBoolBomb:
+            def __bool__(self):
+                raise RuntimeError("marker source bool")
+
+        class MarkerStrBomb:
+            def __str__(self):
+                raise RuntimeError("marker str")
+
+        class ContainsBomb:
+            def lower(self):
+                return self
+
+            def __bool__(self):
+                return True
+
+            def __contains__(self, _marker):
+                raise RuntimeError("contains")
+
+        exception_cases = [
+            ("bool", BoolBomb(), Mock(), {}, "query bool"),
+            ("str", StrBomb(), Mock(), {"explanatory_markers": ["why"]}, "query str"),
+            ("normalize", "why", Mock(side_effect=RuntimeError("normalize")), {}, "normalize"),
+            ("lower", "why", Mock(return_value=LowerBomb()), {}, "lower"),
+            (
+                "policy",
+                "why",
+                Mock(return_value="why"),
+                Mock(get=Mock(side_effect=RuntimeError("policy"))),
+                "policy",
+            ),
+            (
+                "marker source bool",
+                "why",
+                Mock(return_value="why"),
+                {"explanatory_markers": MarkerBoolBomb()},
+                "marker source bool",
+            ),
+            ("iteration", "why", Mock(return_value="why"), {"explanatory_markers": IterBomb()}, "marker iter"),
+            (
+                "marker str",
+                "why",
+                Mock(return_value="why"),
+                {"explanatory_markers": [MarkerStrBomb()]},
+                "marker str",
+            ),
+            (
+                "containment",
+                "why",
+                Mock(return_value=ContainsBomb()),
+                {"explanatory_markers": ["why"]},
+                "contains",
+            ),
+        ]
+        for label, query, normalizer, policy, message in exception_cases:
+            with self.subTest(label=label):
+                with (
+                    patch.object(financial_answer_projection, "_normalise_spaces", normalizer),
+                    patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+                    self.assertRaisesRegex(RuntimeError, message),
+                ):
+                    financial_answer_projection.query_requests_explanatory_context(query)
+
+    def test_growth_explanatory_signal_preserves_direction_exclusion_order_and_exceptions(self) -> None:
+        events = []
+
+        class Surface:
+            def __bool__(self):
+                events.append("surface.bool")
+                return True
+
+            def __contains__(self, marker):
+                events.append(f"contains:{marker}")
+                return marker == "impact"
+
+        class Value:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                events.append(f"direction.str:{self.name}")
+                return self.value
+
+        class DirectionWords:
+            def values(self):
+                events.append("direction.values")
+                return [Value("retained", "increase"), Value("blank", "")]
+
+        class Marker:
+            def __init__(self, value):
+                self.value = value
+
+            def __str__(self):
+                events.append(f"marker.str:{self.value}")
+                return self.value
+
+        class Container:
+            def __init__(self, name, values):
+                self.name = name
+                self.values = values
+
+            def __bool__(self):
+                events.append(f"{self.name}.bool")
+                return True
+
+            def __iter__(self):
+                events.append(f"{self.name}.iter")
+                return iter(self.values)
+
+        policy_values = {
+            "direction_words": DirectionWords(),
+            "growth_narrative_markers": Container("narrative", [Marker("increase"), Marker("miss")]),
+            "growth_impact_markers": Container("impact", [Marker("impact")]),
+            "explanatory_markers": Container("explanatory", [Marker("late")]),
+        }
+
+        class Policy:
+            def get(self, key):
+                events.append(f"policy.get:{key}")
+                return policy_values[key]
+
+        def normalize(value):
+            events.append(f"normalize:{value}")
+            return Surface() if value == "sentence" else value.strip()
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", Policy()),
+        ):
+            self.assertTrue(financial_answer_projection.sentence_has_growth_explanatory_signal("sentence"))
+        self.assertEqual(
+            [event for event in events if event.startswith("policy.get:")],
+            [
+                "policy.get:direction_words",
+                "policy.get:growth_narrative_markers",
+                "policy.get:growth_impact_markers",
+                "policy.get:explanatory_markers",
+            ],
+        )
+        self.assertEqual(events.count("normalize:increase"), 2)
+        self.assertEqual(events.count("normalize:"), 1)
+        self.assertLess(events.index("explanatory.iter"), events.index("marker.str:increase"))
+        self.assertEqual(
+            [event for event in events if event.startswith("marker.str:")],
+            ["marker.str:increase", "marker.str:miss", "marker.str:impact", "marker.str:late"],
+        )
+        self.assertEqual(
+            [event for event in events if event.startswith("contains:")],
+            ["contains:miss", "contains:impact"],
+        )
+
+        blank_policy = Mock()
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value=""),
+            patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", blank_policy),
+        ):
+            self.assertFalse(financial_answer_projection.sentence_has_growth_explanatory_signal(None))
+        blank_policy.get.assert_not_called()
+
+        direction_policy = {
+            "direction_words": {"up": "increase"},
+            "growth_narrative_markers": ["increase", " Reason "],
+            "growth_impact_markers": [],
+            "explanatory_markers": ["Because"],
+        }
+        direction_policy_before = deepcopy(direction_policy)
+        with patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", direction_policy):
+            self.assertFalse(financial_answer_projection.sentence_has_growth_explanatory_signal("increase 10%"))
+            self.assertFalse(financial_answer_projection.sentence_has_growth_explanatory_signal("reason"))
+            self.assertTrue(financial_answer_projection.sentence_has_growth_explanatory_signal("Because demand changed"))
+        self.assertEqual(direction_policy, direction_policy_before)
+
+        class ValuesBomb:
+            def values(self):
+                raise RuntimeError("values")
+
+        class MarkerIterBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("marker iter")
+
+        class MarkerStrBomb:
+            def __str__(self):
+                raise RuntimeError("marker str")
+
+        class SentenceStrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("sentence str")
+
+        class ContainsBomb:
+            def __bool__(self):
+                return True
+
+            def __contains__(self, _marker):
+                raise RuntimeError("contains")
+
+        def direction_normalizer(value):
+            if value == "driver":
+                return value
+            raise RuntimeError("direction normalize")
+
+        exception_policies = [
+            {"direction_words": ValuesBomb()},
+            {
+                "direction_words": {},
+                "growth_narrative_markers": MarkerIterBomb(),
+                "growth_impact_markers": [],
+                "explanatory_markers": [],
+            },
+        ]
+        for policy in exception_policies:
+            with self.subTest(policy=type(policy.get("direction_words")).__name__):
+                with (
+                    patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+                    self.assertRaises(RuntimeError),
+                ):
+                    financial_answer_projection.sentence_has_growth_explanatory_signal("driver")
+
+        signal_exception_cases = [
+            (
+                "sentence str",
+                SentenceStrBomb(),
+                Mock(),
+                direction_policy,
+                "sentence str",
+            ),
+            (
+                "direction normalize",
+                "driver",
+                Mock(side_effect=direction_normalizer),
+                direction_policy,
+                "direction normalize",
+            ),
+            (
+                "policy",
+                "driver",
+                Mock(return_value="driver"),
+                Mock(get=Mock(side_effect=RuntimeError("policy"))),
+                "policy",
+            ),
+            (
+                "marker str",
+                "driver",
+                Mock(side_effect=lambda value: value),
+                {
+                    "direction_words": {},
+                    "growth_narrative_markers": [MarkerStrBomb()],
+                    "growth_impact_markers": [],
+                    "explanatory_markers": [],
+                },
+                "marker str",
+            ),
+            (
+                "containment",
+                "driver",
+                Mock(return_value=ContainsBomb()),
+                {
+                    "direction_words": {},
+                    "growth_narrative_markers": ["driver"],
+                    "growth_impact_markers": [],
+                    "explanatory_markers": [],
+                },
+                "contains",
+            ),
+        ]
+        for label, sentence, normalizer, policy, message in signal_exception_cases:
+            with self.subTest(label=label):
+                with (
+                    patch.object(financial_answer_projection, "_normalise_spaces", normalizer),
+                    patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+                    self.assertRaisesRegex(RuntimeError, message),
+                ):
+                    financial_answer_projection.sentence_has_growth_explanatory_signal(sentence)
+
+    def test_narrative_validation_all_fifteen_graph_bindings_preserve_args_polarity_and_try_boundary(self) -> None:
+        tree = ast.parse(inspect.getsource(financial_graph_calculation.FinancialAgentCalculationMixin))
+        parents = {}
+        for node in ast.walk(tree):
+            for child in ast.iter_child_nodes(node):
+                parents[child] = node
+
+        public_names = {
+            "query_requests_explanatory_context",
+            "sentence_has_growth_explanatory_signal",
+        }
+        bindings = Counter()
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in public_names
+            ):
+                continue
+            cursor = node
+            negative = False
+            inside_try = False
+            owner = None
+            while cursor in parents:
+                cursor = parents[cursor]
+                if isinstance(cursor, ast.UnaryOp) and isinstance(cursor.op, ast.Not):
+                    negative = not negative
+                if isinstance(cursor, ast.Try):
+                    inside_try = True
+                if isinstance(cursor, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    owner = cursor.name
+                    break
+            bindings[
+                (
+                    node.func.id,
+                    owner,
+                    ast.unparse(node.args[0]),
+                    "negative" if negative else "positive",
+                    inside_try,
+                )
+            ] += 1
+
+        state_query = "str(state.get('query') or '')"
+        self.assertEqual(
+            bindings,
+            Counter(
+                {
+                    ("query_requests_explanatory_context", "_refresh_numeric_answer_preserving_narrative_context", "query", "negative", False): 1,
+                    ("query_requests_explanatory_context", "_refresh_numeric_answer_preserving_narrative_context", "query_text", "negative", False): 1,
+                    ("query_requests_explanatory_context", "_refresh_numeric_answer_preserving_narrative_context", "query_text", "positive", False): 2,
+                    ("query_requests_explanatory_context", "_apply_initial_aggregate_answer_composition", state_query, "negative", False): 1,
+                    ("query_requests_explanatory_context", "_apply_final_narrative_repair_pipeline", state_query, "negative", False): 1,
+                    ("query_requests_explanatory_context", "_apply_final_narrative_repair_pipeline", state_query, "positive", False): 2,
+                    ("query_requests_explanatory_context", "_prepare_initial_aggregate_state", state_query, "negative", False): 1,
+                    ("query_requests_explanatory_context", "_aggregate_calculation_subtasks", state_query, "negative", False): 3,
+                    ("query_requests_explanatory_context", "_aggregate_calculation_subtasks", state_query, "positive", False): 2,
+                    ("sentence_has_growth_explanatory_signal", "_uncovered_supported_growth_narrative_candidate", "cleaned", "negative", False): 1,
+                }
+            ),
+        )
+        self.assertEqual(sum(bindings.values()), 15)
+
+    def test_narrative_validation_runtime_bindings_preserve_gate_adoption_order_and_exception_stop(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        downstream = Mock(side_effect=AssertionError("query gate leaked downstream"))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "query_requests_explanatory_context",
+                return_value=False,
+            ) as query_owner,
+            patch.object(agent, "_preferred_conflicting_growth_narrative_answer", downstream),
+        ):
+            projected = agent._refresh_numeric_answer_preserving_narrative_context(
+                query="why",
+                current_answer="context",
+                numeric_answer="42%",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        self.assertEqual(projected, {"answer": "42%", "selected_claim_ids": []})
+        query_owner.assert_called_once_with("why")
+        downstream.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "query_requests_explanatory_context",
+                side_effect=RuntimeError("query owner"),
+            ),
+            patch.object(agent, "_preferred_conflicting_growth_narrative_answer", downstream),
+            self.assertRaisesRegex(RuntimeError, "query owner"),
+        ):
+            agent._refresh_numeric_answer_preserving_narrative_context(
+                query="why",
+                current_answer="context",
+                numeric_answer="42%",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        downstream.assert_not_called()
+
+        def configured_signal_agent():
+            candidate_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            candidate_agent._narrative_driver_groups = Mock(return_value=[])
+            candidate_agent._growth_narrative_sentence_candidates = Mock(
+                return_value=[((1,), "raw candidate", ["claim_1"])]
+            )
+            candidate_agent._answer_covers_narrative_context = Mock(return_value=False)
+            candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
+                return_value="cleaned candidate"
+            )
+            candidate_agent._growth_answer_has_untraced_numeric_material = Mock(return_value=False)
+            return candidate_agent
+
+        signal_owner = Mock(return_value=True)
+        candidate_agent = configured_signal_agent()
+        with patch.object(
+            financial_graph_calculation,
+            "sentence_has_growth_explanatory_signal",
+            signal_owner,
+        ):
+            candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
+                query="why",
+                answer="current answer",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        self.assertEqual(candidate, {"sentence": "cleaned candidate", "selected_claim_ids": ["claim_1"]})
+        signal_owner.assert_called_once_with("cleaned candidate")
+        self.assertEqual(candidate_agent._answer_covers_narrative_context.call_count, 2)
+        candidate_agent._growth_answer_has_untraced_numeric_material.assert_called_once_with(
+            "cleaned candidate", [], []
+        )
+
+        signal_owner = Mock(side_effect=RuntimeError("signal owner"))
+        candidate_agent = configured_signal_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "sentence_has_growth_explanatory_signal",
+                signal_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "signal owner"),
+        ):
+            candidate_agent._uncovered_supported_growth_narrative_candidate(
+                query="why",
+                answer="current answer",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        signal_owner.assert_called_once_with("cleaned candidate")
+        self.assertEqual(candidate_agent._answer_covers_narrative_context.call_count, 1)
+        candidate_agent._growth_answer_has_untraced_numeric_material.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()

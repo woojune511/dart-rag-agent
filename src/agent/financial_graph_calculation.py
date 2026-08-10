@@ -26,6 +26,8 @@ from src.agent.financial_answer_slots import (
 from src.agent.financial_answer_projection import (
     growth_row_has_conflicting_periods,
     material_gap_feedback_for_subtask_result,
+    query_requests_explanatory_context,
+    sentence_has_growth_explanatory_signal,
 )
 from src.agent.financial_aggregate_state import (
     AggregateCompositionState,
@@ -4048,39 +4050,6 @@ class FinancialAgentCalculationMixin:
             for narrative_candidate in narrative_numeric_candidates
         )
 
-    def _query_requests_explanatory_context(
-        self,
-        query: str,
-    ) -> bool:
-        text = _normalise_spaces(str(query or "")).lower()
-        if not text:
-            return False
-        explanatory_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ()))
-        return any(marker in text for marker in explanatory_markers)
-
-    def _sentence_has_growth_explanatory_signal(self, sentence: str) -> bool:
-        text = _normalise_spaces(str(sentence or ""))
-        if not text:
-            return False
-        direction_words = {
-            _normalise_spaces(str(value))
-            for value in (CALCULATION_NARRATIVE_POLICY.get("direction_words") or {}).values()
-            if _normalise_spaces(str(value))
-        }
-        markers = tuple(
-            marker
-            for marker in (
-                str(item)
-                for item in (
-                    tuple(CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
-                    + tuple(CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ())
-                    + tuple(CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ())
-                )
-            )
-            if marker and marker not in direction_words
-        )
-        return any(marker in text for marker in markers)
-
     def _answer_reuses_narrative_summary_text(
         self,
         answer: str,
@@ -4163,7 +4132,7 @@ class FinancialAgentCalculationMixin:
             )
             if (
                 not cleaned
-                or not self._sentence_has_growth_explanatory_signal(cleaned)
+                or not sentence_has_growth_explanatory_signal(cleaned)
                 or self._answer_covers_narrative_context(answer, cleaned)
                 or self._growth_answer_has_untraced_numeric_material(cleaned, ordered_results, evidence_items)
             ):
@@ -4183,7 +4152,7 @@ class FinancialAgentCalculationMixin:
         numeric_text = _normalise_spaces(str(numeric_answer or ""))
         current_answer_text = _normalise_spaces(str(current_answer or ""))
         if not any(self._row_is_narrative_summary(row) for row in ordered_results) and not (
-            current_answer_text and self._query_requests_explanatory_context(query)
+            current_answer_text and query_requests_explanatory_context(query)
         ):
             return {"answer": numeric_text, "selected_claim_ids": []}
 
@@ -4203,7 +4172,7 @@ class FinancialAgentCalculationMixin:
             return bool(sentence_text) and any(marker in sentence_text for marker in explanatory_markers)
 
         if (
-            self._query_requests_explanatory_context(query_text)
+            query_requests_explanatory_context(query_text)
             and self._answer_reuses_numeric_narrative_summary_text(current_answer_text, ordered_results)
             and _has_explanatory_signal(current_answer_text)
             and re.search(str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"$^"), current_answer_text)
@@ -4316,7 +4285,7 @@ class FinancialAgentCalculationMixin:
                 continue
             if not (
                 _has_explanatory_signal(cleaned_sentence)
-                or self._query_requests_explanatory_context(query_text)
+                or query_requests_explanatory_context(query_text)
             ):
                 continue
             if _narrative_sentence_looks_table_noisy(cleaned_sentence):
@@ -4553,7 +4522,7 @@ class FinancialAgentCalculationMixin:
                         "answer": candidate_combined_answer,
                         "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
                     }
-            if self._query_requests_explanatory_context(query_text):
+            if query_requests_explanatory_context(query_text):
                 if self._growth_answer_has_untraced_numeric_material(
                     combined_answer,
                     ordered_results,
@@ -4935,7 +4904,7 @@ class FinancialAgentCalculationMixin:
             and not supported_aggregate_answer
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
-                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                query_requests_explanatory_context(str(state.get("query") or ""))
                 and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
@@ -5396,7 +5365,7 @@ class FinancialAgentCalculationMixin:
             and has_growth_rate_result
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
-                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                query_requests_explanatory_context(str(state.get("query") or ""))
                 and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
@@ -5419,7 +5388,7 @@ class FinancialAgentCalculationMixin:
         _apply_candidate(pruned_focus_answer)
         polished_answer = _polish_korean_particle_pairs(final_answer)
         _apply_candidate(polished_answer)
-        has_growth_narrative_intent = has_narrative_summary or self._query_requests_explanatory_context(
+        has_growth_narrative_intent = has_narrative_summary or query_requests_explanatory_context(
             str(state.get("query") or "")
         )
         projection_plan = dict(aggregate_projection.get("calculation_plan") or {})
@@ -5448,7 +5417,7 @@ class FinancialAgentCalculationMixin:
                     rebuild_after_numeric_refresh=False,
                 )
                 _sync_locals()
-            if self._query_requests_explanatory_context(str(state.get("query") or "")):
+            if query_requests_explanatory_context(str(state.get("query") or "")):
                 appended_explanation = False
                 for row in ordered_results:
                     if not self._row_is_narrative_summary(row):
@@ -15192,7 +15161,7 @@ class FinancialAgentCalculationMixin:
             has_narrative_summary
             and complete_numeric_answer
             and self._complete_numeric_answer_can_replace_final(complete_numeric_answer, ordered_results)
-            and not self._query_requests_explanatory_context(str(state.get("query") or ""))
+            and not query_requests_explanatory_context(str(state.get("query") or ""))
         )
         return _PreparedAggregateState(
             ordered_results=ordered_results,
@@ -16562,7 +16531,7 @@ class FinancialAgentCalculationMixin:
             has_narrative_summary
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
-                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                query_requests_explanatory_context(str(state.get("query") or ""))
                 and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
@@ -16683,7 +16652,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=aggregate_evidence_items,
         )
         final_answer_satisfies_requested_growth_narrative = bool(
-            self._query_requests_explanatory_context(str(state.get("query") or ""))
+            query_requests_explanatory_context(str(state.get("query") or ""))
             and (
                 self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
                 or self._answer_satisfies_growth_narrative_intent(
@@ -16918,7 +16887,7 @@ class FinancialAgentCalculationMixin:
             or str(projection_plan.get("operation") or projection_result.get("operation_family") or "").strip().lower()
             == "growth_rate"
         )
-        if has_growth_material and self._query_requests_explanatory_context(str(state.get("query") or "")):
+        if has_growth_material and query_requests_explanatory_context(str(state.get("query") or "")):
             supported_candidate = self._uncovered_supported_growth_narrative_candidate(
                 query=str(state.get("query") or ""),
                 answer=final_answer,
@@ -16954,7 +16923,7 @@ class FinancialAgentCalculationMixin:
             and self._has_strong_growth_trace_for_answer_refresh(ordered_results)
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
-                self._query_requests_explanatory_context(str(state.get("query") or ""))
+                query_requests_explanatory_context(str(state.get("query") or ""))
                 and (
                     self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
                     or self._answer_satisfies_growth_narrative_intent(
@@ -17039,7 +17008,7 @@ class FinancialAgentCalculationMixin:
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
             _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         if self._has_strong_growth_trace_for_answer_refresh(ordered_results) and not (
-            self._query_requests_explanatory_context(str(state.get("query") or ""))
+            query_requests_explanatory_context(str(state.get("query") or ""))
             and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
         ):
             trace_clean_growth_answer = self._final_growth_answer_without_untraced_numeric_sentences(

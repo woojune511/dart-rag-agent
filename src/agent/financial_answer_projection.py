@@ -16,7 +16,39 @@ from src.agent.financial_answer_slots import (
     period_match_key,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY
+from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY
+
+
+def query_requests_explanatory_context(query: str) -> bool:
+    text = _normalise_spaces(str(query or "")).lower()
+    if not text:
+        return False
+    explanatory_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ()))
+    return any(marker in text for marker in explanatory_markers)
+
+
+def sentence_has_growth_explanatory_signal(sentence: str) -> bool:
+    text = _normalise_spaces(str(sentence or ""))
+    if not text:
+        return False
+    direction_words = {
+        _normalise_spaces(str(value))
+        for value in (CALCULATION_NARRATIVE_POLICY.get("direction_words") or {}).values()
+        if _normalise_spaces(str(value))
+    }
+    markers = tuple(
+        marker
+        for marker in (
+            str(item)
+            for item in (
+                tuple(CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
+                + tuple(CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ())
+                + tuple(CALCULATION_NARRATIVE_POLICY.get("explanatory_markers") or ())
+            )
+        )
+        if marker and marker not in direction_words
+    )
+    return any(marker in text for marker in markers)
 
 
 def growth_row_has_conflicting_periods(row: Dict[str, Any]) -> bool:
