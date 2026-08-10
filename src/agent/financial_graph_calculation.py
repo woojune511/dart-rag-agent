@@ -26,7 +26,10 @@ from src.agent.financial_answer_slots import (
 from src.agent.financial_answer_projection import (
     answer_covers_narrative_context,
     answer_looks_truncated,
+    growth_answer_has_untraced_numeric_sentence,
     growth_row_has_conflicting_periods,
+    growth_sentence_has_untraced_material_numeric,
+    growth_uses_source_stated_result,
     material_gap_feedback_for_subtask_result,
     query_requests_explanatory_context,
     sentence_has_growth_explanatory_signal,
@@ -3252,22 +3255,6 @@ class FinancialAgentCalculationMixin:
         ]
         return list(dict.fromkeys(value for value in required_values if value))
 
-    def _growth_uses_source_stated_result(self, row: Dict[str, Any]) -> bool:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        current_slot = dict(answer_slots.get("current_value") or {})
-        if dict(calculation_result.get("derived_metrics") or {}).get("source_stated_result_used"):
-            return True
-        if _normalise_spaces(str(current_slot.get("stated_change_raw_value") or "")):
-            return True
-        operands = list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or [])
-        return any(
-            str(operand.get("matched_operand_role") or operand.get("role") or "").strip() == "current_period"
-            and _normalise_spaces(str(operand.get("stated_change_raw_value") or ""))
-            for operand in operands
-            if isinstance(operand, dict)
-        )
-
     def _compose_complete_growth_numeric_answer(
         self,
         row: Dict[str, Any],
@@ -3392,7 +3379,7 @@ class FinancialAgentCalculationMixin:
             if (
                 required_values
                 and all(value in answer_text for value in required_values)
-                and not self._growth_answer_has_untraced_numeric_sentence(
+                and not growth_answer_has_untraced_numeric_sentence(
                     answer_text,
                     complete_answer,
                     required_values,
@@ -3406,7 +3393,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 if any(value and value in cleaned for value in required_values):
                     continue
-                if self._growth_sentence_has_untraced_material_numeric(
+                if growth_sentence_has_untraced_material_numeric(
                     cleaned,
                     complete_answer,
                     required_values,
@@ -3531,7 +3518,7 @@ class FinancialAgentCalculationMixin:
                 continue
             if growth_row_has_conflicting_periods(row):
                 continue
-            if not self._growth_uses_source_stated_result(row):
+            if not growth_uses_source_stated_result(row):
                 continue
             complete_answer = self._compose_complete_growth_numeric_answer(
                 row,
@@ -3548,7 +3535,7 @@ class FinancialAgentCalculationMixin:
             if (
                 required_values
                 and all(value in answer_text for value in required_values)
-                and not self._growth_answer_has_untraced_numeric_sentence(
+                and not growth_answer_has_untraced_numeric_sentence(
                     answer_text,
                     complete_answer,
                     required_values,
@@ -3562,7 +3549,7 @@ class FinancialAgentCalculationMixin:
                     continue
                 if any(value and value in cleaned for value in required_values):
                     continue
-                if self._growth_sentence_has_untraced_material_numeric(
+                if growth_sentence_has_untraced_material_numeric(
                     cleaned,
                     complete_answer,
                     required_values,
@@ -3663,68 +3650,6 @@ class FinancialAgentCalculationMixin:
             return False
         return True
 
-    def _growth_sentence_has_untraced_material_numeric(
-        self,
-        sentence: str,
-        complete_answer: str,
-        required_values: List[str],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> bool:
-        cleaned = _normalise_spaces(str(sentence or ""))
-        if not cleaned:
-            return False
-        evidence_surface = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for item in (evidence_items or [])
-                if isinstance(item, dict)
-                for metadata in [dict(item.get("metadata") or {})]
-                for value in [
-                    *(item.get(key) for key in ("claim", "quote_span", "raw_row_text", "source_context")),
-                    *(
-                        metadata.get(key)
-                        for key in (
-                            "table_value_labels_text",
-                            "table_summary_text",
-                            "table_header_context",
-                            "table_context",
-                        )
-                    ),
-                ]
-            )
-        )
-        evidence_display_surface = _normalise_spaces(
-            " ".join(
-                str(candidate.get("text") or "")
-                for candidate in evidence_numeric_display_candidates(evidence_items or [], evidence_surface)
-                if str(candidate.get("text") or "").strip()
-            )
-        )
-        allowed_surface = _normalise_spaces(
-            " ".join([str(complete_answer or ""), *required_values, evidence_surface, evidence_display_surface])
-        )
-        if not allowed_surface:
-            return False
-        percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or "")
-        if percent_pattern:
-            for match in re.finditer(percent_pattern, cleaned):
-                token = _normalise_spaces(match.group(0))
-                if token and token not in allowed_surface:
-                    return True
-        render_policy = dict(CALCULATION_RENDER_POLICY)
-        unit_terms = [
-            _normalise_spaces(str(unit))
-            for unit in (render_policy.get("krw_display_units") or ())
-            if _normalise_spaces(str(unit))
-        ]
-        for unit in unit_terms:
-            pattern = rf"\d[\d,]*(?:\.\d+)?\s*{re.escape(unit)}"
-            for match in re.finditer(pattern, cleaned):
-                token = _normalise_spaces(match.group(0))
-                if token and token not in allowed_surface:
-                    return True
-        return False
-
     def _strip_untraced_numeric_material_from_growth_narrative_sentence(
         self,
         sentence: str,
@@ -3760,7 +3685,7 @@ class FinancialAgentCalculationMixin:
             return ""
 
         has_untraced_numeric = any(
-            self._growth_sentence_has_untraced_material_numeric(
+            growth_sentence_has_untraced_material_numeric(
                 cleaned,
                 complete_answer,
                 required_values,
@@ -3806,7 +3731,7 @@ class FinancialAgentCalculationMixin:
         if not sanitized or sanitized == cleaned:
             return ""
         if any(
-            self._growth_sentence_has_untraced_material_numeric(
+            growth_sentence_has_untraced_material_numeric(
                 sanitized,
                 complete_answer,
                 required_values,
@@ -3834,29 +3759,6 @@ class FinancialAgentCalculationMixin:
             return ""
         return sanitized
 
-    def _growth_answer_has_untraced_numeric_sentence(
-        self,
-        answer: str,
-        complete_answer: str,
-        required_values: List[str],
-    ) -> bool:
-        answer_text = _normalise_spaces(str(answer or ""))
-        complete_text = _normalise_spaces(str(complete_answer or ""))
-        allowed_surface = _normalise_spaces(" ".join([complete_text, *required_values]))
-        if not answer_text or not allowed_surface:
-            return False
-        number_pattern = re.compile(r"\d[\d,]*(?:\.\d+)?%?")
-        for sentence in _split_narrative_sentences(answer_text):
-            cleaned = _normalise_spaces(sentence)
-            if not cleaned or cleaned in complete_text:
-                continue
-            if not any(value and value in cleaned for value in required_values):
-                continue
-            numeric_tokens = [match.group(0) for match in number_pattern.finditer(cleaned)]
-            if any(token and token not in allowed_surface for token in numeric_tokens):
-                return True
-        return False
-
     def _growth_answer_has_untraced_numeric_material(
         self,
         answer: str,
@@ -3875,10 +3777,10 @@ class FinancialAgentCalculationMixin:
             required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
             if not complete_answer or not required_values:
                 continue
-            if self._growth_answer_has_untraced_numeric_sentence(answer_text, complete_answer, required_values):
+            if growth_answer_has_untraced_numeric_sentence(answer_text, complete_answer, required_values):
                 return True
             for sentence in _split_narrative_sentences(answer_text):
-                if self._growth_sentence_has_untraced_material_numeric(
+                if growth_sentence_has_untraced_material_numeric(
                     sentence,
                     complete_answer,
                     required_values,
@@ -8345,7 +8247,7 @@ class FinancialAgentCalculationMixin:
                 if complete_answer and (cleaned in complete_answer or complete_answer in cleaned):
                     return True
                 required_hits = [value for value in required_values if value and value in cleaned]
-                if required_hits and not self._growth_sentence_has_untraced_material_numeric(
+                if required_hits and not growth_sentence_has_untraced_material_numeric(
                     cleaned,
                     complete_answer,
                     required_values,
@@ -9297,7 +9199,7 @@ class FinancialAgentCalculationMixin:
             cleaned = _normalise_spaces(sentence)
             if not cleaned:
                 return False
-            if self._growth_sentence_has_untraced_material_numeric(
+            if growth_sentence_has_untraced_material_numeric(
                 cleaned,
                 allowed_narrative_numeric_surface,
                 required_values,

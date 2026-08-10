@@ -2679,5 +2679,732 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
         candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence.assert_not_called()
 
 
+class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
+    def test_source_stated_result_preserves_copy_precedence_fallback_and_exceptions(self) -> None:
+        owner = financial_answer_projection.growth_uses_source_stated_result
+        copy_events = []
+
+        class CopyOnlyMapping(Mapping):
+            def __init__(self, label, values):
+                self.label = label
+                self.values = dict(values)
+
+            def __iter__(self):
+                copy_events.append(("copy", self.label))
+                return iter(self.values)
+
+            def __len__(self):
+                return len(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, _key, _default=None):
+                raise AssertionError(f"{self.label} used before shallow copy")
+
+        current_slot = CopyOnlyMapping("current", {"stated_change_raw_value": "unused"})
+        answer_slots = CopyOnlyMapping("slots", {"current_value": current_slot})
+        derived_metrics = CopyOnlyMapping("derived", {"source_stated_result_used": True})
+        calculation_result = CopyOnlyMapping(
+            "calculation",
+            {"answer_slots": answer_slots, "derived_metrics": derived_metrics},
+        )
+        row = {"calculation_result": calculation_result, "nested": {"preserve": True}}
+        before = deepcopy(row)
+        with patch.object(
+            financial_answer_projection,
+            "_normalise_spaces",
+            side_effect=AssertionError("derived flag leaked to raw-value normalization"),
+        ):
+            self.assertTrue(owner(row))
+        self.assertEqual(
+            [event for event in copy_events if event[0] == "copy"],
+            [("copy", "calculation"), ("copy", "slots"), ("copy", "current"), ("copy", "derived")],
+        )
+        self.assertEqual(row, before)
+
+        class ResultFallbackBomb(dict):
+            def get(self, key, default=None):
+                if key == "calculation_operands":
+                    raise AssertionError("result operand fallback accessed")
+                return super().get(key, default)
+
+        normalize = Mock(side_effect=lambda value: " ".join(str(value).split()))
+        row = {
+            "calculation_result": ResultFallbackBomb(
+                {
+                    "answer_slots": {"current_value": {"stated_change_raw_value": ""}},
+                    "derived_metrics": {},
+                }
+            ),
+            "calculation_operands": [
+                {
+                    "matched_operand_role": "prior_period",
+                    "role": "current_period",
+                    "stated_change_raw_value": "must stay ignored",
+                },
+                "skip non-dict",
+                {"matched_operand_role": "", "role": "current_period", "stated_change_raw_value": " 7% "},
+                {"matched_operand_role": "current_period", "stated_change_raw_value": "later"},
+            ],
+        }
+        before = deepcopy(row)
+        with patch.object(financial_answer_projection, "_normalise_spaces", normalize):
+            self.assertTrue(owner(row))
+        self.assertEqual(normalize.call_args_list, [unittest.mock.call(""), unittest.mock.call(" 7% ")])
+        self.assertEqual(row, before)
+
+        class OperandLazyRow(dict):
+            def get(self, key, default=None):
+                if key == "calculation_operands":
+                    raise AssertionError("truthy current raw value reached operands")
+                return super().get(key, default)
+
+        row = OperandLazyRow(
+            {
+                "calculation_result": {
+                    "answer_slots": {"current_value": {"stated_change_raw_value": " source 8% "}},
+                    "derived_metrics": {},
+                }
+            }
+        )
+        with patch.object(financial_answer_projection, "_normalise_spaces", side_effect=lambda value: str(value).strip()):
+            self.assertTrue(owner(row))
+
+        class RoleAccessBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("operand role accessed before list materialization completed")
+
+        class OperandIterable:
+            def __iter__(self):
+                yield RoleAccessBomb()
+                raise RuntimeError("operand materialization")
+
+        row = {
+            "calculation_result": {
+                "answer_slots": {"current_value": {}},
+                "derived_metrics": {},
+            },
+            "calculation_operands": OperandIterable(),
+        }
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=lambda value: str(value).strip()),
+            self.assertRaisesRegex(RuntimeError, "operand materialization"),
+        ):
+            owner(row)
+
+        row = {
+            "calculation_result": {
+                "answer_slots": {"current_value": {}},
+                "derived_metrics": {},
+                "calculation_operands": [
+                    {"matched_operand_role": "current_period", "stated_change_raw_value": "fallback"}
+                ],
+            },
+            "calculation_operands": [],
+        }
+        with patch.object(financial_answer_projection, "_normalise_spaces", side_effect=lambda value: str(value).strip()):
+            self.assertTrue(owner(row))
+
+        class RowGetBomb(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("row get")
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("raw bool")
+
+        class StrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("raw str")
+
+        with self.assertRaisesRegex(RuntimeError, "row get"):
+            owner(RowGetBomb())
+        for raw_value, message in ((BoolBomb(), "raw bool"), (StrBomb(), "raw str")):
+            row = {
+                "calculation_result": {
+                    "answer_slots": {"current_value": {"stated_change_raw_value": raw_value}},
+                    "derived_metrics": {},
+                }
+            }
+            with self.subTest(message=message), self.assertRaisesRegex(RuntimeError, message):
+                owner(row)
+        row = {
+            "calculation_result": {
+                "answer_slots": {"current_value": {"stated_change_raw_value": "value"}},
+                "derived_metrics": {},
+            }
+        }
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=RuntimeError("normalize")),
+            self.assertRaisesRegex(RuntimeError, "normalize"),
+        ):
+            owner(row)
+
+    def test_untraced_sentence_guard_preserves_evidence_display_percent_krw_order_and_exceptions(self) -> None:
+        owner = financial_answer_projection.growth_sentence_has_untraced_material_numeric
+
+        def normalize(value):
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection,
+                "evidence_numeric_display_candidates",
+                side_effect=AssertionError("blank sentence reached evidence display"),
+            ),
+        ):
+            self.assertFalse(owner("   ", "", []))
+
+        metadata_values = {
+            "table_value_labels_text": "meta labels",
+            "table_summary_text": "meta summary",
+            "table_header_context": "meta header",
+            "table_context": "meta context",
+        }
+        metadata_copy_events = []
+
+        class SnapshotMetadata(Mapping):
+            def __iter__(self):
+                metadata_copy_events.append("copy")
+                return iter(metadata_values)
+
+            def __len__(self):
+                return len(metadata_values)
+
+            def __getitem__(self, key):
+                return metadata_values[key]
+
+            def get(self, _key, _default=None):
+                raise AssertionError("metadata used without dict snapshot")
+
+            def __deepcopy__(self, _memo):
+                return self
+
+        metadata = SnapshotMetadata()
+        evidence_items = [
+            {
+                "claim": "claim 3억원",
+                "quote_span": "quote",
+                "raw_row_text": "raw row",
+                "source_context": "source context",
+                "metadata": metadata,
+            }
+        ]
+        before = deepcopy(evidence_items)
+        candidate_get_events = []
+
+        class DisplayCandidate:
+            def __init__(self, label, text):
+                self.label = label
+                self.text = text
+
+            def get(self, key, default=None):
+                candidate_get_events.append((self.label, key))
+                return self.text if key == "text" else default
+
+        display_candidates = Mock(
+            return_value=[DisplayCandidate("retained", "99%"), DisplayCandidate("blank", "")]
+        )
+        evidence_normalizer = Mock(side_effect=normalize)
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", evidence_normalizer),
+            patch.object(financial_answer_projection, "evidence_numeric_display_candidates", display_candidates),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"percent_display_pattern": r"\d+%"},
+            ),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_RENDER_POLICY",
+                {"krw_display_units": ["억원", "원"]},
+            ),
+        ):
+            self.assertFalse(owner("99% 3억원", "complete", ["required A", "required B"], evidence_items))
+        display_candidates.assert_called_once_with(
+            evidence_items,
+            "claim 3억원 quote raw row source context meta labels meta summary meta header meta context",
+        )
+        self.assertEqual(metadata_copy_events, ["copy"])
+        self.assertEqual(
+            candidate_get_events,
+            [("retained", "text"), ("retained", "text"), ("blank", "text")],
+        )
+        self.assertIn(
+            unittest.mock.call(
+                "complete required A required B claim 3억원 quote raw row source context meta labels meta summary meta header meta context 99%"
+            ),
+            evidence_normalizer.call_args_list,
+        )
+        self.assertEqual(evidence_items, before)
+
+        class RenderPolicyBomb(Mapping):
+            def __iter__(self):
+                raise AssertionError("unallowed percent reached render policy")
+
+            def __len__(self):
+                return 0
+
+            def __getitem__(self, _key):
+                raise KeyError
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "evidence_numeric_display_candidates", return_value=[]),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"percent_display_pattern": r"\d+%"},
+            ),
+            patch.object(financial_answer_projection, "CALCULATION_RENDER_POLICY", RenderPolicyBomb()),
+        ):
+            self.assertTrue(owner("77%", "10%", []))
+
+        events = []
+        unit_normalize_inputs = []
+
+        class Match:
+            def __init__(self, token):
+                self.token = token
+
+            def group(self, index):
+                events.append(("group", self.token, index))
+                return self.token
+
+        def finditer(pattern, cleaned):
+            events.append(("finditer", pattern, cleaned))
+            if pattern == "PERCENT":
+                return [Match("10%")]
+            if "억원" in pattern:
+                return [Match("3억원")]
+            if "원" in pattern:
+                return [Match("4원")]
+            if "천원" in pattern:
+                raise AssertionError("later unit scanned after first unallowed unit")
+            raise AssertionError(pattern)
+
+        def unit_normalize(value):
+            unit_normalize_inputs.append(value)
+            return normalize(value)
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=unit_normalize),
+            patch.object(financial_answer_projection, "evidence_numeric_display_candidates", return_value=[]),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"percent_display_pattern": "PERCENT"},
+            ),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_RENDER_POLICY",
+                {"krw_display_units": ["억원", "  ", "원", "천원"]},
+            ),
+            patch.object(financial_answer_projection.re, "finditer", side_effect=finditer),
+        ):
+            self.assertTrue(owner("10% 3억원 4원", "10% 3억원", []))
+        self.assertEqual(
+            [event for event in events if event[0] == "finditer"],
+            [
+                ("finditer", "PERCENT", "10% 3억원 4원"),
+                ("finditer", r"\d[\d,]*(?:\.\d+)?\s*억원", "10% 3억원 4원"),
+                ("finditer", r"\d[\d,]*(?:\.\d+)?\s*원", "10% 3억원 4원"),
+            ],
+        )
+        self.assertEqual(unit_normalize_inputs.count("억원"), 2)
+        self.assertEqual(unit_normalize_inputs.count("  "), 1)
+        self.assertEqual(unit_normalize_inputs.count("원"), 2)
+        self.assertEqual(unit_normalize_inputs.count("천원"), 2)
+
+        class PolicyGetBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("empty allowed surface reached policy")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "evidence_numeric_display_candidates", return_value=[]),
+            patch.object(financial_answer_projection, "CALCULATION_NARRATIVE_POLICY", PolicyGetBomb()),
+        ):
+            self.assertFalse(owner("narrative", "", []))
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection,
+                "evidence_numeric_display_candidates",
+                side_effect=RuntimeError("display helper"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "display helper"),
+        ):
+            owner("10%", "10%", [], [])
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "evidence_numeric_display_candidates", return_value=[]),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"percent_display_pattern": "PERCENT"},
+            ),
+            patch.object(financial_answer_projection.re, "finditer", side_effect=RuntimeError("finditer")),
+            self.assertRaisesRegex(RuntimeError, "finditer"),
+        ):
+            owner("10%", "10%", [])
+
+        class MatchGroupBomb:
+            def group(self, _index):
+                raise RuntimeError("match group")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "evidence_numeric_display_candidates", return_value=[]),
+            patch.object(
+                financial_answer_projection,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"percent_display_pattern": "PERCENT"},
+            ),
+            patch.object(financial_answer_projection.re, "finditer", return_value=[MatchGroupBomb()]),
+            self.assertRaisesRegex(RuntimeError, "match group"),
+        ):
+            owner("10%", "10%", [])
+
+    def test_untraced_answer_guard_preserves_sentence_required_token_order_laziness_and_exceptions(self) -> None:
+        owner = financial_answer_projection.growth_answer_has_untraced_numeric_sentence
+        normalize_events = []
+
+        def normalize(value):
+            normalize_events.append(value)
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection.re,
+                "compile",
+                side_effect=AssertionError("blank answer reached compile"),
+            ),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                side_effect=AssertionError("blank answer reached splitter"),
+            ),
+        ):
+            self.assertFalse(owner("   ", "complete", ["required"]))
+        self.assertEqual(normalize_events, ["   ", "complete", "complete required"])
+
+        pattern_events = []
+
+        class TokenBoolBomb:
+            label = "88%"
+
+            def __bool__(self):
+                raise AssertionError("later materialized token inspected after first unallowed token")
+
+        class Match:
+            def __init__(self, token):
+                self.token = token
+
+            def group(self, index):
+                pattern_events.append(("group", getattr(self.token, "label", self.token), index))
+                return self.token
+
+        class Pattern:
+            def finditer(self, sentence):
+                pattern_events.append(("finditer", sentence))
+                if sentence == "required detail 10%":
+                    return [Match("10%")]
+                if sentence == "required detail 77% 88%":
+                    return [Match("77%"), Match(TokenBoolBomb())]
+                raise AssertionError(sentence)
+
+        class LaterSentenceBomb:
+            def __str__(self):
+                raise AssertionError("later sentence accessed after untraced token")
+
+        compiled = Mock(return_value=Pattern())
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection.re, "compile", compiled),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                return_value=[
+                    " ",
+                    "required 10%",
+                    "unrelated 999%",
+                    "required detail 10%",
+                    "required detail 77% 88%",
+                    LaterSentenceBomb(),
+                ],
+            ),
+        ):
+            self.assertTrue(owner("answer", "required 10%", ["required", "10%"]))
+        compiled.assert_called_once_with(r"\d[\d,]*(?:\.\d+)?%?")
+        self.assertEqual(
+            pattern_events,
+            [
+                ("finditer", "required detail 10%"),
+                ("group", "10%", 0),
+                ("finditer", "required detail 77% 88%"),
+                ("group", "77%", 0),
+                ("group", "88%", 0),
+            ],
+        )
+
+        class EmptyPattern:
+            def finditer(self, sentence):
+                self.sentence = sentence
+                return []
+
+        empty_pattern = EmptyPattern()
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection.re, "compile", return_value=empty_pattern),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                return_value=["required narrative without numeric token"],
+            ),
+        ):
+            self.assertFalse(owner("answer", "complete", ["required"]))
+        self.assertEqual(empty_pattern.sentence, "required narrative without numeric token")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection.re,
+                "compile",
+                side_effect=AssertionError("empty allowed surface reached compile"),
+            ),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                side_effect=AssertionError("empty allowed surface reached splitter"),
+            ),
+        ):
+            self.assertFalse(owner("answer", "", []))
+
+        class IterableBomb:
+            def __iter__(self):
+                raise RuntimeError("sentence iteration")
+
+        with (
+            self.assertRaisesRegex(RuntimeError, "sentence iteration"),
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection.re, "compile", return_value=Pattern()),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=IterableBomb()),
+        ):
+            owner("answer", "complete", ["required"])
+        with (
+            self.assertRaisesRegex(RuntimeError, "compile"),
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection.re, "compile", side_effect=RuntimeError("compile")),
+        ):
+            owner("answer", "complete", ["required"])
+
+    def test_trace_guard_bindings_preserve_all_eleven_args_polarities_adoption_and_exception_stop(self) -> None:
+        tree = ast.parse(inspect.getsource(financial_graph_calculation.FinancialAgentCalculationMixin))
+        parents = {}
+        for parent in ast.walk(tree):
+            for child in ast.iter_child_nodes(parent):
+                parents[child] = parent
+        names = {
+            "growth_uses_source_stated_result",
+            "growth_sentence_has_untraced_material_numeric",
+            "growth_answer_has_untraced_numeric_sentence",
+        }
+        bindings = Counter()
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in names
+            ):
+                continue
+            cursor = node
+            negative = False
+            inside_try = False
+            caller = None
+            while cursor in parents:
+                cursor = parents[cursor]
+                if isinstance(cursor, ast.UnaryOp) and isinstance(cursor.op, ast.Not):
+                    negative = not negative
+                if isinstance(cursor, ast.Try):
+                    inside_try = True
+                if isinstance(cursor, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    caller = cursor.name
+                    break
+            bindings[
+                (
+                    node.func.id,
+                    caller,
+                    tuple(ast.unparse(arg) for arg in node.args),
+                    "negative" if negative else "positive",
+                    inside_try,
+                )
+            ] += 1
+        sentence = "growth_sentence_has_untraced_material_numeric"
+        answer = "growth_answer_has_untraced_numeric_sentence"
+        self.assertEqual(
+            bindings,
+            Counter(
+                {
+                    ("growth_uses_source_stated_result", "_enforce_source_stated_growth_answer_contract", ("row",), "negative", False): 1,
+                    (answer, "_ensure_complete_growth_numeric_answer", ("answer_text", "complete_answer", "required_values"), "negative", False): 1,
+                    (answer, "_enforce_source_stated_growth_answer_contract", ("answer_text", "complete_answer", "required_values"), "negative", False): 1,
+                    (answer, "_growth_answer_has_untraced_numeric_material", ("answer_text", "complete_answer", "required_values"), "positive", False): 1,
+                    (sentence, "_ensure_complete_growth_numeric_answer", ("cleaned", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
+                    (sentence, "_enforce_source_stated_growth_answer_contract", ("cleaned", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
+                    (sentence, "_strip_untraced_numeric_material_from_growth_narrative_sentence", ("cleaned", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
+                    (sentence, "_strip_untraced_numeric_material_from_growth_narrative_sentence", ("sanitized", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
+                    (sentence, "_growth_answer_has_untraced_numeric_material", ("sentence", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
+                    (sentence, "_is_growth_supported_sentence", ("cleaned", "complete_answer", "required_values", "evidence_items"), "negative", False): 1,
+                    (sentence, "_is_supported_sentence", ("cleaned", "allowed_narrative_numeric_surface", "required_values", "evidence_items"), "positive", False): 1,
+                }
+            ),
+        )
+        self.assertEqual(sum(bindings.values()), 11)
+
+        row = {"row": 1}
+        for result in (False, True):
+            agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            source_owner = Mock(return_value=result)
+            agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+            agent._compose_complete_growth_numeric_answer = Mock(
+                side_effect=RuntimeError("source gate continued")
+            )
+            with (
+                patch.object(
+                    financial_graph_calculation,
+                    "growth_uses_source_stated_result",
+                    source_owner,
+                ),
+                patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            ):
+                if result:
+                    with self.assertRaisesRegex(RuntimeError, "source gate continued"):
+                        agent._enforce_source_stated_growth_answer_contract("answer", [row], [])
+                else:
+                    self.assertEqual(
+                        agent._enforce_source_stated_growth_answer_contract("answer", [row], []),
+                        "answer",
+                    )
+            source_owner.assert_called_once_with(row)
+            if result:
+                agent._compose_complete_growth_numeric_answer.assert_called_once()
+            else:
+                agent._compose_complete_growth_numeric_answer.assert_not_called()
+
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        source_owner = Mock(side_effect=RuntimeError("source owner"))
+        agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+        agent._compose_complete_growth_numeric_answer = Mock(
+            side_effect=AssertionError("source exception leaked downstream")
+        )
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "growth_uses_source_stated_result",
+                source_owner,
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            self.assertRaisesRegex(RuntimeError, "source owner"),
+        ):
+            agent._enforce_source_stated_growth_answer_contract("answer", [row], [])
+        agent._compose_complete_growth_numeric_answer.assert_not_called()
+
+        def configured_material_agent():
+            agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+            agent._compose_complete_growth_numeric_answer = Mock(return_value="complete 10%")
+            agent._growth_required_display_values = Mock(return_value=["10%"])
+            return agent
+
+        answer_owner = Mock(return_value=True)
+        sentence_owner = Mock(side_effect=AssertionError("answer guard failed to short-circuit sentence guard"))
+        agent = configured_material_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_sentence",
+                answer_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_sentence_has_untraced_material_numeric",
+                sentence_owner,
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+        ):
+            self.assertTrue(agent._growth_answer_has_untraced_numeric_material("answer", [row], []))
+        answer_owner.assert_called_once_with("answer", "complete 10%", ["10%"])
+        sentence_owner.assert_not_called()
+
+        answer_owner = Mock(return_value=False)
+        sentence_owner = Mock(return_value=True)
+        agent = configured_material_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_sentence",
+                answer_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_sentence_has_untraced_material_numeric",
+                sentence_owner,
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["sentence"]),
+        ):
+            self.assertTrue(agent._growth_answer_has_untraced_numeric_material("answer", [row], []))
+        sentence_owner.assert_called_once_with("sentence", "complete 10%", ["10%"], [])
+
+        answer_owner = Mock(side_effect=RuntimeError("answer owner"))
+        sentence_owner = Mock(side_effect=AssertionError("answer exception leaked to sentence guard"))
+        agent = configured_material_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_sentence",
+                answer_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_sentence_has_untraced_material_numeric",
+                sentence_owner,
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            self.assertRaisesRegex(RuntimeError, "answer owner"),
+        ):
+            agent._growth_answer_has_untraced_numeric_material("answer", [row], [])
+        sentence_owner.assert_not_called()
+
+        answer_owner = Mock(return_value=False)
+        sentence_owner = Mock(side_effect=RuntimeError("sentence owner"))
+        agent = configured_material_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_sentence",
+                answer_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_sentence_has_untraced_material_numeric",
+                sentence_owner,
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["sentence"]),
+            self.assertRaisesRegex(RuntimeError, "sentence owner"),
+        ):
+            agent._growth_answer_has_untraced_numeric_material("answer", [row], [])
+        sentence_owner.assert_called_once_with("sentence", "complete 10%", ["10%"], [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -8,16 +8,21 @@ question, or metric-specific branches.
 """
 
 import re
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_answer_slots import (
     answer_slot_has_material,
     answer_slot_period_hint,
     period_match_key,
 )
+from src.agent.financial_numeric_surface import evidence_numeric_display_candidates
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_text_surface import split_narrative_sentences
-from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY
+from src.config.retrieval_policy import (
+    CALCULATION_FEEDBACK_POLICY,
+    CALCULATION_NARRATIVE_POLICY,
+    CALCULATION_RENDER_POLICY,
+)
 
 
 def query_requests_explanatory_context(query: str) -> bool:
@@ -86,6 +91,108 @@ def answer_covers_narrative_context(answer: str, context: str) -> bool:
         if covered / max(len(tokens), 1) < 0.75:
             return False
     return True
+
+
+def growth_uses_source_stated_result(row: Dict[str, Any]) -> bool:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    current_slot = dict(answer_slots.get("current_value") or {})
+    if dict(calculation_result.get("derived_metrics") or {}).get("source_stated_result_used"):
+        return True
+    if _normalise_spaces(str(current_slot.get("stated_change_raw_value") or "")):
+        return True
+    operands = list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or [])
+    return any(
+        str(operand.get("matched_operand_role") or operand.get("role") or "").strip() == "current_period"
+        and _normalise_spaces(str(operand.get("stated_change_raw_value") or ""))
+        for operand in operands
+        if isinstance(operand, dict)
+    )
+
+
+def growth_sentence_has_untraced_material_numeric(
+    sentence: str,
+    complete_answer: str,
+    required_values: List[str],
+    evidence_items: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    cleaned = _normalise_spaces(str(sentence or ""))
+    if not cleaned:
+        return False
+    evidence_surface = _normalise_spaces(
+        " ".join(
+            str(value or "")
+            for item in (evidence_items or [])
+            if isinstance(item, dict)
+            for metadata in [dict(item.get("metadata") or {})]
+            for value in [
+                *(item.get(key) for key in ("claim", "quote_span", "raw_row_text", "source_context")),
+                *(
+                    metadata.get(key)
+                    for key in (
+                        "table_value_labels_text",
+                        "table_summary_text",
+                        "table_header_context",
+                        "table_context",
+                    )
+                ),
+            ]
+        )
+    )
+    evidence_display_surface = _normalise_spaces(
+        " ".join(
+            str(candidate.get("text") or "")
+            for candidate in evidence_numeric_display_candidates(evidence_items or [], evidence_surface)
+            if str(candidate.get("text") or "").strip()
+        )
+    )
+    allowed_surface = _normalise_spaces(
+        " ".join([str(complete_answer or ""), *required_values, evidence_surface, evidence_display_surface])
+    )
+    if not allowed_surface:
+        return False
+    percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or "")
+    if percent_pattern:
+        for match in re.finditer(percent_pattern, cleaned):
+            token = _normalise_spaces(match.group(0))
+            if token and token not in allowed_surface:
+                return True
+    render_policy = dict(CALCULATION_RENDER_POLICY)
+    unit_terms = [
+        _normalise_spaces(str(unit))
+        for unit in (render_policy.get("krw_display_units") or ())
+        if _normalise_spaces(str(unit))
+    ]
+    for unit in unit_terms:
+        pattern = rf"\d[\d,]*(?:\.\d+)?\s*{re.escape(unit)}"
+        for match in re.finditer(pattern, cleaned):
+            token = _normalise_spaces(match.group(0))
+            if token and token not in allowed_surface:
+                return True
+    return False
+
+
+def growth_answer_has_untraced_numeric_sentence(
+    answer: str,
+    complete_answer: str,
+    required_values: List[str],
+) -> bool:
+    answer_text = _normalise_spaces(str(answer or ""))
+    complete_text = _normalise_spaces(str(complete_answer or ""))
+    allowed_surface = _normalise_spaces(" ".join([complete_text, *required_values]))
+    if not answer_text or not allowed_surface:
+        return False
+    number_pattern = re.compile(r"\d[\d,]*(?:\.\d+)?%?")
+    for sentence in split_narrative_sentences(answer_text):
+        cleaned = _normalise_spaces(sentence)
+        if not cleaned or cleaned in complete_text:
+            continue
+        if not any(value and value in cleaned for value in required_values):
+            continue
+        numeric_tokens = [match.group(0) for match in number_pattern.finditer(cleaned)]
+        if any(token and token not in allowed_surface for token in numeric_tokens):
+            return True
+    return False
 
 
 def growth_row_has_conflicting_periods(row: Dict[str, Any]) -> bool:
