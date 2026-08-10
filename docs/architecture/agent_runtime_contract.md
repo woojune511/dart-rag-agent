@@ -1352,6 +1352,73 @@ and final orchestration remain graph/planning-owned. These owner moves make no
 behavior, ranking, accuracy, performance, total-code, executed-path, or Phase 3
 completion claim.
 
+Ratio presentation policy is public in
+`financial_graph_calculation_rendering.py`.
+`infer_concept_ratio_result_unit(query, metric_label, operation_family)`
+normalizes the operation family first and returns `""` for anything other than
+exact `ratio` before query, label, or policy access. The ratio path normalizes the
+combined query/label surface, snapshots `CONCEPT_RATIO_RESULT_UNIT_POLICY`, and
+materializes multiplier markers before percent markers. A multiplier marker with
+no percent marker selects the configured multiplier unit; every other ratio path
+selects the configured percent unit.
+
+`ratio_query_requests_absolute_magnitude(query)` normalizes and lowercases the
+query, then fully materializes the normalized, lowercased, nonblank marker tuple
+even for a blank query. Its return then tests query text, marker-tuple truthiness,
+and ordered containment with the existing short-circuiting.
+`ratio_result_projection(...)` calls the unit owner first, applies the percent
+fallback, then reads the multiplier unit. It divides once into either raw
+multiplier/`COUNT` or percent-scaled/`PERCENT` output, applies absolute magnitude
+only to a negative result with matching query intent, and builds result value,
+unit, normalized unit, then rendered value in that order. Zero division and all
+normalization, policy, iteration, containment, formatting, and other exceptions
+remain uncaught. Two calls are owner-local; eight remain external: six graph, one
+graph-helper, and one planning call with their existing gates and adoption.
+
+Ratio component readiness is public in `financial_answer_slots.py`.
+`ratio_component_consolidation_scope(calculation_result, operands=None)` copies
+answer slots, scans every component group before operands in stable order, and
+deduplicates only exact `consolidated`/`separate` scopes. It returns the sole
+distinct scope or `""`. `ratio_components_collapse_to_same_slot(...)` copies
+answer slots and the group map, then list-materializes and shallow-copies strict
+numerator dictionaries before denominator dictionaries. Each material slot's
+identity resolves source ids and six-place/fallback numeric text before evaluating
+the tuple fields label, raw value, raw unit, numeric text, and source ids. Only
+numeric conversion `TypeError`/`ValueError` falls back to normalized text. Equal complete identity
+sets collapse; otherwise a shared nonblank-source identity excluding label also
+collapses.
+
+`ratio_components_are_complete(...)` prepares the same fresh numerator and
+denominator rows before invoking collapse owner-locally. A collapse returns
+`False` before value probes; otherwise numerator material is tested before
+denominator material, with rendered, raw, then normalized value precedence and
+stable lazy `any(...)`. Inputs remain unmodified and untouched nested aliases are
+shared. Other copy, mapping, truthiness, list, iteration, predicate, string,
+normalization, and access exceptions propagate. One readiness call is owner-local
+and 15 graph calls retain their original positions, polarity, adoption, and stop.
+
+Ratio scale policy is public in `financial_numeric_surface.py`.
+`ratio_components_have_suspicious_scale(calculation_result)` shallow-copies the
+answer-slot and component-role maps, then scans roles and entries in stable order.
+For each entry it reads normalized/lower raw unit and stripped raw value before the
+unit gate, requires exact KRW display units and the existing full-match numeric
+regex, then counts regex digits and returns at the first count of at least eight.
+`ratio_result_has_suspicious_krw_scale(...)` preserves operation-family,
+non-`None` result, percent-unit, render-policy snapshot, and source-KRW gates in
+that order. It scans all operands, reading normalized unit before value only for a
+KRW row, requires two non-`None` KRW values, then converts threshold before the
+absolute result. Only conversion `TypeError`/`ValueError` returns `False`; other
+exceptions propagate. The final comparison requires a positive threshold and a
+strictly greater result. All three graph calls retain their exact arguments,
+positive polarity, adoption, and render/verify exception boundaries.
+
+These eight public APIs replace only the selected ratio policy bodies. Graph and
+helper consumers retain query/evidence preparation, dependency lookup, compact
+answer orchestration, sibling-table alignment, state/evidence, task/artifact
+ledger, promotion, sync/rebuild, callbacks, and final sequencing. The move makes
+no behavior, accuracy, ranking, performance, total-code, executed-path,
+benchmark, or Phase 3 completion claim.
+
 For collapsed-ratio runtime recovery, the aggregate owner exposes a typed,
 state-free absolute-magnitude projection over graph-prepared mutable copies of
 the calculation result, answer slots, and primary value. The graph still

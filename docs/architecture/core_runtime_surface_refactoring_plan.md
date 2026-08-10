@@ -194,7 +194,7 @@ Current ownership is intentionally split by state boundary:
 | Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, unit/period coercion and ratio denominator sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
-| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_numeric_surface.py` | Slot/display contracts, shared material detection, numeric comparison, table support, and numeric-support predicates |
+| Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py` | Ratio/result rendering, slot/readiness contracts, answer policy, numeric comparison, table support, and scale predicates |
 | Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate signatures, source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, and row/sentence/rendered selectors |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, `financial_task_artifacts.py` | State carriers and prepared projection transforms; graph retains surrounding orchestration |
 
@@ -205,10 +205,10 @@ summarized in [runtime_flow_roles.md](../overview/runtime_flow_roles.md). This
 plan does not repeat those contracts.
 
 The current checkpoint has explicit owners for the major bounded seams completed
-so far, including ratio sign policy, generic numeric support, aggregate
-row/sentence/rendered selection, answer-slot period and material policy, aggregate
-source/coherence preparation, result/nested ranking, and stable dedupe. Current
-validation and benchmark status belong only in
+so far, including ratio sign and presentation/readiness/scale policy, generic
+numeric support, aggregate row/sentence/rendered selection, answer-slot period and
+material policy, aggregate source/coherence preparation, result/nested ranking,
+and stable dedupe. Current validation and benchmark status belong only in
 [project_status.md](../overview/project_status.md); commit-level diffs and claim
 limits belong only in
 [implementation_history.md](../history/implementation_history.md).
@@ -218,8 +218,9 @@ Phase 3 remains open for four durable debt groups:
 1. partially advanced: period/material/source/coherence/rank/dedupe policy is
    owned, while promotion, sync/rebuild, mutable state/evidence, and final
    sequencing remain graph-owned;
-2. partially advanced: isolate remaining dependency and ratio/absolute seams
-   that do not require graph-state lookup;
+2. partially advanced: ratio presentation/readiness/scale seams are owned; isolate
+   remaining dependency and ratio/absolute seams that do not require graph-state
+   lookup or surrounding orchestration;
 3. essentially untouched: specify broader task/artifact ledger synchronization
    as a separate behavior contract before attempting ownership convergence;
 4. partially advanced: reduce the private-API mesh and co-locate tests only as
@@ -229,16 +230,12 @@ These groups are unordered debt, not four promised implementation slices.
 Priority and sequencing are owned by
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-The answer-slot period hint/key, answer-projection growth-period/material-gap/
-row-material policy, and aggregate result/nested rank plus dedupe boundary is
-complete. `_aggregate_result_rank(...)` is owner-private because only owner-local
-dedupe consumes it; nested rank and dedupe are public aggregate seams.
-
-The completed boundary stopped before graph
-`_promote_stronger_nested_aggregate_results(...)`,
-`_sync_projection_subtask_results_with_nested_promotions(...)`, and planning
-`_nested_subtask_rows(...)`. Those orchestrators, mutable state/evidence, ledger,
-callbacks, and final projection remain outside this batch.
+The ratio unit/query/result projection, component consolidation/collapse/
+completeness, and suspicious-scale boundaries are complete in rendering,
+answer-slot, and numeric-surface owners. Their graph call placements remain, while
+dependency-source lookup, compact answer orchestration, sibling-table alignment,
+promotion, sync/rebuild, mutable state/evidence, ledger, callbacks, and final
+projection remain outside the owner batch.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

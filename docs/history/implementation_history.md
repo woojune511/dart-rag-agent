@@ -1470,6 +1470,50 @@ proves no behavior or ranking change, accuracy or performance improvement,
 total-code or executed-path reduction, benchmark improvement, or Phase 3
 completion.
 
+### Ratio presentation/readiness owner milestone
+
+- `157e9e4` publishes `infer_concept_ratio_result_unit(...)`,
+  `ratio_query_requests_absolute_magnitude(...)`, and
+  `ratio_result_projection(...)` from calculation rendering. Forty-three old
+  definition-span lines were removed; two calls became owner-local and eight
+  remain external. Source is `+61/-62`, test code `+927/-13`, the runtime audit
+  document `+1/-1`, and the whole commit `+989/-76`.
+- `be2af81` publishes `ratio_component_consolidation_scope(...)`,
+  `ratio_components_collapse_to_same_slot(...)`, and
+  `ratio_components_are_complete(...)` from answer slots. Seventy-one old graph
+  definition-span lines were removed; one call became owner-local and 15 remain
+  external. Source is `+91/-89`, test code `+1,167/-78`, and the whole commit is
+  `+1,258/-167`.
+- `7e01f8c` publishes `ratio_components_have_suspicious_scale(...)` and
+  `ratio_result_has_suspicious_krw_scale(...)` from numeric surface. Fifty-one old
+  graph definition-span lines were removed and three graph calls remain. Source
+  is `+56/-56`, test code `+853/-0`, and the runtime-domain baseline is `+3/-3`;
+  the whole commit is `+912/-59`. The baseline change only relocates the already
+  reviewed `원` record's path, fingerprint, and first line; text, category, and
+  count are unchanged.
+- Across `f82a2d7..7e01f8c`, 165 selected old definition-span lines were removed
+  and replaced by eight public APIs. Of 29 semantic calls, three became
+  owner-local and 26 remain external: 24 graph, one graph-helper, and one planning
+  placement. Retired exact old identifiers are zero. Source is `+208/-207`, net
+  `+1`; test code is `+2,947/-91`, net `+2,856`; the audit fixture is `+3/-3` and
+  runtime audit documentation `+1/-1`. The whole range is `+3,159/-302`, net
+  `+2,857`. Test methods are `+11/-2`, moving full discovery from 1,573 to 1,582.
+- Final validation passed focused 3/3 and 697/697 across
+  `tests.test_financial_ratio_scale`, `tests.test_financial_numeric_provenance`,
+  `tests.test_financial_calculation_execution`,
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`;
+  the 217-literal runtime audit; full discovery over 1,582/1,582 tests; and
+  `git diff --check`. Benchmark refresh was **NOT RUN**; no remote CI run is
+  claimed or observed for this local branch.
+
+This milestone closes only selected ratio presentation, component readiness, and
+scale-policy ownership. Query/evidence preparation, dependency lookup, compact
+answer orchestration, sibling-table alignment, promotion, sync/rebuild, mutable
+state/evidence, artifact/ledger, callbacks, and final sequencing remain outside
+it. The range proves no behavior, accuracy, ranking, performance, total-code or
+executed-path reduction, benchmark improvement, or Phase 3 completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

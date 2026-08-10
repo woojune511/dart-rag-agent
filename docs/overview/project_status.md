@@ -15,11 +15,11 @@ Last updated: 2026-08-10
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; aggregate material/rank/dedupe owner milestone closed, four named debt groups remain |
-| What just changed? | Period helpers, material projection policy, and aggregate result/nested rank plus dedupe moved to state-free owners in `2f0f29e`, `1efccb2`, and `ec266c6` |
-| What passed? | Focused 4/4, affected six-module set 664/664, runtime audit 217, full unittest 1,573/1,573 |
+| What is the architecture state? | Phase 3 OPEN; ratio presentation/readiness owner milestone closed, four named debt groups remain |
+| What just changed? | Ratio unit/query/projection, component readiness, and scale policy moved to rendering, answer-slot, and numeric-surface owners in `157e9e4`, `be2af81`, and `7e01f8c` |
+| What passed? | Focused 3/3, affected seven-module set 697/697, runtime audit 217, full unittest 1,582/1,582 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Three characterize-first ratio presentation/readiness seams: rendering → answer slots → numeric surface; graph orchestration remains a hard stop |
+| What is next? | Three characterize-first narrative-answer validation seams into `financial_answer_projection.py`; graph orchestration remains a hard stop |
 
 ## Product Boundary
 
@@ -50,14 +50,16 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved answer-slot period parsing, growth-period/material-
-  gap/row-material policy, result/nested ranking, and dedupe behind seven public
-  APIs plus owner-private `_aggregate_result_rank(...)`. Retired moved references
-  and graph-private rank references are zero. Promotion, sync/rebuild, mutable
-  state/evidence, ledger, callbacks, and final sequencing remain graph-owned.
-  This is ownership relocation, not a behavior or performance claim.
-- Current physical sizes are: calculation graph 17,420 lines, planning 2,356,
-  answer-slot owner 658, answer-projection owner 315, and aggregate owner 1,511.
+- The latest owner batch moved ratio unit/query/result projection, component
+  consolidation/collapse/completeness, and suspicious-scale policy behind eight
+  public APIs. Three calls became owner-local and 26 remain external; retired old
+  identifiers are zero. Graph-state preparation, compact rendering, sibling-table
+  alignment, promotion, sync/rebuild, mutable state/evidence, ledger, callbacks,
+  and final sequencing remain graph-owned. This is ownership relocation, not a
+  behavior or performance claim.
+- Current physical sizes are: calculation graph 17,258 lines, graph helpers 6,299,
+  planning 2,356, calculation rendering 708, answer slots 734, numeric surface
+  670, answer projection 315, and aggregate projection 1,511.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -74,7 +76,8 @@ Commit-level diffs and validation are kept in
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio denominator sign policy and evidence-local unit/period coercion |
 | Dependency and execution | `financial_dependency_projection.py` and `financial_calculation_execution.py` |
-| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, and `financial_numeric_surface.py`, including period/material and numeric-support predicates |
+| Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
+| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, and `financial_numeric_surface.py`, including period/material, ratio-readiness, and numeric/scale predicates |
 | Aggregate projection | `financial_aggregate_projection.py`, including selectors, source/coherence preparation, result/nested ranks, and stable dedupe |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py` |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
@@ -98,17 +101,18 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, 4 / 4 |
-| Latest affected regression set | PASS, six-module set 664 / 664 |
+| Latest focused owner checkpoint | PASS, 3 / 3 |
+| Latest affected regression set | PASS, seven-module set 697 / 697 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,573 / 1,573 |
+| Full unittest discovery | PASS, 1,582 / 1,582 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The affected set is `tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_financial_answer_projection`, `tests.test_aggregate_subtask_projection`,
-`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
-`tests.test_operation_contracts`.
+The affected set is `tests.test_financial_ratio_scale`,
+`tests.test_financial_numeric_provenance`,
+`tests.test_financial_calculation_execution`,
+`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -130,7 +134,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through period/material/source/coherence/rank/dedupe ownership; promotion, sync/rebuild, and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced; graph-state lookup remains graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale ownership; graph-state lookup and surrounding orchestration remain graph-owned |
 | Broader task/artifact ledger synchronization | Essentially untouched; requires a separate behavior contract |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
 
@@ -139,41 +143,35 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The next architecture batch is one three-commit characterize-first ratio
-presentation/readiness sequence:
+The next architecture batch is one three-commit, one-owner characterize-first
+narrative-answer validation sequence into `financial_answer_projection.py`:
 
-1. publish `infer_concept_ratio_result_unit(...)`,
-   `ratio_query_requests_absolute_magnitude(...)`, and
-   `ratio_result_projection(...)` from
-   `financial_graph_calculation_rendering.py`;
-2. publish `ratio_component_consolidation_scope(...)`,
-   `ratio_components_collapse_to_same_slot(...)`, and
-   `ratio_components_are_complete(...)` from `financial_answer_slots.py`;
-3. publish `ratio_components_have_suspicious_scale(...)` and
-   `ratio_result_has_suspicious_krw_scale(...)` from
-   `financial_numeric_surface.py`.
+1. publish `query_requests_explanatory_context(...)` and
+   `sentence_has_growth_explanatory_signal(...)` (31 old graph definition-span
+   lines, 15 graph calls);
+2. publish `answer_looks_truncated(...)` and
+   `answer_covers_narrative_context(...)` (32 lines, 10 calls), relocating only
+   the existing reviewed terminal-regex baseline path/fingerprint/line;
+3. publish `growth_uses_source_stated_result(...)`,
+   `growth_sentence_has_untraced_material_numeric(...)`, and
+   `growth_answer_has_untraced_numeric_sentence(...)` (98 lines, 11 calls).
 
-The import DAG is graph helpers/planning → calculation rendering (calculation
-graph already imports rendering), calculation graph → answer slots, and
-calculation graph → numeric surface. Answer slots already imports rendering and
-numeric surface; none of those owners imports graph helpers, planning, or
-calculation graph in reverse. The characterize-first commit order remains A → B
-→ C; it is not an import-dependency arrow. The read-only profiled boundary covers
-165 old definition-span lines and 29 current calls. After co-location, three calls
-become owner-local and 26 remain external across eight public APIs. This is
-selected inventory, not a completion
-or schedule estimate. Keep source held until each seam's current-source contract
-is green; migrate all selected callers and retire the old body before starting
-the next seam.
+The read-only profiled boundary is seven public APIs, 161 old graph
+definition-span lines, and 36 graph calls, with no selected owner-local
+absorption. The owner already depends on answer slots; this batch adds the
+existing narrative sentence splitter, numeric-surface evidence display helper,
+and narrative/render policies. Text and numeric surfaces do not import
+the owner or graph in reverse, so the selected dependency direction remains
+cycle-free. This inventory is not a completion or schedule estimate.
 
-Hard-stop before `_ratio_answer_from_dependency_source_slots(...)`,
-`_compact_ratio_answer(...)`, `_required_operand_rows_from_candidates(...)`,
-`_ratio_result_numeric_value(...)`, and
-`_align_ratio_operands_with_sibling_table_context(...)`. Promotion, sync/rebuild,
-mutable state/evidence, task/artifact ledger mutation, callbacks, and final
-orchestration also remain graph-owned. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, or Phase 3
-completion claim follows from this plan.
+Require at least four current-source characterize methods per seam, keep source
+held until that seam is green, then migrate every selected call through a direct
+public graph import and delete the old body before continuing. Hard-stop before
+numeric stripping, complete-answer composition, answer refresh, LLM work,
+evidence construction/selection/mutation, mutable state, task/artifact ledger,
+callbacks, candidate execution, promotion, sync/rebuild, and final orchestration.
+No behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark, or Phase 3 completion claim follows from this plan.
 
 Run focused tests, the affected set, domain audit, full discovery, and
 `git diff --check` sequentially. Benchmark work remains separate: before
