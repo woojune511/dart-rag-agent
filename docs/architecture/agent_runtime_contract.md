@@ -1352,6 +1352,64 @@ and final orchestration remain graph/planning-owned. These owner moves make no
 behavior, ranking, accuracy, performance, total-code, executed-path, or Phase 3
 completion claim.
 
+Narrative-answer validation is public in `financial_answer_projection.py`.
+`query_requests_explanatory_context(query)` stringifies, normalizes, and
+lowercases the query, and returns `False` for blank text before policy access.
+Otherwise it fully materializes the configured explanatory markers as strings
+and performs stable lazy containment. `sentence_has_growth_explanatory_signal`
+normalizes the sentence and returns `False` before policy access when blank. It
+then builds normalized direction words, materializes narrative, impact, and
+explanatory markers in that order, excludes blank markers and exact direction
+words, and performs stable lazy containment.
+
+`answer_looks_truncated(answer)` normalizes the stringified answer and treats a
+blank as truncated. Its terminal-language regex is checked before the generic
+terminal-punctuation regex; either match returns `False`, and only the remaining
+path returns `True`. `answer_covers_narrative_context(answer, context)` normalizes
+and lowercases the answer before normalizing context. Blank context and exact
+normalized context containment return `True` before sentence splitting. Each
+remaining sentence is lowercased and exact containment skips token work. Tokens
+come from `re.findall(r"[\w()]+", ..., re.UNICODE)`, require length at least three,
+then exclude numeric full matches; only retained tokens are lowercased. A sentence
+with no retained tokens fails; otherwise coverage below the exact `0.75`
+threshold fails.
+
+`growth_uses_source_stated_result(row)` shallow-copies calculation result,
+result-first answer slots, and current slot. A truthy copied derived-metric flag
+wins, followed by normalized current-slot stated change. Only the remaining path
+list-materializes row-first calculation operands and lazily accepts a dictionary
+whose `matched_operand_role` precedes `role`, is exactly `current_period`, and has
+a normalized stated-change value. Input rows and nested values remain unmodified.
+
+`growth_sentence_has_untraced_material_numeric(...)` normalizes the sentence and
+returns `False` when blank. It constructs evidence text in item order from claim,
+quote, raw-row, source-context, then copied metadata table surfaces; calls the
+numeric-display owner with `evidence_items or []` and that text; and builds the
+allowed surface in complete-answer, required-value, evidence, display order. A
+blank allowed surface returns `False` before policy access. Configured
+percent matches are checked first and the first nonblank token absent from the
+allowed surface returns `True`. Only the remaining path snapshots render policy,
+materializes normalized KRW display units, and applies the same first-unallowed
+rule to each unit-specific numeric match.
+
+`growth_answer_has_untraced_numeric_sentence(...)` normalizes answer, complete
+answer, and the complete-plus-required allowed surface before its blank gate. It
+splits the answer in source order, skips blank sentences and sentences already in
+the complete answer, and requires a lazy match to at least one nonblank required
+value. It then materializes numeric tokens with the existing percent-capable
+pattern and returns at the first token absent from the allowed surface. Otherwise
+it returns `False`.
+
+These seven APIs catch no truthiness, string, normalization, policy, mapping,
+copy, iteration, split, regex, match, containment, numeric-display, or formatting
+exception. The graph retains all 36 direct public placements with the existing
+arguments, polarity, gates, adoption, and exception stop: respectively 14, one,
+one, nine, one, seven, and three calls in the API order above. Query/evidence
+preparation, answer composition and refresh, LLM work, mutable state/evidence,
+task/artifact ledger, promotion, sync/rebuild, callbacks, and final orchestration
+remain graph-owned. The move makes no behavior, accuracy, ranking, performance,
+total-code, executed-path, benchmark, or Phase 3 completion claim.
+
 Ratio presentation policy is public in
 `financial_graph_calculation_rendering.py`.
 `infer_concept_ratio_result_unit(query, metric_label, operation_family)`

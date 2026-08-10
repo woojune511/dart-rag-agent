@@ -1514,6 +1514,49 @@ state/evidence, artifact/ledger, callbacks, and final sequencing remain outside
 it. The range proves no behavior, accuracy, ranking, performance, total-code or
 executed-path reduction, benchmark improvement, or Phase 3 completion.
 
+### Narrative-answer validation owner milestone
+
+- `d6723b8` publishes `query_requests_explanatory_context(...)` and
+  `sentence_has_growth_explanatory_signal(...)` from answer projection. Thirty-one
+  old graph definition-span lines were removed and all 15 graph calls remain.
+  Source is `+50/-49`, tests are `+563/-4`, and the whole commit is `+613/-53`.
+- `04a8b3c` publishes `answer_looks_truncated(...)` and
+  `answer_covers_narrative_context(...)` from answer projection. Thirty-two old
+  graph definition-span lines were removed and all ten graph calls remain. Source
+  is `+49/-44`, tests are `+714/-7`, and the runtime-domain baseline is `+3/-3`;
+  the whole commit is `+766/-54`. The baseline change relocates only the existing
+  terminal-regex record's path, fingerprint, and first line; its text, category,
+  and count are unchanged.
+- `fd82367` publishes `growth_uses_source_stated_result(...)`,
+  `growth_sentence_has_untraced_material_numeric(...)`, and
+  `growth_answer_has_untraced_numeric_sentence(...)` from answer projection.
+  Ninety-eight old graph definition-span lines were removed and all 11 graph
+  calls remain. Source is `+123/-114`, tests are `+727/-0`, and the whole commit
+  is `+850/-114`.
+- Across `78f59fe..fd82367`, 161 selected old graph definition-span lines were
+  removed and replaced by seven public APIs at 36 graph calls. Retired exact old
+  identifiers are zero. The range-level source diff is `+221/-206`, net `+15`:
+  the graph moved from 17,258 to 17,097 physical lines and answer projection from
+  315 to 491. Tests are `+1,997/-4`, net `+1,993`; the baseline is `+3/-3` and
+  the whole changed-file range is `+2,221/-213`, net `+2,008`. Twelve test methods
+  were added, moving full discovery from 1,582 to 1,594 tests.
+- Final validation passed focused 4/4, migrated narrative classes 12/12, and
+  690/690 across `tests.test_financial_answer_projection`,
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`,
+  `tests.test_lookup_recovery_policy`,
+  `tests.test_financial_aggregate_rank_dedupe`, and
+  `tests.test_operation_contracts`; the 217-literal runtime audit; full discovery
+  over 1,594/1,594 tests; and `git diff --check`. Benchmark refresh was **NOT
+  RUN**; no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only the selected narrative intent/signal, answer-surface,
+and growth numeric-trace validation ownership. Query/evidence preparation, answer
+composition/refresh, LLM work, promotion, sync/rebuild, mutable state/evidence,
+artifact/ledger, callbacks, and final orchestration remain graph-owned. The range
+proves no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, or Phase 3 completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

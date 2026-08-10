@@ -25,7 +25,7 @@ Last updated: 2026-08-10
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free calculation owner들로 분리 중 |
-| Phase 3 | OPEN; ratio presentation/readiness owner milestone은 완료됐지만 single-calculation-path 전체는 미완료 |
+| Phase 3 | OPEN; narrative-answer validation owner milestone은 완료됐지만 single-calculation-path 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -35,17 +35,17 @@ Last updated: 2026-08-10
 현재 durable debt는 다음 네 범주다.
 
 1. 일부 진행된 aggregate repair/precedence decision; period/material/source/
-   coherence/rank/dedupe policy는 state-free owner로 이동했고 promotion과
-   rebuild/final sequencing은 graph에 유지
+   coherence/rank/dedupe와 narrative-validation policy는 state-free owner로
+   이동했고 promotion과 rebuild/final sequencing은 graph에 유지
 2. 일부 진행된 dependency 및 ratio/absolute seam; ratio presentation,
    component readiness, suspicious-scale policy는 이동했고 graph-state lookup과
    주변 orchestration은 제외
 3. 사실상 untouched인 broader task/artifact ledger synchronization
 4. public contract 이동과 함께 일부 진행된 private API/test mesh
 
-이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 ratio owner
-이동은 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
-선택된 narrative-validation 작업과 hard stop은
+이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 narrative
+owner 이동은 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
+선택된 operand-preparation 작업과 hard stop은
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 구현 원칙

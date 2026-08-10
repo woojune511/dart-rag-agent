@@ -283,7 +283,7 @@ State-free owner topology:
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
-| `financial_answer_projection.py` | growth-period conflict, material-gap, row-material, and final-answer projection policy |
+| `financial_answer_projection.py` | growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
@@ -303,9 +303,10 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 
 최근 owner 이동에는 ratio sign/presentation/readiness/scale policy, numeric support,
 aggregate selector, slot-material/period policy, aggregate source/coherence preparation,
-material-gap, result/nested rank와 dedupe가 포함된다. Graph는 query/evidence/compact-
-answer, promotion, sync/rebuild, mutable state/evidence, ledger와 callback/final
-orchestration을 유지하고, planning은 nested traversal을 유지한다.
+material-gap, result/nested rank, dedupe와 narrative-answer validation이 포함된다.
+Graph는 query/evidence preparation, answer composition/refresh, promotion,
+sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을
+유지하고, planning은 nested traversal을 유지한다.
 
 함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
 [Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.
@@ -321,6 +322,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - `growth_row_has_conflicting_periods(...)`,
   `material_gap_feedback_for_subtask_result(...)`,
   `subtask_row_has_material(...)`: period/material readiness를 판정한다.
+- `query_requests_explanatory_context(...)`,
+  `sentence_has_growth_explanatory_signal(...)`,
+  `answer_looks_truncated(...)`, `answer_covers_narrative_context(...)`:
+  narrative intent와 answer surface completeness를 판정한다.
+- `growth_uses_source_stated_result(...)`,
+  `growth_sentence_has_untraced_material_numeric(...)`,
+  `growth_answer_has_untraced_numeric_sentence(...)`: source-stated result와
+  untraced numeric narrative를 판정한다.
 - `_preferred_complete_aggregate_subtask_answer(...)`와 내부 numeric-surface
   helpers: 더 완성된 answer candidate를 evidence-visible 숫자 표면으로 비교한다.
 - 이 모듈은 회사명, benchmark id, report phrase, metric-specific keyword branch를
