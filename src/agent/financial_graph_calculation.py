@@ -266,6 +266,8 @@ from src.agent.financial_numeric_surface import (
     numeric_surface_candidates_equivalent,
     numeric_surface_conflicts_with_reference,
     promote_table_numeric_support_evidence,
+    ratio_components_have_suspicious_scale,
+    ratio_result_has_suspicious_krw_scale,
     text_supports_numeric_candidates,
 )
 from src.agent.financial_text_surface import (
@@ -10174,59 +10176,6 @@ class FinancialAgentCalculationMixin:
             refined["precision_source"] = "flattened_table_surface_cell"
         return refined
 
-    def _ratio_components_have_suspicious_scale(
-        self,
-        calculation_result: Dict[str, Any],
-    ) -> bool:
-        answer_slots = dict(calculation_result.get("answer_slots") or {})
-        components_by_role = dict(answer_slots.get("components_by_role") or {})
-        for entries in components_by_role.values():
-            for entry in entries or []:
-                raw_unit = _normalise_spaces(str((entry or {}).get("raw_unit") or "")).lower()
-                raw_value = str((entry or {}).get("raw_value") or "").strip()
-                if raw_unit not in {"원", "krw"}:
-                    continue
-                if not re.fullmatch(r"[\(\)\-]?\d[\d,]*(?:\.\d+)?", raw_value):
-                    continue
-                digit_count = len(re.sub(r"\D", "", raw_value))
-                if digit_count >= 8:
-                    return True
-        return False
-
-    def _ratio_result_has_suspicious_krw_scale(
-        self,
-        *,
-        operation_family: str,
-        ordered_operands: List[Dict[str, Any]],
-        result_value: Optional[float],
-        result_unit: str,
-        source_normalized_unit: str,
-    ) -> bool:
-        if _normalise_spaces(operation_family).lower() != "ratio":
-            return False
-        if result_value is None:
-            return False
-        if _normalise_spaces(result_unit) not in {"%", "%p"}:
-            return False
-        render_policy = dict(CALCULATION_RENDER_POLICY)
-        krw_unit = _normalise_spaces(str(render_policy.get("krw_normalized_unit") or "")).upper()
-        if _normalise_spaces(source_normalized_unit).upper() != krw_unit:
-            return False
-        krw_operands = [
-            row
-            for row in ordered_operands
-            if _normalise_spaces(str(row.get("normalized_unit") or "")).upper() == krw_unit
-            and row.get("normalized_value") is not None
-        ]
-        if len(krw_operands) < 2:
-            return False
-        try:
-            threshold = float(render_policy.get("ratio_krw_suspicious_percent_threshold") or 0.0)
-            numeric_result = abs(float(result_value))
-        except (TypeError, ValueError):
-            return False
-        return bool(threshold > 0 and numeric_result > threshold)
-
     def _align_ratio_operands_with_sibling_table_context(
         self,
         ordered_operands: List[Dict[str, Any]],
@@ -14551,7 +14500,7 @@ class FinancialAgentCalculationMixin:
 
         formula_result_value = result_value
         result_display_unit = ""
-        if self._ratio_result_has_suspicious_krw_scale(
+        if ratio_result_has_suspicious_krw_scale(
             operation_family=operation_family,
             ordered_operands=ordered_operands,
             result_value=result_value,
@@ -14940,7 +14889,7 @@ class FinancialAgentCalculationMixin:
         if operation_family == "ratio" and (
             financial_answer_slots.ratio_components_are_complete(calculation_result)
             or financial_answer_slots.ratio_component_consolidation_scope(calculation_result, operands)
-            or self._ratio_components_have_suspicious_scale(calculation_result)
+            or ratio_components_have_suspicious_scale(calculation_result)
         ):
             answer = self._compact_ratio_answer(state, calculation_result)
 
@@ -15043,7 +14992,7 @@ class FinancialAgentCalculationMixin:
             if operation_family == "ratio" and (
                 financial_answer_slots.ratio_components_are_complete(calculation_result)
                 or financial_answer_slots.ratio_component_consolidation_scope(calculation_result, operands)
-                or self._ratio_components_have_suspicious_scale(calculation_result)
+                or ratio_components_have_suspicious_scale(calculation_result)
             ):
                 final_answer = self._compact_ratio_answer(state, calculation_result)
             calculation_result["formatted_result"] = final_answer
