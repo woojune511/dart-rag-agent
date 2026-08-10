@@ -1,5 +1,8 @@
+import ast
+import inspect
 import math
 import unittest
+from collections import Counter
 from collections.abc import Mapping
 from copy import deepcopy
 from unittest.mock import patch
@@ -243,6 +246,477 @@ class FinancialAnswerSlotTests(unittest.TestCase):
             )
         self.assertEqual(predicate_calls, [primary_slot])
         self.assertIsNot(predicate_calls[0], primary_slot)
+
+    def test_answer_slot_period_helpers_preserve_value_and_immutability_contract(self) -> None:
+        period_hint = financial_answer_slots.answer_slot_period_hint
+        period_key = financial_answer_slots.period_match_key
+
+        nested = {"preserve": True}
+        explicit_slot = {
+            "period": " 2024   년 ",
+            "label": "ignored 2023년",
+            "nested": nested,
+        }
+        explicit_before = deepcopy(explicit_slot)
+
+        class PolicyBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("policy accessed for explicit period")
+
+        with patch.object(
+            financial_answer_slots,
+            "CALCULATION_SLOT_POLICY",
+            PolicyBomb(),
+        ):
+            self.assertEqual(period_hint(explicit_slot), "2024 년")
+        self.assertEqual(explicit_slot, explicit_before)
+        self.assertIs(explicit_slot["nested"], nested)
+
+        label_slot = {
+            "period": " ",
+            "label": " 실적   2023 년 및 2024 년 기준 ",
+            "nested": nested,
+        }
+        label_before = deepcopy(label_slot)
+        with patch.object(
+            financial_answer_slots,
+            "CALCULATION_SLOT_POLICY",
+            {"period_pattern": r"20\d{2}\s*년?"},
+        ):
+            self.assertEqual(period_hint(label_slot), "2023 년")
+            self.assertEqual(period_hint({"label": "no matching period"}), "")
+        with patch.object(
+            financial_answer_slots,
+            "CALCULATION_SLOT_POLICY",
+            {"period_pattern": ""},
+        ), patch.object(
+            financial_answer_slots.re,
+            "search",
+            side_effect=AssertionError("regex accessed for blank pattern"),
+        ):
+            self.assertEqual(period_hint({"label": "2023년"}), "")
+        self.assertEqual(label_slot, label_before)
+        self.assertIs(label_slot["nested"], nested)
+
+        for value, expected in (
+            (None, ""),
+            ("", ""),
+            (0, ""),
+            (" 2023년 1분기 ", "20231"),
+            ("20 23", "2023"),
+            ("２０２３년", "２０２３"),
+            ("period", ""),
+        ):
+            with self.subTest(period_match_value=value):
+                self.assertEqual(period_key(value), expected)
+
+    def test_answer_slot_period_helpers_preserve_access_laziness_and_exceptions(self) -> None:
+        period_hint = financial_answer_slots.answer_slot_period_hint
+        period_key = financial_answer_slots.period_match_key
+
+        events = []
+
+        class LoggedSlot(dict):
+            def get(self, key, default=None):
+                events.append(("get", key))
+                return super().get(key, default)
+
+        class LoggedText:
+            def __bool__(self):
+                events.append(("bool", "period"))
+                return True
+
+            def __str__(self):
+                events.append(("str", "period"))
+                return " 2024 "
+
+        class PolicyBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("policy accessed")
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        explicit_slot = LoggedSlot({"period": LoggedText(), "label": "unread"})
+        with (
+            patch.object(
+                financial_answer_slots,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_answer_slots,
+                "CALCULATION_SLOT_POLICY",
+                PolicyBomb(),
+            ),
+        ):
+            self.assertEqual(period_hint(explicit_slot), "2024")
+        self.assertEqual(
+            events,
+            [
+                ("get", "period"),
+                ("bool", "period"),
+                ("str", "period"),
+                ("normalize", " 2024 "),
+            ],
+        )
+
+        events.clear()
+
+        class LoggedPolicy:
+            def get(self, key, default=None):
+                events.append(("policy", key))
+                return r"20\d{2}"
+
+        class LoggedMatch:
+            def __bool__(self):
+                events.append(("match-bool",))
+                return True
+
+            def group(self, index):
+                events.append(("match-group", index))
+                return "2023"
+
+        def search(pattern, value):
+            events.append(("search", pattern, value))
+            return LoggedMatch()
+
+        label_slot = LoggedSlot({"period": "", "label": " label   2023 "})
+        with (
+            patch.object(
+                financial_answer_slots,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_answer_slots,
+                "CALCULATION_SLOT_POLICY",
+                LoggedPolicy(),
+            ),
+            patch.object(financial_answer_slots.re, "search", side_effect=search),
+        ):
+            self.assertEqual(period_hint(label_slot), "2023")
+        self.assertEqual(
+            events,
+            [
+                ("get", "period"),
+                ("normalize", ""),
+                ("get", "label"),
+                ("normalize", " label   2023 "),
+                ("policy", "period_pattern"),
+                ("search", r"20\d{2}", "label 2023"),
+                ("match-bool",),
+                ("match-group", 0),
+                ("normalize", "2023"),
+            ],
+        )
+
+        class GetBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("period get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "period get failed"):
+            period_hint(GetBomb())
+
+        class StringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("period str failed")
+
+        with self.assertRaisesRegex(RuntimeError, "period str failed"):
+            period_hint({"period": StringBomb(), "label": "unread"})
+
+        class PeriodBoolBomb:
+            def __bool__(self):
+                raise RuntimeError("period bool failed")
+
+        with self.assertRaisesRegex(RuntimeError, "period bool failed"):
+            period_hint({"period": PeriodBoolBomb(), "label": "unread"})
+
+        with patch.object(
+            financial_answer_slots,
+            "_normalise_spaces",
+            side_effect=RuntimeError("period normalize failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period normalize failed"):
+                period_hint({"period": "2023", "label": "unread"})
+
+        class LabelGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "label":
+                    raise RuntimeError("period label failed")
+                return super().get(key, default)
+
+        with self.assertRaisesRegex(RuntimeError, "period label failed"):
+            period_hint(LabelGetBomb({"period": ""}))
+
+        class FailingPolicy:
+            def get(self, _key, _default=None):
+                raise RuntimeError("period policy failed")
+
+        with patch.object(
+            financial_answer_slots,
+            "CALCULATION_SLOT_POLICY",
+            FailingPolicy(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period policy failed"):
+                period_hint({"period": "", "label": "2023"})
+
+        with (
+            patch.object(
+                financial_answer_slots,
+                "CALCULATION_SLOT_POLICY",
+                {"period_pattern": r"20\d{2}"},
+            ),
+            patch.object(
+                financial_answer_slots.re,
+                "search",
+                side_effect=RuntimeError("period regex failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period regex failed"):
+                period_hint({"period": "", "label": "2023"})
+
+        class GroupBomb:
+            def __bool__(self):
+                return True
+
+            def group(self, _index):
+                raise RuntimeError("period group failed")
+
+        with (
+            patch.object(
+                financial_answer_slots,
+                "CALCULATION_SLOT_POLICY",
+                {"period_pattern": r"20\d{2}"},
+            ),
+            patch.object(financial_answer_slots.re, "search", return_value=GroupBomb()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period group failed"):
+                period_hint({"period": "", "label": "2023"})
+
+        events.clear()
+
+        class LoggedKeyValue:
+            def __bool__(self):
+                events.append(("bool", "key"))
+                return True
+
+            def __str__(self):
+                events.append(("str", "key"))
+                return " 20 23 "
+
+        def substitute(pattern, replacement, value):
+            events.append(("sub", pattern, replacement, value))
+            return "2023"
+
+        with (
+            patch.object(
+                financial_answer_slots,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(financial_answer_slots.re, "sub", side_effect=substitute),
+        ):
+            self.assertEqual(period_key(LoggedKeyValue()), "2023")
+        self.assertEqual(
+            events,
+            [
+                ("bool", "key"),
+                ("str", "key"),
+                ("normalize", " 20 23 "),
+                ("sub", r"\D", "", "20 23"),
+            ],
+        )
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("key bool failed")
+
+        with self.assertRaisesRegex(RuntimeError, "key bool failed"):
+            period_key(BoolBomb())
+
+        class KeyStringBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("key str failed")
+
+        with self.assertRaisesRegex(RuntimeError, "key str failed"):
+            period_key(KeyStringBomb())
+
+        events.clear()
+
+        class FalsyKeyValue:
+            def __bool__(self):
+                events.append(("bool", "falsy-key"))
+                return False
+
+            def __str__(self):
+                raise AssertionError("falsy key stringified")
+
+        def blank_substitute(pattern, replacement, value):
+            events.append(("sub", pattern, replacement, value))
+            return ""
+
+        with (
+            patch.object(
+                financial_answer_slots,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ),
+            patch.object(
+                financial_answer_slots.re,
+                "sub",
+                side_effect=blank_substitute,
+            ),
+        ):
+            self.assertEqual(period_key(FalsyKeyValue()), "")
+        self.assertEqual(
+            events,
+            [
+                ("bool", "falsy-key"),
+                ("normalize", ""),
+                ("sub", r"\D", "", ""),
+            ],
+        )
+
+        with patch.object(
+            financial_answer_slots,
+            "_normalise_spaces",
+            side_effect=RuntimeError("key normalize failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "key normalize failed"):
+                period_key("2023")
+
+        with patch.object(
+            financial_answer_slots.re,
+            "sub",
+            side_effect=RuntimeError("key regex failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "key regex failed"):
+                period_key("2023")
+
+    def test_answer_slot_period_helper_bindings_preserve_static21_and_growth_polarity(self) -> None:
+        tree = ast.parse(inspect.getsource(financial_graph_calculation))
+        parents = {}
+        for parent in ast.walk(tree):
+            for child in ast.iter_child_nodes(parent):
+                parents[child] = parent
+
+        def public_callers(name):
+            callers = []
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                if not isinstance(node.func, ast.Name) or node.func.id != name:
+                    continue
+                owner = node
+                while owner in parents and not isinstance(owner, ast.FunctionDef):
+                    owner = parents[owner]
+                callers.append(owner.name)
+            return Counter(callers)
+
+        self.assertEqual(
+            public_callers("answer_slot_period_hint"),
+            Counter(
+                {
+                    "_lookup_gap_is_satisfied_by_sibling_slots": 2,
+                    "_sibling_lookup_gap_is_satisfied": 3,
+                    "_feedback_gap_is_satisfied_by_derived_slots": 1,
+                    "_matching_resolved_slot_for_task": 1,
+                    "_growth_row_has_conflicting_periods": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            public_callers("period_match_key"),
+            Counter(
+                {
+                    "_lookup_gap_is_satisfied_by_sibling_slots": 3,
+                    "_feedback_gap_is_satisfied_by_derived_slots": 3,
+                    "_task_target_period_keys": 1,
+                    "_matching_resolved_slot_for_task": 1,
+                    "_growth_row_has_conflicting_periods": 2,
+                    "_growth_operand_periods_conflict": 2,
+                }
+            ),
+        )
+
+        calculation_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        nested = {"preserve": True}
+        current_slot = {"period": "current", "nested": nested}
+        prior_slot = {"period": "prior", "nested": nested}
+        row = {
+            "answer": "2023 result",
+            "calculation_result": {
+                "answer_slots": {
+                    "current_value": current_slot,
+                    "prior_value": prior_slot,
+                }
+            },
+        }
+        events = []
+
+        def same_hint(slot):
+            events.append(("hint", slot))
+            return "2023"
+
+        def key(value):
+            events.append(("key", value))
+            return value
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "answer_slot_period_hint",
+                side_effect=same_hint,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "period_match_key",
+                side_effect=key,
+            ),
+        ):
+            self.assertTrue(calculation_agent._growth_row_has_conflicting_periods(row))
+        self.assertEqual([event[0] for event in events], ["hint", "key", "hint", "key"])
+        self.assertEqual([event[1] for event in events if event[0] == "key"], ["2023", "2023"])
+        prepared_slots = [event[1] for event in events if event[0] == "hint"]
+        self.assertEqual(prepared_slots, [current_slot, prior_slot])
+        self.assertIsNot(prepared_slots[0], current_slot)
+        self.assertIsNot(prepared_slots[1], prior_slot)
+        self.assertIs(prepared_slots[0]["nested"], nested)
+        self.assertIs(prepared_slots[1]["nested"], nested)
+
+        class RowTextBomb(dict):
+            def get(self, key, default=None):
+                if key in {"answer", "formatted_result", "rendered_value"}:
+                    raise AssertionError("row text accessed after period mismatch")
+                return super().get(key, default)
+
+        mismatch_row = RowTextBomb(row)
+        events.clear()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "answer_slot_period_hint",
+                side_effect=lambda slot: events.append(("hint", slot))
+                or ("2023" if slot.get("period") == "current" else "2022"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "period_match_key",
+                side_effect=lambda value: events.append(("key", value)) or value,
+            ),
+        ):
+            self.assertFalse(
+                calculation_agent._growth_row_has_conflicting_periods(mismatch_row)
+            )
+        self.assertEqual([event[0] for event in events], ["hint", "key", "hint", "key"])
 
     def test_source_task_display_compatibility_preserves_behavior_contract(self) -> None:
         compatible = financial_answer_slots.source_task_display_compatible_with_slot

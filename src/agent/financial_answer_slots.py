@@ -1,5 +1,6 @@
 """Answer slot construction helpers for calculation traces."""
 
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional
 
@@ -20,7 +21,11 @@ from src.agent.financial_runtime_normalization import (
     _display_operand_label,
     _normalise_spaces,
 )
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
+from src.config.retrieval_policy import (
+    CALCULATION_RENDER_POLICY,
+    CALCULATION_SLOT_POLICY,
+    NUMERIC_UNIT_NORMALIZATION_POLICY,
+)
 
 
 def answer_slot_has_material(slot: Dict[str, Any]) -> bool:
@@ -32,6 +37,23 @@ def answer_slot_has_material(slot: Dict[str, Any]) -> bool:
     if slot.get("normalized_value") is not None:
         return True
     return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
+
+
+def answer_slot_period_hint(slot: Dict[str, Any]) -> str:
+    period = _normalise_spaces(str(slot.get("period") or ""))
+    if period:
+        return period
+    label = _normalise_spaces(str(slot.get("label") or ""))
+    period_pattern = str(CALCULATION_SLOT_POLICY.get("period_pattern") or "")
+    if period_pattern:
+        match = re.search(period_pattern, label)
+        if match:
+            return _normalise_spaces(match.group(0))
+    return ""
+
+
+def period_match_key(value: str) -> str:
+    return re.sub(r"\D", "", _normalise_spaces(str(value or "")))
 
 
 def source_task_display_compatible_with_slot(

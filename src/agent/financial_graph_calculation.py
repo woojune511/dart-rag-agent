@@ -18,7 +18,11 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Sequence
 
 from src.agent import financial_answer_slots
-from src.agent.financial_answer_slots import answer_slot_has_material
+from src.agent.financial_answer_slots import (
+    answer_slot_has_material,
+    answer_slot_period_hint,
+    period_match_key,
+)
 from src.agent.financial_aggregate_state import (
     AggregateCompositionState,
     _AggregateEvidenceState,
@@ -515,21 +519,6 @@ class FinancialAgentCalculationMixin:
                     keys.add(compact_label)
         return keys
 
-    def _slot_period_hint(self, slot: Dict[str, Any]) -> str:
-        period = _normalise_spaces(str(slot.get("period") or ""))
-        if period:
-            return period
-        label = _normalise_spaces(str(slot.get("label") or ""))
-        period_pattern = str(CALCULATION_SLOT_POLICY.get("period_pattern") or "")
-        if period_pattern:
-            match = re.search(period_pattern, label)
-            if match:
-                return _normalise_spaces(match.group(0))
-        return ""
-
-    def _period_match_key(self, value: str) -> str:
-        return re.sub(r"\D", "", _normalise_spaces(str(value or "")))
-
     def _iter_answer_slots(self, answer_slots: Dict[str, Any]) -> List[Dict[str, Any]]:
         slots: List[Dict[str, Any]] = []
         for key in ("primary_value", "current_value", "prior_value", "delta_value"):
@@ -571,15 +560,15 @@ class FinancialAgentCalculationMixin:
             return False
 
         target_periods = {
-            self._period_match_key(period)
+            period_match_key(period)
             for period in [
-                self._slot_period_hint(target_slot),
+                answer_slot_period_hint(target_slot),
                 *(
                     match.group(0)
                     for match in re.finditer(str(CALCULATION_SLOT_POLICY.get("period_pattern") or r"$^"), metric_label)
                 ),
             ]
-            if self._period_match_key(period)
+            if period_match_key(period)
         }
 
         target_concept = _normalise_spaces(str(target_slot.get("concept") or ""))
@@ -595,7 +584,7 @@ class FinancialAgentCalculationMixin:
                     sibling_concept = _normalise_spaces(str(sibling_slot.get("concept") or ""))
                     if sibling_concept and sibling_concept != target_concept:
                         continue
-                sibling_period = self._period_match_key(self._slot_period_hint(sibling_slot))
+                sibling_period = period_match_key(answer_slot_period_hint(sibling_slot))
                 if target_periods and sibling_period and sibling_period not in target_periods:
                     continue
                 if target_periods and not sibling_period:
@@ -645,8 +634,8 @@ class FinancialAgentCalculationMixin:
         if not target_keys:
             target_keys.add(_normalise_spaces(str(row.get("metric_label") or "")))
 
-        current_period = self._slot_period_hint(current_slot)
-        prior_period = self._slot_period_hint(prior_slot)
+        current_period = answer_slot_period_hint(current_slot)
+        prior_period = answer_slot_period_hint(prior_slot)
         sibling_periods: set[str] = set()
 
         for sibling in ordered_results:
@@ -662,7 +651,7 @@ class FinancialAgentCalculationMixin:
                 continue
             if not (target_keys & sibling_keys):
                 continue
-            period_hint = self._slot_period_hint(primary_slot)
+            period_hint = answer_slot_period_hint(primary_slot)
             if period_hint:
                 sibling_periods.add(period_hint)
 
@@ -699,9 +688,9 @@ class FinancialAgentCalculationMixin:
         if not target_keys:
             return False
         target_periods = {
-            self._period_match_key(match.group(0))
+            period_match_key(match.group(0))
             for match in re.finditer(r"20\d{2}\s*년?", feedback_text)
-            if self._period_match_key(match.group(0))
+            if period_match_key(match.group(0))
         }
 
         for row in ordered_results:
@@ -718,7 +707,7 @@ class FinancialAgentCalculationMixin:
             for slot in self._iter_answer_slots(answer_slots):
                 if not answer_slot_has_material(slot):
                     continue
-                slot_period = self._period_match_key(self._slot_period_hint(slot))
+                slot_period = period_match_key(answer_slot_period_hint(slot))
                 if target_periods and slot_period and slot_period not in target_periods:
                     continue
                 if target_periods and not slot_period:
@@ -833,7 +822,7 @@ class FinancialAgentCalculationMixin:
             if not text or not period_pattern:
                 continue
             for match in re.finditer(period_pattern, text):
-                period_key = self._period_match_key(match.group(0))
+                period_key = period_match_key(match.group(0))
                 if period_key:
                     period_keys.add(period_key)
         return period_keys
@@ -851,7 +840,7 @@ class FinancialAgentCalculationMixin:
             slot_keys = self._slot_metric_keys(slot)
             if not slot_keys:
                 continue
-            slot_period = self._period_match_key(self._slot_period_hint(slot))
+            slot_period = period_match_key(answer_slot_period_hint(slot))
             if target_periods and slot_period and slot_period not in target_periods:
                 continue
             if target_periods and not slot_period:
@@ -3375,11 +3364,11 @@ class FinancialAgentCalculationMixin:
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
         current_slot = dict(answer_slots.get("current_value") or {})
         prior_slot = dict(answer_slots.get("prior_value") or {})
-        current_period = self._period_match_key(
-            self._slot_period_hint(current_slot) or str(calculation_result.get("current_period") or "")
+        current_period = period_match_key(
+            answer_slot_period_hint(current_slot) or str(calculation_result.get("current_period") or "")
         )
-        prior_period = self._period_match_key(
-            self._slot_period_hint(prior_slot) or str(calculation_result.get("prior_period") or "")
+        prior_period = period_match_key(
+            answer_slot_period_hint(prior_slot) or str(calculation_result.get("prior_period") or "")
         )
         if not (current_period and prior_period and current_period == prior_period):
             return False
@@ -11532,8 +11521,8 @@ class FinancialAgentCalculationMixin:
         )
         if current_row is None or prior_row is None:
             return False
-        current_period = self._period_match_key(str(current_row.get("period") or current_row.get("label") or ""))
-        prior_period = self._period_match_key(str(prior_row.get("period") or prior_row.get("label") or ""))
+        current_period = period_match_key(str(current_row.get("period") or current_row.get("label") or ""))
+        prior_period = period_match_key(str(prior_row.get("period") or prior_row.get("label") or ""))
         return bool(current_period and prior_period and current_period == prior_period)
 
     def _late_runtime_numeric_answer(

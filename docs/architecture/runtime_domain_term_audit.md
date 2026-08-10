@@ -381,7 +381,7 @@ For each P0 record, classify it as one of:
   joiners, and feedback templates from `CALCULATION_FEEDBACK_POLICY`. Runtime
   keeps the generic mechanics: inspect operation family, status, answer slots,
   and rendered material before reporting which required material is absent.
-- `_slot_metric_keys()`, `_slot_period_hint()`,
+- `_slot_metric_keys()`, `answer_slot_period_hint()`,
   `_refine_operand_precision_from_evidence_table()`,
   `_infer_dependency_row_unit()`, and `_verify_calculation_answer()` now read
   slot cleanup terms, period patterns, display-unit groups, KRW magnitude
