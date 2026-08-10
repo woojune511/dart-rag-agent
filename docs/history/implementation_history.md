@@ -1425,6 +1425,51 @@ planning-owned. It proves no ranking change, accuracy or performance improvement
 total-code or executed-path reduction, benchmark improvement, or Phase 3
 completion.
 
+### Aggregate material/rank/dedupe owner milestone
+
+- `2f0f29e` publishes `answer_slot_period_hint(...)` and
+  `period_match_key(...)` from `financial_answer_slots.py` and preserves 21
+  semantic placements. Thirteen old graph definition-span lines were removed.
+  Source is `+46/-35`, tests are `+474/-0`, docs are `+1/-1`, and the whole
+  commit is `+521/-36`.
+- `1efccb2` publishes `growth_row_has_conflicting_periods(...)`,
+  `material_gap_feedback_for_subtask_result(...)`, and
+  `subtask_row_has_material(...)` from `financial_answer_projection.py`.
+  One hundred fifty old graph/planning definition-span lines were removed; 32
+  external placements remain and recursion plus growth-conflict composition are
+  owner-local. Source is `+207/-186`, tests are `+1,475/-50`, docs are `+1/-1`,
+  and the whole commit is `+1,683/-237`.
+- `ec266c6` keeps `_aggregate_result_rank(...)` owner-private and publishes
+  `nested_aggregate_result_rank(...)` plus
+  `dedupe_aggregate_subtask_results(...)` from
+  `financial_aggregate_projection.py`. Ninety-four old graph definition-span
+  lines were removed; ten graph placements and one owner-private call remain.
+  Source is `+113/-107`, tests are `+1,050/-55`, and the whole commit is
+  `+1,163/-162`.
+- Across `302cf50..ec266c6`, 257 selected old definition-span lines were removed
+  and replaced by seven public APIs plus one owner-private rank helper. The
+  range-level source diff is `+358/-320`, net `+38`, with changed source modules
+  moving from 22,222 to 22,260 physical lines. Tests are `+2,943/-49`, net
+  `+2,894`, moving from 34,757 to 37,651 physical lines; docs are `+2/-2`.
+  The whole changed-file range is `+3,303/-371`, net `+2,932`, moving from
+  57,428 to 60,360 physical lines. Test methods moved from 1,561 to 1,573:
+  three, five, and four methods were added by the sequential seams.
+- Final validation passed focused 4/4, 664/664 across
+  `tests.test_financial_aggregate_rank_dedupe`,
+  `tests.test_financial_answer_projection`,
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`,
+  the 217-literal runtime audit, full discovery over 1,573/1,573 tests, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**; no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone closes only the selected period/material/rank/dedupe ownership
+boundary. Promotion, sync/rebuild, nested traversal, mutable state/evidence,
+artifact/ledger, callbacks, and final orchestration remain outside it. The range
+proves no behavior or ranking change, accuracy or performance improvement,
+total-code or executed-path reduction, benchmark improvement, or Phase 3
+completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -15,11 +15,11 @@ Last updated: 2026-08-10
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; aggregate coherence-rank foundation closed, four named debt groups remain |
-| What just changed? | Shared slot-material detection, aggregate source preparation, and dependency-coherence ranks moved to state-free owners in `477abff`, `68d6546`, and `194e397` |
-| What passed? | Focused 4/4, affected four-module set 655/655, runtime audit 217, full unittest 1,561/1,561 |
+| What is the architecture state? | Phase 3 OPEN; aggregate material/rank/dedupe owner milestone closed, four named debt groups remain |
+| What just changed? | Period helpers, material projection policy, and aggregate result/nested rank plus dedupe moved to state-free owners in `2f0f29e`, `1efccb2`, and `ec266c6` |
+| What passed? | Focused 4/4, affected six-module set 664/664, runtime audit 217, full unittest 1,573/1,573 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Three sequential characterize-first seams: period keys → material projection → aggregate rank/dedupe closure; hard-stop before promotion, sync/rebuild, and planning nested traversal |
+| What is next? | Three characterize-first ratio presentation/readiness seams: rendering → answer slots → numeric surface; graph orchestration remains a hard stop |
 
 ## Product Boundary
 
@@ -50,15 +50,14 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest foundation batch moved canonical answer-slot material detection,
-  aggregate primary/source preparation, and dependency-coherence ranking behind
-  six public APIs plus one owner-private candidate helper. Retired moved
-  references and graph references to that private helper are zero. Full result
-  and nested rank, promotion, dedupe, and material-gap policy remain graph-owned;
-  row-material policy and nested traversal remain planning-owned. This is
-  ownership relocation, not a behavior or performance claim.
-- Current physical sizes are: calculation graph 17,665 lines, planning 2,361,
-  answer-slot owner 636, and aggregate owner 1,409.
+- The latest owner batch moved answer-slot period parsing, growth-period/material-
+  gap/row-material policy, result/nested ranking, and dedupe behind seven public
+  APIs plus owner-private `_aggregate_result_rank(...)`. Retired moved references
+  and graph-private rank references are zero. Promotion, sync/rebuild, mutable
+  state/evidence, ledger, callbacks, and final sequencing remain graph-owned.
+  This is ownership relocation, not a behavior or performance claim.
+- Current physical sizes are: calculation graph 17,420 lines, planning 2,356,
+  answer-slot owner 658, answer-projection owner 315, and aggregate owner 1,511.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -75,8 +74,8 @@ Commit-level diffs and validation are kept in
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio denominator sign policy and evidence-local unit/period coercion |
 | Dependency and execution | `financial_dependency_projection.py` and `financial_calculation_execution.py` |
-| Answer and numeric surfaces | `financial_answer_slots.py` and `financial_numeric_surface.py`, including shared slot-material and numeric-support predicates |
-| Aggregate projection | `financial_aggregate_projection.py`, including row/sentence/rendered selectors, source preparation, and dependency-coherence ranks |
+| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, and `financial_numeric_surface.py`, including period/material and numeric-support predicates |
+| Aggregate projection | `financial_aggregate_projection.py`, including selectors, source/coherence preparation, result/nested ranks, and stable dedupe |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py` |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
 
@@ -100,13 +99,14 @@ For topology rather than normative behavior, use
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
 | Latest focused owner checkpoint | PASS, 4 / 4 |
-| Latest affected regression set | PASS, four-module set 655 / 655 |
+| Latest affected regression set | PASS, six-module set 664 / 664 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,561 / 1,561 |
+| Full unittest discovery | PASS, 1,573 / 1,573 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The affected set is `tests.test_aggregate_subtask_projection`,
+The affected set is `tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_financial_answer_projection`, `tests.test_aggregate_subtask_projection`,
 `tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
 `tests.test_operation_contracts`.
 
@@ -129,7 +129,7 @@ The durable Phase 3 debt is:
 
 | Debt group | Progress boundary |
 | --- | --- |
-| Aggregate repair and precedence | Partially advanced through shared material/source/coherence foundations; full result/nested rank, promotion, and dedupe remain graph-owned |
+| Aggregate repair and precedence | Partially advanced through period/material/source/coherence/rank/dedupe ownership; promotion, sync/rebuild, and final sequencing remain graph-owned |
 | Dependency and ratio/absolute seams | Partially advanced; graph-state lookup remains graph-owned |
 | Broader task/artifact ledger synchronization | Essentially untouched; requires a separate behavior contract |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
@@ -139,29 +139,41 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The aggregate coherence-rank foundation batch is complete. The next architecture
-batch is three sequential characterize-first prerequisite-to-closure seams:
+The next architecture batch is one three-commit characterize-first ratio
+presentation/readiness sequence:
 
-1. publish `answer_slot_period_hint(...)` and `period_match_key(...)` from
-   `financial_answer_slots.py`;
-2. publish `growth_row_has_conflicting_periods(...)`,
-   `material_gap_feedback_for_subtask_result(...)`, and
-   `subtask_row_has_material(...)` from `financial_answer_projection.py`;
-3. keep `_aggregate_result_rank(...)` owner-private while publishing
-   `nested_aggregate_result_rank(...)` and
-   `dedupe_aggregate_subtask_results(...)` from the aggregate owner.
+1. publish `infer_concept_ratio_result_unit(...)`,
+   `ratio_query_requests_absolute_magnitude(...)`, and
+   `ratio_result_projection(...)` from
+   `financial_graph_calculation_rendering.py`;
+2. publish `ratio_component_consolidation_scope(...)`,
+   `ratio_components_collapse_to_same_slot(...)`, and
+   `ratio_components_are_complete(...)` from `financial_answer_slots.py`;
+3. publish `ratio_components_have_suspicious_scale(...)` and
+   `ratio_result_has_suspicious_krw_scale(...)` from
+   `financial_numeric_surface.py`.
 
-The dependency DAG is answer slots → answer projection → aggregate, with no
-cycle. The read-only profiled selected inventory is 257 old definition lines and
-63 external retargets; it is a boundary, not a completion or schedule estimate. Execute each
-seam only after its current-source tests are green, beginning with seam A while
-production source is held.
+The import DAG is graph helpers/planning → calculation rendering (calculation
+graph already imports rendering), calculation graph → answer slots, and
+calculation graph → numeric surface. Answer slots already imports rendering and
+numeric surface; none of those owners imports graph helpers, planning, or
+calculation graph in reverse. The characterize-first commit order remains A → B
+→ C; it is not an import-dependency arrow. The read-only profiled boundary covers
+165 old definition-span lines and 29 current calls. After co-location, three calls
+become owner-local and 26 remain external across eight public APIs. This is
+selected inventory, not a completion
+or schedule estimate. Keep source held until each seam's current-source contract
+is green; migrate all selected callers and retire the old body before starting
+the next seam.
 
-Hard-stop before graph `_promote_stronger_nested_aggregate_results(...)`,
-`_sync_projection_subtask_results_with_nested_promotions(...)`, and planning
-`_nested_subtask_rows(...)`. Mutable state/evidence, task/artifact ledger mutation,
-callbacks, and final orchestration remain graph-owned. No behavior, ranking,
-performance, or Phase 3 completion claim follows from this plan.
+Hard-stop before `_ratio_answer_from_dependency_source_slots(...)`,
+`_compact_ratio_answer(...)`, `_required_operand_rows_from_candidates(...)`,
+`_ratio_result_numeric_value(...)`, and
+`_align_ratio_operands_with_sibling_table_context(...)`. Promotion, sync/rebuild,
+mutable state/evidence, task/artifact ledger mutation, callbacks, and final
+orchestration also remain graph-owned. No behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark, or Phase 3
+completion claim follows from this plan.
 
 Run focused tests, the affected set, domain audit, full discovery, and
 `git diff --check` sequentially. Benchmark work remains separate: before

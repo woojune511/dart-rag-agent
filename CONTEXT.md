@@ -25,7 +25,7 @@ Last updated: 2026-08-10
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
 | Calculation ownership | graph-state orchestrator와 state-free operand/dependency/execution/aggregate owner로 분리 중 |
-| Phase 3 | OPEN; aggregate coherence-rank foundation milestone은 완료됐지만 single-calculation-path 전체는 미완료 |
+| Phase 3 | OPEN; aggregate material/rank/dedupe owner milestone은 완료됐지만 single-calculation-path 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -34,17 +34,16 @@ Last updated: 2026-08-10
 세부 우선순위는 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
 현재 durable debt는 다음 네 범주다.
 
-1. 일부 진행된 aggregate repair/precedence decision; material/source/coherence
-   foundation까지만 각 state-free owner로 이동
+1. 일부 진행된 aggregate repair/precedence decision; period/material/source/
+   coherence/rank/dedupe policy는 state-free owner로 이동했고 promotion과
+   rebuild/final sequencing은 graph에 유지
 2. 일부 진행된 dependency 및 ratio/absolute seam; graph-state lookup은 제외
 3. 사실상 untouched인 broader task/artifact ledger synchronization
 4. public contract 이동과 함께 일부 진행된 private API/test mesh
 
-이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 선택된 다음 작업은
-period hint/key → material-gap/row-material projection → result/nested rank와
-dedupe의 세 characterize-first seam이다. Read-only profiled selected inventory는
-old definition 257줄과 external retarget 63곳이며, 완료율이나 일정 추정이 아니다. Promotion,
-sync/rebuild와 planning nested traversal은 각각 graph/planning-owned hard stop이다.
+이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
+behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다. 선택된 다음
+작업과 hard stop은 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 구현 원칙
 

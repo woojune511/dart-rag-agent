@@ -1203,8 +1203,9 @@ mutate the slot and catches no truthiness, mapping, string, or other exception.
 
 All consumers retain every semantic call placement, prepared slot, surrounding
 short circuit, and later owned work; the graph's pre-existing callback pass-
-throughs remain unchanged. The shared predicate does not own material-gap
-feedback, result or nested ranking, promotion, dedupe, planning, or graph state.
+throughs remain unchanged. The shared predicate owns only slot material. Answer-
+projection policy consumes it for material decisions and aggregate projection
+consumes those decisions for ranking and dedupe; graph state remains outside it.
 
 Aggregate source preparation is owned by three plain public
 `financial_aggregate_projection.py` functions. `aggregate_row_primary_answer_slot`
@@ -1272,13 +1273,84 @@ left-to-right: raw operation family, a fresh stable list of shallow-copied stric
 dictionary operands, then a shallow calculation-result copy. Preparation failure
 stops before `aggregate_source_slot_by_task_id(ordered_results)`; source-map
 failure stops before the rank owner. The wrapper returns only the dependency-rank
-element. The graph retains four direct rank placements and four wrapper placements
-with their existing gates and adoption. Full result and nested rank tuples,
-material-gap policy, promotion, dedupe, rebuild, mutable state/evidence,
-artifact/ledger, callbacks, and final orchestration remain graph-owned. Row-
-material policy and nested-subtask traversal remain planning-owned.
-This foundation makes no behavior, accuracy, performance, total-code, executed-
-path, whole-ranking, or Phase 3 completion claim.
+element. All eight former external placements retain their gates and adoption:
+three direct graph rank placements, one direct owner-private aggregate placement,
+and four graph wrapper placements. The wrapper's internal rank call remains
+owner-local.
+
+Answer-slot period policy is public in `financial_answer_slots.py`.
+`answer_slot_period_hint(slot)` normalizes the explicit period first and returns
+it before label, policy-pattern, or regex access. Otherwise it normalizes the
+label, reads the configured pattern, skips regex for a blank pattern, and returns
+the normalized full match or `""`. `period_match_key(value)` truthiness-resolves
+and stringifies the value, normalizes spaces, then removes every non-digit with
+`re.sub(r"\D", "", ...)`; Unicode digit semantics therefore follow Python regex.
+Neither owner copies input or catches mapping, truthiness, string, policy, regex,
+match, or normalization exceptions. All 21 semantic placements remain: 17 graph
+calls and four answer-projection consumer calls.
+
+Material projection policy is public in `financial_answer_projection.py`.
+`growth_row_has_conflicting_periods(row)` shallow-copies calculation result,
+result-first answer slots, and current/prior slots; each normalized slot period
+precedes its result-period fallback. A blank key or unequal keys returns `False`
+before answer surface access. Equal nonblank keys normalize row answer/formatted/
+rendered and result formatted/rendered surfaces, collect distinct `20\d{2}` years,
+and return `True` only when fewer than two are present.
+
+`material_gap_feedback_for_subtask_result(row)` resolves metric label from row
+metric label, answer, task id, then policy default; status from row before result;
+and rendered material from result formatted value, result rendered value, then row
+answer. Operation family resolves result answer-slot family, row plan family,
+result derived-metric family, row plan operation, then a `concept_` metric-family
+suffix. Aggregate-subtask rows scan nested results in reverse, skip only
+conflicting nonblank metric labels, and recurse owner-locally. Lookup/single-value
+require a primary slot. Difference and growth require current/prior slots, then
+delta-or-primary and primary respectively; growth checks period conflict first.
+An `ok` status plus a rendered digit preserves the existing growth and ratio/sum
+result fallback. Missing labels and final feedback use only
+`CALCULATION_FEEDBACK_POLICY` templates; unknown families return `""`.
+
+`subtask_row_has_material(row)` shallow-copies result and result-first answer
+slots, probes fresh copies of `primary_value`, `current_value`, `prior_value`, then
+`delta_value`, and stops at the first material slot. Only the remaining path checks
+result rendered value before row answer, then truthiness of a fresh source-row-id
+list. The three public owners catch no access, copy, normalization, regex,
+iteration, recursion, predicate, formatting, or other exception. Consumers retain
+32 external placements: 24 graph, five planning, and three aggregate-owner calls;
+gap recursion and its growth-conflict call are owner-local.
+
+Aggregate ranking and dedupe are in `financial_aggregate_projection.py`.
+Owner-private `_aggregate_result_rank(row, source_slot_by_task_id=None)` returns
+exactly `(status, material, answer, growth_sign, dependency_slot,
+scope_coherence, operand_count)`. Status precedence is row before result;
+material precedes normalized answer presence, growth sign, dependency/scope
+coherence, and list-materialized source-row count. Status ranks remain `ok=4`,
+`partial|ready=3`, `insufficient_operands|retry_retrieval=1`, and otherwise `0`.
+
+Public `nested_aggregate_result_rank(row)` returns exactly `(status, material,
+gap_free, non_aggregate, growth_sign, source_count, digit_count, answer_length)`.
+It shallow-copies result first, resolves status from row before result, then
+evaluates the remaining dimensions left-to-right. Source count cleans row source
+ids, result source ids, row selected claims, then result evidence ids. Answer text
+uses row answer before result formatted value and rendered value; digit count uses
+`re.findall(r"\d", ...)`.
+
+Public `dedupe_aggregate_subtask_results(ordered_results)` builds the source map
+before its signature/rank loop. Blank signatures pass through without ranking.
+For each signature, a greater rank wins and an equal later index replaces the
+incumbent; winners and passthrough rows are then sorted by their retained original
+index.
+The returned list and every retained top-level row are fresh, nested aliases are
+preserved, and input rows remain unmodified. Mapping, copy, truthiness, iteration,
+hashing, ranking, sorting, regex, and dependency exceptions remain uncaught.
+
+The graph retains two nested-rank calls in the existing promotion comparator and
+eight dedupe placements across the existing aggregate coordinators, including
+their gates, argument identity, adoption, and exception stop. Promotion,
+sync/rebuild, nested traversal, mutable state/evidence, artifact/ledger, callbacks,
+and final orchestration remain graph/planning-owned. These owner moves make no
+behavior, ranking, accuracy, performance, total-code, executed-path, or Phase 3
+completion claim.
 
 For collapsed-ratio runtime recovery, the aggregate owner exposes a typed,
 state-free absolute-magnitude projection over graph-prepared mutable copies of

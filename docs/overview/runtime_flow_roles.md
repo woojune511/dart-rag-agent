@@ -282,9 +282,10 @@ State-free owner topology:
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, ratio display alignment, ratio denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
-| `financial_answer_slots.py` | answer-slot construction, shared slot-material detection, and ratio/source display compatibility |
+| `financial_answer_slots.py` | answer-slot construction, shared slot-material and period-key policy, and ratio/source display compatibility |
+| `financial_answer_projection.py` | growth-period conflict, material-gap, row-material, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support and numeric-support predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -301,10 +302,10 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 7. broader ledger synchronization과 아직 선택되지 않은 private helper mesh
 
 최근 owner 이동에는 ratio sign policy, numeric support, aggregate selector,
-shared slot-material, aggregate source-preparation, dependency-coherence rank
-foundation이 포함된다. Graph는 full result/nested rank tuple, material-gap과
-promotion, dedupe, rebuild, mutable state/evidence, ledger와 callback orchestration을
-유지하고, planning은 row-material policy와 nested traversal을 유지한다.
+slot-material/period policy, aggregate source/coherence preparation, material-gap,
+result/nested rank와 dedupe가 포함된다. Graph는 promotion, sync/rebuild, mutable
+state/evidence, ledger와 callback/final orchestration을 유지하고, planning은 nested
+traversal을 유지한다.
 
 함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
 [Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.
@@ -315,14 +316,13 @@ claim limit은 [Implementation History](../history/implementation_history.md)를
 
 ### `src/agent/financial_answer_projection.py`
 
-Aggregate/narrative subtask 결과 중 caller-facing public answer로 승격할 답변을
-고르는 pure helper다. PR #77 이후 `KBF_T2_018` 같은 mixed growth+narrative
-projection 문제를 일반 numeric-surface consistency로 처리한다.
+Aggregate/narrative row의 state-free answer policy owner다.
 
-- `_preferred_complete_aggregate_subtask_answer(...)`: public answer보다 완성된
-  aggregate/narrative answer candidate를 선택한다.
-- 내부 numeric-surface helpers: candidate가 기존 answer의 숫자 표면과 충분히
-  겹치고, 충돌 numeric surface를 줄이는지 본다.
+- `growth_row_has_conflicting_periods(...)`,
+  `material_gap_feedback_for_subtask_result(...)`,
+  `subtask_row_has_material(...)`: period/material readiness를 판정한다.
+- `_preferred_complete_aggregate_subtask_answer(...)`와 내부 numeric-surface
+  helpers: 더 완성된 answer candidate를 evidence-visible 숫자 표면으로 비교한다.
 - 이 모듈은 회사명, benchmark id, report phrase, metric-specific keyword branch를
   갖지 않는다.
 
