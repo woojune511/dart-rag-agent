@@ -83,8 +83,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             node
             for node in ast.walk(target)
             if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "_growth_operand_periods_conflict"
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "growth_operand_periods_conflict"
         )
         sign_call = next(
             node
@@ -196,7 +196,11 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     side_effect=owner_effect,
                 ) as owner,
                 patch.object(agent, "_recover_duplicate_growth_prior_operand", side_effect=duplicate) as duplicate_mock,
-                patch.object(agent, "_growth_operand_periods_conflict", side_effect=conflict) as conflict_mock,
+                patch.object(
+                    graph_calculation,
+                    "growth_operand_periods_conflict",
+                    side_effect=conflict,
+                ) as conflict_mock,
                 patch.object(graph_calculation, "apply_operation_sign_policy", side_effect=sign) as sign_mock,
                 patch.object(graph_calculation, "coerce_lookup_magnitude_record", side_effect=lambda row, _evidence: row),
                 patch.object(graph_calculation, "execute_prepared_calculation_plan", side_effect=tracked_execute) as executor,
@@ -269,6 +273,243 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "growth alignment"):
             invoke(owner_failure, events=stop_events)
         self.assertEqual([event[0] for event in stop_events], ["donor", "owner"])
+
+    def test_prepare_candidate_binds_growth_period_conflict_once_after_recovery(self) -> None:
+        tree = ast.parse(Path(graph_calculation.__file__).read_text(encoding="utf-8"))
+        target = next(
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "_prepare_calculation_candidate"
+        )
+        parents = {
+            child: parent
+            for parent in ast.walk(target)
+            for child in ast.iter_child_nodes(parent)
+        }
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "growth_operand_periods_conflict"
+        ]
+        self.assertEqual(len(calls), 1)
+        owner_call = calls[0]
+        self.assertIn(owner_call, list(ast.walk(target)))
+        self.assertEqual(len(owner_call.args), 1)
+        self.assertEqual(ast.unparse(owner_call.args[0]), "ordered_operands")
+        self.assertEqual(owner_call.keywords, [])
+
+        owner_if = parents[owner_call]
+        self.assertIsInstance(owner_if, ast.If)
+        failure_calls = [
+            node
+            for node in ast.walk(owner_if)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_prepared_failure"
+        ]
+        self.assertEqual(len(failure_calls), 1)
+        self.assertEqual(
+            [ast.literal_eval(arg) for arg in failure_calls[0].args],
+            ["insufficient_operands", "growth operands share the same period"],
+        )
+
+        ancestor_tests = []
+        parent = owner_if
+        while parent is not target:
+            if isinstance(parent, ast.If):
+                ancestor_tests.append(ast.unparse(parent.test))
+            self.assertNotIsInstance(parent, ast.Try)
+            parent = parents[parent]
+        self.assertTrue(any("operation_family == 'growth_rate'" in test for test in ancestor_tests))
+
+        duplicate_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "self"
+            and node.func.attr == "_recover_duplicate_growth_prior_operand"
+        )
+        adoption_assignments = [
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Assign)
+            and duplicate_call.lineno < node.lineno < owner_call.lineno
+            and any(
+                isinstance(name, ast.Name) and name.id == "ordered_operands"
+                for target_node in node.targets
+                for name in ast.walk(target_node)
+            )
+        ]
+        sign_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "apply_operation_sign_policy"
+        )
+        executor_call = next(
+            node
+            for node in ast.walk(target)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "execute_prepared_calculation_plan"
+        )
+        self.assertTrue(adoption_assignments)
+        self.assertLess(duplicate_call.lineno, min(node.lineno for node in adoption_assignments))
+        self.assertLess(max(node.lineno for node in adoption_assignments), owner_call.lineno)
+        self.assertLess(owner_call.lineno, sign_call.lineno)
+        self.assertLess(sign_call.lineno, executor_call.lineno)
+
+    def test_prepare_candidate_applies_growth_period_conflict_boolean_and_exception_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        def candidate_input(*, operation_family="growth_rate"):
+            return graph_calculation._CalculationCandidateInput(
+                calculation_operands=(
+                    {
+                        "operand_id": "current",
+                        "matched_operand_role": "current_period",
+                        "matched_operand_concept": "revenue",
+                        "period": "2024",
+                        "raw_value": "20",
+                        "raw_unit": "KRW",
+                        "normalized_value": 20.0,
+                        "normalized_unit": "KRW",
+                    },
+                    {
+                        "operand_id": "prior",
+                        "matched_operand_role": "prior_period",
+                        "matched_operand_concept": "revenue",
+                        "period": "2023",
+                        "raw_value": "10",
+                        "raw_unit": "KRW",
+                        "normalized_value": 10.0,
+                        "normalized_unit": "KRW",
+                    },
+                ),
+                calculation_plan={
+                    "mode": "scalar",
+                    "operation": operation_family,
+                    "ordered_operand_ids": ["current", "prior"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "current"},
+                        {"variable": "B", "operand_id": "prior"},
+                    ],
+                    "formula": "(A - B) / B * 100",
+                    "pairwise_formula": "",
+                    "result_unit": "PERCENT",
+                },
+                active_subtask={"operation_family": operation_family, "required_operands": []},
+                query="growth",
+                evidence_items=(),
+                runtime_evidence=(),
+            )
+
+        def execute(**kwargs):
+            ordered = tuple(kwargs["operands_by_id"][item] for item in kwargs["ordered_operand_ids"])
+            return CalculationExecutionOutcome(
+                status="ok",
+                reason="",
+                result_value=100.0,
+                normalized_unit="PERCENT",
+                source_normalized_unit="PERCENT",
+                ordered_operands=ordered,
+                selected_evidence_ids=(),
+            )
+
+        def invoke(conflict_effect, *, operation_family="growth_rate", events=None):
+            events = [] if events is None else events
+
+            def duplicate(rows, _evidence):
+                recovered_prior = dict(rows[1])
+                recovered_prior["duplicate_recovered"] = True
+                recovered = [rows[0], recovered_prior]
+                events.append(("duplicate", recovered))
+                return recovered
+
+            def conflict(rows):
+                events.append(("conflict", rows))
+                return conflict_effect(rows)
+
+            def sign(rows, **_kwargs):
+                events.append(("sign", rows))
+                return rows
+
+            def magnitude(row, _evidence):
+                events.append(("magnitude", row))
+                return row
+
+            def tracked_execute(**kwargs):
+                events.append(("execute", kwargs["operands_by_id"]))
+                return execute(**kwargs)
+
+            with (
+                patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
+                patch.object(agent, "_repair_krw_operand_units_from_table_metadata", side_effect=lambda rows, _evidence: rows),
+                patch.object(graph_calculation, "repair_krw_normalized_values_from_raw_units", side_effect=lambda rows: rows),
+                patch.object(graph_calculation, "guard_operation_plan", return_value={}),
+                patch.object(graph_calculation, "repair_operand_normalization_from_rendered_unit", side_effect=lambda row: row),
+                patch.object(graph_calculation, "align_growth_operand_units_when_raw_scale_matches", side_effect=lambda rows: rows),
+                patch.object(agent, "_recover_duplicate_growth_prior_operand", side_effect=duplicate) as duplicate_mock,
+                patch.object(
+                    graph_calculation,
+                    "growth_operand_periods_conflict",
+                    side_effect=conflict,
+                ) as owner,
+                patch.object(graph_calculation, "apply_operation_sign_policy", side_effect=sign) as sign_mock,
+                patch.object(graph_calculation, "coerce_lookup_magnitude_record", side_effect=magnitude) as magnitude_mock,
+                patch.object(graph_calculation, "execute_prepared_calculation_plan", side_effect=tracked_execute) as executor,
+            ):
+                result = agent._prepare_calculation_candidate(candidate_input(operation_family=operation_family))
+            return result, events, duplicate_mock, owner, sign_mock, magnitude_mock, executor
+
+        continued, events, duplicate, owner, sign, magnitude, executor = invoke(lambda _rows: False)
+        self.assertEqual(continued.status, "ok")
+        duplicate.assert_called_once()
+        owner.assert_called_once()
+        sign.assert_called_once()
+        self.assertEqual(magnitude.call_count, 2)
+        executor.assert_called_once()
+        event_names = [event[0] for event in events]
+        self.assertEqual(event_names, ["duplicate", "conflict", "sign", "magnitude", "magnitude", "execute"])
+        self.assertTrue(events[1][1][1]["duplicate_recovered"])
+        self.assertTrue(events[-1][1]["prior"]["duplicate_recovered"])
+        self.assertTrue(continued.calculation_operands[1]["duplicate_recovered"])
+
+        failed, events, duplicate, owner, sign, magnitude, executor = invoke(lambda _rows: True)
+        self.assertEqual(failed.status, "insufficient_operands")
+        self.assertEqual(failed.reason, "growth operands share the same period")
+        self.assertEqual([event[0] for event in events], ["duplicate", "conflict"])
+        self.assertTrue(events[1][1][1]["duplicate_recovered"])
+        duplicate.assert_called_once()
+        owner.assert_called_once()
+        sign.assert_not_called()
+        magnitude.assert_not_called()
+        executor.assert_not_called()
+
+        gated, events, duplicate, owner, sign, magnitude, executor = invoke(
+            lambda _rows: (_ for _ in ()).throw(AssertionError("difference conflict call")),
+            operation_family="difference",
+        )
+        self.assertEqual(gated.status, "ok")
+        self.assertEqual([event[0] for event in events], ["sign", "magnitude", "magnitude", "execute"])
+        duplicate.assert_not_called()
+        owner.assert_not_called()
+        sign.assert_called_once()
+        self.assertEqual(magnitude.call_count, 2)
+        executor.assert_called_once()
+
+        stop_events: List[Any] = []
+        with self.assertRaisesRegex(RuntimeError, "period conflict"):
+            invoke(
+                lambda _rows: (_ for _ in ()).throw(RuntimeError("period conflict")),
+                events=stop_events,
+            )
+        self.assertEqual([event[0] for event in stop_events], ["duplicate", "conflict"])
 
     def test_prepare_candidate_binds_krw_raw_unit_repair_once_in_exact_order(self) -> None:
         tree = ast.parse(Path(graph_calculation.__file__).read_text(encoding="utf-8"))
@@ -540,8 +781,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     side_effect=lambda rows, _evidence: rows,
                 ),
                 patch.object(
-                    agent,
-                    "_growth_operand_periods_conflict",
+                    graph_calculation,
+                    "growth_operand_periods_conflict",
                     return_value=period_conflict,
                 ),
                 patch.object(

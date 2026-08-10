@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, FrozenSet, List, Literal, Mapping, Optional, Sequence, Tuple
 
+from src.agent.financial_answer_slots import period_match_key
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
     _label_implies_percent_metric,
@@ -898,6 +899,32 @@ def align_growth_operand_units_when_raw_scale_matches(
         else:
             updated_rows.append(row)
     return updated_rows
+
+
+def growth_operand_periods_conflict(ordered_operands: List[Dict[str, Any]]) -> bool:
+    if len(ordered_operands) != 2:
+        return False
+    current_row = next(
+        (
+            dict(row)
+            for row in ordered_operands
+            if str(row.get("matched_operand_role") or "").strip() == "current_period"
+        ),
+        None,
+    )
+    prior_row = next(
+        (
+            dict(row)
+            for row in ordered_operands
+            if str(row.get("matched_operand_role") or "").strip() == "prior_period"
+        ),
+        None,
+    )
+    if current_row is None or prior_row is None:
+        return False
+    current_period = period_match_key(str(current_row.get("period") or current_row.get("label") or ""))
+    prior_period = period_match_key(str(prior_row.get("period") or prior_row.get("label") or ""))
+    return bool(current_period and prior_period and current_period == prior_period)
 
 
 def align_ratio_operand_units_with_shared_table_context(

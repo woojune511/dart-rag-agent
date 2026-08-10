@@ -954,6 +954,268 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "string"):
             operand_resolution.align_growth_operand_units_when_raw_scale_matches(string_rows)
 
+    def test_growth_period_conflict_preserves_scan_copy_period_and_mutation_contract(self) -> None:
+        class NoAccess:
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("row access")
+
+            def __iter__(self):
+                raise AssertionError("row iteration")
+
+        for short_rows in ([], [NoAccess()], [NoAccess(), NoAccess(), NoAccess()]):
+            self.assertFalse(operand_resolution.growth_operand_periods_conflict(short_rows))
+
+        events: List[Any] = []
+
+        class TraceRow(Mapping):
+            def __init__(self, name: str, values: Dict[str, Any]):
+                self.name = name
+                self.values = values
+
+            def __getitem__(self, key):
+                events.append((self.name, "item", key))
+                return self.values[key]
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __len__(self):
+                return len(self.values)
+
+            def get(self, key, default=None):
+                events.append((self.name, "get", key))
+                return self.values.get(key, default)
+
+            def keys(self):
+                events.append((self.name, "copy"))
+                return self.values.keys()
+
+        class LabelBomb:
+            def __str__(self):
+                raise AssertionError("truthy period must skip label")
+
+        shared = {"nested": True}
+        current_values = {
+            "matched_operand_role": "current_period",
+            "period": "2024",
+            "label": LabelBomb(),
+            "nested": shared,
+        }
+        prior_values = {
+            "matched_operand_role": "prior_period",
+            "period": "",
+            "label": " 2024 ",
+            "nested": shared,
+        }
+        current_snapshot = dict(current_values)
+        prior_snapshot = dict(prior_values)
+
+        def period_key(value):
+            events.append(("period_key", value))
+            return value.strip()
+
+        with patch.object(operand_resolution, "period_match_key", side_effect=period_key) as key_owner:
+            self.assertTrue(
+                operand_resolution.growth_operand_periods_conflict(
+                    [TraceRow("current", current_values), TraceRow("prior", prior_values)]
+                )
+            )
+
+        self.assertEqual(
+            [event for event in events if event[1:2] in [("get",), ("copy",)] and event[-1:] != ("period",)],
+            [
+                ("current", "get", "matched_operand_role"),
+                ("current", "copy"),
+                ("current", "get", "matched_operand_role"),
+                ("prior", "get", "matched_operand_role"),
+                ("prior", "copy"),
+            ],
+        )
+        self.assertEqual([call.args for call in key_owner.call_args_list], [("2024",), (" 2024 ",)])
+        self.assertEqual(current_values, current_snapshot)
+        self.assertEqual(prior_values, prior_snapshot)
+        self.assertIs(current_values["nested"], shared)
+        self.assertIs(prior_values["nested"], shared)
+
+        different = [
+            {"matched_operand_role": "current_period", "period": "2024"},
+            {"matched_operand_role": "prior_period", "period": "2023"},
+        ]
+        with patch.object(operand_resolution, "period_match_key", side_effect=lambda value: value):
+            self.assertFalse(operand_resolution.growth_operand_periods_conflict(different))
+
+        missing_prior = [
+            {"matched_operand_role": "current_period", "period": "2024"},
+            {"matched_operand_role": "current_period", "period": "2023"},
+        ]
+        with patch.object(
+            operand_resolution,
+            "period_match_key",
+            side_effect=AssertionError("period owner access"),
+        ):
+            self.assertFalse(operand_resolution.growth_operand_periods_conflict(missing_prior))
+
+        missing_current = [
+            {"matched_operand_role": "prior_period", "period": "2024"},
+            {"matched_operand_role": "prior_period", "period": "2023"},
+        ]
+        with patch.object(
+            operand_resolution,
+            "period_match_key",
+            side_effect=AssertionError("period owner access"),
+        ):
+            self.assertFalse(operand_resolution.growth_operand_periods_conflict(missing_current))
+
+    def test_growth_period_conflict_preserves_lazy_truth_and_exception_contract(self) -> None:
+        class StrBomb:
+            def __str__(self):
+                raise RuntimeError("string")
+
+        def rows(*, current_period="2024", prior_period="2024", current_label="", prior_label=""):
+            return [
+                {
+                    "matched_operand_role": "current_period",
+                    "period": current_period,
+                    "label": current_label,
+                },
+                {
+                    "matched_operand_role": "prior_period",
+                    "period": prior_period,
+                    "label": prior_label,
+                },
+            ]
+
+        with patch.object(operand_resolution, "period_match_key", side_effect=lambda value: value):
+            self.assertTrue(
+                operand_resolution.growth_operand_periods_conflict(
+                    rows(current_label=StrBomb(), prior_label=StrBomb())
+                )
+            )
+
+        with patch.object(operand_resolution, "period_match_key", side_effect=lambda value: value.strip()) as key_owner:
+            self.assertTrue(
+                operand_resolution.growth_operand_periods_conflict(
+                    rows(current_period="", prior_period="", current_label=" 2024 ", prior_label="2024")
+                )
+            )
+        self.assertEqual([call.args for call in key_owner.call_args_list], [(" 2024 ",), ("2024",)])
+
+        truth_events: List[str] = []
+
+        class TruthProbe:
+            def __init__(self, name: str, truth: bool):
+                self.name = name
+                self.truth = truth
+
+            def __bool__(self):
+                truth_events.append(self.name)
+                return self.truth
+
+        current_falsy = TruthProbe("current", False)
+        prior_unread = TruthProbe("prior", True)
+        with patch.object(operand_resolution, "period_match_key", side_effect=[current_falsy, prior_unread]) as key_owner:
+            self.assertFalse(operand_resolution.growth_operand_periods_conflict(rows()))
+        self.assertEqual(key_owner.call_count, 2)
+        self.assertEqual(truth_events, ["current", "current"])
+
+        truth_events.clear()
+        with patch.object(
+            operand_resolution,
+            "period_match_key",
+            side_effect=[TruthProbe("current", True), TruthProbe("prior", False)],
+        ):
+            self.assertFalse(operand_resolution.growth_operand_periods_conflict(rows()))
+        self.assertEqual(truth_events, ["current", "prior", "prior"])
+
+        class EqualityResult:
+            def __bool__(self):
+                truth_events.append("result")
+                return True
+
+        class EqualityProbe(TruthProbe):
+            def __eq__(self, _other):
+                truth_events.append("equal")
+                return EqualityResult()
+
+        truth_events.clear()
+        with patch.object(
+            operand_resolution,
+            "period_match_key",
+            side_effect=[EqualityProbe("current", True), TruthProbe("prior", True)],
+        ):
+            self.assertTrue(operand_resolution.growth_operand_periods_conflict(rows()))
+        self.assertEqual(truth_events, ["current", "prior", "equal", "result"])
+
+        class AccessBomb:
+            def get(self, *_args, **_kwargs):
+                raise RuntimeError("mapping")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping"):
+            operand_resolution.growth_operand_periods_conflict([AccessBomb(), {}])
+
+        class CopyBomb(Mapping):
+            def __getitem__(self, key):
+                if key == "matched_operand_role":
+                    return "current_period"
+                raise KeyError(key)
+
+            def __iter__(self):
+                return iter(("matched_operand_role",))
+
+            def __len__(self):
+                return 1
+
+            def get(self, key, default=None):
+                return "current_period" if key == "matched_operand_role" else default
+
+            def keys(self):
+                raise RuntimeError("copy")
+
+        with self.assertRaisesRegex(RuntimeError, "copy"):
+            operand_resolution.growth_operand_periods_conflict(
+                [CopyBomb(), {"matched_operand_role": "prior_period", "period": "2024"}]
+            )
+
+        role_string_rows = rows()
+        role_string_rows[0]["matched_operand_role"] = StrBomb()
+        with self.assertRaisesRegex(RuntimeError, "string"):
+            operand_resolution.growth_operand_periods_conflict(role_string_rows)
+
+        with self.assertRaisesRegex(RuntimeError, "string"):
+            operand_resolution.growth_operand_periods_conflict(rows(current_period=StrBomb()))
+
+        with (
+            patch.object(operand_resolution, "period_match_key", side_effect=RuntimeError("period owner")),
+            self.assertRaisesRegex(RuntimeError, "period owner"),
+        ):
+            operand_resolution.growth_operand_periods_conflict(rows())
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("truth")
+
+        with self.assertRaisesRegex(RuntimeError, "truth"):
+            operand_resolution.growth_operand_periods_conflict(rows(current_period=BoolBomb()))
+
+        with (
+            patch.object(operand_resolution, "period_match_key", side_effect=[BoolBomb(), "2024"]),
+            self.assertRaisesRegex(RuntimeError, "truth"),
+        ):
+            operand_resolution.growth_operand_periods_conflict(rows())
+
+        class EqualityBomb:
+            def __bool__(self):
+                return True
+
+            def __eq__(self, _other):
+                raise RuntimeError("equality")
+
+        with (
+            patch.object(operand_resolution, "period_match_key", side_effect=[EqualityBomb(), EqualityBomb()]),
+            self.assertRaisesRegex(RuntimeError, "equality"),
+        ):
+            operand_resolution.growth_operand_periods_conflict(rows())
+
     def test_operation_sign_policy_preserves_identity_and_applies_ontology_override(self) -> None:
         class IterationBomb(list):
             def __iter__(self):

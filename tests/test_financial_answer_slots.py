@@ -11,6 +11,7 @@ from src.agent import (
     financial_answer_projection,
     financial_answer_slots,
     financial_graph_calculation,
+    financial_operand_resolution,
 )
 from src.agent.financial_answer_slots import (
     RatioResultDisplaySyncInput,
@@ -606,6 +607,7 @@ class FinancialAnswerSlotTests(unittest.TestCase):
             for module_name, module in (
                 ("graph", financial_graph_calculation),
                 ("owner", financial_answer_projection),
+                ("operand", financial_operand_resolution),
             ):
                 tree = ast.parse(inspect.getsource(module))
                 parents = {}
@@ -644,7 +646,7 @@ class FinancialAnswerSlotTests(unittest.TestCase):
                     ("graph", "_task_target_period_keys"): 1,
                     ("graph", "_matching_resolved_slot_for_task"): 1,
                     ("owner", "growth_row_has_conflicting_periods"): 2,
-                    ("graph", "_growth_operand_periods_conflict"): 2,
+                    ("operand", "growth_operand_periods_conflict"): 2,
                 }
             ),
         )

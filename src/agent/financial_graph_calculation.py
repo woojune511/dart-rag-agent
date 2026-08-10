@@ -195,6 +195,7 @@ from src.agent.financial_operand_resolution import (
     resolve_recovered_operand_context_adoption,
     resolve_required_operand_candidate_merge,
     repair_krw_normalized_values_from_raw_units,
+    growth_operand_periods_conflict,
     score_direct_structured_lookup_evidence,
     surface_contract_numeric_evidence_items,
     table_label_metadata_lookup_score,
@@ -10937,31 +10938,6 @@ class FinancialAgentCalculationMixin:
                 updated_rows.append(row)
         return updated_rows
 
-    def _growth_operand_periods_conflict(self, ordered_operands: List[Dict[str, Any]]) -> bool:
-        if len(ordered_operands) != 2:
-            return False
-        current_row = next(
-            (
-                dict(row)
-                for row in ordered_operands
-                if str(row.get("matched_operand_role") or "").strip() == "current_period"
-            ),
-            None,
-        )
-        prior_row = next(
-            (
-                dict(row)
-                for row in ordered_operands
-                if str(row.get("matched_operand_role") or "").strip() == "prior_period"
-            ),
-            None,
-        )
-        if current_row is None or prior_row is None:
-            return False
-        current_period = period_match_key(str(current_row.get("period") or current_row.get("label") or ""))
-        prior_period = period_match_key(str(prior_row.get("period") or prior_row.get("label") or ""))
-        return bool(current_period and prior_period and current_period == prior_period)
-
     def _late_runtime_numeric_answer(
         self,
         state: FinancialAgentState,
@@ -14026,7 +14002,7 @@ class FinancialAgentCalculationMixin:
                 ]
                 ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
-            if self._growth_operand_periods_conflict(ordered_operands):
+            if growth_operand_periods_conflict(ordered_operands):
                 return _prepared_failure(
                     "insufficient_operands",
                     "growth operands share the same period",
