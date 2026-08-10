@@ -1,6 +1,8 @@
+import ast
 import inspect
 import math
 import unittest
+from collections import Counter
 from collections.abc import Mapping
 from copy import deepcopy
 from types import SimpleNamespace
@@ -101,6 +103,549 @@ def _repaired_growth_result() -> dict:
 
 
 class AggregateSubtaskProjectionTests(unittest.TestCase):
+    def test_current_source_narrative_summary_predicate_precedence_access_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        events = []
+
+        class MetricValue:
+            def __str__(self) -> str:
+                events.append("metric:str")
+                return "  Narrative   Summary  "
+
+        class RecordingRow(dict):
+            def get(self, key, default=None):
+                events.append(f"row:get:{key}")
+                return super().get(key, default)
+
+        row = RecordingRow(metric_family=MetricValue(), nested=nested)
+        operation_family = Mock(
+            side_effect=lambda candidate: events.append("operation") or "lookup"
+        )
+
+        def normalise(value):
+            events.append(f"normalise:{value}")
+            return "Narrative_Summary"
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", operation_family),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalise),
+        ):
+            self.assertTrue(financial_aggregate_projection.row_is_narrative_summary(row))
+        self.assertEqual(
+            events,
+            [
+                "row:get:metric_family",
+                "metric:str",
+                "normalise:  Narrative   Summary  ",
+                "operation",
+            ],
+        )
+        operation_family.assert_called_once_with(row)
+        self.assertIs(row["nested"], nested)
+        self.assertEqual(set(row), {"metric_family", "nested"})
+
+        with patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_operation_family",
+            side_effect=("narrative_summary", "lookup"),
+        ) as operation_family:
+            self.assertTrue(financial_aggregate_projection.row_is_narrative_summary({"metric_family": "other"}))
+            self.assertFalse(financial_aggregate_projection.row_is_narrative_summary({"metric_family": "other"}))
+        self.assertEqual(operation_family.call_count, 2)
+
+        class GetBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError("metric access failed")
+
+        class StringBomb:
+            def __str__(self) -> str:
+                raise RuntimeError("metric string failed")
+
+        downstream = Mock(return_value="narrative_summary")
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", downstream):
+            with self.assertRaisesRegex(RuntimeError, "metric access failed"):
+                financial_aggregate_projection.row_is_narrative_summary(GetBomb())
+            with self.assertRaisesRegex(RuntimeError, "metric string failed"):
+                financial_aggregate_projection.row_is_narrative_summary({"metric_family": StringBomb()})
+            with patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("metric normalization failed"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "metric normalization failed"):
+                    financial_aggregate_projection.row_is_narrative_summary({"metric_family": "narrative_summary"})
+        downstream.assert_not_called()
+
+        with patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_operation_family",
+            side_effect=RuntimeError("operation family failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "operation family failed"):
+                financial_aggregate_projection.row_is_narrative_summary({"metric_family": "narrative_summary"})
+
+        class FalsyMetric:
+            def __bool__(self) -> bool:
+                events.append("metric:bool:false")
+                return False
+
+            def __str__(self) -> str:
+                raise RuntimeError("falsy metric string accessed")
+
+        events.clear()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="lookup") as operation_family,
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=lambda value: events.append(f"normalise:{value}") or value,
+            ),
+        ):
+            self.assertFalse(financial_aggregate_projection.row_is_narrative_summary({"metric_family": FalsyMetric()}))
+        self.assertEqual(events, ["metric:bool:false", "normalise:"])
+        operation_family.assert_called_once()
+
+        class TruthinessBomb:
+            def __bool__(self) -> bool:
+                raise RuntimeError("metric truthiness failed")
+
+        downstream = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", downstream),
+            patch.object(financial_aggregate_projection, "_normalise_spaces") as normalizer,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "metric truthiness failed"):
+                financial_aggregate_projection.row_is_narrative_summary({"metric_family": TruthinessBomb()})
+        normalizer.assert_not_called()
+        downstream.assert_not_called()
+
+        class LowerBomb:
+            def lower(self):
+                raise RuntimeError("metric lower failed")
+
+        downstream = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", downstream),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", return_value=LowerBomb()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "metric lower failed"):
+                financial_aggregate_projection.row_is_narrative_summary({"metric_family": "metric"})
+        downstream.assert_not_called()
+
+    def test_current_source_safe_partial_answer_branch_laziness_dedupe_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+
+        class AccessBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError(f"unexpected {key} access")
+
+        class StringBomb:
+            def __init__(self, message: str):
+                self.message = message
+
+            def __str__(self) -> str:
+                raise RuntimeError(self.message)
+
+        narrative_row = AccessBomb(kind="narrative")
+        failed_row = {
+            "status": "failed",
+            "calculation_result": AccessBomb(),
+            "answer": StringBomb("failed answer accessed"),
+        }
+        whitespace_status_row = {
+            "status": "   ",
+            "calculation_result": AccessBomb(),
+            "answer": StringBomb("whitespace-status answer accessed"),
+        }
+        direct_row = {
+            "status": "ok",
+            "answer": "  direct   answer ",
+            "calculation_result": AccessBomb(),
+            "nested": nested,
+        }
+        duplicate_row = {"calculation_result": {"status": "ok"}, "answer": "direct answer"}
+        formatted_row = {
+            "calculation_result": {"status": "ok", "formatted_result": " formatted answer "}
+        }
+        rendered_row = {
+            "status": "OK",
+            "calculation_result": {"rendered_value": " rendered answer "},
+        }
+        whitespace_formatted_row = {
+            "status": "ok",
+            "calculation_result": {
+                "formatted_result": "   ",
+                "rendered_value": StringBomb("rendered fallback accessed"),
+            },
+        }
+        gap_row = {
+            "status": "ok",
+            "answer": StringBomb("gap answer accessed"),
+            "calculation_result": AccessBomb(),
+        }
+        rows = [
+            narrative_row,
+            failed_row,
+            whitespace_status_row,
+            direct_row,
+            duplicate_row,
+            formatted_row,
+            rendered_row,
+            whitespace_formatted_row,
+            gap_row,
+        ]
+        original_keys = [tuple(row.keys()) for row in rows]
+        narrative_gate = Mock(side_effect=lambda candidate: candidate is narrative_row)
+        gap_gate = Mock(side_effect=lambda candidate: "missing" if candidate is gap_row else "")
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", narrative_gate),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                gap_gate,
+            ),
+        ):
+            answer = financial_aggregate_projection.safe_partial_answer_for_numeric_gap(rows)
+
+        self.assertEqual(answer, "direct answer formatted answer rendered answer")
+        self.assertEqual([tuple(row.keys()) for row in rows], original_keys)
+        self.assertIs(direct_row["nested"], nested)
+        self.assertEqual(narrative_gate.call_args_list, [unittest.mock.call(row) for row in rows])
+        self.assertEqual(
+            [call.args[0] for call in gap_gate.call_args_list],
+            [
+                direct_row,
+                duplicate_row,
+                formatted_row,
+                rendered_row,
+                whitespace_formatted_row,
+                gap_row,
+            ],
+        )
+
+        copy_events = []
+
+        class RecordingCalculation(Mapping):
+            def __init__(self) -> None:
+                self.data = {"status": "ok", "formatted_result": "copied answer"}
+
+            def __bool__(self) -> bool:
+                copy_events.append("calculation:bool")
+                return True
+
+            def get(self, key, default=None):
+                copy_events.append(f"calculation:get:{key}")
+                return self.data.get(key, default)
+
+            def keys(self):
+                copy_events.append("calculation:keys")
+                return self.data.keys()
+
+            def __getitem__(self, key):
+                copy_events.append(f"calculation:item:{key}")
+                return self.data[key]
+
+            def __iter__(self):
+                return iter(self.data)
+
+            def __len__(self) -> int:
+                return len(self.data)
+
+        recording_calculation = RecordingCalculation()
+        recording_row = {"calculation_result": recording_calculation}
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap([recording_row]),
+                "copied answer",
+            )
+        self.assertEqual(
+            copy_events,
+            [
+                "calculation:bool",
+                "calculation:get:status",
+                "calculation:bool",
+                "calculation:keys",
+                "calculation:item:status",
+                "calculation:item:formatted_result",
+            ],
+        )
+        self.assertIs(recording_row["calculation_result"], recording_calculation)
+        self.assertEqual(recording_calculation.data, {"status": "ok", "formatted_result": "copied answer"})
+
+        class CopyBomb(RecordingCalculation):
+            def keys(self):
+                raise RuntimeError("calculation copy failed")
+
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "calculation copy failed"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap(
+                    [{"calculation_result": CopyBomb()}]
+                )
+
+        status_bomb = AccessBomb()
+        with patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False):
+            with self.assertRaisesRegex(RuntimeError, "unexpected status access"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap([status_bomb])
+
+        gap_runtime_row = {"status": "ok", "answer": "unused"}
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                side_effect=RuntimeError("gap policy failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "gap policy failed"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap([gap_runtime_row])
+
+        with patch.object(
+            financial_aggregate_projection,
+            "row_is_narrative_summary",
+            side_effect=RuntimeError("narrative gate failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "narrative gate failed"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap([{"status": "ok"}])
+
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "answer string failed"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap(
+                    [{"status": "ok", "answer": StringBomb("answer string failed")}]
+                )
+
+        with patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False):
+            with self.assertRaisesRegex(RuntimeError, "status string failed"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap(
+                    [{"status": StringBomb("status string failed")}]
+                )
+
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("answer normalization failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "answer normalization failed"):
+                financial_aggregate_projection.safe_partial_answer_for_numeric_gap(
+                    [{"status": "ok", "answer": "answer"}]
+                )
+
+    def test_current_source_answer_surface_static_bindings_and_post_move_distribution(self) -> None:
+        module_trees = {
+            "graph": ast.parse(inspect.getsource(financial_graph_calculation)),
+            "owner": ast.parse(inspect.getsource(financial_aggregate_projection)),
+        }
+        targets = {
+            "row": "row_is_narrative_summary",
+            "safe": "safe_partial_answer_for_numeric_gap",
+        }
+        definitions = {}
+        calls = {key: [] for key in targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name) -> None:
+                self.module_name = module_name
+                self.function_stack = []
+
+            def visit_FunctionDef(self, node):
+                if node.name in targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = (
+                    ast.unparse(node.func.value)
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                for key, target in targets.items():
+                    if called_name == target:
+                        calls[key].append(
+                            (
+                                self.module_name,
+                                self.function_stack[-1] if self.function_stack else "<module>",
+                                receiver,
+                                tuple(ast.unparse(arg) for arg in node.args),
+                                tuple(
+                                    (keyword.arg, ast.unparse(keyword.value))
+                                    for keyword in node.keywords
+                                ),
+                            )
+                        )
+                self.generic_visit(node)
+
+        for module_name, module_tree in module_trees.items():
+            BindingVisitor(module_name).visit(module_tree)
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "row_is_narrative_summary": ("owner", 4),
+                "safe_partial_answer_for_numeric_gap": ("owner", 25),
+            },
+        )
+        self.assertEqual(len(calls["row"]), 20)
+        self.assertEqual(len(calls["safe"]), 4)
+        self.assertEqual(
+            Counter((caller, args) for module, caller, receiver, args, keywords in calls["row"]),
+            Counter(
+                {
+                    ("_unresolved_structured_numeric_gap", ("row",)): 1,
+                    ("safe_partial_answer_for_numeric_gap", ("row",)): 1,
+                    ("_compose_lookup_list_numeric_answer", ("row",)): 1,
+                    ("_append_uncovered_lookup_numeric_items", ("row",)): 1,
+                    ("_supported_aggregate_subtask_answer", ("row",)): 1,
+                    ("_preferred_conflicting_growth_narrative_answer", ("row",)): 1,
+                    ("_answer_reuses_narrative_summary_text", ("row",)): 1,
+                    ("_refresh_numeric_answer_preserving_narrative_context", ("row",)): 3,
+                    ("_preferred_aggregate_fallback_answer", ("row",)): 2,
+                    ("_apply_final_narrative_repair_pipeline", ("row",)): 1,
+                    ("_prune_nonfocus_numeric_narrative_sentences", ("row",)): 1,
+                    ("_preserve_policy_required_context_in_narrative_results", ("row_copy",)): 1,
+                    ("_supported_growth_narrative_candidate_sentences", ("row",)): 1,
+                    ("_prune_irrelevant_growth_narrative_sentences", ("row",)): 1,
+                    ("_prepare_initial_aggregate_state", ("row",)): 1,
+                    ("_resolve_aggregate_feedback_state", ("row",)): 1,
+                    ("_resolve_aggregate_feedback_state", ("source",)): 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter((caller, args) for module, caller, receiver, args, keywords in calls["safe"]),
+            Counter(
+                {
+                    ("_preferred_aggregate_fallback_answer", ("ordered_results",)): 1,
+                    ("_apply_initial_aggregate_answer_composition", ("ordered_results",)): 1,
+                    ("_apply_final_narrative_repair_pipeline", ("ordered_results",)): 1,
+                    ("_resolve_aggregate_feedback_state", ("ordered_results",)): 1,
+                }
+            ),
+        )
+        self.assertTrue(
+            all(
+                receiver == "" and not keywords
+                for entries in calls.values()
+                for _, _, receiver, _, keywords in entries
+            )
+        )
+
+        owner_local = sum(
+            module == "owner"
+            for entries in calls.values()
+            for module, _caller, _receiver, _args, _keywords in entries
+        )
+        graph_external = sum(map(len, calls.values())) - owner_local
+        self.assertEqual((graph_external, owner_local), (23, 1))
+        self.assertEqual(
+            [
+                (key, caller, args)
+                for key, entries in calls.items()
+                for module, caller, _receiver, args, _keywords in entries
+                if module == "owner"
+            ],
+            [("row", "safe_partial_answer_for_numeric_gap", ("row",))],
+        )
+
+    def test_current_source_safe_partial_caller_gate_adoption_and_exception_stop(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        row = {"task_id": "lookup", "nested": {"preserve": True}}
+        ordered_results = [row]
+        adopted_answer = "safe partial answer"
+        events = []
+
+        with (
+            patch.object(
+                agent,
+                "_unresolved_structured_numeric_gap",
+                side_effect=lambda rows: events.append(("gap", rows)) or "missing",
+            ) as gap_gate,
+            patch.object(
+                financial_graph_calculation,
+                "safe_partial_answer_for_numeric_gap",
+                side_effect=lambda rows: events.append(("safe", rows)) or adopted_answer,
+            ) as safe_partial,
+            patch.object(agent, "_supported_aggregate_subtask_answer") as downstream,
+        ):
+            actual = agent._preferred_aggregate_fallback_answer(ordered_results, "default")
+        self.assertIs(actual, adopted_answer)
+        self.assertEqual(events, [("gap", ordered_results), ("safe", ordered_results)])
+        gap_gate.assert_called_once_with(ordered_results)
+        safe_partial.assert_called_once_with(ordered_results)
+        downstream.assert_not_called()
+        self.assertIs(ordered_results[0], row)
+
+        downstream = Mock()
+        with (
+            patch.object(agent, "_unresolved_structured_numeric_gap", return_value="missing"),
+            patch.object(
+                financial_graph_calculation,
+                "safe_partial_answer_for_numeric_gap",
+                side_effect=RuntimeError("safe partial failed"),
+            ) as safe_partial,
+            patch.object(agent, "_supported_aggregate_subtask_answer", downstream),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "safe partial failed"):
+                agent._preferred_aggregate_fallback_answer(ordered_results, "default")
+        safe_partial.assert_called_once_with(ordered_results)
+        downstream.assert_not_called()
+
+        with (
+            patch.object(agent, "_unresolved_structured_numeric_gap", return_value=""),
+            patch.object(financial_graph_calculation, "safe_partial_answer_for_numeric_gap") as safe_partial,
+            patch.object(
+                agent,
+                "_supported_aggregate_subtask_answer",
+                return_value="supported answer",
+            ) as downstream,
+        ):
+            self.assertEqual(
+                agent._preferred_aggregate_fallback_answer(ordered_results, "default"),
+                "supported answer",
+            )
+        safe_partial.assert_not_called()
+        downstream.assert_called_once_with(ordered_results)
+
     def test_aggregate_dependency_candidates_preserve_order_copy_and_access_contract(self) -> None:
         agent = financial_graph_calculation.FinancialAgentCalculationMixin()
         nested = {"preserve": True}
@@ -1613,7 +2158,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "aggregate_row_primary_answer_slot",
                 side_effect=[lookup_slot, lookup_slot],
             ) as primary_owner,
-            patch.object(agent, "_row_is_narrative_summary", return_value=False),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
             patch.object(
                 financial_graph_calculation,
                 "material_gap_feedback_for_subtask_result",
@@ -1645,7 +2190,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "aggregate_row_primary_answer_slot",
                 side_effect=RuntimeError("primary failed"),
             ),
-            patch.object(agent, "_row_is_narrative_summary", return_value=False),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
             patch.object(
                 financial_graph_calculation,
                 "material_gap_feedback_for_subtask_result",

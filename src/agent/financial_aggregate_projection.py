@@ -574,6 +574,39 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
     return operation_aliases.get(operation_family, operation_family)
 
 
+def row_is_narrative_summary(row: Dict[str, Any]) -> bool:
+    metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+    operation_family = aggregate_result_operation_family(row)
+    return metric_family == "narrative_summary" or operation_family == "narrative_summary"
+
+
+def safe_partial_answer_for_numeric_gap(
+    ordered_results: List[Dict[str, Any]],
+) -> str:
+    safe_parts: List[str] = []
+    for row in ordered_results:
+        if row_is_narrative_summary(row):
+            continue
+        status = str(
+            row.get("status")
+            or (row.get("calculation_result") or {}).get("status")
+            or ""
+        ).strip().lower()
+        if status != "ok":
+            continue
+        if material_gap_feedback_for_subtask_result(row):
+            continue
+        answer = _normalise_spaces(str(row.get("answer") or ""))
+        if not answer:
+            calculation_result = dict(row.get("calculation_result") or {})
+            answer = _normalise_spaces(
+                str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
+            )
+        if answer:
+            safe_parts.append(answer)
+    return " ".join(dict.fromkeys(safe_parts)).strip()
+
+
 def aggregate_row_primary_answer_slot(row: Dict[str, Any]) -> Dict[str, Any]:
     calculation_result = dict(row.get("calculation_result") or {})
     answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})

@@ -76,6 +76,8 @@ from src.agent.financial_aggregate_projection import (
     apply_aggregate_answer_candidate,
     dedupe_aggregate_subtask_results,
     filter_aggregate_projection_provenance,
+    row_is_narrative_summary,
+    safe_partial_answer_for_numeric_gap,
     growth_operand_sign_consistency_rank,
     nested_aggregate_result_rank,
     package_aggregate_answer_candidate,
@@ -1064,17 +1066,12 @@ class FinancialAgentCalculationMixin:
             updated_artifacts = list(supersession_update["artifacts"])
         return updated_tasks, updated_artifacts
 
-    def _row_is_narrative_summary(self, row: Dict[str, Any]) -> bool:
-        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-        operation_family = self._aggregate_result_operation_family(row)
-        return metric_family == "narrative_summary" or operation_family == "narrative_summary"
-
     def _unresolved_structured_numeric_gap(
         self,
         ordered_results: List[Dict[str, Any]],
     ) -> str:
         for row in ordered_results:
-            if self._row_is_narrative_summary(row):
+            if row_is_narrative_summary(row):
                 continue
             operation_family = self._aggregate_result_operation_family(row)
             metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
@@ -1103,33 +1100,6 @@ class FinancialAgentCalculationMixin:
             return gap
         return ""
 
-    def _safe_partial_answer_for_numeric_gap(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> str:
-        safe_parts: List[str] = []
-        for row in ordered_results:
-            if self._row_is_narrative_summary(row):
-                continue
-            status = str(
-                row.get("status")
-                or (row.get("calculation_result") or {}).get("status")
-                or ""
-            ).strip().lower()
-            if status != "ok":
-                continue
-            if material_gap_feedback_for_subtask_result(row):
-                continue
-            answer = _normalise_spaces(str(row.get("answer") or ""))
-            if not answer:
-                calculation_result = dict(row.get("calculation_result") or {})
-                answer = _normalise_spaces(
-                    str(calculation_result.get("formatted_result") or calculation_result.get("rendered_value") or "")
-                )
-            if answer:
-                safe_parts.append(answer)
-        return " ".join(dict.fromkeys(safe_parts)).strip()
-
     def _compose_lookup_list_numeric_answer(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -1137,7 +1107,7 @@ class FinancialAgentCalculationMixin:
         lookup_result_count = 0
         items: List[str] = []
         for row in ordered_results:
-            if self._row_is_narrative_summary(row):
+            if row_is_narrative_summary(row):
                 continue
             operation_family = self._aggregate_result_operation_family(row)
             if operation_family not in {"lookup", "single_value"}:
@@ -1251,7 +1221,7 @@ class FinancialAgentCalculationMixin:
 
         missing_items: List[str] = []
         for row in ordered_results:
-            if not isinstance(row, dict) or self._row_is_narrative_summary(row):
+            if not isinstance(row, dict) or row_is_narrative_summary(row):
                 continue
             if self._aggregate_result_operation_family(row) not in {"lookup", "single_value"}:
                 continue
@@ -3569,7 +3539,7 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
     ) -> str:
         for row in ordered_results:
-            if self._row_is_narrative_summary(row):
+            if row_is_narrative_summary(row):
                 continue
             if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
                 continue
@@ -3860,7 +3830,7 @@ class FinancialAgentCalculationMixin:
     ) -> Dict[str, Any]:
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         for row in ordered_results:
-            if not self._row_is_narrative_summary(row):
+            if not row_is_narrative_summary(row):
                 continue
             row_answer = _normalise_spaces(
                 str(
@@ -3967,7 +3937,7 @@ class FinancialAgentCalculationMixin:
         if not answer_text:
             return False
         for row in ordered_results:
-            if not self._row_is_narrative_summary(row):
+            if not row_is_narrative_summary(row):
                 continue
             narrative_answer = _normalise_spaces(str(row.get("answer") or ""))
             if len(narrative_answer) < 20 or not re.search(r"\d", narrative_answer):
@@ -4059,7 +4029,7 @@ class FinancialAgentCalculationMixin:
     ) -> Dict[str, Any]:
         numeric_text = _normalise_spaces(str(numeric_answer or ""))
         current_answer_text = _normalise_spaces(str(current_answer or ""))
-        if not any(self._row_is_narrative_summary(row) for row in ordered_results) and not (
+        if not any(row_is_narrative_summary(row) for row in ordered_results) and not (
             current_answer_text and query_requests_explanatory_context(query)
         ):
             return {"answer": numeric_text, "selected_claim_ids": []}
@@ -4214,7 +4184,7 @@ class FinancialAgentCalculationMixin:
         row_narrative_parts: List[str] = []
         row_selected_claim_ids: List[str] = []
         for row in ordered_results:
-            if not self._row_is_narrative_summary(row):
+            if not row_is_narrative_summary(row):
                 continue
             row_answer = _normalise_spaces(
                 str(
@@ -4350,7 +4320,7 @@ class FinancialAgentCalculationMixin:
         if not narrative_parts:
             sanitized_row_parts: List[tuple[str, List[str]]] = []
             for row in ordered_results:
-                if not self._row_is_narrative_summary(row):
+                if not row_is_narrative_summary(row):
                     continue
                 row_answer = _normalise_spaces(
                     str(
@@ -4462,7 +4432,7 @@ class FinancialAgentCalculationMixin:
         default_answer: str,
     ) -> str:
         if self._unresolved_structured_numeric_gap(ordered_results):
-            safe_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            safe_answer = safe_partial_answer_for_numeric_gap(ordered_results)
             return safe_answer
 
         supported_aggregate_answer = self._supported_aggregate_subtask_answer(ordered_results)
@@ -4477,7 +4447,7 @@ class FinancialAgentCalculationMixin:
         if conflicting_narrative and str(conflicting_narrative.get("operation_family") or "") == "aggregate_subtasks":
             return str(conflicting_narrative.get("answer") or default_answer)
 
-        has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
+        has_narrative_summary = any(row_is_narrative_summary(row) for row in ordered_results)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if complete_numeric_answer and (
             has_narrative_summary
@@ -4486,7 +4456,7 @@ class FinancialAgentCalculationMixin:
             return complete_numeric_answer
 
         for row in ordered_results:
-            if not self._row_is_narrative_summary(row):
+            if not row_is_narrative_summary(row):
                 continue
             sibling_answer = _normalise_spaces(str(row.get("answer") or ""))
             if sibling_answer and re.search(r"\d", sibling_answer):
@@ -4789,7 +4759,7 @@ class FinancialAgentCalculationMixin:
             and self._unresolved_structured_numeric_gap(ordered_results)
             and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
         ):
-            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            safe_partial_answer = safe_partial_answer_for_numeric_gap(ordered_results)
             final_answer = safe_partial_answer or ""
         final_answer = calculation_rendering.coerce_sign_aware_subtraction_answer(
             final_answer,
@@ -5264,7 +5234,7 @@ class FinancialAgentCalculationMixin:
             and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
         )
         if blocked_narrative_numeric_gap:
-            safe_partial_answer = self._safe_partial_answer_for_numeric_gap(ordered_results)
+            safe_partial_answer = safe_partial_answer_for_numeric_gap(ordered_results)
             if safe_partial_answer:
                 _apply_candidate(safe_partial_answer)
         if (
@@ -5328,7 +5298,7 @@ class FinancialAgentCalculationMixin:
             if query_requests_explanatory_context(str(state.get("query") or "")):
                 appended_explanation = False
                 for row in ordered_results:
-                    if not self._row_is_narrative_summary(row):
+                    if not row_is_narrative_summary(row):
                         continue
                     row_answer = _normalise_spaces(
                         str(
@@ -8214,7 +8184,7 @@ class FinancialAgentCalculationMixin:
         answer_text = _normalise_spaces(str(answer or ""))
         if not answer_text or not ordered_results or not _query_requests_narrative_context(query):
             return answer_text
-        if not any(self._row_is_narrative_summary(row) for row in ordered_results):
+        if not any(row_is_narrative_summary(row) for row in ordered_results):
             return answer_text
         if not any(self._aggregate_result_operation_family(row) == "growth_rate" for row in ordered_results):
             return answer_text
@@ -8295,7 +8265,7 @@ class FinancialAgentCalculationMixin:
         updated_results: List[Dict[str, Any]] = []
         for row in ordered_results:
             row_copy = dict(row)
-            if not self._row_is_narrative_summary(row_copy):
+            if not row_is_narrative_summary(row_copy):
                 updated_results.append(row_copy)
                 continue
             row_answer = _normalise_spaces(
@@ -8548,7 +8518,7 @@ class FinancialAgentCalculationMixin:
         row_sentences = [
             _normalise_spaces(sentence)
             for row in ordered_results or []
-            if self._row_is_narrative_summary(row)
+            if row_is_narrative_summary(row)
             for sentence in _split_narrative_sentences(str(row.get("answer") or ""))
             if _normalise_spaces(sentence)
         ]
@@ -9145,7 +9115,7 @@ class FinancialAgentCalculationMixin:
             self._aggregate_result_operation_family(row) == "growth_rate"
             for row in ordered_results or []
         )
-        has_narrative_row = any(self._row_is_narrative_summary(row) for row in ordered_results or [])
+        has_narrative_row = any(row_is_narrative_summary(row) for row in ordered_results or [])
         if not has_growth_row or not has_narrative_row:
             return answer_text
 
@@ -14674,7 +14644,7 @@ class FinancialAgentCalculationMixin:
             )
         supported_aggregate_answer = self._supported_aggregate_subtask_answer(ordered_results)
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
-        has_narrative_summary = any(self._row_is_narrative_summary(row) for row in ordered_results)
+        has_narrative_summary = any(row_is_narrative_summary(row) for row in ordered_results)
         if (
             complete_numeric_answer
             and not supported_aggregate_answer
@@ -15671,7 +15641,7 @@ class FinancialAgentCalculationMixin:
         if planner_feedback and not should_replan:
             refusal_suffix = "다만 질문에 필요한 수치를 끝내 모두 확보하지 못해 원하신 답을 완전히 확정할 수는 없습니다."
             visible_partial_answer = _normalise_spaces(
-                self._safe_partial_answer_for_numeric_gap(ordered_results)
+                safe_partial_answer_for_numeric_gap(ordered_results)
                 or self._preferred_complete_numeric_answer(ordered_results)
                 or self._supported_aggregate_subtask_answer(ordered_results)
             )
@@ -15692,7 +15662,7 @@ class FinancialAgentCalculationMixin:
                 or state_calculation_status == "ok"
             )
             has_subtask_result_numeric_gap = any(
-                not self._row_is_narrative_summary(row)
+                not row_is_narrative_summary(row)
                 and (
                     material_gap_feedback_for_subtask_result(row)
                     or str(
@@ -15731,7 +15701,7 @@ class FinancialAgentCalculationMixin:
                 ]:
                     if not isinstance(source, dict):
                         continue
-                    if self._row_is_narrative_summary(source):
+                    if row_is_narrative_summary(source):
                         continue
                     candidate_label = _normalise_spaces(
                         str(source.get("metric_label") or source.get("label") or source.get("query") or "")

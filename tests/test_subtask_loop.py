@@ -5015,13 +5015,13 @@ class SubtaskLoopTests(unittest.TestCase):
             "_align_lookup_results_with_dependency_projection": Mock(side_effect=preserve_rows),
             "_supported_aggregate_subtask_answer": Mock(return_value=""),
             "_preferred_complete_numeric_answer": complete_owner,
-            "_row_is_narrative_summary": Mock(return_value=False),
             "_answer_covers_numeric_projection": Mock(return_value=True),
             "_complete_numeric_answer_can_replace_final": replacement_gate,
             "_compose_lookup_list_numeric_answer": later_composer,
         }
         with (
             patch.multiple(self.agent, **patched_owners),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
             patch.object(
                 financial_graph_calculation,
                 "dedupe_aggregate_subtask_results",

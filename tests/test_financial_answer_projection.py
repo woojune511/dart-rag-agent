@@ -1005,7 +1005,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                 {
                     ("graph", "_feedback_gap_is_satisfied_by_derived_slots", "row"): 1,
                     ("graph", "_unresolved_structured_numeric_gap", "row"): 1,
-                    ("graph", "_safe_partial_answer_for_numeric_gap", "row"): 1,
+                    ("aggregate", "safe_partial_answer_for_numeric_gap", "row"): 1,
                     ("graph", "_compose_lookup_list_numeric_answer", "row"): 1,
                     ("graph", "_append_uncovered_lookup_numeric_items", "row"): 1,
                     ("graph", "_preferred_complete_numeric_answer", "row"): 1,
@@ -1070,7 +1070,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
 
         positive_continue_gap_callers = {
             "_feedback_gap_is_satisfied_by_derived_slots",
-            "_safe_partial_answer_for_numeric_gap",
+            "safe_partial_answer_for_numeric_gap",
             "_compose_lookup_list_numeric_answer",
             "_append_uncovered_lookup_numeric_items",
             "_preferred_complete_numeric_answer",
