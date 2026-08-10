@@ -17,13 +17,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_answer_projection.py",
       "text": "(?:다|니다|요|음|임)[.!?。]?$",
       "category": "regex_or_pattern",
-      "fingerprint": "6606787fbeb83141",
+      "fingerprint": "0d546c7563cbcf6d",
       "count": 1,
       "first_lines": [
-        6838
+        59
       ]
     },
     {

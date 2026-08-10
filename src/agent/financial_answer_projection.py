@@ -16,6 +16,7 @@ from src.agent.financial_answer_slots import (
     period_match_key,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_text_surface import split_narrative_sentences
 from src.config.retrieval_policy import CALCULATION_FEEDBACK_POLICY, CALCULATION_NARRATIVE_POLICY
 
 
@@ -49,6 +50,42 @@ def sentence_has_growth_explanatory_signal(sentence: str) -> bool:
         if marker and marker not in direction_words
     )
     return any(marker in text for marker in markers)
+
+
+def answer_looks_truncated(answer: str) -> bool:
+    answer_text = _normalise_spaces(str(answer or ""))
+    if not answer_text:
+        return True
+    if re.search(r"(?:다|니다|요|음|임)[.!?。]?$", answer_text):
+        return False
+    if re.search(r"[.!?。]$", answer_text):
+        return False
+    return True
+
+
+def answer_covers_narrative_context(answer: str, context: str) -> bool:
+    answer_text = _normalise_spaces(str(answer or "")).lower()
+    context_text = _normalise_spaces(str(context or ""))
+    if not context_text:
+        return True
+    if context_text.lower() in answer_text:
+        return True
+    sentences = split_narrative_sentences(context_text)
+    for sentence in sentences:
+        sentence_text = sentence.lower()
+        if sentence_text in answer_text:
+            continue
+        tokens = [
+            token.lower()
+            for token in re.findall(r"[\w()]+", sentence, flags=re.UNICODE)
+            if len(token) >= 3 and not re.fullmatch(r"\d+(?:\.\d+)?", token)
+        ]
+        if not tokens:
+            return False
+        covered = sum(1 for token in tokens if token in answer_text)
+        if covered / max(len(tokens), 1) < 0.75:
+            return False
+    return True
 
 
 def growth_row_has_conflicting_periods(row: Dict[str, Any]) -> bool:

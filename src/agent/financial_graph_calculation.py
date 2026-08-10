@@ -24,6 +24,8 @@ from src.agent.financial_answer_slots import (
     period_match_key,
 )
 from src.agent.financial_answer_projection import (
+    answer_covers_narrative_context,
+    answer_looks_truncated,
     growth_row_has_conflicting_periods,
     material_gap_feedback_for_subtask_result,
     query_requests_explanatory_context,
@@ -4121,7 +4123,7 @@ class FinancialAgentCalculationMixin:
             if (
                 not candidate_claim_ids
                 or not candidate_sentence
-                or self._answer_covers_narrative_context(answer, candidate_sentence)
+                or answer_covers_narrative_context(answer, candidate_sentence)
                 or _driver_group_already_covered(candidate_sentence)
             ):
                 continue
@@ -4133,7 +4135,7 @@ class FinancialAgentCalculationMixin:
             if (
                 not cleaned
                 or not sentence_has_growth_explanatory_signal(cleaned)
-                or self._answer_covers_narrative_context(answer, cleaned)
+                or answer_covers_narrative_context(answer, cleaned)
                 or self._growth_answer_has_untraced_numeric_material(cleaned, ordered_results, evidence_items)
             ):
                 continue
@@ -4272,8 +4274,8 @@ class FinancialAgentCalculationMixin:
             if not supported_context_candidates:
                 return True
             return any(
-                self._answer_covers_narrative_context(sentence, candidate)
-                or self._answer_covers_narrative_context(candidate, sentence)
+                answer_covers_narrative_context(sentence, candidate)
+                or answer_covers_narrative_context(candidate, sentence)
                 for candidate in supported_context_candidates
             )
 
@@ -8624,16 +8626,6 @@ class FinancialAgentCalculationMixin:
             return answer_text
         return _normalise_spaces(" ".join(replacements.get(sentence, sentence) for sentence in sentences))
 
-    def _answer_looks_truncated(self, answer: str) -> bool:
-        answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text:
-            return True
-        if re.search(r"(?:다|니다|요|음|임)[.!?。]?$", answer_text):
-            return False
-        if re.search(r"[.!?。]$", answer_text):
-            return False
-        return True
-
     def _supported_growth_narrative_candidate_sentences(
         self,
         *,
@@ -8787,30 +8779,6 @@ class FinancialAgentCalculationMixin:
                     return (0, cleaned, claim_ids)
         return None
 
-    def _answer_covers_narrative_context(self, answer: str, context: str) -> bool:
-        answer_text = _normalise_spaces(str(answer or "")).lower()
-        context_text = _normalise_spaces(str(context or ""))
-        if not context_text:
-            return True
-        if context_text.lower() in answer_text:
-            return True
-        sentences = _split_narrative_sentences(context_text)
-        for sentence in sentences:
-            sentence_text = sentence.lower()
-            if sentence_text in answer_text:
-                continue
-            tokens = [
-                token.lower()
-                for token in re.findall(r"[\w()]+", sentence, flags=re.UNICODE)
-                if len(token) >= 3 and not re.fullmatch(r"\d+(?:\.\d+)?", token)
-            ]
-            if not tokens:
-                return False
-            covered = sum(1 for token in tokens if token in answer_text)
-            if covered / max(len(tokens), 1) < 0.75:
-                return False
-        return True
-
     def _narrative_row_focus_context(
         self,
         *,
@@ -8893,7 +8861,7 @@ class FinancialAgentCalculationMixin:
         existing_answer_text = _normalise_spaces(str(existing_answer or ""))
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
         answer_has_missing_claim = any(marker in existing_answer_text for marker in missing_markers)
-        answer_is_truncated = self._answer_looks_truncated(existing_answer)
+        answer_is_truncated = answer_looks_truncated(existing_answer)
 
         growth_row: Optional[Dict[str, Any]] = None
         growth_slots: Dict[str, Any] = {}
@@ -8935,7 +8903,7 @@ class FinancialAgentCalculationMixin:
             existing_answer_text
             and self._answer_matches_supported_aggregate_subtask(existing_answer_text, ordered_results)
             and any(
-                self._answer_covers_narrative_context(existing_answer_text, candidate_text)
+                answer_covers_narrative_context(existing_answer_text, candidate_text)
                 for _score, candidate_text, _claim_ids in narrative_candidates[:3]
             )
         ):
@@ -8988,7 +8956,7 @@ class FinancialAgentCalculationMixin:
             ordered_results=ordered_results,
             focus_variants=focus_required_variants or focus_variants,
         )
-        answer_has_row_context = not row_focus_context or self._answer_covers_narrative_context(
+        answer_has_row_context = not row_focus_context or answer_covers_narrative_context(
             existing_answer_text,
             row_focus_context[1],
         )
@@ -9083,7 +9051,7 @@ class FinancialAgentCalculationMixin:
             if variant.lower() not in existing_context
         ]
         chosen_candidate = narrative_candidates[0]
-        if row_focus_context and not self._answer_covers_narrative_context(existing_answer_text, row_focus_context[1]):
+        if row_focus_context and not answer_covers_narrative_context(existing_answer_text, row_focus_context[1]):
             chosen_candidate = row_focus_context
         elif uncovered_focus_variants:
             parenthetical_variants = [
@@ -9207,7 +9175,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=list(evidence_items or []),
         )
         if narrative_candidates and not any(
-            self._answer_covers_narrative_context(answer_text, candidate_text)
+            answer_covers_narrative_context(answer_text, candidate_text)
             for _score, candidate_text, _claim_ids in narrative_candidates[:3]
         ):
             return False
@@ -9231,7 +9199,7 @@ class FinancialAgentCalculationMixin:
             ordered_results=ordered_results,
             focus_variants=required_focus_terms,
         )
-        if row_focus_context and not self._answer_covers_narrative_context(answer_text, row_focus_context[1]):
+        if row_focus_context and not answer_covers_narrative_context(answer_text, row_focus_context[1]):
             return False
 
         has_growth_row = any(

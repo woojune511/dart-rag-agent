@@ -1925,7 +1925,6 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
             candidate_agent._growth_narrative_sentence_candidates = Mock(
                 return_value=[((1,), "raw candidate", ["claim_1"])]
             )
-            candidate_agent._answer_covers_narrative_context = Mock(return_value=False)
             candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
                 return_value="cleaned candidate"
             )
@@ -1933,11 +1932,19 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
             return candidate_agent
 
         signal_owner = Mock(return_value=True)
+        coverage_owner = Mock(return_value=False)
         candidate_agent = configured_signal_agent()
-        with patch.object(
-            financial_graph_calculation,
-            "sentence_has_growth_explanatory_signal",
-            signal_owner,
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "sentence_has_growth_explanatory_signal",
+                signal_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_narrative_context",
+                coverage_owner,
+            ),
         ):
             candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
                 query="why",
@@ -1947,18 +1954,24 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
             )
         self.assertEqual(candidate, {"sentence": "cleaned candidate", "selected_claim_ids": ["claim_1"]})
         signal_owner.assert_called_once_with("cleaned candidate")
-        self.assertEqual(candidate_agent._answer_covers_narrative_context.call_count, 2)
+        self.assertEqual(coverage_owner.call_count, 2)
         candidate_agent._growth_answer_has_untraced_numeric_material.assert_called_once_with(
             "cleaned candidate", [], []
         )
 
         signal_owner = Mock(side_effect=RuntimeError("signal owner"))
+        coverage_owner = Mock(return_value=False)
         candidate_agent = configured_signal_agent()
         with (
             patch.object(
                 financial_graph_calculation,
                 "sentence_has_growth_explanatory_signal",
                 signal_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_narrative_context",
+                coverage_owner,
             ),
             self.assertRaisesRegex(RuntimeError, "signal owner"),
         ):
@@ -1969,8 +1982,702 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
                 evidence_items=[],
             )
         signal_owner.assert_called_once_with("cleaned candidate")
-        self.assertEqual(candidate_agent._answer_covers_narrative_context.call_count, 1)
+        self.assertEqual(coverage_owner.call_count, 1)
         candidate_agent._growth_answer_has_untraced_numeric_material.assert_not_called()
+
+
+class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
+    def test_answer_truncation_preserves_terminal_precedence_laziness_and_exceptions(self) -> None:
+        owner = financial_answer_projection.answer_looks_truncated
+        terminal_pattern = r"(?:다|니다|요|음|임)[.!?。]?$"
+        punctuation_pattern = r"[.!?。]$"
+        events = []
+
+        class InputValue:
+            def __bool__(self):
+                events.append("input-bool")
+                return True
+
+            def __str__(self):
+                events.append("input-str")
+                return "raw answer"
+
+        class MatchValue:
+            def __init__(self, label, result):
+                self.label = label
+                self.result = result
+
+            def __bool__(self):
+                events.append(("match-bool", self.label))
+                return self.result
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return "normalized answer"
+
+        def terminal_search(pattern, value):
+            events.append(("search", pattern, value))
+            if pattern != terminal_pattern:
+                raise AssertionError("punctuation regex should stay lazy")
+            return MatchValue("terminal", True)
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection.re, "search", side_effect=terminal_search),
+        ):
+            self.assertFalse(owner(InputValue()))
+        self.assertEqual(
+            events,
+            [
+                "input-bool",
+                "input-str",
+                ("normalize", "raw answer"),
+                ("search", terminal_pattern, "normalized answer"),
+                ("match-bool", "terminal"),
+            ],
+        )
+
+        events.clear()
+
+        def punctuation_search(pattern, value):
+            events.append(("search", pattern, value))
+            if pattern == terminal_pattern:
+                return MatchValue("terminal", False)
+            if pattern == punctuation_pattern:
+                return MatchValue("punctuation", True)
+            raise AssertionError(pattern)
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value="normalized answer"),
+            patch.object(financial_answer_projection.re, "search", side_effect=punctuation_search),
+        ):
+            self.assertFalse(owner("raw answer"))
+        self.assertEqual(
+            events,
+            [
+                ("search", terminal_pattern, "normalized answer"),
+                ("match-bool", "terminal"),
+                ("search", punctuation_pattern, "normalized answer"),
+                ("match-bool", "punctuation"),
+            ],
+        )
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value="normalized answer"),
+            patch.object(financial_answer_projection.re, "search", side_effect=[False, False]) as search,
+        ):
+            self.assertTrue(owner("raw answer"))
+        self.assertEqual(
+            search.call_args_list,
+            [
+                unittest.mock.call(terminal_pattern, "normalized answer"),
+                unittest.mock.call(punctuation_pattern, "normalized answer"),
+            ],
+        )
+
+        class FalseInput:
+            def __bool__(self):
+                return False
+
+            def __str__(self):
+                raise AssertionError("false input stringified")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value="") as normalize_owner,
+            patch.object(
+                financial_answer_projection.re,
+                "search",
+                side_effect=AssertionError("blank answer reached regex"),
+            ),
+        ):
+            self.assertTrue(owner(FalseInput()))
+        normalize_owner.assert_called_once_with("")
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("answer bool")
+
+        class StrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("answer str")
+
+        class MatchBomb:
+            def __bool__(self):
+                raise RuntimeError("match bool")
+
+        for value, message in ((BoolBomb(), "answer bool"), (StrBomb(), "answer str")):
+            with self.subTest(message=message), self.assertRaisesRegex(RuntimeError, message):
+                owner(value)
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=RuntimeError("normalize")),
+            self.assertRaisesRegex(RuntimeError, "normalize"),
+        ):
+            owner("answer")
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value="answer"),
+            patch.object(financial_answer_projection.re, "search", side_effect=RuntimeError("regex")),
+            self.assertRaisesRegex(RuntimeError, "regex"),
+        ):
+            owner("answer")
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value="answer"),
+            patch.object(financial_answer_projection.re, "search", return_value=MatchBomb()),
+            self.assertRaisesRegex(RuntimeError, "match bool"),
+        ):
+            owner("answer")
+
+    def test_narrative_context_coverage_preserves_threshold_access_laziness_and_exceptions(self) -> None:
+        owner = financial_answer_projection.answer_covers_narrative_context
+
+        def normalize(value):
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                side_effect=AssertionError("blank context reached splitter"),
+            ),
+        ):
+            self.assertTrue(owner("answer", "   "))
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                side_effect=AssertionError("whole context reached splitter"),
+            ),
+        ):
+            self.assertTrue(owner("Prefix ALPHA CONTEXT suffix", " alpha context "))
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                return_value=["covered sentence"],
+            ),
+            patch.object(
+                financial_answer_projection.re,
+                "findall",
+                side_effect=AssertionError("contained sentence reached tokenization"),
+            ),
+        ):
+            self.assertTrue(owner("prefix covered sentence suffix", "other context"))
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                return_value=["alpha beta gamma delta"],
+            ),
+        ):
+            self.assertTrue(owner("alpha beta gamma", "source context"))
+            self.assertFalse(owner("alpha beta", "source context"))
+
+        class LaterSentenceBomb:
+            def lower(self):
+                raise AssertionError("later sentence accessed after failure")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_graph_calculation,
+                "_split_narrative_sentences",
+                return_value=["alpha beta gamma delta", LaterSentenceBomb()],
+            ),
+        ):
+            self.assertFalse(owner("alpha", "source context"))
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=["1 22"]),
+        ):
+            self.assertFalse(owner("answer", "source context"))
+
+        events = []
+
+        class AnswerNormalized:
+            def lower(self):
+                events.append("answer-lower")
+                return AnswerSurface()
+
+        class AnswerSurface:
+            def __contains__(self, value):
+                events.append(("answer-contains", value))
+                return value == "alpha"
+
+        class Sentence:
+            def lower(self):
+                events.append("sentence-lower")
+                return "sentence lower"
+
+        class Token:
+            def __init__(self, value):
+                self.value = value
+
+            def __len__(self):
+                events.append(("token-len", self.value))
+                return len(self.value)
+
+            def lower(self):
+                events.append(("token-lower", self.value))
+                return self.value.lower()
+
+        class Match:
+            def __init__(self, token, result):
+                self.token = token
+                self.result = result
+
+            def __bool__(self):
+                events.append(("match-bool", self.token.value))
+                return self.result
+
+        tokens = [Token("xy"), Token("123"), Token("Alpha"), Token("Beta")]
+
+        def traced_normalize(value):
+            events.append(("normalize", value))
+            return AnswerNormalized() if value == "answer" else "root context"
+
+        def split_context(value):
+            events.append(("split", value))
+            return [Sentence()]
+
+        def findall(pattern, value, *, flags=0):
+            events.append(("findall", pattern, value, flags))
+            return tokens
+
+        def fullmatch(pattern, token):
+            events.append(("fullmatch", pattern, token.value))
+            return Match(token, token.value == "123")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=traced_normalize),
+            patch.object(financial_answer_projection, "split_narrative_sentences", side_effect=split_context),
+            patch.object(financial_answer_projection.re, "findall", side_effect=findall),
+            patch.object(financial_answer_projection.re, "fullmatch", side_effect=fullmatch),
+        ):
+            self.assertFalse(owner("answer", "context"))
+        self.assertEqual(
+            events,
+            [
+                ("normalize", "answer"),
+                "answer-lower",
+                ("normalize", "context"),
+                ("answer-contains", "root context"),
+                ("split", "root context"),
+                "sentence-lower",
+                ("answer-contains", "sentence lower"),
+                ("findall", r"[\w()]+", unittest.mock.ANY, financial_answer_projection.re.UNICODE),
+                ("token-len", "xy"),
+                ("token-len", "123"),
+                ("fullmatch", r"\d+(?:\.\d+)?", "123"),
+                ("match-bool", "123"),
+                ("token-len", "Alpha"),
+                ("fullmatch", r"\d+(?:\.\d+)?", "Alpha"),
+                ("match-bool", "Alpha"),
+                ("token-lower", "Alpha"),
+                ("token-len", "Beta"),
+                ("fullmatch", r"\d+(?:\.\d+)?", "Beta"),
+                ("match-bool", "Beta"),
+                ("token-lower", "Beta"),
+                ("answer-contains", "alpha"),
+                ("answer-contains", "beta"),
+            ],
+        )
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("input bool")
+
+        class StrBomb:
+            def __bool__(self):
+                return True
+
+            def __str__(self):
+                raise RuntimeError("input str")
+
+        for value, message in ((BoolBomb(), "input bool"), (StrBomb(), "input str")):
+            with self.subTest(message=message), self.assertRaisesRegex(RuntimeError, message):
+                owner(value, "context")
+            with self.subTest(message=f"context {message}"), self.assertRaisesRegex(RuntimeError, message):
+                owner("answer", value)
+
+        class BlankNormalizedContext:
+            def __bool__(self):
+                return False
+
+            def lower(self):
+                raise AssertionError("blank normalized context lower accessed")
+
+        with (
+            patch.object(
+                financial_answer_projection,
+                "_normalise_spaces",
+                side_effect=["answer", BlankNormalizedContext()],
+            ),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                side_effect=AssertionError("blank normalized context reached splitter"),
+            ),
+        ):
+            self.assertTrue(owner("answer", "context"))
+
+        class LowerBomb:
+            def lower(self):
+                raise RuntimeError("lower")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", return_value=LowerBomb()),
+            self.assertRaisesRegex(RuntimeError, "lower"),
+        ):
+            owner("answer", "context")
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=["answer", "context"]),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                side_effect=RuntimeError("splitter"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "splitter"),
+        ):
+            owner("answer", "context")
+
+        class IterableBomb:
+            def __iter__(self):
+                raise RuntimeError("sentence iteration")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=["answer", "context"]),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=IterableBomb()),
+            self.assertRaisesRegex(RuntimeError, "sentence iteration"),
+        ):
+            owner("answer", "context")
+
+        class SentenceLowerBomb:
+            def lower(self):
+                raise RuntimeError("sentence lower")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=["answer", "context"]),
+            patch.object(
+                financial_answer_projection,
+                "split_narrative_sentences",
+                return_value=[SentenceLowerBomb()],
+            ),
+            self.assertRaisesRegex(RuntimeError, "sentence lower"),
+        ):
+            owner("answer", "context")
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=["answer", "context"]),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=["sentence"]),
+            patch.object(financial_answer_projection.re, "findall", side_effect=RuntimeError("findall")),
+            self.assertRaisesRegex(RuntimeError, "findall"),
+        ):
+            owner("answer", "context")
+
+        class LenBomb:
+            def __len__(self):
+                raise RuntimeError("token len")
+
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=["answer", "context"]),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=["sentence"]),
+            patch.object(financial_answer_projection.re, "findall", return_value=[LenBomb()]),
+            self.assertRaisesRegex(RuntimeError, "token len"),
+        ):
+            owner("answer", "context")
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=["answer", "context"]),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=["token"]),
+            patch.object(financial_answer_projection.re, "findall", return_value=["token"]),
+            patch.object(financial_answer_projection.re, "fullmatch", side_effect=RuntimeError("fullmatch")),
+            self.assertRaisesRegex(RuntimeError, "fullmatch"),
+        ):
+            owner("answer", "context")
+
+        class ContainmentBomb:
+            def __init__(self):
+                self.calls = 0
+
+            def __contains__(self, _value):
+                self.calls += 1
+                if self.calls == 3:
+                    raise RuntimeError("token containment")
+                return False
+
+        class AnswerWithContainmentBomb:
+            def __init__(self, surface):
+                self.surface = surface
+
+            def lower(self):
+                return self.surface
+
+        containment_surface = ContainmentBomb()
+        with (
+            patch.object(
+                financial_answer_projection,
+                "_normalise_spaces",
+                side_effect=[AnswerWithContainmentBomb(containment_surface), "context"],
+            ),
+            patch.object(financial_answer_projection, "split_narrative_sentences", return_value=["sentence"]),
+            patch.object(financial_answer_projection.re, "findall", return_value=["token"]),
+            patch.object(financial_answer_projection.re, "fullmatch", return_value=False),
+            self.assertRaisesRegex(RuntimeError, "token containment"),
+        ):
+            owner("answer", "context")
+        self.assertEqual(containment_surface.calls, 3)
+
+    def test_narrative_surface_bindings_preserve_all_ten_args_polarities_and_try_boundaries(self) -> None:
+        tree = ast.parse(inspect.getsource(financial_graph_calculation.FinancialAgentCalculationMixin))
+        parents = {}
+        for parent in ast.walk(tree):
+            for child in ast.iter_child_nodes(parent):
+                parents[child] = parent
+
+        names = {"answer_looks_truncated", "answer_covers_narrative_context"}
+        bindings = Counter()
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in names
+            ):
+                continue
+            cursor = node
+            negative = False
+            inside_try = False
+            owner = None
+            while cursor in parents:
+                cursor = parents[cursor]
+                if isinstance(cursor, ast.UnaryOp) and isinstance(cursor.op, ast.Not):
+                    negative = not negative
+                if isinstance(cursor, ast.Try):
+                    inside_try = True
+                if isinstance(cursor, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    owner = cursor.name
+                    break
+            bindings[
+                (
+                    node.func.id,
+                    owner,
+                    tuple(ast.unparse(arg) for arg in node.args),
+                    "negative" if negative else "positive",
+                    inside_try,
+                )
+            ] += 1
+
+        self.assertEqual(
+            bindings,
+            Counter(
+                {
+                    ("answer_looks_truncated", "_compose_growth_narrative_answer", ("existing_answer",), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_uncovered_supported_growth_narrative_candidate", ("answer", "candidate_sentence"), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_uncovered_supported_growth_narrative_candidate", ("answer", "cleaned"), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_matches_supported_growth_context", ("sentence", "candidate"), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_matches_supported_growth_context", ("candidate", "sentence"), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_compose_growth_narrative_answer", ("existing_answer_text", "candidate_text"), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_compose_growth_narrative_answer", ("existing_answer_text", "row_focus_context[1]"), "positive", False): 1,
+                    ("answer_covers_narrative_context", "_compose_growth_narrative_answer", ("existing_answer_text", "row_focus_context[1]"), "negative", False): 1,
+                    ("answer_covers_narrative_context", "_answer_satisfies_growth_narrative_intent", ("answer_text", "candidate_text"), "negative", False): 1,
+                    ("answer_covers_narrative_context", "_answer_satisfies_growth_narrative_intent", ("answer_text", "row_focus_context[1]"), "negative", False): 1,
+                }
+            ),
+        )
+        self.assertEqual(sum(bindings.values()), 10)
+
+    def test_narrative_surface_runtime_bindings_preserve_adoption_and_owner_exception_stop(self) -> None:
+        def configured_compose_agent():
+            primary_slot = {"rendered_value": "10%"}
+            current_slot = {"period": "2024", "label": "Revenue"}
+            prior_slot = {"period": "2023"}
+            row = {
+                "calculation_result": {
+                    "answer_slots": {
+                        "primary_value": primary_slot,
+                        "current_value": current_slot,
+                        "prior_value": prior_slot,
+                    }
+                }
+            }
+            agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+            agent._growth_narrative_sentence_candidates = Mock(
+                return_value=[((1,), "candidate context", ["claim_1"])]
+            )
+            agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
+            agent._supported_growth_driver_groups = Mock(return_value=[])
+            agent._growth_slot_display_value = Mock(side_effect=["200", "100"])
+            agent._growth_slots_share_material = Mock(return_value=False)
+            agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
+            agent._narrative_focus_variants = Mock(return_value=[])
+            agent._parenthetical_focus_variants = Mock(return_value=[])
+            agent._narrative_row_focus_context = Mock(return_value=None)
+            return agent, row
+
+        class NarrativePolicyProbe(dict):
+            def __init__(self):
+                super().__init__(financial_graph_calculation.CALCULATION_NARRATIVE_POLICY)
+                self.events = []
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == "direction_words":
+                    raise RuntimeError("continued after truncated answer")
+                return super().get(key, default)
+
+        for truncated in (False, True):
+            compose_agent, row = configured_compose_agent()
+            truncation_owner = Mock(return_value=truncated)
+            narrative_policy = NarrativePolicyProbe()
+            contexts = (
+                patch.object(
+                    financial_graph_calculation,
+                    "answer_looks_truncated",
+                    truncation_owner,
+                ),
+                patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+                patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+                patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+                patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", narrative_policy),
+            )
+            if truncated:
+                with (
+                    contexts[0],
+                    contexts[1],
+                    contexts[2],
+                    contexts[3],
+                    contexts[4],
+                    self.assertRaisesRegex(RuntimeError, "continued after truncated answer"),
+                ):
+                    compose_agent._compose_growth_narrative_answer(
+                        query="why",
+                        ordered_results=[row],
+                        existing_answer="Revenue 10% 200 100 complete.",
+                        evidence_items=[],
+                    )
+                self.assertEqual(narrative_policy.events[-1], "direction_words")
+            else:
+                with contexts[0], contexts[1], contexts[2], contexts[3], contexts[4]:
+                    result = compose_agent._compose_growth_narrative_answer(
+                        query="why",
+                        ordered_results=[row],
+                        existing_answer="Revenue 10% 200 100 complete.",
+                        evidence_items=[],
+                    )
+                self.assertIsNone(result)
+                self.assertNotIn("direction_words", narrative_policy.events)
+            truncation_owner.assert_called_once_with(
+                "Revenue 10% 200 100 complete."
+            )
+
+        class IterationBomb:
+            def __iter__(self):
+                raise AssertionError("ordered results iterated after truncation owner exception")
+
+        compose_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        truncation_owner = Mock(side_effect=RuntimeError("truncation owner"))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "answer_looks_truncated",
+                truncation_owner,
+            ),
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            self.assertRaisesRegex(RuntimeError, "truncation owner"),
+        ):
+            compose_agent._compose_growth_narrative_answer(
+                query="why",
+                ordered_results=IterationBomb(),
+                existing_answer="existing answer",
+                evidence_items=[],
+            )
+        truncation_owner.assert_called_once_with("existing answer")
+
+        def configured_candidate_agent():
+            candidate_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            candidate_agent._narrative_driver_groups = Mock(return_value=[])
+            candidate_agent._growth_narrative_sentence_candidates = Mock(
+                return_value=[((1,), "raw candidate", ["claim_1"])]
+            )
+            candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
+                return_value="cleaned candidate"
+            )
+            candidate_agent._growth_answer_has_untraced_numeric_material = Mock(return_value=False)
+            return candidate_agent
+
+        coverage = Mock(return_value=True)
+        candidate_agent = configured_candidate_agent()
+        with patch.object(
+            financial_graph_calculation,
+            "answer_covers_narrative_context",
+            coverage,
+        ):
+            candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
+                query="why",
+                answer="existing answer",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        self.assertEqual(candidate, {})
+        coverage.assert_called_once_with("existing answer", "raw candidate")
+        candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence.assert_not_called()
+
+        coverage = Mock(side_effect=[False, False])
+        candidate_agent = configured_candidate_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_narrative_context",
+                coverage,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "sentence_has_growth_explanatory_signal",
+                return_value=True,
+            ),
+        ):
+            candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
+                query="why",
+                answer="existing answer",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        self.assertEqual(candidate, {"sentence": "cleaned candidate", "selected_claim_ids": ["claim_1"]})
+        self.assertEqual(
+            coverage.call_args_list,
+            [
+                unittest.mock.call("existing answer", "raw candidate"),
+                unittest.mock.call("existing answer", "cleaned candidate"),
+            ],
+        )
+
+        coverage = Mock(side_effect=RuntimeError("coverage owner"))
+        candidate_agent = configured_candidate_agent()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_narrative_context",
+                coverage,
+            ),
+            self.assertRaisesRegex(RuntimeError, "coverage owner"),
+        ):
+            candidate_agent._uncovered_supported_growth_narrative_candidate(
+                query="why",
+                answer="existing answer",
+                ordered_results=[],
+                evidence_items=[],
+            )
+        coverage.assert_called_once_with("existing answer", "raw candidate")
+        candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
