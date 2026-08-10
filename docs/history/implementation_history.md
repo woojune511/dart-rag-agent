@@ -1596,6 +1596,44 @@ mutable state, artifact/ledger, callbacks, and final orchestration remain graph-
 owned. The range proves no behavior, accuracy, ranking, performance, total-code
 or executed-path reduction, benchmark improvement, or Phase 3 completion.
 
+### Operand unit/table-repair owner milestone
+
+- `25318f1` moves the existing public
+  `dependency_task_output_has_consistent_krw_unit(...)` implementation from
+  dependency projection to operand resolution. Twenty old dependency-owner
+  definition-span lines were removed; the graph's row-coercion call remains and
+  the later table-repair call becomes owner-local. Source is `+23/-23`, tests are
+  `+498/-10`, and the whole commit is `+521/-33`.
+- `21f3a83` publishes
+  `repair_krw_operand_units_from_table_metadata(...)` from operand resolution.
+  One hundred sixty-six old graph definition-span lines were removed and the sole
+  graph call remains after evidence-row coercion. Source is `+169/-168`, tests are
+  `+934/-31`, and the whole commit is `+1,103/-199`.
+- Across `941e719..21f3a83`, 186 selected old definition-span lines were replaced
+  by two public APIs. Final placement is two external graph calls and one owner-
+  local predicate call; old dependency-owner and graph-private references are zero. The range-
+  level source diff is `+192/-191`, net `+1`: the graph moved from 16,936 to
+  16,770 physical lines, dependency projection from 3,257 to 3,235, and operand
+  resolution from 3,272 to 3,461. Tests are `+1,416/-25`, net `+1,391`, and the
+  whole changed-file range is `+1,608/-216`, net `+1,392`. Eight test methods were
+  added, moving full discovery from 1,606 to 1,614 tests.
+- Final validation passed focused 4/4 and 813/813 across
+  `tests.test_financial_dependency_projection`,
+  `tests.test_financial_operand_resolution`,
+  `tests.test_financial_calculation_execution`,
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`, and
+  `tests.test_operation_contracts`; the 217-literal runtime audit; full discovery
+  over 1,614/1,614 tests; and `git diff --check`. Benchmark refresh was **NOT
+  RUN**; no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only dependency-task normalized-KRW consistency and table-
+metadata KRW repair ownership. Evidence/query/row preparation, caller carriers,
+adoption/failure projection, plan/execution, mutable state, artifact/ledger,
+callbacks, and final orchestration remain graph-owned. The range proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, or Phase 3 completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

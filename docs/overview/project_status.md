@@ -15,11 +15,11 @@ Last updated: 2026-08-10
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; operand-preparation owner milestone closed, four named debt groups remain |
-| What just changed? | KRW raw-unit repair, growth raw-scale alignment, and growth-period conflict moved to `financial_operand_resolution.py` in `d13c8cd`, `ae8acba`, and `d8bb90d` |
-| What passed? | Focused 4/4, affected seven-module set 762/762, runtime audit 217, full unittest 1,606/1,606 |
+| What is the architecture state? | Phase 3 OPEN; operand unit/table-repair owner milestone closed, four named debt groups remain |
+| What just changed? | Dependency-task KRW consistency and table-metadata KRW repair moved to `financial_operand_resolution.py` in `25318f1` and `21f3a83` |
+| What passed? | Focused 4/4, affected seven-module set 813/813, runtime audit 217, full unittest 1,614/1,614 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Two characterize-first operand unit/table-repair seams into `financial_operand_resolution.py`; graph orchestration remains a hard stop |
+| What is next? | Two characterize-first aggregate answer-surface commits into `financial_aggregate_projection.py`; graph orchestration remains a hard stop |
 
 ## Product Boundary
 
@@ -50,16 +50,16 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved KRW raw-unit normalization repair, growth raw-scale
-  alignment, and growth-period conflict behind three public operand-resolution
-  APIs. All three call placements remain in the graph and retired old identifiers
-  are zero. Evidence-row/table preparation, operand-map and plan access, recovery,
-  sign/execution, mutable state, artifacts, and final sequencing remain graph-
-  owned. This is ownership relocation, not a behavior or performance claim.
-- Current physical sizes are: calculation graph 16,936 lines, graph helpers 6,299,
+- The latest owner batch co-located dependency-task KRW consistency and table-
+  metadata KRW repair behind two public operand-resolution APIs. Final placement
+  is two external graph calls and one owner-local predicate call; old owner/private
+  references are zero. Evidence/query/row preparation, caller carriers,
+  adoption/failure, plan/execution, mutable state, artifacts, and final sequencing
+  remain graph-owned. This is ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 16,770 lines, graph helpers 6,299,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
-  670, answer projection 491, operand resolution 3,272, and aggregate projection
-  1,511.
+  670, answer projection 491, operand resolution 3,461, dependency projection
+  3,235, and aggregate projection 1,511.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -74,7 +74,7 @@ Commit-level diffs and validation are kept in
 | DART ingest | parser modules plus canonical profile in `src/config/runtime_contract.py` |
 | Retrieval | `financial_retrieval_pipeline.py`; graph evidence owns structure expansion and evidence construction |
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
-| Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, KRW raw-unit repair, and growth alignment/period conflict |
+| Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py` and `financial_calculation_execution.py` |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, and `financial_numeric_surface.py`, including period/material, ratio-readiness, narrative validation, and numeric/scale predicates |
@@ -102,14 +102,14 @@ For topology rather than normative behavior, use
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
 | Latest focused owner checkpoint | PASS, 4 / 4 |
-| Latest affected regression set | PASS, seven-module set 762 / 762 |
+| Latest affected regression set | PASS, seven-module set 813 / 813 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,606 / 1,606 |
+| Full unittest discovery | PASS, 1,614 / 1,614 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The affected set is `tests.test_financial_operand_resolution`,
-`tests.test_financial_calculation_execution`, `tests.test_financial_answer_slots`,
+The affected set is `tests.test_financial_dependency_projection`,
+`tests.test_financial_operand_resolution`, `tests.test_financial_calculation_execution`,
 `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
 `tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
 
@@ -133,7 +133,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through period/material/source/coherence/rank/dedupe and narrative-validation ownership; promotion, sync/rebuild, and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale and bounded operand-preparation ownership; graph-state lookup, table/evidence orchestration, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, and unit/table repair; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Essentially untouched; requires a separate behavior contract |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
 
@@ -143,49 +143,49 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The next architecture batch is one two-commit, one-owner characterize-first
-operand unit/table-repair sequence into `financial_operand_resolution.py`:
+aggregate answer-surface sequence into `financial_aggregate_projection.py`:
 
-1. move existing public `dependency_task_output_has_consistent_krw_unit(...)`
-   from dependency projection (20 definition-span lines, two current calls);
-2. publish `repair_krw_operand_units_from_table_metadata(...)` (166 old graph
-   definition-span lines, one current call).
+1. publish `row_is_narrative_summary(...)` (4 old definition-span lines, 20
+   current calls) and `safe_partial_answer_for_numeric_gap(...)` (26 lines, four
+   calls); the safe-partial call to the row predicate becomes owner-local;
+2. atomically publish `compose_lookup_list_numeric_answer(...)` (27 lines) and
+   `append_uncovered_lookup_numeric_items(...)` (92 lines), and co-locate private
+   `_lookup_numeric_item_answer(...)` (34 lines).
 
-The read-only profiled boundary is two public APIs, 186 old definition-span
-lines, and three current calls. Final placement is two external graph calls and
-one owner-local repair-to-predicate call. `financial_dependency_projection.py`
-already imports operand resolution, so the first move removes an implementation
-from that dependency direction; the graph already imports the operand owner.
-The second seam uses owner-existing evidence lookup, row matching, normalization,
-regex, and render-policy dependencies. No reverse owner import is added. Commit
-order is A then B, not a dependency arrow, and this is not a schedule estimate.
+The read-only profiled boundary is 183 old definition-span lines, four public APIs
+plus one owner-private helper, and 28 current calls. Final placement is 23 external
+graph calls and five owner-local calls: row predicate 17/3, safe partial 4/0,
+compose 1/0, append 1/0, and private lookup 0/2. Commit B is atomic because the
+current graph append helper calls private lookup; splitting it would require an
+unwanted public helper, wrapper, or retained old body. Commit order is A then B,
+not a dependency arrow or schedule estimate.
 
-The ontology foundation remains excluded. Its four call placements include three
-`hasattr(self, "_complete_required_operand_from_ontology")` compatibility gates:
-deleting the private attribute changes those paths, while retaining an alias or
-wrapper fails the old-private deletion criterion; co-moving `_concept_spec_for_key` fixes an import cycle but not that behavior blocker.
+The owner already has answer-slot material, material-gap, numeric extraction, row
+matching, and normalization dependencies. Add `answer_covers_numeric_answer` via
+the existing numeric-surface direction and `CALCULATION_RENDER_POLICY`; neither
+creates a reverse import.
 
-Require at least four CURRENT-SOURCE characterize methods per seam: two direct
-branch/identity/laziness/exception/no-mutation matrices, one exact static binding/
-order method, and one executable caller adoption/exception-stop method. Keep
-source held until those focused tests are green, then retarget direct public
-imports and delete the old bodies.
+A requires at least four CURRENT-SOURCE methods: direct row precedence/access/
+exception; direct safe-partial status→gap→answer/formatted/rendered fallback,
+stable dedupe, laziness, no-mutation, and exceptions; exact row20/safe4 binding
+and post-A external23/local1; and executable caller args/adoption/exception-stop.
+B requires at least five: direct compose, private lookup, and append matrices;
+static current compose1/lookup2/append1 and post-B external2/local lookup2 plus
+row-local2; and executable `_prepare_initial_aggregate_state` compose plus
+`_aggregate_calculation_subtasks` append args/adoption/order/exception-stop.
 
-The graph retains `_coerce_operand_row_from_evidence` and
-`_prepare_calculation_candidate`. The predicate stays after the graph's shallow
-row copy and before raw-value/unit coercion; after the second move the table repair
-uses it owner-locally. Table repair stays after evidence-row coercion and before
-`repair_krw_normalized_values_from_raw_units`, operand indexing, and plan access.
-All evidence selection/direct-structured mutation, caller/carrier preparation,
-adoption/failure projection, plan/execution, ontology completion, duplicate
-recovery, graph state, task/artifact ledger, promotion, sync/rebuild, callbacks,
-and final orchestration remain outside this batch. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, or Phase 3
-completion claim follows.
+Retain graph `_unresolved_structured_numeric_gap`, `_lookup_value_from_table_label_metadata`,
+`_preferred_aggregate_fallback_answer`, `_apply_initial_aggregate_answer_composition`,
+`_apply_final_narrative_repair_pipeline`, `_resolve_aggregate_feedback_state`, both executable callers, and the other 17 row callers. Do not absorb LLM/composition/feedback,
+state/evidence mutation, artifact/ledger, promotion, sync/rebuild, or final sequencing.
 
-Run focused tests, the affected set, domain audit, full discovery, and
-`git diff --check` sequentially. Benchmark work remains separate: before
-publishing a new score, verify the local store/profile/cache signature and prefer
-a monitored store-fixed `eval-only` refresh.
+Reject ontology compatibility (four placements/three `hasattr` gates), the 720-line precision
+cluster (`_OperandPrecisionContext` plus a reverse import cycle), carrier projection,
+stateful compact-ratio work, and evidence-selection/mutation bundling.
+Hold source until each current-source gate passes; then retarget/delete, require old
+refs zero, and run focused, affected, audit, full, and diff-check sequentially.
+No behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark, schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

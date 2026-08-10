@@ -951,18 +951,18 @@ prior in that order. Both calls occur before the final
 remain unmodified and mapping, iteration/copy, string, key-owner, truthiness, and
 equality exceptions propagate.
 
-The graph retains `_prepare_calculation_candidate` and all carriers. Raw-unit
-repair is called after table-metadata repair and before operand indexing and plan
-access. Growth alignment remains after donor-unit propagation and before duplicate-
-prior recovery; only a non-equal owner result is adopted. Period conflict remains
-after duplicate recovery and its adoption, and before sign policy and execution;
-`True` returns exact `insufficient_operands` / `growth operands share the same
-period`, `False` continues, and an owner exception stops downstream work. Evidence
-selection, table repair, donor propagation, duplicate recovery, operand-map/runtime
-adoption, sign/execution, state, artifact, ledger, and final projection remain
-graph-owned. These seams claim ownership relocation and old-body deletion only,
-not behavior, accuracy, ranking, performance, total-code or executed-path
-reduction, benchmark improvement, or Phase 3 completion.
+The graph retains `_prepare_calculation_candidate` and all carriers. Public table-
+metadata repair is called after evidence-row coercion; raw-unit repair follows it
+before operand indexing and plan access. Growth alignment remains after donor-unit
+propagation and before duplicate-prior recovery; only a non-equal owner result is
+adopted. Period conflict remains after duplicate recovery and its adoption, and
+before sign policy and execution; `True` returns exact `insufficient_operands` /
+`growth operands share the same period`, `False` continues, and an owner exception
+stops downstream work. Evidence selection and row coercion, donor propagation,
+duplicate recovery, operand-map/runtime adoption, sign/execution, state, artifact,
+ledger, and final projection remain graph-owned. These seams claim ownership
+relocation and old-body deletion only, not behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, or Phase 3 completion.
 
 `financial_dependency_projection.py` owns dependency-binding summaries,
 state-free dependency projection, and the direct-versus-dependency source-set
@@ -1220,8 +1220,8 @@ state, task, binding, slot/source selection, row repair and construction,
 task-output and retrieved-context ratio append/merge, evidence, artifact, and
 final orchestration.
 
-Dependency task-output normalized-KRW consistency is a separate plain public
-dependency-owner predicate. It short-circuits dependency resolution, the
+Dependency task-output normalized-KRW consistency is a plain public operand-owner
+predicate. It short-circuits dependency resolution, the
 `task_output:` source prefix, and normalized-KRW gates before reading value
 fields. Raw value is read before raw-unit truthy fallback to result unit, so a
 truthy whitespace-only raw unit suppresses that fallback before normalization.
@@ -1233,10 +1233,42 @@ The normalized-value mapping access is inside the conversion `try`; a
 conversion returns `False`. Earlier mapping `TypeError`/`ValueError`, all
 `RuntimeError` instances, and other truthiness, string, normalizer, or arithmetic
 exceptions propagate. The predicate never mutates its input and adds no result
-wrapper, reason, flag, callback, config input, or trace field. Its two graph calls
-remain at the original row-coercion and table-metadata-repair positions. The graph
-retains both caller gates, operand/evidence selection and mutation, table repair,
-state, and final orchestration.
+wrapper, reason, flag, callback, config input, or trace field. Its two semantic
+placements are one external graph call during evidence-row coercion and one owner-
+local call from public table-metadata repair.
+
+`repair_krw_operand_units_from_table_metadata(operands, evidence_items)` is the
+co-located public operand-owner transform. It builds the evidence-id index first;
+an empty index returns the exact input list before render-policy access. Otherwise
+it snapshots `CALCULATION_RENDER_POLICY`, normalizes configured KRW display units
+and scales, then shallow-copies each operand in stable row order before invoking
+the consistency predicate. A consistent dependency row skips raw-value/unit and
+evidence surfaces.
+
+For a non-KRW normalized row, only `COUNT`, `UNKNOWN`, or blank with a nonblank raw
+value may scan alternate table evidence. The scan preserves evidence order, requires
+a table-backed surface containing the value, applies the row label when present,
+and accepts an inline configured KRW display unit or the table `unit_hint`. For an
+already-KRW row, raw value/unit precede evidence lookup; the matched evidence must
+be table-backed, expose a distinct configured unit hint with known scales and at
+least `100.0` distortion, and visibly contain the raw value. Both branches require
+the owner normalizer to return a non-`None` value and exact `KRW`.
+
+A repair writes `source_raw_unit`, optional `source_normalized_value`, repaired
+`raw_unit`, `normalized_value`, `normalized_unit`, `rendered_value`, and
+`unit_normalization_repair_source` in that order. Current-value conversion catches
+only `TypeError` and `ValueError`; all other mapping, iteration/copy, policy,
+truthiness, string, regex, normalization, float-scale, comparison, formatting, and
+arithmetic exceptions propagate. Any repair returns a fresh stable list with every
+top-level row copied and nested aliases preserved; without a repair the exact input
+list and row identities return despite transient copies. Neither operands nor
+evidence are mutated.
+
+The graph retains the external predicate branch and table-repair caller, evidence/
+query/row preparation, caller carriers, ordinary table-repair assignment, failure
+projection, state, artifacts, and final orchestration. This move changes ownership
+only; it adds no behavior, trace field, callback, benchmark, performance, total-
+code, executed-path, or Phase 3 completion claim.
 
 The nested non-`ok` path returns the graph-supplied local row. The enclosing pass
 returns the original ordered-result and original row identities only when no
