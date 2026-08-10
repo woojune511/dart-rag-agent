@@ -18,6 +18,7 @@ import re
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, NamedTuple, Optional, Sequence
 
 from src.agent import financial_answer_slots
+from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_aggregate_state import (
     AggregateCompositionState,
     _AggregateEvidenceState,
@@ -486,16 +487,6 @@ class FinancialAgentCalculationMixin:
             combined.append(dict(item))
         return combined
 
-    def _answer_slot_has_material(self, slot: Dict[str, Any]) -> bool:
-        if not isinstance(slot, dict) or not slot:
-            return False
-        status = str(slot.get("status") or "").strip().lower()
-        if status == "missing":
-            return False
-        if slot.get("normalized_value") is not None:
-            return True
-        return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
-
     def _slot_metric_keys(self, slot: Dict[str, Any]) -> set[str]:
         keys: set[str] = set()
         concept = _normalise_spaces(str(slot.get("concept") or ""))
@@ -594,7 +585,7 @@ class FinancialAgentCalculationMixin:
             sibling_result = dict(sibling.get("calculation_result") or {})
             sibling_slots = dict(sibling_result.get("answer_slots") or sibling.get("answer_slots") or {})
             for sibling_slot in self._iter_answer_slots(sibling_slots):
-                if not self._answer_slot_has_material(sibling_slot):
+                if not answer_slot_has_material(sibling_slot):
                     continue
                 if target_concept:
                     sibling_concept = _normalise_spaces(str(sibling_slot.get("concept") or ""))
@@ -634,8 +625,8 @@ class FinancialAgentCalculationMixin:
 
         current_slot = dict(answer_slots.get("current_value") or {})
         prior_slot = dict(answer_slots.get("prior_value") or {})
-        current_material = self._answer_slot_has_material(current_slot)
-        prior_material = self._answer_slot_has_material(prior_slot)
+        current_material = answer_slot_has_material(current_slot)
+        prior_material = answer_slot_has_material(prior_slot)
         if current_material and prior_material:
             return False
 
@@ -660,7 +651,7 @@ class FinancialAgentCalculationMixin:
             sibling_result = dict(sibling.get("calculation_result") or {})
             sibling_slots = dict(sibling_result.get("answer_slots") or {})
             primary_slot = dict(sibling_slots.get("primary_value") or {})
-            if not self._answer_slot_has_material(primary_slot):
+            if not answer_slot_has_material(primary_slot):
                 continue
             sibling_keys = self._slot_metric_keys(primary_slot)
             if not sibling_keys:
@@ -721,7 +712,7 @@ class FinancialAgentCalculationMixin:
             calculation_result = dict(row.get("calculation_result") or {})
             answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
             for slot in self._iter_answer_slots(answer_slots):
-                if not self._answer_slot_has_material(slot):
+                if not answer_slot_has_material(slot):
                     continue
                 slot_period = self._period_match_key(self._slot_period_hint(slot))
                 if target_periods and slot_period and slot_period not in target_periods:
@@ -748,13 +739,13 @@ class FinancialAgentCalculationMixin:
         calculation_result = dict(aggregate_projection.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or {})
         for slot in self._iter_answer_slots(answer_slots):
-            if self._answer_slot_has_material(slot):
+            if answer_slot_has_material(slot):
                 resolved_slots.append(dict(slot))
         for row in list(ordered_results or []):
             row_result = dict(row.get("calculation_result") or {})
             row_slots = dict(row_result.get("answer_slots") or row.get("answer_slots") or {})
             for slot in self._iter_answer_slots(row_slots):
-                if self._answer_slot_has_material(slot):
+                if answer_slot_has_material(slot):
                     resolved_slots.append(dict(slot))
             for operand in list(row.get("calculation_operands") or []):
                 if not isinstance(operand, dict):
@@ -778,7 +769,7 @@ class FinancialAgentCalculationMixin:
                     ),
                     "source_anchor": operand.get("source_anchor"),
                 }
-                if self._answer_slot_has_material(slot):
+                if answer_slot_has_material(slot):
                     resolved_slots.append(slot)
         for operand in list(aggregate_projection.get("calculation_operands") or []):
             if not isinstance(operand, dict):
@@ -802,7 +793,7 @@ class FinancialAgentCalculationMixin:
                 ),
                 "source_anchor": operand.get("source_anchor"),
             }
-            if self._answer_slot_has_material(slot):
+            if answer_slot_has_material(slot):
                 resolved_slots.append(slot)
         return resolved_slots
 
@@ -1167,7 +1158,7 @@ class FinancialAgentCalculationMixin:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
         primary_slot = dict(answer_slots.get("primary_value") or {})
-        if require_primary_slot and not self._answer_slot_has_material(primary_slot):
+        if require_primary_slot and not answer_slot_has_material(primary_slot):
             return ""
         value = _normalise_spaces(
             str(
@@ -2306,7 +2297,7 @@ class FinancialAgentCalculationMixin:
                 aligned_results.append(row)
                 continue
             primary_slot = lookup_primary_slot(row)
-            if not self._answer_slot_has_material(primary_slot):
+            if not answer_slot_has_material(primary_slot):
                 aligned_results.append(row)
                 continue
             raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
@@ -2357,7 +2348,7 @@ class FinancialAgentCalculationMixin:
         return align_lookup_result_units_from_peer_source_slots(
             ordered_results,
             operation_family_for_result=self._aggregate_result_operation_family,
-            slot_has_material=self._answer_slot_has_material,
+            slot_has_material=answer_slot_has_material,
         )
 
     def _align_lookup_results_with_dependency_projection(
@@ -2429,7 +2420,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             task_by_id,
             operation_family_for_result=self._aggregate_result_operation_family,
-            slot_has_material=self._answer_slot_has_material,
+            slot_has_material=answer_slot_has_material,
         )
         table_label_evidence_candidates = collect_table_label_evidence_candidates(ordered_results, state)
         _operand_from_source_slot = dependency_operand_from_source_slot
@@ -2441,7 +2432,7 @@ class FinancialAgentCalculationMixin:
                 operand,
                 table_label_evidence_candidates,
                 lookup_value_from_table_label_metadata=self._lookup_value_from_table_label_metadata,
-                slot_has_material=self._answer_slot_has_material,
+                slot_has_material=answer_slot_has_material,
             )
 
         def _recalculate_row_from_source_slots(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -2498,7 +2489,7 @@ class FinancialAgentCalculationMixin:
                     operation_family=operation_family,
                     task_id=task_id,
                     lookup_slots_by_task=lookup_slots_by_task,
-                    slot_has_material=self._answer_slot_has_material,
+                    slot_has_material=answer_slot_has_material,
                     lookup_source_for_arithmetic_slot=_lookup_source_for_arithmetic_slot,
                     operand_from_source_slot=_operand_from_source_slot,
                     operand_can_use_source_slot=dependency_operand_can_use_source_slot,
@@ -2513,7 +2504,7 @@ class FinancialAgentCalculationMixin:
                 operands,
                 task_id=task_id,
                 lookup_slots_by_task=lookup_slots_by_task,
-                slot_has_material=self._answer_slot_has_material,
+                slot_has_material=answer_slot_has_material,
                 lookup_source_for_arithmetic_slot=_lookup_source_for_arithmetic_slot,
                 source_task_id_for_operand=_source_task_id_for_operand,
                 slot_differs_from_operand=_slot_differs_from_operand,
@@ -2530,7 +2521,7 @@ class FinancialAgentCalculationMixin:
                     task_id=task_id,
                     operation_family_for_result=self._aggregate_result_operation_family,
                     lookup_source_for_arithmetic_slot=_lookup_source_for_arithmetic_slot,
-                    slot_has_material=self._answer_slot_has_material,
+                    slot_has_material=answer_slot_has_material,
                     operand_can_use_source_slot=dependency_operand_can_use_source_slot,
                     operand_from_source_slot=_operand_from_source_slot,
                     operand_from_table_label_evidence=_operand_from_table_label_evidence,
@@ -2643,7 +2634,7 @@ class FinancialAgentCalculationMixin:
                 row,
                 task=task,
                 projected_operands=list(projected_by_task.get(task_id, [])),
-                slot_has_material=self._answer_slot_has_material,
+                slot_has_material=answer_slot_has_material,
                 projection_operand_matches_lookup=_projection_operand_matches_lookup,
                 slot_differs_from_operand=_slot_differs_from_operand,
                 build_operand_value_slot=financial_answer_slots.build_operand_value_slot,
@@ -3133,7 +3124,7 @@ class FinancialAgentCalculationMixin:
             calculation_result = dict(row.get("calculation_result") or {})
             answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
             source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
-            if self._answer_slot_has_material(source_slot):
+            if answer_slot_has_material(source_slot):
                 return _normalise_spaces(
                     str(source_slot.get("rendered_value") or source_slot.get("raw_value") or "")
                 )
@@ -3287,7 +3278,7 @@ class FinancialAgentCalculationMixin:
         primary_slot = dict(answer_slots.get("primary_value") or {})
         current_slot = dict(answer_slots.get("current_value") or {})
         prior_slot = dict(answer_slots.get("prior_value") or {})
-        if not self._answer_slot_has_material(primary_slot):
+        if not answer_slot_has_material(primary_slot):
             return ""
 
         growth_value = _normalise_spaces(str(calculation_result.get("rendered_value") or ""))
@@ -3660,7 +3651,7 @@ class FinancialAgentCalculationMixin:
             current_slot = dict(answer_slots.get("current_value") or {})
             prior_slot = dict(answer_slots.get("prior_value") or {})
             if not all(
-                self._answer_slot_has_material(slot)
+                answer_slot_has_material(slot)
                 for slot in (primary_slot, current_slot, prior_slot)
             ):
                 continue
@@ -4662,7 +4653,7 @@ class FinancialAgentCalculationMixin:
             calculation_result = dict(row.get("calculation_result") or {})
             answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
             primary_slot = dict(answer_slots.get("primary_value") or {})
-            if not self._answer_slot_has_material(primary_slot):
+            if not answer_slot_has_material(primary_slot):
                 continue
             slots.append(primary_slot)
         return slots
@@ -4961,7 +4952,7 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             report_scope=dict(state.get("report_scope") or {}),
             calculation_result=dict(preliminary_projection.get("calculation_result") or {}),
-            answer_slot_has_material=self._answer_slot_has_material,
+            answer_slot_has_material=answer_slot_has_material,
         )
         if slot_based_difference_answer:
             final_answer = slot_based_difference_answer
@@ -6950,12 +6941,12 @@ class FinancialAgentCalculationMixin:
             answer_slots = dict(sibling_result.get("answer_slots") or {})
             source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
             source_slot = dict(answer_slots.get(source_slot_name) or {})
-            source_slot_from_answer_slots = self._answer_slot_has_material(source_slot)
+            source_slot_from_answer_slots = answer_slot_has_material(source_slot)
             producer_scope = resolve_dependency_producer_scope(
                 binding,
                 producer_tasks=producer_tasks,
             )
-            if not self._answer_slot_has_material(source_slot):
+            if not answer_slot_has_material(source_slot):
                 producer_task = dict(producer_scope.producer_task)
                 if not producer_task:
                     producer_task = {
@@ -6986,7 +6977,7 @@ class FinancialAgentCalculationMixin:
                     sibling_result = synthetic_result
                     answer_slots = dict(sibling_result.get("answer_slots") or {})
                     source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
-            if not self._answer_slot_has_material(source_slot) and sibling_result.get("result_value") is not None:
+            if not answer_slot_has_material(source_slot) and sibling_result.get("result_value") is not None:
                 source_slot = {
                     "status": "ok",
                     "role": source_slot_name,
@@ -7006,7 +6997,7 @@ class FinancialAgentCalculationMixin:
                     "source_anchor": _normalise_spaces(str(sibling_result.get("source_anchor") or "")),
                     "source_row_ids": list(sibling_result.get("source_row_ids") or []),
                 }
-            if not self._answer_slot_has_material(source_slot):
+            if not answer_slot_has_material(source_slot):
                 continue
             if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row, state=state):
                 continue
@@ -7637,7 +7628,7 @@ class FinancialAgentCalculationMixin:
                     return ""
 
         if operation_family in {"lookup", "single_value"}:
-            if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+            if not answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
                 return str(feedback_policy.get("lookup_missing_template") or "").format(metric_label=metric_label)
             return ""
 
@@ -7650,7 +7641,7 @@ class FinancialAgentCalculationMixin:
                     metric_label=metric_label
                 )
             missing_labels: List[str] = []
-            if not self._answer_slot_has_material(current_slot):
+            if not answer_slot_has_material(current_slot):
                 period = str(
                     current_slot.get("period")
                     or calculation_result.get("current_period")
@@ -7660,7 +7651,7 @@ class FinancialAgentCalculationMixin:
                 missing_labels.append(
                     str(feedback_policy.get("missing_period_value_template") or "").format(period=period)
                 )
-            if not self._answer_slot_has_material(prior_slot):
+            if not answer_slot_has_material(prior_slot):
                 period = str(
                     prior_slot.get("period")
                     or calculation_result.get("prior_period")
@@ -7671,10 +7662,10 @@ class FinancialAgentCalculationMixin:
                     str(feedback_policy.get("missing_period_value_template") or "").format(period=period)
                 )
             if operation_family == "difference":
-                if not self._answer_slot_has_material(dict(answer_slots.get("delta_value") or primary_slot)):
+                if not answer_slot_has_material(dict(answer_slots.get("delta_value") or primary_slot)):
                     missing_labels.append(str(feedback_policy.get("difference_missing_result_label") or ""))
             else:
-                if not self._answer_slot_has_material(primary_slot):
+                if not answer_slot_has_material(primary_slot):
                     if not (status == "ok" and rendered_material and re.search(r"\d", rendered_material)):
                         missing_labels.append(str(feedback_policy.get("growth_missing_result_label") or ""))
             if missing_labels:
@@ -7685,7 +7676,7 @@ class FinancialAgentCalculationMixin:
             return ""
 
         if operation_family in {"ratio", "sum"}:
-            if not self._answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
+            if not answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
                 if status == "ok" and rendered_material and re.search(r"\d", rendered_material):
                     return ""
                 return str(feedback_policy.get("missing_result_template") or "").format(metric_label=metric_label)
@@ -7807,7 +7798,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             {},
             operation_family_for_result=self._aggregate_result_operation_family,
-            slot_has_material=self._answer_slot_has_material,
+            slot_has_material=answer_slot_has_material,
         )
         source_slots.update(dependency_slots)
         for task_id, slot in list(source_slots.items()):
@@ -7840,7 +7831,7 @@ class FinancialAgentCalculationMixin:
                 numerator.append(seed)
             elif group == "denominator":
                 denominator.append(seed)
-            elif self._answer_slot_has_material(seed):
+            elif answer_slot_has_material(seed):
                 ungrouped.append(seed)
 
         for container_key in ("components_by_group", "components_by_role"):
@@ -7990,7 +7981,7 @@ class FinancialAgentCalculationMixin:
         source_slots = {
             task_id: dict(slot)
             for task_id, slot in dict(source_slot_by_task_id or {}).items()
-            if task_id and self._answer_slot_has_material(dict(slot or {}))
+            if task_id and answer_slot_has_material(dict(slot or {}))
         }
         if len(source_slots) < 2:
             return ""
@@ -8158,7 +8149,7 @@ class FinancialAgentCalculationMixin:
         inferred_task_ids = []
         for task_id, source_slot in source_slots.items():
             slot = dict(source_slot or {})
-            if not self._answer_slot_has_material(slot):
+            if not answer_slot_has_material(slot):
                 continue
             if dependency_lookup_slot_match_score(slot, operand, role) >= 12:
                 inferred_task_ids.append(task_id)
@@ -8186,7 +8177,7 @@ class FinancialAgentCalculationMixin:
             source_task_id = source_task_ids[0] if source_task_ids else ""
             if source_task_id and source_slots:
                 source_slot = dict(source_slots.get(source_task_id) or {})
-                if self._answer_slot_has_material(source_slot):
+                if answer_slot_has_material(source_slot):
                     saw_source_slot = True
                     source_anchor = _normalise_spaces(str(source_slot.get("source_anchor") or ""))
                     operand_anchor = _normalise_spaces(str(operand.get("source_anchor") or ""))
@@ -9355,9 +9346,9 @@ class FinancialAgentCalculationMixin:
             current_slot = dict(answer_slots.get("current_value") or {})
             prior_slot = dict(answer_slots.get("prior_value") or {})
             if not (
-                self._answer_slot_has_material(primary_slot)
-                and self._answer_slot_has_material(current_slot)
-                and self._answer_slot_has_material(prior_slot)
+                answer_slot_has_material(primary_slot)
+                and answer_slot_has_material(current_slot)
+                and answer_slot_has_material(prior_slot)
             ):
                 continue
             growth_row = dict(row)
@@ -11166,7 +11157,7 @@ class FinancialAgentCalculationMixin:
             current_slot = dict(answer_slots.get("current_value") or {})
             prior_slot = dict(answer_slots.get("prior_value") or {})
             for slot in (current_slot, prior_slot):
-                if not self._answer_slot_has_material(slot):
+                if not answer_slot_has_material(slot):
                     return False
                 normalized_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
                 raw_unit = _normalise_spaces(str(slot.get("raw_unit") or ""))
@@ -12589,8 +12580,8 @@ class FinancialAgentCalculationMixin:
             )
 
         if numerator_slots and denominator_slots:
-            numerator_identities = {_slot_identity(slot) for slot in numerator_slots if self._answer_slot_has_material(slot)}
-            denominator_identities = {_slot_identity(slot) for slot in denominator_slots if self._answer_slot_has_material(slot)}
+            numerator_identities = {_slot_identity(slot) for slot in numerator_slots if answer_slot_has_material(slot)}
+            denominator_identities = {_slot_identity(slot) for slot in denominator_slots if answer_slot_has_material(slot)}
             if numerator_identities and numerator_identities == denominator_identities:
                 return True
             numerator_value_identities = {identity[1:] for identity in numerator_identities if identity[-1]}
@@ -15395,7 +15386,7 @@ class FinancialAgentCalculationMixin:
             query=self._calc_query(state),
             report_scope=dict(state.get("report_scope") or {}),
             calculation_result=calculation_result,
-            answer_slot_has_material=self._answer_slot_has_material,
+            answer_slot_has_material=answer_slot_has_material,
         )
         if slot_based_difference_answer:
             calculation_result["formatted_result"] = slot_based_difference_answer
@@ -16019,7 +16010,7 @@ class FinancialAgentCalculationMixin:
                 answer_slots = dict(sibling_result.get("answer_slots") or {})
                 source_slot_name = _normalise_spaces(str(binding.get("source_slot") or "primary_value")) or "primary_value"
                 source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
-                if not self._answer_slot_has_material(source_slot):
+                if not answer_slot_has_material(source_slot):
                     continue
                 slot_matches_binding = self._dependency_slot_matches_input(
                     binding,
@@ -16360,7 +16351,7 @@ class FinancialAgentCalculationMixin:
                 answer_slots = dict(sibling_result.get("answer_slots") or {})
                 source_slot_name = _normalise_spaces(str(binding_data.get("source_slot") or "primary_value")) or "primary_value"
                 source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
-                if not self._answer_slot_has_material(source_slot):
+                if not answer_slot_has_material(source_slot):
                     continue
                 raw_unit, normalized_unit = infer_dependency_row_unit(source_slot, sibling_result)
                 dependency_rows.append(
@@ -17086,7 +17077,7 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             report_scope=dict(state.get("report_scope") or {}),
             calculation_result=dict(aggregate_projection.get("calculation_result") or {}),
-            answer_slot_has_material=self._answer_slot_has_material,
+            answer_slot_has_material=answer_slot_has_material,
         )
         if slot_based_difference_answer:
             mutable_state, _ = self._replace_mutable_aggregate_answer(

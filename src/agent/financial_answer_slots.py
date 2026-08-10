@@ -23,6 +23,17 @@ from src.agent.financial_runtime_normalization import (
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, NUMERIC_UNIT_NORMALIZATION_POLICY
 
 
+def answer_slot_has_material(slot: Dict[str, Any]) -> bool:
+    if not isinstance(slot, dict) or not slot:
+        return False
+    status = str(slot.get("status") or "").strip().lower()
+    if status == "missing":
+        return False
+    if slot.get("normalized_value") is not None:
+        return True
+    return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
+
+
 def source_task_display_compatible_with_slot(
     slot: Mapping[str, Any],
     source_display: str,

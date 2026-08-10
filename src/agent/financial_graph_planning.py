@@ -33,6 +33,7 @@ from src.agent.financial_graph_model_loaders import (
     _concept_planner_output_model,
     _validate_answer_slots_payload,
 )
+from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
 from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
 if TYPE_CHECKING:
@@ -87,17 +88,6 @@ def _has_single_report_scope(report_scope: Dict[str, Any]) -> bool:
         return len(_report_scope_source_receipts(scope)) <= 1
     except Exception:
         return False
-
-
-def _slot_has_material(slot: Dict[str, Any]) -> bool:
-    if not isinstance(slot, dict) or not slot:
-        return False
-    status = str(slot.get("status") or "").strip().lower()
-    if status == "missing":
-        return False
-    if slot.get("normalized_value") is not None:
-        return True
-    return bool(str(slot.get("rendered_value") or slot.get("raw_value") or "").strip())
 
 
 def _money_match_to_slot_values(match: re.Match[str]) -> Dict[str, Any]:
@@ -364,7 +354,7 @@ def _synthesize_lookup_answer_slot_from_prose(
         return calculation_result
 
     answer_slots = dict(calculation_result.get("answer_slots") or {})
-    if _slot_has_material(dict(answer_slots.get("primary_value") or {})):
+    if answer_slot_has_material(dict(answer_slots.get("primary_value") or {})):
         return calculation_result
 
     slot = _extract_lookup_slot_from_answer_text(
@@ -1959,7 +1949,7 @@ class FinancialAgentPlanningMixin:
         calculation_result = dict(row.get("calculation_result") or {})
         answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
         for slot_name in ("primary_value", "current_value", "prior_value", "delta_value"):
-            if _slot_has_material(dict(answer_slots.get(slot_name) or {})):
+            if answer_slot_has_material(dict(answer_slots.get(slot_name) or {})):
                 return True
         if str(calculation_result.get("rendered_value") or row.get("answer") or "").strip():
             return True
@@ -2120,7 +2110,7 @@ class FinancialAgentPlanningMixin:
         active_metric_family = _normalise_spaces(str(active_subtask.get("metric_family") or "")).lower()
         lookup_subtask_in_loop = active_metric_family == "concept_lookup" and len(list(state.get("calc_subtasks") or [])) > 1
         if (
-            not _slot_has_material(primary_before_synthesis)
+            not answer_slot_has_material(primary_before_synthesis)
             and calculation_operands
             and (active_operation in {"lookup", "single_value"} or lookup_subtask_in_loop)
         ):
@@ -2176,7 +2166,7 @@ class FinancialAgentPlanningMixin:
             }
             primary_before_synthesis = primary_slot_from_operand
         if (
-            not _slot_has_material(primary_before_synthesis)
+            not answer_slot_has_material(primary_before_synthesis)
             and (not calculation_operands or not operand_row)
             and (active_operation in {"lookup", "single_value"} or lookup_subtask_in_loop)
         ):
@@ -2187,7 +2177,7 @@ class FinancialAgentPlanningMixin:
                 selected_claim_ids=selected_claim_ids,
             )
         primary_slot = dict((calculation_result.get("answer_slots") or {}).get("primary_value") or {})
-        if primary_slot and _slot_has_material(primary_slot):
+        if primary_slot and answer_slot_has_material(primary_slot):
             primary_source_ids = set(_clean_source_row_ids([
                 primary_slot.get("source_row_id"),
                 primary_slot.get("source_row_ids"),

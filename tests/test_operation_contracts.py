@@ -17,7 +17,11 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
-from src.agent import financial_calculation_execution, financial_graph_calculation
+from src.agent import (
+    financial_answer_slots,
+    financial_calculation_execution,
+    financial_graph_calculation,
+)
 from src.agent import financial_graph_evidence, financial_operand_resolution
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_graph_helpers import (
@@ -3251,7 +3255,7 @@ class OperationContractTests(unittest.TestCase):
                     },
                 }
             },
-            answer_slot_has_material=agent._answer_slot_has_material,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
         )
 
         self.assertIn("LG에너지솔루션", answer)
@@ -3294,7 +3298,7 @@ class OperationContractTests(unittest.TestCase):
                     "direction": "increase",
                 }
             },
-            answer_slot_has_material=agent._answer_slot_has_material,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
         )
 
         self.assertIn("ExampleCo 2023년 지표은 1.83%입니다.", answer)
@@ -3340,7 +3344,7 @@ class OperationContractTests(unittest.TestCase):
                     },
                 }
             },
-            answer_slot_has_material=agent._answer_slot_has_material,
+            answer_slot_has_material=financial_answer_slots.answer_slot_has_material,
         )
 
         self.assertIn("LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원", answer)

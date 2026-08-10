@@ -1587,7 +1587,6 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             return (
                 SimpleNamespace(
                     _unresolved_structured_numeric_gap=lambda _rows: False,
-                    _answer_slot_has_material=lambda *_args, **_kwargs: False,
                     _answer_matches_supported_aggregate_subtask=lambda *_args, **_kwargs: locked,
                     _compose_growth_narrative_answer=compose("growth", growth),
                     _compose_entity_table_summary_answer=compose("entity", entity),

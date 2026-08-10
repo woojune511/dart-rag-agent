@@ -4,7 +4,11 @@ from collections.abc import Mapping
 from copy import deepcopy
 from unittest.mock import patch
 
-from src.agent import financial_answer_slots
+from src.agent import (
+    financial_answer_slots,
+    financial_graph_calculation,
+    financial_graph_planning,
+)
 from src.agent.financial_answer_slots import (
     RatioResultDisplaySyncInput,
     build_answer_slots,
@@ -18,6 +22,228 @@ from src.agent.financial_answer_slots import (
 
 
 class FinancialAnswerSlotTests(unittest.TestCase):
+    def test_answer_slot_material_predicate_preserves_value_contract(self) -> None:
+        predicates = (
+            ("owner", financial_answer_slots.answer_slot_has_material),
+        )
+        cases = (
+            ("non-dict", None, False),
+            ("empty", {}, False),
+            ("missing status wins", {"status": " MiSsInG ", "normalized_value": 1.0}, False),
+            ("zero is material", {"normalized_value": 0}, True),
+            ("false is material", {"normalized_value": False}, True),
+            ("empty normalized surface is material", {"normalized_value": ""}, True),
+            ("rendered surface", {"normalized_value": None, "rendered_value": " 17 "}, True),
+            (
+                "raw fallback",
+                {"normalized_value": None, "rendered_value": "", "raw_value": " 17 "},
+                True,
+            ),
+            (
+                "truthy whitespace rendered surface suppresses raw fallback",
+                {"normalized_value": None, "rendered_value": " ", "raw_value": "17"},
+                False,
+            ),
+            (
+                "blank surfaces",
+                {"normalized_value": None, "rendered_value": " ", "raw_value": "\t"},
+                False,
+            ),
+        )
+
+        nested = {"preserve": True}
+        stable_slot = {
+            "status": "ok",
+            "normalized_value": None,
+            "rendered_value": " 17 ",
+            "nested": nested,
+        }
+        for owner, predicate in predicates:
+            for case, slot, expected in cases:
+                with self.subTest(owner=owner, case=case):
+                    self.assertEqual(predicate(slot), expected)
+            before = deepcopy(stable_slot)
+            self.assertTrue(predicate(stable_slot))
+            self.assertEqual(stable_slot, before)
+            self.assertIs(stable_slot["nested"], nested)
+
+    def test_answer_slot_material_predicate_preserves_lazy_access_and_exceptions(self) -> None:
+        predicates = (
+            ("owner", financial_answer_slots.answer_slot_has_material),
+        )
+
+        class NonDictBomb:
+            def __bool__(self):
+                raise RuntimeError("non-dict truth-tested")
+
+        class AccessDict(dict):
+            def __init__(self, values, events, *, failure_key=None):
+                super().__init__(values)
+                self.events = events
+                self.failure_key = failure_key
+
+            def __len__(self):
+                self.events.append("len")
+                return super().__len__()
+
+            def get(self, key, default=None):
+                self.events.append(key)
+                if key == self.failure_key:
+                    raise RuntimeError(f"{key} accessed")
+                return super().get(key, default)
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("slot string failed")
+
+        for owner, predicate in predicates:
+            with self.subTest(owner=owner, path="strict dict gate"):
+                self.assertFalse(predicate(NonDictBomb()))
+
+            events = []
+            with self.subTest(owner=owner, path="empty"):
+                self.assertFalse(predicate(AccessDict({}, events, failure_key="status")))
+                self.assertEqual(events, ["len"])
+
+            events = []
+            with self.subTest(owner=owner, path="missing status"):
+                self.assertFalse(
+                    predicate(
+                        AccessDict(
+                            {"status": " missing ", "normalized_value": 1.0},
+                            events,
+                            failure_key="normalized_value",
+                        )
+                    )
+                )
+                self.assertEqual(events, ["len", "status"])
+
+            events = []
+            with self.subTest(owner=owner, path="normalized"):
+                self.assertTrue(
+                    predicate(
+                        AccessDict(
+                            {"normalized_value": 0, "rendered_value": "unused"},
+                            events,
+                            failure_key="rendered_value",
+                        )
+                    )
+                )
+                self.assertEqual(events, ["len", "status", "normalized_value"])
+
+            events = []
+            with self.subTest(owner=owner, path="rendered"):
+                self.assertTrue(
+                    predicate(
+                        AccessDict(
+                            {"normalized_value": None, "rendered_value": " 17 ", "raw_value": "unused"},
+                            events,
+                            failure_key="raw_value",
+                        )
+                    )
+                )
+                self.assertEqual(
+                    events,
+                    ["len", "status", "normalized_value", "rendered_value"],
+                )
+
+            events = []
+            with self.subTest(owner=owner, path="raw"):
+                self.assertTrue(
+                    predicate(
+                        AccessDict(
+                            {"normalized_value": None, "rendered_value": "", "raw_value": " 17 "},
+                            events,
+                        )
+                    )
+                )
+                self.assertEqual(
+                    events,
+                    ["len", "status", "normalized_value", "rendered_value", "raw_value"],
+                )
+
+            events = []
+            with self.subTest(owner=owner, path="exception"):
+                with self.assertRaisesRegex(RuntimeError, "normalized_value accessed"):
+                    predicate(
+                        AccessDict(
+                            {"status": "ok", "normalized_value": 1.0},
+                            events,
+                            failure_key="normalized_value",
+                        )
+                    )
+                self.assertEqual(events, ["len", "status", "normalized_value"])
+
+            events = []
+            with self.subTest(owner=owner, path="string exception"):
+                with self.assertRaisesRegex(RuntimeError, "slot string failed"):
+                    predicate(
+                        AccessDict(
+                            {"status": StringBomb(), "normalized_value": 1.0},
+                            events,
+                            failure_key="normalized_value",
+                        )
+                    )
+                self.assertEqual(events, ["len", "status"])
+
+    def test_answer_slot_material_predicate_bindings_preserve_plain_callback(self) -> None:
+        calculation_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        ordered_results = [{"task_id": "lookup"}]
+        delegated_result = [{"task_id": "aligned"}]
+        captured = {}
+
+        def align(rows, **kwargs):
+            captured["rows"] = rows
+            captured.update(kwargs)
+            captured["material_result"] = kwargs["slot_has_material"](
+                {"normalized_value": 0}
+            )
+            return delegated_result
+
+        with patch.object(
+            financial_graph_calculation,
+            "align_lookup_result_units_from_peer_source_slots",
+            side_effect=align,
+        ):
+            actual = calculation_agent._align_lookup_result_units_from_peer_source_slots(
+                ordered_results
+            )
+
+        self.assertIs(actual, delegated_result)
+        self.assertIs(captured["rows"], ordered_results)
+        self.assertTrue(captured["material_result"])
+        material_callback = captured["slot_has_material"]
+        self.assertIs(
+            material_callback,
+            financial_answer_slots.answer_slot_has_material,
+        )
+
+        planning_agent = financial_graph_planning.FinancialAgentPlanningMixin()
+        primary_slot = {"normalized_value": 0, "nested": {"preserve": True}}
+        predicate_calls = []
+
+        def material(slot):
+            predicate_calls.append(slot)
+            return True
+
+        with patch.object(
+            financial_graph_planning,
+            "answer_slot_has_material",
+            side_effect=material,
+        ):
+            self.assertTrue(
+                planning_agent._subtask_row_has_material(
+                    {
+                        "answer_slots": {
+                            "primary_value": primary_slot,
+                            "current_value": {"normalized_value": 1},
+                        }
+                    }
+                )
+            )
+        self.assertEqual(predicate_calls, [primary_slot])
+        self.assertIsNot(predicate_calls[0], primary_slot)
+
     def test_source_task_display_compatibility_preserves_behavior_contract(self) -> None:
         compatible = financial_answer_slots.source_task_display_compatible_with_slot
 
