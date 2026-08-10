@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Mapping
 from unittest.mock import patch
 
 import src.agent.financial_dependency_projection as dependency_projection
+import src.agent.financial_operand_resolution as operand_resolution
 from src.agent.financial_dependency_projection import (
     DependencyRatioResultProjectionInput,
     DirectDependencySelectionInput,
@@ -509,7 +510,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
     def test_dependency_task_output_krw_consistency_preserves_gate_numeric_and_exception_contract(self) -> None:
         def consistent(row):
-            return dependency_projection.dependency_task_output_has_consistent_krw_unit(row)
+            return operand_resolution.dependency_task_output_has_consistent_krw_unit(row)
 
         row = {
             "dependency_resolved": True,
@@ -548,7 +549,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 return self.values.get(key, default)
 
         with patch.object(
-            dependency_projection,
+            operand_resolution,
             "_normalise_operand_value",
             side_effect=AssertionError("normalizer must stay lazy"),
         ):
@@ -629,7 +630,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
         events.clear()
         with patch.object(
-            dependency_projection,
+            operand_resolution,
             "_normalise_operand_value",
             side_effect=record_normalizer,
         ):
@@ -676,7 +677,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             ((1.0, "KRW"), 1.0, True),
         ):
             with self.subTest(normalizer_result=normalizer_result), patch.object(
-                dependency_projection,
+                operand_resolution,
                 "_normalise_operand_value",
                 return_value=normalizer_result,
             ):
@@ -691,7 +692,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             (1.0, math.nan, False),
         ):
             with self.subTest(expected_value=expected_value, current_value=current_value), patch.object(
-                dependency_projection,
+                operand_resolution,
                 "_normalise_operand_value",
                 return_value=(expected_value, "KRW"),
             ):
@@ -706,13 +707,13 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
         for error_type in (TypeError, ValueError):
             with self.subTest(error_type=error_type), patch.object(
-                dependency_projection,
+                operand_resolution,
                 "_normalise_operand_value",
                 return_value=(1.0, "KRW"),
             ):
                 self.assertFalse(consistent({**base, "normalized_value": _BadFloat(error_type)}))
         with patch.object(
-            dependency_projection,
+            operand_resolution,
             "_normalise_operand_value",
             return_value=(_BadFloat(ValueError), "KRW"),
         ):
@@ -732,7 +733,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 return 1.0
 
         with patch.object(
-            dependency_projection,
+            operand_resolution,
             "_normalise_operand_value",
             return_value=(_TrackedFloat("expected"), "KRW"),
         ):
@@ -769,7 +770,7 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
                 fail_type=error_type,
             )
             with self.subTest(normalized_get_error_type=error_type), patch.object(
-                dependency_projection,
+                operand_resolution,
                 "_normalise_operand_value",
                 return_value=(1.0, "KRW"),
             ):
@@ -797,11 +798,498 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "failed to stringify source"):
             consistent({"dependency_resolved": True, "source_row_id": _BadString()})
         with patch.object(
-            dependency_projection,
+            operand_resolution,
             "_normalise_operand_value",
             side_effect=RuntimeError("normalizer failed"),
         ), self.assertRaisesRegex(RuntimeError, "normalizer failed"):
             consistent({**base, "normalized_value": 1.0})
+
+    def test_dependency_task_output_krw_consistency_pins_prefix_unit_and_raw_fallback_order(self) -> None:
+        consistent = operand_resolution.dependency_task_output_has_consistent_krw_unit
+        events = []
+
+        class TrackedRow(Mapping[str, Any]):
+            def __init__(self, values, *, fail_key=""):
+                self.values = values
+                self.fail_key = fail_key
+
+            def __len__(self):
+                return len(self.values)
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __getitem__(self, key):
+                return self.values[key]
+
+            def get(self, key, default=None):
+                events.append(("get", key))
+                if key == self.fail_key:
+                    raise RuntimeError(f"failed to read {key}")
+                return self.values.get(key, default)
+
+        def normalize(value):
+            events.append(("spaces", value))
+            return value.strip()
+
+        def normalize_operand(raw_value, raw_unit):
+            events.append(("operand", raw_value, raw_unit))
+            return 100.0, "KRW"
+
+        values = {
+            "dependency_resolved": True,
+            "source_row_id": "task_output:dependency",
+            "normalized_unit": " krw ",
+            "raw_value": " 100 ",
+            "raw_unit": "",
+            "result_unit": " won ",
+            "normalized_value": 100.0,
+            "nested": {"preserve": True},
+        }
+        before = deepcopy(values)
+        with patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize), patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            side_effect=normalize_operand,
+        ):
+            self.assertTrue(consistent(TrackedRow(values)))
+        self.assertEqual(values, before)
+        self.assertEqual(
+            events,
+            [
+                ("get", "dependency_resolved"),
+                ("get", "source_row_id"),
+                ("get", "normalized_unit"),
+                ("spaces", " krw "),
+                ("get", "raw_value"),
+                ("spaces", " 100 "),
+                ("get", "raw_unit"),
+                ("get", "result_unit"),
+                ("spaces", " won "),
+                ("operand", "100", "won"),
+                ("get", "normalized_value"),
+            ],
+        )
+
+        for name, row_values, expected_events in (
+            (
+                "dependency gate",
+                {"dependency_resolved": False},
+                [("get", "dependency_resolved")],
+            ),
+            (
+                "source prefix",
+                {"dependency_resolved": True, "source_row_id": "local:dependency"},
+                [("get", "dependency_resolved"), ("get", "source_row_id")],
+            ),
+            (
+                "normalized unit",
+                {
+                    "dependency_resolved": True,
+                    "source_row_id": "task_output:dependency",
+                    "normalized_unit": "COUNT",
+                },
+                [
+                    ("get", "dependency_resolved"),
+                    ("get", "source_row_id"),
+                    ("get", "normalized_unit"),
+                    ("spaces", "COUNT"),
+                ],
+            ),
+        ):
+            with self.subTest(name=name), patch.object(
+                operand_resolution,
+                "_normalise_spaces",
+                side_effect=normalize,
+            ), patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                side_effect=AssertionError("operand normalization must remain lazy"),
+            ):
+                events.clear()
+                self.assertFalse(consistent(TrackedRow(row_values)))
+                self.assertEqual(events, expected_events)
+
+        truthy_raw_unit = {**values, "raw_unit": "won", "result_unit": "unused"}
+        with patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize), patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(100.0, "KRW"),
+        ):
+            events.clear()
+            self.assertTrue(consistent(TrackedRow(truthy_raw_unit, fail_key="result_unit")))
+            self.assertNotIn(("get", "result_unit"), events)
+
+        blank_raw = {**values, "raw_value": "", "raw_unit": "won"}
+        with patch.object(operand_resolution, "_normalise_spaces", side_effect=normalize):
+            events.clear()
+            with self.assertRaisesRegex(RuntimeError, "failed to read raw_unit"):
+                consistent(TrackedRow(blank_raw, fail_key="raw_unit"))
+        self.assertEqual(events[-3:], [("get", "raw_value"), ("spaces", ""), ("get", "raw_unit")])
+
+        class BoolBomb:
+            def __bool__(self):
+                raise RuntimeError("dependency truthiness failed")
+
+        with self.assertRaisesRegex(RuntimeError, "dependency truthiness failed"):
+            consistent(TrackedRow({"dependency_resolved": BoolBomb()}))
+
+        events.clear()
+        with (
+            patch.object(
+                operand_resolution,
+                "_normalise_spaces",
+                side_effect=RuntimeError("space normalization failed"),
+            ),
+            patch.object(operand_resolution, "_normalise_operand_value") as later_normalizer,
+            self.assertRaisesRegex(RuntimeError, "space normalization failed"),
+        ):
+            consistent(TrackedRow(values))
+        self.assertEqual(
+            events,
+            [("get", "dependency_resolved"), ("get", "source_row_id"), ("get", "normalized_unit")],
+        )
+        later_normalizer.assert_not_called()
+
+    def test_dependency_task_output_krw_consistency_pins_numeric_tolerance_and_exception_order(self) -> None:
+        import builtins
+
+        consistent = operand_resolution.dependency_task_output_has_consistent_krw_unit
+        base = {
+            "dependency_resolved": True,
+            "source_row_id": "task_output:dependency",
+            "normalized_unit": "KRW",
+            "raw_value": "1",
+            "raw_unit": "won",
+        }
+
+        class ComparisonBomb:
+            def __ne__(self, other):
+                raise RuntimeError("expected unit comparison failed")
+
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(None, ComparisonBomb()),
+        ):
+            self.assertFalse(consistent({**base, "normalized_value": 1.0}))
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(1.0, ComparisonBomb()),
+        ), self.assertRaisesRegex(RuntimeError, "expected unit comparison failed"):
+            consistent({**base, "normalized_value": 1.0})
+
+        events = []
+
+        class NumericInput:
+            def __init__(self, name, value, *, error=None):
+                self.name = name
+                self.value = value
+                self.error = error
+
+        def convert(value):
+            events.append(("float", value.name))
+            if value.error is not None:
+                raise value.error(f"failed to convert {value.name}")
+            return value.value
+
+        def absolute(value):
+            events.append(("abs", value))
+            return builtins.abs(value)
+
+        def maximum(*values):
+            events.append(("max", values))
+            return builtins.max(*values)
+
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(NumericInput("expected", 1_000_000_000.0), "KRW"),
+        ), patch.object(operand_resolution, "float", side_effect=convert, create=True), patch.object(
+            operand_resolution,
+            "abs",
+            side_effect=absolute,
+            create=True,
+        ), patch.object(operand_resolution, "max", side_effect=maximum, create=True):
+            self.assertTrue(
+                consistent({**base, "normalized_value": NumericInput("current", 1_000_000_001.0)})
+            )
+        self.assertEqual(
+            events,
+            [
+                ("float", "current"),
+                ("float", "expected"),
+                ("abs", 1.0),
+                ("abs", 1_000_000_000.0),
+                ("max", (1e-06, 1.0)),
+            ],
+        )
+
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(0.0, "KRW"),
+        ):
+            self.assertFalse(consistent({**base, "normalized_value": 1.000001e-6}))
+
+        for error_type, propagates in ((TypeError, False), (ValueError, False), (RuntimeError, True)):
+            with self.subTest(error_type=error_type), patch.object(
+                operand_resolution,
+                "_normalise_operand_value",
+                return_value=(NumericInput("expected", 1.0, error=error_type), "KRW"),
+            ), patch.object(operand_resolution, "float", side_effect=convert, create=True):
+                events.clear()
+                row = {**base, "normalized_value": NumericInput("current", 1.0)}
+                if propagates:
+                    with self.assertRaisesRegex(RuntimeError, "failed to convert expected"):
+                        consistent(row)
+                else:
+                    self.assertFalse(consistent(row))
+                self.assertEqual(events, [("float", "current"), ("float", "expected")])
+
+        def failing_absolute(value):
+            events.append(("abs", value))
+            raise RuntimeError("absolute tolerance failed")
+
+        with patch.object(
+            operand_resolution,
+            "_normalise_operand_value",
+            return_value=(NumericInput("expected", 1.0), "KRW"),
+        ), patch.object(operand_resolution, "float", side_effect=convert, create=True), patch.object(
+            operand_resolution,
+            "abs",
+            side_effect=failing_absolute,
+            create=True,
+        ), patch.object(
+            operand_resolution,
+            "max",
+            side_effect=AssertionError("max must remain lazy"),
+            create=True,
+        ):
+            events.clear()
+            with self.assertRaisesRegex(RuntimeError, "absolute tolerance failed"):
+                consistent({**base, "normalized_value": NumericInput("current", 1.0)})
+        self.assertEqual(events, [("float", "current"), ("float", "expected"), ("abs", 0.0)])
+
+    def test_dependency_task_output_krw_consistency_graph_binding_pins_exact_call_distribution_and_placement(self) -> None:
+        import ast
+        import inspect
+
+        from src.agent import financial_graph_calculation as graph_calculation
+
+        function_name = "dependency_task_output_has_consistent_krw_unit"
+        tree = ast.parse(inspect.getsource(graph_calculation))
+        bindings = [
+            alias
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_operand_resolution"
+            for alias in node.names
+            if alias.name == function_name
+        ]
+        self.assertEqual([(alias.name, alias.asname) for alias in bindings], [(function_name, None)])
+
+        calls = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == function_name
+        ]
+        self.assertEqual(len(calls), 2)
+        methods = {
+            node.name: node
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        expected = {
+            "_coerce_operand_row_from_evidence": "updated",
+            "_repair_krw_operand_units_from_table_metadata": "next_row",
+        }
+        distributed = {}
+        for method_name, argument_name in expected.items():
+            method = methods[method_name]
+            method_calls = [call for call in calls if call in ast.walk(method)]
+            self.assertEqual(len(method_calls), 1, method_name)
+            call = method_calls[0]
+            self.assertEqual(
+                ([ast.dump(argument) for argument in call.args], call.keywords),
+                ([ast.dump(ast.Name(id=argument_name, ctx=ast.Load()))], []),
+            )
+            distributed[method_name] = call
+        self.assertEqual(set(distributed.values()), set(calls))
+
+        coerce = methods["_coerce_operand_row_from_evidence"]
+        self.assertEqual(
+            [ast.dump(statement) for statement in coerce.body[:2]],
+            [
+                ast.dump(
+                    ast.Assign(
+                        targets=[ast.Name(id="updated", ctx=ast.Store())],
+                        value=ast.Call(
+                            func=ast.Name(id="dict", ctx=ast.Load()),
+                            args=[ast.Name(id="row", ctx=ast.Load())],
+                            keywords=[],
+                        ),
+                    )
+                ),
+                ast.dump(
+                    ast.Assign(
+                        targets=[ast.Name(id="preserve_dependency_unit", ctx=ast.Store())],
+                        value=distributed["_coerce_operand_row_from_evidence"],
+                    )
+                ),
+            ],
+        )
+
+        table_repair = methods["_repair_krw_operand_units_from_table_metadata"]
+        operand_loop = next(
+            node
+            for node in ast.walk(table_repair)
+            if isinstance(node, ast.For)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "row"
+            and isinstance(node.iter, ast.Name)
+            and node.iter.id == "operands"
+        )
+        self.assertEqual(ast.dump(operand_loop.body[0]), ast.dump(
+            ast.Assign(
+                targets=[ast.Name(id="next_row", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name(id="dict", ctx=ast.Load()),
+                    args=[ast.Name(id="row", ctx=ast.Load())],
+                    keywords=[],
+                ),
+            )
+        ))
+        self.assertIsInstance(operand_loop.body[1], ast.If)
+        self.assertEqual(ast.dump(operand_loop.body[1].test), ast.dump(distributed[
+            "_repair_krw_operand_units_from_table_metadata"
+        ]))
+
+    def test_dependency_task_output_krw_consistency_graph_callers_pin_gate_adoption_and_exception_stop(self) -> None:
+        from src.agent import financial_graph_calculation as graph_calculation
+        from src.agent.financial_graph import FinancialAgent
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        shared = {"preserve": True}
+        base = {
+            "dependency_resolved": True,
+            "source_row_id": "task_output:dependency",
+            "source_row_ids": ["task_output:dependency", "ev_table"],
+            "evidence_id": "ev_table",
+            "raw_value": "100",
+            "raw_unit": "백만원",
+            "normalized_value": 100_000_000.0,
+            "normalized_unit": "KRW",
+            "nested": shared,
+        }
+        original = deepcopy(base)
+        with (
+            patch.object(
+                graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=[True, False],
+            ) as gate,
+            patch.object(
+                graph_calculation,
+                "coerce_operand_unit_from_evidence",
+                return_value="원",
+            ) as unit_coercion,
+            patch.object(
+                graph_calculation,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as normalizer,
+            patch.object(
+                graph_calculation,
+                "coerce_lookup_magnitude_record",
+                side_effect=lambda row, _evidence: row,
+            ),
+        ):
+            preserved = agent._coerce_operand_row_from_evidence(base, None)
+            adopted = agent._coerce_operand_row_from_evidence(base, None)
+        self.assertEqual(base, original)
+        self.assertIsNot(preserved, base)
+        self.assertIsNot(adopted, base)
+        self.assertIs(preserved["nested"], shared)
+        self.assertIs(adopted["nested"], shared)
+        self.assertEqual(
+            (preserved["raw_unit"], preserved["normalized_value"], adopted["raw_unit"], adopted["normalized_value"]),
+            ("백만원", 100_000_000.0, "원", 100.0),
+        )
+        self.assertEqual(gate.call_count, 2)
+        self.assertTrue(all(call.args[0] is not base for call in gate.call_args_list))
+        self.assertTrue(all(call.args[0]["nested"] is shared for call in gate.call_args_list))
+        unit_coercion.assert_called_once_with(raw_value="100", raw_unit="백만원", evidence_item=None)
+        normalizer.assert_called_once_with("100", "원")
+
+        rows = [{**base, "operand_id": "preserved"}, {**base, "operand_id": "adopted"}]
+        rows_before = deepcopy(rows)
+        evidence_items = [{
+            "evidence_id": "ev_table",
+            "raw_row_text": "target 100 원",
+            "metadata": {"block_type": "table", "unit_hint": "원"},
+        }]
+        with (
+            patch.object(
+                graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=[True, False],
+            ) as table_gate,
+            patch.object(
+                graph_calculation,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as table_normalizer,
+        ):
+            repaired = agent._repair_krw_operand_units_from_table_metadata(rows, evidence_items)
+        self.assertEqual(rows, rows_before)
+        self.assertIsNot(repaired, rows)
+        self.assertIsNot(repaired[0], rows[0])
+        self.assertIsNot(repaired[1], rows[1])
+        self.assertIs(repaired[0]["nested"], shared)
+        self.assertIs(repaired[1]["nested"], shared)
+        self.assertEqual(repaired[0]["raw_unit"], "백만원")
+        self.assertEqual(
+            (
+                repaired[1]["raw_unit"],
+                repaired[1]["normalized_value"],
+                repaired[1]["unit_normalization_repair_source"],
+            ),
+            ("원", 100.0, "table_metadata_unit_hint"),
+        )
+        self.assertTrue(all(call.args[0] is not rows[index] for index, call in enumerate(table_gate.call_args_list)))
+        table_normalizer.assert_called_once_with("100", "원")
+
+        with (
+            patch.object(
+                graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=RuntimeError("dependency unit gate failed"),
+            ),
+            patch.object(graph_calculation, "coerce_operand_unit_from_evidence") as stopped_coercion,
+            patch.object(graph_calculation, "_normalise_operand_value") as stopped_coerce_normalizer,
+            patch.object(graph_calculation, "coerce_lookup_magnitude_record") as stopped_lookup,
+            self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"),
+        ):
+            agent._coerce_operand_row_from_evidence(base, None)
+        stopped_coercion.assert_not_called()
+        stopped_coerce_normalizer.assert_not_called()
+        stopped_lookup.assert_not_called()
+
+        with (
+            patch.object(
+                graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=RuntimeError("dependency unit gate failed"),
+            ),
+            patch.object(graph_calculation, "_normalise_operand_value") as stopped_table_normalizer,
+            self.assertRaisesRegex(RuntimeError, "dependency unit gate failed"),
+        ):
+            agent._repair_krw_operand_units_from_table_metadata([base], evidence_items)
+        stopped_table_normalizer.assert_not_called()
 
     def test_dependency_ratio_result_projection_preserves_aliases_and_access_order(self) -> None:
         marker = {"preserve": True}
