@@ -282,9 +282,9 @@ State-free owner topology:
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, ratio display alignment, ratio denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
-| `financial_answer_slots.py` | answer-slot construction and ratio/source display compatibility |
+| `financial_answer_slots.py` | answer-slot construction, shared slot-material detection, and ratio/source display compatibility |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support and numeric-support predicates |
-| `financial_aggregate_projection.py` | aggregate signatures/rank primitives, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -300,11 +300,11 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 6. aggregate evidence selection, rebuild, nested promotion와 final-answer sequencing
 7. broader ledger synchronization과 아직 선택되지 않은 private helper mesh
 
-최근 owner 이동에는 ratio sign policy, numeric-support detection, aggregate
-projection row/answer-sentence/rendered selection이 포함된다. Graph는 이 함수들의
-호출 위치와 ledger/sync coordinator를 유지한다. 특히 aggregate selector 이동은
-nested-promotion synchronization, rebuild, mutable state/evidence, ledger 또는 callback
-ownership을 이동한 것이 아니다.
+최근 owner 이동에는 ratio sign policy, numeric support, aggregate selector,
+shared slot-material, aggregate source-preparation, dependency-coherence rank
+foundation이 포함된다. Graph는 full result/nested rank tuple, material-gap과
+promotion, dedupe, rebuild, mutable state/evidence, ledger와 callback orchestration을
+유지하고, planning은 row-material policy와 nested traversal을 유지한다.
 
 함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
 [Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.

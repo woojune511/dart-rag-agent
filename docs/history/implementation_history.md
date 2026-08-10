@@ -1387,6 +1387,44 @@ performance, or benchmark improvement. The accompanying current-state document
 compaction removes repeated owner diaries while keeping this history and the
 runtime contract as detailed authorities.
 
+### Aggregate coherence-rank foundation milestone
+
+- `477abff` moves canonical `answer_slot_has_material(...)` to
+  `financial_answer_slots.py` and migrates graph and planning consumers without
+  changing their gates or callback placement. Source is `+66/-74`, tests are
+  `+235/-6`, and the whole commit is `+301/-80`.
+- `68d6546` moves aggregate primary-slot selection, source-slot map construction,
+  and operand source-task resolution to `financial_aggregate_projection.py`
+  through `aggregate_row_primary_answer_slot(...)`,
+  `aggregate_source_slot_by_task_id(...)`, and
+  `aggregate_source_task_ids_for_operand(...)`. Source is `+70/-62`, tests are
+  `+807/-1`, and the whole commit is `+877/-63`.
+- `194e397` moves candidate collection owner-private and publishes
+  `aggregate_result_dependency_coherence_ranks(...)` plus
+  `aggregate_dependency_slot_coherence_rank_for_operands(...)`. Source is
+  `+102/-96`, tests are `+1,080/-36`, and the whole commit is `+1,182/-132`.
+- Across `f0809f1..194e397`, eight old definitions spanning 152 lines were
+  deleted from their former locations: 143 graph lines and nine planning lines.
+  Six public APIs replace the selected private boundaries; one owner-private
+  candidate helper intentionally remains, while retired moved references and
+  graph candidate references are zero. The range-level source diff is
+  `+233/-227`, net `+6`; tests are `+2,102/-23`, net `+2,079`; the whole range is
+  `+2,335/-250`, net `+2,085`. Twelve test methods were added and none removed;
+  full discovery therefore moved from 1,549 to 1,561 tests.
+- Final validation passed focused 4/4, 655/655 across
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`,
+  the 217-literal runtime audit, full discovery over 1,561/1,561 tests, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**.
+
+This milestone establishes shared material, aggregate source-preparation, and
+dependency-coherence foundations only. Full result/nested rank, material-gap,
+promotion, dedupe, rebuild, state/evidence, artifact/ledger, and callback
+orchestration remain graph-owned; row-material policy and nested traversal remain
+planning-owned. It proves no ranking change, accuracy or performance improvement,
+total-code or executed-path reduction, benchmark improvement, or Phase 3
+completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

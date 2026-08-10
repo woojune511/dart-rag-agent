@@ -1096,16 +1096,13 @@ does not remove `task_output:` ids. The predicate does not mutate inputs and add
 no catch: mapping, copy, truthiness, string, normalization, source-id cleaning,
 iteration, hashing, prefix-check, and other exceptions propagate.
 
-The sole graph call remains inside the dependency-coherence rank method after
-operation-family, source-task, source-slot material, anchor, and projection-
-mismatch preparation. Graph retains source-slot maps, candidate and marked-row
-construction, source-task selection, rank disposition, ratio-scope checks, and all
-provenance/adoption/state/artifact/final orchestration. This seam owns only the
-prepared equivalence predicate and adds no wrapper, result carrier, reason, flag,
-callback, config input, compatibility alias, or trace field. It does not establish
-whole coherence-rank or provenance-adoption ownership, unit-policy improvement,
-total-code or executed-path reduction, performance, private-mesh cleanup, or
-Phase 3 completion.
+The caller now lives inside
+`financial_aggregate_projection.aggregate_result_dependency_coherence_ranks(...)`
+after source-task, source-slot material, anchor, and projection-mismatch
+preparation. The enclosing aggregate-rank contract is specified in Section 9.
+This predicate itself still adds no wrapper, result carrier, reason, flag,
+callback, config input, compatibility alias, or trace field, and it does not move
+provenance adoption, promotion, state, artifact, ledger, or final orchestration.
 
 For supported ratio recalculation, artifact precedence is split at a narrower
 boundary. The graph coerces the recalculated top-level `result_value`; an
@@ -1194,6 +1191,94 @@ change chronology and validation evidence live in
 `docs/history/implementation_history.md`.
 
 ## 9. Aggregate Subtask Projection
+
+Canonical answer-slot material detection is the plain public
+`financial_answer_slots.answer_slot_has_material(slot)` predicate. A non-dictionary
+or falsy slot returns `False` before field access. The owner then stringifies,
+strips, and lowercases `status`; exact `missing` returns `False`. A
+`normalized_value` other than `None` returns `True`, including zero and `NaN`.
+Only the remaining path resolves truthy `rendered_value` before lazy `raw_value`,
+then stringifies, strips, and boolean-coerces that surface. It does not copy or
+mutate the slot and catches no truthiness, mapping, string, or other exception.
+
+All consumers retain every semantic call placement, prepared slot, surrounding
+short circuit, and later owned work; the graph's pre-existing callback pass-
+throughs remain unchanged. The shared predicate does not own material-gap
+feedback, result or nested ranking, promotion, dedupe, planning, or graph state.
+
+Aggregate source preparation is owned by three plain public
+`financial_aggregate_projection.py` functions. `aggregate_row_primary_answer_slot`
+copies `calculation_result`, selects truthy result answer slots before the lazy row
+fallback, copies those slots, and returns a fresh copy of truthy `primary_value` or
+a fresh empty dictionary. Nested values keep their aliases and no access or copy
+exception is caught.
+
+`aggregate_source_slot_by_task_id(ordered_results)` scans the supplied sequence in
+stable order, skips non-dictionaries, normalizes task ids, and calls the primary-
+slot owner with a shallow row copy. Empty ids and slots are skipped. For each
+retained slot it resolves consolidation scope from slot before row and fills only
+a missing slot scope; it then normalizes the row metric label and fills only a
+missing slot label. Duplicate task ids replace the value without moving the key's
+first insertion position. The returned map and retained top-level slots are fresh,
+untouched nested values remain shared, and inputs remain unmodified.
+
+`aggregate_source_task_ids_for_operand(operand, source_slots)` resolves the
+normalized explicit `source_task_id` before cleaned `task_output:` row ids, removes
+that prefix, filters blanks, and applies stable first-occurrence dedupe. Any
+explicit id suppresses inference; an empty source map also returns immediately.
+Only inference resolves normalized `role` before lazy `matched_operand_role`, then
+scans the source map in insertion order. Each source slot is shallow-copied,
+filtered by `answer_slot_has_material`, and retained when
+`dependency_lookup_slot_match_score(slot, operand, role) >= 12`. None of these
+owners catches normalization, mapping, copy, iteration, hashing, predicate, or
+matcher exceptions.
+
+Dependency coherence is owned by two public aggregate functions and one owner-
+private candidate collector. `_aggregate_result_candidate_operands(row)` copies
+the calculation result before selecting truthy result answer slots over the row
+fallback. It collects strict dictionary operands in this exact order: row
+`calculation_operands`, result `calculation_operands`, every
+`components_by_group` value, then every `components_by_role` value. Every retained
+occurrence is a fresh shallow copy; order and duplicates are preserved and nested
+values remain shared.
+
+`aggregate_result_dependency_coherence_ranks(row, source_slot_by_task_id=None)`
+resolves operation family first. A family outside `ratio`, `sum`, `difference`,
+and `growth_rate` returns `(1, 1)` before source-map copy or candidate collection.
+The eligible path shallow-copies the source map, collects candidates, and creates
+a separate ordered shallow-copy list of candidates with truthy structured-
+realignment markers.
+
+For each candidate, source-task resolution receives that candidate and the copied
+map. Only the first resolved id selects the material source slot. A material slot
+sets the seen-material flag before source-anchor then operand-anchor normalization;
+projection mismatch is evaluated even when the anchors already mismatch. A
+mismatch that is not exempted by the structured-realignment predicate returns
+dependency rank `0` and scope rank `2` only when an earlier operand established
+scope, otherwise `1`.
+
+Ratio scope evaluation follows that projection block and may use a nonmaterial
+source slot. Its generator stops at the first present source slot even when that
+slot normalizes to a blank scope; later ids are then not consulted. A nonblank
+source scope sets the seen-scope flag before operand-scope resolution. A mismatch
+returns scope rank `0` and dependency rank `2` when any material source was seen,
+otherwise `1`. Exhaustion returns dependency rank `2` or `1` from seen material
+and scope rank `2` or `1` from seen scope. Inputs are not mutated and mapping,
+copy, truthiness, normalization, predicate, iteration, and other exceptions remain
+uncaught.
+
+`aggregate_dependency_slot_coherence_rank_for_operands(...)` prepares its row
+left-to-right: raw operation family, a fresh stable list of shallow-copied strict
+dictionary operands, then a shallow calculation-result copy. Preparation failure
+stops before `aggregate_source_slot_by_task_id(ordered_results)`; source-map
+failure stops before the rank owner. The wrapper returns only the dependency-rank
+element. The graph retains four direct rank placements and four wrapper placements
+with their existing gates and adoption. Full result and nested rank tuples,
+material-gap policy, promotion, dedupe, rebuild, mutable state/evidence,
+artifact/ledger, callbacks, and final orchestration remain graph-owned. Row-
+material policy and nested-subtask traversal remain planning-owned.
+This foundation makes no behavior, accuracy, performance, total-code, executed-
+path, whole-ranking, or Phase 3 completion claim.
 
 For collapsed-ratio runtime recovery, the aggregate owner exposes a typed,
 state-free absolute-magnitude projection over graph-prepared mutable copies of
