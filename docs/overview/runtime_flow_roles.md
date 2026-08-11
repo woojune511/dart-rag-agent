@@ -285,7 +285,7 @@ State-free owner topology:
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
-| `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context sentence presentation, and table-noise/fragment predicates |
+| `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
@@ -306,6 +306,7 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 aggregate selector, slot-material/period policy, aggregate source/coherence preparation,
 material-gap, result/nested rank, dedupe, narrative-answer validation, bounded aggregate
 row/gap/lookup-answer policy, narrative term/variant/context sentence presentation,
+prepared-document snippet projection and retrieved-source preservation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
 table-metadata KRW repair가 포함된다. Graph는 query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
@@ -355,12 +356,20 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `parenthetical_focus_variants(...)`는 query term과 focus surface를 만들고,
   `narrative_context_sentence_from_evidence(...)`와
   `include_narrative_context_if_needed(...)`는 이미 준비된 evidence에서 text
-  sentence를 고르고 answer에 포함할지 결정한다. 이 다섯 API의 25개 call은
-  graph external 21개와 owner-local 4개로 배치된다.
-- 이 owner로 선택된 다음 141-line narrative presentation/preservation boundary와
-  정확한 hard stop은 [Project Status의 Next Work](project_status.md#next-work)가
-  단일 기준이다. 다음 두 API는 아직 이동하지 않았으며, 이 문서에서 구현
-  완료로 간주하지 않는다.
+  sentence를 고르고 answer에 포함할지 결정한다.
+- `policy_required_realized_snippet_from_doc(...)`는 이미 준비된 document
+  surface에서 policy-required label/value snippet을 고르고,
+  `preserve_retrieved_narrative_source_surface(...)`는 이미 준비된 answer/evidence
+  sentence 사이에서 retrieved source wording을 보존한다. 이 owner는 retrieval,
+  evidence construction, composition, state 또는 ledger를 소유하지 않는다.
+- 일곱 public API의 27개 call은 graph external 22개와 owner-local 5개로
+  배치된다. 세부 분포와 exception/identity 계약은
+  [Agent Runtime Contract](../architecture/agent_runtime_contract.md)를 따른다.
+- 다음 선택은 이 text owner의 확장이 아니라
+  `financial_aggregate_projection.py`로 가는 131-line dependency-source
+  preparation boundary다. 아직 이동하지 않은 네 public 함수와 한 owner-private
+  scorer, characterize-first gate와 callback/state-carrier hard stop은
+  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 

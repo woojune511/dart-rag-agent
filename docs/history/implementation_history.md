@@ -1718,6 +1718,53 @@ sync/rebuild, callbacks, and final sequencing remain graph-owned. The range
 proves no behavior, accuracy, ranking, performance, total-code or executed-path
 reduction, benchmark improvement, schedule, or Phase 3 completion.
 
+### Prepared narrative presentation owner milestone
+
+- `55f7ce3` publishes `policy_required_realized_snippet_from_doc(...)` and
+  `preserve_retrieved_narrative_source_surface(...)` from
+  `financial_text_surface.py`. The former 69- and 72-line graph definitions are
+  68- and 71-line public owner functions. Both graph calls remain external, while
+  the preservation body's context-term call becomes owner-local. Retired exact
+  graph-private definitions and references are zero.
+- Across `7aa3e23..55f7ce3`, exactly four files changed:
+  `src/agent/financial_graph_calculation.py`,
+  `src/agent/financial_text_surface.py`,
+  `tests/test_financial_text_surface.py`, and `tests/test_subtask_loop.py`.
+  Source is `+152/-146`, net `+6`: the graph is `+4/-145` and moves from 16,438
+  to 16,297 physical lines; the text owner is `+148/-1` and moves from 264 to
+  411. Tests are `+1,304/-11`, net `+1,293`: the text test is `+1,285/-3` and
+  moves from 2,169 to 3,451 physical lines; the subtask test is `+19/-8` and
+  moves from 23,425 to 23,436. The whole range is `+1,456/-157`, net `+1,299`.
+  Five AST-counted unittest methods were added, moving both the method inventory
+  and full discovery from 1,633 to 1,638.
+- Cumulatively, 288 selected old graph definition-span lines form seven public
+  text APIs. Their 27 calls finish at 22 graph-external and five owner-local:
+  context terms 13/5, focus variants 2/0, parenthetical variants 3/0, evidence
+  sentence selection 1/0, context inclusion 1/0, document snippet 1/0, and
+  retrieved-source preservation 1/0. The frozen source-only diff SHA-256 is
+  `288189968a74337f54912578d1446f00cf186c64a5a6c6428058100688ee54e4`.
+- Final clean-HEAD validation passed the new focused 5/5 and migrated 4/4
+  independently, for 9/9 combined; `tests.test_financial_text_surface` 20/20;
+  the eight-module semantic set 719/719; `tests.test_import_side_effects` 19/19;
+  the nine-module union 738/738; the 217-literal runtime audit; full discovery
+  1,638/1,638; and `git diff --check`. Benchmark refresh was **NOT RUN**, and no
+  remote CI run is claimed or verified for this local branch.
+
+This milestone closes only prepared-document snippet projection and prepared-
+evidence retrieved-source answer-surface preservation. Retrieval/evidence
+construction, mutable state/evidence, artifact/ledger work, promotion,
+sync/rebuild, callbacks, and final sequencing remain graph-owned. The range
+proves no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 131-line dependency-source
+preparation boundary in graph lines 7339-7473: four public aggregate-projection
+functions plus one owner-private text scorer, with nine calls projected as seven
+graph-external and two owner-local. The upstream bound-callback function and
+downstream compact-ratio state/trace carrier remain hard stops. Exact APIs,
+dependencies, characterization gates, and rejected expansions are maintained
+only in [Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

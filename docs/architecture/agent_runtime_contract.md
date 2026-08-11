@@ -1446,8 +1446,9 @@ and final orchestration remain graph/planning-owned. These owner moves make no
 behavior, ranking, accuracy, performance, total-code, executed-path, or Phase 3
 completion claim.
 
-Narrative term, variant, prepared-evidence sentence, and context-inclusion
-surfaces are public in `financial_text_surface.py`.
+Narrative term, variant, prepared-evidence sentence, context-inclusion,
+prepared-document snippet, and retrieved-source preservation surfaces are public
+in `financial_text_surface.py`.
 `narrative_context_terms(query)` stringifies and normalizes the query before
 tokenizing it with the reviewed character regex. It then
 materializes the configured stopword set. Tokens are processed in source order:
@@ -1493,17 +1494,68 @@ and normalized once more. The function does not mutate inputs and catches no
 access, truthiness, string, normalization, policy, iteration, containment, join,
 or owner exception.
 
-These 147 old graph definition-span lines now form five public APIs. Of 25 calls,
-21 remain external and four are owner-local: context terms 14/4, focus variants
-2/0, parenthetical variants 3/0, evidence sentence selection 1/0, and context
-inclusion 1/0. Retired graph-private references are zero. The graph callers retain
-their exact gates, arguments, adoption order, input identities, and exception
-stop. The sentence selector chooses text only within already-prepared evidence;
-retrieval, evidence ids/windows/provenance, evidence construction, composition,
-mutable state/evidence, task/artifact ledger, promotion, sync/rebuild, callbacks,
-and final sequencing remain graph-owned. This ownership relocation establishes
-no behavior, accuracy, ranking, performance, total-code, executed-path,
-benchmark, or Phase 3 completion claim.
+`policy_required_realized_snippet_from_doc(*, doc, policy)` copies document
+metadata before reading the policy's required realized terms. A blank term set
+returns `""`; otherwise the owner eagerly assembles value labels, row labels,
+table summary, table context, and page content in that order and normalizes the
+joined surface. It retains the first configured term with a case-insensitive
+surface match and opens a 520-character window at that match. Numeric candidates
+use the existing parenthesized/negative/decimal/percent regex, then discard exact
+20xx years and unsigned integer surfaces of at most two digits. The label uses
+the existing case-sensitive optional-parenthetical regex and reviewed footnote-
+suffix cleanup. Two numeric candidates plus a unit use the current/change
+template; one plus a unit uses the current template. Otherwise the first split
+sentence containing the term case-insensitively and any digit is normalized and
+truncated to 220 characters; an absent sentence falls back to the first 220
+window characters. Particle and sentence calls are owner-local. The document,
+metadata, policy, and nested values remain unmodified, and access, mapping,
+truthiness, string, policy, regex, format, normalization, iteration, slicing, and
+owner exceptions remain uncaught.
+
+`preserve_retrieved_narrative_source_surface(answer, evidence_items)` normalizes
+the answer and returns early for a blank answer or evidence sequence. Numeric
+candidates are extracted before answer sentence splitting; an empty sentence
+result returns before narrative policy or evidence access. The owner scans
+evidence stably, shallow-copies each attempted item, accepts only
+`retrieved_narrative::` ids, resolves claim and then quote span before raw row
+text, and rejects blank/equal or missing-marker claims. Content terms are the
+owner's narrative-context terms of length at least three. Quote sentences are
+scored by term overlap; only a strictly greater score replaces the incumbent, so
+the first tie wins. The minimum score remains `max(2, min(4,
+len(claim_terms) // 2 or 1))`. Answer sentences are considered stably; missing-
+marker sentences and sentences supporting the answer's numeric candidates are
+never replaced. A matching claim or sufficient overlap replaces at most the
+first still-unclaimed answer sentence, and the final sentence sequence is joined
+and normalized. The answer, evidence list, item mappings, and nested values stay
+unmodified. Mapping, copy, truthiness, string, prefix, policy, term-owner,
+numeric-owner, sentence-owner, iteration, containment, hashing, comparison, and
+normalization exceptions remain uncaught.
+
+Across the selected text boundary, 288 old graph definition-span lines now form
+seven public APIs. Of 27 calls, 22 remain graph-external and five are owner-local:
+context terms 13/5, focus variants 2/0, parenthetical variants 3/0, evidence
+sentence selection 1/0, context inclusion 1/0, document snippet 1/0, and
+retrieved-source preservation 1/0. Retired graph-private references are zero.
+The graph callers retain their exact gates, arguments, scoring/adoption order,
+input identities, and exception stop. The two latest 69- and 72-line graph
+bodies are 68- and 71-line owner functions. The clean `7aa3e23..55f7ce3`
+range changed source by `+152/-146`, tests by `+1,304/-11`, and all four changed
+files by `+1,456/-157`; the AST-counted unittest inventory and full discovery
+moved from 1,633 to 1,638. Retrieval,
+evidence ids/windows/provenance, evidence construction, composition, mutable
+state/evidence, task/artifact ledger, promotion, sync/rebuild, callbacks, and
+final sequencing remain graph-owned. Benchmark refresh was **NOT RUN**, remote
+CI is unverified, and this ownership relocation establishes no behavior,
+accuracy, ranking, performance, total-code, executed-path, benchmark, schedule,
+or Phase 3 completion claim.
+
+The next selected dependency-source preparation boundary is not yet a runtime
+owner contract. It is the 131-line five-function group governed solely by
+[Project Status Next Work](../overview/project_status.md#next-work): four public
+aggregate-projection functions plus one owner-private text scorer, nine calls
+projected as seven graph-external and two owner-local, and no baseline record
+move. The preceding bound operation-family callback and following compact-ratio
+state/trace carrier remain graph hard stops.
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`
