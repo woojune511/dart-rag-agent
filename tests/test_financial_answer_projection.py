@@ -984,7 +984,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                     ("graph", "_ensure_complete_growth_numeric_answer", "row"): 1,
                     ("graph", "_final_growth_answer_without_untraced_numeric_sentences", "row"): 1,
                     ("graph", "_enforce_source_stated_growth_answer_contract", "row"): 1,
-                    ("graph", "_has_strong_growth_trace_for_answer_refresh", "row"): 1,
+                    ("aggregate", "has_strong_growth_trace_for_answer_refresh", "row"): 1,
                     ("graph", "_strip_untraced_numeric_material_from_growth_narrative_sentence", "row"): 1,
                     ("graph", "_growth_answer_has_untraced_numeric_material", "row"): 1,
                     ("graph", "_narrative_summary_conflicts_with_growth_trace", "row"): 1,
@@ -1044,7 +1044,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         )
 
         graph_growth = [entry for entry in external_growth if entry["module"] == "graph"]
-        self.assertEqual(len(graph_growth), 12)
+        self.assertEqual(len(graph_growth), 11)
         for entry in graph_growth:
             statement = entry["statement"]
             self.assertIsInstance(statement, ast.If)
@@ -2514,7 +2514,6 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             )
             agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
             agent._supported_growth_driver_groups = Mock(return_value=[])
-            agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
             return agent, row
 
         class NarrativePolicyProbe(dict):
@@ -2549,6 +2548,11 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "narrative_row_focus_context", return_value=None),
                 patch.object(financial_graph_calculation, "growth_slot_display_value", display_owner),
                 patch.object(financial_graph_calculation, "growth_slots_share_material", share_owner),
+                patch.object(
+                    financial_graph_calculation,
+                    "growth_required_display_values",
+                    return_value=["10%", "200", "100"],
+                ),
             )
             if truncated:
                 with (
@@ -2562,6 +2566,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[7],
                     contexts[8],
                     contexts[9],
+                    contexts[10],
                     self.assertRaisesRegex(RuntimeError, "continued after truncated answer"),
                 ):
                     compose_agent._compose_growth_narrative_answer(
@@ -2583,6 +2588,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[7],
                     contexts[8],
                     contexts[9],
+                    contexts[10],
                 ):
                     result = compose_agent._compose_growth_narrative_answer(
                         query="why",
@@ -3339,13 +3345,13 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
             agent = financial_graph_calculation.FinancialAgentCalculationMixin()
             agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
             agent._compose_complete_growth_numeric_answer = Mock(return_value="complete 10%")
-            agent._growth_required_display_values = Mock(return_value=["10%"])
             return agent
 
         answer_owner = Mock(return_value=True)
         sentence_owner = Mock(side_effect=AssertionError("answer guard failed to short-circuit sentence guard"))
         agent = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
                 "growth_answer_has_untraced_numeric_sentence",
@@ -3366,6 +3372,7 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
         sentence_owner = Mock(return_value=True)
         agent = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
                 "growth_answer_has_untraced_numeric_sentence",
@@ -3386,6 +3393,7 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
         sentence_owner = Mock(side_effect=AssertionError("answer exception leaked to sentence guard"))
         agent = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
                 "growth_answer_has_untraced_numeric_sentence",
@@ -3406,6 +3414,7 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
         sentence_owner = Mock(side_effect=RuntimeError("sentence owner"))
         agent = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
                 "growth_answer_has_untraced_numeric_sentence",

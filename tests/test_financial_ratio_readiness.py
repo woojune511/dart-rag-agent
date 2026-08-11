@@ -8,7 +8,7 @@ from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from src.agent import financial_answer_slots, financial_graph_calculation
+from src.agent import financial_aggregate_projection, financial_answer_slots, financial_graph_calculation
 
 
 class FinancialRatioReadinessTests(unittest.TestCase):
@@ -728,6 +728,28 @@ class FinancialRatioReadinessTests(unittest.TestCase):
                 )
             )
 
+        aggregate_tree = ast.parse(inspect.getsource(financial_aggregate_projection))
+        for node in ast.walk(aggregate_tree):
+            for child in ast.iter_child_nodes(node):
+                parents[child] = node
+        for node in ast.walk(aggregate_tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in helper_names
+            ):
+                continue
+            function = containing_function(node)
+            calls.append(
+                (
+                    function.name,
+                    node.func.id,
+                    tuple(ast.unparse(argument) for argument in node.args),
+                    tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                    node,
+                )
+            )
+
         owner_source = inspect.getsource(financial_answer_slots)
         owner_tree = ast.parse(owner_source)
         owner_parents = {}
@@ -829,7 +851,7 @@ class FinancialRatioReadinessTests(unittest.TestCase):
                     (),
                 ): 1,
                 (
-                    "_retrieved_ratio_projection_conflicts_with_existing_complete_result",
+                    "retrieved_ratio_projection_conflicts_with_existing_complete_result",
                     "ratio_components_are_complete",
                     ("calculation_result",),
                     (),
@@ -874,7 +896,7 @@ class FinancialRatioReadinessTests(unittest.TestCase):
             "_compact_ratio_answer_from_projection",
             "_apply_ratio_projection_answer_if_rendered_missing",
             "_apply_runtime_ratio_projection_for_collapsed_rows",
-            "_retrieved_ratio_projection_conflicts_with_existing_complete_result",
+            "retrieved_ratio_projection_conflicts_with_existing_complete_result",
         }
 
         def has_not_ancestor(call):

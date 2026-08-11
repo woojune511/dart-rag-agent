@@ -58,6 +58,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_completion_base_payload as _aggregate_completion_base_payload,
     aggregate_extend_selected_claim_ids as _aggregate_extend_selected_claim_ids,
     aggregate_integrity_extra_refs as _aggregate_integrity_extra_refs,
+    aggregate_lookup_primary_slots,
     aggregate_ordered_result_source_refs as _aggregate_ordered_result_source_refs,
     aggregate_period_context_evidence_items as _aggregate_period_context_evidence_items,
     aggregate_projection_rendered_value,
@@ -89,6 +90,8 @@ from src.agent.financial_aggregate_projection import (
     recover_growth_prior_material_from_evidence,
     safe_partial_answer_for_numeric_gap,
     growth_operand_sign_consistency_rank,
+    growth_required_display_values,
+    has_strong_growth_trace_for_answer_refresh,
     narrative_row_focus_context,
     narrative_row_focus_sentence,
     nested_aggregate_result_rank,
@@ -96,6 +99,7 @@ from src.agent.financial_aggregate_projection import (
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
     ratio_rebuild_component_seeds,
+    retrieved_ratio_projection_conflicts_with_existing_complete_result,
     select_aggregate_projection_answer_sentence,
     select_aggregate_projection_row_for_task,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
@@ -202,7 +206,6 @@ from src.agent.financial_operand_resolution import (
     apply_operation_sign_policy,
     align_ratio_operand_units_with_shared_table_context,
     repair_operand_normalization_from_rendered_unit,
-    ratio_context_has_metric_surface,
     resolve_direct_structured_operand_acceptance,
     resolve_direct_structured_preferred_slot_adoption,
     resolve_post_coercion_llm_direct_support,
@@ -2908,39 +2911,6 @@ class FinancialAgentCalculationMixin:
             ).candidate
         return best_candidate
 
-    def _growth_required_display_values(
-        self,
-        row: Dict[str, Any],
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> List[str]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        primary_slot = dict(answer_slots.get("primary_value") or {})
-        current_slot = dict(answer_slots.get("current_value") or {})
-        prior_slot = dict(answer_slots.get("prior_value") or {})
-        prior_display = growth_slot_display_value(prior_slot, ordered_results)
-        if growth_slots_share_material(current_slot, prior_slot, ordered_results):
-            recovered_prior_material = recover_growth_prior_material_from_evidence(
-                current_slot=current_slot,
-                prior_slot=prior_slot,
-                evidence_items=evidence_items,
-            )
-            if recovered_prior_material.get("display"):
-                prior_display = recovered_prior_material["display"]
-        required_values = [
-            growth_slot_display_value(current_slot, ordered_results),
-            prior_display,
-            _normalise_spaces(
-                str(
-                    calculation_result.get("rendered_value")
-                    or growth_slot_display_value(primary_slot, ordered_results)
-                    or ""
-                )
-            ),
-        ]
-        return list(dict.fromkeys(value for value in required_values if value))
-
     def _compose_complete_growth_numeric_answer(
         self,
         row: Dict[str, Any],
@@ -3061,7 +3031,7 @@ class FinancialAgentCalculationMixin:
             )
             if not complete_answer:
                 continue
-            required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
+            required_values = growth_required_display_values(row, ordered_results, evidence_items)
             if (
                 required_values
                 and all(value in answer_text for value in required_values)
@@ -3118,7 +3088,7 @@ class FinancialAgentCalculationMixin:
             if complete_answer:
                 trace_surfaces.append(complete_answer)
             required_values.extend(
-                self._growth_required_display_values(
+                growth_required_display_values(
                     row,
                     ordered_results,
                     evidence_items=evidence_items,
@@ -3213,7 +3183,7 @@ class FinancialAgentCalculationMixin:
             )
             if not complete_answer:
                 continue
-            required_values = self._growth_required_display_values(
+            required_values = growth_required_display_values(
                 row,
                 ordered_results,
                 evidence_items=evidence_items,
@@ -3284,40 +3254,6 @@ class FinancialAgentCalculationMixin:
             return row_answer
         return ""
 
-    def _has_strong_growth_trace_for_answer_refresh(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        for row in ordered_results:
-            if self._aggregate_result_operation_family(row) != "growth_rate":
-                continue
-            if growth_row_has_conflicting_periods(row):
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            primary_slot = dict(answer_slots.get("primary_value") or {})
-            current_slot = dict(answer_slots.get("current_value") or {})
-            prior_slot = dict(answer_slots.get("prior_value") or {})
-            if not all(
-                answer_slot_has_material(slot)
-                for slot in (primary_slot, current_slot, prior_slot)
-            ):
-                continue
-            direct_operand_count = 0
-            for slot in (current_slot, prior_slot):
-                source_ids = _clean_source_row_ids([
-                    slot.get("source_row_id"),
-                    slot.get("source_row_ids"),
-                ])
-                if slot.get("normalized_value") is not None and any(
-                    source_id and not source_id.startswith("task_output:")
-                    for source_id in source_ids
-                ):
-                    direct_operand_count += 1
-            if direct_operand_count >= 2:
-                return True
-        return False
-
     def _answer_matches_supported_aggregate_subtask(
         self,
         answer: str,
@@ -3330,7 +3266,7 @@ class FinancialAgentCalculationMixin:
         if not row_answer or not (answer_text == row_answer or row_answer in answer_text):
             return False
         if (
-            self._has_strong_growth_trace_for_answer_refresh(ordered_results)
+            has_strong_growth_trace_for_answer_refresh(ordered_results)
             and self._growth_answer_has_untraced_numeric_material(answer_text, ordered_results)
         ):
             return False
@@ -3361,7 +3297,7 @@ class FinancialAgentCalculationMixin:
             if complete_answer:
                 complete_answers.append(complete_answer)
             required_values.extend(
-                self._growth_required_display_values(
+                growth_required_display_values(
                     row,
                     ordered_results,
                     evidence_items=evidence_items,
@@ -3460,7 +3396,7 @@ class FinancialAgentCalculationMixin:
             if growth_row_has_conflicting_periods(row):
                 continue
             complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
-            required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
+            required_values = growth_required_display_values(row, ordered_results, evidence_items)
             if not complete_answer or not required_values:
                 continue
             if growth_answer_has_untraced_numeric_sentence(answer_text, complete_answer, required_values):
@@ -3491,7 +3427,7 @@ class FinancialAgentCalculationMixin:
             if growth_row_has_conflicting_periods(row):
                 continue
             complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
-            required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
+            required_values = growth_required_display_values(row, ordered_results, evidence_items)
             if not complete_answer or not required_values:
                 continue
             evidence_surface = _normalise_spaces(
@@ -3608,7 +3544,7 @@ class FinancialAgentCalculationMixin:
                 )
             )
             trace_surfaces.extend(
-                self._growth_required_display_values(
+                growth_required_display_values(
                     row,
                     ordered_results,
                     evidence_items=evidence_items,
@@ -4131,19 +4067,6 @@ class FinancialAgentCalculationMixin:
                 return sibling_answer
         return default_answer
 
-    def _aggregate_lookup_primary_slots(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        slots: List[Dict[str, Any]] = []
-        for row in rows or []:
-            if not isinstance(row, dict) or self._aggregate_result_operation_family(row) != "lookup":
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            primary_slot = dict(answer_slots.get("primary_value") or {})
-            if not answer_slot_has_material(primary_slot):
-                continue
-            slots.append(primary_slot)
-        return slots
-
     def _sync_aggregate_arithmetic_subtask_surfaces(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -4234,7 +4157,7 @@ class FinancialAgentCalculationMixin:
         if not updated_rows_by_task_id:
             return ordered_results, aggregate_projection
 
-        lookup_slots = self._aggregate_lookup_primary_slots(projection_rows)
+        lookup_slots = aggregate_lookup_primary_slots(projection_rows)
         if lookup_slots:
             for index, row in enumerate(projection_rows):
                 synced_row = synchronize_aggregate_arithmetic_components(
@@ -7527,7 +7450,7 @@ class FinancialAgentCalculationMixin:
                 if growth_row_has_conflicting_periods(row):
                     continue
                 complete_answer = self._compose_complete_growth_numeric_answer(row, ordered_results)
-                required_values = self._growth_required_display_values(row, ordered_results, evidence_items)
+                required_values = growth_required_display_values(row, ordered_results, evidence_items)
                 if complete_answer and (cleaned in complete_answer or complete_answer in cleaned):
                     return True
                 required_hits = [value for value in required_values if value and value in cleaned]
@@ -7956,7 +7879,7 @@ class FinancialAgentCalculationMixin:
             if recovered_prior_material.get("display"):
                 prior_value = recovered_prior_material["display"]
                 prior_period = recovered_prior_material.get("period") or prior_period
-        required_displays = self._growth_required_display_values(
+        required_displays = growth_required_display_values(
             growth_row,
             ordered_results,
             evidence_items=evidence_items,
@@ -8163,7 +8086,7 @@ class FinancialAgentCalculationMixin:
                 continue
             if growth_row_has_conflicting_periods(row):
                 continue
-            required_displays = self._growth_required_display_values(row, ordered_results)
+            required_displays = growth_required_display_values(row, ordered_results)
             if required_displays and not all(value in answer_text for value in required_displays):
                 return False
             break
@@ -8265,7 +8188,7 @@ class FinancialAgentCalculationMixin:
                 continue
             required_values.extend(
                 value
-                for value in self._growth_required_display_values(
+                for value in growth_required_display_values(
                     row,
                     ordered_results,
                     evidence_items=evidence_items,
@@ -10914,66 +10837,6 @@ class FinancialAgentCalculationMixin:
                 rendered_value=rendered_value,
             )
         return rendered_value or metric_label
-
-    def _ratio_result_numeric_value(self, row: Dict[str, Any]) -> Optional[float]:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        primary_value = dict(answer_slots.get("primary_value") or {})
-        for value in (
-            calculation_result.get("result_value"),
-            primary_value.get("normalized_value"),
-            primary_value.get("raw_value"),
-            row.get("result_value"),
-        ):
-            numeric_value = financial_answer_slots.coerce_slot_numeric(value)
-            if numeric_value is not None:
-                return numeric_value
-        return None
-
-    def _retrieved_ratio_projection_conflicts_with_existing_complete_result(
-        self,
-        ordered_results: List[Dict[str, Any]],
-        task: Dict[str, Any],
-        *,
-        result_value: float,
-        context_evidence: List[Dict[str, Any]],
-    ) -> bool:
-        task_id = _normalise_spaces(str(task.get("task_id") or ""))
-        metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
-        candidate_signature = aggregate_result_signature(
-            {
-                "task_id": task_id,
-                "metric_label": metric_label,
-                "operation_family": "ratio",
-            }
-        )
-        for row in ordered_results:
-            if not isinstance(row, dict):
-                continue
-            if self._aggregate_result_operation_family(row) != "ratio":
-                continue
-            row_task_id = _normalise_spaces(str(row.get("task_id") or ""))
-            row_signature = aggregate_result_signature(row)
-            if task_id and row_task_id and row_task_id != task_id:
-                if not candidate_signature or row_signature != candidate_signature:
-                    continue
-            elif candidate_signature and row_signature != candidate_signature:
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            status = _normalise_spaces(str(row.get("status") or calculation_result.get("status") or "")).lower()
-            artifact_backed_complete_result = bool(row.get("artifact_backed_complete_result"))
-            if status != "ok":
-                continue
-            existing_value = self._ratio_result_numeric_value(row)
-            if existing_value is None:
-                continue
-            if not artifact_backed_complete_result and not financial_answer_slots.ratio_components_are_complete(calculation_result):
-                continue
-            tolerance = max(max(abs(float(existing_value)), abs(float(result_value)), 1.0) * 5e-4, 1e-6)
-            if abs(float(existing_value) - float(result_value)) <= tolerance:
-                continue
-            return not ratio_context_has_metric_surface(context_evidence, task)
-        return False
 
     def _ratio_result_rows_from_task_artifacts(
         self,
@@ -14546,7 +14409,7 @@ class FinancialAgentCalculationMixin:
                 *ordered_results,
                 *self._ratio_result_rows_from_task_artifacts(state, task),
             ]
-            if self._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+            if retrieved_ratio_projection_conflicts_with_existing_complete_result(
                 existing_result_rows,
                 task,
                 result_value=result_value,
@@ -15573,7 +15436,7 @@ class FinancialAgentCalculationMixin:
             final_answer
             and has_narrative_summary
             and has_growth_rate_result
-            and self._has_strong_growth_trace_for_answer_refresh(ordered_results)
+            and has_strong_growth_trace_for_answer_refresh(ordered_results)
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
                 query_requests_explanatory_context(str(state.get("query") or ""))
@@ -15660,7 +15523,7 @@ class FinancialAgentCalculationMixin:
             final_answer = final_complete_projection_answer
             aggregate_projection = self._rebuild_aggregate_projection(ordered_results, final_answer)
             _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
-        if self._has_strong_growth_trace_for_answer_refresh(ordered_results) and not (
+        if has_strong_growth_trace_for_answer_refresh(ordered_results) and not (
             query_requests_explanatory_context(str(state.get("query") or ""))
             and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
         ):

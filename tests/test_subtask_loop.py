@@ -3934,6 +3934,10 @@ class SubtaskLoopTests(unittest.TestCase):
             "aggregate_result_signature",
             side_effect=record_signature,
         ), patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_signature",
+            side_effect=record_signature,
+        ), patch.object(
             self.agent,
             "_append_ratio_result_from_retrieved_context",
             side_effect=record_append,
@@ -4490,13 +4494,20 @@ class SubtaskLoopTests(unittest.TestCase):
         original_context_docs = financial_graph_calculation.collect_retrieval_context_docs
         original_context_evidence = self.agent._ratio_operand_context_evidence_from_docs
         original_build_context = self.agent._build_complete_ratio_operands_from_coherent_context
-        signature_owner = financial_graph_calculation.aggregate_result_signature
+        signature_owner = financial_aggregate_projection.aggregate_result_signature
+        signature_spy = Mock(wraps=signature_owner)
         signature_patcher = patch.object(
             financial_graph_calculation,
             "aggregate_result_signature",
-            wraps=signature_owner,
+            signature_spy,
         )
-        signature_spy = signature_patcher.start()
+        owner_signature_patcher = patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_signature",
+            signature_spy,
+        )
+        signature_patcher.start()
+        owner_signature_patcher.start()
         financial_graph_calculation.collect_retrieval_context_docs = lambda *_args, **_kwargs: ["context-doc"]
         self.agent._ratio_operand_context_evidence_from_docs = lambda *_args, **_kwargs: context_evidence
         self.agent._build_complete_ratio_operands_from_coherent_context = lambda *_args, **_kwargs: context_rows
@@ -4550,6 +4561,7 @@ class SubtaskLoopTests(unittest.TestCase):
             appended = self.agent._append_ratio_result_from_retrieved_context([], base_state)
         finally:
             signature_patcher.stop()
+            owner_signature_patcher.stop()
             financial_graph_calculation.collect_retrieval_context_docs = original_context_docs
             self.agent._ratio_operand_context_evidence_from_docs = original_context_evidence
             self.agent._build_complete_ratio_operands_from_coherent_context = original_build_context
@@ -4587,10 +4599,10 @@ class SubtaskLoopTests(unittest.TestCase):
         conflict_context = [{"evidence_id": "ctx", "claim": "context without the metric surface"}]
         incomplete_row = deepcopy(existing_row)
         incomplete_row["calculation_result"]["answer_slots"]["components_by_group"] = {}
-        with patch.object(financial_graph_calculation, "ratio_context_has_metric_surface") as metric_surface_owner:
+        with patch.object(financial_aggregate_projection, "ratio_context_has_metric_surface") as metric_surface_owner:
             for rows, result_value in (([incomplete_row], 10.0), ([existing_row], 25.0)):
                 self.assertFalse(
-                    self.agent._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                    financial_aggregate_projection.retrieved_ratio_projection_conflicts_with_existing_complete_result(
                         rows,
                         conflict_task,
                         result_value=result_value,
@@ -4601,12 +4613,12 @@ class SubtaskLoopTests(unittest.TestCase):
 
         for owner_result, expected_conflict in ((False, True), (True, False)):
             with self.subTest(metric_surface=owner_result), patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "ratio_context_has_metric_surface",
                 return_value=owner_result,
             ) as metric_surface_owner:
                 self.assertEqual(
-                    self.agent._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                    financial_aggregate_projection.retrieved_ratio_projection_conflicts_with_existing_complete_result(
                         [existing_row],
                         conflict_task,
                         result_value=10.0,
@@ -4624,12 +4636,12 @@ class SubtaskLoopTests(unittest.TestCase):
                 raise RuntimeError("later row accessed")
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "ratio_context_has_metric_surface",
             side_effect=RuntimeError("metric surface owner failed"),
         ) as metric_surface_owner:
             with self.assertRaisesRegex(RuntimeError, "metric surface owner failed"):
-                self.agent._retrieved_ratio_projection_conflicts_with_existing_complete_result(
+                financial_aggregate_projection.retrieved_ratio_projection_conflicts_with_existing_complete_result(
                     [existing_row, LaterRow()],
                     conflict_task,
                     result_value=10.0,
@@ -6523,8 +6535,8 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         with patch.object(
-            self.agent,
-            "_aggregate_lookup_primary_slots",
+            financial_graph_calculation,
+            "aggregate_lookup_primary_slots",
             return_value=[],
         ) as empty_lookup_slots, patch.object(
             financial_graph_calculation,

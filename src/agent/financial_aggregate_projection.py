@@ -10,9 +10,12 @@ from src.agent import financial_graph_calculation_rendering as calculation_rende
 from src.agent.financial_answer_slots import (
     answer_slot_has_material,
     build_operand_value_slot,
+    coerce_slot_numeric,
+    ratio_components_are_complete,
     source_task_display_compatible_with_slot,
 )
 from src.agent.financial_answer_projection import (
+    growth_row_has_conflicting_periods,
     material_gap_feedback_for_subtask_result,
     subtask_row_has_material,
 )
@@ -29,6 +32,7 @@ from src.agent.financial_numeric_surface import (
     numeric_surface_candidates_equivalent,
     numeric_surface_slot_components,
 )
+from src.agent.financial_operand_resolution import ratio_context_has_metric_surface
 from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading_period_qualifiers
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
@@ -887,6 +891,86 @@ def recover_growth_prior_material_from_evidence(
     return {}
 
 
+def growth_required_display_values(
+    row: Dict[str, Any],
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: Optional[List[Dict[str, Any]]] = None,
+) -> List[str]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+    prior_display = growth_slot_display_value(prior_slot, ordered_results)
+    if growth_slots_share_material(current_slot, prior_slot, ordered_results):
+        recovered_prior_material = recover_growth_prior_material_from_evidence(
+            current_slot=current_slot,
+            prior_slot=prior_slot,
+            evidence_items=evidence_items,
+        )
+        if recovered_prior_material.get("display"):
+            prior_display = recovered_prior_material["display"]
+    required_values = [
+        growth_slot_display_value(current_slot, ordered_results),
+        prior_display,
+        _normalise_spaces(
+            str(
+                calculation_result.get("rendered_value")
+                or growth_slot_display_value(primary_slot, ordered_results)
+                or ""
+            )
+        ),
+    ]
+    return list(dict.fromkeys(value for value in required_values if value))
+
+
+def has_strong_growth_trace_for_answer_refresh(
+    ordered_results: List[Dict[str, Any]],
+) -> bool:
+    for row in ordered_results:
+        if aggregate_result_operation_family(row) != "growth_rate":
+            continue
+        if growth_row_has_conflicting_periods(row):
+            continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        current_slot = dict(answer_slots.get("current_value") or {})
+        prior_slot = dict(answer_slots.get("prior_value") or {})
+        if not all(
+            answer_slot_has_material(slot)
+            for slot in (primary_slot, current_slot, prior_slot)
+        ):
+            continue
+        direct_operand_count = 0
+        for slot in (current_slot, prior_slot):
+            source_ids = _clean_source_row_ids([
+                slot.get("source_row_id"),
+                slot.get("source_row_ids"),
+            ])
+            if slot.get("normalized_value") is not None and any(
+                source_id and not source_id.startswith("task_output:")
+                for source_id in source_ids
+            ):
+                direct_operand_count += 1
+        if direct_operand_count >= 2:
+            return True
+    return False
+
+
+def aggregate_lookup_primary_slots(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    slots: List[Dict[str, Any]] = []
+    for row in rows or []:
+        if not isinstance(row, dict) or aggregate_result_operation_family(row) != "lookup": continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        primary_slot = dict(answer_slots.get("primary_value") or {})
+        if not answer_slot_has_material(primary_slot):
+            continue
+        slots.append(primary_slot)
+    return slots
+
+
 def safe_partial_answer_for_numeric_gap(
     ordered_results: List[Dict[str, Any]],
 ) -> str:
@@ -1473,6 +1557,66 @@ def aggregate_result_signature(row: Mapping[str, Any]) -> str:
     if operation_family:
         return f"{operation_family}:{metric_label}"
     return metric_label
+
+
+def _ratio_result_numeric_value(row: Dict[str, Any]) -> Optional[float]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    primary_value = dict(answer_slots.get("primary_value") or {})
+    for value in (
+        calculation_result.get("result_value"),
+        primary_value.get("normalized_value"),
+        primary_value.get("raw_value"),
+        row.get("result_value"),
+    ):
+        numeric_value = coerce_slot_numeric(value)
+        if numeric_value is not None: return numeric_value
+    return None
+
+
+def retrieved_ratio_projection_conflicts_with_existing_complete_result(
+    ordered_results: List[Dict[str, Any]],
+    task: Dict[str, Any],
+    *,
+    result_value: float,
+    context_evidence: List[Dict[str, Any]],
+) -> bool:
+    task_id = _normalise_spaces(str(task.get("task_id") or ""))
+    metric_label = _normalise_spaces(str(task.get("metric_label") or task.get("target_metric") or ""))
+    candidate_signature = aggregate_result_signature(
+        {
+            "task_id": task_id,
+            "metric_label": metric_label,
+            "operation_family": "ratio",
+        }
+    )
+    for row in ordered_results:
+        if not isinstance(row, dict):
+            continue
+        if aggregate_result_operation_family(row) != "ratio":
+            continue
+        row_task_id = _normalise_spaces(str(row.get("task_id") or ""))
+        row_signature = aggregate_result_signature(row)
+        if task_id and row_task_id and row_task_id != task_id:
+            if not candidate_signature or row_signature != candidate_signature:
+                continue
+        elif candidate_signature and row_signature != candidate_signature:
+            continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        status = _normalise_spaces(str(row.get("status") or calculation_result.get("status") or "")).lower()
+        artifact_backed_complete_result = bool(row.get("artifact_backed_complete_result"))
+        if status != "ok":
+            continue
+        existing_value = _ratio_result_numeric_value(row)
+        if existing_value is None:
+            continue
+        if not artifact_backed_complete_result and not ratio_components_are_complete(calculation_result):
+            continue
+        tolerance = max(max(abs(float(existing_value)), abs(float(result_value)), 1.0) * 5e-4, 1e-6)
+        if abs(float(existing_value) - float(result_value)) <= tolerance:
+            continue
+        return not ratio_context_has_metric_surface(context_evidence, task)
+    return False
 
 
 def growth_operand_sign_consistency_rank(row: Mapping[str, Any]) -> int:
