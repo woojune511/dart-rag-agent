@@ -15,11 +15,11 @@ Last updated: 2026-08-11
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; aggregate answer-surface owner milestone closed, four named debt groups remain |
-| What just changed? | Aggregate row/gap and lookup-answer surfaces moved to `financial_aggregate_projection.py` in `515ccab` and `18e75a3` |
-| What passed? | Focused 5/5, affected seven-module set 699/699, import-side-effect 19/19, runtime audit 217, full unittest 1,623/1,623 |
+| What is the architecture state? | Phase 3 OPEN; narrative text-surface owner milestone closed, four named debt groups remain |
+| What just changed? | Five narrative term/variant/context surfaces moved to `financial_text_surface.py` in `c1ec720` and `e8482bd` |
+| What passed? | Focused 5/5, semantic regression set 714/714, nine-module union 733/733, import-side-effect 19/19, runtime audit 217, full unittest 1,633/1,633 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Two characterize-first narrative text-surface commits into `financial_text_surface.py`; graph orchestration remains a hard stop |
+| What is next? | One characterize-first 141-line narrative presentation/preservation batch into `financial_text_surface.py`; graph orchestration remains a hard stop |
 
 ## Product Boundary
 
@@ -50,19 +50,18 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch published aggregate narrative-row classification,
-  numeric-gap safe-partial selection, lookup-list composition, and uncovered-
-  lookup preservation, while keeping the lookup-item formatter owner-private.
-  Across `c4fd42a..18e75a3`, 183 old graph definition-span lines became four
-  public APIs plus one owner-private helper. The 28 calls now place 23 in the
-  graph and five owner-locally; retired graph-private references are zero.
-  Composition, mutable state/evidence, artifacts/ledger, promotion, sync/rebuild,
-  and final sequencing remain graph-owned. This is ownership relocation, not a
-  behavior claim.
-- Current physical sizes are: calculation graph 16,585 lines, graph helpers 6,299,
+- The latest owner batch published narrative context-term, focus-variant,
+  parenthetical-variant, prepared-evidence sentence-selection, and context-
+  inclusion surfaces. Across `a2bb6cc..e8482bd`, 147 old graph definition-span
+  lines became five public APIs. The 25 calls now place 21 in the graph and four
+  owner-locally; retired graph-private references are zero. Query/evidence
+  preparation, composition, mutable state/evidence, artifacts/ledger, promotion,
+  sync/rebuild, callbacks, and final sequencing remain graph-owned. This is
+  ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 16,438 lines, graph helpers 6,299,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
-  670, answer projection 491, operand resolution 3,461, dependency projection
-  3,235, and aggregate projection 1,702.
+  670, answer projection 491, text surface 264, operand resolution 3,461,
+  dependency projection 3,235, and aggregate projection 1,702.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -105,17 +104,21 @@ For topology rather than normative behavior, use
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
 | Latest focused owner checkpoint | PASS, 5 / 5 |
-| Latest affected regression set | PASS, seven-module set 699 / 699 |
+| Latest semantic regression set | PASS, eight-module set 714 / 714 |
+| Latest semantic/import union | PASS, nine-module set 733 / 733 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,623 / 1,623 |
+| Full unittest discovery | PASS, 1,633 / 1,633 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The affected set is `tests.test_financial_dependency_projection`,
-`tests.test_financial_operand_resolution`, `tests.test_financial_calculation_execution`,
+The semantic set is `tests.test_financial_text_surface`,
+`tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_financial_answer_projection`,
 `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
+`tests.test_financial_agent_run_projection`, `tests.test_lookup_recovery_policy`,
+and `tests.test_operation_contracts`. Adding `tests.test_import_side_effects`
+forms the 733-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -146,58 +149,60 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The next architecture batch is one two-commit, one-owner characterize-first
-narrative text-surface sequence into `financial_text_surface.py`:
+The sole selected architecture batch is one characterize-first narrative
+presentation/preservation move into `financial_text_surface.py`:
 
-1. publish `narrative_context_terms(...)` (18 old definition-span lines),
-   `narrative_focus_variants(...)` (30), and
-   `parenthetical_focus_variants(...)` (15). Their current call counts are 18,
-   two, and three; after A, placement is 21 external graph calls and two
-   owner-local term calls;
-2. publish `narrative_context_sentence_from_evidence(...)` (58 lines) and
-   `include_narrative_context_if_needed(...)` (26). Each has one external graph
-   caller and each term call becomes owner-local.
+1. publish `policy_required_realized_snippet_from_doc(...)` from the current
+   69-line graph body;
+2. publish `preserve_retrieved_narrative_source_surface(...)` from the current
+   72-line graph body.
 
-The read-only profiled boundary is 147 old definition-span lines, five public
-APIs, and 25 calls. Final placement is 21 external graph calls and four owner-
-local calls: terms 14/4, focus variants 2/0, parenthetical variants 3/0,
-context-sentence selection 1/0, and context inclusion 1/0. Commit order is A then
-B; it is neither a dependency arrow nor a schedule estimate.
+The read-only profiled boundary is 141 old definition-span lines, two public APIs,
+and two graph calls. Both new public calls remain external, while the preservation
+body's existing context-term call becomes owner-local. The cumulative selected
+text-surface boundary therefore becomes seven public APIs and 27 calls: 22
+external graph calls and five owner-local calls. Final per-API placement is
+context terms 13/5, focus variants 2/0, parenthetical variants 3/0, context
+sentence selection 1/0, context inclusion 1/0, document snippet 1/0, and
+retrieved-source preservation 1/0. The two functions are adjacent by owner and
+validation boundary; no schedule or behavior claim follows.
 
-The text owner already has regex, normalization, narrative policy, and sentence-
-splitting dependencies. Add only `Any`/`Dict` typing and
-`_query_requests_narrative_context` from `financial_operation_policies.py`; that
-module imports normalization/config only, so this creates no reverse edge. A also
-relocates exactly one reviewed runtime-domain baseline record,
-`[가-힣A-Za-z0-9()]+`, from the graph path to the text-owner path. Its literal,
-category, and count remain unchanged; only path, fingerprint, and first line move,
-and the reviewed total remains 217.
+The text owner already has regex, normalization, narrative policy, context-term,
+sentence-splitting, and particle dependencies. Add only
+`narrative_policy_terms` from retrieval policy and
+`extract_numeric_surface_candidates` plus `text_supports_numeric_candidates`
+from `financial_numeric_surface.py`. Numeric surface imports only normalization
+and configuration, so the new text-to-numeric edge has no reverse path. No
+runtime-domain baseline record moves and the reviewed count remains 217.
 
-Each seam requires at least five CURRENT-SOURCE methods before source movement.
-A must directly pin term tokenization/filtering/stable dedupe, focus and
-parenthetical variants, access/laziness/no-mutation/exceptions, exact current and
-post-A bindings, and executable caller argument/adoption/exception-stop behavior.
-B must directly pin context gate, source/claim precedence, score/tie/support/
-priority order, first-sentence truncation, inclusion/exclusion/overlap/prefix
-behavior, copy/no-mutation/exceptions, exact final distribution, and executable
-`_aggregate_calculation_subtasks` selection plus
-`_apply_initial_aggregate_answer_composition` inclusion order/adoption/exception
-stop.
+Before source movement, add at least five CURRENT-SOURCE methods: two direct
+methods, one exact binding/distribution method, and two executable caller methods.
+Direct coverage must pin branch/access/laziness, stable order and tie behavior,
+copy/no-mutation, normalization, and uncaught exceptions. In particular, the
+snippet reads/copies metadata before the required-policy-term gate and eagerly
+assembles the configured document surfaces; retrieved preservation keeps the
+first highest-overlap quote sentence, preserves stable evidence/answer order,
+and vetoes replacement of numerically supported answer sentences. Caller tests
+must pin exact arguments, adoption position, input identity/content, and owner-
+exception stop.
 
-All 21 graph callers remain. The context selector may choose only a text sentence
-from its already-prepared evidence input; evidence ids, windows, provenance, and
-selection orchestration remain graph-owned. Retain query/evidence preparation,
-LLM/composition/feedback, mutable state/evidence, artifact/ledger, promotion,
-sync/rebuild, callbacks, and final sequencing. Do not add wrappers, compatibility
-aliases, or callback seams.
+The second owner may select only the best quote sentence within already-prepared
+evidence and replace the corresponding prepared answer sentence. Retrieval,
+evidence ids/windows/provenance, evidence construction or list mutation, query/
+evidence preparation, LLM/composition/feedback, mutable state, artifact/ledger,
+promotion, sync/rebuild, callbacks, and final sequencing remain graph-owned. Do
+not add wrappers, compatibility aliases, or callback seams.
 
-Reject the 289-line slot/gap expansion because it crosses an existing callback
-binding and a ledger-only consumer. Ontology completion remains blocked at four
-placements and three `hasattr` gates; the 720-line precision cluster retains its
-carrier/reverse-cycle problem. Also reject prepared-candidate carriers, stateful
-compact-ratio work, and evidence-selection/mutation bundling. Hold source until
-each current-source gate passes; then retarget/delete, require retired refs zero,
-and run focused, affected, import-side-effect, audit, full, and diff-check gates
+Reject the 204-line expansion that also moves
+`_preserve_policy_required_realized_context(...)`: it would silently replace the
+inherited `_active_narrative_policies_for_query(...)` dynamic-dispatch boundary.
+Moving narrative-row focus into the text owner creates an aggregate-to-text
+reverse cycle, while the precision/structured-row cluster retains its carrier/
+reverse-cycle problem. Also reject ratio-helper public-surface sprawl coupled to
+stateful compact-ratio rendering, prepared-candidate carriers, state/evidence
+mutation, and ledger/final-orchestration bundling. Hold source until the current-
+source gate passes; then retarget/delete, require retired refs zero, and run
+focused, semantic, import-side-effect, audit, full, and diff-check gates
 sequentially. No behavior, accuracy, ranking, performance, total-code or executed-
 path reduction, benchmark, schedule, or Phase 3 completion claim follows.
 

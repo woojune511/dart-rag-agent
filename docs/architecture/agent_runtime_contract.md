@@ -1446,6 +1446,65 @@ and final orchestration remain graph/planning-owned. These owner moves make no
 behavior, ranking, accuracy, performance, total-code, executed-path, or Phase 3
 completion claim.
 
+Narrative term, variant, prepared-evidence sentence, and context-inclusion
+surfaces are public in `financial_text_surface.py`.
+`narrative_context_terms(query)` stringifies and normalizes the query before
+tokenizing it with the reviewed character regex. It then
+materializes the configured stopword set. Tokens are processed in source order:
+strip, minimum length, exact stopword, and numeric-content gates precede stable
+first-seen dedupe. Policy, regex, string, normalization, iteration, hashing, and
+containment exceptions remain uncaught, and the query is not mutated.
+
+`narrative_focus_variants(query)` eagerly builds the normalized lowercase union
+of generic-focus and context-reuse exclusions, then calls the term owner. For
+each retained term it evaluates the normalized whole term, parenthetical matches
+in match order, and the normalized outside-parentheses surface. Blank, short,
+and generic candidates are discarded before stable first-seen dedupe.
+`parenthetical_focus_variants(query)` also calls the term owner, but ignores a
+term without an opening parenthesis and retains only matched parenthetical and
+outside-parentheses surfaces of length at least two. Neither owner mutates input,
+and their access, policy, regex, string, normalization, iteration, containment,
+and hashing exceptions propagate.
+
+`narrative_context_sentence_from_evidence(query, evidence_items)` applies the
+narrative-request gate before term extraction and returns `""` for either
+failure. It then scans `evidence_items or []` in stable order, shallow-copies each
+attempted evidence mapping, eagerly assembles normalized source text from source
+anchor and the evidence metadata's section path/section, and resolves claim before quote
+span before raw-row text. Blank claims are skipped. Score is query-term overlap
+plus the existing priority-section and support-level bonuses. Only a strictly
+higher score replaces the current candidate, so equal scores retain the first
+candidate. A positive winner is sentence-split and reduced to the first split
+sentence when one exists; an empty split result preserves the unsplit winning
+claim. That selected surface is then truncated to 220 characters and right-
+stripped. Inputs and nested values are
+unmodified; mapping, copy, truthiness, string, join, normalization, policy,
+iteration, containment, split, and slicing exceptions remain uncaught.
+
+`include_narrative_context_if_needed(answer, *, query, narrative_context)`
+normalizes answer and context eagerly. Blank answer, blank context, or a failed
+narrative-request gate returns the normalized answer before term or exclusion
+policy access. The remaining path calls the term owner, materializes configured
+reuse exclusions, and preserves exact case-sensitive containment semantics. If
+any retained query term is in the context and any such term is already in the
+answer, or the full context is already contained in the answer, the answer is
+returned unchanged. Otherwise the normalized context is prefixed to the answer
+and normalized once more. The function does not mutate inputs and catches no
+access, truthiness, string, normalization, policy, iteration, containment, join,
+or owner exception.
+
+These 147 old graph definition-span lines now form five public APIs. Of 25 calls,
+21 remain external and four are owner-local: context terms 14/4, focus variants
+2/0, parenthetical variants 3/0, evidence sentence selection 1/0, and context
+inclusion 1/0. Retired graph-private references are zero. The graph callers retain
+their exact gates, arguments, adoption order, input identities, and exception
+stop. The sentence selector chooses text only within already-prepared evidence;
+retrieval, evidence ids/windows/provenance, evidence construction, composition,
+mutable state/evidence, task/artifact ledger, promotion, sync/rebuild, callbacks,
+and final sequencing remain graph-owned. This ownership relocation establishes
+no behavior, accuracy, ranking, performance, total-code, executed-path,
+benchmark, or Phase 3 completion claim.
+
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`
 normalizes and lowercases the row metric family before resolving the aggregate

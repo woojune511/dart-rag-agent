@@ -1674,6 +1674,50 @@ remain graph-owned. The range proves no behavior, accuracy, ranking, performance
 total-code or executed-path reduction, benchmark improvement, or Phase 3
 completion.
 
+### Narrative text-surface owner milestone
+
+- `c1ec720` publishes `narrative_context_terms(...)`,
+  `narrative_focus_variants(...)`, and
+  `parenthetical_focus_variants(...)` from `financial_text_surface.py`.
+  Sixty-three old graph definition-span lines were removed. The 23 selected calls
+  finish at 21 external graph placements and two owner-local term calls. Source
+  is `+93/-87`, test code is `+905/-4`, the runtime-domain baseline is `+3/-3`,
+  and the whole commit is `+1,001/-94`. The baseline change relocates exactly the
+  existing reviewed context-token regex record; text, category, count, and the
+  217-record reviewed total are unchanged.
+- `e8482bd` publishes `narrative_context_sentence_from_evidence(...)` and
+  `include_narrative_context_if_needed(...)` from the same owner. Eighty-four old
+  graph definition-span lines were removed. Both public calls remain external,
+  while their two term calls become owner-local. Source is `+92/-89`, test code
+  is `+1,242/-3`, and the whole commit is `+1,334/-92`.
+- Across `a2bb6cc..e8482bd`, 147 selected old graph definition-span lines became
+  five public APIs. The 25 calls finish at 21 external graph calls and four
+  owner-local calls; retired exact graph-private references are zero. Source is
+  `+183/-174`, net `+9`: the graph moved from 16,585 to 16,438 physical lines
+  and the text owner from 108 to 264. Test code is `+2,144/-4`, net `+2,140`;
+  the baseline is `+3/-3`; the whole changed-file range is `+2,330/-181`, net
+  `+2,149`. Ten test methods were added, moving full discovery from 1,623 to
+  1,633 tests.
+- Final clean-HEAD validation passed focused 5/5; 714/714 across
+  `tests.test_financial_text_surface`,
+  `tests.test_financial_aggregate_rank_dedupe`,
+  `tests.test_financial_answer_projection`,
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`,
+  `tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`;
+  the same set plus `tests.test_import_side_effects` at 733/733, including the
+  import module's independent 19/19; the 217-literal runtime audit; full discovery
+  over 1,633/1,633 tests; and `git diff --check`. Benchmark refresh was **NOT
+  RUN**; no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only the selected narrative term, focus/parenthetical
+variant, prepared-evidence sentence-selection, and context-inclusion ownership.
+Retrieval and evidence preparation, evidence ids/windows/provenance, answer
+composition/feedback, mutable state/evidence, artifact/ledger work, promotion,
+sync/rebuild, callbacks, and final sequencing remain graph-owned. The range
+proves no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, or Phase 3 completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
