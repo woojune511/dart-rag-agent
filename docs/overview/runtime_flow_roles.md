@@ -382,10 +382,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
   realignment/narrative/numeric-reuse 함수로 배치된다. 12 call은 graph external
   11개와 owner-local 1개이며 answer choice, composition, state/evidence, final
   sequencing은 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 135-line prepared material-
-  inspection cluster다. public 4개와 owner-private helper 1개, external 16/local
-  1 call, characterize-first gate와 growth/ratio composition, artifact/state,
-  final-sequencing hard stop은
+- 완료된 prepared material-inspection cluster도 같은 owner의 public growth-
+  required display, strong-trace, lookup-slot, retrieved-ratio-conflict 함수와
+  owner-private ratio-value helper로 배치된다. 17 call은 graph external 16개와
+  owner-local 1개이며 growth composition, arithmetic sync, ratio artifact/state,
+  final sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 100-line prepared growth-numeric
+  renderer다. public 1개와 external 9/local 0 call, characterize-first gate와
+  answer selection/refresh, state/evidence, final-sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

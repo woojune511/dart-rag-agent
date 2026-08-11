@@ -1667,9 +1667,61 @@ remote CI is unverified, and this relocation establishes no behavior, accuracy,
 ranking, performance, total-code, executed-path, benchmark, schedule, or Phase 3
 completion claim.
 
-The next selected prepared aggregate material-inspection cluster is not yet an
-owner contract. Its exact 135-line, public-four/private-one boundary and graph
-hard stops are governed solely by
+Prepared aggregate material inspection is also owned by
+`financial_aggregate_projection.py`.
+
+Public `growth_required_display_values(row, ordered_results,
+evidence_items=None)` shallow-copies the calculation result, result-first answer
+slots, and primary/current/prior slots. It resolves prior display before testing
+current/prior material equality; equal material invokes the owner recovery helper
+and replaces only a truthy recovered display. It then resolves current, prior,
+and growth displays in that order, with calculation-result rendered value before
+primary-slot display, removes blank values, and returns stable first-occurrence
+deduplication. There is no operation-family gate in this projection.
+
+Public `has_strong_growth_trace_for_answer_refresh(ordered_results)` scans in row
+order. Operation family precedes period-conflict and every result/slot access.
+Only a non-conflicting growth row with material primary/current/prior slots can
+continue. For current then prior, it cleans the scalar and plural source-row ids
+together and counts the slot only when normalized value is not `None` and at
+least one cleaned id is not `task_output:`. Two direct operands return `True`;
+otherwise scanning continues and eventually returns `False`.
+
+Public `aggregate_lookup_primary_slots(rows)` iterates `rows or []`, skips a
+non-dict before operation-family resolution, and accepts only lookup rows. It
+shallow-copies calculation result, result-first answer slots, and primary slot,
+then appends only a material primary-slot copy in stable order. Owner-private
+`_ratio_result_numeric_value(row)` shallow-copies the same result/slot surfaces
+and returns the first non-`None` coercion in exact precedence: result value,
+primary normalized value, primary raw value, then row result value.
+
+Public `retrieved_ratio_projection_conflicts_with_existing_complete_result(
+ordered_results, task, *, result_value, context_evidence)` normalizes the task id
+and metric label, derives a ratio signature, and scans prepared rows in stable
+order. It filters non-dicts, non-ratios, incompatible task ids/signatures, non-ok
+status, missing numeric result, and incomplete non-artifact results in that order.
+The comparison tolerance is the greater of `5e-4` times the maximum absolute
+value or one, and `1e-6`. An equal-within-tolerance row continues; the first
+material mismatch returns the negation of the operand owner’s metric-surface
+check over the supplied context evidence. No qualifying mismatch returns
+`False`.
+
+These five helpers do not mutate their row, slot, ordered-result, task, or
+evidence inputs. They catch no mapping, truthiness, iteration, copy, string,
+normalization, owner, numeric-coercion, signature, float, absolute-value, or
+comparison exception. Their 135 old graph definition lines occupy public owner
+spans 31 + 32 + 11 + 43 plus one 13-line owner-private span. Seventeen selected
+calls finish at 16 graph-external and one owner-local; retired selected graph-
+private references are zero. The `df7afc2` source diff is `+164/-157`, tests are
+`+1,039/-44`, and all seven files are `+1,203/-201`; seven tests moved full
+discovery from 1,662 to 1,669. Benchmark refresh was **NOT RUN**, remote CI is
+unverified, and this relocation establishes no behavior, accuracy, ranking,
+performance, total-code, executed-path, benchmark, schedule, or Phase 3
+completion claim.
+
+The next selected prepared growth-numeric renderer is not yet an owner contract.
+Its exact 100-line, one-public-API, nine-external-call boundary and graph hard
+stops are governed solely by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
@@ -2407,10 +2459,11 @@ including its first regex match, is preserved exactly. Inputs and evidence items
 are not mutated; mapping, string, regex, sentence splitting, policy, and other
 exceptions remain uncaught.
 
-The graph retains `_growth_required_display_values(...)`, complete and narrative
-growth answer construction, duplicate-prior operand recovery, evidence choice,
-adoption, state, artifacts, and final orchestration. Its 15 direct public calls
-remain in their original positions; the three helper calls above are owner-local.
+The graph calls public `growth_required_display_values(...)` at the retained
+inspection sites and keeps complete and narrative growth answer construction,
+duplicate-prior operand recovery, evidence choice, adoption, state, artifacts,
+and final orchestration. The original display/material seam still has 15 direct
+graph calls and three owner-local calls.
 This seam claims display/material ownership only, not growth-calculation or
 answer-composition ownership, numeric/render-policy improvement, behavior or
 performance improvement, total-code or executed-path reduction, broad private-
