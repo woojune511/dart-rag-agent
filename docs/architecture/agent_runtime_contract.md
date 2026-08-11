@@ -1801,9 +1801,49 @@ Benchmark refresh was **NOT RUN**, remote CI is unverified, and this relocation
 establishes no behavior, accuracy, ranking, performance, total-code,
 executed-path, benchmark, schedule, or Phase 3 completion claim.
 
-The next selected dependency input-binding policies are not yet owner contracts.
-Their exact 93-line, three-public-API, four-external-call boundary and graph hard
-stops are governed solely by
+Dependency input-binding policy is owned by
+`financial_dependency_projection.py`. Public
+`dependency_slot_matches_input(binding, slot, *, sibling_row, state=None)`
+normalizes binding and slot concepts first and rejects unequal nonblank concepts
+before period, label, or segment access. Unequal nonblank periods resolve the
+binding focus through `_operand_period_focus(...)`; only current/prior continue.
+An optional report-scope year is converted with `int`, catching only
+`TypeError`/`ValueError`. When a usable year and slot years exist, current
+requires that year and prior requires year minus one; otherwise slot focus must
+equal binding focus. Unequal nonblank labels pass only when the binding label is
+contained in the slot or sibling label. A nonblank segment must occur
+case-insensitively in the combined slot/sibling label.
+
+Public `task_prefers_sibling_output_synthesis(state)` shallow-copies the active
+subtask, gates on exact normalized difference/growth-rate/ratio/sum operations,
+then scans input bindings in order and returns on the first task-output source
+with a nonblank preferred task id. Public `task_output_input_bindings(state)`
+uses the same binding and source-preference normalization but returns all
+qualifying shallow binding copies in stable order. Nested values remain shared;
+neither helper mutates state, active subtask, inputs, bindings, slot, sibling row,
+or nested values. The three APIs catch no mapping/copy/iteration/truthiness/
+string/normalization exception beyond the matcher's narrow optional-year
+`TypeError`/`ValueError` boundary.
+
+The former definition spans were 62 + 15 + 16 = 93 lines; public owner spans are
+61 + 15 + 16 = 92 because two signatures remain one physical line after `self`
+removal. A source audit before deletion corrected the prior plan by finding three
+additional reconciliation callers. The final seven calls are direct imported
+names at Try depth zero: four in calculation and three in reconciliation;
+owner-local selected calls are zero, and the three old mixin attributes and
+source/test refs are absent. The `7a20aab` source diff is `+111/-103`, tests are
+`+1,164/-2`, and all five files are `+1,275/-105`. Six tests moved full discovery
+from 1,680 to 1,686. The committed source-only diff SHA-256 is
+`b840839073e6d7febe828d75004e15e3a45ae2e298a5ded6c303cc53738162e1`.
+Focused 6/6, owner 69/69, affected semantic 895/895, import 19/19, audit 217,
+full 1,686/1,686, pycompile/fresh-import, DAG/body/caller parity, and diff check
+passed. Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move
+establishes no behavior, accuracy, ranking, performance, total-code,
+executed-path, benchmark, schedule, or Phase 3 completion claim.
+
+The selected reconciliation artifact-reference projections are not yet owner
+contracts. Their exact 127-line, public-three/private-one, external-four/local-one
+boundary and reconciliation hard stops are governed solely by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by

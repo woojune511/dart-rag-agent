@@ -2086,6 +2086,59 @@ Exact APIs, cycle-safe dependencies, six-method characterization gate, and
 rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Dependency input-binding policy owner milestone
+
+- `7a20aab` moves the former graph policies into
+  `financial_dependency_projection.py` as public
+  `dependency_slot_matches_input(...)`,
+  `task_prefers_sibling_output_synthesis(...)`, and
+  `task_output_input_bindings(...)`. The former definition spans were
+  62 + 15 + 16 = 93 lines; actual owner spans are 61 + 15 + 16 = 92 because
+  removing `self` from the latter two one-line signatures does not reduce their
+  physical span.
+- A pre-move source audit corrected the prior four-call plan by finding three
+  additional reconciliation callers. All seven selected production calls now
+  use direct public imports at Try depth zero: four in calculation and three in
+  reconciliation. Owner-local selected calls remain zero, and retired selected
+  graph-private source/test references are zero. No compatibility wrapper or
+  alias remains.
+- Exactly five source/test files changed. Source is `+111/-103`, net `+8`:
+  calculation graph moved from 15,512 to 15,419 physical lines, reconciliation
+  moved from 2,428 to 2,429, and dependency projection moved from 3,235 to 3,335.
+  Tests are `+1,164/-2`, net `+1,162`; the whole commit is `+1,275/-105`, net
+  `+1,170`.
+- The committed source-only diff SHA-256 is
+  `b840839073e6d7febe828d75004e15e3a45ae2e298a5ded6c303cc53738162e1`.
+  Literal body parity passed 3/3, all seven retained callers were exact after
+  selected target normalization, the import DAG remained acyclic, public import
+  identity was exact, and the three retired mixin attributes were absent.
+- Six AST-counted unittest methods moved the method inventory and full discovery
+  from 1,680 to 1,686. Final validation passed focused 6/6, dependency-owner
+  69/69, affected nine-module semantic 895/895, import-side-effects 19/19,
+  runtime audit 217, full discovery 1,686/1,686, pycompile/fresh-import binding
+  checks, DAG/body/caller parity, and `git diff --check`. Benchmark refresh was
+  **NOT RUN**, and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only ownership of already deterministic dependency input
+matching and task-output binding policy. Operand/evidence construction,
+reconciliation state projection, ratio-result projection, mutable state/evidence,
+artifact/ledger work, callbacks, promotion, sync/rebuild, and final sequencing
+remain graph-owned. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 127-line reconciliation
+artifact-reference projection cluster in `financial_graph_reconciliation.py`.
+Three public task-artifact projections plus one owner-private text matcher are
+projected at 15 + 50 + 29 + 32 = 126 owner lines. Five selected calls finish as
+four graph-external and one owner-local call. Structured-operand extraction,
+candidate-map/cell selection, reconciliation state projection, artifact update
+and ledger mutation, evidence construction, reranking/LLM work, reflection and
+retry planning, mutable state, callbacks, promotion, sync/rebuild, and final
+sequencing remain hard stops. Exact APIs, cycle-safe dependencies, the six-method
+characterization gate, and rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

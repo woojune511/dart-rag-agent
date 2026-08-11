@@ -21,11 +21,11 @@ Last updated: 2026-08-12
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | clean local `c010a42` on `codex/finalize-five-minute-review`; 이후 변경은 `git log`로 확인 |
+| Source checkpoint | clean local `7a20aab` on `codex/finalize-five-minute-review`; 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free calculation owner들로 분리 중; prepared growth trace inspection까지 `financial_aggregate_projection.py`에 귀속 |
-| Phase 3 | OPEN; prepared growth trace-inspection owner milestone까지 완료됐지만 single-calculation-path 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free calculation owner들로 분리 중; dependency input-binding policy까지 `financial_dependency_projection.py`에 귀속 |
+| Phase 3 | OPEN; dependency input-binding owner milestone까지 완료됐지만 single-calculation-path 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -39,14 +39,15 @@ Last updated: 2026-08-12
    result support/reuse, prepared material inspection/rendering, growth trace inspection과 bounded aggregate row/gap/lookup-answer surface는 state-free owner로 이동했고 promotion과
    rebuild/final sequencing은 graph에 유지
 2. 일부 진행된 dependency 및 ratio/absolute seam; ratio presentation/readiness/
-   scale, bounded operand preparation과 unit/table repair는 이동했고 graph-state
-   lookup, broader evidence orchestration과 주변 sequencing은 제외
+   scale, bounded operand preparation, unit/table repair와 dependency input
+   matching/binding policy는 이동했고 graph-state lookup, broader evidence
+   orchestration과 주변 sequencing은 제외
 3. 사실상 untouched인 broader task/artifact ledger synchronization
 4. public contract 이동과 함께 일부 진행된 private API/test mesh
 
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
-선택된 dependency input-binding policy 작업과 hard stop은
+선택된 reconciliation artifact-reference projection 작업과 hard stop은
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 구현 원칙

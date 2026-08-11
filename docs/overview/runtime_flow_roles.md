@@ -280,7 +280,7 @@ State-free owner topology:
 | Owner | 역할 |
 | --- | --- |
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
-| `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
+| `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
@@ -310,7 +310,8 @@ prepared-document snippet projection and retrieved-source preservation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
 table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
 projection, aggregate result support/reuse predicate와 prepared growth-numeric
-rendering이 포함된다. Graph는 query/evidence preparation, caller
+rendering, dependency input matching/binding/synthesis policy가 포함된다. Graph는
+query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
 sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
 planning은 nested traversal을 유지한다.
@@ -398,11 +399,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `growth_narrative_numeric_incompatible_with_trace(...)`로 배치된다. 19개 call은
   모두 graph-external이며 answer replacement/refresh, source-visible sentence
   repair, state/evidence, final sequencing은 graph에 남는다.
-- 다음 선택은 `financial_dependency_projection.py`로 가는 93-line dependency
-  input-binding policy 세 개다. public 3개와 external 4/local 0 call,
-  characterize-first gate와 graph-state operand/evidence/ratio/final-sequencing
-  hard stop은 [Project Status의 Next Work](project_status.md#next-work)만 기준으로
-  삼는다.
+- 완료된 dependency input-binding policy도
+  `financial_dependency_projection.py`의 public slot-match, sibling-output
+  preference, task-output binding 함수로 배치된다. 사전 source audit이 기존
+  4-call 계획에서 누락된 reconciliation caller 3개를 찾아 총 7개 call을 모두
+  graph-external로 retarget했고, owner-local selected call은 없다.
+- 다음 선택은 `financial_task_artifacts.py`로 가는 127-line reconciliation
+  artifact-reference projection 네 함수다. public 3개와 owner-private 1개,
+  external 4/local 1 call, characterize-first gate와 candidate/cell selection,
+  artifact/ledger mutation, reflection/retry, mutable state/evidence 및 final-
+  sequencing hard stop은
+  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 

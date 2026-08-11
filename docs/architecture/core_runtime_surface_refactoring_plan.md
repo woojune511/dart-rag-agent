@@ -245,49 +245,50 @@ state-free owners. Aggregate dependency-source seed/scoring/selection/component
 preparation, narrative row-focus selection, and aggregate growth display/material
 projection, result support/reuse predicates, prepared growth/ratio material
 inspection, prepared growth-numeric rendering, and growth trace inspection are
-also owner-resident. Retained external graph call placements remain,
+also owner-resident. Dependency input matching, sibling-output synthesis
+preference, and task-output binding projection are owner-resident as well.
+Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `c010a42` commit is an ownership relocation only. Exactly seven
-source/test files changed. Three graph definition spans totaling 130 lines became
-three public aggregate APIs totaling 127 lines. Their 19 calls remain graph-
-external, owner-local selected calls remain zero, and retired selected graph-
-private definitions and test refs are zero. Source is `+158/-153`, net `+5`: the
-graph moved from 15,643 to 15,512 physical lines and the aggregate owner from
-2,394 to 2,530. Tests are `+946/-80`, net `+866`, and the whole commit is
-`+1,104/-233`, net `+871`. Six AST-counted unittest methods were added, moving
-both the method inventory and full discovery from 1,674 to 1,680. Final gates
-passed focused 6/6, aggregate owner 46/46, affected semantic 761/761, import
-19/19, union 780/780, audit 217, full discovery 1,680/1,680, pycompile/fresh
-import, DAG/body/caller parity, and diff check.
+The completed `7a20aab` commit is an ownership relocation only. Exactly five
+source/test files changed. Three graph definition spans totaling 93 lines became
+three public dependency APIs totaling 92 lines. A pre-move audit corrected the
+prior plan from four to seven production calls by finding three reconciliation
+callers; all seven finish graph-external, owner-local selected calls remain zero,
+and retired selected private source/test refs are zero. Source is `+111/-103`,
+net `+8`: calculation graph moved from 15,512 to 15,419, reconciliation from
+2,428 to 2,429, and dependency projection from 3,235 to 3,335. Tests are
+`+1,164/-2`, net `+1,162`, and the whole commit is `+1,275/-105`, net `+1,170`.
+Six AST-counted unittest methods moved the inventory and full discovery from
+1,680 to 1,686. Final gates passed focused 6/6, dependency owner 69/69, affected
+semantic 895/895, import 19/19, audit 217, full discovery 1,686/1,686,
+pycompile/fresh import, DAG/body/caller parity, and diff check.
 Benchmark refresh was **NOT RUN** and
 remote CI is unverified. This establishes neither behavior, accuracy, ranking,
 performance, total-code, executed-path, ledger, benchmark, nor Phase 3
 completion.
 
-The selected follow-on is the 93-line dependency input-binding policy cluster.
-Public `dependency_slot_matches_input(...)`,
-`task_prefers_sibling_output_synthesis(...)`, and
-`task_output_input_bindings(...)` move to
-`financial_dependency_projection.py`. Their four calls remain graph-external and
-the projected owner spans are 61 + 14 + 15 = 90 lines. They add only the graph-
-state type and a cycle-safe direct graph-helper period-focus import; no runtime-domain
-baseline record moves. The exact APIs, six-method characterization gate, call
-distribution, and rejected expansions live only in
+The selected follow-on is the 127-line reconciliation artifact-reference
+projection cluster. Public
+`reconciliation_artifact_candidate_ids_for_operand(...)`,
+`reconciliation_artifact_candidate_ids(...)`, and
+`reconciliation_evidence_refs(...)`, plus owner-private text matching, move to
+`financial_task_artifacts.py`. Five current calls finish as four external and one
+owner-local; projected owner spans total 126. The move adds only type-only graph
+state plus cycle-safe row/surface dependencies and moves no runtime-domain
+baseline record. Exact APIs, six-method characterization, call distribution, and
+rejected expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-Dependency operand-row construction, binding-resolution state assembly, operand
-extraction, ratio-result projection, graph producer/result lookup, evidence
-coercion, mutable state/evidence, and final sequencing stay in the graph. Existing
-operation-contract direct references must retarget to the dependency owner, but
-production has no compatibility gate for the selected policies. Complete/
-narrative growth answer selection and refresh, direct structured evidence,
-source-visible query terms, compact-ratio state/trace, precision, evidence
-mutation, carriers, callbacks, promotion, sync/rebuild, and final-orchestration
-expansions remain excluded.
+Structured-operand extraction, candidate-map/cell selection, reconciliation
+state projection, artifact update/ledger mutation, evidence construction,
+reranking/LLM work, reflection/retry planning, mutable state/evidence, and final
+sequencing stay in the graph. Structured-cell/precision reverse-cycle work,
+slot/gap callback/ledger expansion, compact-ratio state/trace, ontology
+compatibility, carriers, answer refresh, and evidence mutation remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.
