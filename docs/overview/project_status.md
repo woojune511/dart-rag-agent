@@ -15,11 +15,11 @@ Last updated: 2026-08-12
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; bounded reconciliation artifact-reference ownership is closed, four named debt groups remain |
-| What just changed? | Three public reconciliation artifact-reference projections and one owner-private matcher moved to `financial_task_artifacts.py` in `c825ab7`; a pre-move audit also removed the newly dead reconciliation `_operand_text_match` import |
-| What passed? | Focused 6/6, task-artifact owner 9/9, affected eight-module semantic set 817/817, import-side-effect 19/19, semantic/import union 836/836, runtime audit 217, full unittest 1,692/1,692 |
+| What is the architecture state? | Phase 3 OPEN; bounded reflection request/plan ownership is closed, four named debt groups remain |
+| What just changed? | Two public reflection request/plan projections, two owner-private summaries, and their bounded constants moved to `financial_reflection_projection.py` in `c47ac50` |
+| What passed? | Focused 6/6, reflection contract 18/18, affected seven-module semantic set 800/800, import-side-effect 19/19, semantic/import union 819/819, runtime audit 217, full unittest 1,698/1,698 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | One characterize-first 79-line reflection request/plan projection cluster into `financial_reflection_projection.py`; reflection planning, model invocation, retry application, ledger mutation, and routing remain hard stops |
+| What is next? | One characterize-first 76-line dependency reconciliation preparation pair into `financial_dependency_projection.py`; reconciliation callers, candidate/evidence work, artifact mutation, and ledger sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,27 +50,25 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved bounded reconciliation artifact-reference
-  projection. In `c825ab7`, exactly five source/test files changed. The
-  15 + 51 + 29 + 32 = 127 reconciliation definition-span lines became three
-  public task-artifact functions plus one owner-private matcher spanning
-  15 + 50 + 29 + 32 = 126 lines. Four selected calls remain graph-external and
-  one matcher call is owner-local; retired selected private source/test refs are
-  zero. A pre-move audit corrected the prior statement that every selected graph
-  import would remain live: `_operand_text_match` became unused and was removed.
-  Source is `+153/-138`, net `+15`; tests are `+1,455/-4`, net `+1,451`; the whole
-  commit is `+1,608/-142`, net `+1,466`. Reconciliation moved from 2,429 to 2,302
-  physical lines and task artifacts from 1,250 to 1,392. The committed source
-  diff SHA-256 is
-  `65819999639a808bb95ec29ddf6547751fddaff3eed4e3af321210d367a43b55`.
-  Candidate/cell selection, artifact mutation, mutable state/evidence, retry
-  planning, ledger work, and final sequencing remain graph-owned. This is
-  ownership relocation, not a behavior claim.
+- The latest owner batch moved bounded reflection request/plan projection. In
+  `c47ac50`, exactly three source/test files changed. The 35 + 15 + 7 + 22 = 79
+  reconciliation definition-span lines became two public reflection functions
+  plus two owner-private summaries spanning 35 + 15 + 7 + 21 = 78 lines. Two
+  selected calls remain graph-external and the two summary calls are owner-local;
+  retired selected private source/test refs are zero and no wrapper or alias
+  remains. Source is `+110/-99`, net `+11`; tests are `+1,199/-14`, net `+1,185`;
+  the whole commit is `+1,309/-113`, net `+1,196`. Reconciliation moved from
+  2,302 to 2,211 physical lines and reflection projection from 158 to 260. The
+  committed source diff SHA-256 is
+  `5cf8c743dd07a22ac9281711638f62588ecd771d708434e1cbcf0a70144cc56a`.
+  Heuristic planning, prompt/model invocation, retry application, artifact/ledger
+  mutation, routing, mutable state/evidence, and final sequencing remain
+  graph-owned. This is ownership relocation, not a behavior claim.
 - Current physical sizes are: calculation graph 15,419 lines, graph helpers 6,299,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 491, text surface 411, operand resolution 3,461,
-  dependency projection 3,335, reconciliation 2,302, aggregate projection 2,530,
-  task artifacts 1,392, and reflection projection 158.
+  dependency projection 3,335, reconciliation 2,211, aggregate projection 2,530,
+  task artifacts 1,392, and reflection projection 260.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -86,12 +84,12 @@ Commit-level diffs and validation are kept in
 | Retrieval | `financial_retrieval_pipeline.py`; graph evidence owns structure expansion and evidence construction |
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
-| Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding and sibling-output synthesis preference, plus `financial_calculation_execution.py` |
+| Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding and sibling-output synthesis preference, plus `financial_calculation_execution.py`; sibling-surface preparation and resolved reconciliation projection remain the selected next move |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
 | Aggregate projection | `financial_aggregate_projection.py`, including selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, and prepared growth/ratio material inspection |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact candidate/evidence-reference projection but not ledger mutation orchestration |
-| Reflection projection | `financial_reflection_projection.py`; deterministic action/report and synthesis-source projection are owner-held while request/plan projection is the next selected move |
+| Reflection projection | `financial_reflection_projection.py`; deterministic action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
 
 For topology rather than normative behavior, use
@@ -113,20 +111,20 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, new focused 6 / 6; task-artifact owner module 9 / 9 |
-| Latest semantic regression set | PASS, affected eight-module set 817 / 817; semantic/import union 836 / 836 |
+| Latest focused owner checkpoint | PASS, new focused 6 / 6; reflection contract 18 / 18 |
+| Latest semantic regression set | PASS, affected seven-module set 800 / 800; semantic/import union 819 / 819 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,692 / 1,692 |
+| Full unittest discovery | PASS, 1,698 / 1,698 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_task_artifacts`,
-`tests.test_structured_operand_extraction`, `tests.test_reconciliation_plan`,
-`tests.test_operation_contracts`, `tests.test_financial_dependency_projection`,
-`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`, and
-`tests.test_financial_agent_run_projection`. `tests.test_import_side_effects`
-passed separately at 19 / 19 and together with the semantic set as an 836-test
+The semantic set is `tests.test_reflection_capability_contract`,
+`tests.test_reconciliation_plan`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, `tests.test_operation_contracts`,
+`tests.test_aggregate_subtask_projection`, and
+`tests.test_financial_dependency_projection`. `tests.test_import_side_effects`
+passed separately at 19 / 19 and together with the semantic set as an 819-test
 union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
@@ -158,81 +156,75 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture batch is one characterize-first reflection
-request/plan projection move into the existing `financial_reflection_projection.py`
-owner. Publish `_normalise_reflection_plan_record(...)` as
-`normalise_reflection_plan_record(...)` and the mixin method
-`_build_reflection_request(...)` as `build_reflection_request(...)`. Keep
-`_reflection_runtime_trace_summary(...)` and `_reflection_evidence_summary(...)`
-owner-private. Move the existing public bounded-strategy constant
-`ALLOWED_REFLECTION_RETRY_STRATEGIES` and private one-retry budget constant with
-the bodies; do not duplicate or import them back from reconciliation.
+The sole selected architecture batch is one characterize-first dependency
+reconciliation preparation move into the existing
+`financial_dependency_projection.py` owner. Publish
+`_active_subtask_with_sibling_lookup_surfaces(...)` as
+`active_subtask_with_sibling_lookup_surfaces(...)` and
+`_dependency_resolved_reconciliation_result(...)` as
+`dependency_resolved_reconciliation_result(...)`. Delete both mixin bodies and
+retarget every caller directly; do not add a wrapper, alias, callback, result
+carrier, reason, or compatibility attribute.
 
-The current definition spans are 35 + 15 + 7 + 22 = 79 lines at reconciliation
-lines 136-170, 173-187, 190-196, and 200-221. Removing only `self` from the request
-builder yields projected owner spans 35 + 15 + 7 + 21 = 78. The four current
-calls are direct: the request builder is called once by `_plan_reflection_retry`
-at Try depth zero; plan normalization is called once inside that method's
-structured-planner `try`; and the two summaries become owner-local request-builder
-calls. The final selected distribution is two graph-external and two owner-local
-calls. There are no non-call bindings, `hasattr` gates, callbacks, wrappers,
-aliases, or production override surfaces.
+The current reconciliation definition spans are 48 + 28 = 76 lines at lines
+132-179 and 181-208. Removing only `self` yields projected owner spans 47 + 27 =
+74. The five current loads are all direct calls at Try depth zero with no non-call
+binding: sibling-surface preparation is called once each by
+`_rerank_reconciliation_matches_with_llm(...)`,
+`_evidence_items_from_reconciliation_matches(...)`,
+`_extract_structured_operands_from_reconciliation(...)`, and
+`_reconcile_retrieved_evidence(...)`; the last caller also invokes the resolved-
+result projection once with exact keyword arguments. Final distribution is five
+graph-external and zero owner-local calls.
 
-The reflection owner already has `Any`/`Dict`/`List`, graph-state types under
-`TYPE_CHECKING`, and stable normalization. Add the strict
-`_resolve_runtime_calculation_trace(...)` dependency and extend the type-only
-imports with `ReflectionPlanRecord` and `ReflectionRequest`. Runtime trace does
-not import reflection projection, reflection projection does not import
-reconciliation, and the simulated import graph remains acyclic. The graph keeps
-its independent runtime-trace import for retry planning. The selected spans hit
-no runtime-domain baseline record, so the reviewed count remains 217.
+The dependency owner already has `re`, `Any`/`Dict`/`List`,
+`FinancialAgentState`, and `_normalise_spaces(...)`. Add only
+`RECONCILIATION_POLICY` on its existing retrieval-policy import edge. The owner
+does not import reconciliation, its existing dependencies have no reverse path
+through reconciliation, and the simulated import graph remains acyclic. All
+selected reconciliation imports remain live after deletion. The spans hit no
+runtime-domain baseline record, so the reviewed count remains 217.
 
-Plan normalization shallow-copies the planner record, normalizes missing info,
-subqueries, sections, and retry strategy, applies the bounded allowed-strategy
-fallback, fills missing lists, and replaces the whole record with the heuristic
-fallback when subqueries remain empty. Runtime summary resolves only the strict
-current trace from a top-level state copy and projects operand count plus plan and
-result surfaces. Evidence summary projects counts and status from prepared state.
-The public request builder copies active-task input, strips missing-info items,
-composes both summaries, and clamps remaining retry budget at zero. Inputs and
-nested state remain unmodified; current mapping, conversion, iteration, string,
-copy, and resolver exceptions keep their existing scope.
+Sibling-surface preparation shallow-copies the active subtask, normalizes its
+task id and existing surfaces, scans copied calculation subtasks in stable order,
+skips the active task only when its id is nonblank, accepts the exact lookup/
+single-value operation or concept metric families, applies the configured period
+prefix regex to task and operand labels, appends stripped aliases, and publishes
+a stable first-occurrence dedupe. The dependency-result projection scans bindings
+in order and returns a fresh ready result with normalized label/role/concept,
+task-output candidate ids, matched flags, fixed reason/notes, and empty missing/
+retry fields. Neither function mutates its arguments or catches mapping,
+iteration, truthiness, string, regex, normalization, or policy exceptions.
 
-Before source movement, add exactly six CURRENT-SOURCE methods in the reflection
-contract suite: one direct plan-normalization matrix; one direct runtime-summary
-matrix; one direct evidence-summary matrix; one direct request-builder matrix;
-one exact constants/definition/span/four-call/argument/Try-depth/distribution/
-import-DAG/baseline method; and one executable `_plan_reflection_retry(...)`
-caller matrix. Pin access and fallback order, allowed-strategy bounds, strict
-trace resolution, summary identity and adoption, budget clamping, shallow copies,
-nested aliases, no mutation, exact arguments, exception propagation before the
-planner, and the existing structured-planner catch/fallback when normalization
-raises. Then move/retarget/delete without a wrapper or alias, migrate the existing
-reflection contract imports and harness calls, require retired reconciliation-
-private source/test refs zero, and run focused six, reflection owner/contract,
-the affected seven-module semantic set, import-side-effect, runtime-audit,
-full-discovery, fresh-import, DAG, and diff-check gates sequentially. At the
-current inventory, exactly six new methods project an 18-test reflection contract
-module, 1,698 full tests, an 800-test semantic set, and an 819-test semantic/import
-union. The semantic set is `tests.test_reflection_capability_contract`,
-`tests.test_reconciliation_plan`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, `tests.test_operation_contracts`,
-`tests.test_aggregate_subtask_projection`, and
-`tests.test_financial_dependency_projection`; `tests.test_import_side_effects`
-forms the union.
+Before source movement, add exactly six CURRENT-SOURCE methods in the dependency
+owner suite: direct sibling-surface and direct resolved-result matrices; one
+exact definition/span/five-call/argument/Try-depth/distribution/import-DAG/
+baseline method; one executable rerank caller matrix; one combined evidence-item
+and structured-operand caller matrix; and one executable reconciliation caller
+matrix covering both selected functions. Pin policy access order, active-task
+skip, qualifying-family gates, regex and alias order, stable dedupe, fresh top-
+level copies and nested identities, normalized result fields, exact argument
+identity, caller adoption, laziness, no mutation, and exception propagation/
+downstream stop. Then move, retarget, delete, migrate existing graph-private test
+patches, require retired refs zero, and run focused six, the dependency owner,
+the affected eight-module semantic set, import-side-effect, union, runtime-audit,
+full-discovery, pycompile/fresh-import, DAG, parity, and diff-check gates
+sequentially. At the current inventory the semantic set is 817 tests and its
+import union is 836; exactly six new methods project 1,704 full tests.
 
-Keep `_heuristic_reflection_query_plan(...)`, `_finalize_retry_queries(...)`,
-`_plan_reflection_retry(...)`, missing-info inference, prompt/model invocation,
-retry action application, reflection report/artifact ledger mutation, eligibility,
-routing, mutable state/evidence, promotion, and final orchestration in the graph.
-Do not move the same request cluster to task artifacts: runtime trace already
-imports that owner and would form a cycle. The 76-line sibling/dependency
-reconciliation helper pair remains a less cohesive, broader-caller alternative;
-structured-cell/precision reverse-cycle work, slot/gap callback/ledger expansion,
-compact-ratio state/trace, ontology compatibility, prepared carriers, answer
-refresh, and evidence mutation remain rejected. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, schedule, retry-
-promotion, or Phase 3 completion claim follows.
+Keep all four callers graph-owned. In particular, retain dependency-binding
+state lookup, candidate construction and cell selection, ontology completion,
+evidence-item and operand-row construction, reranking/LLM work, retry selection,
+artifact creation/update, task/artifact ledger mutation, mutable state/evidence,
+promotion, sync/rebuild, and final sequencing. Do not expand into the structured-
+cell helper cluster because its natural operand owner has the existing graph-
+helper reverse-cycle boundary. Do not absorb `_reconcile_retrieved_evidence(...)`
+or reflection heuristic/finalization/planner methods because they cross dynamic
+owners, structured-model catches, state projection, or ledger sequencing.
+Slot/gap callbacks, compact-ratio state/trace, ontology compatibility, prepared
+carriers, answer refresh, and evidence mutation remain rejected. No behavior,
+accuracy, ranking, performance, total-code or executed-path reduction, benchmark,
+schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

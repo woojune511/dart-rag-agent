@@ -2785,14 +2785,67 @@ Reflection retry behavior is being moved toward a bounded capability contract.
 See [self_reflection_capability_contract.md](self_reflection_capability_contract.md)
 for the target request/plan/action/report boundary and allowed retry
 strategies.
-The request builder, strict runtime/evidence summaries, and planner-record
-normalizer remain graph-owned at this checkpoint. Their selected characterize-
-first movement into `financial_reflection_projection.py` must preserve the
-one-retry budget, allowed-strategy fallback, strict trace semantics, planner
-catch boundary, and exact graph caller placement described in
-[Project Status Next Work](../overview/project_status.md#next-work). That owner
-move does not activate reflection, increase retry budget, change final acceptance,
-or establish promotion evidence.
+`financial_reflection_projection.py` now owns the bounded request/plan projection
+contract. Public `normalise_reflection_plan_record(...)` shallow-copies the
+planner record, strips missing-info items, repeatedly normalizes subqueries and
+preferred sections, normalizes and bounds retry strategy against
+`ALLOWED_REFLECTION_RETRY_STRATEGIES`, and fills missing lists from caller
+fallbacks. If no normalized subquery survives, it replaces the whole projected
+record with a fresh shallow copy of the heuristic fallback and installs the
+existing explanation. Nested fallback values retain their current shallow-copy
+identity. Mapping, truthiness, iteration, string, and normalization exceptions
+are not caught by the owner.
+
+Owner-private `_reflection_runtime_trace_summary(...)` copies the top-level
+state before resolving the runtime trace with `allow_legacy_top_level=False`,
+then copies operands, plan, and result surfaces and projects only their count,
+status, operation/mode fallback, and explanation. Owner-private
+`_reflection_evidence_summary(...)` preserves the current evidence-items,
+retrieved-docs, seed-docs access order and projects their list counts plus raw
+string status. Public `build_reflection_request(...)` shallow-copies the active
+subtask, converts reflection count, strips caller-supplied missing info, adopts
+both summaries, and clamps the existing one-retry budget at zero. None of these
+functions mutates caller state or nested values, and resolver, copy, access,
+conversion, iteration, string, and normalizer exceptions preserve their former
+scope.
+
+The two public calls remain at their original `_plan_reflection_retry(...)`
+positions. Request construction runs before the structured-planner `try`, so an
+owner exception propagates and stops heuristic/prompt/model work. Plan
+normalization remains inside the existing structured-planner catch boundary, so
+an owner exception follows the current heuristic fallback. The two summary calls
+are owner-local. The former definition spans were 35 + 15 + 7 + 22 = 79 lines;
+the public-two/private-two owner spans are 35 + 15 + 7 + 21 = 78, with two
+graph-external and two owner-local calls. Commit `c47ac50` has source
+`+110/-99`, tests `+1,199/-14`, and whole-commit `+1,309/-113`; its source diff
+SHA-256 is `5cf8c743dd07a22ac9281711638f62588ecd771d708434e1cbcf0a70144cc56a`.
+Focused 6/6, reflection contract 18/18, affected semantic 800/800, import 19/19,
+union 819/819, audit 217, and full discovery 1,698/1,698 passed. Benchmark refresh
+was **NOT RUN**, remote CI is unverified, and the move does not activate
+reflection, increase retry budget, change final acceptance, establish promotion
+evidence, or prove behavior, accuracy, ranking, performance, total-code,
+executed-path, benchmark, schedule, ledger, or Phase 3 completion.
+
+The selected dependency-reconciliation preparation boundary retains its current
+behavior until characterized and moved. The graph-private sibling-surface helper
+shallow-copies the active subtask, normalizes existing surfaces, scans copied
+calculation subtasks in stable order, skips the active id only when nonblank,
+accepts the exact lookup/single-value operation or concept metric families,
+applies the configured period-prefix regex to metric and operand labels, appends
+stripped aliases, and publishes stable first-occurrence dedupe. The graph-private
+resolved-result helper scans dependency bindings in order and returns a fresh
+ready result with normalized label/role/concept, task-output candidate ids,
+matched flags, fixed reason/notes, and empty missing/retry fields. Neither catches
+mapping, iteration, truthiness, string, regex, policy, or normalization
+exceptions or mutates inputs.
+
+Their selected movement to `financial_dependency_projection.py` is exactly the
+76-line, five-call, external-five/local-zero batch specified in
+[Project Status Next Work](../overview/project_status.md#next-work). All four
+callers, dependency-state lookup, candidate/cell and evidence construction,
+ontology completion, LLM reranking, retry selection, artifact and ledger
+mutation, mutable state/evidence, promotion, sync/rebuild, and final sequencing
+remain graph-owned.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

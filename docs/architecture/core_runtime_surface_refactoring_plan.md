@@ -253,43 +253,39 @@ dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `c825ab7` commit is an ownership relocation only. Exactly five
-source/test files changed. Four reconciliation definition spans totaling 127
-lines became three public task-artifact projections plus one owner-private text
-matcher totaling 126 lines. Four selected calls finish graph-external and one
-finishes owner-local; retired selected private source/test refs are zero. A
-pre-move audit corrected the prior dead-import claim and `_operand_text_match`
-was removed from reconciliation after the move. Source is `+153/-138`, net `+15`:
-reconciliation moved from 2,429 to 2,302 physical lines and task artifacts from
-1,250 to 1,392. Tests are `+1,455/-4`, net `+1,451`, and the whole commit is
-`+1,608/-142`, net `+1,466`. Six AST-counted unittest methods moved the inventory
-and full discovery from 1,686 to 1,692. Final gates passed focused 6/6, task-
-artifact owner 9/9, affected semantic 817/817, import 19/19, semantic/import union
-836/836, audit 217, full discovery 1,692/1,692, pycompile/fresh import,
-DAG/body/caller parity, and diff check.
-Benchmark refresh was **NOT RUN** and
-remote CI is unverified. This establishes neither behavior, accuracy, ranking,
-performance, total-code, executed-path, ledger, benchmark, nor Phase 3
-completion.
+The completed `c47ac50` commit is an ownership relocation only. Exactly three
+source/test files changed. Four reconciliation definition spans totaling 79
+lines became two public reflection projections plus two owner-private summaries
+totaling 78 lines; their bounded strategy/budget constants moved with them. Two
+selected calls finish graph-external and two finish owner-local; retired selected
+private source/test refs are zero. Source is `+110/-99`, net `+11`:
+reconciliation moved from 2,302 to 2,211 physical lines and reflection projection
+from 158 to 260. Tests are `+1,199/-14`, net `+1,185`, and the whole commit is
+`+1,309/-113`, net `+1,196`. Six new unittest methods moved full discovery from
+1,692 to 1,698. Final gates passed focused 6/6, reflection contract 18/18,
+affected semantic 800/800, import 19/19, semantic/import union 819/819, audit 217,
+full discovery 1,698/1,698, pycompile/fresh import, DAG/body/caller parity, and
+diff check. Benchmark refresh was **NOT RUN** and remote CI is unverified. This
+establishes neither behavior, accuracy, ranking, performance, total-code,
+executed-path, ledger, benchmark, nor Phase 3 completion.
 
-The selected follow-on is the 79-line reflection request/plan projection cluster.
-Public `normalise_reflection_plan_record(...)` and
-`build_reflection_request(...)`, owner-private runtime/evidence summaries, and
-their bounded strategy/budget constants move to the existing
-`financial_reflection_projection.py` owner. Four current calls finish as two
-external and two owner-local; projected owner function spans total 78. The move
-adds the strict runtime-trace resolver plus type-only request/plan records on a
-cycle-free edge and moves no runtime-domain baseline record. Exact APIs,
-six-method characterization, call distribution, and rejected expansions live only in
+The selected follow-on is the 76-line dependency reconciliation preparation
+pair. Public `active_subtask_with_sibling_lookup_surfaces(...)` and
+`dependency_resolved_reconciliation_result(...)` move to the existing
+`financial_dependency_projection.py` owner. Five current calls finish
+graph-external and zero finish owner-local; projected owner function spans total
+74. The owner needs only `RECONCILIATION_POLICY` on an existing config edge and
+the selected spans move no runtime-domain baseline record. Exact APIs, six-method
+characterization, call distribution, and rejected expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-Heuristic reflection planning, retry-query finalization, prompt/model invocation,
-retry action application, report/artifact ledger mutation, eligibility/routing,
-mutable state/evidence, and final sequencing stay in the graph. Moving the same
-cluster to task artifacts is rejected because runtime trace already imports that
-owner; structured-cell/precision reverse-cycle work, slot/gap callback/ledger
-expansion, compact-ratio state/trace, ontology compatibility, carriers, answer
-refresh, and evidence mutation remain excluded.
+The four callers, dependency-state lookup, candidate/cell and evidence
+construction, ontology completion, LLM reranking, retry selection, artifact and
+ledger mutation, mutable state/evidence, promotion, sync/rebuild, and final
+sequencing stay in the graph. The structured-cell family remains excluded by its
+natural owner's graph-helper reverse-cycle boundary; reflection heuristic/model
+planning, slot/gap callback/ledger expansion, compact-ratio state/trace, ontology
+compatibility, carriers, answer refresh, and evidence mutation remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

@@ -2195,6 +2195,65 @@ cycle-safe dependencies, the six-method characterization gate, and rejected
 alternatives are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Reflection request/plan projection owner milestone
+
+- `c47ac50` moves the former reflection request/plan projections into
+  `financial_reflection_projection.py` as public
+  `normalise_reflection_plan_record(...)` and `build_reflection_request(...)`,
+  owner-private `_reflection_runtime_trace_summary(...)` and
+  `_reflection_evidence_summary(...)`, plus their bounded strategy/budget
+  constants. The former definition spans were 35 + 15 + 7 + 22 = 79 lines; the
+  actual public-two/private-two owner spans are 35 + 15 + 7 + 21 = 78. Two
+  selected calls are direct graph imports and the summary calls are owner-local.
+  Retired selected reconciliation-private source/test refs are zero and no
+  compatibility wrapper or alias remains.
+- The import DAG remains acyclic: reflection projection imports the strict
+  runtime-trace resolver, runtime trace does not import reflection projection,
+  and reflection projection does not import reconciliation. The graph keeps its
+  independent strict resolver use for heuristic retry planning. The selected
+  spans move no runtime-domain baseline record and the reviewed count remains
+  217.
+- Exactly three source/test files changed. Source is `+110/-99`, net `+11`:
+  reconciliation is `+7/-98` and moves from 2,302 to 2,211 physical lines;
+  reflection projection is `+103/-1` and moves from 158 to 260. Tests are
+  `+1,199/-14`, net `+1,185`; the whole commit is `+1,309/-113`, net `+1,196`.
+- The committed source-only diff SHA-256 is
+  `5cf8c743dd07a22ac9281711638f62588ecd771d708434e1cbcf0a70144cc56a`.
+  Literal body parity passed 4/4 after only `self` removal and owner-local name
+  rebinding. `_plan_reflection_retry(...)` remained exact after selected target
+  normalization; public import identity, fresh import, DAG checks, and retired
+  mixin-attribute absence passed.
+- Exactly six new unittest methods moved full discovery from 1,692 to 1,698.
+  Final validation passed focused 6/6, reflection contract 18/18, affected
+  seven-module semantic 800/800, import-side-effects 19/19, semantic/import union
+  819/819, runtime audit 217, full discovery 1,698/1,698, pycompile/fresh-import
+  binding checks, DAG/body/caller parity, and `git diff --check`. Benchmark refresh
+  was **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only ownership of deterministic projection over an
+already prepared reflection planner record and graph state. Heuristic planning,
+missing-info inference, retry-query finalization, prompt/model invocation,
+structured-planner catch/fallback, retry action application, report/artifact
+ledger mutation, eligibility/routing, mutable state/evidence, promotion, and final
+sequencing remain graph-owned. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, retry activation, promotion evidence, ledger completion, or Phase 3
+completion.
+
+At this handoff, the sole selected follow-on is the 76-line dependency
+reconciliation preparation pair in `financial_graph_reconciliation.py`. Public
+`active_subtask_with_sibling_lookup_surfaces(...)` and
+`dependency_resolved_reconciliation_result(...)` are projected at 47 + 27 = 74
+owner lines in `financial_dependency_projection.py`. Five selected calls finish
+graph-external and none finish owner-local. The four callers, dependency-state
+lookup, candidate/cell and evidence construction, ontology completion, LLM
+reranking, retry selection, artifact/ledger mutation, mutable state/evidence,
+promotion, sync/rebuild, and final sequencing remain hard stops. Exact APIs,
+cycle-safe dependencies, the six-method characterization gate, and rejected
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
