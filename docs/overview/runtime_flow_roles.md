@@ -286,7 +286,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, and lookup-answer surfaces |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -371,9 +371,12 @@ Aggregate/narrative row의 state-free answer policy owner다.
   component 함수와 owner-private text score로 배치된다. 아홉 call은 graph
   external 7개와 owner-local 2개이며, bound callback source map과 compact-ratio
   state/trace caller는 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 95-line narrative row-focus
-  sentence/context pair다. 두 public 함수, 세 external call, characterize-first
-  gate와 dynamic-driver/composition hard stop은
+- 완료된 narrative row-focus selection도 같은 owner의 public sentence/context
+  함수로 배치된다. 세 call은 모두 graph-external이고 dynamic driver discovery,
+  answer composition/validation, evidence/state sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 107-line growth display/material
+  cluster다. public 3개와 owner-private 1개, external 15/local 3 call,
+  characterize-first gate와 composition/duplicate-recovery hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

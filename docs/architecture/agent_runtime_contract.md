@@ -1593,12 +1593,50 @@ from 1,638 to 1,644. Benchmark refresh was **NOT RUN**, remote CI is unverified,
 and this relocation establishes no behavior, accuracy, ranking, performance,
 total-code, executed-path, benchmark, schedule, or Phase 3 completion claim.
 
-The next selected aggregate narrative row-focus pair is not yet an owner
-contract. It is the 95-line two-function boundary governed solely by
-[Project Status Next Work](../overview/project_status.md#next-work): two public
-aggregate-projection APIs, three graph-external calls, projected spans 26 and 67,
-and no baseline record move. Dynamic narrative-driver discovery, growth answer
-composition/validation, and evidence/state sequencing remain graph hard stops.
+Aggregate narrative row-focus projection is now owned by
+`financial_aggregate_projection.py`. Public
+`narrative_row_focus_sentence(ordered_results=..., focus_variants=...)` returns
+`None` before row access when focus variants are empty. Otherwise it scans rows
+in order, resolves operation family before normalized metric family, and accepts
+only a narrative-summary row. It cleans claim ids, reads narrative markers,
+splits the row answer, and for each sentence performs normalization, table-noise,
+then abbreviation-fragment filtering. The first sentence containing any focus
+variant case-insensitively wins as `(0, sentence, claim_ids)`. Stable row/sentence
+order, input identity, and nested values are preserved; access, truthiness,
+iteration, normalization, policy, splitter, predicate, and comparison exceptions
+are uncaught.
+
+Public `narrative_row_focus_context(query=..., ordered_results=...,
+focus_variants=..., max_sentences=2)` also returns before query-term access for
+an empty focus list. It filters narrative rows and sentences through the same
+owner surfaces, then scores each focus sentence as five per focus hit, three per
+impact-marker hit, one per query-term hit, minus one per numeric surface. Stable
+descending sorting retains the first equal-score sentence. A winning sentence
+that already contains an impact marker returns alone; otherwise later sentences
+and then earlier sentences with query or impact support are appended until the
+exact maximum. Claim ids and joined context are returned without mutating rows.
+Owner, policy, regex, splitter, predicate, access, normalization, iteration,
+sorting, containment, and comparison exceptions propagate.
+
+The two former graph bodies span 95 old lines and occupy 26 + 67 = 93 owner
+lines. Their three calls remain graph-external: sentence selection once and
+context selection twice. Retired graph-private definitions are zero. The
+`fcf4c55` source diff is `+105/-101`, tests are `+721/-3`, and the whole commit is
+`+826/-104`; five tests moved full discovery from 1,644 to 1,649. Dynamic
+narrative-driver discovery, growth answer composition/validation, evidence/state
+sequencing, and artifact/ledger work remain graph-owned. Benchmark refresh was
+**NOT RUN**, remote CI is unverified, and this relocation establishes no
+behavior, accuracy, ranking, performance, total-code, executed-path, benchmark,
+schedule, or Phase 3 completion claim.
+
+The next selected growth display/material cluster is not yet an owner contract.
+It is the 107-line four-function boundary governed solely by
+[Project Status Next Work](../overview/project_status.md#next-work): three public
+aggregate-projection APIs plus one owner-private helper, 18 calls projected as
+15 graph-external and three owner-local, owner spans 23 + 8 + 17 + 55 = 103, and
+no dependency or baseline-record move. Required-value construction, complete and
+narrative answer composition, duplicate recovery, state/evidence sequencing, and
+artifact/ledger work remain graph hard stops.
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`

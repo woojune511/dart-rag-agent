@@ -1813,6 +1813,49 @@ stops. Exact APIs, dependencies, five-method characterization gate, and rejected
 expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Aggregate narrative row-focus owner milestone
+
+- `fcf4c55` moves two former graph helpers into
+  `financial_aggregate_projection.py`: public
+  `narrative_row_focus_sentence(...)` and
+  `narrative_row_focus_context(...)`. The former definition spans were
+  27 + 68 = 95 lines; the owner spans are 26 + 67 = 93. All three selected calls
+  remain graph-external, and retired graph-private definitions are zero.
+- Exactly five source/test files changed. Source is `+105/-101`, net `+4`: the
+  graph is `+5/-100` and moves from 16,164 to 16,069 physical lines; aggregate
+  projection is `+100/-1` and moves from 1,845 to 1,944. Tests are `+721/-3`, net
+  `+718`: aggregate rank/dedupe is `+716/-0`, answer projection is `+3/-1`, and
+  text surface is `+2/-2`. The whole commit is `+826/-104`, net `+722`.
+- The frozen source-only diff SHA-256 is
+  `4ce346bc63cd45a6f25efcb758ac491df5bc58a704e8e14c5da2eed17ad44c62`.
+  Literal body parity and full composer/intent caller parity passed after only
+  self removal and selected call rebinding. The import DAG remains acyclic;
+  public import identity is exact; old mixin attributes are absent.
+- Five AST-counted unittest methods were added, moving the method inventory and
+  full discovery from 1,644 to 1,649. Final validation passed focused 5/5,
+  aggregate-owner module 15/15, the three migrated existing methods, the eight-
+  module semantic set 730/730, import-side-effects 19/19, the nine-module union
+  749/749, runtime audit 217, full discovery 1,649/1,649, pycompile/fresh-import
+  binding checks, and `git diff --check`. Benchmark refresh was **NOT RUN**, and
+  no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only state-free narrative row-focus sentence/context
+selection. Dynamic narrative-driver discovery, growth answer composition and
+validation, broader evidence work, mutable state/evidence, artifact/ledger work,
+promotion, sync/rebuild, and final sequencing remain graph-owned. The commit
+proves no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 107-line growth display/
+material cluster in graph lines 2945-3054. Three public aggregate-projection
+functions plus one owner-private source-task display helper are projected at
+23 + 8 + 17 + 55 = 103 owner lines; 18 calls finish as 15 graph-external and
+three owner-local. Required-value construction, complete/narrative composition,
+duplicate recovery, state/evidence, and artifact/ledger work remain hard stops.
+Exact APIs, dependencies, seven-method characterization gate, and rejected
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
