@@ -286,7 +286,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, and lookup-answer surfaces |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, and result support/reuse predicates |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -309,7 +309,7 @@ row/gap/lookup-answer policy, narrative term/variant/context sentence presentati
 prepared-document snippet projection and retrieved-source preservation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
 table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
-projection이 포함된다. Graph는 query/evidence preparation, caller
+projection, aggregate result support/reuse predicate가 포함된다. Graph는 query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
 sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
 planning은 nested traversal을 유지한다.
@@ -378,9 +378,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
   material-equality, prior-recovery 함수와 owner-private source-task helper로
   배치된다. 18 call은 graph external 15개와 owner-local 3개이며 growth answer
   construction, duplicate recovery, evidence/state sequencing은 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 81-line result support/reuse
-  predicate cluster다. public 4개, external 11/local 1 call, characterize-first
-  gate와 composition/state/final-sequencing hard stop은
+- 완료된 result support/reuse predicate도 같은 owner의 public dependency/
+  realignment/narrative/numeric-reuse 함수로 배치된다. 12 call은 graph external
+  11개와 owner-local 1개이며 answer choice, composition, state/evidence, final
+  sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 135-line prepared material-
+  inspection cluster다. public 4개와 owner-private helper 1개, external 16/local
+  1 call, characterize-first gate와 growth/ratio composition, artifact/state,
+  final-sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

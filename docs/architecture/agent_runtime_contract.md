@@ -1631,13 +1631,46 @@ schedule, or Phase 3 completion claim.
 
 The growth display/material cluster subsequently moved in `d4d19fc`; its exact
 owner semantics are specified in the source-task compatibility section below.
-The next selected aggregate result support/reuse predicate cluster is not yet an
-owner contract. It is the 81-line four-function boundary governed solely by
-[Project Status Next Work](../overview/project_status.md#next-work): four public
-aggregate-projection APIs, 12 calls projected as 11 graph-external and one owner-
-local, owner spans 39 + 10 + 16 + 12 = 77, and no import, dependency, or baseline-
-record move. Answer choice, composition, refresh, mutable state/evidence,
-artifact/ledger work, and final sequencing remain graph hard stops.
+Aggregate result support/reuse predicates are now also public in
+`financial_aggregate_projection.py`.
+
+`aggregate_results_include_dependency_numeric_result(ordered_results)` scans in
+stable row order and resolves aggregate operation family before any result or
+source access. Only ratio, sum, difference, and growth-rate rows continue. It
+shallow-copies the calculation result and sends result-level source ids, row-level
+source ids, and nested row/result operand source ids to source-id cleanup in that
+exact order. Any `task_output:` id returns `True` before dependency-flag access;
+otherwise only a truthy `dependency_resolved` on a dictionary row operand returns
+`True`. Result operands contribute source ids but not that final flag gate.
+
+`aggregate_results_include_source_task_slot_realignment(ordered_results)` tests
+raw `aligned_from_source_task_slots` truthiness before operation-family access and
+accepts the same four arithmetic families. Stable scan returns on the first
+supported aligned row. `answer_reuses_narrative_summary_text(answer,
+ordered_results)` normalizes the answer and returns before row iteration when it
+is blank. It scans only narrative-summary rows, normalizes each row answer,
+requires at least 20 characters plus one digit, and accepts either exact substring
+direction. `answer_reuses_numeric_narrative_summary_text(...)` calls that owner
+first and skips numeric extraction on `False`; otherwise it extracts from the
+original answer, removes candidates whose exact kind is `percent`, and requires
+at least two remaining candidates.
+
+The four functions copy no top-level input and mutate no row or nested value. They
+catch no mapping, truthiness, iteration, copy, string, regex, normalization,
+operation-family, source-cleanup, narrative-row, or numeric-extraction exception.
+Their 81 old graph lines occupy 39 + 10 + 16 + 12 = 77 owner lines. Twelve calls
+finish at 11 graph-external and one owner-local: 1/0, 1/0, 2/1, and 7/0 in the
+order above. Retired graph-private references are zero. The `6d6c9c3` source diff
+is `+100/-96`, tests are `+906/-6`, and all five files are `+1,006/-102`; six
+tests moved full discovery from 1,656 to 1,662. Benchmark refresh was **NOT RUN**,
+remote CI is unverified, and this relocation establishes no behavior, accuracy,
+ranking, performance, total-code, executed-path, benchmark, schedule, or Phase 3
+completion claim.
+
+The next selected prepared aggregate material-inspection cluster is not yet an
+owner contract. Its exact 135-line, public-four/private-one boundary and graph
+hard stops are governed solely by
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`

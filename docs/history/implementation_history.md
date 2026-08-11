@@ -1900,6 +1900,53 @@ evidence, and final sequencing remain hard stops. Exact APIs, dependencies, six-
 method characterization gate, and rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Aggregate result support/reuse predicate owner milestone
+
+- `6d6c9c3` moves four former graph predicates into
+  `financial_aggregate_projection.py`: public
+  `aggregate_results_include_dependency_numeric_result(...)`,
+  `aggregate_results_include_source_task_slot_realignment(...)`,
+  `answer_reuses_narrative_summary_text(...)`, and
+  `answer_reuses_numeric_narrative_summary_text(...)`. The former definition
+  spans were 40 + 11 + 17 + 13 = 81 lines; the owner spans are
+  39 + 10 + 16 + 12 = 77. Twelve selected calls now place 11 in the graph and one
+  owner-local, and retired graph-private definitions and test refs are zero.
+- Exactly five source/test files changed. Source is `+100/-96`, net `+4`: the
+  graph is `+15/-96` and moves from 15,961 to 15,880 physical lines; aggregate
+  projection is `+85/-0` and moves from 2,059 to 2,144. Tests are `+906/-6`, net
+  `+900`; the whole commit is `+1,006/-102`, net `+904`. The three touched test
+  files move from 19,474 to 20,374 physical lines; all five changed files move
+  from 37,494 to 38,398.
+- The frozen source-only diff SHA-256 is
+  `32a2895fe0e196eaff951ba4ef2440ceb3b9596a8e270e7aaac4b296f91ae693`.
+  Literal body parity passed 4/4 after only self removal and owner-local name
+  rebinding. Full retained-caller parity passed for the five external caller
+  methods. The import DAG remains acyclic; public import identity is exact; old
+  mixin attributes are absent.
+- Six AST-counted unittest methods were added, moving the method inventory and
+  full discovery from 1,656 to 1,662. Final validation passed focused 6/6,
+  focused plus migrated methods 8/8, aggregate-owner module 28/28, the eight-
+  module semantic set 743/743, import-side-effects 19/19, the nine-module union
+  762/762, runtime audit 217, full discovery 1,662/1,662, pycompile/fresh-import
+  binding checks, and `git diff --check`. Benchmark refresh was **NOT RUN**, and
+  no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only state-free result support/reuse predicate ownership.
+Answer selection, growth/narrative composition, mutable state/evidence, artifact/
+ledger work, promotion, sync/rebuild, and final sequencing remain graph-owned. The
+commit proves no behavior, accuracy, ranking, performance, total-code or executed-
+path reduction, benchmark improvement, schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 135-line prepared aggregate
+material-inspection cluster. Four public functions plus one owner-private helper
+are projected at 31 + 32 + 11 + 13 + 43 = 130 owner lines; 17 calls finish as 16
+graph-external and one owner-local. Complete/narrative growth composition,
+arithmetic surface synchronization, retrieved-ratio artifact/state handling,
+mutable state/evidence, and final sequencing remain hard stops. Exact APIs,
+cycle-safe dependencies, seven-method characterization gate, and rejected
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
