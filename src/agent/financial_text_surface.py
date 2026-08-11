@@ -1,8 +1,9 @@
 """Text surface helpers used by financial answer composition."""
 
 import re
-from typing import List
+from typing import Any, Dict, List
 
+from src.agent.financial_operation_policies import _query_requests_narrative_context
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
 
@@ -100,6 +101,92 @@ def parenthetical_focus_variants(query: str) -> List[str]:
         if outside_parentheses:
             variants.append(outside_parentheses)
     return list(dict.fromkeys(variant for variant in variants if len(variant) >= 2))
+
+
+def narrative_context_sentence_from_evidence(
+    query: str,
+    evidence_items: List[Dict[str, Any]],
+) -> str:
+    if not _query_requests_narrative_context(query):
+        return ""
+    query_terms = narrative_context_terms(query)
+    if not query_terms:
+        return ""
+
+    best_score = 0
+    best_sentence = ""
+    for item in evidence_items or []:
+        evidence = dict(item or {})
+        source_text = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in [
+                    evidence.get("source_anchor"),
+                    (evidence.get("metadata") or {}).get("section_path"),
+                    (evidence.get("metadata") or {}).get("section"),
+                ]
+            )
+        )
+        claim = _normalise_spaces(
+            str(
+                evidence.get("claim")
+                or evidence.get("quote_span")
+                or evidence.get("raw_row_text")
+                or ""
+            )
+        )
+        if not claim:
+            continue
+        haystack = f"{source_text} {claim}".lower()
+        term_score = sum(1 for term in query_terms if term.lower() in haystack)
+        if any(
+            str(term) in source_text
+            for term in (CALCULATION_NARRATIVE_POLICY.get("context_priority_section_terms") or ())
+        ):
+            term_score += 2
+        if str(evidence.get("support_level") or "").lower() in {
+            str(item).lower()
+            for item in (CALCULATION_NARRATIVE_POLICY.get("context_support_levels") or ())
+            if str(item)
+        }:
+            term_score += 1
+        if term_score <= best_score:
+            continue
+        best_score = term_score
+        best_sentence = claim
+
+    if best_score <= 0 or not best_sentence:
+        return ""
+    split_sentences = split_narrative_sentences(best_sentence)
+    best_sentence = split_sentences[0] if split_sentences else best_sentence
+    return best_sentence[:220].rstrip()
+
+
+def include_narrative_context_if_needed(
+    answer: str,
+    *,
+    query: str,
+    narrative_context: str,
+) -> str:
+    answer_text = _normalise_spaces(str(answer or ""))
+    context = _normalise_spaces(str(narrative_context or ""))
+    if not answer_text or not context or not _query_requests_narrative_context(query):
+        return answer_text
+    key_terms = [
+        term
+        for term in narrative_context_terms(query)
+        if term not in {
+            str(item)
+            for item in (CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
+            if str(item)
+        }
+    ]
+    context_terms = [term for term in key_terms if term in context]
+    if context_terms and any(term in answer_text for term in context_terms):
+        return answer_text
+    if context in answer_text:
+        return answer_text
+    return _normalise_spaces(f"{context} {answer_text}")
 
 
 def topic_particle(value: str) -> str:

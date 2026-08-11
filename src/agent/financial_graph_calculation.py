@@ -285,7 +285,9 @@ from src.agent.financial_numeric_surface import (
     text_supports_numeric_candidates,
 )
 from src.agent.financial_text_surface import (
+    include_narrative_context_if_needed,
     narrative_context_terms,
+    narrative_context_sentence_from_evidence,
     narrative_focus_variants,
     narrative_sentence_looks_abbreviated_fragment as _narrative_sentence_looks_abbreviated_fragment,
     narrative_sentence_looks_table_noisy as _narrative_sentence_looks_table_noisy,
@@ -4640,7 +4642,7 @@ class FinancialAgentCalculationMixin:
                 evidence_items=aggregate_evidence_items,
             )
         if not deterministic_feedback:
-            final_answer = self._include_narrative_context_if_needed(
+            final_answer = include_narrative_context_if_needed(
                 final_answer,
                 query=str(state.get("query") or ""),
                 narrative_context=narrative_context,
@@ -7734,92 +7736,6 @@ class FinancialAgentCalculationMixin:
             )
         ).ordered_results
         return preserved_results, self._rebuild_aggregate_projection(preserved_results, final_answer)
-
-    def _narrative_context_sentence_from_evidence(
-        self,
-        query: str,
-        evidence_items: List[Dict[str, Any]],
-    ) -> str:
-        if not _query_requests_narrative_context(query):
-            return ""
-        query_terms = narrative_context_terms(query)
-        if not query_terms:
-            return ""
-
-        best_score = 0
-        best_sentence = ""
-        for item in evidence_items or []:
-            evidence = dict(item or {})
-            source_text = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for value in [
-                        evidence.get("source_anchor"),
-                        (evidence.get("metadata") or {}).get("section_path"),
-                        (evidence.get("metadata") or {}).get("section"),
-                    ]
-                )
-            )
-            claim = _normalise_spaces(
-                str(
-                    evidence.get("claim")
-                    or evidence.get("quote_span")
-                    or evidence.get("raw_row_text")
-                    or ""
-                )
-            )
-            if not claim:
-                continue
-            haystack = f"{source_text} {claim}".lower()
-            term_score = sum(1 for term in query_terms if term.lower() in haystack)
-            if any(
-                str(term) in source_text
-                for term in (CALCULATION_NARRATIVE_POLICY.get("context_priority_section_terms") or ())
-            ):
-                term_score += 2
-            if str(evidence.get("support_level") or "").lower() in {
-                str(item).lower()
-                for item in (CALCULATION_NARRATIVE_POLICY.get("context_support_levels") or ())
-                if str(item)
-            }:
-                term_score += 1
-            if term_score <= best_score:
-                continue
-            best_score = term_score
-            best_sentence = claim
-
-        if best_score <= 0 or not best_sentence:
-            return ""
-        split_sentences = _split_narrative_sentences(best_sentence)
-        best_sentence = split_sentences[0] if split_sentences else best_sentence
-        return best_sentence[:220].rstrip()
-
-    def _include_narrative_context_if_needed(
-        self,
-        answer: str,
-        *,
-        query: str,
-        narrative_context: str,
-    ) -> str:
-        answer_text = _normalise_spaces(str(answer or ""))
-        context = _normalise_spaces(str(narrative_context or ""))
-        if not answer_text or not context or not _query_requests_narrative_context(query):
-            return answer_text
-        key_terms = [
-            term
-            for term in narrative_context_terms(query)
-            if term not in {
-                str(item)
-                for item in (CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
-                if str(item)
-            }
-        ]
-        context_terms = [term for term in key_terms if term in context]
-        if context_terms and any(term in answer_text for term in context_terms):
-            return answer_text
-        if context in answer_text:
-            return answer_text
-        return _normalise_spaces(f"{context} {answer_text}")
 
     def _policy_required_realized_snippet_from_doc(
         self,
@@ -15634,7 +15550,7 @@ class FinancialAgentCalculationMixin:
                 query=str(state.get("query") or ""),
                 evidence_items=period_context_evidence_items,
             )
-        narrative_context = self._narrative_context_sentence_from_evidence(
+        narrative_context = narrative_context_sentence_from_evidence(
             str(state.get("query") or ""),
             aggregate_evidence_items,
         )
