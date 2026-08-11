@@ -3,9 +3,13 @@
 import re
 from typing import Any, Dict, List
 
+from src.agent.financial_numeric_surface import (
+    extract_numeric_surface_candidates,
+    text_supports_numeric_candidates,
+)
 from src.agent.financial_operation_policies import _query_requests_narrative_context
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, narrative_policy_terms
 
 
 def _tokenize_terms(text: str) -> set[str]:
@@ -236,6 +240,149 @@ def split_narrative_sentences(text: str) -> List[str]:
         for fragment in re.split(r"(?<=[.!?。])\s+|\n+", surface)
         if _normalise_spaces(fragment)
     ]
+
+
+def policy_required_realized_snippet_from_doc(
+    *,
+    doc: Any,
+    policy: Dict[str, Any],
+) -> str:
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    required_terms = narrative_policy_terms([policy], "required_realized_terms")
+    if not required_terms:
+        return ""
+    surface_parts = [
+        str(metadata.get("table_value_labels_text") or ""),
+        str(metadata.get("table_row_labels_text") or ""),
+        str(metadata.get("table_summary_text") or ""),
+        str(metadata.get("table_context") or ""),
+        str(getattr(doc, "page_content", "") or ""),
+    ]
+    surface = _normalise_spaces(" ".join(part for part in surface_parts if part))
+    if not surface:
+        return ""
+    lowered = surface.lower()
+    matched_term = next((term for term in required_terms if term.lower() in lowered), "")
+    if not matched_term:
+        return ""
+    term_index = lowered.find(matched_term.lower())
+    window = surface[term_index : min(len(surface), term_index + 520)]
+    unit_hint = _normalise_spaces(str(metadata.get("unit_hint") or ""))
+    numbers = re.findall(r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?", window)
+    numeric_values = [
+        value
+        for value in numbers
+        if not re.fullmatch(r"20\d{2}", value)
+        and not (re.fullmatch(r"\d+\)?", value) and len(value.strip("()")) <= 2)
+    ]
+    label_match = re.search(re.escape(matched_term) + r"(?:\([^)]*\))?", window)
+    label = _normalise_spaces(label_match.group(0) if label_match else matched_term)
+    footnote_suffix_pattern = str(
+        CALCULATION_NARRATIVE_POLICY.get("policy_required_realized_footnote_suffix_pattern") or ""
+    )
+    if footnote_suffix_pattern:
+        label = re.sub(footnote_suffix_pattern, "", label).strip() or matched_term
+    if len(numeric_values) >= 2 and unit_hint:
+        template = str(
+            CALCULATION_NARRATIVE_POLICY.get("policy_required_realized_current_change_template") or ""
+        )
+        return _normalise_spaces(
+            template.format(
+                label=label,
+                topic_particle=topic_particle(label),
+                current_value=numeric_values[0],
+                change_value=numeric_values[1],
+                unit=unit_hint,
+            )
+        )
+    if numeric_values and unit_hint:
+        template = str(CALCULATION_NARRATIVE_POLICY.get("policy_required_realized_current_template") or "")
+        return _normalise_spaces(
+            template.format(
+                label=label,
+                topic_particle=topic_particle(label),
+                current_value=numeric_values[0],
+                unit=unit_hint,
+            )
+        )
+    for sentence in split_narrative_sentences(surface):
+        cleaned = _normalise_spaces(sentence)
+        if matched_term.lower() in cleaned.lower() and re.search(r"\d", cleaned):
+            return cleaned[:220].rstrip()
+    return window[:220].rstrip()
+
+
+def preserve_retrieved_narrative_source_surface(
+    answer: str,
+    evidence_items: List[Dict[str, Any]],
+) -> str:
+    answer_text = _normalise_spaces(str(answer or ""))
+    if not answer_text or not evidence_items:
+        return answer_text
+    answer_numeric_candidates = extract_numeric_surface_candidates(answer_text)
+    sentences = [_normalise_spaces(sentence) for sentence in split_narrative_sentences(answer_text)]
+    if not sentences:
+        return answer_text
+
+    def _content_terms(text: str) -> set[str]:
+        return {
+            term.lower()
+            for term in narrative_context_terms(text)
+            if len(term) >= 3
+        }
+
+    missing_markers = tuple(
+        str(item)
+        for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
+        if str(item)
+    )
+    replacements: Dict[str, str] = {}
+    for item in evidence_items or []:
+        evidence = dict(item or {})
+        evidence_id = str(evidence.get("evidence_id") or "").strip()
+        if not evidence_id.startswith("retrieved_narrative::"):
+            continue
+        claim = _normalise_spaces(str(evidence.get("claim") or ""))
+        quote = _normalise_spaces(str(evidence.get("quote_span") or evidence.get("raw_row_text") or ""))
+        if not claim or not quote or claim == quote:
+            continue
+        if any(marker in claim for marker in missing_markers):
+            continue
+        claim_terms = _content_terms(claim)
+        if not claim_terms:
+            continue
+        best_quote_sentence = ""
+        best_score = 0
+        for quote_sentence in split_narrative_sentences(quote) or [quote]:
+            quote_sentence = _normalise_spaces(quote_sentence)
+            quote_terms = _content_terms(quote_sentence)
+            if not quote_terms:
+                continue
+            score = len(claim_terms & quote_terms)
+            if score > best_score:
+                best_score = score
+                best_quote_sentence = quote_sentence
+        if not best_quote_sentence:
+            continue
+        min_score = max(2, min(4, len(claim_terms) // 2 or 1))
+        if best_score < min_score:
+            continue
+        for sentence in sentences:
+            if not sentence or sentence in replacements:
+                continue
+            if any(marker in sentence for marker in missing_markers):
+                continue
+            if text_supports_numeric_candidates(sentence, answer_numeric_candidates):
+                continue
+            sentence_terms = _content_terms(sentence)
+            if not sentence_terms:
+                continue
+            if sentence == claim or len(sentence_terms & claim_terms) >= min_score:
+                replacements[sentence] = best_quote_sentence
+                break
+    if not replacements:
+        return answer_text
+    return _normalise_spaces(" ".join(replacements.get(sentence, sentence) for sentence in sentences))
 
 
 def narrative_sentence_looks_table_noisy(sentence: str) -> bool:

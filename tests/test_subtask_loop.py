@@ -24,6 +24,7 @@ from src.agent import financial_aggregate_projection
 from src.agent import financial_answer_projection
 from src.agent import financial_answer_slots
 from src.agent import financial_graph_calculation
+from src.agent import financial_text_surface
 from src.agent import financial_lookup_recovery
 from src.agent import financial_operand_resolution
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
@@ -18939,7 +18940,7 @@ class SubtaskLoopTests(unittest.TestCase):
             "2023 regional sales volume was 870,000 units, up 11.5%. "
             "The company stated that PolicyA requires an active response."
         )
-        updated = self.agent._preserve_retrieved_narrative_source_surface(
+        updated = financial_text_surface.preserve_retrieved_narrative_source_surface(
             answer,
             [
                 {
@@ -18958,7 +18959,7 @@ class SubtaskLoopTests(unittest.TestCase):
     def test_retrieved_narrative_source_surface_keeps_missing_answer_sentence(self) -> None:
         answer = "요청한 수치는 제공된 보고서에서 찾을 수 없습니다."
 
-        updated = self.agent._preserve_retrieved_narrative_source_surface(
+        updated = financial_text_surface.preserve_retrieved_narrative_source_surface(
             answer,
             [
                 {
@@ -21660,10 +21661,14 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._append_retrieved_narrative_evidence_for_final_answer = (
             lambda evidence_items, **_kwargs: (list(evidence_items or []), ["ev_driver"])
         )
-        self.agent._preserve_retrieved_narrative_source_surface = (
-            lambda _answer, _evidence_items: (
-                "2023 segment revenue was 2,546,649 million, "
-                "up 41.4% from 1,801,079 million."
+        self.enterContext(
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                new=lambda _answer, _evidence_items: (
+                    "2023 segment revenue was 2,546,649 million, "
+                    "up 41.4% from 1,801,079 million."
+                ),
             )
         )
         correct_prior_row = {
@@ -22782,8 +22787,14 @@ class SubtaskLoopTests(unittest.TestCase):
         self.agent._align_lookup_results_with_dependency_projection = (
             lambda ordered_results, _state, _projection: list(ordered_results)
         )
-        self.agent._preserve_retrieved_narrative_source_surface = (
-            lambda _answer, _evidence_items: "The acquisition improved commerce revenue growth by 41.4%."
+        self.enterContext(
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                new=lambda _answer, _evidence_items: (
+                    "The acquisition improved commerce revenue growth by 41.4%."
+                ),
+            )
         )
         state = {
             "query": "Calculate the 2023 commerce revenue growth rate and summarize the acquisition impact.",

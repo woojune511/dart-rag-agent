@@ -612,7 +612,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             for entry in entries
             if entry[0] == "graph"
         ]
-        self.assertEqual((len(graph_external), len(owner_local)), (19, 4))
+        self.assertEqual((len(graph_external), len(owner_local)), (18, 5))
         self.assertEqual(
             [(caller, args) for _module, caller, _receiver, args, _keywords in owner_local],
             [
@@ -620,6 +620,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 ("parenthetical_focus_variants", ("query",)),
                 ("narrative_context_sentence_from_evidence", ("query",)),
                 ("include_narrative_context_if_needed", ("query",)),
+                ("_content_terms", ("text",)),
             ],
         )
 
@@ -1796,7 +1797,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 sum(entry[0] == "graph" for entries in calls.values() for entry in entries),
                 sum(entry[0] == "owner" for entries in calls.values() for entry in entries),
             ),
-            (21, 4),
+            (20, 5),
         )
 
         owner_local = [
@@ -1811,7 +1812,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             for entry in entries
             if entry[0] == "graph"
         ]
-        self.assertEqual((len(graph_external), len(owner_local)), (21, 4))
+        self.assertEqual((len(graph_external), len(owner_local)), (20, 5))
         self.assertEqual(
             [(caller, args) for _module, caller, _receiver, args, _keywords in owner_local],
             [
@@ -1819,6 +1820,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 ("parenthetical_focus_variants", ("query",)),
                 ("narrative_context_sentence_from_evidence", ("query",)),
                 ("include_narrative_context_if_needed", ("query",)),
+                ("_content_terms", ("text",)),
             ],
         )
 
@@ -2139,6 +2141,1286 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         self.assertEqual(state, originals[0])
         self.assertEqual(narrative_docs, originals[4])
         self.assertIs(narrative_docs[0], narrative_doc)
+
+    def test_current_source_required_policy_snippet_pins_surfaces_templates_fallbacks_and_exceptions(self) -> None:
+        nested_metadata = {"preserve": True}
+        metadata = {
+            "table_value_labels_text": "second 999",
+            "table_row_labels_text": "Metric(note) 2023 7 1,234 567",
+            "table_summary_text": "summary 888",
+            "table_context": "context 777",
+            "unit_hint": " USD ",
+            "nested": nested_metadata,
+        }
+        original_metadata = deepcopy(metadata)
+        events = []
+
+        class RecordingDoc:
+            @property
+            def metadata(self):
+                events.append("metadata")
+                return metadata
+
+            @property
+            def page_content(self):
+                events.append("page_content")
+                return "page 666"
+
+        real_normalize = financial_text_surface._normalise_spaces
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return real_normalize(value)
+
+        def policy_terms(policies, key):
+            events.append(("policy_terms", policies, key))
+            return ["Metric", "Second"]
+
+        snippet_policy = {
+            "policy_required_realized_footnote_suffix_pattern": r"\(note\)$",
+            "policy_required_realized_current_change_template": (
+                "{label}|{topic_particle}|{current_value}|{change_value}|{unit}"
+            ),
+            "policy_required_realized_current_template": (
+                "{label}|{topic_particle}|{current_value}|{unit}"
+            ),
+        }
+        topic = Mock(return_value="TOPIC")
+        with (
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", snippet_policy),
+            patch.object(financial_text_surface, "narrative_policy_terms", side_effect=policy_terms),
+            patch.object(financial_text_surface, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_text_surface, "topic_particle", topic),
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=RecordingDoc(),
+                    policy={"required_realized_terms": ("Metric", "Second")},
+                ),
+                "Metric|TOPIC|1,234|567|USD",
+            )
+        self.assertEqual(events[0], "metadata")
+        self.assertEqual(
+            events[1],
+            (
+                "policy_terms",
+                [{"required_realized_terms": ("Metric", "Second")}],
+                "required_realized_terms",
+            ),
+        )
+        self.assertEqual(events[2], "page_content")
+        self.assertEqual(
+            events[3],
+            (
+                "normalize",
+                "second 999 Metric(note) 2023 7 1,234 567 summary 888 context 777 page 666",
+            ),
+        )
+        topic.assert_called_once_with("Metric")
+        self.assertEqual(metadata, original_metadata)
+        self.assertIs(metadata["nested"], nested_metadata)
+
+        class PageBombDoc:
+            metadata = {"table_value_labels_text": "must not be read", "nested": nested_metadata}
+
+            @property
+            def page_content(self):
+                raise AssertionError("page content accessed")
+
+        no_terms = Mock(return_value=[])
+        with (
+            patch.object(financial_text_surface, "narrative_policy_terms", no_terms),
+            patch.object(
+                financial_text_surface,
+                "_normalise_spaces",
+                side_effect=AssertionError("surface normalized"),
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=PageBombDoc(),
+                    policy={"required_realized_terms": ()},
+                ),
+                "",
+            )
+        no_terms.assert_called_once_with(
+            [{"required_realized_terms": ()}],
+            "required_realized_terms",
+        )
+        self.assertIs(PageBombDoc.metadata["nested"], nested_metadata)
+
+        class DeeperPolicyBomb(dict):
+            def get(self, key, default=None):
+                raise AssertionError(f"deeper policy accessed: {key}")
+
+        blank_doc = Mock(
+            metadata={
+                "table_value_labels_text": "",
+                "table_row_labels_text": "",
+                "table_summary_text": "",
+                "table_context": "",
+                "unit_hint": "must not be read",
+            },
+            page_content="",
+        )
+        with (
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", DeeperPolicyBomb()),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(financial_text_surface.re, "findall", side_effect=AssertionError("numbers read")),
+            patch.object(
+                financial_text_surface,
+                "split_narrative_sentences",
+                side_effect=AssertionError("split ran"),
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=blank_doc,
+                    policy={"required_realized_terms": ("Metric",)},
+                ),
+                "",
+            )
+
+        class UnitBomb:
+            def __str__(self):
+                raise AssertionError("unit read")
+
+        unmatched_doc = Mock(
+            metadata={"table_value_labels_text": "Other 123", "unit_hint": UnitBomb()},
+            page_content="",
+        )
+        with (
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", DeeperPolicyBomb()),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(financial_text_surface.re, "findall", side_effect=AssertionError("numbers read")),
+            patch.object(
+                financial_text_surface,
+                "split_narrative_sentences",
+                side_effect=AssertionError("split ran"),
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=unmatched_doc,
+                    policy={"required_realized_terms": ("Metric",)},
+                ),
+                "",
+            )
+
+        lowercase_policy = {
+            "policy_required_realized_footnote_suffix_pattern": "",
+            "policy_required_realized_current_template": (
+                "{label}:{topic_particle}:{current_value}:{unit}"
+            ),
+        }
+        with (
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", lowercase_policy),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["metric"]),
+            patch.object(financial_text_surface, "topic_particle", return_value="P") as lowercase_topic,
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=Mock(
+                        metadata={"table_value_labels_text": "Metric 123", "unit_hint": "units"},
+                        page_content="",
+                    ),
+                    policy={"required_realized_terms": ("metric",)},
+                ),
+                "metric:P:123:units",
+            )
+        lowercase_topic.assert_called_once_with("metric")
+
+        current_policy = {
+            "policy_required_realized_footnote_suffix_pattern": "",
+            "policy_required_realized_current_change_template": "unused {missing}",
+            "policy_required_realized_current_template": (
+                "{label}:{topic_particle}:{current_value}:{unit}"
+            ),
+        }
+        current_doc = Mock(
+            metadata={"table_value_labels_text": "Metric 123", "unit_hint": "units"},
+            page_content="",
+        )
+        with (
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", current_policy),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(financial_text_surface, "topic_particle", return_value="P") as current_topic,
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=current_doc,
+                    policy={"required_realized_terms": ("Metric",)},
+                ),
+                "Metric:P:123:units",
+            )
+        current_topic.assert_called_once_with("Metric")
+
+        long_sentence = "Metric " + ("x" * 230) + " 123."
+        fallback_doc = Mock(metadata={}, page_content=long_sentence)
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"policy_required_realized_footnote_suffix_pattern": ""},
+            ),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(
+                financial_text_surface,
+                "split_narrative_sentences",
+                return_value=[long_sentence, "Metric 456."],
+            ) as splitter,
+        ):
+            self.assertEqual(
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=fallback_doc,
+                    policy={"required_realized_terms": ("Metric",)},
+                ),
+                long_sentence[:220].rstrip(),
+            )
+        splitter.assert_called_once_with(long_sentence)
+
+        window_surface = "Metric " + ("z" * 520) + " 999"
+        window_doc = Mock(metadata={}, page_content=window_surface)
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"policy_required_realized_footnote_suffix_pattern": ""},
+            ),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(financial_text_surface, "split_narrative_sentences", return_value=[]) as splitter,
+        ):
+            window_result = financial_text_surface.policy_required_realized_snippet_from_doc(
+                doc=window_doc,
+                policy={"required_realized_terms": ("Metric",)},
+            )
+        self.assertEqual(window_result, window_surface[:220].rstrip())
+        self.assertEqual(len(window_result), 220)
+        self.assertNotIn("999", window_result)
+        splitter.assert_called_once_with(window_surface)
+
+        class MetadataAccessFailure:
+            @property
+            def metadata(self):
+                raise RuntimeError("metadata failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata failed"):
+            financial_text_surface.policy_required_realized_snippet_from_doc(
+                doc=MetadataAccessFailure(),
+                policy={},
+            )
+
+        with patch.object(
+            financial_text_surface,
+            "narrative_policy_terms",
+            side_effect=RuntimeError("policy terms failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy terms failed"):
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=Mock(metadata={}, page_content=""),
+                    policy={},
+                )
+
+        regex_doc = Mock(
+            metadata={"table_value_labels_text": "Metric 123", "unit_hint": "units"},
+            page_content="",
+        )
+        with (
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(financial_text_surface.re, "findall", side_effect=RuntimeError("regex failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "regex failed"):
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=regex_doc,
+                    policy={},
+                )
+
+        class FailingTemplate:
+            def __str__(self):
+                raise RuntimeError("template failed")
+
+        class TemplatePolicy(dict):
+            def get(self, key, default=None):
+                if key == "policy_required_realized_current_template":
+                    return FailingTemplate()
+                return super().get(key, default)
+
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                TemplatePolicy(policy_required_realized_footnote_suffix_pattern=""),
+            ),
+            patch.object(financial_text_surface, "narrative_policy_terms", return_value=["Metric"]),
+            patch.object(financial_text_surface, "topic_particle", return_value="P"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "template failed"):
+                financial_text_surface.policy_required_realized_snippet_from_doc(
+                    doc=regex_doc,
+                    policy={},
+                )
+
+    def test_current_source_retrieved_source_preservation_pins_gates_ties_numeric_veto_and_exceptions(self) -> None:
+        answer = (
+            "Numeric 123 stays. "
+            "Claim alpha beta gamma delta. "
+            "Second epsilon zeta eta theta. "
+            "Low red blue green yellow. "
+            "MISSING guarded coral indigo violet."
+        )
+        nested = {"preserve": True}
+        evidence_items = [
+            {
+                "evidence_id": "other::skip",
+                "claim": "not accessed",
+                "quote_span": "not accessed",
+            },
+            {
+                "evidence_id": "retrieved_narrative::missing",
+                "claim": "MISSING alpha beta gamma delta",
+                "quote_span": "Missing alpha beta.",
+            },
+            {
+                "evidence_id": "retrieved_narrative::same",
+                "claim": "same alpha beta",
+                "quote_span": "same alpha beta",
+            },
+            {
+                "evidence_id": "retrieved_narrative::first",
+                "claim": "Claim alpha beta gamma delta.",
+                "quote_span": "Quote alpha beta. Tie alpha beta.",
+                "metadata": nested,
+            },
+            {
+                "evidence_id": "retrieved_narrative::raw",
+                "claim": "Second epsilon zeta eta theta.",
+                "quote_span": "",
+                "raw_row_text": "Raw epsilon zeta. Later epsilon zeta.",
+            },
+            {
+                "evidence_id": "retrieved_narrative::numeric",
+                "claim": "Numeric stays.",
+                "quote_span": "Overstated numeric replacement.",
+            },
+            {
+                "evidence_id": "retrieved_narrative::duplicate",
+                "claim": "Claim alpha beta gamma delta.",
+                "quote_span": "Later alpha beta.",
+            },
+            {
+                "evidence_id": "retrieved_narrative::below-threshold",
+                "claim": "Low red blue green yellow.",
+                "quote_span": "Only red.",
+            },
+            {
+                "evidence_id": "retrieved_narrative::answer-marker",
+                "claim": "guarded coral indigo violet",
+                "quote_span": "Grounded coral indigo.",
+            },
+        ]
+        original_evidence = deepcopy(evidence_items)
+        original_identities = [id(item) for item in evidence_items]
+        preservation_policy = {
+            "missing_answer_markers": ("MISSING",),
+            "context_stopwords": (),
+        }
+        with patch.object(
+            financial_text_surface,
+            "CALCULATION_NARRATIVE_POLICY",
+            preservation_policy,
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_retrieved_narrative_source_surface(answer, evidence_items),
+                (
+                    "Numeric 123 stays. Quote alpha beta. Raw epsilon zeta. "
+                    "Low red blue green yellow. MISSING guarded coral indigo violet."
+                ),
+            )
+        self.assertEqual(evidence_items, original_evidence)
+        self.assertEqual([id(item) for item in evidence_items], original_identities)
+        self.assertIs(evidence_items[3]["metadata"], nested)
+
+        numeric = Mock(side_effect=AssertionError("numeric extraction ran"))
+        splitter = Mock(side_effect=AssertionError("split ran"))
+        with (
+            patch.object(financial_text_surface, "extract_numeric_surface_candidates", numeric),
+            patch.object(financial_text_surface, "split_narrative_sentences", splitter),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_retrieved_narrative_source_surface("   ", evidence_items),
+                "",
+            )
+            self.assertEqual(
+                financial_text_surface.preserve_retrieved_narrative_source_surface("kept answer", []),
+                "kept answer",
+            )
+        numeric.assert_not_called()
+        splitter.assert_not_called()
+
+        empty_split_events = []
+
+        class EvidenceIterationBomb:
+            def __iter__(self):
+                raise AssertionError("evidence iterated")
+
+            def __bool__(self):
+                return True
+
+        class MissingMarkerPolicyBomb(dict):
+            def get(self, key, default=None):
+                raise AssertionError(f"policy accessed: {key}")
+
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                MissingMarkerPolicyBomb(),
+            ),
+            patch.object(
+                financial_text_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=lambda value: empty_split_events.append(("numeric", value)) or [],
+            ),
+            patch.object(
+                financial_text_surface,
+                "split_narrative_sentences",
+                side_effect=lambda value: empty_split_events.append(("split", value)) or [],
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_retrieved_narrative_source_surface(
+                    "kept answer",
+                    EvidenceIterationBomb(),
+                ),
+                "kept answer",
+            )
+        self.assertEqual(
+            empty_split_events,
+            [("numeric", "kept answer"), ("split", "kept answer")],
+        )
+
+        events = []
+        candidates = [{"kind": "number", "text": "123"}]
+
+        def split(value):
+            events.append(("split", value))
+            if value == "Numeric 123 stays.":
+                return [value]
+            return [value]
+
+        def terms(value):
+            events.append(("terms", value))
+            if value == "Numeric 123 stays.":
+                raise AssertionError("numeric sentence terms accessed")
+            return ["Numeric", "stays"]
+
+        def numeric_support(value, received_candidates):
+            events.append(("numeric_support", value, received_candidates))
+            return True
+
+        numeric_evidence = [
+            {
+                "evidence_id": "retrieved_narrative::numeric",
+                "claim": "Numeric stays.",
+                "quote_span": "Numeric replacement.",
+            }
+        ]
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"missing_answer_markers": ()},
+            ),
+            patch.object(
+                financial_text_surface,
+                "extract_numeric_surface_candidates",
+                side_effect=lambda value: events.append(("numeric", value)) or candidates,
+            ),
+            patch.object(financial_text_surface, "split_narrative_sentences", side_effect=split),
+            patch.object(financial_text_surface, "narrative_context_terms", side_effect=terms),
+            patch.object(
+                financial_text_surface,
+                "text_supports_numeric_candidates",
+                side_effect=numeric_support,
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_retrieved_narrative_source_surface(
+                    "Numeric 123 stays.",
+                    numeric_evidence,
+                ),
+                "Numeric 123 stays.",
+            )
+        self.assertEqual(events[0], ("numeric", "Numeric 123 stays."))
+        self.assertEqual(events[1], ("split", "Numeric 123 stays."))
+        self.assertIn(("numeric_support", "Numeric 123 stays.", candidates), events)
+        self.assertNotIn(("terms", "Numeric 123 stays."), events)
+
+        class ValueBomb:
+            def __str__(self):
+                raise AssertionError("skipped value stringified")
+
+        skipped = [
+            {
+                "evidence_id": "not-retrieved",
+                "claim": ValueBomb(),
+                "quote_span": ValueBomb(),
+            }
+        ]
+        terms = Mock(side_effect=AssertionError("terms accessed"))
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"missing_answer_markers": ()},
+            ),
+            patch.object(financial_text_surface, "narrative_context_terms", terms),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_retrieved_narrative_source_surface("Plain answer.", skipped),
+                "Plain answer.",
+            )
+        terms.assert_not_called()
+
+        with patch.object(
+            financial_text_surface,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("numeric failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "numeric failed"):
+                financial_text_surface.preserve_retrieved_narrative_source_surface("answer", [{}])
+
+        with (
+            patch.object(financial_text_surface, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(
+                financial_text_surface,
+                "split_narrative_sentences",
+                side_effect=RuntimeError("split failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "split failed"):
+                financial_text_surface.preserve_retrieved_narrative_source_surface("answer", [{}])
+
+        class CopyFailure:
+            def __iter__(self):
+                raise RuntimeError("copy failed")
+
+        with (
+            patch.object(financial_text_surface, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(financial_text_surface, "split_narrative_sentences", return_value=["answer"]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "copy failed"):
+                financial_text_surface.preserve_retrieved_narrative_source_surface(
+                    "answer",
+                    [CopyFailure()],
+                )
+
+        term_failure_evidence = [
+            {
+                "evidence_id": "retrieved_narrative::1",
+                "claim": "claim alpha beta",
+                "quote_span": "quote alpha beta",
+            }
+        ]
+        with (
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"missing_answer_markers": ()},
+            ),
+            patch.object(financial_text_surface, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(financial_text_surface, "split_narrative_sentences", return_value=["answer"]),
+            patch.object(
+                financial_text_surface,
+                "narrative_context_terms",
+                side_effect=RuntimeError("terms failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "terms failed"):
+                financial_text_surface.preserve_retrieved_narrative_source_surface(
+                    "answer",
+                    term_failure_evidence,
+                )
+
+    def test_current_source_narrative_preservation_bindings_pin_defs_calls_plan_and_dag(self) -> None:
+        import ast
+        import inspect
+        from pathlib import Path
+
+        from src.agent import financial_numeric_surface
+
+        module_sources = {
+            "graph": inspect.getsource(financial_graph_calculation),
+            "owner": inspect.getsource(financial_text_surface),
+            "numeric": inspect.getsource(financial_numeric_surface),
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        selected_targets = {
+            "snippet": "policy_required_realized_snippet_from_doc",
+            "preserve": "preserve_retrieved_narrative_source_surface",
+        }
+        retired_targets = {f"_{target}" for target in selected_targets.values()}
+        existing_public_targets = {
+            "terms": "narrative_context_terms",
+            "focus": "narrative_focus_variants",
+            "parenthetical": "parenthetical_focus_variants",
+            "selector": "narrative_context_sentence_from_evidence",
+            "include": "include_narrative_context_if_needed",
+        }
+        definitions = {}
+        calls = {key: [] for key in {**existing_public_targets, **selected_targets}}
+        try_depths = {key: [] for key in selected_targets}
+        all_definition_names = set()
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name: str) -> None:
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                all_definition_names.add(node.name)
+                if node.name in selected_targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = (
+                    ast.unparse(node.func.value)
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                for key, target in {**existing_public_targets, **selected_targets}.items():
+                    if called_name != target:
+                        continue
+                    calls[key].append(
+                        (
+                            self.module_name,
+                            tuple(self.function_stack),
+                            receiver,
+                            tuple(ast.unparse(argument) for argument in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                        )
+                    )
+                    if key in selected_targets:
+                        try_depths[key].append(self.try_depth)
+                self.generic_visit(node)
+
+        for module_name in ("graph", "owner"):
+            BindingVisitor(module_name).visit(module_trees[module_name])
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "policy_required_realized_snippet_from_doc": ("owner", 68),
+                "preserve_retrieved_narrative_source_surface": ("owner", 71),
+            },
+        )
+        self.assertTrue(retired_targets.isdisjoint(all_definition_names))
+        self.assertEqual(
+            calls["snippet"],
+            [
+                (
+                    "graph",
+                    ("_preserve_policy_required_realized_context",),
+                    "",
+                    (),
+                    (("doc", "doc"), ("policy", "policy")),
+                )
+            ],
+        )
+        self.assertEqual(
+            calls["preserve"],
+            [
+                (
+                    "graph",
+                    ("_apply_final_narrative_repair_pipeline",),
+                    "",
+                    ("final_answer", "aggregate_evidence_items"),
+                    (),
+                )
+            ],
+        )
+        self.assertEqual(try_depths, {"snippet": [0], "preserve": [0]})
+        self.assertEqual(
+            {key: len(entries) for key, entries in calls.items()},
+            {
+                "terms": 18,
+                "focus": 2,
+                "parenthetical": 3,
+                "selector": 1,
+                "include": 1,
+                "snippet": 1,
+                "preserve": 1,
+            },
+        )
+
+        final_by_target = {
+            key: (
+                sum(entry[0] == "graph" for entry in entries),
+                sum(entry[0] == "owner" for entry in entries),
+            )
+            for key, entries in calls.items()
+        }
+        self.assertEqual(
+            final_by_target,
+            {
+                "terms": (13, 5),
+                "focus": (2, 0),
+                "parenthetical": (3, 0),
+                "selector": (1, 0),
+                "include": (1, 0),
+                "snippet": (1, 0),
+                "preserve": (1, 0),
+            },
+        )
+        self.assertEqual(
+            (
+                sum(graph_count for graph_count, _owner_count in final_by_target.values()),
+                sum(owner_count for _graph_count, owner_count in final_by_target.values()),
+            ),
+            (22, 5),
+        )
+        self.assertEqual(len(selected_targets), 2)
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        owner_imports = imported_modules(module_trees["owner"])
+        numeric_imports = imported_modules(module_trees["numeric"])
+        self.assertIn("src.agent.financial_numeric_surface", owner_imports)
+        self.assertNotIn("src.agent.financial_text_surface", numeric_imports)
+        self.assertTrue(
+            numeric_imports.issubset(
+                {
+                    "__future__",
+                    "re",
+                    "typing",
+                    "src.agent.financial_runtime_normalization",
+                    "src.config.retrieval_policy",
+                }
+            )
+        )
+        selected_loaded_names = {
+            key: {
+                node.id
+                for node in ast.walk(definitions[target][1])
+                if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+            }
+            for key, target in selected_targets.items()
+        }
+        self.assertTrue(
+            {
+                "narrative_policy_terms",
+                "topic_particle",
+                "split_narrative_sentences",
+            }.issubset(selected_loaded_names["snippet"])
+        )
+        self.assertTrue(
+            {
+                "extract_numeric_surface_candidates",
+                "text_supports_numeric_candidates",
+                "narrative_context_terms",
+                "split_narrative_sentences",
+            }.issubset(selected_loaded_names["preserve"])
+        )
+        all_selected_loaded_names = set().union(*selected_loaded_names.values())
+        final_owner_dependencies = {
+            "src.agent.financial_numeric_surface": all_selected_loaded_names
+            & {
+                "extract_numeric_surface_candidates",
+                "text_supports_numeric_candidates",
+            },
+            "src.config.retrieval_policy": all_selected_loaded_names
+            & {"narrative_policy_terms"},
+        }
+        self.assertEqual(
+            final_owner_dependencies,
+            {
+                "src.agent.financial_numeric_surface": {
+                    "extract_numeric_surface_candidates",
+                    "text_supports_numeric_candidates",
+                },
+                "src.config.retrieval_policy": {"narrative_policy_terms"},
+            },
+        )
+
+        subtask_loop_tree = ast.parse(
+            (Path(__file__).parent / "test_subtask_loop.py").read_text(encoding="utf-8")
+        )
+        preexisting_preserve_refs = [
+            node
+            for node in ast.walk(subtask_loop_tree)
+            if isinstance(node, ast.Attribute)
+            and node.attr in retired_targets
+        ]
+        self.assertEqual(preexisting_preserve_refs, [])
+
+        graph_bindings = [
+            (alias.name, alias.asname)
+            for node in module_trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_text_surface"
+            for alias in node.names
+            if alias.name in selected_targets.values()
+        ]
+        self.assertEqual(
+            graph_bindings,
+            [
+                ("policy_required_realized_snippet_from_doc", None),
+                ("preserve_retrieved_narrative_source_surface", None),
+            ],
+        )
+
+    def test_current_source_policy_context_caller_pins_kwargs_scoring_adoption_and_exception_stop(self) -> None:
+        policy = {
+            "required_realized_terms": ("Required",),
+            "focus_terms": ("Focus",),
+            "realized_terms": ("Realized",),
+            "nested": {"preserve": True},
+        }
+        original_policy = deepcopy(policy)
+
+        class Doc:
+            def __init__(self, page_content, metadata):
+                self.page_content = page_content
+                self.metadata = metadata
+
+        base_doc = Doc("Required", {"name": "base"})
+        high_doc = Doc(
+            "Required Focus Realized",
+            {"name": "high", "block_type": "table", "period_focus": "current"},
+        )
+        tied_high_doc = Doc(
+            "Required Focus Realized",
+            {"name": "tie", "block_type": "table", "period_focus": "current"},
+        )
+        narrative_docs = [(base_doc, 0.1), high_doc, (tied_high_doc, 0.9)]
+        original_docs = list(narrative_docs)
+        original_doc_metadata = [
+            deepcopy((item[0] if isinstance(item, tuple) else item).metadata)
+            for item in narrative_docs
+        ]
+        doc_identities = [id(item[0] if isinstance(item, tuple) else item) for item in narrative_docs]
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        active_policies = Mock(return_value=[policy])
+        agent._active_narrative_policies_for_query = active_policies
+        snippet_owner = Mock(side_effect=["base snippet", "high snippet", "tied snippet"])
+
+        def policy_terms(policies, key):
+            self.assertEqual(policies, [policy])
+            return list(policy.get(key) or ())
+
+        with (
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True) as query_gate,
+            patch.object(financial_graph_calculation, "narrative_policy_terms", side_effect=policy_terms),
+            patch.object(
+                financial_graph_calculation,
+                "policy_required_realized_snippet_from_doc",
+                snippet_owner,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_calculation.FinancialAgentCalculationMixin._preserve_policy_required_realized_context(
+                    agent,
+                    "base answer",
+                    query="why narrative",
+                    docs=narrative_docs,
+                ),
+                "base answer high snippet",
+            )
+        query_gate.assert_called_once_with("why narrative")
+        active_policies.assert_called_once_with("why narrative")
+        self.assertEqual(
+            snippet_owner.call_args_list,
+            [
+                unittest.mock.call(doc=base_doc, policy=policy),
+                unittest.mock.call(doc=high_doc, policy=policy),
+                unittest.mock.call(doc=tied_high_doc, policy=policy),
+            ],
+        )
+        for owner_call in snippet_owner.call_args_list:
+            self.assertIs(owner_call.kwargs["policy"], policy)
+        self.assertEqual(policy, original_policy)
+        self.assertEqual(narrative_docs, original_docs)
+        self.assertEqual(
+            [(item[0] if isinstance(item, tuple) else item).metadata for item in narrative_docs],
+            original_doc_metadata,
+        )
+        self.assertEqual(
+            [id(item[0] if isinstance(item, tuple) else item) for item in narrative_docs],
+            doc_identities,
+        )
+
+        gated_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        gated_agent._active_narrative_policies_for_query = Mock(
+            side_effect=AssertionError("active policies accessed")
+        )
+        snippet_bomb = Mock(
+            side_effect=AssertionError("snippet accessed")
+        )
+        terms = Mock(side_effect=AssertionError("policy terms accessed"))
+        with (
+            patch.object(financial_graph_calculation, "narrative_policy_terms", terms),
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True) as query_gate,
+            patch.object(
+                financial_graph_calculation,
+                "policy_required_realized_snippet_from_doc",
+                snippet_bomb,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_calculation.FinancialAgentCalculationMixin._preserve_policy_required_realized_context(
+                    gated_agent,
+                    "",
+                    query="query",
+                    docs=narrative_docs,
+                ),
+                "",
+            )
+            self.assertEqual(
+                financial_graph_calculation.FinancialAgentCalculationMixin._preserve_policy_required_realized_context(
+                    gated_agent,
+                    "answer",
+                    query="query",
+                    docs=[],
+                ),
+                "answer",
+            )
+        query_gate.assert_not_called()
+        terms.assert_not_called()
+        snippet_bomb.assert_not_called()
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "_query_requests_narrative_context",
+                return_value=False,
+            ) as query_gate,
+            patch.object(
+                financial_graph_calculation,
+                "policy_required_realized_snippet_from_doc",
+                snippet_bomb,
+            ),
+        ):
+            self.assertEqual(
+                financial_graph_calculation.FinancialAgentCalculationMixin._preserve_policy_required_realized_context(
+                    gated_agent,
+                    "answer",
+                    query="query",
+                    docs=narrative_docs,
+                ),
+                "answer",
+            )
+        query_gate.assert_called_once_with("query")
+        snippet_bomb.assert_not_called()
+
+        events = []
+
+        class SecondDocBomb:
+            @property
+            def metadata(self):
+                raise AssertionError("second doc scored")
+
+            @property
+            def page_content(self):
+                raise AssertionError("second doc surface read")
+
+        first_doc = Doc("Required Focus", {"name": "first"})
+        failing_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        failing_agent._active_narrative_policies_for_query = Mock(return_value=[policy])
+
+        def fail_snippet(*, doc, policy):
+            events.append(("snippet", doc, policy))
+            raise RuntimeError("snippet failed")
+
+        failing_snippet = Mock(side_effect=fail_snippet)
+        with (
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "narrative_policy_terms", side_effect=policy_terms),
+            patch.object(
+                financial_graph_calculation,
+                "policy_required_realized_snippet_from_doc",
+                failing_snippet,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "snippet failed"):
+                financial_graph_calculation.FinancialAgentCalculationMixin._preserve_policy_required_realized_context(
+                    failing_agent,
+                    "base answer",
+                    query="why narrative",
+                    docs=[first_doc, SecondDocBomb()],
+                )
+        failing_snippet.assert_called_once_with(
+            doc=first_doc,
+            policy=policy,
+        )
+        self.assertIs(
+            failing_snippet.call_args.kwargs["policy"],
+            policy,
+        )
+        self.assertIs(events[0][2], policy)
+        self.assertEqual(events, [("snippet", first_doc, policy)])
+
+    def test_current_source_final_repair_caller_pins_preservation_order_adoption_and_exception_stop(self) -> None:
+        ordered_row = {"task_id": "task_1", "nested": {"preserve": True}}
+        ordered_results = [ordered_row]
+        projection = {"calculation_operands": [], "nested": {"preserve": True}}
+        selected_claim_ids = ["claim_1"]
+        evidence_item = {"evidence_id": "ev_1", "nested": {"preserve": True}}
+        evidence_items = [evidence_item]
+        narrative_doc = Mock(metadata={"section": "narrative"}, page_content="source text")
+        narrative_docs = [(narrative_doc, 0.8)]
+        state = {"query": "why narrative", "nested": {"preserve": True}}
+        mutable_state = financial_graph_calculation._AggregateMutableState(
+            financial_graph_calculation._AggregateSynthesisState(
+                ordered_results,
+                projection,
+                "initial answer",
+                selected_claim_ids,
+            ),
+            evidence_items,
+        )
+        snapshots = {
+            "ordered": deepcopy(ordered_results),
+            "projection": deepcopy(projection),
+            "claims": deepcopy(selected_claim_ids),
+            "evidence": deepcopy(evidence_items),
+            "state": deepcopy(state),
+            "docs": list(narrative_docs),
+        }
+        identities = {
+            "ordered": [id(item) for item in ordered_results],
+            "evidence": [id(item) for item in evidence_items],
+            "docs": [id(item[0]) for item in narrative_docs],
+        }
+        events = []
+
+        class FakeAgent:
+            pass
+
+        agent = FakeAgent()
+        agent._preserve_policy_required_realized_context = Mock(
+            side_effect=lambda answer, **kwargs: events.append(
+                ("realized_context", answer, kwargs)
+            )
+            or answer
+        )
+
+        def replace_answer(current_state, *, candidate_answer, **kwargs):
+            events.append(("replace", candidate_answer, kwargs))
+            return current_state.with_updates(final_answer=candidate_answer), True
+
+        agent._replace_mutable_aggregate_answer = Mock(side_effect=replace_answer)
+        agent._append_operand_evidence_for_final_answer = Mock(
+            side_effect=lambda current, **kwargs: events.append(
+                ("append_operand", current, kwargs)
+            )
+            or current
+        )
+        agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
+            side_effect=lambda current, **kwargs: events.append(
+                ("append_retrieved", current, kwargs)
+            )
+            or (current, [])
+        )
+        agent._apply_period_context_realignment_to_aggregate = Mock(
+            side_effect=lambda **kwargs: events.append(("realign", kwargs))
+            or kwargs["aggregate_state"]
+        )
+        agent._enforce_source_stated_growth_answer_contract = Mock(
+            side_effect=lambda answer, rows, **kwargs: events.append(
+                ("contract", answer, rows, kwargs)
+            )
+            or "contracted answer"
+        )
+        preserve_owner = Mock(
+            side_effect=lambda answer, current: events.append(("preserve", answer, current))
+            or "source-surface answer"
+        )
+        gap = Mock(
+            side_effect=lambda rows: events.append(("gap", rows)) or False
+        )
+        agent._unresolved_structured_numeric_gap = gap
+        agent._answer_reuses_narrative_summary_text = Mock(
+            side_effect=AssertionError("gap fallback accessed")
+        )
+        prune = Mock(
+            side_effect=lambda answer, **kwargs: events.append(("prune", answer, kwargs))
+            or answer
+        )
+        agent._prune_nonfocus_numeric_narrative_sentences = prune
+        agent._answer_satisfies_growth_narrative_intent = Mock(
+            side_effect=AssertionError("growth intent accessed")
+        )
+        agent._answer_matches_supported_aggregate_subtask = Mock(
+            side_effect=AssertionError("aggregate support accessed")
+        )
+        agent._promote_and_align_aggregate_results = Mock(
+            side_effect=AssertionError("promotion accessed")
+        )
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                preserve_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "_polish_korean_particle_pairs",
+                side_effect=lambda answer: events.append(("polish", answer)) or answer,
+            ) as polish,
+            patch.object(
+                financial_graph_calculation,
+                "query_requests_explanatory_context",
+                side_effect=lambda query: events.append(("explanatory", query)) or False,
+            ) as explanatory,
+        ):
+            updated = financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=narrative_docs,
+                has_narrative_summary=False,
+                has_growth_rate_result=False,
+                deterministic_feedback="",
+            )
+
+        preserve_owner.assert_called_once_with("contracted answer", evidence_items)
+        self.assertIs(preserve_owner.call_args.args[1], evidence_items)
+        contract_index = next(index for index, event in enumerate(events) if event[0] == "contract")
+        preserve_index = next(index for index, event in enumerate(events) if event[0] == "preserve")
+        source_replace_index = next(
+            index
+            for index, event in enumerate(events)
+            if event == ("replace", "source-surface answer", {})
+        )
+        gap_index = next(index for index, event in enumerate(events) if event[0] == "gap")
+        self.assertLess(contract_index, preserve_index)
+        self.assertLess(preserve_index, source_replace_index)
+        self.assertLess(source_replace_index, gap_index)
+        self.assertIn(
+            ("replace", "source-surface answer", {}),
+            events,
+        )
+        prune.assert_called_once_with(
+            "source-surface answer",
+            query="why narrative",
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        )
+        polish.assert_called_once_with("source-surface answer")
+        explanatory.assert_called_once_with("why narrative")
+        self.assertEqual(updated.final_answer, "source-surface answer")
+        self.assertIs(updated.evidence_items, evidence_items)
+        self.assertEqual(ordered_results, snapshots["ordered"])
+        self.assertEqual(projection, snapshots["projection"])
+        self.assertEqual(selected_claim_ids, snapshots["claims"])
+        self.assertEqual(evidence_items, snapshots["evidence"])
+        self.assertEqual(state, snapshots["state"])
+        self.assertEqual(narrative_docs, snapshots["docs"])
+        self.assertEqual([id(item) for item in ordered_results], identities["ordered"])
+        self.assertEqual([id(item) for item in evidence_items], identities["evidence"])
+        self.assertEqual([id(item[0]) for item in narrative_docs], identities["docs"])
+
+        failing_events = []
+        failing_agent = FakeAgent()
+        failing_agent._preserve_policy_required_realized_context = Mock(
+            return_value="initial answer"
+        )
+
+        def failing_replace(current_state, *, candidate_answer, **kwargs):
+            failing_events.append(("replace", candidate_answer, kwargs))
+            return current_state.with_updates(final_answer=candidate_answer), True
+
+        failing_agent._replace_mutable_aggregate_answer = Mock(side_effect=failing_replace)
+        failing_agent._append_operand_evidence_for_final_answer = Mock(
+            side_effect=lambda current, **_kwargs: current
+        )
+        failing_agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
+            side_effect=lambda current, **_kwargs: (current, [])
+        )
+        failing_agent._apply_period_context_realignment_to_aggregate = Mock(
+            side_effect=lambda **kwargs: kwargs["aggregate_state"]
+        )
+        failing_agent._enforce_source_stated_growth_answer_contract = Mock(
+            return_value="contracted answer"
+        )
+        failing_preserve = Mock(side_effect=RuntimeError("preservation failed"))
+        failing_agent._unresolved_structured_numeric_gap = Mock(
+            side_effect=AssertionError("numeric gap accessed")
+        )
+        failing_agent._prune_nonfocus_numeric_narrative_sentences = Mock(
+            side_effect=AssertionError("prune accessed")
+        )
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                failing_preserve,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "_polish_korean_particle_pairs",
+                side_effect=AssertionError("polish accessed"),
+            ) as failing_polish,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "preservation failed"):
+                financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                    failing_agent,
+                    state,
+                    mutable_state=mutable_state,
+                    narrative_docs=narrative_docs,
+                    has_narrative_summary=False,
+                    has_growth_rate_result=False,
+                    deterministic_feedback="",
+                )
+        failing_preserve.assert_called_once_with("contracted answer", evidence_items)
+        self.assertIs(failing_preserve.call_args.args[1], evidence_items)
+        failing_agent._unresolved_structured_numeric_gap.assert_not_called()
+        failing_agent._prune_nonfocus_numeric_narrative_sentences.assert_not_called()
+        failing_polish.assert_not_called()
+        self.assertEqual(ordered_results, snapshots["ordered"])
+        self.assertEqual(projection, snapshots["projection"])
+        self.assertEqual(selected_claim_ids, snapshots["claims"])
+        self.assertEqual(evidence_items, snapshots["evidence"])
+        self.assertEqual(state, snapshots["state"])
+        self.assertEqual([id(item) for item in ordered_results], identities["ordered"])
+        self.assertEqual([id(item) for item in evidence_items], identities["evidence"])
+        self.assertEqual(narrative_docs, snapshots["docs"])
+        self.assertEqual([id(item[0]) for item in narrative_docs], identities["docs"])
 
     def test_topic_particle_uses_final_consonant_policy(self) -> None:
         self.assertEqual(topic_particle("자본"), "은")
