@@ -253,36 +253,37 @@ dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `c47ac50` commit is an ownership relocation only. Exactly three
-source/test files changed. Four reconciliation definition spans totaling 79
-lines became two public reflection projections plus two owner-private summaries
-totaling 78 lines; their bounded strategy/budget constants moved with them. Two
-selected calls finish graph-external and two finish owner-local; retired selected
-private source/test refs are zero. Source is `+110/-99`, net `+11`:
-reconciliation moved from 2,302 to 2,211 physical lines and reflection projection
-from 158 to 260. Tests are `+1,199/-14`, net `+1,185`, and the whole commit is
-`+1,309/-113`, net `+1,196`. Six new unittest methods moved full discovery from
-1,692 to 1,698. Final gates passed focused 6/6, reflection contract 18/18,
-affected semantic 800/800, import 19/19, semantic/import union 819/819, audit 217,
-full discovery 1,698/1,698, pycompile/fresh import, DAG/body/caller parity, and
-diff check. Benchmark refresh was **NOT RUN** and remote CI is unverified. This
-establishes neither behavior, accuracy, ranking, performance, total-code,
-executed-path, ledger, benchmark, nor Phase 3 completion.
+The completed `5a0c3e0` commit is an ownership relocation only. Exactly four
+source/test files changed. Two reconciliation definition spans totaling 76 lines
+became two public dependency projections totaling 74 lines. Five selected calls
+finish graph-external and none finish owner-local; retired selected private
+source/test refs are zero. Source is `+93/-85`, net `+8`: reconciliation moved
+from 2,211 to 2,137 physical lines and dependency projection from 3,335 to 3,417.
+Tests are `+1,228/-28`, net `+1,200`, and the whole commit is `+1,321/-113`, net
+`+1,208`. Six new unittest methods moved full discovery from 1,698 to 1,704.
+Final gates passed focused 6/6, dependency owner 75/75, affected semantic
+823/823, import 19/19, semantic/import union 842/842, audit 217, full discovery
+1,704/1,704, pycompile/fresh import, DAG/body/caller parity, and diff check.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. This establishes
+neither behavior, accuracy, ranking, performance, total-code, executed-path,
+ledger, benchmark, nor Phase 3 completion.
 
-The selected follow-on is the 76-line dependency reconciliation preparation
-pair. Public `active_subtask_with_sibling_lookup_surfaces(...)` and
-`dependency_resolved_reconciliation_result(...)` move to the existing
-`financial_dependency_projection.py` owner. Five current calls finish
-graph-external and zero finish owner-local; projected owner function spans total
-74. The owner needs only `RECONCILIATION_POLICY` on an existing config edge and
-the selected spans move no runtime-domain baseline record. Exact APIs, six-method
-characterization, call distribution, and rejected expansions live only in
+The selected follow-on is the 64-line prepared runtime-evidence/task-artifact row
+projection pair. Public `evidence_items_with_runtime(...)` and
+`ratio_result_rows_from_task_artifacts(...)` move to the existing
+`financial_task_artifacts.py` owner. Four current calls finish graph-external and
+zero finish owner-local; projected owner function spans total 62. The owner needs
+no new dependency and the selected spans move no runtime-domain baseline record.
+Exact APIs, six-method characterization, call distribution, and rejected
+expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-The four callers, dependency-state lookup, candidate/cell and evidence
-construction, ontology completion, LLM reranking, retry selection, artifact and
-ledger mutation, mutable state/evidence, promotion, sync/rebuild, and final
-sequencing stay in the graph. The structured-cell family remains excluded by its
+The three callers, operand extraction/evidence selection, ratio conflict
+selection and arithmetic, artifact and ledger mutation, mutable state/evidence,
+promotion, sync/rebuild, and final sequencing stay in the graph. The adjacent
+preferred-ratio selector remains excluded because importing aggregate projection
+from the task-artifact owner would close the existing aggregate -> runtime-trace
+-> task-artifact cycle. The structured-cell family remains excluded by its
 natural owner's graph-helper reverse-cycle boundary; reflection heuristic/model
 planning, slot/gap callback/ledger expansion, compact-ratio state/trace, ontology
 compatibility, carriers, answer refresh, and evidence mutation remain excluded.

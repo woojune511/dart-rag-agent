@@ -2826,26 +2826,54 @@ reflection, increase retry budget, change final acceptance, establish promotion
 evidence, or prove behavior, accuracy, ranking, performance, total-code,
 executed-path, benchmark, schedule, ledger, or Phase 3 completion.
 
-The selected dependency-reconciliation preparation boundary retains its current
-behavior until characterized and moved. The graph-private sibling-surface helper
+`financial_dependency_projection.py` now owns sibling-surface and resolved-
+reconciliation preparation. Public
+`active_subtask_with_sibling_lookup_surfaces(active_subtask, calc_subtasks)`
 shallow-copies the active subtask, normalizes existing surfaces, scans copied
 calculation subtasks in stable order, skips the active id only when nonblank,
 accepts the exact lookup/single-value operation or concept metric families,
 applies the configured period-prefix regex to metric and operand labels, appends
-stripped aliases, and publishes stable first-occurrence dedupe. The graph-private
-resolved-result helper scans dependency bindings in order and returns a fresh
-ready result with normalized label/role/concept, task-output candidate ids,
-matched flags, fixed reason/notes, and empty missing/retry fields. Neither catches
-mapping, iteration, truthiness, string, regex, policy, or normalization
-exceptions or mutates inputs.
+stripped aliases, and publishes stable first-occurrence dedupe. Public
+`dependency_resolved_reconciliation_result(dependency_bindings)` scans bindings
+in order and returns a fresh ready result with normalized label/role/concept,
+task-output candidate ids, matched flags, fixed reason/notes, and empty missing/
+retry fields. Neither catches mapping, iteration, truthiness, string, regex,
+policy, or normalization exceptions or mutates inputs.
 
-Their selected movement to `financial_dependency_projection.py` is exactly the
-76-line, five-call, external-five/local-zero batch specified in
-[Project Status Next Work](../overview/project_status.md#next-work). All four
-callers, dependency-state lookup, candidate/cell and evidence construction,
-ontology completion, LLM reranking, retry selection, artifact and ledger
-mutation, mutable state/evidence, promotion, sync/rebuild, and final sequencing
-remain graph-owned.
+Commit `5a0c3e0` moved the former 48 + 28 = 76 definition-span lines to public
+47 + 27 = 74 owner lines. All five direct calls remain graph-external and at Try
+depth zero. Source is `+93/-85`, tests are `+1,228/-28`, and the whole commit is
+`+1,321/-113`; the source diff SHA-256 is
+`c9e931e818cfc7661ccb05bc162078a4db83120aab44f6dd9331dac51fa7a501`.
+Focused 6/6, dependency owner 75/75, affected semantic 823/823, import 19/19,
+union 842/842, audit 217, and full discovery 1,704/1,704 passed. Benchmark refresh
+was **NOT RUN**, remote CI is unverified, and the move proves no behavior,
+accuracy, ranking, performance, total-code, executed-path, benchmark, schedule,
+ledger, or Phase 3 completion. All four callers, dependency-state lookup,
+candidate/cell and evidence construction, ontology completion, LLM reranking,
+retry selection, artifact and ledger mutation, mutable state/evidence,
+promotion, sync/rebuild, and final sequencing remain graph-owned.
+
+The selected prepared runtime-evidence/task-artifact row boundary retains its
+current behavior until characterized and moved. Graph-private
+`_evidence_items_with_runtime(evidence_items, state)` retains input-item identity,
+scans runtime evidence in order, skips non-dictionaries and duplicate nonblank ids,
+and appends shallow copies with nested identity preserved. Graph-private
+`_ratio_result_rows_from_task_artifacts(state, task)` normalizes the task id,
+scans artifact records in order, admits only matching calculation-result
+artifacts with a nonempty result payload, preserves answer/status/source fallback
+order, and returns fresh row dictionaries. Neither catches mapping, iteration,
+truthiness, string, normalization, or copy exceptions or mutates inputs.
+
+Their selected movement to `financial_task_artifacts.py` is exactly the 64-line,
+four-call, external-four/local-zero batch specified in
+[Project Status Next Work](../overview/project_status.md#next-work). Both operand-
+extraction placements, preferred ratio-artifact conflict selection, retrieved-
+ratio arithmetic/projection, mutable state/evidence, artifact/ledger mutation,
+promotion, sync/rebuild, and final sequencing remain graph-owned. The adjacent
+preferred selector also remains graph-owned because moving it would require a
+task-artifact -> aggregate-projection import against the existing aggregate-
+projection -> runtime-trace -> task-artifact path.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

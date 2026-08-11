@@ -416,11 +416,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   graph-external이고 summary 두 call은 owner-local이다. heuristic planning,
   prompt/model invocation, retry application, report/artifact ledger mutation,
   routing, mutable state/evidence와 final sequencing은 graph에 남는다.
-- 다음 선택은 `financial_dependency_projection.py`로 가는 76-line sibling-
-  surface/resolved-reconciliation preparation 두 함수다. public 2개, external
-  5/local 0 call, characterize-first gate와 dependency-state lookup,
+- 완료된 dependency reconciliation preparation은
+  `financial_dependency_projection.py`의 public sibling-surface와 resolved-result
+  함수로 배치된다. 다섯 call은 모두 graph-external이며 dependency-state lookup,
   candidate/cell/evidence construction, LLM reranking, artifact/ledger mutation,
-  mutable state/evidence 및 final-sequencing hard stop은
+  mutable state/evidence와 final sequencing은 graph에 남는다.
+- 다음 선택은 `financial_task_artifacts.py`로 가는 64-line prepared runtime-
+  evidence/task-artifact row projection 두 함수다. public 2개, external 4/local
+  0 call, characterize-first gate와 operand/evidence selection, ratio conflict와
+  arithmetic, artifact/ledger mutation, mutable state/evidence 및 final-sequencing
+  hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
