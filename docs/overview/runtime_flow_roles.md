@@ -392,11 +392,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `compose_complete_growth_numeric_answer(...)`로 배치된다. 아홉 call은 모두
   graph-external이며 answer replacement/refresh, sentence repair, state/evidence,
   final sequencing은 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 130-line prepared growth trace-
-  inspection predicate 세 개다. public 3개와 external 19/local 0 call,
-  characterize-first gate와 answer replacement/refresh, source-visible sentence
-  repair, state/evidence, final-sequencing hard stop은
-  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
+- 완료된 prepared growth trace-inspection cluster도 같은 owner의 public
+  `growth_answer_has_untraced_numeric_material(...)`,
+  `narrative_summary_conflicts_with_growth_trace(...)`,
+  `growth_narrative_numeric_incompatible_with_trace(...)`로 배치된다. 19개 call은
+  모두 graph-external이며 answer replacement/refresh, source-visible sentence
+  repair, state/evidence, final sequencing은 graph에 남는다.
+- 다음 선택은 `financial_dependency_projection.py`로 가는 93-line dependency
+  input-binding policy 세 개다. public 3개와 external 4/local 0 call,
+  characterize-first gate와 graph-state operand/evidence/ratio/final-sequencing
+  hard stop은 [Project Status의 Next Work](project_status.md#next-work)만 기준으로
+  삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 

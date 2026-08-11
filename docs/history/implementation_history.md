@@ -2039,6 +2039,53 @@ existing-edge dependencies, six-method characterization gate, and rejected
 expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Aggregate prepared growth trace-inspection owner milestone
+
+- `c010a42` moves three former graph predicate bodies into
+  `financial_aggregate_projection.py` as public
+  `growth_answer_has_untraced_numeric_material(...)`,
+  `narrative_summary_conflicts_with_growth_trace(...)`, and
+  `growth_narrative_numeric_incompatible_with_trace(...)`. The former definition
+  spans were 29 + 57 + 44 = 130 lines; the owner spans are
+  28 + 56 + 43 = 127. All 19 selected calls remain graph-external, owner-local
+  selected calls remain zero, and retired selected graph-private source/test
+  references are zero.
+- Exactly seven source/test files changed. Source is `+158/-153`, net `+5`: the
+  graph is `+22/-153` and moves from 15,643 to 15,512 physical lines; aggregate
+  projection is `+136/-0` and moves from 2,394 to 2,530. Tests are `+946/-80`,
+  net `+866`; the whole commit is `+1,104/-233`, net `+871`.
+- The committed source-only diff SHA-256 is
+  `598f5e476cf0d8fef1c3767f2b6d33c82f1202702fd58e8c7d6e8c625fb7e348`.
+  Literal body parity passed 3/3 after only self removal and owner-local name
+  rebinding. Full retained-caller parity passed 8/8. The 19 live calls are direct
+  names at Try depth zero; the import DAG remains acyclic; public import identity
+  is exact; and the three old mixin attributes are absent.
+- Six AST-counted unittest methods were added, moving the method inventory and
+  full discovery from 1,674 to 1,680. Final validation passed focused 6/6,
+  aggregate-owner module 46/46, the affected eight-module semantic set 761/761,
+  import-side-effects 19/19, the nine-module union 780/780, runtime audit 217,
+  full discovery 1,680/1,680, pycompile/fresh-import binding checks, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone closes only state-free inspection of already prepared growth
+trace, answer, and evidence surfaces. Answer replacement and refresh, source-
+visible sentence repair, arithmetic synchronization, retrieved-ratio artifact/
+state handling, mutable state/evidence, artifact/ledger work, promotion,
+sync/rebuild, and final sequencing remain graph-owned. The commit proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 93-line dependency input-
+binding policy cluster in graph lines 6013-6074, 6711-6725, and 6727-6742. Three
+public dependency-projection functions are projected at 61 + 14 + 15 = 90 owner
+lines; all four calls remain graph-external. Dependency operand-row construction,
+binding-resolution state assembly, operand extraction, ratio-result projection,
+evidence coercion, mutable state/evidence, and final sequencing remain hard stops.
+Exact APIs, cycle-safe dependencies, six-method characterization gate, and
+rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

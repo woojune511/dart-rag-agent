@@ -15,11 +15,11 @@ Last updated: 2026-08-12
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; prepared growth-numeric renderer owner milestone closed, four named debt groups remain |
-| What just changed? | Public `compose_complete_growth_numeric_answer(...)` moved to `financial_aggregate_projection.py` in `5fb0267` |
-| What passed? | New focused 5/5, aggregate-owner module 40/40, affected semantic set 755/755, nine-module union 774/774, import-side-effect 19/19, runtime audit 217, full unittest 1,674/1,674 |
+| What is the architecture state? | Phase 3 OPEN; prepared growth trace-inspection owner milestone closed, four named debt groups remain |
+| What just changed? | Three public growth trace-inspection predicates moved to `financial_aggregate_projection.py` in `c010a42` |
+| What passed? | New focused 6/6, aggregate-owner module 46/46, affected semantic set 761/761, nine-module union 780/780, import-side-effect 19/19, runtime audit 217, full unittest 1,680/1,680 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | One characterize-first 130-line prepared growth trace-inspection cluster into `financial_aggregate_projection.py`; answer replacement/refresh, sentence repair, mutable state/evidence, and final sequencing remain hard stops |
+| What is next? | One characterize-first 93-line dependency input-binding policy cluster into `financial_dependency_projection.py`; graph-state operand construction, evidence coercion, ratio projection, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,23 +50,24 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved the prepared growth-numeric renderer. In
-  `5fb0267`, exactly six source/test files changed. The 100-line graph body became
-  one 99-line public aggregate-owner function; all nine selected calls remain
-  graph-external and retired graph-private source/test references are zero.
-  Source is `+117/-111`, net `+6`; tests are `+989/-38`, net `+951`; the whole
-  commit is `+1,106/-149`, net `+957`. The graph moved from 15,743 to 15,643
-  physical lines and aggregate projection from 2,288 to 2,394. The committed
-  source diff SHA-256 is
-  `a92591876808e7e4744d7deb5d9ff83d7282d61cfaaeb7bfcf852ea232a2687b`.
+- The latest owner batch moved three prepared growth trace-inspection predicates.
+  In `c010a42`, exactly seven source/test files changed. The 29 + 57 + 44 = 130
+  graph definition-span lines became three public aggregate-owner functions with
+  spans 28 + 56 + 43 = 127. All 19 selected calls remain graph-external and
+  retired selected graph-private source/test references are zero. Source is
+  `+158/-153`, net `+5`; tests are `+946/-80`, net `+866`; the whole commit is
+  `+1,104/-233`, net `+871`. The graph moved from 15,643 to 15,512 physical lines
+  and aggregate projection from 2,394 to 2,530. The committed source diff
+  SHA-256 is
+  `598f5e476cf0d8fef1c3767f2b6d33c82f1202702fd58e8c7d6e8c625fb7e348`.
   Answer replacement/refresh, sentence repair, arithmetic synchronization,
   retrieved-ratio artifact/state handling, mutable state/evidence, and final
   sequencing remain graph-owned. This is ownership relocation, not a behavior
   claim.
-- Current physical sizes are: calculation graph 15,643 lines, graph helpers 6,299,
+- Current physical sizes are: calculation graph 15,512 lines, graph helpers 6,299,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 491, text surface 411, operand resolution 3,461,
-  dependency projection 3,235, and aggregate projection 2,394.
+  dependency projection 3,235, and aggregate projection 2,530.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -85,7 +86,7 @@ Commit-level diffs and validation are kept in
 | Dependency and execution | `financial_dependency_projection.py` and `financial_calculation_execution.py` |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
-| Aggregate projection | `financial_aggregate_projection.py`, including selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and prepared growth/ratio material inspection |
+| Aggregate projection | `financial_aggregate_projection.py`, including selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, and prepared growth/ratio material inspection |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py` |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
 
@@ -108,13 +109,13 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, new focused 5 / 5; aggregate-owner module 40 / 40 |
+| Latest focused owner checkpoint | PASS, new focused 6 / 6; aggregate-owner module 46 / 46 |
 | Text-owner module | PASS, 20 / 20 |
-| Latest semantic regression set | PASS, affected eight-module set 755 / 755 |
-| Latest semantic/import union | PASS, nine-module set 774 / 774 |
+| Latest semantic regression set | PASS, affected eight-module set 761 / 761 |
+| Latest semantic/import union | PASS, nine-module set 780 / 780 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,674 / 1,674 |
+| Full unittest discovery | PASS, 1,680 / 1,680 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
@@ -124,7 +125,7 @@ The semantic set is `tests.test_financial_text_surface`,
 `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
 `tests.test_financial_agent_run_projection`, `tests.test_lookup_recovery_policy`,
 and `tests.test_operation_contracts`. Adding `tests.test_import_side_effects`
-forms the 774-test union.
+forms the 780-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -145,7 +146,7 @@ The durable Phase 3 debt is:
 
 | Debt group | Progress boundary |
 | --- | --- |
-| Aggregate repair and precedence | Partially advanced through period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering, result support/reuse, prepared material inspection, and bounded row/gap/lookup-answer ownership; promotion, sync/rebuild, and final sequencing remain graph-owned |
+| Aggregate repair and precedence | Partially advanced through period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, and bounded row/gap/lookup-answer ownership; promotion, sync/rebuild, and final sequencing remain graph-owned |
 | Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, and unit/table repair; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Essentially untouched; requires a separate behavior contract |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
@@ -155,70 +156,79 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture batch is one characterize-first prepared growth
-trace-inspection move into `financial_aggregate_projection.py`. Publish the
-current graph predicates `_growth_answer_has_untraced_numeric_material(...)`,
-`_narrative_summary_conflicts_with_growth_trace(...)`, and
-`_growth_narrative_numeric_incompatible_with_trace(...)` as public owner APIs
-without the leading underscore.
+The sole selected architecture batch is one characterize-first dependency input-
+binding policy move into `financial_dependency_projection.py`. Publish the
+current graph helpers `_dependency_slot_matches_input(...)`,
+`_task_prefers_sibling_output_synthesis(...)`, and
+`_task_output_input_bindings(...)` as public owner APIs without the leading
+underscore.
 
-The current definition spans are 29 + 57 + 44 = 130 lines at graph lines
-3284-3312, 3314-3370, and 3422-3465. Removing only `self` produces projected
-owner spans 28 + 56 + 43 = 127 lines. Their 16 + 1 + 2 = 19 production uses are
-all direct `self` calls at Try depth zero; there are no non-call bindings,
-`hasattr` gates, callbacks, wrappers, aliases, or production override surfaces.
-All 19 selected calls remain graph-external and owner-local selected calls remain
-zero.
+The current definition spans are 62 + 15 + 16 = 93 lines at graph lines
+6013-6074, 6711-6725, and 6727-6742. Removing only `self` produces projected
+owner spans 61 + 14 + 15 = 90 lines. Their 2 + 1 + 1 = four production uses are
+all direct `self` calls at Try depth zero: slot matching in
+`_build_dependency_operand_rows(...)` and
+`_append_ratio_result_from_task_outputs(...)`, task-output binding projection in
+`_dependency_binding_resolution_state(...)`, and sibling-output preference in
+`_extract_calculation_operands(...)`. There are no non-call bindings, `hasattr`
+gates, callbacks, wrappers, aliases, or production override surfaces. All four
+selected calls remain graph-external and owner-local selected calls remain zero.
 
-The aggregate owner already has normalization, regex, typing, narrative policy,
-operation-family resolution, period-conflict policy, the completed renderer and
-required-display projection, numeric extraction/equivalence, and sentence
-splitting. Add only `growth_answer_has_untraced_numeric_sentence(...)` and
-`growth_sentence_has_untraced_material_numeric(...)` on the existing answer-
-projection edge plus `evidence_numeric_display_candidates(...)` on the existing
-numeric-surface edge. The latter graph import becomes dead and must be removed;
-no new module edge or cycle is introduced. The three bodies hit no runtime-domain
-baseline record and the reviewed count remains 217.
+The dependency owner already has `re`, `Any`/`Dict`/`List`/`Optional`, stable
+normalization, and dependency projection policy. Add only `FinancialAgentState`
+from graph state plus `_operand_period_focus(...)` from graph helpers. Graph
+helpers do not reach the dependency owner, so the direct one-way import remains
+cycle-free; no selected graph dependency becomes dead. The three bodies hit no
+runtime-domain baseline record and the reviewed count remains 217.
 
-`growth_answer_has_untraced_numeric_material(...)` normalizes the answer, scans
-prepared rows in order, filters operation family and conflicting periods, builds
-the complete renderer and required displays, then checks whole-answer and split-
-sentence untraced numeric material in that order. The narrative-summary conflict
-predicate builds a stable evidence/metadata surface, adds evidence-visible numeric
-display candidates, and returns on the first percent token absent from the
-allowed trace surface. The numeric-incompatibility predicate builds trace and
-narrative numeric candidates and returns `True` only when at least one narrative
-candidate has no equivalent trace candidate. They mutate no answer, row,
-ordered-result, or evidence input and catch no mapping, copy, iteration,
-truthiness, string, normalization, regex, policy, owner, extraction, or comparison
-exception.
+`dependency_slot_matches_input(...)` rejects unequal nonblank concepts, then
+resolves period mismatch through the binding focus. A current/prior focus may use
+the report year; only `TypeError` and `ValueError` from that optional integer
+conversion are caught. Without a usable year it compares the slot focus. Label
+matching permits exact, contained, or sibling-row material, while an explicit
+segment must occur case-insensitively in the slot or sibling label. The two task-
+output helpers shallow-copy the active subtask and each inspected binding, scan
+inputs in stable order, normalize source preferences, require `task_output` and
+a nonblank preferred task id, and either return on the first qualifying binding
+or return the stable list of qualifying binding copies. They mutate no state,
+binding, slot, sibling row, or nested input.
 
-Before source movement, add exactly six CURRENT-SOURCE methods: one direct matrix
-for each predicate; one exact definition/span/19-call/argument/Try-depth/
+Before source movement, add exactly six CURRENT-SOURCE methods: one direct slot-
+matching matrix; one direct sibling-output-preference matrix; one direct task-
+output-binding matrix; one exact definition/span/four-call/argument/Try-depth/
 distribution/import-DAG/dead-import/baseline method; one executable matrix for
-representative untraced-material callers; and one executable matrix for the
-conflict and incompatibility callers. Pin access order, early-return laziness,
-stable row/evidence/sentence order, candidate equivalence, input and nested
-identity, no mutation, exact call arguments, boolean adoption, and owner-exception
-downstream stop. Then move/retarget/delete without a wrapper or alias, migrate all
-private direct/patch/static references, require retired graph-private refs zero,
-and run focused six, aggregate-owner, affected semantic, import-side-effect,
-runtime-audit, full-discovery, fresh-import, DAG, and diff-check gates
-sequentially.
+the two slot-matcher callers; and one executable matrix for binding-resolution
+and operand-extraction callers. Pin concept/period/year/focus/label/segment access
+order, the integer-conversion catch boundary, stable binding order, shallow-copy
+and nested identity, no mutation, exact call arguments, boolean/list adoption,
+and owner-exception downstream stop. Then move/retarget/delete without a wrapper
+or alias, migrate the two existing operation-contract direct references, require
+retired graph-private refs zero, and run focused six, dependency-owner, the
+affected eight-module semantic set, import-side-effect, runtime-audit, full-
+discovery, fresh-import, DAG, and diff-check gates sequentially. At the current
+inventory, adding exactly six methods projects a 69-test dependency-owner module,
+1,686 full tests, an 844-test semantic set, and an 863-test semantic/import union.
+The planned semantic set is `tests.test_financial_dependency_projection`,
+`tests.test_financial_operand_resolution`,
+`tests.test_financial_calculation_execution`,
+`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, `tests.test_lookup_recovery_policy`,
+and `tests.test_operation_contracts`; `tests.test_import_side_effects` forms the
+union.
 
-Keep `_ensure_complete_growth_numeric_answer(...)`,
-`_final_growth_answer_without_untraced_numeric_sentences(...)`,
-`_enforce_source_stated_growth_answer_contract(...)`,
-`_strip_untraced_numeric_material_from_growth_narrative_sentence(...)`,
-`_refresh_numeric_answer_preserving_narrative_context(...)`, answer replacement
-and refresh, source-visible sentence repair, arithmetic synchronization,
-retrieved-ratio artifact/state, evidence construction or mutation, mutable state,
+Keep `_build_dependency_operand_rows(...)`,
+`_dependency_binding_resolution_state(...)`, `_extract_calculation_operands(...)`,
+`_append_ratio_result_from_task_outputs(...)`, graph-state producer/result lookup,
+`_structured_graph_provenance_for_dependency_operand(...)`, operand/evidence
+construction and coercion, ratio result projection, mutable state/evidence,
 ledger, callbacks, promotion, sync/rebuild, and final orchestration in the graph.
-Numeric-coverage helpers coupled to `_compact_ratio_answer`, direct structured/
-precision reverse cycles, ontology compatibility, carriers, and source-visible
-query-term expansions remain rejected. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, schedule, or
-Phase 3 completion claim follows.
+`_operand_period_focus(...)` remains a graph-helper dependency rather than a new
+relocation target. Answer replacement/refresh,
+source-visible sentence repair, compact-ratio state/trace, direct structured and
+precision reverse-cycle clusters, ontology compatibility, carriers, and evidence
+mutation remain rejected. No behavior, accuracy, ranking, performance, total-
+code or executed-path reduction, benchmark, schedule, or Phase 3 completion
+claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

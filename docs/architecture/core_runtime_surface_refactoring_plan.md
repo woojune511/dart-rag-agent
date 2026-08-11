@@ -243,48 +243,51 @@ prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW
 consistency, and table-metadata KRW repair boundaries are complete in their
 state-free owners. Aggregate dependency-source seed/scoring/selection/component
 preparation, narrative row-focus selection, and aggregate growth display/material
-projection, result support/reuse predicates, and prepared growth/ratio material
-inspection and prepared growth-numeric rendering are also owner-resident. Retained external graph call placements remain,
+projection, result support/reuse predicates, prepared growth/ratio material
+inspection, prepared growth-numeric rendering, and growth trace inspection are
+also owner-resident. Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `5fb0267` commit is an ownership relocation only. Exactly six
-source/test files changed. One 100-line graph body became one 99-line public
-aggregate API. Its nine calls remain graph-external, owner-local selected calls
-remain zero, and retired selected graph-private definitions and test refs are
-zero. Source is `+117/-111`, net `+6`: the graph moved from 15,743 to 15,643
-physical lines and the aggregate owner from 2,288 to 2,394. Tests are `+989/-38`,
-net `+951`, and the whole commit is `+1,106/-149`, net `+957`. Five AST-counted
-unittest methods were added, moving both the method inventory and full discovery
-from 1,669 to 1,674. Final gates passed focused 5/5, aggregate owner 40/40,
-affected semantic 755/755, import 19/19, union 774/774, audit 217, full discovery
-1,674/1,674, pycompile/fresh import, DAG/body/caller parity, and diff check.
+The completed `c010a42` commit is an ownership relocation only. Exactly seven
+source/test files changed. Three graph definition spans totaling 130 lines became
+three public aggregate APIs totaling 127 lines. Their 19 calls remain graph-
+external, owner-local selected calls remain zero, and retired selected graph-
+private definitions and test refs are zero. Source is `+158/-153`, net `+5`: the
+graph moved from 15,643 to 15,512 physical lines and the aggregate owner from
+2,394 to 2,530. Tests are `+946/-80`, net `+866`, and the whole commit is
+`+1,104/-233`, net `+871`. Six AST-counted unittest methods were added, moving
+both the method inventory and full discovery from 1,674 to 1,680. Final gates
+passed focused 6/6, aggregate owner 46/46, affected semantic 761/761, import
+19/19, union 780/780, audit 217, full discovery 1,680/1,680, pycompile/fresh
+import, DAG/body/caller parity, and diff check.
 Benchmark refresh was **NOT RUN** and
 remote CI is unverified. This establishes neither behavior, accuracy, ranking,
 performance, total-code, executed-path, ledger, benchmark, nor Phase 3
 completion.
 
-The selected follow-on is the 130-line prepared growth trace-inspection cluster.
-Public `growth_answer_has_untraced_numeric_material(...)`,
-`narrative_summary_conflicts_with_growth_trace(...)`, and
-`growth_narrative_numeric_incompatible_with_trace(...)` move to
-`financial_aggregate_projection.py`. Their 19 calls remain graph-external and
-the projected owner spans are 28 + 56 + 43 = 127 lines. They add only symbols on
-existing answer-projection and numeric-surface edges, so the module DAG does not
-change and no runtime-domain baseline record moves. The exact APIs, six-method
-characterization gate, call distribution, and rejected expansions live only in
+The selected follow-on is the 93-line dependency input-binding policy cluster.
+Public `dependency_slot_matches_input(...)`,
+`task_prefers_sibling_output_synthesis(...)`, and
+`task_output_input_bindings(...)` move to
+`financial_dependency_projection.py`. Their four calls remain graph-external and
+the projected owner spans are 61 + 14 + 15 = 90 lines. They add only the graph-
+state type and a cycle-safe direct graph-helper period-focus import; no runtime-domain
+baseline record moves. The exact APIs, six-method characterization gate, call
+distribution, and rejected expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-Complete/narrative growth answer selection and refresh, source-visible sentence repair,
-arithmetic surface sync, retrieved-ratio artifact/state handling, mutable state/
-evidence, and final sequencing stay in the graph. Existing direct, patch, and
-static test references must retarget to the owner or graph-imported public symbols,
-but production has no compatibility gate for the predicates. Direct structured
-evidence, source-visible query terms, compact-ratio state/trace, precision,
-evidence mutation, carriers, callbacks, promotion, sync/rebuild, and final-
-orchestration expansions remain excluded.
+Dependency operand-row construction, binding-resolution state assembly, operand
+extraction, ratio-result projection, graph producer/result lookup, evidence
+coercion, mutable state/evidence, and final sequencing stay in the graph. Existing
+operation-contract direct references must retarget to the dependency owner, but
+production has no compatibility gate for the selected policies. Complete/
+narrative growth answer selection and refresh, direct structured evidence,
+source-visible query terms, compact-ratio state/trace, precision, evidence
+mutation, carriers, callbacks, promotion, sync/rebuild, and final-orchestration
+expansions remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

@@ -1756,9 +1756,54 @@ Benchmark refresh was **NOT RUN**, remote CI is unverified, and this relocation
 establishes no behavior, accuracy, ranking, performance, total-code,
 executed-path, benchmark, schedule, or Phase 3 completion claim.
 
-The next selected prepared growth trace-inspection predicates are not yet owner
-contracts. Their exact 130-line, three-public-API, 19-external-call boundary and
-graph hard stops are governed solely by
+Prepared growth trace inspection is now also owned by
+`financial_aggregate_projection.py`.
+
+Public `growth_answer_has_untraced_numeric_material(answer, ordered_results,
+evidence_items=None)` normalizes the answer and returns `False` when blank. It
+scans prepared rows in order, resolves operation family before period conflict,
+and considers only nonconflicting growth rows. Complete-answer rendering precedes
+required-display projection. A blank renderer or empty required-display set skips
+the row. The whole normalized answer is tested first; only a negative result
+splits the answer and checks sentences in stable order. The first whole-answer or
+sentence conflict returns `True`.
+
+Public `narrative_summary_conflicts_with_growth_trace(narrative_answer,
+ordered_results, evidence_items=None)` has the same answer, operation, period,
+renderer, and required-display gates. It reads the percent pattern before the row
+scan. For every eligible row it builds evidence text in supplied item order from
+claim, quote, raw-row, source-context, and selected metadata fields, then appends
+evidence-visible numeric display candidates. The allowed surface is complete
+answer, required values, evidence text, and evidence display text in that order.
+It returns `True` only when at least one normalized percent token from the
+narrative is absent from that allowed surface.
+
+Public `growth_narrative_numeric_incompatible_with_trace(*,
+narrative_answer, numeric_answer, ordered_results, evidence_items=None)` returns
+`False` for a blank normalized narrative. It starts trace surfaces with the
+numeric answer, then appends each eligible growth row's complete renderer and
+required displays in row order. It extracts trace candidates before narrative
+candidates. Empty candidates on either side return `False`; otherwise every
+narrative candidate must have at least one equivalent trace candidate, and the
+function returns the negation of that all/any relation.
+
+The three predicates mutate no answer, row, ordered-result, evidence, metadata,
+or nested input. They catch no mapping, copy, iteration, truthiness, string,
+normalization, regex, policy, owner, extraction, or comparison exception. Their
+130 old graph definition-span lines occupy public owner spans 28 + 56 + 43 =
+127. All 19 selected calls remain graph-external and owner-local selected calls
+remain zero; retired selected graph-private references are zero. The `c010a42`
+source diff is `+158/-153`, tests are `+946/-80`, and all seven files are
+`+1,104/-233`; six tests moved full discovery from 1,674 to 1,680. The committed
+source-only diff SHA-256 is
+`598f5e476cf0d8fef1c3767f2b6d33c82f1202702fd58e8c7d6e8c625fb7e348`.
+Benchmark refresh was **NOT RUN**, remote CI is unverified, and this relocation
+establishes no behavior, accuracy, ranking, performance, total-code,
+executed-path, benchmark, schedule, or Phase 3 completion claim.
+
+The next selected dependency input-binding policies are not yet owner contracts.
+Their exact 93-line, three-public-API, four-external-call boundary and graph hard
+stops are governed solely by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
