@@ -2139,6 +2139,62 @@ sequencing remain hard stops. Exact APIs, cycle-safe dependencies, the six-metho
 characterization gate, and rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Reconciliation artifact-reference projection owner milestone
+
+- `c825ab7` moves the former reconciliation helpers into
+  `financial_task_artifacts.py` as public
+  `reconciliation_artifact_candidate_ids_for_operand(...)`,
+  `reconciliation_artifact_candidate_ids(...)`, and
+  `reconciliation_evidence_refs(...)`, plus owner-private
+  `_artifact_text_matches_operand_surface(...)`. The former definition spans were
+  15 + 51 + 29 + 32 = 127 lines; actual owner spans are
+  15 + 50 + 29 + 32 = 126. Four selected calls are direct graph imports and the
+  matcher's one call is owner-local. Retired selected reconciliation-private
+  source/test refs are zero and no compatibility wrapper or alias remains.
+- A pre-move audit corrected the prior plan's statement that every selected
+  reconciliation import would remain live. `_operand_text_match` had no use after
+  relocation and was removed; all other touched imports remain live. The import
+  DAG is acyclic and task artifacts do not import reconciliation.
+- Exactly five source/test files changed. Source is `+153/-138`, net `+15`:
+  reconciliation is `+10/-137` and moves from 2,429 to 2,302 physical lines;
+  task artifacts are `+143/-1` and move from 1,250 to 1,392. Tests are
+  `+1,455/-4`, net `+1,451`; the whole commit is `+1,608/-142`, net `+1,466`.
+- The committed source-only diff SHA-256 is
+  `65819999639a808bb95ec29ddf6547751fddaff3eed4e3af321210d367a43b55`.
+  Literal body parity passed 4/4 after only `self` removal and owner-local name
+  rebinding. Both retained executable callers remained exact after selected
+  target normalization; public import identity, fresh import, and DAG checks
+  passed; the four retired mixin attributes are absent.
+- Six AST-counted unittest methods moved the method inventory and full discovery
+  from 1,686 to 1,692. Final validation passed focused 6/6, task-artifact owner
+  9/9, affected eight-module semantic 817/817, import-side-effects 19/19,
+  semantic/import union 836/836, runtime audit 217, full discovery 1,692/1,692,
+  pycompile/fresh-import binding checks, DAG/body/caller parity, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only ownership of deterministic projection over already
+prepared reconciliation state, artifact, match, and evidence-reference records.
+Structured-candidate/cell selection, evidence construction, reconciliation state
+projection, artifact creation/update and whole-ledger mutation, reranking/LLM
+work, reflection/retry planning, callbacks, promotion, sync/rebuild, mutable
+state/evidence, and final sequencing remain graph-owned. The commit proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 79-line reflection request/
+plan projection cluster in `financial_graph_reconciliation.py`. Public
+`normalise_reflection_plan_record(...)` and `build_reflection_request(...)`, two
+owner-private summaries, and the bounded strategy/budget constants move to the
+existing `financial_reflection_projection.py` owner. Four selected calls finish
+as two graph-external and two owner-local calls; projected owner function spans
+total 78. Heuristic planning, prompt/model invocation, retry-query finalization,
+retry action application, report/artifact ledger mutation, eligibility/routing,
+mutable state/evidence, and final sequencing remain hard stops. Exact APIs,
+cycle-safe dependencies, the six-method characterization gate, and rejected
+alternatives are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

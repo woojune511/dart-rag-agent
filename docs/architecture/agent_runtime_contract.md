@@ -1841,10 +1841,10 @@ passed. Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move
 establishes no behavior, accuracy, ranking, performance, total-code,
 executed-path, benchmark, schedule, or Phase 3 completion claim.
 
-The selected reconciliation artifact-reference projections are not yet owner
-contracts. Their exact 127-line, public-three/private-one, external-four/local-one
-boundary and reconciliation hard stops are governed solely by
-[Project Status Next Work](../overview/project_status.md#next-work).
+The reconciliation artifact-reference projections are now bounded task-artifact
+owner contracts. Their public-three/private-one, external-four/local-one behavior
+and retained graph boundary are specified below. The sole next priority is
+governed by [Project Status Next Work](../overview/project_status.md#next-work).
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`
@@ -2649,6 +2649,52 @@ artifact creation/finalization, whole-ledger or graph state, integrity/replan
 policy, or final orchestration, and it establishes no total-code, executed-path,
 performance, broad private-surface, or Phase 3 completion claim.
 
+Prepared reconciliation artifact candidate and evidence-reference projection is
+also a plain, read-only `financial_task_artifacts.py` owner seam. Owner-private
+`_artifact_text_matches_operand_surface(text, operand)` normalizes the supplied
+text and returns `False` for blank input before operand access. It calls the
+shared operand matcher first; only a miss compacts whitespace in the text and
+each stable operand needle, skips blank needles, and accepts either containment
+direction. It catches no truthiness, string, normalization, regex, needle, or
+operand-matcher exception.
+
+Public `reconciliation_artifact_candidate_ids_for_operand(state, operand=...)`
+scans a copied artifact list in stable order, copies each artifact, accepts kinds
+containing `reconciliation_result`, and copies payload, result, and dictionary
+match rows. It tests label, concept, and role surfaces in order through the
+owner-private matcher and stably deduplicates copied match candidate ids. Once an
+artifact has any matching operand surface, its artifact evidence refs are not a
+fallback even when the matching row has no candidate id; otherwise its evidence
+refs are appended. Public `reconciliation_artifact_candidate_ids(state)` keeps
+top-level reconciliation `evidence_refs` then `source_evidence_ids` before each
+eligible artifact's refs and payload-result refs, preserving stable first-seen
+dedupe.
+
+Public `reconciliation_evidence_refs(result)` accepts only strict dictionary
+matched-operand rows and reads candidate, source-row, source-evidence, evidence,
+and row id plural/singular families in their existing order. It recursively
+flattens list, tuple, and set containers, stringifies and strips leaf values,
+filters blank and case-insensitive `none`/`null`/`nan`, and preserves first-seen
+order. The selected owners mutate no supplied state, artifact list, payload,
+result, match row, operand, id container, or nested item. Mapping, copy,
+truthiness, conversion, iteration, regex, hashing, and access exceptions remain
+uncaught.
+
+The graph retains structured-candidate and cell selection, candidate-map
+construction, evidence construction, list adoption, reconciliation state
+projection, artifact creation/update and ledger mutation, reranking/LLM work,
+reflection/retry planning, mutable state/evidence, and final sequencing. The four
+public calls remain at the original extraction/reconciliation placements and the
+text match is owner-local. An owner exception still stops downstream adoption and
+state work. Commit `c825ab7` moves only these deterministic bodies: source is
+`+153/-138`, tests are `+1,455/-4`, full discovery is 1,692/1,692, and the source
+diff SHA-256 is
+`65819999639a808bb95ec29ddf6547751fddaff3eed4e3af321210d367a43b55`.
+The pre-move audit also established that reconciliation's `_operand_text_match`
+import becomes dead and must be removed. The move establishes no behavior,
+accuracy, ranking, performance, total-code, executed-path, benchmark, ledger, or
+Phase 3 completion claim.
+
 Aggregate answers must keep child task provenance visible after the final
 projection. Each item in `answer_slots.subtask_results` should expose:
 
@@ -2739,6 +2785,14 @@ Reflection retry behavior is being moved toward a bounded capability contract.
 See [self_reflection_capability_contract.md](self_reflection_capability_contract.md)
 for the target request/plan/action/report boundary and allowed retry
 strategies.
+The request builder, strict runtime/evidence summaries, and planner-record
+normalizer remain graph-owned at this checkpoint. Their selected characterize-
+first movement into `financial_reflection_projection.py` must preserve the
+one-retry budget, allowed-strategy fallback, strict trace semantics, planner
+catch boundary, and exact graph caller placement described in
+[Project Status Next Work](../overview/project_status.md#next-work). That owner
+move does not activate reflection, increase retry budget, change final acceptance,
+or establish promotion evidence.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

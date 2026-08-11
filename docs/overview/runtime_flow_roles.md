@@ -404,11 +404,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   preference, task-output binding 함수로 배치된다. 사전 source audit이 기존
   4-call 계획에서 누락된 reconciliation caller 3개를 찾아 총 7개 call을 모두
   graph-external로 retarget했고, owner-local selected call은 없다.
-- 다음 선택은 `financial_task_artifacts.py`로 가는 127-line reconciliation
-  artifact-reference projection 네 함수다. public 3개와 owner-private 1개,
-  external 4/local 1 call, characterize-first gate와 candidate/cell selection,
-  artifact/ledger mutation, reflection/retry, mutable state/evidence 및 final-
-  sequencing hard stop은
+- 완료된 reconciliation artifact-reference projection도
+  `financial_task_artifacts.py`의 public per-operand/general candidate-id와
+  evidence-ref 함수, owner-private operand-surface matcher로 배치된다. 네 call은
+  graph-external이고 matcher 한 call은 owner-local이다. candidate/cell selection,
+  artifact creation/mutation, mutable reconciliation state와 final sequencing은
+  graph에 남는다.
+- 다음 선택은 `financial_reflection_projection.py`로 가는 79-line reflection
+  request/plan projection 네 함수와 bounded strategy/budget constants다. public
+  2개와 owner-private 2개, external 2/local 2 call, characterize-first gate와
+  heuristic planning, prompt/model invocation, retry application, report/artifact
+  ledger mutation, routing, mutable state/evidence 및 final-sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
@@ -608,12 +614,14 @@ profile 기반 실험 orchestrator다.
 10. `src/agent/financial_graph_calculation.py::FinancialAgentCalculationMixin`
 11. `src/agent/financial_operand_resolution.py`
 12. `src/agent/financial_dependency_projection.py`
-13. `src/agent/financial_calculation_execution.py`
-14. `src/agent/financial_answer_projection.py`
-15. `src/processing/financial_parser.py::FinancialParser.process_document`
-16. `src/storage/vector_store.py::VectorStoreManager.search`
-17. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
-18. MAS가 필요할 때만 `src.experimental.mas` facade; legacy `src.agent` 구현은 compatibility 확인 시에만
+13. `src/agent/financial_task_artifacts.py`
+14. `src/agent/financial_reflection_projection.py`
+15. `src/agent/financial_calculation_execution.py`
+16. `src/agent/financial_answer_projection.py`
+17. `src/processing/financial_parser.py::FinancialParser.process_document`
+18. `src/storage/vector_store.py::VectorStoreManager.search`
+19. `src/ops/benchmark_runner.py`와 `src/ops/evaluator.py`
+20. MAS가 필요할 때만 `src.experimental.mas` facade; legacy `src.agent` 구현은 compatibility 확인 시에만
 
 ## 18. 헷갈리지 말아야 할 경계
 
