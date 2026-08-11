@@ -2199,6 +2199,722 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(row, before_row)
         self.assertEqual(source_slot_by_task_id, before_sources)
 
+    def test_current_source_narrative_row_focus_sentence_pins_filters_order_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        skipped_row = {
+            "metric_family": "lookup",
+            "answer": "unused",
+            "nested": nested,
+        }
+        narrative_row = {
+            "metric_family": " Narrative_Summary ",
+            "selected_claim_ids": [" claim_1 ", "", 7],
+            "answer": "prepared narrative",
+            "nested": nested,
+        }
+        later_row = {
+            "metric_family": "narrative_summary",
+            "selected_claim_ids": ["later"],
+            "answer": "later narrative",
+        }
+        ordered_results = [skipped_row, narrative_row, later_row]
+        before = deepcopy(ordered_results)
+        events = []
+
+        def operation_family(row):
+            events.append(("family", row))
+            return "lookup"
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        def split_sentences(value):
+            events.append(("split", value))
+            if value == "prepared narrative":
+                return [" noisy row ", " fragment row ", " Focus WIN ", "Focus later"]
+            return ["Focus unused"]
+
+        def noisy(value):
+            events.append(("noisy", value))
+            return value == "noisy row"
+
+        def fragment(value, markers):
+            events.append(("fragment", value, markers))
+            return value == "fragment row"
+
+        policy = {"growth_narrative_markers": ("impact",), "nested": nested}
+        with (
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", side_effect=split_sentences),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", side_effect=noisy),
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_sentence_looks_abbreviated_fragment",
+                side_effect=fragment,
+            ),
+        ):
+            selected = financial_aggregate_projection.narrative_row_focus_sentence(
+                ordered_results=ordered_results,
+                focus_variants=["focus"],
+            )
+
+        self.assertEqual(selected, (0, "Focus WIN", ["claim_1", "7"]))
+        self.assertEqual([event[0] for event in events], [
+            "family",
+            "normalize",
+            "family",
+            "normalize",
+            "split",
+            "normalize",
+            "noisy",
+            "normalize",
+            "noisy",
+            "fragment",
+            "normalize",
+            "noisy",
+            "fragment",
+        ])
+        self.assertEqual(ordered_results, before)
+        self.assertIs(ordered_results[0]["nested"], nested)
+        self.assertIs(ordered_results[1]["nested"], nested)
+        self.assertEqual(policy, {"growth_narrative_markers": ("impact",), "nested": nested})
+        self.assertTrue(
+            all(event[2] == ("impact",) for event in events if event[0] == "fragment")
+        )
+
+        class ResultsBomb:
+            def __iter__(self):
+                raise AssertionError("rows accessed")
+
+        with self.assertRaisesRegex(AssertionError, "rows accessed"):
+            list(ResultsBomb())
+        self.assertIsNone(
+            financial_aggregate_projection.narrative_row_focus_sentence(
+                ordered_results=ResultsBomb(),
+                focus_variants=[],
+            )
+        )
+
+        split_owner = Mock(side_effect=AssertionError("split accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=RuntimeError("family failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", split_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "family failed"):
+                financial_aggregate_projection.narrative_row_focus_sentence(
+                    ordered_results=[narrative_row],
+                    focus_variants=["focus"],
+                )
+        split_owner.assert_not_called()
+
+        noisy_owner = Mock(side_effect=AssertionError("noise accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="narrative_summary"),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                side_effect=RuntimeError("split failed"),
+            ),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", noisy_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "split failed"):
+                financial_aggregate_projection.narrative_row_focus_sentence(
+                    ordered_results=[narrative_row],
+                    focus_variants=["focus"],
+                )
+        noisy_owner.assert_not_called()
+
+    def test_current_source_narrative_row_focus_context_pins_scoring_ties_limits_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        row = {
+            "metric_family": "narrative_summary",
+            "selected_claim_ids": [" claim_a ", "", "claim_b"],
+            "answer": "prepared",
+            "nested": nested,
+        }
+        ordered_results = [row]
+        before = deepcopy(ordered_results)
+        sentences = [
+            "before query context",
+            "Focus 100",
+            "later impact context",
+            "Focus query 10 20",
+        ]
+        events = []
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", {"growth_impact_markers": ("impact",)}),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", return_value=["query"]) as terms,
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="narrative_summary"),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", return_value=sentences),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", return_value=False),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_abbreviated_fragment", return_value=False),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+        ):
+            selected = financial_aggregate_projection.narrative_row_focus_context(
+                query="query",
+                ordered_results=ordered_results,
+                focus_variants=["Focus"],
+                max_sentences=2,
+            )
+        self.assertEqual(selected, (0, "Focus 100 later impact context", ["claim_a", "claim_b"]))
+        terms.assert_called_once_with("query")
+        self.assertEqual(ordered_results, before)
+        self.assertIs(ordered_results[0]["nested"], nested)
+
+        scored_sentences = ["Focus query 10 20 30", "Focus impact 99"]
+        with (
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", {"growth_impact_markers": ("impact",)}),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", return_value=["query"]),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="narrative_summary"),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", return_value=scored_sentences),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", return_value=False),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_abbreviated_fragment", return_value=False),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.narrative_row_focus_context(
+                    query="query",
+                    ordered_results=ordered_results,
+                    focus_variants=["Focus"],
+                    max_sentences=1,
+                ),
+                (0, "Focus impact 99", ["claim_a", "claim_b"]),
+            )
+
+        filtered_sentences = ["Focus noisy", "Focus fragment", "Focus valid"]
+        with (
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", {"growth_impact_markers": ()}),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", return_value=[]),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="narrative_summary"),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", return_value=filtered_sentences),
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_sentence_looks_table_noisy",
+                side_effect=lambda value: value == "Focus noisy",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_sentence_looks_abbreviated_fragment",
+                side_effect=lambda value, _markers: value == "Focus fragment",
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.narrative_row_focus_context(
+                    query="query",
+                    ordered_results=ordered_results,
+                    focus_variants=["Focus"],
+                ),
+                (0, "Focus valid", ["claim_a", "claim_b"]),
+            )
+
+        term_owner = Mock(side_effect=AssertionError("terms accessed"))
+        with patch.object(financial_aggregate_projection, "narrative_context_terms", term_owner):
+            self.assertIsNone(
+                financial_aggregate_projection.narrative_row_focus_context(
+                    query="query",
+                    ordered_results=ordered_results,
+                    focus_variants=[],
+                )
+            )
+        term_owner.assert_not_called()
+
+        family_owner = Mock(side_effect=AssertionError("family accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_context_terms",
+                side_effect=RuntimeError("terms failed"),
+            ),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "terms failed"):
+                financial_aggregate_projection.narrative_row_focus_context(
+                    query="query",
+                    ordered_results=ordered_results,
+                    focus_variants=["Focus"],
+                )
+        family_owner.assert_not_called()
+
+        noisy_owner = Mock(side_effect=AssertionError("noise accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", {"growth_impact_markers": ()}),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", return_value=[]),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="narrative_summary"),
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                side_effect=RuntimeError("split failed"),
+            ),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", noisy_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "split failed"):
+                financial_aggregate_projection.narrative_row_focus_context(
+                    query="query",
+                    ordered_results=ordered_results,
+                    focus_variants=["Focus"],
+                )
+        noisy_owner.assert_not_called()
+
+    def test_current_source_narrative_row_focus_bindings_pin_defs_calls_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        module_sources = {
+            "graph": inspect.getsource(financial_graph_calculation),
+            "owner": inspect.getsource(financial_aggregate_projection),
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        current_targets = {
+            "sentence": "narrative_row_focus_sentence",
+            "context": "narrative_row_focus_context",
+        }
+        retired_private_targets = {
+            "_" + "narrative_row_focus_sentence",
+            "_" + "narrative_row_focus_context",
+        }
+        definitions = {}
+        all_definition_names = set()
+        calls = {key: [] for key in current_targets}
+        try_depths = {key: [] for key in current_targets}
+        noncall_source_refs = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                all_definition_names.add(node.name)
+                if node.name in current_targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else ""
+                for key, target in current_targets.items():
+                    if called_name == target:
+                        calls[key].append(
+                            (
+                                self.module_name,
+                                tuple(self.function_stack),
+                                receiver,
+                                tuple(ast.unparse(argument) for argument in node.args),
+                                tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                            )
+                        )
+                        try_depths[key].append(self.try_depth)
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in current_targets.values() and self.call_depth == 0:
+                    noncall_source_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "narrative_row_focus_sentence": ("owner", 26),
+                "narrative_row_focus_context": ("owner", 67),
+            },
+        )
+        self.assertTrue(retired_private_targets.isdisjoint(all_definition_names))
+        self.assertEqual({key: len(entries) for key, entries in calls.items()}, {"sentence": 1, "context": 2})
+        self.assertEqual(try_depths, {"sentence": [0], "context": [0, 0]})
+        self.assertEqual(noncall_source_refs, [])
+        self.assertTrue(
+            all(
+                receiver == "" and not args and keywords
+                for entries in calls.values()
+                for _module, _stack, receiver, args, keywords in entries
+            )
+        )
+        self.assertEqual(
+            calls["sentence"],
+            [
+                (
+                    "graph",
+                    ("_compose_growth_narrative_answer",),
+                    "",
+                    (),
+                    (
+                        ("ordered_results", "ordered_results"),
+                        ("focus_variants", "parenthetical_variants"),
+                    ),
+                )
+            ],
+        )
+        self.assertEqual(
+            calls["context"],
+            [
+                (
+                    "graph",
+                    ("_compose_growth_narrative_answer",),
+                    "",
+                    (),
+                    (
+                        ("query", "query"),
+                        ("ordered_results", "ordered_results"),
+                        ("focus_variants", "focus_required_variants or focus_variants"),
+                    ),
+                ),
+                (
+                    "graph",
+                    ("_answer_satisfies_growth_narrative_intent",),
+                    "",
+                    (),
+                    (
+                        ("query", "query_text"),
+                        ("ordered_results", "ordered_results"),
+                        ("focus_variants", "required_focus_terms"),
+                    ),
+                ),
+            ],
+        )
+
+        selected_definition_names = set(current_targets.values())
+        actual = {}
+        for key, entries in calls.items():
+            external = 0
+            local = 0
+            for module_name, function_stack, _receiver, _args, _keywords in entries:
+                if module_name == "owner" or selected_definition_names.intersection(function_stack):
+                    local += 1
+                else:
+                    external += 1
+            actual[key] = (external, local)
+        self.assertEqual(actual, {"sentence": (1, 0), "context": (2, 0)})
+        self.assertEqual(
+            (
+                sum(external for external, _local in actual.values()),
+                sum(local for _external, local in actual.values()),
+            ),
+            (3, 0),
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        owner_imports = imported_modules(module_trees["owner"])
+        self.assertIn("src.agent.financial_text_surface", owner_imports)
+        self.assertIn("src.config.retrieval_policy", owner_imports)
+        graph_bindings = [
+            (alias.name, alias.asname)
+            for node in module_trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_aggregate_projection"
+            for alias in node.names
+            if alias.name in current_targets.values()
+        ]
+        self.assertEqual(
+            graph_bindings,
+            [
+                ("narrative_row_focus_context", None),
+                ("narrative_row_focus_sentence", None),
+            ],
+        )
+        text_tree = ast.parse(Path("src/agent/financial_text_surface.py").read_text(encoding="utf-8"))
+        self.assertNotIn("src.agent.financial_aggregate_projection", imported_modules(text_tree))
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_aggregate_projection.py"
+                and any(
+                    min(node.lineno for _module, node in definitions.values())
+                    <= line
+                    <= max(node.end_lineno for _module, node in definitions.values())
+                    for line in record.get("first_lines") or []
+                )
+            ],
+            [],
+        )
+
+    def test_current_source_narrative_row_focus_composer_callers_pin_args_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        ordered_results = []
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+
+        def configured_agent():
+            primary = {"rendered_value": "10%", "nested": nested}
+            current = {"period": "2024", "label": "Revenue", "nested": nested}
+            prior = {"period": "2023", "nested": nested}
+            row = {
+                "calculation_result": {
+                    "answer_slots": {
+                        "primary_value": primary,
+                        "current_value": current,
+                        "prior_value": prior,
+                    }
+                },
+                "nested": nested,
+            }
+            local_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            local_agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+            local_agent._growth_narrative_sentence_candidates = Mock(
+                return_value=[(1, "base candidate", ["base"])]
+            )
+            local_agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
+            local_agent._supported_growth_driver_groups = Mock(return_value=[])
+            local_agent._growth_slot_display_value = Mock(side_effect=["200", "100"])
+            local_agent._growth_slots_share_material = Mock(return_value=False)
+            local_agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
+            return local_agent, row
+
+        policy = dict(financial_graph_calculation.CALCULATION_NARRATIVE_POLICY)
+
+        def run_with_selected(context_result, sentence_result):
+            local_agent, row = configured_agent()
+            runtime_results = [row]
+            context_owner = Mock(return_value=context_result)
+            sentence_owner = Mock(return_value=sentence_result)
+            before_row = deepcopy(row)
+            before_evidence = deepcopy(evidence_items)
+            with (
+                patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+                patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
+                patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+                patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+                patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
+                patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=["Needle"]),
+                patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=["Needle"]),
+                patch.object(financial_graph_calculation, "answer_covers_narrative_context", return_value=False),
+                patch.object(financial_graph_calculation, "narrative_row_focus_context", context_owner),
+                patch.object(financial_graph_calculation, "narrative_row_focus_sentence", sentence_owner),
+            ):
+                result = local_agent._compose_growth_narrative_answer(
+                    query="growth query",
+                    ordered_results=runtime_results,
+                    existing_answer="",
+                    evidence_items=evidence_items,
+                )
+            context_owner.assert_called_once_with(
+                query="growth query",
+                ordered_results=runtime_results,
+                focus_variants=["Needle"],
+            )
+            self.assertIs(context_owner.call_args.kwargs["ordered_results"], runtime_results)
+            self.assertEqual(row, before_row)
+            self.assertIs(row["nested"], nested)
+            self.assertEqual(evidence_items, before_evidence)
+            self.assertIs(evidence_items[0]["nested"], nested)
+            return result, sentence_owner, runtime_results
+
+        context_result, sentence_owner, _row = run_with_selected(
+            (0, "context row", ["ctx"]),
+            None,
+        )
+        sentence_owner.assert_not_called()
+        self.assertIn("context row", context_result["compressed_answer"])
+        self.assertEqual(context_result["selected_claim_ids"], ["ctx"])
+
+        sentence_result, sentence_owner, sentence_results = run_with_selected(
+            None,
+            (0, "sentence row", ["sentence"]),
+        )
+        sentence_owner.assert_called_once_with(
+            ordered_results=sentence_results,
+            focus_variants=["Needle"],
+        )
+        self.assertIs(sentence_owner.call_args.kwargs["ordered_results"], sentence_results)
+        self.assertIn("sentence row", sentence_result["compressed_answer"])
+        self.assertEqual(sentence_result["selected_claim_ids"], ["sentence"])
+
+        failing_agent, failing_row = configured_agent()
+        sentence_owner = Mock(side_effect=AssertionError("sentence accessed"))
+        before_row = deepcopy(failing_row)
+        with (
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=["Needle"]),
+            patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=["Needle"]),
+            patch.object(
+                financial_graph_calculation,
+                "narrative_row_focus_context",
+                side_effect=RuntimeError("context owner failed"),
+            ),
+            patch.object(financial_graph_calculation, "narrative_row_focus_sentence", sentence_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "context owner failed"):
+                failing_agent._compose_growth_narrative_answer(
+                    query="growth query",
+                    ordered_results=[failing_row],
+                    existing_answer="",
+                    evidence_items=evidence_items,
+                )
+        sentence_owner.assert_not_called()
+        self.assertEqual(failing_row, before_row)
+
+    def test_current_source_narrative_row_focus_intent_caller_pins_args_result_and_stop(self) -> None:
+        nested = {"preserve": True}
+        growth_row = {"metric_family": "growth", "nested": nested}
+        narrative_row = {"metric_family": "narrative_summary", "nested": nested}
+        ordered_results = [growth_row, narrative_row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        policy = {
+            "growth_query_pattern": "growth",
+            "missing_answer_markers": (),
+            "percent_display_pattern": r"\d+%",
+            "growth_impact_markers": ("impact",),
+            "growth_generic_focus_terms": (),
+            "growth_metric_label_terms": (),
+        }
+
+        def family(row):
+            return "growth_rate" if row is growth_row else "narrative_summary"
+
+        context_owner = Mock(return_value=None)
+        candidates = Mock(return_value=[])
+        groups = Mock(return_value=[])
+        with (
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(self.agent, "_aggregate_result_operation_family", side_effect=family),
+            patch.object(self.agent, "_growth_required_display_values", return_value=[]),
+            patch.object(financial_graph_calculation, "narrative_context_terms", return_value=["Needle"]),
+            patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
+            patch.object(self.agent, "_growth_narrative_sentence_candidates", candidates),
+            patch.object(self.agent, "_supported_growth_driver_groups", groups),
+            patch.object(financial_graph_calculation, "narrative_row_focus_context", context_owner),
+        ):
+            self.assertTrue(
+                self.agent._answer_satisfies_growth_narrative_intent(
+                    query="  growth   query ",
+                    answer="10% impact Needle",
+                    ordered_results=ordered_results,
+                    evidence_items=evidence_items,
+                )
+            )
+        context_owner.assert_called_once_with(
+            query="growth query",
+            ordered_results=ordered_results,
+            focus_variants=["Needle"],
+        )
+        self.assertIs(context_owner.call_args.kwargs["ordered_results"], ordered_results)
+        candidates.assert_called_once_with(
+            query="growth query",
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        )
+        self.assertIs(candidates.call_args.kwargs["ordered_results"], ordered_results)
+        self.assertIsNot(candidates.call_args.kwargs["evidence_items"], evidence_items)
+        self.assertEqual(candidates.call_args.kwargs["evidence_items"], evidence_items)
+        groups.assert_called_once_with(query="growth query", narrative_candidates=[])
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(ordered_results[0]["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        coverage = Mock(return_value=False)
+        with (
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(self.agent, "_aggregate_result_operation_family", side_effect=family),
+            patch.object(self.agent, "_growth_required_display_values", return_value=[]),
+            patch.object(financial_graph_calculation, "narrative_context_terms", return_value=["Needle"]),
+            patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
+            patch.object(self.agent, "_growth_narrative_sentence_candidates", return_value=[]),
+            patch.object(self.agent, "_supported_growth_driver_groups", return_value=[]),
+            patch.object(financial_graph_calculation, "narrative_row_focus_context", return_value=(0, "required context", [])),
+            patch.object(financial_graph_calculation, "answer_covers_narrative_context", coverage),
+        ):
+            self.assertFalse(
+                self.agent._answer_satisfies_growth_narrative_intent(
+                    query="growth query",
+                    answer="10% impact Needle",
+                    ordered_results=ordered_results,
+                    evidence_items=evidence_items,
+                )
+            )
+        coverage.assert_called_once_with("10% impact Needle", "required context")
+
+        operation_family = Mock(side_effect=("growth_rate", AssertionError("final scan continued")))
+        with (
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(self.agent, "_aggregate_result_operation_family", operation_family),
+            patch.object(self.agent, "_growth_required_display_values", return_value=[]),
+            patch.object(financial_graph_calculation, "narrative_context_terms", return_value=["Needle"]),
+            patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
+            patch.object(self.agent, "_growth_narrative_sentence_candidates", return_value=[]),
+            patch.object(self.agent, "_supported_growth_driver_groups", return_value=[]),
+            patch.object(
+                financial_graph_calculation,
+                "narrative_row_focus_context",
+                side_effect=RuntimeError("context owner failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "context owner failed"):
+                self.agent._answer_satisfies_growth_narrative_intent(
+                    query="growth query",
+                    answer="10% impact Needle",
+                    ordered_results=ordered_results,
+                    evidence_items=evidence_items,
+                )
+        self.assertEqual(operation_family.call_count, 1)
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+
 
 if __name__ == "__main__":
     unittest.main()

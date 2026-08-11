@@ -574,7 +574,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                     ("narrative_context_sentence_from_evidence", ("query",)): 1,
                     ("include_narrative_context_if_needed", ("query",)): 1,
                     ("_growth_narrative_sentence_candidates", ("query",)): 1,
-                    ("_narrative_row_focus_context", ("query",)): 1,
+                    ("narrative_row_focus_context", ("query",)): 1,
                     ("_answer_satisfies_growth_narrative_intent", ("query_text",)): 1,
                     ("_token_overlap_supported", ("sentence",)): 1,
                     ("_token_overlap_supported", ("candidate",)): 1,
@@ -834,7 +834,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patch.object(financial_graph_calculation, "parenthetical_focus_variants", parenthetical),
             patch.object(agent, "_growth_narrative_sentence_candidates", candidates),
             patch.object(agent, "_supported_growth_driver_groups", return_value=[]),
-            patch.object(agent, "_narrative_row_focus_context", return_value=None),
+            patch.object(financial_graph_calculation, "narrative_row_focus_context", return_value=None),
         ):
             self.assertTrue(
                 agent._answer_satisfies_growth_narrative_intent(

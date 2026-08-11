@@ -82,6 +82,8 @@ from src.agent.financial_aggregate_projection import (
     row_is_narrative_summary,
     safe_partial_answer_for_numeric_gap,
     growth_operand_sign_consistency_rank,
+    narrative_row_focus_context,
+    narrative_row_focus_sentence,
     nested_aggregate_result_rank,
     package_aggregate_answer_candidate,
     package_refreshed_aggregate_answer_candidate,
@@ -8051,103 +8053,6 @@ class FinancialAgentCalculationMixin:
             supported.append({**group, "variants": variants})
         return supported
 
-    def _narrative_row_focus_sentence(
-        self,
-        *,
-        ordered_results: List[Dict[str, Any]],
-        focus_variants: List[str],
-    ) -> Optional[tuple[int, str, List[str]]]:
-        if not focus_variants:
-            return None
-        for row in ordered_results or []:
-            operation_family = self._aggregate_result_operation_family(row)
-            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-            if operation_family != "narrative_summary" and metric_family != "narrative_summary":
-                continue
-            claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
-            narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
-            for sentence in _split_narrative_sentences(str(row.get("answer") or "")):
-                cleaned = _normalise_spaces(sentence)
-                if not cleaned:
-                    continue
-                if _narrative_sentence_looks_table_noisy(cleaned):
-                    continue
-                if _narrative_sentence_looks_abbreviated_fragment(cleaned, narrative_markers):
-                    continue
-                haystack = cleaned.lower()
-                if any(variant.lower() in haystack for variant in focus_variants):
-                    return (0, cleaned, claim_ids)
-        return None
-
-    def _narrative_row_focus_context(
-        self,
-        *,
-        query: str,
-        ordered_results: List[Dict[str, Any]],
-        focus_variants: List[str],
-        max_sentences: int = 2,
-    ) -> Optional[tuple[int, str, List[str]]]:
-        if not focus_variants:
-            return None
-        query_terms = narrative_context_terms(query)
-        impact_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ()))
-        for row in ordered_results or []:
-            operation_family = self._aggregate_result_operation_family(row)
-            metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-            if operation_family != "narrative_summary" and metric_family != "narrative_summary":
-                continue
-            claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
-            sentences = [
-                sentence
-                for sentence in _split_narrative_sentences(str(row.get("answer") or ""))
-                if not _narrative_sentence_looks_table_noisy(sentence)
-                and not _narrative_sentence_looks_abbreviated_fragment(sentence, impact_markers)
-            ]
-            scored_focus_indexes: List[tuple[int, int]] = []
-            for index, sentence in enumerate(sentences):
-                haystack = sentence.lower()
-                focus_hits = sum(1 for variant in focus_variants if variant.lower() in haystack)
-                if not focus_hits:
-                    continue
-                marker_hits = sum(1 for marker in impact_markers if marker in sentence)
-                query_hits = sum(1 for term in query_terms if term.lower() in haystack)
-                numeric_hits = len(re.findall(r"\d[\d,]*(?:\.\d+)?%?", sentence))
-                score = focus_hits * 5 + marker_hits * 3 + query_hits - numeric_hits
-                scored_focus_indexes.append((score, index))
-            scored_focus_indexes.sort(key=lambda item: item[0], reverse=True)
-            focus_indexes = [index for _, index in scored_focus_indexes]
-            if not focus_indexes:
-                continue
-            selected: List[str] = []
-            selected_indexes: set[int] = set()
-
-            def _select(index: int) -> None:
-                if index in selected_indexes or index < 0 or index >= len(sentences):
-                    return
-                selected_indexes.add(index)
-                selected.append(sentences[index])
-
-            focus_index = focus_indexes[0]
-            _select(focus_index)
-            if any(marker in sentences[focus_index] for marker in impact_markers):
-                return (0, _normalise_spaces(" ".join(selected)), claim_ids)
-            ordered_indexes = [
-                *range(focus_index + 1, len(sentences)),
-                *range(0, focus_index),
-            ]
-            for index in ordered_indexes:
-                if len(selected) >= max_sentences:
-                    break
-                if index in selected_indexes:
-                    continue
-                sentence = sentences[index]
-                haystack = sentence.lower()
-                if any(term.lower() in haystack for term in query_terms) or any(marker in sentence for marker in impact_markers):
-                    _select(index)
-            if selected:
-                return (0, _normalise_spaces(" ".join(selected)), claim_ids)
-        return None
-
     def _compose_growth_narrative_answer(
         self,
         *,
@@ -8251,7 +8156,7 @@ class FinancialAgentCalculationMixin:
             variant.lower() in existing_answer_text.lower()
             for variant in focus_required_variants
         )
-        row_focus_context = self._narrative_row_focus_context(
+        row_focus_context = narrative_row_focus_context(
             query=query,
             ordered_results=ordered_results,
             focus_variants=focus_required_variants or focus_variants,
@@ -8359,7 +8264,7 @@ class FinancialAgentCalculationMixin:
                 for variant in parenthetical_focus_variants(query)
                 if variant.lower() not in existing_context
             ]
-            row_focus_candidate = self._narrative_row_focus_sentence(
+            row_focus_candidate = narrative_row_focus_sentence(
                 ordered_results=ordered_results,
                 focus_variants=parenthetical_variants,
             )
@@ -8494,7 +8399,7 @@ class FinancialAgentCalculationMixin:
             coverage_terms = variants + ([phrase] if phrase else [])
             if not any(term.lower() in answer_text.lower() for term in coverage_terms):
                 return False
-        row_focus_context = self._narrative_row_focus_context(
+        row_focus_context = narrative_row_focus_context(
             query=query_text,
             ordered_results=ordered_results,
             focus_variants=required_focus_terms,

@@ -2517,7 +2517,6 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             agent._growth_slot_display_value = Mock(side_effect=["200", "100"])
             agent._growth_slots_share_material = Mock(return_value=False)
             agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
-            agent._narrative_row_focus_context = Mock(return_value=None)
             return agent, row
 
         class NarrativePolicyProbe(dict):
@@ -2547,6 +2546,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", narrative_policy),
                 patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=[]),
                 patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
+                patch.object(financial_graph_calculation, "narrative_row_focus_context", return_value=None),
             )
             if truncated:
                 with (
@@ -2557,6 +2557,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[4],
                     contexts[5],
                     contexts[6],
+                    contexts[7],
                     self.assertRaisesRegex(RuntimeError, "continued after truncated answer"),
                 ):
                     compose_agent._compose_growth_narrative_answer(
@@ -2575,6 +2576,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[4],
                     contexts[5],
                     contexts[6],
+                    contexts[7],
                 ):
                     result = compose_agent._compose_growth_narrative_answer(
                         query="why",

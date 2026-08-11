@@ -32,9 +32,11 @@ from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.agent.financial_text_surface import (
     _tokenize_terms,
     narrative_context_terms,
+    narrative_sentence_looks_abbreviated_fragment,
+    narrative_sentence_looks_table_noisy,
     split_narrative_sentences as _split_narrative_sentences,
 )
-from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY
 
 
 AggregateStaleRepairTargetResolution = Literal[
@@ -586,6 +588,103 @@ def row_is_narrative_summary(row: Dict[str, Any]) -> bool:
     metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
     operation_family = aggregate_result_operation_family(row)
     return metric_family == "narrative_summary" or operation_family == "narrative_summary"
+
+
+def narrative_row_focus_sentence(
+    *,
+    ordered_results: List[Dict[str, Any]],
+    focus_variants: List[str],
+) -> Optional[tuple[int, str, List[str]]]:
+    if not focus_variants:
+        return None
+    for row in ordered_results or []:
+        operation_family = aggregate_result_operation_family(row)
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if operation_family != "narrative_summary" and metric_family != "narrative_summary":
+            continue
+        claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
+        narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
+        for sentence in _split_narrative_sentences(str(row.get("answer") or "")):
+            cleaned = _normalise_spaces(sentence)
+            if not cleaned:
+                continue
+            if narrative_sentence_looks_table_noisy(cleaned):
+                continue
+            if narrative_sentence_looks_abbreviated_fragment(cleaned, narrative_markers):
+                continue
+            haystack = cleaned.lower()
+            if any(variant.lower() in haystack for variant in focus_variants):
+                return (0, cleaned, claim_ids)
+    return None
+
+
+def narrative_row_focus_context(
+    *,
+    query: str,
+    ordered_results: List[Dict[str, Any]],
+    focus_variants: List[str],
+    max_sentences: int = 2,
+) -> Optional[tuple[int, str, List[str]]]:
+    if not focus_variants:
+        return None
+    query_terms = narrative_context_terms(query)
+    impact_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ()))
+    for row in ordered_results or []:
+        operation_family = aggregate_result_operation_family(row)
+        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
+        if operation_family != "narrative_summary" and metric_family != "narrative_summary":
+            continue
+        claim_ids = [str(value).strip() for value in (row.get("selected_claim_ids") or []) if str(value).strip()]
+        sentences = [
+            sentence
+            for sentence in _split_narrative_sentences(str(row.get("answer") or ""))
+            if not narrative_sentence_looks_table_noisy(sentence)
+            and not narrative_sentence_looks_abbreviated_fragment(sentence, impact_markers)
+        ]
+        scored_focus_indexes: List[tuple[int, int]] = []
+        for index, sentence in enumerate(sentences):
+            haystack = sentence.lower()
+            focus_hits = sum(1 for variant in focus_variants if variant.lower() in haystack)
+            if not focus_hits:
+                continue
+            marker_hits = sum(1 for marker in impact_markers if marker in sentence)
+            query_hits = sum(1 for term in query_terms if term.lower() in haystack)
+            numeric_hits = len(re.findall(r"\d[\d,]*(?:\.\d+)?%?", sentence))
+            score = focus_hits * 5 + marker_hits * 3 + query_hits - numeric_hits
+            scored_focus_indexes.append((score, index))
+        scored_focus_indexes.sort(key=lambda item: item[0], reverse=True)
+        focus_indexes = [index for _, index in scored_focus_indexes]
+        if not focus_indexes:
+            continue
+        selected: List[str] = []
+        selected_indexes: set[int] = set()
+
+        def _select(index: int) -> None:
+            if index in selected_indexes or index < 0 or index >= len(sentences):
+                return
+            selected_indexes.add(index)
+            selected.append(sentences[index])
+
+        focus_index = focus_indexes[0]
+        _select(focus_index)
+        if any(marker in sentences[focus_index] for marker in impact_markers):
+            return (0, _normalise_spaces(" ".join(selected)), claim_ids)
+        ordered_indexes = [
+            *range(focus_index + 1, len(sentences)),
+            *range(0, focus_index),
+        ]
+        for index in ordered_indexes:
+            if len(selected) >= max_sentences:
+                break
+            if index in selected_indexes:
+                continue
+            sentence = sentences[index]
+            haystack = sentence.lower()
+            if any(term.lower() in haystack for term in query_terms) or any(marker in sentence for marker in impact_markers):
+                _select(index)
+        if selected:
+            return (0, _normalise_spaces(" ".join(selected)), claim_ids)
+    return None
 
 
 def safe_partial_answer_for_numeric_gap(
