@@ -1549,13 +1549,56 @@ CI is unverified, and this ownership relocation establishes no behavior,
 accuracy, ranking, performance, total-code, executed-path, benchmark, schedule,
 or Phase 3 completion claim.
 
-The next selected dependency-source preparation boundary is not yet a runtime
-owner contract. It is the 131-line five-function group governed solely by
-[Project Status Next Work](../overview/project_status.md#next-work): four public
-aggregate-projection functions plus one owner-private text scorer, nine calls
-projected as seven graph-external and two owner-local, and no baseline record
-move. The preceding bound operation-family callback and following compact-ratio
-state/trace carrier remain graph hard stops.
+Aggregate dependency-source preparation is now owned by
+`financial_aggregate_projection.py`. Public
+`ratio_rebuild_component_seeds(row, calculation_result, answer_slots)` scans
+`components_by_group` and then `components_by_role` in mapping order before the
+row-first/fallback-result calculation operands. Every dictionary seed is
+shallow-copied, its normalized explicit or fallback role fills only a missing
+`matched_operand_role`, and the dependency role group sends it to numerator or
+denominator. A seed outside those groups is retained only when the answer-slot
+material gate succeeds. Inputs and nested values are not mutated; mapping,
+iteration, copy, string, normalization, group, and material-gate exceptions are
+uncaught.
+
+Owner-private `_dependency_source_text_match_score(left, right)` normalizes both
+surfaces before its blank gate. Exact equality adds six, containment adds three,
+and the return adds the size of the case-folded intersection of narrative terms
+of length at least two. Public `dependency_source_slot_match_score(slot, seed,
+role)` calls the dependency lookup-slot scorer first, then builds slot label,
+metric, concept, and period text plus seed label/matched-label, concept, and
+period/matched-period text, and adds the owner-private text score. All access,
+string, normalization, policy-term, and scorer exceptions propagate.
+
+Public `best_dependency_source_for_seed(...)` shallow-copies and normalizes the
+seed's role, matched role, label, and concept before inferring source task ids.
+Excluded task ids are skipped. Inferred tasks receive a floor of 12; nonpositive
+scores are discarded. Ranking is descending by `(score, task_id)`, so the
+lexically greater task id wins an equal score. No winner returns four empty/zero
+values; a winner returns a shallow copy of its slot, the prepared seed, and the
+score. Public `component_slot_from_dependency_source(...)` shallow-copies and
+role-completes the seed, delegates source-operand construction with exact task id,
+builds the answer slot with the exact default role, and then records role, source
+task id, and `dependency_resolved = True`. No selected helper catches owner or
+access exceptions.
+
+The five former graph bodies span 131 old lines and now occupy
+33 + 21 + 15 + 35 + 23 = 127 owner lines. Nine calls finish at seven graph-
+external and two owner-local; retired graph-private references are zero. The
+source-slot map with its bound operation-family callback and the 145-line ratio
+caller with compact-ratio state/trace/result projection remain graph-owned. The
+clean `8dc6054..df3b63b` range changed source by `+157/-147`, tests by
+`+1,299/-27`, and all five files by `+1,456/-174`; six tests moved full discovery
+from 1,638 to 1,644. Benchmark refresh was **NOT RUN**, remote CI is unverified,
+and this relocation establishes no behavior, accuracy, ranking, performance,
+total-code, executed-path, benchmark, schedule, or Phase 3 completion claim.
+
+The next selected aggregate narrative row-focus pair is not yet an owner
+contract. It is the 95-line two-function boundary governed solely by
+[Project Status Next Work](../overview/project_status.md#next-work): two public
+aggregate-projection APIs, three graph-external calls, projected spans 26 and 67,
+and no baseline record move. Dynamic narrative-driver discovery, growth answer
+composition/validation, and evidence/state sequencing remain graph hard stops.
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`

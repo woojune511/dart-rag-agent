@@ -286,7 +286,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -308,7 +308,8 @@ material-gap, result/nested rank, dedupe, narrative-answer validation, bounded a
 row/gap/lookup-answer policy, narrative term/variant/context sentence presentation,
 prepared-document snippet projection and retrieved-source preservation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
-table-metadata KRW repair가 포함된다. Graph는 query/evidence preparation, caller
+table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
+projection이 포함된다. Graph는 query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
 sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
 planning은 nested traversal을 유지한다.
@@ -365,10 +366,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - 일곱 public API의 27개 call은 graph external 22개와 owner-local 5개로
   배치된다. 세부 분포와 exception/identity 계약은
   [Agent Runtime Contract](../architecture/agent_runtime_contract.md)를 따른다.
-- 다음 선택은 이 text owner의 확장이 아니라
-  `financial_aggregate_projection.py`로 가는 131-line dependency-source
-  preparation boundary다. 아직 이동하지 않은 네 public 함수와 한 owner-private
-  scorer, characterize-first gate와 callback/state-carrier hard stop은
+- 완료된 dependency-source preparation은
+  `financial_aggregate_projection.py`의 public seed/slot-score/best-source/
+  component 함수와 owner-private text score로 배치된다. 아홉 call은 graph
+  external 7개와 owner-local 2개이며, bound callback source map과 compact-ratio
+  state/trace caller는 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 95-line narrative row-focus
+  sentence/context pair다. 두 public 함수, 세 external call, characterize-first
+  gate와 dynamic-driver/composition hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

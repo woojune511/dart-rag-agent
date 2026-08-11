@@ -241,46 +241,46 @@ Selected ratio presentation/readiness/scale, narrative intent/surface/trace,
 aggregate row/gap/lookup-answer, narrative term/variant/context presentation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW
 consistency, and table-metadata KRW repair boundaries are complete in their
-state-free owners. Their retained external graph call placements remain, while
-broader evidence repair, dependency-source lookup, answer composition/refresh,
+state-free owners. Aggregate dependency-source seed/scoring/selection/component
+preparation is also owner-resident. Retained external graph call placements
+remain, while broader evidence repair, dependency-source lookup/source mapping,
+answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `7aa3e23..55f7ce3` range is an ownership relocation only. Exactly
-four code/test files changed. Two 69- and 72-line graph bodies became 68- and
-71-line public text APIs; cumulatively seven text APIs place 27 calls as 22
-graph-external and five owner-local, with retired graph-private references zero.
-Source is `+152/-146`, net `+6`: the graph moved from 16,438 to 16,297 physical
-lines and the text owner from 264 to 411. Tests are `+1,304/-11`, net `+1,293`,
-and the whole range is `+1,456/-157`, net `+1,299`. Five AST-counted unittest
+The completed `8dc6054..df3b63b` range is an ownership relocation only. Exactly
+five code/test files changed. Five graph bodies spanning 131 lines became four
+public aggregate APIs plus one owner-private scorer with spans
+33 + 21 + 15 + 35 + 23 = 127. Their nine calls finish at seven graph-external
+and two owner-local, with retired graph-private references zero. Source is
+`+157/-147`, net `+10`: the graph moved from 16,297 to 16,164 physical lines and
+the aggregate owner from 1,702 to 1,845. Tests are `+1,299/-27`, net `+1,272`,
+and the whole range is `+1,456/-174`, net `+1,282`. Six AST-counted unittest
 methods were added, moving both the method inventory and full discovery from
-1,633 to 1,638. Final gates passed focused 5/5 plus
-migrated 4/4 independently, text-owner 20/20, semantic 719/719, import 19/19,
-union 738/738, audit 217, full discovery 1,638/1,638, and diff check. Benchmark
-refresh was **NOT RUN** and remote CI is unverified. This establishes neither
-behavior, accuracy, ranking, performance, total-code, executed-path, ledger,
-benchmark, nor Phase 3 completion.
+1,638 to 1,644. Final gates passed focused 6/6 and combined focused 13/13,
+semantic 725/725, import 19/19, union 744/744, audit 217, full discovery
+1,644/1,644, and diff check. Benchmark refresh was **NOT RUN** and remote CI is
+unverified. This establishes neither behavior, accuracy, ranking, performance,
+total-code, executed-path, ledger, benchmark, nor Phase 3 completion.
 
-The selected follow-on is the 131-line dependency-source preparation group at
-graph lines 7339-7473. Four public functions and one owner-private text scorer
-move to `financial_aggregate_projection.py`; nine calls finish at seven graph-
-external and two owner-local. Its projected owner spans are
-33 + 21 + 15 + 35 + 23 = 127 lines. The aggregate owner adds only existing-
-direction answer-slot, dependency-role/source-operand, and narrative-term
-dependencies; there is no reverse path and no runtime-domain baseline record
-moves. The exact APIs, six-method characterization gate, dependency edges, and
-rejected expansions live only in
+The selected follow-on is the 95-line aggregate narrative row-focus pair at graph
+lines 8054-8149. Two public functions move to
+`financial_aggregate_projection.py`; their three calls remain graph-external and
+their projected owner spans are 26 + 67 = 93 lines. The aggregate owner adds only
+text noise/abbreviation predicates and narrative policy on existing dependency
+directions; there is no reverse path and no runtime-domain baseline record moves.
+The exact APIs, five-method characterization gate, dependency edges, and rejected
+expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-The upstream 38-line source-slot map stays in the graph because it passes a bound
-operation-family callback. The downstream 145-line ratio caller stays because it
-owns compact-ratio state/trace carriers, result projection, and final adoption.
-This bounded public-four group supersedes the earlier broad ratio-helper public-
-surface-sprawl rejection without weakening the compact-ratio/state hard stop.
-Direct structured evidence remains blocked by the correct-owner cycle,
-narrative row-focus retains a wider instance-patched compatibility surface, and
-precision/carrier, ontology, evidence mutation, state, ledger, callback, and
-final-orchestration expansions remain excluded.
+Dynamic narrative-driver discovery, growth answer composition/validation, and
+all evidence/state sequencing stay in the graph. Existing instance-patched tests
+must retarget to the owner or graph-imported public symbols, but production has no
+compatibility gate for the pair. Direct structured evidence remains blocked by
+the correct-owner cycle; source-visible query terms retain inherited retrieval
+and ontology seams; compact ratio retains state/trace carriers; and precision,
+evidence mutation, ledger, callback, promotion, sync/rebuild, and final-
+orchestration expansions remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

@@ -1765,6 +1765,54 @@ downstream compact-ratio state/trace carrier remain hard stops. Exact APIs,
 dependencies, characterization gates, and rejected expansions are maintained
 only in [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Aggregate dependency-source preparation owner milestone
+
+- `df3b63b` moves five former graph helpers into
+  `financial_aggregate_projection.py`: public
+  `ratio_rebuild_component_seeds(...)`,
+  `dependency_source_slot_match_score(...)`,
+  `best_dependency_source_for_seed(...)`, and
+  `component_slot_from_dependency_source(...)`, plus owner-private
+  `_dependency_source_text_match_score(...)`. The former definition spans were
+  34 + 21 + 16 + 36 + 24 = 131 lines; the owner spans are
+  33 + 21 + 15 + 35 + 23 = 127. Retired graph-private definitions and references
+  are zero.
+- Across `8dc6054..df3b63b`, exactly five source/test files changed. Source is
+  `+157/-147`, net `+10`: the graph is `+12/-145` and moves from 16,297 to
+  16,164 physical lines; aggregate projection is `+145/-2` and moves from 1,702
+  to 1,845. Tests are `+1,299/-27`, net `+1,272`: aggregate rank/dedupe is
+  `+1,253/-0`, aggregate subtask projection is `+16/-10`, and text surface is
+  `+30/-17`. The whole range is `+1,456/-174`, net `+1,282`.
+- Nine selected calls finish at seven graph-external and two owner-local: seed
+  collection 1/0, text score 0/1, slot score 1/1, best-source selection 3/0,
+  and component projection 2/0. The frozen source diff SHA-256 is
+  `0ed48e13a232281d0f05e70f83b5f8b617e739dc3854265316a4910bf82495e3`.
+  The bound-callback source map and compact-ratio state/trace/result caller remain
+  graph-owned.
+- Six AST-counted unittest methods were added, moving the method inventory and
+  full discovery from 1,638 to 1,644. Final validation passed new focused 6/6,
+  combined owner/migrated surface 13/13, the eight-module semantic set 725/725,
+  import-side-effects 19/19, the nine-module union 744/744, runtime audit 217,
+  full discovery 1,644/1,644, pycompile/fresh-import binding checks, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone closes only the selected aggregate dependency-source seed,
+scoring, selection, and component-preparation ownership. Source-slot mapping
+with dynamic callback, compact-ratio state/trace/result projection, broader
+evidence work, mutable state/evidence, artifact/ledger work, promotion,
+sync/rebuild, and final sequencing remain graph-owned. The range proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 95-line narrative row-focus
+pair in graph lines 8054-8149. Two public aggregate-projection functions are
+projected at 26 and 67 owner lines; all three calls remain graph-external.
+Dynamic narrative-driver discovery and growth composition/validation remain hard
+stops. Exact APIs, dependencies, five-method characterization gate, and rejected
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
