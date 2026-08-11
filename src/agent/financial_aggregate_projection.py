@@ -7,14 +7,16 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
-from src.agent.financial_answer_slots import answer_slot_has_material
+from src.agent.financial_answer_slots import answer_slot_has_material, build_operand_value_slot
 from src.agent.financial_answer_projection import (
     material_gap_feedback_for_subtask_result,
     subtask_row_has_material,
 )
 from src.agent.financial_dependency_projection import (
     dependency_lookup_slot_match_score,
+    dependency_operand_from_source_slot,
     dependency_projection_slot_differs_from_operand,
+    dependency_ratio_role_group,
     structured_unit_realigned_operand_matches_source_slot,
 )
 from src.agent.financial_numeric_surface import (
@@ -27,7 +29,11 @@ from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading
 from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
 from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
 from src.agent.financial_scope_policies import known_consolidation_scope_value
-from src.agent.financial_text_surface import _tokenize_terms, split_narrative_sentences as _split_narrative_sentences
+from src.agent.financial_text_surface import (
+    _tokenize_terms,
+    narrative_context_terms,
+    split_narrative_sentences as _split_narrative_sentences,
+)
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
@@ -819,6 +825,143 @@ def aggregate_source_task_ids_for_operand(
         if dependency_lookup_slot_match_score(slot, operand, role) >= 12:
             inferred_task_ids.append(task_id)
     return inferred_task_ids
+
+
+def ratio_rebuild_component_seeds(
+    row: Dict[str, Any],
+    calculation_result: Dict[str, Any],
+    answer_slots: Dict[str, Any],
+) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    numerator: List[Dict[str, Any]] = []
+    denominator: List[Dict[str, Any]] = []
+    ungrouped: List[Dict[str, Any]] = []
+
+    def _add_seed(seed: Dict[str, Any], fallback_role: str = "") -> None:
+        seed = dict(seed)
+        role = _normalise_spaces(
+            str(seed.get("matched_operand_role") or seed.get("role") or fallback_role or "")
+        )
+        if role and not seed.get("matched_operand_role"):
+            seed["matched_operand_role"] = role
+        group = dependency_ratio_role_group(role)
+        if group == "numerator":
+            numerator.append(seed)
+        elif group == "denominator":
+            denominator.append(seed)
+        elif answer_slot_has_material(seed):
+            ungrouped.append(seed)
+
+    for container_key in ("components_by_group", "components_by_role"):
+        for role, entries in dict(answer_slots.get(container_key) or {}).items():
+            for entry in list(entries or []):
+                if isinstance(entry, dict):
+                    _add_seed(entry, str(role or ""))
+    for operand in list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or []):
+        if isinstance(operand, dict):
+            _add_seed(operand)
+    return numerator, denominator, ungrouped
+
+
+def _dependency_source_text_match_score(left: str, right: str) -> int:
+    left = _normalise_spaces(left)
+    right = _normalise_spaces(right)
+    if not left or not right:
+        return 0
+    score = 0
+    if left == right:
+        score += 6
+    elif left in right or right in left:
+        score += 3
+    left_terms = {
+        token.lower()
+        for token in narrative_context_terms(left)
+        if len(token) >= 2
+    }
+    right_terms = {
+        token.lower()
+        for token in narrative_context_terms(right)
+        if len(token) >= 2
+    }
+    return score + len(left_terms & right_terms)
+
+
+def dependency_source_slot_match_score(
+    slot: Dict[str, Any],
+    seed: Dict[str, Any],
+    role: str,
+) -> int:
+    score = dependency_lookup_slot_match_score(slot, seed, role)
+    slot_text = " ".join(
+        str(slot.get(key) or "")
+        for key in ("label", "metric_label", "concept", "period")
+    )
+    seed_text = " ".join(
+        str(seed.get(key) or seed.get(f"matched_operand_{key}") or "")
+        for key in ("label", "concept", "period")
+    )
+    return score + _dependency_source_text_match_score(slot_text, seed_text)
+
+
+def best_dependency_source_for_seed(
+    seed: Dict[str, Any],
+    role: str,
+    *,
+    source_slots: Dict[str, Dict[str, Any]],
+    excluded_task_ids: Optional[set[str]] = None,
+) -> tuple[str, Dict[str, Any], Dict[str, Any], int]:
+    seed = {
+        **dict(seed),
+        "role": role,
+        "matched_operand_role": role,
+        "matched_operand_label": _normalise_spaces(
+            str(seed.get("matched_operand_label") or seed.get("label") or "")
+        ),
+        "matched_operand_concept": _normalise_spaces(
+            str(seed.get("matched_operand_concept") or seed.get("concept") or "")
+        ),
+    }
+    excluded = set(excluded_task_ids or set())
+    inferred_task_ids = set(aggregate_source_task_ids_for_operand(seed, source_slots))
+    ranked: List[tuple[int, str, Dict[str, Any]]] = []
+    for task_id, slot in source_slots.items():
+        if task_id in excluded:
+            continue
+        score = dependency_source_slot_match_score(slot, seed, role)
+        if task_id in inferred_task_ids:
+            score = max(score, 12)
+        if score <= 0:
+            continue
+        ranked.append((score, task_id, slot))
+    if not ranked:
+        return "", {}, {}, 0
+    ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    score, task_id, slot = ranked[0]
+    return task_id, dict(slot), seed, score
+
+
+def component_slot_from_dependency_source(
+    seed: Dict[str, Any],
+    source_slot: Dict[str, Any],
+    source_task_id: str,
+    role: str,
+) -> Dict[str, Any]:
+    source_operand = dependency_operand_from_source_slot(
+        {
+            **dict(seed),
+            "role": role,
+            "matched_operand_role": role,
+            "label": seed.get("label") or source_slot.get("label"),
+            "matched_operand_label": seed.get("matched_operand_label") or source_slot.get("label"),
+            "matched_operand_concept": seed.get("matched_operand_concept") or source_slot.get("concept"),
+        },
+        source_slot,
+        source_task_id=source_task_id,
+    )
+    slot = build_operand_value_slot(source_operand, default_role=role)
+    slot["role"] = role
+    slot["source_task_id"] = source_task_id
+    slot["dependency_resolved"] = True
+    return slot
 
 
 def _aggregate_result_candidate_operands(row: Dict[str, Any]) -> List[Dict[str, Any]]:

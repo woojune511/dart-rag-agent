@@ -2,7 +2,11 @@ import unittest
 from copy import deepcopy
 from unittest.mock import Mock, patch
 
-from src.agent import financial_graph_calculation, financial_text_surface
+from src.agent import (
+    financial_aggregate_projection,
+    financial_graph_calculation,
+    financial_text_surface,
+)
 
 from src.agent.financial_text_surface import (
     narrative_sentence_looks_abbreviated_fragment,
@@ -471,6 +475,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         from pathlib import Path
 
         module_trees = {
+            "aggregate": ast.parse(inspect.getsource(financial_aggregate_projection)),
             "graph": ast.parse(inspect.getsource(financial_graph_calculation)),
             "owner": ast.parse(inspect.getsource(financial_text_surface)),
         }
@@ -606,13 +611,13 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             for entry in entries
             if entry[0] == "owner"
         ]
-        graph_external = [
+        external = [
             entry
             for entries in calls.values()
             for entry in entries
-            if entry[0] == "graph"
+            if entry[0] != "owner"
         ]
-        self.assertEqual((len(graph_external), len(owner_local)), (18, 5))
+        self.assertEqual((len(external), len(owner_local)), (18, 5))
         self.assertEqual(
             [(caller, args) for _module, caller, _receiver, args, _keywords in owner_local],
             [
@@ -671,9 +676,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         agent = financial_graph_calculation.FinancialAgentCalculationMixin()
 
         terms = Mock(side_effect=[("Alpha", "Shared"), ("Shared", "Beta")])
-        with patch.object(financial_graph_calculation, "narrative_context_terms", terms):
+        with patch.object(financial_aggregate_projection, "narrative_context_terms", terms):
             self.assertEqual(
-                agent._dependency_source_text_match_score("left label", "right label"),
+                financial_aggregate_projection._dependency_source_text_match_score(
+                    "left label", "right label"
+                ),
                 1,
             )
         self.assertEqual(
@@ -684,14 +691,16 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms = Mock()
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "_normalise_spaces",
                 side_effect=("", "right label"),
             ) as normalizer,
-            patch.object(financial_graph_calculation, "narrative_context_terms", terms),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", terms),
         ):
             self.assertEqual(
-                agent._dependency_source_text_match_score("left label", "right label"),
+                financial_aggregate_projection._dependency_source_text_match_score(
+                    "left label", "right label"
+                ),
                 0,
             )
         self.assertEqual(
@@ -701,9 +710,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         terms.assert_not_called()
 
         terms = Mock(side_effect=RuntimeError("term caller failed"))
-        with patch.object(financial_graph_calculation, "narrative_context_terms", terms):
+        with patch.object(financial_aggregate_projection, "narrative_context_terms", terms):
             with self.assertRaisesRegex(RuntimeError, "term caller failed"):
-                agent._dependency_source_text_match_score("left label", "right label")
+                financial_aggregate_projection._dependency_source_text_match_score(
+                    "left label", "right label"
+                )
         terms.assert_called_once_with("left label")
 
         growth_row = {"kind": "growth", "nested": {"preserve": True}}
@@ -1665,6 +1676,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         import inspect
 
         module_trees = {
+            "aggregate": ast.parse(inspect.getsource(financial_aggregate_projection)),
             "graph": ast.parse(inspect.getsource(financial_graph_calculation)),
             "owner": ast.parse(inspect.getsource(financial_text_surface)),
         }
@@ -1794,7 +1806,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         )
         self.assertEqual(
             (
-                sum(entry[0] == "graph" for entries in calls.values() for entry in entries),
+                sum(entry[0] != "owner" for entries in calls.values() for entry in entries),
                 sum(entry[0] == "owner" for entries in calls.values() for entry in entries),
             ),
             (20, 5),
@@ -1806,13 +1818,13 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             for entry in entries
             if entry[0] == "owner"
         ]
-        graph_external = [
+        external = [
             entry
             for entries in calls.values()
             for entry in entries
-            if entry[0] == "graph"
+            if entry[0] != "owner"
         ]
-        self.assertEqual((len(graph_external), len(owner_local)), (20, 5))
+        self.assertEqual((len(external), len(owner_local)), (20, 5))
         self.assertEqual(
             [(caller, args) for _module, caller, _receiver, args, _keywords in owner_local],
             [
@@ -2750,6 +2762,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         from src.agent import financial_numeric_surface
 
         module_sources = {
+            "aggregate": inspect.getsource(financial_aggregate_projection),
             "graph": inspect.getsource(financial_graph_calculation),
             "owner": inspect.getsource(financial_text_surface),
             "numeric": inspect.getsource(financial_numeric_surface),
@@ -2827,7 +2840,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                         try_depths[key].append(self.try_depth)
                 self.generic_visit(node)
 
-        for module_name in ("graph", "owner"):
+        for module_name in ("aggregate", "graph", "owner"):
             BindingVisitor(module_name).visit(module_trees[module_name])
 
         self.assertEqual(
@@ -2881,7 +2894,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
 
         final_by_target = {
             key: (
-                sum(entry[0] == "graph" for entry in entries),
+                sum(entry[0] != "owner" for entry in entries),
                 sum(entry[0] == "owner" for entry in entries),
             )
             for key, entries in calls.items()

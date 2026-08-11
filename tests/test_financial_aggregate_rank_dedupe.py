@@ -946,6 +946,1259 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(rank_calls, [nested_row])
         coherence_owner.assert_not_called()
 
+    def test_current_source_ratio_rebuild_seeds_pin_precedence_copy_order_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+
+        class RoleBomb:
+            def __bool__(self):
+                raise AssertionError("fallback role truthiness accessed")
+
+            def __str__(self):
+                raise AssertionError("fallback role string accessed")
+
+            def __deepcopy__(self, _memo):
+                return self
+
+        class CalculationResultBomb(dict):
+            def get(self, key, default=None):
+                if key == "calculation_operands":
+                    raise AssertionError("calculation-result operands accessed")
+                return super().get(key, default)
+
+        numerator_seed = {
+            "matched_operand_role": " numerator_1 ",
+            "role": RoleBomb(),
+            "label": "numerator",
+            "nested": nested,
+        }
+        fallback_denominator_seed = {"label": "denominator", "nested": nested}
+        material_unknown_seed = {"role": "other", "normalized_value": 3.0, "nested": nested}
+        empty_unknown_seed = {"role": "empty", "nested": nested}
+        row_denominator_seed = {
+            "role": "denominator_1",
+            "label": "row denominator",
+            "nested": nested,
+        }
+        answer_slots = {
+            "components_by_group": {
+                "fallback-num": [numerator_seed, "skip-nondict"],
+                "fallback-den": [fallback_denominator_seed],
+            },
+            "components_by_role": {
+                "ignored-fallback": [material_unknown_seed, empty_unknown_seed],
+            },
+        }
+        row = {"calculation_operands": [row_denominator_seed], "nested": nested}
+        calculation_result = CalculationResultBomb({"nested": nested})
+        before = deepcopy(
+            {
+                "row": row,
+                "answer_slots": answer_slots,
+                "calculation_result": dict(calculation_result),
+            }
+        )
+        normalized_roles = []
+        group_roles = []
+        material_rows = []
+
+        def normalize(value):
+            normalized_roles.append(value)
+            return " ".join(str(value).split())
+
+        def ratio_group(role):
+            group_roles.append(role)
+            if role in {"numerator_1", "fallback-num"}:
+                return "numerator"
+            if role in {"denominator_1", "fallback-den"}:
+                return "denominator"
+            return ""
+
+        def has_material(seed):
+            material_rows.append(seed)
+            return seed.get("normalized_value") is not None
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_ratio_role_group",
+                side_effect=ratio_group,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                side_effect=has_material,
+            ),
+        ):
+            numerator, denominator, ungrouped = financial_aggregate_projection.ratio_rebuild_component_seeds(
+                row,
+                calculation_result,
+                answer_slots,
+            )
+
+        self.assertEqual(
+            normalized_roles,
+            [" numerator_1 ", "fallback-den", "other", "empty", "denominator_1"],
+        )
+        self.assertEqual(
+            group_roles,
+            ["numerator_1", "fallback-den", "other", "empty", "denominator_1"],
+        )
+        self.assertEqual([item.get("label") for item in numerator], ["numerator"])
+        self.assertEqual(
+            [item.get("label") for item in denominator],
+            ["denominator", "row denominator"],
+        )
+        self.assertEqual(
+            ungrouped,
+            [
+                {
+                    **material_unknown_seed,
+                    "matched_operand_role": "other",
+                }
+            ],
+        )
+        self.assertEqual(
+            [item.get("role") for item in material_rows],
+            ["other", "empty"],
+        )
+        self.assertIsNot(numerator[0], numerator_seed)
+        self.assertIsNot(denominator[0], fallback_denominator_seed)
+        self.assertIsNot(denominator[1], row_denominator_seed)
+        self.assertIsNot(ungrouped[0], material_unknown_seed)
+        for item in [numerator[0], denominator[0], denominator[1], ungrouped[0]]:
+            self.assertIs(item["nested"], nested)
+        self.assertEqual(fallback_denominator_seed, {"label": "denominator", "nested": nested})
+        self.assertEqual(answer_slots, before["answer_slots"])
+        self.assertEqual(row, before["row"])
+        self.assertEqual(dict(calculation_result), before["calculation_result"])
+
+        downstream_group = Mock(side_effect=AssertionError("group accessed"))
+        downstream_material = Mock(side_effect=AssertionError("material accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("role normalization failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_ratio_role_group",
+                downstream_group,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                downstream_material,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "role normalization failed"):
+                financial_aggregate_projection.ratio_rebuild_component_seeds(
+                    {},
+                    {},
+                    {"components_by_group": {"unknown": [{"role": "other"}]}},
+                )
+        downstream_group.assert_not_called()
+        downstream_material.assert_not_called()
+
+        fallback_operand = {"role": "numerator_1", "label": "fallback operand", "nested": nested}
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_ratio_role_group",
+                side_effect=ratio_group,
+            ),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", side_effect=has_material),
+        ):
+            fallback_numerator, fallback_denominator, fallback_ungrouped = (
+                financial_aggregate_projection.ratio_rebuild_component_seeds(
+                    {"calculation_operands": []},
+                    {"calculation_operands": [fallback_operand]},
+                    {},
+                )
+            )
+        self.assertEqual([item.get("label") for item in fallback_numerator], ["fallback operand"])
+        self.assertEqual(fallback_denominator, [])
+        self.assertEqual(fallback_ungrouped, [])
+        self.assertIsNot(fallback_numerator[0], fallback_operand)
+        self.assertIs(fallback_numerator[0]["nested"], nested)
+
+        downstream_material = Mock(side_effect=AssertionError("material accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", return_value="other"),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_ratio_role_group",
+                side_effect=RuntimeError("group failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                downstream_material,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "group failed"):
+                financial_aggregate_projection.ratio_rebuild_component_seeds(
+                    {},
+                    {},
+                    {"components_by_group": {"unknown": [{"role": "other"}]}},
+                )
+        downstream_material.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", return_value="other"),
+            patch.object(financial_aggregate_projection, "dependency_ratio_role_group", return_value=""),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                side_effect=RuntimeError("material gate failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "material gate failed"):
+                financial_aggregate_projection.ratio_rebuild_component_seeds(
+                    {},
+                    {},
+                    {"components_by_group": {"unknown": [{"role": "other"}]}},
+                )
+
+    def test_current_source_dependency_source_scores_pin_normalization_fallbacks_and_exceptions(self) -> None:
+        events = []
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        def terms(value):
+            events.append(("terms", value))
+            if value == "Metric Alpha":
+                return ["Metric", "Alpha", "x"]
+            return ["metric", "alpha", "extra"]
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", side_effect=terms),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._dependency_source_text_match_score(
+                    " Metric Alpha ",
+                    "Metric Alpha Extended",
+                ),
+                5,
+            )
+        self.assertEqual(
+            events,
+            [
+                ("normalize", " Metric Alpha "),
+                ("normalize", "Metric Alpha Extended"),
+                ("terms", "Metric Alpha"),
+                ("terms", "Metric Alpha Extended"),
+            ],
+        )
+
+        term_owner = Mock(side_effect=AssertionError("terms accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=("", "right"),
+            ) as normalizer,
+            patch.object(financial_aggregate_projection, "narrative_context_terms", term_owner),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._dependency_source_text_match_score("left", "right"),
+                0,
+            )
+        self.assertEqual([call.args for call in normalizer.call_args_list], [("left",), ("right",)])
+        term_owner.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: value),
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_context_terms",
+                side_effect=(["Shared"], ["shared"]),
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._dependency_source_text_match_score("same", "same"),
+                7,
+            )
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: value),
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_context_terms",
+                side_effect=(["Alpha", "One"], ["alpha", "Two"]),
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._dependency_source_text_match_score(
+                    "Alpha One", "Two Alpha"
+                ),
+                1,
+            )
+
+        second_terms = Mock(side_effect=AssertionError("second terms accessed"))
+
+        def failing_terms(value):
+            if value == "left":
+                raise RuntimeError("term scoring failed")
+            return second_terms(value)
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: value),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", side_effect=failing_terms),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "term scoring failed"):
+                financial_aggregate_projection._dependency_source_text_match_score("left", "right")
+        second_terms.assert_not_called()
+
+        slot_events = []
+
+        class RecordingRow(dict):
+            def __init__(self, name, values):
+                super().__init__(values)
+                self.name = name
+
+            def get(self, key, default=None):
+                slot_events.append((self.name, key))
+                return super().get(key, default)
+
+        slot = RecordingRow(
+            "slot",
+            {
+                "label": "Slot",
+                "metric_label": "Metric",
+                "concept": "Concept",
+                "period": "2024",
+            },
+        )
+        seed = RecordingRow(
+            "seed",
+            {
+                "label": "",
+                "matched_operand_label": "Matched",
+                "concept": "Concept2",
+                "period": "",
+                "matched_operand_period": "Prior",
+            },
+        )
+        base_score = Mock(return_value=10)
+        text_score = Mock(return_value=4)
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_lookup_slot_match_score",
+                base_score,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_dependency_source_text_match_score",
+                text_score,
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.dependency_source_slot_match_score(
+                    slot, seed, "denominator_1"
+                ),
+                14,
+            )
+        base_score.assert_called_once_with(slot, seed, "denominator_1")
+        text_score.assert_called_once_with(
+            "Slot Metric Concept 2024",
+            "Matched Concept2 Prior",
+        )
+        self.assertEqual(
+            slot_events,
+            [
+                ("slot", "label"),
+                ("slot", "metric_label"),
+                ("slot", "concept"),
+                ("slot", "period"),
+                ("seed", "label"),
+                ("seed", "matched_operand_label"),
+                ("seed", "concept"),
+                ("seed", "period"),
+                ("seed", "matched_operand_period"),
+            ],
+        )
+
+        untouched_slot = RecordingRow("untouched-slot", {"label": "unused"})
+        untouched_seed = RecordingRow("untouched-seed", {"label": "unused"})
+        text_score = Mock(side_effect=AssertionError("text score accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_lookup_slot_match_score",
+                side_effect=RuntimeError("base score failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_dependency_source_text_match_score",
+                text_score,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "base score failed"):
+                financial_aggregate_projection.dependency_source_slot_match_score(
+                    untouched_slot,
+                    untouched_seed,
+                    "numerator_1",
+                )
+        text_score.assert_not_called()
+        self.assertNotIn(("untouched-slot", "label"), slot_events)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_lookup_slot_match_score",
+                return_value=1,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_dependency_source_text_match_score",
+                side_effect=RuntimeError("text score failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "text score failed"):
+                financial_aggregate_projection.dependency_source_slot_match_score(
+                    {}, {}, "numerator_1"
+                )
+
+    def test_current_source_best_dependency_source_pins_inference_exclusion_tie_copy_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        seed = {
+            "label": " Base Label ",
+            "concept": " Base Concept ",
+            "nested": nested,
+        }
+        source_slots = {
+            "task-inferred": {"label": "inferred", "nested": nested},
+            "task-a": {"label": "a", "nested": nested},
+            "task-z": {"label": "z", "nested": nested},
+            "task-excluded": {"label": "excluded", "nested": nested},
+            "task-zero": {"label": "zero", "nested": nested},
+        }
+        before_seed = deepcopy(seed)
+        before_slots = deepcopy(source_slots)
+        prepared_seen = []
+        inference = Mock(side_effect=lambda prepared, slots: prepared_seen.append((prepared, slots)) or ["task-inferred"])
+        scores = {
+            "task-inferred": 1,
+            "task-a": 12,
+            "task-z": 12,
+            "task-zero": 0,
+        }
+        score_calls = []
+
+        def match_score(slot, prepared, role):
+            task_id = next(task_id for task_id, candidate in source_slots.items() if candidate is slot)
+            score_calls.append((task_id, prepared, role))
+            return scores[task_id]
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_source_task_ids_for_operand",
+                inference,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
+                side_effect=match_score,
+            ),
+        ):
+            task_id, selected_slot, prepared_seed, score = financial_aggregate_projection.best_dependency_source_for_seed(
+                seed,
+                "denominator_1",
+                source_slots=source_slots,
+                excluded_task_ids={"task-excluded"},
+            )
+
+        self.assertEqual((task_id, score), ("task-z", 12))
+        self.assertEqual(selected_slot, source_slots["task-z"])
+        self.assertIsNot(selected_slot, source_slots["task-z"])
+        self.assertIs(selected_slot["nested"], nested)
+        self.assertIsNot(prepared_seed, seed)
+        self.assertIs(prepared_seed["nested"], nested)
+        self.assertEqual(prepared_seed["role"], "denominator_1")
+        self.assertEqual(prepared_seed["matched_operand_role"], "denominator_1")
+        self.assertEqual(prepared_seed["matched_operand_label"], "Base Label")
+        self.assertEqual(prepared_seed["matched_operand_concept"], "Base Concept")
+        self.assertEqual(prepared_seen, [(prepared_seed, source_slots)])
+        self.assertTrue(all(call[1] is prepared_seed for call in score_calls))
+        self.assertEqual(
+            [call[0] for call in score_calls],
+            ["task-inferred", "task-a", "task-z", "task-zero"],
+        )
+        self.assertNotIn("task-excluded", [call[0] for call in score_calls])
+        self.assertEqual(seed, before_seed)
+        self.assertEqual(source_slots, before_slots)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_source_task_ids_for_operand",
+                return_value=["only-inferred"],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
+                return_value=1,
+            ),
+        ):
+            inferred_task_id, inferred_slot, _inferred_seed, inferred_score = (
+                financial_aggregate_projection.best_dependency_source_for_seed(
+                    {"label": "seed"},
+                    "numerator_1",
+                    source_slots={"only-inferred": {"label": "source"}},
+                )
+            )
+        self.assertEqual((inferred_task_id, inferred_slot, inferred_score), (
+            "only-inferred",
+            {"label": "source"},
+            12,
+        ))
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_source_task_ids_for_operand",
+                return_value=[],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
+                return_value=0,
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.best_dependency_source_for_seed(
+                    {},
+                    "numerator_1",
+                    source_slots={"task": {"label": "none"}},
+                ),
+                ("", {}, {}, 0),
+            )
+
+        downstream_score = Mock(side_effect=AssertionError("slot score accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_source_task_ids_for_operand",
+                side_effect=RuntimeError("source inference failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
+                downstream_score,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source inference failed"):
+                financial_aggregate_projection.best_dependency_source_for_seed(
+                    seed,
+                    "numerator_1",
+                    source_slots=source_slots,
+                )
+        downstream_score.assert_not_called()
+
+        calls = []
+
+        def failing_score(slot, _prepared, _role):
+            calls.append(slot)
+            raise RuntimeError("slot score failed")
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_source_task_ids_for_operand",
+                return_value=[],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
+                side_effect=failing_score,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "slot score failed"):
+                financial_aggregate_projection.best_dependency_source_for_seed(
+                    seed,
+                    "numerator_1",
+                    source_slots={"first": source_slots["task-a"], "second": source_slots["task-z"]},
+                )
+        self.assertEqual(calls, [source_slots["task-a"]])
+
+    def test_current_source_component_slot_pins_dependency_args_adoption_copy_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        seed = {
+            "label": "Seed Label",
+            "matched_operand_label": "Matched Label",
+            "concept": "Seed Concept",
+            "nested": nested,
+        }
+        source_slot = {
+            "label": "Source Label",
+            "concept": "Source Concept",
+            "nested": nested,
+        }
+        before_seed = deepcopy(seed)
+        before_source = deepcopy(source_slot)
+        source_operand = {"normalized_value": 25.0, "nested": nested}
+        built_slot = {"normalized_value": 25.0, "nested": nested}
+        dependency_builder = Mock(return_value=source_operand)
+        slot_builder = Mock(return_value=built_slot)
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_operand_from_source_slot",
+                dependency_builder,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "build_operand_value_slot",
+                slot_builder,
+            ),
+        ):
+            result = financial_aggregate_projection.component_slot_from_dependency_source(
+                seed,
+                source_slot,
+                "task-source",
+                "numerator_1",
+            )
+
+        dependency_builder.assert_called_once()
+        prepared_operand, passed_source = dependency_builder.call_args.args
+        self.assertIs(passed_source, source_slot)
+        self.assertEqual(dependency_builder.call_args.kwargs, {"source_task_id": "task-source"})
+        self.assertIsNot(prepared_operand, seed)
+        self.assertIs(prepared_operand["nested"], nested)
+        self.assertEqual(
+            {
+                key: prepared_operand.get(key)
+                for key in (
+                    "role",
+                    "matched_operand_role",
+                    "label",
+                    "matched_operand_label",
+                    "matched_operand_concept",
+                )
+            },
+            {
+                "role": "numerator_1",
+                "matched_operand_role": "numerator_1",
+                "label": "Seed Label",
+                "matched_operand_label": "Matched Label",
+                "matched_operand_concept": "Source Concept",
+            },
+        )
+        slot_builder.assert_called_once_with(source_operand, default_role="numerator_1")
+        self.assertIs(result, built_slot)
+        self.assertEqual(result["role"], "numerator_1")
+        self.assertEqual(result["source_task_id"], "task-source")
+        self.assertIs(result["dependency_resolved"], True)
+        self.assertIs(result["nested"], nested)
+        self.assertEqual(seed, before_seed)
+        self.assertEqual(source_slot, before_source)
+
+        fallback_seed = {"nested": nested}
+        fallback_source = {"label": "Source Label", "concept": "Source Concept", "nested": nested}
+        dependency_builder = Mock(return_value=source_operand)
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_operand_from_source_slot",
+                dependency_builder,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "build_operand_value_slot",
+                return_value={},
+            ),
+        ):
+            financial_aggregate_projection.component_slot_from_dependency_source(
+                fallback_seed,
+                fallback_source,
+                "task-fallback",
+                "denominator_1",
+            )
+        fallback_prepared = dependency_builder.call_args.args[0]
+        self.assertEqual(fallback_prepared["label"], "Source Label")
+        self.assertEqual(fallback_prepared["matched_operand_label"], "Source Label")
+        self.assertEqual(fallback_prepared["matched_operand_concept"], "Source Concept")
+
+        downstream_slot = Mock(side_effect=AssertionError("slot builder accessed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_operand_from_source_slot",
+                side_effect=RuntimeError("dependency operand failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "build_operand_value_slot",
+                downstream_slot,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency operand failed"):
+                financial_aggregate_projection.component_slot_from_dependency_source(
+                    seed,
+                    source_slot,
+                    "task-source",
+                    "numerator_1",
+                )
+        downstream_slot.assert_not_called()
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_operand_from_source_slot",
+                return_value=source_operand,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "build_operand_value_slot",
+                side_effect=RuntimeError("slot build failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "slot build failed"):
+                financial_aggregate_projection.component_slot_from_dependency_source(
+                    seed,
+                    source_slot,
+                    "task-source",
+                    "numerator_1",
+                )
+
+    def test_current_source_dependency_source_bindings_pin_defs_calls_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        module_sources = {
+            "graph": inspect.getsource(financial_graph_calculation),
+            "owner": inspect.getsource(financial_aggregate_projection),
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        current_targets = {
+            "seeds": "ratio_rebuild_component_seeds",
+            "text": "_dependency_source_text_match_score",
+            "slot": "dependency_source_slot_match_score",
+            "best": "best_dependency_source_for_seed",
+            "component": "component_slot_from_dependency_source",
+        }
+        public_targets = {
+            "seeds": "ratio_rebuild_component_seeds",
+            "slot": "dependency_source_slot_match_score",
+            "best": "best_dependency_source_for_seed",
+            "component": "component_slot_from_dependency_source",
+        }
+        definitions = {}
+        public_definitions = set()
+        calls = {key: [] for key in current_targets}
+        try_depths = {key: [] for key in current_targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in current_targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                if node.name in public_targets.values():
+                    public_definitions.add((self.module_name, node.name))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = (
+                    ast.unparse(node.func.value)
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                for key, target in current_targets.items():
+                    if called_name != target:
+                        continue
+                    calls[key].append(
+                        (
+                            self.module_name,
+                            tuple(self.function_stack),
+                            receiver,
+                            tuple(ast.unparse(argument) for argument in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                        )
+                    )
+                    try_depths[key].append(self.try_depth)
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "ratio_rebuild_component_seeds": ("owner", 33),
+                "_dependency_source_text_match_score": ("owner", 21),
+                "dependency_source_slot_match_score": ("owner", 15),
+                "best_dependency_source_for_seed": ("owner", 35),
+                "component_slot_from_dependency_source": ("owner", 23),
+            },
+        )
+        self.assertEqual(
+            public_definitions,
+            {
+                ("owner", "ratio_rebuild_component_seeds"),
+                ("owner", "dependency_source_slot_match_score"),
+                ("owner", "best_dependency_source_for_seed"),
+                ("owner", "component_slot_from_dependency_source"),
+            },
+        )
+        self.assertEqual(
+            {key: len(entries) for key, entries in calls.items()},
+            {"seeds": 1, "text": 1, "slot": 2, "best": 3, "component": 2},
+        )
+        self.assertEqual(
+            try_depths,
+            {"seeds": [0], "text": [0], "slot": [0, 0], "best": [0, 0, 0], "component": [0, 0]},
+        )
+        self.assertTrue(
+            all(
+                receiver == ""
+                for entries in calls.values()
+                for _module, _stack, receiver, _args, _keywords in entries
+            )
+        )
+        self.assertEqual(
+            calls["seeds"][0][3:],
+            (("row", "calculation_result", "answer_slots"), ()),
+        )
+        self.assertEqual(
+            calls["text"][0][3:],
+            (("slot_text", "seed_text"), ()),
+        )
+        self.assertEqual(
+            [(entry[3], entry[4]) for entry in calls["component"]],
+            [
+                (("numerator_seed", "numerator_source", "numerator_task_id", "'numerator_1'"), ()),
+                (("denominator_seed", "denominator_source", "denominator_task_id", "'denominator_1'"), ()),
+            ],
+        )
+        self.assertEqual(
+            [(entry[3], entry[4]) for entry in calls["slot"]],
+            [
+                (("denominator_source", "metric_seed", "'denominator_1'"), ()),
+                (("slot", "seed", "role"), ()),
+            ],
+        )
+        self.assertEqual(
+            [(entry[3], entry[4]) for entry in calls["best"]],
+            [
+                (("numerator_seed", "'numerator_1'"), (("source_slots", "source_slots"),)),
+                (
+                    ("denominator_seed", "'denominator_1'"),
+                    (
+                        ("source_slots", "source_slots"),
+                        ("excluded_task_ids", "{numerator_task_id}"),
+                    ),
+                ),
+                (
+                    ("metric_seed", "'denominator_1'"),
+                    (
+                        ("source_slots", "source_slots"),
+                        ("excluded_task_ids", "{numerator_task_id}"),
+                    ),
+                ),
+            ],
+        )
+
+        selected_definition_names = set(current_targets.values())
+        planned = {}
+        external = 0
+        local = 0
+        for key, entries in calls.items():
+            graph_count = 0
+            owner_count = 0
+            for module_name, function_stack, _receiver, _args, _keywords in entries:
+                planned_module = module_name
+                if selected_definition_names.intersection(function_stack):
+                    planned_module = "owner"
+                if planned_module == "owner":
+                    owner_count += 1
+                else:
+                    graph_count += 1
+            planned[key] = (graph_count, owner_count)
+            external += graph_count
+            local += owner_count
+        self.assertEqual(
+            planned,
+            {
+                "seeds": (1, 0),
+                "text": (0, 1),
+                "slot": (1, 1),
+                "best": (3, 0),
+                "component": (2, 0),
+            },
+        )
+        self.assertEqual((external, local), (7, 2))
+
+        graph_bindings = {
+            alias.name
+            for node in module_trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_aggregate_projection"
+            for alias in node.names
+            if alias.name in public_targets.values()
+        }
+        self.assertEqual(graph_bindings, set(public_targets.values()))
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        owner_imports = imported_modules(module_trees["owner"])
+        self.assertTrue(
+            {
+                "src.agent.financial_answer_slots",
+                "src.agent.financial_dependency_projection",
+                "src.agent.financial_runtime_normalization",
+                "src.agent.financial_text_surface",
+            }.issubset(owner_imports)
+        )
+        for path in (
+            "src/agent/financial_answer_slots.py",
+            "src/agent/financial_dependency_projection.py",
+            "src/agent/financial_text_surface.py",
+        ):
+            tree = ast.parse(Path(path).read_text(encoding="utf-8"))
+            self.assertNotIn("src.agent.financial_aggregate_projection", imported_modules(tree))
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        owner_nodes = [node for module_name, node in definitions.values() if module_name == "owner"]
+        selected_start = min(node.lineno for node in owner_nodes)
+        selected_end = max(node.end_lineno for node in owner_nodes)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_aggregate_projection.py"
+                and any(
+                    selected_start <= line <= selected_end
+                    for line in record.get("first_lines") or []
+                )
+            ],
+            [],
+        )
+
+    def test_current_source_ratio_source_caller_pins_args_order_adoption_laziness_and_stop(self) -> None:
+        from types import SimpleNamespace
+
+        nested = {"preserve": True}
+        numerator_input = {"label": "numerator source", "nested": nested}
+        denominator_input = {"label": "denominator source", "nested": nested}
+        source_slot_by_task_id = {
+            "task-num": numerator_input,
+            "task-den": denominator_input,
+        }
+        row = {
+            "calculation_result": {
+                "answer_slots": {"metric_label": "Margin", "nested": nested},
+                "calculation_operands": [],
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        before_row = deepcopy(row)
+        before_sources = deepcopy(source_slot_by_task_id)
+        numerator_seed = {"label": "Num Seed", "nested": nested}
+        denominator_seed = {"label": "Den Seed", "nested": nested}
+        metric_seed = {"role": "denominator_1", "label": "Margin"}
+        numerator_source = {"label": "numerator source", "nested": nested}
+        denominator_source = {"label": "denominator source", "nested": nested}
+        metric_source = {"label": "metric source", "nested": nested}
+        prepared_metric_seed = {"role": "denominator_1", "label": "prepared metric"}
+        numerator_slot = {
+            "normalized_value": 25.0,
+            "source_row_id": "row-num",
+            "nested": nested,
+        }
+        denominator_slot = {
+            "normalized_value": 100.0,
+            "source_row_id": "row-den",
+            "nested": nested,
+        }
+        events = []
+        copied_sources = []
+
+        def material(slot):
+            events.append(("material", slot))
+            copied_sources.append(slot)
+            return True
+
+        seed_owner = Mock(
+            side_effect=lambda prepared_row, result, slots: events.append(
+                ("seeds", prepared_row, result, slots)
+            )
+            or ([numerator_seed], [denominator_seed], [])
+        )
+
+        def best_owner(seed, role, **kwargs):
+            events.append(("best", seed, role, kwargs))
+            best_calls = [event for event in events if event[0] == "best"]
+            if len(best_calls) == 1:
+                return "task-num", numerator_source, numerator_seed, 10
+            if len(best_calls) == 2:
+                return "task-den", denominator_source, denominator_seed, 8
+            return "task-metric", metric_source, prepared_metric_seed, 3
+
+        slot_score = Mock(
+            side_effect=lambda slot, seed, role: events.append(
+                ("slot-score", slot, seed, role)
+            )
+            or 0
+        )
+
+        def component_owner(seed, source, task_id, role):
+            events.append(("component", seed, source, task_id, role))
+            return numerator_slot if role == "numerator_1" else denominator_slot
+
+        compact_owner = Mock(
+            side_effect=lambda state, result: events.append(("compact", state, result))
+            or "25.0%"
+        )
+        with (
+            patch.object(financial_graph_calculation, "answer_slot_has_material", side_effect=material),
+            patch.object(financial_graph_calculation, "ratio_rebuild_component_seeds", seed_owner),
+            patch.object(
+                financial_graph_calculation,
+                "best_dependency_source_for_seed",
+                side_effect=best_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "dependency_source_slot_match_score",
+                slot_score,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "component_slot_from_dependency_source",
+                side_effect=component_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "_ratio_operand_rows_collapse_to_same_slot",
+                return_value=False,
+            ) as collapse_gate,
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "coerce_slot_numeric",
+                side_effect=lambda value: value,
+            ) as numeric_owner,
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "ratio_result_projection",
+                return_value={
+                    "result_value": 25.0,
+                    "result_unit": "%",
+                    "normalized_unit": "ratio",
+                    "rendered_value": "25.0%",
+                },
+            ) as ratio_projection,
+            patch.object(
+                financial_graph_calculation,
+                "_clean_source_row_ids",
+                return_value=["row-num", "row-den"],
+            ) as source_id_owner,
+            patch.object(
+                financial_graph_calculation,
+                "build_dependency_ratio_result_projection",
+                return_value=SimpleNamespace(
+                    calculation_result={
+                        "status": "ok",
+                        "result_value": 25.0,
+                        "rendered_value": "25.0%",
+                    }
+                ),
+            ) as result_builder,
+            patch.object(self.agent, "_compact_ratio_answer", compact_owner),
+        ):
+            answer = self.agent._ratio_answer_from_dependency_source_slots(
+                row,
+                source_slot_by_task_id,
+                query="ratio query",
+            )
+
+        self.assertEqual(answer, "25.0%")
+        self.assertEqual([event[0] for event in events], [
+            "material",
+            "material",
+            "seeds",
+            "best",
+            "best",
+            "best",
+            "slot-score",
+            "component",
+            "component",
+            "compact",
+        ])
+        self.assertEqual(len(copied_sources), 2)
+        self.assertIsNot(copied_sources[0], numerator_input)
+        self.assertIsNot(copied_sources[1], denominator_input)
+        self.assertIs(copied_sources[0]["nested"], nested)
+        self.assertIs(copied_sources[1]["nested"], nested)
+        seed_args = seed_owner.call_args.args
+        self.assertIs(seed_args[0], row)
+        self.assertIsNot(seed_args[1], row["calculation_result"])
+        self.assertEqual(seed_args[1], row["calculation_result"])
+        self.assertIsNot(seed_args[2], row["calculation_result"]["answer_slots"])
+        self.assertEqual(seed_args[2], row["calculation_result"]["answer_slots"])
+        best_calls = [event for event in events if event[0] == "best"]
+        self.assertIs(best_calls[0][1], numerator_seed)
+        self.assertEqual(best_calls[0][2], "numerator_1")
+        first_source_slots = best_calls[0][3]["source_slots"]
+        self.assertEqual(set(first_source_slots), {"task-num", "task-den"})
+        self.assertIsNot(first_source_slots["task-num"], numerator_input)
+        self.assertIsNot(first_source_slots["task-den"], denominator_input)
+        self.assertIsNot(first_source_slots["task-num"], copied_sources[0])
+        self.assertIsNot(first_source_slots["task-den"], copied_sources[1])
+        self.assertIs(first_source_slots["task-num"]["nested"], nested)
+        self.assertIs(first_source_slots["task-den"]["nested"], nested)
+        self.assertIs(best_calls[1][1], denominator_seed)
+        self.assertEqual(
+            best_calls[1][2:],
+            (
+                "denominator_1",
+                {"source_slots": first_source_slots, "excluded_task_ids": {"task-num"}},
+            ),
+        )
+        self.assertEqual(best_calls[2][1], metric_seed)
+        self.assertEqual(
+            best_calls[2][2:],
+            (
+                "denominator_1",
+                {"source_slots": first_source_slots, "excluded_task_ids": {"task-num"}},
+            ),
+        )
+        slot_score.assert_called_once_with(denominator_source, metric_seed, "denominator_1")
+        component_calls = [event for event in events if event[0] == "component"]
+        self.assertEqual(
+            component_calls,
+            [
+                (
+                    "component",
+                    numerator_seed,
+                    numerator_source,
+                    "task-num",
+                    "numerator_1",
+                ),
+                (
+                    "component",
+                    prepared_metric_seed,
+                    metric_source,
+                    "task-metric",
+                    "denominator_1",
+                ),
+            ],
+        )
+        collapse_gate.assert_called_once_with([numerator_slot, denominator_slot])
+        self.assertEqual(
+            [call.args for call in numeric_owner.call_args_list],
+            [(25.0,), (100.0,)],
+        )
+        ratio_projection.assert_called_once_with(
+            numerator_value=25.0,
+            denominator_value=100.0,
+            query="ratio query",
+            metric_label="Margin",
+        )
+        source_id_owner.assert_called_once()
+        result_builder.assert_called_once()
+        compact_owner.assert_called_once()
+        self.assertEqual(row, before_row)
+        self.assertEqual(source_slot_by_task_id, before_sources)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(source_slot_by_task_id["task-num"]["nested"], nested)
+
+        class RowBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("row accessed")
+
+        seed_owner = Mock(side_effect=AssertionError("seed owner accessed"))
+        with (
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(financial_graph_calculation, "ratio_rebuild_component_seeds", seed_owner),
+        ):
+            self.assertEqual(
+                self.agent._ratio_answer_from_dependency_source_slots(
+                    RowBomb(),
+                    {"only": {"normalized_value": 1.0}},
+                ),
+                "",
+            )
+        seed_owner.assert_not_called()
+
+        downstream_best = Mock(side_effect=AssertionError("best owner accessed"))
+        downstream_component = Mock(side_effect=AssertionError("component owner accessed"))
+        with (
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "ratio_rebuild_component_seeds",
+                side_effect=RuntimeError("seed owner failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "best_dependency_source_for_seed",
+                downstream_best,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "component_slot_from_dependency_source",
+                downstream_component,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "seed owner failed"):
+                self.agent._ratio_answer_from_dependency_source_slots(
+                    row,
+                    source_slot_by_task_id,
+                )
+        downstream_best.assert_not_called()
+        downstream_component.assert_not_called()
+        self.assertEqual(row, before_row)
+        self.assertEqual(source_slot_by_task_id, before_sources)
+
 
 if __name__ == "__main__":
     unittest.main()

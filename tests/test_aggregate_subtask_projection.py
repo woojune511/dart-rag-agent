@@ -3332,20 +3332,22 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         source_slots = {"task_a": {"normalized_value": 1.0}}
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_task_ids_for_operand",
                 return_value=["task_a"],
             ) as task_ids_owner,
             patch.object(
-                agent,
-                "_dependency_source_slot_match_score",
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
                 return_value=12,
             ) as match_owner,
         ):
-            task_id, selected_slot, prepared_seed, score = agent._best_dependency_source_for_seed(
-                seed,
-                "numerator_1",
-                source_slots=source_slots,
+            task_id, selected_slot, prepared_seed, score = (
+                financial_aggregate_projection.best_dependency_source_for_seed(
+                    seed,
+                    "numerator_1",
+                    source_slots=source_slots,
+                )
             )
         self.assertEqual((task_id, score), ("task_a", 12))
         self.assertEqual(selected_slot, source_slots["task_a"])
@@ -3363,14 +3365,18 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         match_owner = Mock(return_value=12)
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_task_ids_for_operand",
                 side_effect=RuntimeError("task ids failed"),
             ),
-            patch.object(agent, "_dependency_source_slot_match_score", match_owner),
+            patch.object(
+                financial_aggregate_projection,
+                "dependency_source_slot_match_score",
+                match_owner,
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "task ids failed"):
-                agent._best_dependency_source_for_seed(
+                financial_aggregate_projection.best_dependency_source_for_seed(
                     seed,
                     "numerator_1",
                     source_slots=source_slots,

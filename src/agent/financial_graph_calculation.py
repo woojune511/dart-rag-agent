@@ -69,13 +69,15 @@ from src.agent.financial_aggregate_projection import (
     aggregate_result_signature,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_slot_by_task_id,
-    aggregate_source_task_ids_for_operand,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     aggregate_synthesis_prompt_rows,
     append_uncovered_lookup_numeric_items,
     apply_aggregate_answer_candidate,
+    best_dependency_source_for_seed,
+    component_slot_from_dependency_source,
     compose_lookup_list_numeric_answer,
     dedupe_aggregate_subtask_results,
+    dependency_source_slot_match_score,
     filter_aggregate_projection_provenance,
     row_is_narrative_summary,
     safe_partial_answer_for_numeric_gap,
@@ -84,6 +86,7 @@ from src.agent.financial_aggregate_projection import (
     package_aggregate_answer_candidate,
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
+    ratio_rebuild_component_seeds,
     select_aggregate_projection_answer_sentence,
     select_aggregate_projection_row_for_task,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
@@ -125,7 +128,6 @@ from src.agent.financial_dependency_projection import (
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
     dependency_binding_identity,
-    dependency_lookup_slot_match_score,
     dependency_operand_from_answer_slot,
     dependency_operand_can_use_source_slot,
     dependency_operand_from_source_slot,
@@ -138,6 +140,7 @@ from src.agent.financial_dependency_projection import (
     finalize_dependency_recalculated_row,
     filter_direct_rows_by_dependency_producer_scope,
     infer_dependency_row_unit,
+    dependency_lookup_slot_match_score,
     lookup_primary_slot,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
@@ -7336,142 +7339,6 @@ class FinancialAgentCalculationMixin:
                 source_slots[task_id] = slot
         return source_slots
 
-    def _ratio_rebuild_component_seeds(
-        self,
-        row: Dict[str, Any],
-        calculation_result: Dict[str, Any],
-        answer_slots: Dict[str, Any],
-    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
-        numerator: List[Dict[str, Any]] = []
-        denominator: List[Dict[str, Any]] = []
-        ungrouped: List[Dict[str, Any]] = []
-
-        def _add_seed(seed: Dict[str, Any], fallback_role: str = "") -> None:
-            seed = dict(seed)
-            role = _normalise_spaces(
-                str(seed.get("matched_operand_role") or seed.get("role") or fallback_role or "")
-            )
-            if role and not seed.get("matched_operand_role"):
-                seed["matched_operand_role"] = role
-            group = dependency_ratio_role_group(role)
-            if group == "numerator":
-                numerator.append(seed)
-            elif group == "denominator":
-                denominator.append(seed)
-            elif answer_slot_has_material(seed):
-                ungrouped.append(seed)
-
-        for container_key in ("components_by_group", "components_by_role"):
-            for role, entries in dict(answer_slots.get(container_key) or {}).items():
-                for entry in list(entries or []):
-                    if isinstance(entry, dict):
-                        _add_seed(entry, str(role or ""))
-        for operand in list(row.get("calculation_operands") or calculation_result.get("calculation_operands") or []):
-            if isinstance(operand, dict):
-                _add_seed(operand)
-        return numerator, denominator, ungrouped
-
-    def _dependency_source_text_match_score(self, left: str, right: str) -> int:
-        left = _normalise_spaces(left)
-        right = _normalise_spaces(right)
-        if not left or not right:
-            return 0
-        score = 0
-        if left == right:
-            score += 6
-        elif left in right or right in left:
-            score += 3
-        left_terms = {
-            token.lower()
-            for token in narrative_context_terms(left)
-            if len(token) >= 2
-        }
-        right_terms = {
-            token.lower()
-            for token in narrative_context_terms(right)
-            if len(token) >= 2
-        }
-        return score + len(left_terms & right_terms)
-
-    def _dependency_source_slot_match_score(
-        self,
-        slot: Dict[str, Any],
-        seed: Dict[str, Any],
-        role: str,
-    ) -> int:
-        score = dependency_lookup_slot_match_score(slot, seed, role)
-        slot_text = " ".join(
-            str(slot.get(key) or "")
-            for key in ("label", "metric_label", "concept", "period")
-        )
-        seed_text = " ".join(
-            str(seed.get(key) or seed.get(f"matched_operand_{key}") or "")
-            for key in ("label", "concept", "period")
-        )
-        return score + self._dependency_source_text_match_score(slot_text, seed_text)
-
-    def _best_dependency_source_for_seed(
-        self,
-        seed: Dict[str, Any],
-        role: str,
-        *,
-        source_slots: Dict[str, Dict[str, Any]],
-        excluded_task_ids: Optional[set[str]] = None,
-    ) -> tuple[str, Dict[str, Any], Dict[str, Any], int]:
-        seed = {
-            **dict(seed),
-            "role": role,
-            "matched_operand_role": role,
-            "matched_operand_label": _normalise_spaces(
-                str(seed.get("matched_operand_label") or seed.get("label") or "")
-            ),
-            "matched_operand_concept": _normalise_spaces(
-                str(seed.get("matched_operand_concept") or seed.get("concept") or "")
-            ),
-        }
-        excluded = set(excluded_task_ids or set())
-        inferred_task_ids = set(aggregate_source_task_ids_for_operand(seed, source_slots))
-        ranked: List[tuple[int, str, Dict[str, Any]]] = []
-        for task_id, slot in source_slots.items():
-            if task_id in excluded:
-                continue
-            score = self._dependency_source_slot_match_score(slot, seed, role)
-            if task_id in inferred_task_ids:
-                score = max(score, 12)
-            if score <= 0:
-                continue
-            ranked.append((score, task_id, slot))
-        if not ranked:
-            return "", {}, {}, 0
-        ranked.sort(key=lambda item: (item[0], item[1]), reverse=True)
-        score, task_id, slot = ranked[0]
-        return task_id, dict(slot), seed, score
-
-    def _component_slot_from_dependency_source(
-        self,
-        seed: Dict[str, Any],
-        source_slot: Dict[str, Any],
-        source_task_id: str,
-        role: str,
-    ) -> Dict[str, Any]:
-        source_operand = dependency_operand_from_source_slot(
-            {
-                **dict(seed),
-                "role": role,
-                "matched_operand_role": role,
-                "label": seed.get("label") or source_slot.get("label"),
-                "matched_operand_label": seed.get("matched_operand_label") or source_slot.get("label"),
-                "matched_operand_concept": seed.get("matched_operand_concept") or source_slot.get("concept"),
-            },
-            source_slot,
-            source_task_id=source_task_id,
-        )
-        slot = financial_answer_slots.build_operand_value_slot(source_operand, default_role=role)
-        slot["role"] = role
-        slot["source_task_id"] = source_task_id
-        slot["dependency_resolved"] = True
-        return slot
-
     def _ratio_answer_from_dependency_source_slots(
         self,
         row: Dict[str, Any],
@@ -7497,7 +7364,7 @@ class FinancialAgentCalculationMixin:
             )
         )
 
-        numerator_seeds, denominator_seeds, ungrouped_seeds = self._ratio_rebuild_component_seeds(
+        numerator_seeds, denominator_seeds, ungrouped_seeds = ratio_rebuild_component_seeds(
             row,
             calculation_result,
             answer_slots,
@@ -7510,7 +7377,7 @@ class FinancialAgentCalculationMixin:
         denominator_seed = denominator_seeds[0] if denominator_seeds else {}
         if not numerator_seed or not denominator_seed:
             return ""
-        numerator_task_id, numerator_source, numerator_seed, _numerator_score = self._best_dependency_source_for_seed(
+        numerator_task_id, numerator_source, numerator_seed, _numerator_score = best_dependency_source_for_seed(
             numerator_seed,
             "numerator_1",
             source_slots=source_slots,
@@ -7518,7 +7385,7 @@ class FinancialAgentCalculationMixin:
         if not numerator_task_id or not numerator_source:
             return ""
         denominator_task_id, denominator_source, denominator_seed, _denominator_score = (
-            self._best_dependency_source_for_seed(
+            best_dependency_source_for_seed(
                 denominator_seed,
                 "denominator_1",
                 source_slots=source_slots,
@@ -7534,13 +7401,13 @@ class FinancialAgentCalculationMixin:
                 metric_denominator_source,
                 metric_denominator_seed,
                 metric_denominator_score,
-            ) = self._best_dependency_source_for_seed(
+            ) = best_dependency_source_for_seed(
                 metric_seed,
                 "denominator_1",
                 source_slots=source_slots,
                 excluded_task_ids={numerator_task_id},
             )
-            current_metric_score = self._dependency_source_slot_match_score(
+            current_metric_score = dependency_source_slot_match_score(
                 denominator_source,
                 metric_seed,
                 "denominator_1",
@@ -7554,13 +7421,13 @@ class FinancialAgentCalculationMixin:
                 denominator_task_id = metric_denominator_task_id
                 denominator_source = metric_denominator_source
                 denominator_seed = metric_denominator_seed
-        numerator_slot = self._component_slot_from_dependency_source(
+        numerator_slot = component_slot_from_dependency_source(
             numerator_seed,
             numerator_source,
             numerator_task_id,
             "numerator_1",
         )
-        denominator_slot = self._component_slot_from_dependency_source(
+        denominator_slot = component_slot_from_dependency_source(
             denominator_seed,
             denominator_source,
             denominator_task_id,
