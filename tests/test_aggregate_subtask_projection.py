@@ -12031,14 +12031,14 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         answer = "Operating profit decreased 84.3% to 4,092억원 due to lower spreads."
 
         self.assertFalse(
-            agent._growth_answer_has_untraced_numeric_material(
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material(
                 answer,
                 ordered_results,
                 evidence_items,
             )
         )
         self.assertFalse(
-            agent._narrative_summary_conflicts_with_growth_trace(
+            financial_aggregate_projection.narrative_summary_conflicts_with_growth_trace(
                 answer,
                 ordered_results,
                 evidence_items,

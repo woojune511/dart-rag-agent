@@ -745,7 +745,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patch.object(agent, "_supported_growth_narrative_candidate_sentences", return_value=[]),
             patch.object(financial_graph_calculation, "narrative_focus_variants", focus),
             patch.object(agent, "_answer_satisfies_growth_narrative_intent", return_value=True) as validation,
-            patch.object(agent, "_growth_answer_has_untraced_numeric_material", return_value=False) as numeric_guard,
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                return_value=False,
+            ) as numeric_guard,
         ):
             self.assertEqual(
                 agent._prune_irrelevant_growth_narrative_sentences(
@@ -800,7 +804,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patch.object(agent, "_supported_growth_narrative_candidate_sentences", return_value=[]),
             patch.object(financial_graph_calculation, "narrative_focus_variants", focus),
             patch.object(agent, "_answer_satisfies_growth_narrative_intent", downstream_validation),
-            patch.object(agent, "_growth_answer_has_untraced_numeric_material", downstream_numeric_guard),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                downstream_numeric_guard,
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "focus caller failed"):
                 agent._prune_irrelevant_growth_narrative_sentences(

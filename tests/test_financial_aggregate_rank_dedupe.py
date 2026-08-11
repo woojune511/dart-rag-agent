@@ -5410,9 +5410,9 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "_final_growth_answer_without_untraced_numeric_sentences": 1,
                 "_enforce_source_stated_growth_answer_contract": 1,
                 "_strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
-                "_growth_answer_has_untraced_numeric_material": 1,
-                "_narrative_summary_conflicts_with_growth_trace": 1,
-                "_growth_narrative_numeric_incompatible_with_trace": 1,
+                "growth_answer_has_untraced_numeric_material": 1,
+                "narrative_summary_conflicts_with_growth_trace": 1,
+                "growth_narrative_numeric_incompatible_with_trace": 1,
                 "_is_growth_supported_sentence": 1,
                 "_compose_growth_narrative_answer": 1,
                 "_answer_satisfies_growth_narrative_intent": 1,
@@ -5561,8 +5561,14 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         refresh_agent._supported_aggregate_subtask_answer = Mock(return_value="value 10")
         strong_owner = Mock(return_value=True)
         material_owner = Mock(return_value=False)
-        refresh_agent._growth_answer_has_untraced_numeric_material = material_owner
-        with patch.object(financial_graph_calculation, "has_strong_growth_trace_for_answer_refresh", strong_owner):
+        with (
+            patch.object(financial_graph_calculation, "has_strong_growth_trace_for_answer_refresh", strong_owner),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                material_owner,
+            ),
+        ):
             self.assertTrue(
                 financial_graph_calculation.FinancialAgentCalculationMixin._answer_matches_supported_aggregate_subtask(
                     refresh_agent,
@@ -6443,7 +6449,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(len(calls), 9)
         self.assertEqual(noncall_refs, [])
         self.assertEqual(try_depths, [0] * 9)
-        self.assertTrue(all(module == "graph" and receiver == "" for module, _stack, receiver, _args, _kwargs in calls))
+        self.assertTrue(all(receiver == "" for _module, _stack, receiver, _args, _kwargs in calls))
+        self.assertEqual(Counter(module for module, *_rest in calls), Counter({"graph": 6, "owner": 3}))
         self.assertEqual(
             Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls),
             Counter(
@@ -6453,9 +6460,9 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     "_final_growth_answer_without_untraced_numeric_sentences": 1,
                     "_enforce_source_stated_growth_answer_contract": 1,
                     "_strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
-                    "_growth_answer_has_untraced_numeric_material": 1,
-                    "_narrative_summary_conflicts_with_growth_trace": 1,
-                    "_growth_narrative_numeric_incompatible_with_trace": 1,
+                    "growth_answer_has_untraced_numeric_material": 1,
+                    "narrative_summary_conflicts_with_growth_trace": 1,
+                    "growth_narrative_numeric_incompatible_with_trace": 1,
                     "_is_growth_supported_sentence": 1,
                 }
             ),
@@ -6673,14 +6680,13 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             return False
 
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_required_display_values", side_effect=required),
-            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", side_effect=extract),
-            patch.object(financial_graph_calculation, "numeric_surface_candidates_equivalent", side_effect=equivalent),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", side_effect=required),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", side_effect=extract),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", side_effect=equivalent),
         ):
-            incompatible = financial_graph_calculation.FinancialAgentCalculationMixin._growth_narrative_numeric_incompatible_with_trace(
-                agent,
+            incompatible = financial_aggregate_projection.growth_narrative_numeric_incompatible_with_trace(
                 narrative_answer="narrative 99",
                 numeric_answer="numeric 10",
                 ordered_results=ordered_results,
@@ -6697,14 +6703,13 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         extract_owner = Mock()
         failing_compose = Mock(side_effect=RuntimeError("narrative compose failed"))
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", failing_compose),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
-            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", extract_owner),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", failing_compose),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", required_owner),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", extract_owner),
             self.assertRaisesRegex(RuntimeError, "narrative compose failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._growth_narrative_numeric_incompatible_with_trace(
-                agent,
+            financial_aggregate_projection.growth_narrative_numeric_incompatible_with_trace(
                 narrative_answer="narrative 99",
                 numeric_answer="numeric 10",
                 ordered_results=ordered_results,
@@ -6718,15 +6723,14 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         untraced_owner = Mock(return_value=True)
         splitter = Mock(side_effect=AssertionError("splitter accessed after direct conflict"))
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
-            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", untraced_owner),
-            patch.object(financial_graph_calculation, "_split_narrative_sentences", splitter),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", required_owner),
+            patch.object(financial_aggregate_projection, "growth_answer_has_untraced_numeric_sentence", untraced_owner),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", splitter),
         ):
             self.assertTrue(
-                financial_graph_calculation.FinancialAgentCalculationMixin._growth_answer_has_untraced_numeric_material(
-                    agent,
+                financial_aggregate_projection.growth_answer_has_untraced_numeric_material(
                     "answer 99",
                     ordered_results,
                     evidence_items=evidence_items,
@@ -6737,6 +6741,822 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         untraced_owner.assert_called_once_with("answer 99", "trace 10", ["10"])
         splitter.assert_not_called()
         self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+    def test_current_source_growth_trace_untraced_material_matrix(self) -> None:
+        fn = financial_aggregate_projection.growth_answer_has_untraced_numeric_material
+
+        class IterBomb:
+            def __iter__(self):
+                raise AssertionError("rows iterated after blank answer")
+
+        family_after_blank = Mock()
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_after_blank):
+            self.assertFalse(fn("   ", IterBomb(), [{"evidence_id": "unused"}]))
+        family_after_blank.assert_not_called()
+
+        nested = {"preserve": True}
+        rows = [
+            {"role": "non-growth", "nested": nested},
+            {"role": "conflict", "nested": nested},
+            {"role": "missing", "nested": nested},
+            {"role": "target", "nested": nested},
+        ]
+        evidence_items = [{"evidence_id": "ev-1", "nested": nested}]
+        before_rows = deepcopy(rows)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def family(row):
+            events.append(("family", row["role"]))
+            return "lookup" if row["role"] == "non-growth" else "growth_rate"
+
+        def conflict(row):
+            events.append(("conflict", row["role"]))
+            return row["role"] == "conflict"
+
+        def compose(row, results):
+            events.append(("compose", row["role"], results))
+            return "" if row["role"] == "missing" else "trace 10%"
+
+        def required(row, results, evidence):
+            events.append(("required", row["role"], results, evidence))
+            return ["10%"]
+
+        def answer_guard(answer, complete, values):
+            events.append(("answer", answer, complete, values))
+            return False
+
+        def split(answer):
+            events.append(("split", answer))
+            return ["first sentence", "second sentence"]
+
+        sentence_results = iter((False, True))
+
+        def sentence_guard(sentence, complete, values, evidence):
+            events.append(("sentence", sentence, complete, values, evidence))
+            return next(sentence_results)
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=family),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", side_effect=conflict),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", side_effect=compose),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", side_effect=required),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_answer_has_untraced_numeric_sentence",
+                side_effect=answer_guard,
+            ),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", side_effect=split),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_sentence_has_untraced_material_numeric",
+                side_effect=sentence_guard,
+            ),
+        ):
+            self.assertTrue(fn(" answer 99% ", rows, evidence_items))
+
+        self.assertEqual(
+            [(event[0], event[1]) for event in events if event[0] in {"family", "conflict", "compose", "required"}],
+            [
+                ("family", "non-growth"),
+                ("family", "conflict"),
+                ("conflict", "conflict"),
+                ("family", "missing"),
+                ("conflict", "missing"),
+                ("compose", "missing"),
+                ("required", "missing"),
+                ("family", "target"),
+                ("conflict", "target"),
+                ("compose", "target"),
+                ("required", "target"),
+            ],
+        )
+        self.assertEqual(
+            [event[0] for event in events[-4:]],
+            ["answer", "split", "sentence", "sentence"],
+        )
+        self.assertIs(next(event for event in events if event[0] == "compose" and event[1] == "target")[2], rows)
+        required_event = next(event for event in events if event[0] == "required")
+        self.assertIs(required_event[2], rows)
+        self.assertIs(required_event[3], evidence_items)
+        self.assertIs(events[-1][4], evidence_items)
+        self.assertEqual(rows, before_rows)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(rows[0]["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        split_owner = Mock(side_effect=AssertionError("split after whole-answer conflict"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", return_value="trace"),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10"]),
+            patch.object(financial_aggregate_projection, "growth_answer_has_untraced_numeric_sentence", return_value=True),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", split_owner),
+        ):
+            self.assertTrue(fn("answer", [rows[-1]], evidence_items))
+        split_owner.assert_not_called()
+
+        downstream_split = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", return_value="trace"),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10"]),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_answer_has_untraced_numeric_sentence",
+                side_effect=RuntimeError("answer guard failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", downstream_split),
+            self.assertRaisesRegex(RuntimeError, "answer guard failed"),
+        ):
+            fn("answer", [rows[-1]], evidence_items)
+        downstream_split.assert_not_called()
+
+    def test_current_source_growth_trace_narrative_summary_conflict_matrix(self) -> None:
+        fn = financial_aggregate_projection.narrative_summary_conflicts_with_growth_trace
+
+        class IterBomb:
+            def __iter__(self):
+                raise AssertionError("rows iterated after blank narrative")
+
+        family_after_blank = Mock()
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_after_blank):
+            self.assertFalse(fn("", IterBomb(), [{"claim": "unused"}]))
+        family_after_blank.assert_not_called()
+
+        nested = {"preserve": True}
+        rows = [
+            {"role": "non-growth", "nested": nested},
+            {"role": "conflict", "nested": nested},
+            {"role": "missing", "nested": nested},
+            {"role": "target", "nested": nested},
+        ]
+        evidence_items = [
+            {
+                "claim": "claim one 10%",
+                "quote_span": "quote one",
+                "raw_row_text": "raw one",
+                "source_context": "context one",
+                "metadata": {
+                    "table_value_labels_text": "labels one",
+                    "table_summary_text": "summary one",
+                    "table_header_context": "header one",
+                    "table_context": "table one",
+                },
+                "nested": nested,
+            },
+            {"claim": "claim two", "metadata": {"table_context": "table two"}, "nested": nested},
+        ]
+        before_rows = deepcopy(rows)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def family(row):
+            events.append(("family", row["role"]))
+            return "lookup" if row["role"] == "non-growth" else "growth_rate"
+
+        def conflict(row):
+            events.append(("conflict", row["role"]))
+            return row["role"] == "conflict"
+
+        def compose(row, results):
+            events.append(("compose", row["role"], results))
+            return "" if row["role"] == "missing" else "trace 10%"
+
+        def required(row, results, evidence):
+            events.append(("required", row["role"], results, evidence))
+            return ["10%"]
+
+        display_owner = Mock(return_value=[{"text": "84.3%"}])
+        policy = {"percent_display_pattern": r"\d+(?:\.\d+)?%"}
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=family),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", side_effect=conflict),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", side_effect=compose),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", side_effect=required),
+            patch.object(financial_aggregate_projection, "evidence_numeric_display_candidates", display_owner),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+        ):
+            self.assertTrue(fn(" narrative 99% ", rows, evidence_items))
+        self.assertEqual([event[:2] for event in events[:6]], [
+            ("family", "non-growth"),
+            ("family", "conflict"),
+            ("conflict", "conflict"),
+            ("family", "missing"),
+            ("conflict", "missing"),
+            ("compose", "missing"),
+        ])
+        self.assertIs(display_owner.call_args.args[0], evidence_items)
+        expected_surface = (
+            "claim one 10% quote one raw one context one labels one summary one "
+            "header one table one claim two table two"
+        )
+        self.assertEqual(display_owner.call_args.args[1], expected_surface)
+        self.assertEqual(rows, before_rows)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", return_value="trace 10%"),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_numeric_display_candidates",
+                return_value=[{"text": "84.3%"}],
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+        ):
+            self.assertFalse(fn("narrative 84.3%", [rows[-1]], evidence_items))
+
+        class CopyBomb:
+            def keys(self):
+                raise RuntimeError("metadata copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("metadata item accessed")
+
+        downstream_display = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", return_value="trace"),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10"]),
+            patch.object(financial_aggregate_projection, "evidence_numeric_display_candidates", downstream_display),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+            self.assertRaisesRegex(RuntimeError, "metadata copy failed"),
+        ):
+            fn("narrative 99%", [rows[-1]], [{"metadata": CopyBomb()}])
+        downstream_display.assert_not_called()
+
+    def test_current_source_growth_trace_numeric_incompatibility_matrix(self) -> None:
+        fn = financial_aggregate_projection.growth_narrative_numeric_incompatible_with_trace
+
+        class IterBomb:
+            def __iter__(self):
+                raise AssertionError("rows iterated after blank narrative")
+
+        family_after_blank = Mock()
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_after_blank):
+            self.assertFalse(
+                fn(
+                narrative_answer=" ",
+                numeric_answer="numeric 10",
+                ordered_results=IterBomb(),
+                evidence_items=[],
+                )
+            )
+        family_after_blank.assert_not_called()
+
+        nested = {"preserve": True}
+        rows = [
+            {"role": "non-growth", "nested": nested},
+            {"role": "conflict", "nested": nested},
+            {"role": "first", "nested": nested},
+            {"role": "second", "nested": nested},
+        ]
+        evidence_items = [{"evidence_id": "ev", "nested": nested}]
+        before_rows = deepcopy(rows)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def family(row):
+            events.append(("family", row["role"]))
+            return "lookup" if row["role"] == "non-growth" else "growth_rate"
+
+        def conflict(row):
+            events.append(("conflict", row["role"]))
+            return row["role"] == "conflict"
+
+        def compose(row, results, *, evidence_items):
+            events.append(("compose", row["role"], results, evidence_items))
+            return f"trace-{row['role']}"
+
+        def required(row, results, *, evidence_items):
+            events.append(("required", row["role"], results, evidence_items))
+            return [f"required-{row['role']}"]
+
+        trace_candidates = [{"id": "t1"}, {"id": "t2"}]
+        narrative_candidates = [{"id": "n1"}, {"id": "n2"}]
+
+        def extract(surface):
+            events.append(("extract", surface))
+            return narrative_candidates if surface == "narrative 99" else trace_candidates
+
+        def equivalent(narrative, trace):
+            events.append(("equivalent", narrative["id"], trace["id"]))
+            return narrative["id"] == "n1" and trace["id"] == "t2"
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=family),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", side_effect=conflict),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", side_effect=compose),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", side_effect=required),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", side_effect=extract),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", side_effect=equivalent),
+        ):
+            self.assertTrue(
+                fn(
+                    narrative_answer="narrative 99",
+                    numeric_answer="numeric 10",
+                    ordered_results=rows,
+                    evidence_items=evidence_items,
+                )
+            )
+        self.assertEqual(
+            [event for event in events if event[0] == "extract"],
+            [
+                ("extract", "numeric 10 trace-first required-first trace-second required-second"),
+                ("extract", "narrative 99"),
+            ],
+        )
+        self.assertEqual(
+            [event for event in events if event[0] == "equivalent"],
+            [
+                ("equivalent", "n1", "t1"),
+                ("equivalent", "n1", "t2"),
+                ("equivalent", "n2", "t1"),
+                ("equivalent", "n2", "t2"),
+            ],
+        )
+        compose_events = [event for event in events if event[0] == "compose"]
+        self.assertIs(compose_events[0][2], rows)
+        self.assertIs(compose_events[0][3], evidence_items)
+        self.assertEqual(rows, before_rows)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(rows[0]["nested"], nested)
+
+        extract_owner = Mock(side_effect=[[], [{"id": "n"}]])
+        equivalent_owner = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="lookup"),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", extract_owner),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", equivalent_owner),
+        ):
+            self.assertFalse(
+                fn(
+                    narrative_answer="narrative",
+                    numeric_answer="numeric",
+                    ordered_results=[],
+                    evidence_items=evidence_items,
+                )
+            )
+        self.assertEqual(extract_owner.call_count, 2)
+        equivalent_owner.assert_not_called()
+
+        downstream_required = Mock()
+        downstream_extract = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "compose_complete_growth_numeric_answer",
+                side_effect=RuntimeError("compose failed"),
+            ),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", downstream_required),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", downstream_extract),
+            self.assertRaisesRegex(RuntimeError, "compose failed"),
+        ):
+            fn(
+                narrative_answer="narrative",
+                numeric_answer="numeric",
+                ordered_results=[rows[-1]],
+                evidence_items=evidence_items,
+            )
+        downstream_required.assert_not_called()
+        downstream_extract.assert_not_called()
+
+    def test_current_source_growth_trace_inspection_static_bindings_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        trees = {
+            "graph": ast.parse(graph_path.read_text(encoding="utf-8-sig")),
+            "owner": ast.parse(owner_path.read_text(encoding="utf-8-sig")),
+        }
+        public_names = {
+            "growth_answer_has_untraced_numeric_material": 28,
+            "narrative_summary_conflicts_with_growth_trace": 56,
+            "growth_narrative_numeric_incompatible_with_trace": 43,
+        }
+        private_names = {f"_{name}": span + 1 for name, span in public_names.items()}
+        selected_names = set(private_names) | set(public_names)
+        definitions = {}
+        calls = []
+        noncall_refs = []
+
+        class Visitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in selected_names:
+                    definitions[(self.module_name, node.name)] = node
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                target = None
+                receiver = None
+                if isinstance(node.func, ast.Name):
+                    target = node.func.id
+                    receiver = "Name"
+                elif isinstance(node.func, ast.Attribute):
+                    target = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                if target in selected_names:
+                    calls.append(
+                        (
+                            self.module_name,
+                            tuple(self.stack),
+                            target,
+                            receiver,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Name(self, node):
+                if node.id in selected_names and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, tuple(self.stack), node.id, "Name"))
+
+            def visit_Attribute(self, node):
+                if node.attr in selected_names and self.call_depth == 0:
+                    noncall_refs.append(
+                        (self.module_name, tuple(self.stack), node.attr, ast.unparse(node.value))
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in trees.items():
+            Visitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {(module, name): node.end_lineno - node.lineno + 1 for (module, name), node in definitions.items()},
+            {("owner", name): span for name, span in public_names.items()},
+        )
+        self.assertEqual(noncall_refs, [])
+        self.assertEqual(len(calls), 19)
+        self.assertTrue(all(module == "graph" and target in public_names for module, _stack, target, *_ in calls))
+        self.assertTrue(all(receiver == "Name" and try_depth == 0 for *_head, receiver, _args, _kwargs, try_depth in calls))
+        self.assertEqual(
+            Counter(target for _module, _stack, target, _receiver, _args, _kwargs, _try in calls),
+            Counter(
+                {
+                    "growth_answer_has_untraced_numeric_material": 16,
+                    "narrative_summary_conflicts_with_growth_trace": 1,
+                    "growth_narrative_numeric_incompatible_with_trace": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, target, *_tail in calls if target == "growth_answer_has_untraced_numeric_material"),
+            Counter(
+                {
+                    "_aggregate_calculation_subtasks": 2,
+                    "_answer_matches_supported_aggregate_subtask": 1,
+                    "_final_growth_answer_without_untraced_numeric_sentences": 1,
+                    "_late_runtime_numeric_answer": 2,
+                    "_prune_irrelevant_growth_narrative_sentences": 1,
+                    "_refresh_numeric_answer_preserving_narrative_context": 8,
+                    "_uncovered_supported_growth_narrative_candidate": 1,
+                }
+            ),
+        )
+        conflict_call = next(call for call in calls if call[2] == "narrative_summary_conflicts_with_growth_trace")
+        self.assertEqual(conflict_call[1][-1], "_preferred_conflicting_growth_narrative_answer")
+        self.assertEqual(conflict_call[4], ("row_answer", "ordered_results", "evidence_items"))
+        incompatible_calls = [call for call in calls if call[2] == "growth_narrative_numeric_incompatible_with_trace"]
+        self.assertEqual(
+            Counter(call[1][-1] for call in incompatible_calls),
+            Counter({"_aggregate_calculation_subtasks": 1, "_refresh_numeric_answer_preserving_narrative_context": 1}),
+        )
+        self.assertTrue(
+            all(
+                call[4] == ()
+                and tuple(name for name, _value in call[5])
+                == ("narrative_answer", "numeric_answer", "ordered_results", "evidence_items")
+                for call in incompatible_calls
+            )
+        )
+
+        self.assertEqual(sum(private_names.values()), 130)
+        self.assertEqual(sum(public_names.values()), 127)
+        self.assertEqual({"external": len(calls), "owner_local": 0}, {"external": 19, "owner_local": 0})
+
+        source_root = Path("src") / "agent"
+        import_graph = {}
+        for path in source_root.glob("*.py"):
+            module_name = f"src.agent.{path.stem}"
+            imported = set()
+            for node in ast.parse(path.read_text(encoding="utf-8-sig")).body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names)
+            import_graph[module_name] = imported
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(import_graph.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_aggregate_projection"
+        for dependency in (
+            "src.agent.financial_answer_projection",
+            "src.agent.financial_numeric_surface",
+        ):
+            self.assertIn(dependency, import_graph[owner_module])
+            self.assertFalse(reaches(dependency, owner_module), dependency)
+
+        graph_text = graph_path.read_text(encoding="utf-8-sig")
+        owner_text = owner_path.read_text(encoding="utf-8-sig")
+        selected_source = "\n".join(
+            ast.get_source_segment(owner_text, definitions[("owner", name)]) or ""
+            for name in public_names
+        )
+        self.assertEqual(selected_source.count("evidence_numeric_display_candidates"), 1)
+        self.assertEqual(graph_text.count("evidence_numeric_display_candidates"), 0)
+        self.assertEqual(owner_text.count("evidence_numeric_display_candidates"), 2)
+        self.assertGreater(graph_text.count("growth_answer_has_untraced_numeric_sentence"), 1)
+        self.assertGreater(graph_text.count("growth_sentence_has_untraced_material_numeric"), 1)
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set()
+        for name in public_names:
+            node = definitions[("owner", name)]
+            selected_lines.update(range(node.lineno, node.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_aggregate_projection.py"
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_growth_trace_untraced_callers_pin_args_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        row = {"task_id": "growth", "nested": nested}
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev", "nested": nested}]
+        before_rows = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+
+        class Agent:
+            pass
+
+        answer_agent = Agent()
+        answer_agent._supported_aggregate_subtask_answer = Mock(return_value="answer 10")
+        untraced_owner = Mock(return_value=False)
+        with (
+            patch.object(financial_graph_calculation, "has_strong_growth_trace_for_answer_refresh", return_value=True),
+            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_material", untraced_owner),
+        ):
+            self.assertTrue(
+                financial_graph_calculation.FinancialAgentCalculationMixin._answer_matches_supported_aggregate_subtask(
+                    answer_agent,
+                    "answer 10",
+                    ordered_results,
+                )
+            )
+        untraced_owner.assert_called_once_with("answer 10", ordered_results)
+        self.assertIs(untraced_owner.call_args.args[1], ordered_results)
+
+        failing_untraced_owner = Mock(side_effect=RuntimeError("untraced failed"))
+        with (
+            patch.object(financial_graph_calculation, "has_strong_growth_trace_for_answer_refresh", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                failing_untraced_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "untraced failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._answer_matches_supported_aggregate_subtask(
+                answer_agent,
+                "answer 10",
+                ordered_results,
+            )
+
+        candidate_agent = Agent()
+        candidate_agent._narrative_driver_groups = Mock(return_value=[])
+        candidate_agent._growth_narrative_sentence_candidates = Mock(
+            return_value=[(3, "candidate narrative", ["claim-1"])]
+        )
+        candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
+            return_value="clean explanatory narrative"
+        )
+        candidate_untraced = Mock(return_value=False)
+        with (
+            patch.object(financial_graph_calculation, "answer_covers_narrative_context", return_value=False),
+            patch.object(financial_graph_calculation, "sentence_has_growth_explanatory_signal", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                candidate_untraced,
+            ),
+        ):
+            candidate = financial_graph_calculation.FinancialAgentCalculationMixin._uncovered_supported_growth_narrative_candidate(
+                candidate_agent,
+                query="query",
+                answer="numeric 10",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(candidate, {"sentence": "clean explanatory narrative", "selected_claim_ids": ["claim-1"]})
+        candidate_untraced.assert_called_once_with(
+            "clean explanatory narrative", ordered_results, evidence_items
+        )
+        self.assertIs(candidate_untraced.call_args.args[1], ordered_results)
+        self.assertIs(candidate_untraced.call_args.args[2], evidence_items)
+
+        failing_candidate_untraced = Mock(side_effect=RuntimeError("candidate failed"))
+        with (
+            patch.object(financial_graph_calculation, "answer_covers_narrative_context", return_value=False),
+            patch.object(financial_graph_calculation, "sentence_has_growth_explanatory_signal", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                failing_candidate_untraced,
+            ),
+            self.assertRaisesRegex(RuntimeError, "candidate failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._uncovered_supported_growth_narrative_candidate(
+                candidate_agent,
+                query="query",
+                answer="numeric 10",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(ordered_results, before_rows)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+    def test_current_source_growth_trace_conflict_and_incompatibility_callers_pin_args_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        row = {
+            "answer": "narrative 99%",
+            "selected_claim_ids": ["claim-1"],
+            "nested": nested,
+        }
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev", "nested": nested}]
+        before_rows = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+
+        class Agent:
+            pass
+
+        conflict_agent = Agent()
+        conflict_owner = Mock(return_value=True)
+        conflict_agent._growth_narrative_sentence_candidates = Mock(return_value=[])
+        conflict_agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "_narrative_sentence_looks_table_noisy", return_value=False),
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", {"missing_answer_markers": ()}),
+            patch.object(financial_graph_calculation, "narrative_summary_conflicts_with_growth_trace", conflict_owner),
+        ):
+            candidate = financial_graph_calculation.FinancialAgentCalculationMixin._preferred_conflicting_growth_narrative_answer(
+                conflict_agent,
+                query="query",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(
+            candidate,
+            {
+                "answer": "narrative 99%",
+                "selected_claim_ids": ["claim-1"],
+                "operation_family": "growth_rate",
+            },
+        )
+        conflict_owner.assert_called_once_with("narrative 99%", ordered_results, evidence_items)
+        self.assertIs(conflict_owner.call_args.args[1], ordered_results)
+        self.assertIs(conflict_owner.call_args.args[2], evidence_items)
+
+        downstream_candidates = Mock()
+        failing_conflict_owner = Mock(side_effect=RuntimeError("conflict failed"))
+        conflict_agent._growth_narrative_sentence_candidates = downstream_candidates
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", {"missing_answer_markers": ()}),
+            patch.object(
+                financial_graph_calculation,
+                "narrative_summary_conflicts_with_growth_trace",
+                failing_conflict_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "conflict failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._preferred_conflicting_growth_narrative_answer(
+                conflict_agent,
+                query="query",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        downstream_candidates.assert_not_called()
+
+        refresh_agent = Agent()
+        refresh_agent._preferred_conflicting_growth_narrative_answer = Mock(
+            return_value={
+                "answer": "narrative 99%",
+                "selected_claim_ids": ["claim-1"],
+                "operation_family": "aggregate_subtasks",
+            }
+        )
+        incompatible_owner = Mock(return_value=True)
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "growth_narrative_numeric_incompatible_with_trace",
+                incompatible_owner,
+            ),
+        ):
+            refreshed = financial_graph_calculation.FinancialAgentCalculationMixin._refresh_numeric_answer_preserving_narrative_context(
+                refresh_agent,
+                query="query",
+                current_answer="",
+                numeric_answer="numeric 10",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(
+            refreshed,
+            {
+                "answer": "narrative 99%",
+                "selected_claim_ids": ["claim-1"],
+                "operation_family": "aggregate_subtasks",
+            },
+        )
+        incompatible_owner.assert_called_once_with(
+            narrative_answer="narrative 99%",
+            numeric_answer="numeric 10",
+            ordered_results=ordered_results,
+            evidence_items=evidence_items,
+        )
+        self.assertIs(incompatible_owner.call_args.kwargs["ordered_results"], ordered_results)
+        self.assertIs(incompatible_owner.call_args.kwargs["evidence_items"], evidence_items)
+
+        downstream_split = Mock()
+        failing_incompatible_owner = Mock(side_effect=RuntimeError("incompatible failed"))
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "growth_narrative_numeric_incompatible_with_trace",
+                failing_incompatible_owner,
+            ),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", downstream_split),
+            self.assertRaisesRegex(RuntimeError, "incompatible failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._refresh_numeric_answer_preserving_narrative_context(
+                refresh_agent,
+                query="query",
+                current_answer="",
+                numeric_answer="numeric 10",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        downstream_split.assert_not_called()
+        self.assertEqual(ordered_results, before_rows)
         self.assertEqual(evidence_items, before_evidence)
         self.assertIs(row["nested"], nested)
         self.assertIs(evidence_items[0]["nested"], nested)

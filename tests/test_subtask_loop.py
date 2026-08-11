@@ -18869,14 +18869,14 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         self.assertTrue(
-            self.agent._growth_answer_has_untraced_numeric_material(
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material(
                 answer,
                 ordered_results,
                 evidence_items=[],
             )
         )
         self.assertFalse(
-            self.agent._growth_answer_has_untraced_numeric_material(
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material(
                 answer,
                 ordered_results,
                 evidence_items=[

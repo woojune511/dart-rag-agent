@@ -87,6 +87,8 @@ from src.agent.financial_aggregate_projection import (
     filter_aggregate_projection_provenance,
     growth_slot_display_value,
     growth_slots_share_material,
+    growth_answer_has_untraced_numeric_material,
+    growth_narrative_numeric_incompatible_with_trace,
     row_is_narrative_summary,
     recover_growth_prior_material_from_evidence,
     safe_partial_answer_for_numeric_gap,
@@ -95,6 +97,7 @@ from src.agent.financial_aggregate_projection import (
     has_strong_growth_trace_for_answer_refresh,
     narrative_row_focus_context,
     narrative_row_focus_sentence,
+    narrative_summary_conflicts_with_growth_trace,
     nested_aggregate_result_rank,
     package_aggregate_answer_candidate,
     package_refreshed_aggregate_answer_candidate,
@@ -287,7 +290,6 @@ from src.agent.financial_numeric_surface import (
     answer_covers_numeric_answer,
     answer_has_numeric_material_outside_reference,
     evidence_supports_numeric_candidates,
-    evidence_numeric_display_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
     numeric_candidates_with_spans_from_surface,
@@ -3042,7 +3044,7 @@ class FinancialAgentCalculationMixin:
         )
         if not candidate_answer:
             return answer_text
-        if self._growth_answer_has_untraced_numeric_material(
+        if growth_answer_has_untraced_numeric_material(
             candidate_answer,
             ordered_results,
             evidence_items=None,
@@ -3167,7 +3169,7 @@ class FinancialAgentCalculationMixin:
             return False
         if (
             has_strong_growth_trace_for_answer_refresh(ordered_results)
-            and self._growth_answer_has_untraced_numeric_material(answer_text, ordered_results)
+            and growth_answer_has_untraced_numeric_material(answer_text, ordered_results)
         ):
             return False
         return True
@@ -3281,94 +3283,6 @@ class FinancialAgentCalculationMixin:
             return ""
         return sanitized
 
-    def _growth_answer_has_untraced_numeric_material(
-        self,
-        answer: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> bool:
-        answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text:
-            return False
-        for row in ordered_results:
-            if self._aggregate_result_operation_family(row) != "growth_rate":
-                continue
-            if growth_row_has_conflicting_periods(row):
-                continue
-            complete_answer = compose_complete_growth_numeric_answer(row, ordered_results)
-            required_values = growth_required_display_values(row, ordered_results, evidence_items)
-            if not complete_answer or not required_values:
-                continue
-            if growth_answer_has_untraced_numeric_sentence(answer_text, complete_answer, required_values):
-                return True
-            for sentence in _split_narrative_sentences(answer_text):
-                if growth_sentence_has_untraced_material_numeric(
-                    sentence,
-                    complete_answer,
-                    required_values,
-                    evidence_items,
-                ):
-                    return True
-        return False
-
-    def _narrative_summary_conflicts_with_growth_trace(
-        self,
-        narrative_answer: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> bool:
-        answer_text = _normalise_spaces(str(narrative_answer or ""))
-        if not answer_text:
-            return False
-        percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"\d[\d,]*(?:\.\d+)?%")
-        for row in ordered_results:
-            if self._aggregate_result_operation_family(row) != "growth_rate":
-                continue
-            if growth_row_has_conflicting_periods(row):
-                continue
-            complete_answer = compose_complete_growth_numeric_answer(row, ordered_results)
-            required_values = growth_required_display_values(row, ordered_results, evidence_items)
-            if not complete_answer or not required_values:
-                continue
-            evidence_surface = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for item in (evidence_items or [])
-                    if isinstance(item, dict)
-                    for metadata in [dict(item.get("metadata") or {})]
-                    for value in [
-                        *(item.get(key) for key in ("claim", "quote_span", "raw_row_text", "source_context")),
-                        *(
-                            metadata.get(key)
-                            for key in (
-                                "table_value_labels_text",
-                                "table_summary_text",
-                                "table_header_context",
-                                "table_context",
-                            )
-                        ),
-                    ]
-                )
-            )
-            evidence_display_surface = _normalise_spaces(
-                " ".join(
-                    str(candidate.get("text") or "")
-                    for candidate in evidence_numeric_display_candidates(evidence_items or [], evidence_surface)
-                    if str(candidate.get("text") or "").strip()
-                )
-            )
-            allowed_surface = _normalise_spaces(
-                " ".join([complete_answer, *required_values, evidence_surface, evidence_display_surface])
-            )
-            percent_tokens = [
-                _normalise_spaces(match.group(0))
-                for match in re.finditer(percent_pattern, answer_text)
-                if _normalise_spaces(match.group(0))
-            ]
-            if percent_tokens and any(token not in allowed_surface for token in percent_tokens):
-                return True
-        return False
-
     def _preferred_conflicting_growth_narrative_answer(
         self,
         *,
@@ -3390,7 +3304,7 @@ class FinancialAgentCalculationMixin:
             )
             if not row_answer or any(marker and marker in row_answer for marker in missing_markers):
                 continue
-            if not self._narrative_summary_conflicts_with_growth_trace(row_answer, ordered_results, evidence_items):
+            if not narrative_summary_conflicts_with_growth_trace(row_answer, ordered_results, evidence_items):
                 continue
             clean_candidates = self._growth_narrative_sentence_candidates(
                 query=query,
@@ -3418,51 +3332,6 @@ class FinancialAgentCalculationMixin:
                 "operation_family": self._aggregate_result_operation_family(row),
             }
         return {}
-
-    def _growth_narrative_numeric_incompatible_with_trace(
-        self,
-        *,
-        narrative_answer: str,
-        numeric_answer: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> bool:
-        narrative_text = _normalise_spaces(str(narrative_answer or ""))
-        if not narrative_text:
-            return False
-        trace_surfaces = [_normalise_spaces(str(numeric_answer or ""))]
-        for row in ordered_results or []:
-            if self._aggregate_result_operation_family(row) != "growth_rate":
-                continue
-            if growth_row_has_conflicting_periods(row):
-                continue
-            trace_surfaces.append(
-                compose_complete_growth_numeric_answer(
-                    row,
-                    ordered_results,
-                    evidence_items=evidence_items,
-                )
-            )
-            trace_surfaces.extend(
-                growth_required_display_values(
-                    row,
-                    ordered_results,
-                    evidence_items=evidence_items,
-                )
-            )
-        trace_numeric_candidates = extract_numeric_surface_candidates(
-            _normalise_spaces(" ".join(surface for surface in trace_surfaces if surface))
-        )
-        narrative_numeric_candidates = extract_numeric_surface_candidates(narrative_text)
-        if not trace_numeric_candidates or not narrative_numeric_candidates:
-            return False
-        return not all(
-            any(
-                numeric_surface_candidates_equivalent(narrative_candidate, trace_candidate)
-                for trace_candidate in trace_numeric_candidates
-            )
-            for narrative_candidate in narrative_numeric_candidates
-        )
 
     def _uncovered_supported_growth_narrative_candidate(
         self,
@@ -3516,7 +3385,7 @@ class FinancialAgentCalculationMixin:
                 not cleaned
                 or not sentence_has_growth_explanatory_signal(cleaned)
                 or answer_covers_narrative_context(answer, cleaned)
-                or self._growth_answer_has_untraced_numeric_material(cleaned, ordered_results, evidence_items)
+                or growth_answer_has_untraced_numeric_material(cleaned, ordered_results, evidence_items)
             ):
                 continue
             return {"sentence": cleaned, "selected_claim_ids": candidate_claim_ids}
@@ -3568,7 +3437,7 @@ class FinancialAgentCalculationMixin:
         )
         if conflicting_narrative:
             conflicting_answer = _normalise_spaces(str(conflicting_narrative.get("answer") or ""))
-            if self._growth_narrative_numeric_incompatible_with_trace(
+            if growth_narrative_numeric_incompatible_with_trace(
                 narrative_answer=conflicting_answer,
                 numeric_answer=numeric_text,
                 ordered_results=ordered_results,
@@ -3598,7 +3467,7 @@ class FinancialAgentCalculationMixin:
                     ordered_results,
                     evidence_items=evidence_items,
                 )
-                if not self._growth_answer_has_untraced_numeric_material(
+                if not growth_answer_has_untraced_numeric_material(
                     combined_answer,
                     ordered_results,
                     evidence_items,
@@ -3629,7 +3498,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=evidence_items,
         )
         if (
-            not self._growth_answer_has_untraced_numeric_material(candidate_answer, ordered_results, evidence_items)
+            not growth_answer_has_untraced_numeric_material(candidate_answer, ordered_results, evidence_items)
             and self._answer_satisfies_growth_narrative_intent(
                 query=query_text,
                 answer=candidate_answer,
@@ -3732,7 +3601,7 @@ class FinancialAgentCalculationMixin:
                     ordered_results,
                     evidence_items=evidence_items,
                 )
-                if not self._growth_answer_has_untraced_numeric_material(
+                if not growth_answer_has_untraced_numeric_material(
                     row_combined_answer,
                     ordered_results,
                     evidence_items,
@@ -3749,7 +3618,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=evidence_items,
         )
         composed_answer = _normalise_spaces(str((composed or {}).get("compressed_answer") or ""))
-        if self._growth_answer_has_untraced_numeric_material(
+        if growth_answer_has_untraced_numeric_material(
             composed_answer,
             ordered_results,
             evidence_items,
@@ -3764,7 +3633,7 @@ class FinancialAgentCalculationMixin:
             answer=composed_answer,
             ordered_results=ordered_results,
             evidence_items=evidence_items,
-        ) and not self._growth_answer_has_untraced_numeric_material(
+        ) and not growth_answer_has_untraced_numeric_material(
             composed_answer,
             ordered_results,
             evidence_items,
@@ -3881,7 +3750,7 @@ class FinancialAgentCalculationMixin:
             for candidate_combined_answer in (raw_combined_answer, combined_answer):
                 if not candidate_combined_answer:
                     continue
-                if self._growth_answer_has_untraced_numeric_material(
+                if growth_answer_has_untraced_numeric_material(
                     candidate_combined_answer,
                     ordered_results,
                     evidence_items,
@@ -3905,7 +3774,7 @@ class FinancialAgentCalculationMixin:
                         "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
                     }
             if query_requests_explanatory_context(query_text):
-                if self._growth_answer_has_untraced_numeric_material(
+                if growth_answer_has_untraced_numeric_material(
                     combined_answer,
                     ordered_results,
                     evidence_items,
@@ -3921,7 +3790,7 @@ class FinancialAgentCalculationMixin:
                     "selected_claim_ids": list(dict.fromkeys(selected_claim_ids)),
                 }
 
-        if self._growth_answer_has_untraced_numeric_material(numeric_text, ordered_results, evidence_items):
+        if growth_answer_has_untraced_numeric_material(numeric_text, ordered_results, evidence_items):
             clean_numeric = self._ensure_complete_growth_numeric_answer(
                 numeric_text,
                 ordered_results,
@@ -8174,7 +8043,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=evidence_items,
         ) and not has_supported_narrative_sentence:
             return answer_text
-        if self._growth_answer_has_untraced_numeric_material(
+        if growth_answer_has_untraced_numeric_material(
             pruned_answer,
             ordered_results,
             evidence_items,
@@ -9934,7 +9803,7 @@ class FinancialAgentCalculationMixin:
                 formatted_result
                 and formatted_result != answer_text
                 and self._answer_covers_numeric_projection(formatted_result, nested_results)
-                and not self._growth_answer_has_untraced_numeric_material(
+                and not growth_answer_has_untraced_numeric_material(
                     formatted_result,
                     nested_results,
                     evidence_rows,
@@ -9942,7 +9811,7 @@ class FinancialAgentCalculationMixin:
                 and (
                     not answer_text
                     or not self._answer_covers_numeric_projection(answer_text, nested_results)
-                    or self._growth_answer_has_untraced_numeric_material(
+                    or growth_answer_has_untraced_numeric_material(
                         answer_text,
                         nested_results,
                         evidence_rows,
@@ -15087,7 +14956,7 @@ class FinancialAgentCalculationMixin:
             and self._complete_numeric_answer_can_replace_final(consistent_numeric_answer, ordered_results)
             and (
                 not self._answer_covers_numeric_projection(final_answer, ordered_results)
-                or self._growth_answer_has_untraced_numeric_material(
+                or growth_answer_has_untraced_numeric_material(
                     final_answer,
                     ordered_results,
                     aggregate_evidence_items,
@@ -15215,7 +15084,7 @@ class FinancialAgentCalculationMixin:
             )
             final_answer_preserves_numeric_trace = bool(
                 self._answer_covers_numeric_projection(final_answer_surface, ordered_results)
-                and not self._growth_answer_has_untraced_numeric_material(
+                and not growth_answer_has_untraced_numeric_material(
                     final_answer_surface,
                     ordered_results,
                     aggregate_evidence_items,
@@ -15238,7 +15107,7 @@ class FinancialAgentCalculationMixin:
                     and not final_answer_preserves_numeric_trace
                     and (
                         final_contains_conflicting_answer_with_extra_numbers
-                        or self._growth_narrative_numeric_incompatible_with_trace(
+                        or growth_narrative_numeric_incompatible_with_trace(
                             narrative_answer=conflicting_answer,
                             numeric_answer=final_answer,
                             ordered_results=ordered_results,

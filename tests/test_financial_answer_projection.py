@@ -986,9 +986,9 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                     ("graph", "_enforce_source_stated_growth_answer_contract", "row"): 1,
                     ("aggregate", "has_strong_growth_trace_for_answer_refresh", "row"): 1,
                     ("graph", "_strip_untraced_numeric_material_from_growth_narrative_sentence", "row"): 1,
-                    ("graph", "_growth_answer_has_untraced_numeric_material", "row"): 1,
-                    ("graph", "_narrative_summary_conflicts_with_growth_trace", "row"): 1,
-                    ("graph", "_growth_narrative_numeric_incompatible_with_trace", "row"): 1,
+                    ("aggregate", "growth_answer_has_untraced_numeric_material", "row"): 1,
+                    ("aggregate", "narrative_summary_conflicts_with_growth_trace", "row"): 1,
+                    ("aggregate", "growth_narrative_numeric_incompatible_with_trace", "row"): 1,
                     ("graph", "_is_growth_supported_sentence", "row"): 1,
                     ("graph", "_compose_growth_narrative_answer", "row"): 1,
                     ("graph", "_answer_satisfies_growth_narrative_intent", "row"): 1,
@@ -1044,8 +1044,9 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         )
 
         graph_growth = [entry for entry in external_growth if entry["module"] == "graph"]
-        self.assertEqual(len(graph_growth), 11)
-        for entry in graph_growth:
+        aggregate_growth = [entry for entry in external_growth if entry["module"] == "aggregate"]
+        self.assertEqual((len(graph_growth), len(aggregate_growth)), (8, 4))
+        for entry in [*graph_growth, *aggregate_growth]:
             statement = entry["statement"]
             self.assertIsInstance(statement, ast.If)
             self.assertIsInstance(statement.body[0], ast.Continue)
@@ -1928,11 +1929,11 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
             candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
                 return_value="cleaned candidate"
             )
-            candidate_agent._growth_answer_has_untraced_numeric_material = Mock(return_value=False)
             return candidate_agent
 
         signal_owner = Mock(return_value=True)
         coverage_owner = Mock(return_value=False)
+        material_owner = Mock(return_value=False)
         candidate_agent = configured_signal_agent()
         with (
             patch.object(
@@ -1944,6 +1945,11 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
                 financial_graph_calculation,
                 "answer_covers_narrative_context",
                 coverage_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                material_owner,
             ),
         ):
             candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
@@ -1955,12 +1961,11 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
         self.assertEqual(candidate, {"sentence": "cleaned candidate", "selected_claim_ids": ["claim_1"]})
         signal_owner.assert_called_once_with("cleaned candidate")
         self.assertEqual(coverage_owner.call_count, 2)
-        candidate_agent._growth_answer_has_untraced_numeric_material.assert_called_once_with(
-            "cleaned candidate", [], []
-        )
+        material_owner.assert_called_once_with("cleaned candidate", [], [])
 
         signal_owner = Mock(side_effect=RuntimeError("signal owner"))
         coverage_owner = Mock(return_value=False)
+        material_owner = Mock(return_value=False)
         candidate_agent = configured_signal_agent()
         with (
             patch.object(
@@ -1973,6 +1978,11 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
                 "answer_covers_narrative_context",
                 coverage_owner,
             ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                material_owner,
+            ),
             self.assertRaisesRegex(RuntimeError, "signal owner"),
         ):
             candidate_agent._uncovered_supported_growth_narrative_candidate(
@@ -1983,7 +1993,7 @@ class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
             )
         signal_owner.assert_called_once_with("cleaned candidate")
         self.assertEqual(coverage_owner.call_count, 1)
-        candidate_agent._growth_answer_has_untraced_numeric_material.assert_not_called()
+        material_owner.assert_not_called()
 
 
 class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
@@ -2634,15 +2644,22 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
                 return_value="cleaned candidate"
             )
-            candidate_agent._growth_answer_has_untraced_numeric_material = Mock(return_value=False)
             return candidate_agent
 
         coverage = Mock(return_value=True)
+        material_owner = Mock(return_value=False)
         candidate_agent = configured_candidate_agent()
-        with patch.object(
-            financial_graph_calculation,
-            "answer_covers_narrative_context",
-            coverage,
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "answer_covers_narrative_context",
+                coverage,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                material_owner,
+            ),
         ):
             candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
                 query="why",
@@ -2653,8 +2670,10 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
         self.assertEqual(candidate, {})
         coverage.assert_called_once_with("existing answer", "raw candidate")
         candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence.assert_not_called()
+        material_owner.assert_not_called()
 
         coverage = Mock(side_effect=[False, False])
+        material_owner = Mock(return_value=False)
         candidate_agent = configured_candidate_agent()
         with (
             patch.object(
@@ -2666,6 +2685,11 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 financial_graph_calculation,
                 "sentence_has_growth_explanatory_signal",
                 return_value=True,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                material_owner,
             ),
         ):
             candidate = candidate_agent._uncovered_supported_growth_narrative_candidate(
@@ -2682,14 +2706,21 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 unittest.mock.call("existing answer", "cleaned candidate"),
             ],
         )
+        material_owner.assert_called_once_with("cleaned candidate", [], [])
 
         coverage = Mock(side_effect=RuntimeError("coverage owner"))
+        material_owner = Mock(return_value=False)
         candidate_agent = configured_candidate_agent()
         with (
             patch.object(
                 financial_graph_calculation,
                 "answer_covers_narrative_context",
                 coverage,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                material_owner,
             ),
             self.assertRaisesRegex(RuntimeError, "coverage owner"),
         ):
@@ -2701,6 +2732,7 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             )
         coverage.assert_called_once_with("existing answer", "raw candidate")
         candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence.assert_not_called()
+        material_owner.assert_not_called()
 
 
 class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
@@ -3231,7 +3263,9 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
             owner("answer", "complete", ["required"])
 
     def test_trace_guard_bindings_preserve_all_eleven_args_polarities_adoption_and_exception_stop(self) -> None:
-        tree = ast.parse(inspect.getsource(financial_graph_calculation.FinancialAgentCalculationMixin))
+        graph_tree = ast.parse(inspect.getsource(financial_graph_calculation.FinancialAgentCalculationMixin))
+        owner_tree = ast.parse(inspect.getsource(financial_aggregate_projection))
+        tree = ast.Module(body=[*graph_tree.body, *owner_tree.body], type_ignores=[])
         parents = {}
         for parent in ast.walk(tree):
             for child in ast.iter_child_nodes(parent):
@@ -3280,12 +3314,12 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
                     ("growth_uses_source_stated_result", "_enforce_source_stated_growth_answer_contract", ("row",), "negative", False): 1,
                     (answer, "_ensure_complete_growth_numeric_answer", ("answer_text", "complete_answer", "required_values"), "negative", False): 1,
                     (answer, "_enforce_source_stated_growth_answer_contract", ("answer_text", "complete_answer", "required_values"), "negative", False): 1,
-                    (answer, "_growth_answer_has_untraced_numeric_material", ("answer_text", "complete_answer", "required_values"), "positive", False): 1,
+                    (answer, "growth_answer_has_untraced_numeric_material", ("answer_text", "complete_answer", "required_values"), "positive", False): 1,
                     (sentence, "_ensure_complete_growth_numeric_answer", ("cleaned", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
                     (sentence, "_enforce_source_stated_growth_answer_contract", ("cleaned", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
                     (sentence, "_strip_untraced_numeric_material_from_growth_narrative_sentence", ("cleaned", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
                     (sentence, "_strip_untraced_numeric_material_from_growth_narrative_sentence", ("sanitized", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
-                    (sentence, "_growth_answer_has_untraced_numeric_material", ("sentence", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
+                    (sentence, "growth_answer_has_untraced_numeric_material", ("sentence", "complete_answer", "required_values", "evidence_items"), "positive", False): 1,
                     (sentence, "_is_growth_supported_sentence", ("cleaned", "complete_answer", "required_values", "evidence_items"), "negative", False): 1,
                     (sentence, "_is_supported_sentence", ("cleaned", "allowed_narrative_numeric_surface", "required_values", "evidence_items"), "positive", False): 1,
                 }
@@ -3293,7 +3327,7 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
         )
         self.assertEqual(sum(bindings.values()), 11)
 
-        row = {"row": 1}
+        row = {"row": 1, "operation_family": "growth_rate"}
         for result in (False, True):
             agent = financial_graph_calculation.FinancialAgentCalculationMixin()
             source_owner = Mock(return_value=result)
@@ -3360,21 +3394,23 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
         sentence_owner = Mock(side_effect=AssertionError("answer guard failed to short-circuit sentence guard"))
         agent, compose_owner = configured_material_agent()
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_answer_has_untraced_numeric_sentence",
                 answer_owner,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_sentence_has_untraced_material_numeric",
                 sentence_owner,
             ),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
         ):
-            self.assertTrue(agent._growth_answer_has_untraced_numeric_material("answer", [row], []))
+            self.assertTrue(
+                financial_aggregate_projection.growth_answer_has_untraced_numeric_material("answer", [row], [])
+            )
         answer_owner.assert_called_once_with("answer", "complete 10%", ["10%"])
         sentence_owner.assert_not_called()
 
@@ -3382,67 +3418,69 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
         sentence_owner = Mock(return_value=True)
         agent, compose_owner = configured_material_agent()
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_answer_has_untraced_numeric_sentence",
                 answer_owner,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_sentence_has_untraced_material_numeric",
                 sentence_owner,
             ),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["sentence"]),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", return_value=["sentence"]),
         ):
-            self.assertTrue(agent._growth_answer_has_untraced_numeric_material("answer", [row], []))
+            self.assertTrue(
+                financial_aggregate_projection.growth_answer_has_untraced_numeric_material("answer", [row], [])
+            )
         sentence_owner.assert_called_once_with("sentence", "complete 10%", ["10%"], [])
 
         answer_owner = Mock(side_effect=RuntimeError("answer owner"))
         sentence_owner = Mock(side_effect=AssertionError("answer exception leaked to sentence guard"))
         agent, compose_owner = configured_material_agent()
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_answer_has_untraced_numeric_sentence",
                 answer_owner,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_sentence_has_untraced_material_numeric",
                 sentence_owner,
             ),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
             self.assertRaisesRegex(RuntimeError, "answer owner"),
         ):
-            agent._growth_answer_has_untraced_numeric_material("answer", [row], [])
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material("answer", [row], [])
         sentence_owner.assert_not_called()
 
         answer_owner = Mock(return_value=False)
         sentence_owner = Mock(side_effect=RuntimeError("sentence owner"))
         agent, compose_owner = configured_material_agent()
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_answer_has_untraced_numeric_sentence",
                 answer_owner,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_sentence_has_untraced_material_numeric",
                 sentence_owner,
             ),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["sentence"]),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", return_value=["sentence"]),
             self.assertRaisesRegex(RuntimeError, "sentence owner"),
         ):
-            agent._growth_answer_has_untraced_numeric_material("answer", [row], [])
+            financial_aggregate_projection.growth_answer_has_untraced_numeric_material("answer", [row], [])
         sentence_owner.assert_called_once_with("sentence", "complete 10%", ["10%"], [])
 
 

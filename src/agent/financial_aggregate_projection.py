@@ -15,7 +15,9 @@ from src.agent.financial_answer_slots import (
     source_task_display_compatible_with_slot,
 )
 from src.agent.financial_answer_projection import (
+    growth_answer_has_untraced_numeric_sentence,
     growth_row_has_conflicting_periods,
+    growth_sentence_has_untraced_material_numeric,
     material_gap_feedback_for_subtask_result,
     subtask_row_has_material,
 )
@@ -28,6 +30,7 @@ from src.agent.financial_dependency_projection import (
 )
 from src.agent.financial_numeric_surface import (
     answer_covers_numeric_answer,
+    evidence_numeric_display_candidates,
     extract_numeric_surface_candidates,
     numeric_surface_candidates_equivalent,
     numeric_surface_slot_components,
@@ -1027,6 +1030,139 @@ def compose_complete_growth_numeric_answer(
             growth_value=calculation_rendering.absolute_display_value(growth_value),
             direction_word=direction_word,
         )
+    )
+
+
+def growth_answer_has_untraced_numeric_material(
+    answer: str,
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    answer_text = _normalise_spaces(str(answer or ""))
+    if not answer_text:
+        return False
+    for row in ordered_results:
+        if aggregate_result_operation_family(row) != "growth_rate":
+            continue
+        if growth_row_has_conflicting_periods(row):
+            continue
+        complete_answer = compose_complete_growth_numeric_answer(row, ordered_results)
+        required_values = growth_required_display_values(row, ordered_results, evidence_items)
+        if not complete_answer or not required_values:
+            continue
+        if growth_answer_has_untraced_numeric_sentence(answer_text, complete_answer, required_values):
+            return True
+        for sentence in _split_narrative_sentences(answer_text):
+            if growth_sentence_has_untraced_material_numeric(
+                sentence,
+                complete_answer,
+                required_values,
+                evidence_items,
+            ):
+                return True
+    return False
+
+
+def narrative_summary_conflicts_with_growth_trace(
+    narrative_answer: str,
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    answer_text = _normalise_spaces(str(narrative_answer or ""))
+    if not answer_text:
+        return False
+    percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"\d[\d,]*(?:\.\d+)?%")
+    for row in ordered_results:
+        if aggregate_result_operation_family(row) != "growth_rate":
+            continue
+        if growth_row_has_conflicting_periods(row):
+            continue
+        complete_answer = compose_complete_growth_numeric_answer(row, ordered_results)
+        required_values = growth_required_display_values(row, ordered_results, evidence_items)
+        if not complete_answer or not required_values:
+            continue
+        evidence_surface = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for item in (evidence_items or [])
+                if isinstance(item, dict)
+                for metadata in [dict(item.get("metadata") or {})]
+                for value in [
+                    *(item.get(key) for key in ("claim", "quote_span", "raw_row_text", "source_context")),
+                    *(
+                        metadata.get(key)
+                        for key in (
+                            "table_value_labels_text",
+                            "table_summary_text",
+                            "table_header_context",
+                            "table_context",
+                        )
+                    ),
+                ]
+            )
+        )
+        evidence_display_surface = _normalise_spaces(
+            " ".join(
+                str(candidate.get("text") or "")
+                for candidate in evidence_numeric_display_candidates(evidence_items or [], evidence_surface)
+                if str(candidate.get("text") or "").strip()
+            )
+        )
+        allowed_surface = _normalise_spaces(
+            " ".join([complete_answer, *required_values, evidence_surface, evidence_display_surface])
+        )
+        percent_tokens = [
+            _normalise_spaces(match.group(0))
+            for match in re.finditer(percent_pattern, answer_text)
+            if _normalise_spaces(match.group(0))
+        ]
+        if percent_tokens and any(token not in allowed_surface for token in percent_tokens):
+            return True
+    return False
+
+
+def growth_narrative_numeric_incompatible_with_trace(
+    *,
+    narrative_answer: str,
+    numeric_answer: str,
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: Optional[List[Dict[str, Any]]] = None,
+) -> bool:
+    narrative_text = _normalise_spaces(str(narrative_answer or ""))
+    if not narrative_text:
+        return False
+    trace_surfaces = [_normalise_spaces(str(numeric_answer or ""))]
+    for row in ordered_results or []:
+        if aggregate_result_operation_family(row) != "growth_rate":
+            continue
+        if growth_row_has_conflicting_periods(row):
+            continue
+        trace_surfaces.append(
+            compose_complete_growth_numeric_answer(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        )
+        trace_surfaces.extend(
+            growth_required_display_values(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        )
+    trace_numeric_candidates = extract_numeric_surface_candidates(
+        _normalise_spaces(" ".join(surface for surface in trace_surfaces if surface))
+    )
+    narrative_numeric_candidates = extract_numeric_surface_candidates(narrative_text)
+    if not trace_numeric_candidates or not narrative_numeric_candidates:
+        return False
+    return not all(
+        any(
+            numeric_surface_candidates_equivalent(narrative_candidate, trace_candidate)
+            for trace_candidate in trace_numeric_candidates
+        )
+        for narrative_candidate in narrative_numeric_candidates
     )
 
 
