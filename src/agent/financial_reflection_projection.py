@@ -5,10 +5,112 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, Sequence
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.schema.runtime_enums import ArtifactKind
 
 if TYPE_CHECKING:
-    from src.agent.financial_graph_state import FinancialAgentState, ReflectionAction, ReflectionReport
+    from src.agent.financial_graph_state import (
+        FinancialAgentState,
+        ReflectionAction,
+        ReflectionPlanRecord,
+        ReflectionReport,
+        ReflectionRequest,
+    )
+
+
+ALLOWED_REFLECTION_RETRY_STRATEGIES = {
+    "retry_retrieval",
+    "synthesize_from_task_outputs",
+    "stop_insufficient",
+}
+
+DEFAULT_REFLECTION_RETRY_BUDGET = 1
+
+
+def normalise_reflection_plan_record(
+    plan: Dict[str, Any],
+    *,
+    fallback_plan: Dict[str, Any],
+    missing_info: List[str],
+    preferred_sections: List[str],
+) -> ReflectionPlanRecord:
+    plan_data = dict(plan or {})
+    plan_data["missing_info"] = [
+        str(item).strip()
+        for item in (plan_data.get("missing_info") or [])
+        if str(item).strip()
+    ]
+    plan_data["subqueries"] = [
+        _normalise_spaces(str(item))
+        for item in (plan_data.get("subqueries") or [])
+        if _normalise_spaces(str(item))
+    ]
+    plan_data["preferred_sections"] = [
+        _normalise_spaces(str(item))
+        for item in (plan_data.get("preferred_sections") or [])
+        if _normalise_spaces(str(item))
+    ]
+    retry_strategy = _normalise_spaces(str(plan_data.get("retry_strategy") or "")).lower()
+    if retry_strategy not in ALLOWED_REFLECTION_RETRY_STRATEGIES:
+        retry_strategy = str(fallback_plan.get("retry_strategy") or "retry_retrieval")
+    plan_data["retry_strategy"] = retry_strategy
+    if not plan_data["missing_info"]:
+        plan_data["missing_info"] = list(missing_info)
+    if not plan_data["preferred_sections"]:
+        plan_data["preferred_sections"] = list(preferred_sections[:3])
+    if not plan_data["subqueries"]:
+        plan_data = dict(fallback_plan)
+        plan_data["explanation"] = "fallback to heuristic because reflection planner returned no subqueries"
+    return plan_data
+
+
+def _reflection_runtime_trace_summary(state: FinancialAgentState) -> Dict[str, Any]:
+    runtime_trace = _resolve_runtime_calculation_trace(
+        dict(state),
+        allow_legacy_top_level=False,
+    )
+    operands = list(runtime_trace.get("calculation_operands") or [])
+    plan = dict(runtime_trace.get("calculation_plan") or {})
+    result = dict(runtime_trace.get("calculation_result") or {})
+    return {
+        "operand_count": len(operands),
+        "plan_status": str(plan.get("status") or ""),
+        "plan_operation": str(plan.get("operation") or plan.get("mode") or ""),
+        "result_status": str(result.get("status") or ""),
+        "result_explanation": str(result.get("explanation") or ""),
+    }
+
+
+def _reflection_evidence_summary(state: FinancialAgentState) -> Dict[str, Any]:
+    return {
+        "evidence_item_count": len(list(state.get("evidence_items") or [])),
+        "retrieved_doc_count": len(list(state.get("retrieved_docs") or [])),
+        "seed_retrieved_doc_count": len(list(state.get("seed_retrieved_docs") or [])),
+        "evidence_status": str(state.get("evidence_status") or ""),
+    }
+
+
+def build_reflection_request(
+    state: FinancialAgentState,
+    *,
+    missing_info: List[str],
+    failure_status: str,
+) -> ReflectionRequest:
+    active_subtask = dict(state.get("active_subtask") or {})
+    reflection_count = int(state.get("reflection_count") or 0)
+    return {
+        "query": str(state.get("query") or ""),
+        "active_task_id": str(active_subtask.get("task_id") or ""),
+        "failure_status": str(failure_status or ""),
+        "missing_info": [
+            str(item).strip()
+            for item in missing_info
+            if str(item).strip()
+        ],
+        "runtime_trace_summary": _reflection_runtime_trace_summary(state),
+        "evidence_summary": _reflection_evidence_summary(state),
+        "remaining_retry_budget": max(DEFAULT_REFLECTION_RETRY_BUDGET - reflection_count, 0),
+    }
 
 
 def reflection_synthesis_source_ids_from_task_outputs(
