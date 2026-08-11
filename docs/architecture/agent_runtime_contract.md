@@ -1719,9 +1719,46 @@ unverified, and this relocation establishes no behavior, accuracy, ranking,
 performance, total-code, executed-path, benchmark, schedule, or Phase 3
 completion claim.
 
-The next selected prepared growth-numeric renderer is not yet an owner contract.
-Its exact 100-line, one-public-API, nine-external-call boundary and graph hard
-stops are governed solely by
+Prepared growth-numeric rendering is now also owned by
+`financial_aggregate_projection.py`.
+
+Public `compose_complete_growth_numeric_answer(row, ordered_results,
+evidence_items=None)` first shallow-copies the calculation result and result-first
+answer slots, then checks the aggregate operation family. Only a `growth_rate`
+row continues. It shallow-copies primary/current/prior slots, requires material
+primary content, resolves growth display from calculation result before primary
+slot fallback, and resolves current then prior absolute displays. Equal current/
+prior material invokes recovered-prior evidence; only a truthy recovered display
+replaces the prior value and only its associated truthy period replaces the prior
+period. A missing growth, current, or prior display returns `""` before label or
+policy rendering.
+
+Metric-label precedence is current slot, primary slot, then row. Period text is
+removed with `CALCULATION_SLOT_POLICY`, and a blank cleaned label returns `""`.
+Current period is current then primary; prior period is prior then the narrative-
+policy default, unless recovered evidence supplied a period. Explicit direction
+or direction hint wins. Otherwise normalized numeric sign is tried, and a
+rendered-value leading minus is the final fallback. Only `TypeError` and
+`ValueError` from that optional float conversion are caught. Direction words,
+year suffixes, period/prior templates, topic particle, and the final sentence
+template come from policy; the final result is normalized once.
+
+The renderer mutates no row, slot, ordered-result, or evidence input. Mapping,
+copy, truthiness, string, regex, owner, rendering, policy, formatting, and final
+normalization exceptions propagate. Its former 100-line graph body is one 99-line
+public owner function. Nine selected calls remain graph-external and owner-local
+selected calls remain zero; retired graph-private references are zero. The
+`5fb0267` source diff is `+117/-111`, tests are `+989/-38`, and all six files are
+`+1,106/-149`; five tests moved full discovery from 1,669 to 1,674. The committed
+source-only diff SHA-256 is
+`a92591876808e7e4744d7deb5d9ff83d7282d61cfaaeb7bfcf852ea232a2687b`.
+Benchmark refresh was **NOT RUN**, remote CI is unverified, and this relocation
+establishes no behavior, accuracy, ranking, performance, total-code,
+executed-path, benchmark, schedule, or Phase 3 completion claim.
+
+The next selected prepared growth trace-inspection predicates are not yet owner
+contracts. Their exact 130-line, three-public-API, 19-external-call boundary and
+graph hard stops are governed solely by
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by

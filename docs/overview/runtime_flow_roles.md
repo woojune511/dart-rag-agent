@@ -286,7 +286,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, and result support/reuse predicates |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, and result support/reuse predicates |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -309,7 +309,8 @@ row/gap/lookup-answer policy, narrative term/variant/context sentence presentati
 prepared-document snippet projection and retrieved-source preservation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
 table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
-projection, aggregate result support/reuse predicate가 포함된다. Graph는 query/evidence preparation, caller
+projection, aggregate result support/reuse predicate와 prepared growth-numeric
+rendering이 포함된다. Graph는 query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
 sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
 planning은 nested traversal을 유지한다.
@@ -387,9 +388,14 @@ Aggregate/narrative row의 state-free answer policy owner다.
   owner-private ratio-value helper로 배치된다. 17 call은 graph external 16개와
   owner-local 1개이며 growth composition, arithmetic sync, ratio artifact/state,
   final sequencing은 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 100-line prepared growth-numeric
-  renderer다. public 1개와 external 9/local 0 call, characterize-first gate와
-  answer selection/refresh, state/evidence, final-sequencing hard stop은
+- 완료된 prepared growth-numeric renderer도 같은 owner의 public
+  `compose_complete_growth_numeric_answer(...)`로 배치된다. 아홉 call은 모두
+  graph-external이며 answer replacement/refresh, sentence repair, state/evidence,
+  final sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 130-line prepared growth trace-
+  inspection predicate 세 개다. public 3개와 external 19/local 0 call,
+  characterize-first gate와 answer replacement/refresh, source-visible sentence
+  repair, state/evidence, final-sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
