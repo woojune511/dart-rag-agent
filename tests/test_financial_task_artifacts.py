@@ -1358,8 +1358,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return final_rows
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             side_effect=active_owner,
         ), patch.object(
             agent,
@@ -1432,8 +1432,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "operation_family": "lookup",
         }
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             return_value=lookup_active,
         ), patch.object(
             agent,
@@ -1474,8 +1474,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             )
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             return_value=active_subtask,
         ), patch.object(
             agent,
@@ -1515,8 +1515,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
         self.assertEqual(structured_state, structured_before)
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             return_value=active_subtask,
         ), patch.object(
             agent,
@@ -1608,8 +1608,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return dependency_ledger
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             side_effect=dependency_active,
         ), patch.object(
             agent,
@@ -1620,8 +1620,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "task_prefers_sibling_output_synthesis",
             side_effect=dependency_preference,
         ), patch.object(
-            agent,
-            "_dependency_resolved_reconciliation_result",
+            financial_graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
             side_effect=dependency_result_owner,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1648,8 +1648,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
         self.assertEqual(reconciliation_state, reconciliation_before)
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             return_value=reconciliation_state["active_subtask"],
         ), patch.object(
             agent,
@@ -1660,8 +1660,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "task_prefers_sibling_output_synthesis",
             return_value=True,
         ), patch.object(
-            agent,
-            "_dependency_resolved_reconciliation_result",
+            financial_graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
             return_value=dependency_result,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1749,8 +1749,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             return normal_ledger
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             side_effect=normal_active,
         ), patch.object(
             agent,
@@ -1813,8 +1813,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
         self.assertEqual(normal_state, normal_before)
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            financial_graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             return_value=normal_state["active_subtask"],
         ), patch.object(
             agent,

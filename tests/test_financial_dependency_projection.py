@@ -4921,8 +4921,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         reconciliation_events: List[Any] = []
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             side_effect=lambda subtask, received_state: reconciliation_events.append(
                 ("active", subtask, received_state)
             )
@@ -4942,8 +4942,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             )
             or True,
         ), patch.object(
-            agent,
-            "_dependency_resolved_reconciliation_result",
+            graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
             side_effect=lambda **kwargs: reconciliation_events.append(("resolved", kwargs))
             or resolved_reconciliation,
         ), patch.object(
@@ -4966,8 +4966,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
         self.assertEqual(reconciliation_state, reconciliation_before)
 
         with patch.object(
-            agent,
-            "_active_subtask_with_sibling_lookup_surfaces",
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
             return_value=active_subtask,
         ), patch.object(
             agent,
@@ -4978,8 +4978,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             "task_prefers_sibling_output_synthesis",
             side_effect=RuntimeError("reconciliation preference failed"),
         ), patch.object(
-            agent,
-            "_dependency_resolved_reconciliation_result",
+            graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
             side_effect=AssertionError("resolved reconciliation must stop"),
         ), patch.object(
             graph_reconciliation,
@@ -5102,6 +5102,1206 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "reflection preference failed"):
                 agent._heuristic_reflection_query_plan(reconciliation_state, [])
         self.assertEqual(reconciliation_state, reconciliation_before)
+
+    def test_current_source_sibling_lookup_surface_projection_pins_branches_and_copy_contract(self) -> None:
+        nested = {"keep": True}
+        same_task_string_calls: List[str] = []
+
+        class StringBomb:
+            def __init__(self, message: str, calls: List[str] | None = None) -> None:
+                self.message = message
+                self.calls = calls
+
+            def __str__(self) -> str:
+                if self.calls is not None:
+                    self.calls.append(self.message)
+                raise RuntimeError(self.message)
+
+        active_subtask = {
+            "task_id": " task-active ",
+            "sibling_lookup_surfaces": [" existing ", "dup", " "],
+            "nested": nested,
+        }
+        state = {
+            "calc_subtasks": [
+                {
+                    "task_id": "task-active",
+                    "operation_family": StringBomb("same task family accessed", same_task_string_calls),
+                },
+                {
+                    "task_id": "skip",
+                    "operation_family": "sum",
+                    "metric_family": "other",
+                    "metric_label": StringBomb("invalid task label accessed"),
+                },
+                {
+                    "task_id": "lookup-a",
+                    "operation_family": " LOOKUP ",
+                    "metric_family": "other",
+                    "metric_label": "2024 Revenue",
+                    "required_operands": [
+                        {
+                            "label": "2023 Cost",
+                            "aliases": ["Revenue", " alias ", ""],
+                            "nested": nested,
+                        }
+                    ],
+                },
+                {
+                    "task_id": "lookup-b",
+                    "operation_family": "other",
+                    "metric_family": " concept_single_value ",
+                    "metric_label": "2025 Margin",
+                    "required_operands": [
+                        {
+                            "label": "2024 Expense",
+                            "aliases": ["alias", "tail"],
+                        }
+                    ],
+                },
+                {
+                    "task_id": "lookup-c",
+                    "operation_family": "single_value",
+                    "metric_family": "other",
+                    "metric_label": "",
+                    "required_operands": [
+                        {
+                            "label": "",
+                            "aliases": [" alias-only "],
+                        }
+                    ],
+                },
+            ],
+            "nested": nested,
+        }
+        def frozen(value: Any) -> Any:
+            if type(value) is dict:
+                return tuple((key, frozen(item)) for key, item in value.items())
+            if type(value) is list:
+                return tuple(frozen(item) for item in value)
+            if type(value) is tuple:
+                return tuple(frozen(item) for item in value)
+            return value
+
+        active_before = frozen(active_subtask)
+        state_before = frozen(state)
+        policy_events: List[tuple[str, str]] = []
+        regex_events: List[tuple[str, str, str]] = []
+        pattern = r"^(?:20\d{2}\s*)"
+
+        class RecordingPolicy:
+            def get(self, key: str, default: Any = None) -> Any:
+                policy_events.append(("get", key))
+                if key == "lookup_surface_period_prefix_pattern":
+                    return pattern
+                return default
+
+        original_sub = dependency_projection.re.sub
+
+        def recording_sub(expression: str, replacement: str, value: str) -> str:
+            regex_events.append((expression, replacement, value))
+            return original_sub(expression, replacement, value)
+
+        with patch.object(
+            dependency_projection,
+            "RECONCILIATION_POLICY",
+            RecordingPolicy(),
+        ), patch.object(
+            dependency_projection.re,
+            "sub",
+            side_effect=recording_sub,
+        ):
+            projected = dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                active_subtask,
+                state,
+            )
+
+        self.assertIsNot(projected, active_subtask)
+        self.assertIs(projected["nested"], nested)
+        self.assertEqual(
+            projected["sibling_lookup_surfaces"],
+            [
+                "existing",
+                "dup",
+                "Revenue",
+                "Cost",
+                "alias",
+                "Margin",
+                "Expense",
+                "tail",
+                "alias-only",
+            ],
+        )
+        self.assertEqual(
+            policy_events,
+            [
+                ("get", "lookup_surface_period_prefix_pattern"),
+                ("get", "lookup_surface_period_prefix_pattern"),
+                ("get", "lookup_surface_period_prefix_pattern"),
+            ],
+        )
+        self.assertEqual(
+            regex_events,
+            [
+                (pattern, "", "2024 Revenue"),
+                (pattern, "", "2023 Cost"),
+                (pattern, "", "2025 Margin"),
+                (pattern, "", "2024 Expense"),
+                (pattern, "", ""),
+                (pattern, "", ""),
+            ],
+        )
+        self.assertEqual(same_task_string_calls, [])
+        self.assertEqual(frozen(active_subtask), active_before)
+        self.assertEqual(frozen(state), state_before)
+        self.assertIs(active_subtask["nested"], nested)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(state["calc_subtasks"][2]["required_operands"][0]["nested"], nested)
+
+        with patch.object(
+            dependency_projection,
+            "RECONCILIATION_POLICY",
+            {"lookup_surface_period_prefix_pattern": ""},
+        ), patch.object(
+            dependency_projection.re,
+            "sub",
+            side_effect=AssertionError("blank pattern must skip regex"),
+        ):
+            blank_active = dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                {"task_id": " "},
+                {
+                    "calc_subtasks": [
+                        {
+                            "task_id": " ",
+                            "operation_family": "single_value",
+                            "metric_label": "2024 Kept",
+                        }
+                    ]
+                },
+            )
+        self.assertEqual(blank_active["sibling_lookup_surfaces"], ["2024 Kept"])
+
+        class StateGetBomb:
+            def get(self, key: str, default: Any = None) -> Any:
+                raise AssertionError(f"state access after surface failure: {key}")
+
+        with self.assertRaisesRegex(RuntimeError, "existing surface failed"):
+            dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                {"sibling_lookup_surfaces": [StringBomb("existing surface failed")]},
+                StateGetBomb(),
+            )
+
+        class CopyBomb(Mapping[str, Any]):
+            def __init__(self, message: str) -> None:
+                self.message = message
+
+            def __getitem__(self, key: str) -> Any:
+                raise RuntimeError(self.message)
+
+            def __iter__(self):
+                raise RuntimeError(self.message)
+
+            def __len__(self) -> int:
+                return 1
+
+        with self.assertRaisesRegex(RuntimeError, "active copy failed"):
+            dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                CopyBomb("active copy failed"),
+                StateGetBomb(),
+            )
+
+        with self.assertRaisesRegex(RuntimeError, "task copy failed"):
+            dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                {},
+                {"calc_subtasks": [CopyBomb("task copy failed")]},
+            )
+
+        class PolicyBomb:
+            def get(self, key: str, default: Any = None) -> Any:
+                raise RuntimeError("policy access failed")
+
+        with patch.object(dependency_projection, "RECONCILIATION_POLICY", PolicyBomb()):
+            with self.assertRaisesRegex(RuntimeError, "policy access failed"):
+                dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                    {},
+                    {
+                        "calc_subtasks": [
+                            {
+                                "operation_family": "lookup",
+                                "metric_label": StringBomb("label must stop after policy"),
+                            }
+                        ]
+                    },
+                )
+
+        class AliasIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("alias iteration failed")
+
+        with patch.object(
+            dependency_projection,
+            "RECONCILIATION_POLICY",
+            {"lookup_surface_period_prefix_pattern": ""},
+        ):
+            with self.assertRaisesRegex(RuntimeError, "alias iteration failed"):
+                dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                    {},
+                    {
+                        "calc_subtasks": [
+                            {
+                                "operation_family": "lookup",
+                                "metric_label": "",
+                                "required_operands": [
+                                    {"label": "", "aliases": AliasIterationBomb()}
+                                ],
+                            }
+                        ]
+                    },
+                )
+
+        class OperandIterationBomb:
+            def __iter__(self):
+                raise AssertionError("operand iteration must stop after regex")
+
+        with patch.object(
+            dependency_projection,
+            "RECONCILIATION_POLICY",
+            {"lookup_surface_period_prefix_pattern": pattern},
+        ), patch.object(
+            dependency_projection.re,
+            "sub",
+            side_effect=RuntimeError("prefix regex failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "prefix regex failed"):
+                dependency_projection.active_subtask_with_sibling_lookup_surfaces(
+                    {},
+                    {
+                        "calc_subtasks": [
+                            {
+                                "operation_family": "lookup",
+                                "metric_label": "2024 Revenue",
+                                "required_operands": OperandIterationBomb(),
+                            }
+                        ]
+                    },
+                )
+
+    def test_current_source_dependency_resolved_result_pins_order_copy_and_exceptions(self) -> None:
+        access_events: List[tuple[str, str]] = []
+        normalise_events: List[str] = []
+        nested = {"keep": True}
+
+        class RecordingBinding(Mapping[str, Any]):
+            def __init__(self, name: str, values: Dict[str, Any]) -> None:
+                self.name = name
+                self.values = values
+
+            def __getitem__(self, key: str) -> Any:
+                access_events.append((self.name, key))
+                return self.values[key]
+
+            def __iter__(self):
+                return iter(self.values)
+
+            def __len__(self) -> int:
+                return len(self.values)
+
+        first = RecordingBinding(
+            "first",
+            {
+                "preferred_task_id": " task-a ",
+                "label": " Revenue ",
+                "role": " numerator ",
+                "concept": " sales ",
+                "nested": nested,
+            },
+        )
+        second = RecordingBinding(
+            "second",
+            {
+                "preferred_task_id": " ",
+                "label": " Cost ",
+                "role": " denominator ",
+                "concept": " expense ",
+            },
+        )
+        active_subtask = {"task_id": " task-ratio ", "nested": nested}
+        dependency_state = {"bindings": [first, second], "nested": nested}
+        active_before = dict(active_subtask)
+        bindings_before = [dict(first), dict(second)]
+
+        def normalise(value: str) -> str:
+            normalise_events.append(value)
+            return value.strip()
+
+        access_events.clear()
+        with patch.object(dependency_projection, "_normalise_spaces", side_effect=normalise):
+            result = dependency_projection.dependency_resolved_reconciliation_result(
+                active_subtask=active_subtask,
+                dependency_state=dependency_state,
+            )
+
+        self.assertEqual(
+            access_events,
+            [
+                ("first", "preferred_task_id"),
+                ("first", "label"),
+                ("first", "role"),
+                ("first", "concept"),
+                ("second", "preferred_task_id"),
+                ("second", "label"),
+                ("second", "role"),
+                ("second", "concept"),
+            ],
+        )
+        self.assertEqual(
+            normalise_events,
+            [" task-a ", " Revenue ", " numerator ", " sales ", " ", " Cost ", " denominator ", " expense "],
+        )
+        self.assertEqual(
+            result,
+            {
+                "status": "ready",
+                "task_id": " task-ratio ",
+                "matched_operands": [
+                    {
+                        "label": "Revenue",
+                        "role": "numerator",
+                        "concept": "sales",
+                        "matched": True,
+                        "candidate_ids": ["task_output:task-a"],
+                        "reason": "resolved_from_task_outputs",
+                    },
+                    {
+                        "label": "Cost",
+                        "role": "denominator",
+                        "concept": "expense",
+                        "matched": True,
+                        "candidate_ids": [],
+                        "reason": "resolved_from_task_outputs",
+                    },
+                ],
+                "missing_operands": [],
+                "retry_queries": [],
+                "notes": ["dependency_task_outputs_ready"],
+                "retry_strategy": "",
+            },
+        )
+        self.assertIsNot(result["matched_operands"], dependency_state["bindings"])
+        self.assertIsNot(result["matched_operands"][0], first)
+        self.assertIsNot(result["missing_operands"], result["retry_queries"])
+        self.assertEqual(active_subtask, active_before)
+        self.assertEqual([dict(first), dict(second)], bindings_before)
+        self.assertIs(active_subtask["nested"], nested)
+        self.assertIs(dependency_state["nested"], nested)
+
+        stop_events: List[tuple[str, str]] = []
+
+        class TaskIdBomb:
+            def __str__(self) -> str:
+                raise AssertionError("task id must stop after binding failure")
+
+        failing_binding = RecordingBinding(
+            "failing",
+            {
+                "preferred_task_id": "source",
+                "label": "label",
+                "role": "boom-role",
+                "concept": "concept",
+            },
+        )
+
+        def failing_normalise(value: str) -> str:
+            stop_events.append(("normalise", value))
+            if value == "boom-role":
+                raise RuntimeError("role normalization failed")
+            return value
+
+        access_events.clear()
+        with patch.object(dependency_projection, "_normalise_spaces", side_effect=failing_normalise):
+            with self.assertRaisesRegex(RuntimeError, "role normalization failed"):
+                dependency_projection.dependency_resolved_reconciliation_result(
+                    active_subtask={"task_id": TaskIdBomb()},
+                    dependency_state={"bindings": [failing_binding, second]},
+                )
+        self.assertEqual(
+            access_events,
+            [
+                ("failing", "preferred_task_id"),
+                ("failing", "label"),
+                ("failing", "role"),
+            ],
+        )
+        self.assertEqual(
+            stop_events,
+            [("normalise", "source"), ("normalise", "label"), ("normalise", "boom-role")],
+        )
+
+        class BindingIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("binding iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "binding iteration failed"):
+            dependency_projection.dependency_resolved_reconciliation_result(
+                active_subtask={"task_id": TaskIdBomb()},
+                dependency_state={"bindings": BindingIterationBomb()},
+            )
+
+        class ActiveTaskAccessBomb:
+            def get(self, key: str, default: Any = None) -> Any:
+                raise RuntimeError("active task access failed")
+
+        with self.assertRaisesRegex(RuntimeError, "active task access failed"):
+            dependency_projection.dependency_resolved_reconciliation_result(
+                active_subtask=ActiveTaskAccessBomb(),
+                dependency_state={"bindings": []},
+            )
+
+    def test_current_source_dependency_reconciliation_bindings_pin_exact_move_boundary(self) -> None:
+        import ast
+        import inspect
+        import json
+        from pathlib import Path
+
+        from src.agent import financial_graph_reconciliation as graph_reconciliation
+
+        graph_tree = ast.parse(inspect.getsource(graph_reconciliation))
+        owner_tree = ast.parse(inspect.getsource(dependency_projection))
+        graph_defs = {
+            node.name: node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        owner_defs = {
+            node.name: node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        targets = {
+            "active_subtask_with_sibling_lookup_surfaces": 47,
+            "dependency_resolved_reconciliation_result": 27,
+        }
+        self.assertEqual(
+            {
+                name: owner_defs[name].end_lineno - owner_defs[name].lineno + 1
+                for name in targets
+            },
+            targets,
+        )
+        self.assertTrue({f"_{name}" for name in targets}.isdisjoint(graph_defs))
+        self.assertEqual(sum(targets.values()), 74)
+
+        def target_name(call: ast.Call) -> str:
+            if isinstance(call.func, ast.Name):
+                return call.func.id
+            if isinstance(call.func, ast.Attribute):
+                return call.func.attr
+            return ""
+
+        selected_calls = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, ast.Call) and target_name(node) in targets
+        ]
+        self.assertEqual(
+            {
+                name: sum(target_name(call) == name for call in selected_calls)
+                for name in targets
+            },
+            {
+                "active_subtask_with_sibling_lookup_surfaces": 4,
+                "dependency_resolved_reconciliation_result": 1,
+            },
+        )
+        selected_loads = [
+            node
+            for node in ast.walk(graph_tree)
+            if (
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id in targets
+            )
+            or (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.ctx, ast.Load)
+                and node.attr in targets
+            )
+        ]
+        parent = {
+            child: node
+            for node in ast.walk(graph_tree)
+            for child in ast.iter_child_nodes(node)
+        }
+        self.assertEqual(len(selected_loads), len(selected_calls))
+        self.assertTrue(
+            all(
+                isinstance(parent.get(node), ast.Call) and parent[node].func is node
+                for node in selected_loads
+            )
+        )
+
+        caller_expectations = {
+            "_rerank_reconciliation_matches_with_llm": "active_subtask_with_sibling_lookup_surfaces",
+            "_evidence_items_from_reconciliation_matches": "active_subtask_with_sibling_lookup_surfaces",
+            "_extract_structured_operands_from_reconciliation": "active_subtask_with_sibling_lookup_surfaces",
+            "_reconcile_retrieved_evidence": "active_subtask_with_sibling_lookup_surfaces",
+        }
+
+        def try_depth(root: ast.AST, target: ast.AST) -> int:
+            def visit(node: ast.AST, depth: int) -> int | None:
+                if node is target:
+                    return depth
+                next_depth = depth + int(isinstance(node, (ast.Try, ast.TryStar)))
+                for child in ast.iter_child_nodes(node):
+                    found = visit(child, next_depth)
+                    if found is not None:
+                        return found
+                return None
+
+            result = visit(root, 0)
+            self.assertIsNotNone(result)
+            return int(result)
+
+        distributed: List[ast.Call] = []
+        expected_first_argument = ast.dump(
+            ast.parse("dict(state.get('active_subtask') or {})", mode="eval").body
+        )
+        for caller_name, callee_name in caller_expectations.items():
+            caller = graph_defs[caller_name]
+            calls = [
+                call
+                for call in selected_calls
+                if call in ast.walk(caller) and target_name(call) == callee_name
+            ]
+            self.assertEqual(len(calls), 1, caller_name)
+            call = calls[0]
+            self.assertIsInstance(call.func, ast.Name)
+            self.assertEqual(
+                [ast.dump(argument) for argument in call.args],
+                [expected_first_argument, ast.dump(ast.Name(id="state", ctx=ast.Load()))],
+            )
+            self.assertEqual(call.keywords, [])
+            self.assertEqual(try_depth(caller, call), 0)
+            distributed.append(call)
+
+        reconcile_caller = graph_defs["_reconcile_retrieved_evidence"]
+        result_calls = [
+            call
+            for call in selected_calls
+            if call in ast.walk(reconcile_caller)
+            and target_name(call) == "dependency_resolved_reconciliation_result"
+        ]
+        self.assertEqual(len(result_calls), 1)
+        result_call = result_calls[0]
+        self.assertIsInstance(result_call.func, ast.Name)
+        self.assertEqual(result_call.args, [])
+        self.assertEqual(
+            {keyword.arg: ast.unparse(keyword.value) for keyword in result_call.keywords},
+            {
+                "active_subtask": "active_subtask",
+                "dependency_state": "dependency_state",
+            },
+        )
+        self.assertEqual(try_depth(reconcile_caller, result_call), 0)
+        distributed.append(result_call)
+        self.assertEqual(set(distributed), set(selected_calls))
+
+        graph_imports = [
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.config.retrieval_policy"
+        ]
+        owner_imports = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.config.retrieval_policy"
+        ]
+        self.assertEqual(len(graph_imports), 1)
+        self.assertEqual(len(owner_imports), 1)
+        self.assertIn(
+            "RECONCILIATION_POLICY",
+            {alias.name for alias in graph_imports[0].names},
+        )
+        self.assertIn(
+            "RECONCILIATION_POLICY",
+            {alias.name for alias in owner_imports[0].names},
+        )
+
+        selected_bindings = [
+            alias.name
+            for node in graph_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_dependency_projection"
+            for alias in node.names
+            if alias.name in targets
+        ]
+        self.assertEqual(
+            selected_bindings,
+            [
+                "active_subtask_with_sibling_lookup_surfaces",
+                "dependency_resolved_reconciliation_result",
+            ],
+        )
+
+        selected_nodes = [owner_defs[name] for name in targets]
+        dependency_names = {
+            "re",
+            "Any",
+            "Dict",
+            "List",
+            "FinancialAgentState",
+            "_normalise_spaces",
+            "RECONCILIATION_POLICY",
+        }
+        outside_loads = {
+            name: sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == name
+                for node in ast.walk(graph_tree)
+            )
+            for name in dependency_names
+        }
+        self.assertTrue(all(outside_loads[name] > 0 for name in dependency_names))
+        owner_selected_loads = {
+            name: sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == name
+                for selected in selected_nodes
+                for node in ast.walk(selected)
+            )
+            for name in dependency_names
+        }
+        self.assertTrue(all(owner_selected_loads[name] > 0 for name in dependency_names))
+
+        agent_dir = Path(inspect.getfile(graph_reconciliation)).parent
+
+        def agent_imports(path: Path) -> set[str]:
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            imports: set[str] = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom):
+                    if node.module == "src.agent":
+                        imports.update(alias.name for alias in node.names)
+                    elif node.module and node.module.startswith("src.agent."):
+                        imports.add(node.module.rsplit(".", 1)[-1])
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith("src.agent."):
+                            imports.add(alias.name.rsplit(".", 1)[-1])
+            return imports
+
+        module_graph = {
+            path.stem: agent_imports(path)
+            for path in agent_dir.glob("*.py")
+        }
+
+        def reaches(start: str, target: str) -> bool:
+            pending = [start]
+            seen: set[str] = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in module_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reaches("financial_dependency_projection", "financial_graph_reconciliation")
+        )
+        self.assertFalse(
+            reaches("financial_dependency_projection", "financial_graph_calculation")
+        )
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_dependency_projection.py"
+                and record.get("text")
+                in {
+                    node.value
+                    for selected in selected_nodes
+                    for node in ast.walk(selected)
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                }
+            ],
+            [],
+        )
+        self.assertEqual((len(selected_calls), 0), (5, 0))
+
+    def test_current_source_sibling_surface_rerank_caller_pins_args_adoption_and_stop(self) -> None:
+        from src.agent import financial_graph_reconciliation as graph_reconciliation
+        from src.agent.financial_graph import FinancialAgent
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state_nested = {"keep": True}
+        operand_nested = {"operand": True}
+        row_nested = {"row": True}
+        state = {
+            "active_subtask": {"task_id": "raw-task", "nested": state_nested},
+            "query": "state query",
+            "report_scope": {"year": 2024},
+            "nested": state_nested,
+        }
+        projected_active = {
+            "task_id": "projected-task",
+            "query": "projected query",
+            "operation_family": "lookup",
+            "required_operands": [
+                {
+                    "label": "Metric",
+                    "role": "component",
+                    "concept": "revenue",
+                    "nested": operand_nested,
+                }
+            ],
+            "preferred_statement_types": ["statement"],
+            "constraints": {"period_focus": "current"},
+        }
+        result = {
+            "matched_operands": [
+                {
+                    "label": "Metric",
+                    "role": "component",
+                    "candidate_ids": ["candidate"],
+                    "nested": row_nested,
+                }
+            ],
+            "notes": ["existing"],
+            "nested": row_nested,
+        }
+        candidates = [{"candidate_id": "candidate", "nested": state_nested}]
+        state_before = deepcopy(state)
+        result_before = deepcopy(result)
+        candidates_before = deepcopy(candidates)
+        events: List[Any] = []
+
+        def active_owner(subtask: Dict[str, Any], received_state: Dict[str, Any]) -> Dict[str, Any]:
+            events.append(("active", subtask, received_state))
+            self.assertIsNot(subtask, state["active_subtask"])
+            self.assertEqual(subtask, state["active_subtask"])
+            self.assertIs(subtask["nested"], state_nested)
+            self.assertIs(received_state, state)
+            return projected_active
+
+        def candidate_match(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+            events.append(("match", candidate, operand))
+            self.assertIs(candidate, candidates[0])
+            self.assertIsNot(operand, projected_active["required_operands"][0])
+            self.assertEqual(operand, projected_active["required_operands"][0])
+            self.assertIs(operand["nested"], operand_nested)
+            return True
+
+        def candidate_score(candidate: Dict[str, Any], **kwargs: Any) -> float:
+            events.append(("score", candidate, kwargs))
+            self.assertIs(candidate, candidates[0])
+            self.assertEqual(kwargs["preferred_statement_types"], ["statement"])
+            self.assertEqual(kwargs["constraints"], projected_active["constraints"])
+            self.assertIsNot(kwargs["constraints"], projected_active["constraints"])
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["report_scope"], state["report_scope"])
+            self.assertIsNot(kwargs["report_scope"], state["report_scope"])
+            self.assertIs(kwargs["operand"], events[1][2])
+            return 4.0
+
+        def should_rerank(scored: List[Dict[str, Any]]) -> bool:
+            events.append(("should", scored))
+            self.assertEqual(len(scored), 1)
+            self.assertIs(scored[0]["candidate"], candidates[0])
+            self.assertEqual(scored[0]["score"], 4.0)
+            return False
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=active_owner,
+        ), patch.object(
+            graph_reconciliation,
+            "_candidate_matches_operand",
+            side_effect=candidate_match,
+        ), patch.object(
+            graph_reconciliation,
+            "_score_operand_candidate",
+            side_effect=candidate_score,
+        ), patch.object(
+            agent,
+            "_should_llm_rerank_candidates",
+            side_effect=should_rerank,
+        ), patch.object(
+            agent,
+            "_llm_rerank_operand_candidates",
+            side_effect=AssertionError("LLM rerank must stay lazy after false decision"),
+        ):
+            projected = agent._rerank_reconciliation_matches_with_llm(
+                state,
+                result,
+                candidates,
+                [2024],
+            )
+
+        self.assertEqual([event[0] for event in events], ["active", "match", "score", "should"])
+        self.assertIsNot(projected, result)
+        self.assertIsNot(projected["matched_operands"], result["matched_operands"])
+        self.assertIsNot(projected["matched_operands"][0], result["matched_operands"][0])
+        self.assertIs(projected["matched_operands"][0]["nested"], row_nested)
+        self.assertEqual(projected["matched_operands"][0]["candidate_ids"], ["candidate"])
+        self.assertEqual(projected["notes"], ["existing"])
+        self.assertEqual(state, state_before)
+        self.assertEqual(result, result_before)
+        self.assertEqual(candidates, candidates_before)
+        self.assertIs(state["nested"], state_nested)
+        self.assertIs(result["nested"], row_nested)
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=RuntimeError("active projection failed"),
+        ), patch.object(
+            graph_reconciliation,
+            "_candidate_matches_operand",
+            side_effect=AssertionError("candidate matching must stop"),
+        ), patch.object(
+            graph_reconciliation,
+            "_score_operand_candidate",
+            side_effect=AssertionError("candidate scoring must stop"),
+        ), patch.object(
+            agent,
+            "_should_llm_rerank_candidates",
+            side_effect=AssertionError("rerank decision must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "active projection failed"):
+                agent._rerank_reconciliation_matches_with_llm(
+                    state,
+                    result,
+                    candidates,
+                    [2024],
+                )
+        self.assertEqual(state, state_before)
+        self.assertEqual(result, result_before)
+        self.assertEqual(candidates, candidates_before)
+
+    def test_current_source_sibling_surface_evidence_and_operand_callers_pin_gates_and_stop(self) -> None:
+        from src.agent import financial_graph_reconciliation as graph_reconciliation
+        from src.agent.financial_graph import FinancialAgent
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"keep": True}
+        evidence_state = {
+            "reconciliation_result": {"status": "ready", "matched_operands": []},
+            "active_subtask": {"task_id": "raw-task", "nested": nested},
+            "report_scope": {},
+            "nested": nested,
+        }
+        evidence_before = deepcopy(evidence_state)
+        projected_active = {
+            "task_id": "projected-task",
+            "operation_family": "lookup",
+            "required_operands": [],
+            "constraints": {},
+        }
+        evidence_events: List[Any] = []
+
+        def evidence_active(subtask: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+            evidence_events.append(("active", subtask, state))
+            self.assertIsNot(subtask, evidence_state["active_subtask"])
+            self.assertEqual(subtask, evidence_state["active_subtask"])
+            self.assertIs(subtask["nested"], nested)
+            self.assertIs(state, evidence_state)
+            return projected_active
+
+        def query_years(state: Dict[str, Any]) -> List[int]:
+            evidence_events.append(("years", state))
+            self.assertIs(state, evidence_state)
+            return [2024]
+
+        def candidates_owner(state: Dict[str, Any]) -> List[Dict[str, Any]]:
+            evidence_events.append(("candidates", state))
+            self.assertIs(state, evidence_state)
+            return []
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=evidence_active,
+        ), patch.object(
+            graph_reconciliation,
+            "_query_years_from_state",
+            side_effect=query_years,
+        ), patch.object(
+            agent,
+            "_build_reconciliation_candidates",
+            side_effect=candidates_owner,
+        ), patch.object(
+            agent,
+            "_complete_required_operand_from_ontology",
+            side_effect=AssertionError("empty projected operands must stay lazy"),
+        ), patch.object(
+            agent,
+            "_expand_structured_candidate_ids",
+            side_effect=AssertionError("lookup operation must skip artifact expansion"),
+        ):
+            self.assertEqual(
+                agent._evidence_items_from_reconciliation_matches(evidence_state),
+                [],
+            )
+        self.assertEqual([event[0] for event in evidence_events], ["active", "years", "candidates"])
+        self.assertEqual(evidence_state, evidence_before)
+        self.assertIs(evidence_state["nested"], nested)
+
+        operand_state = {
+            "reconciliation_result": {"status": "ready"},
+            "active_subtask": {"task_id": "raw-task", "nested": nested},
+            "nested": nested,
+        }
+        operand_before = deepcopy(operand_state)
+        operand_events: List[Any] = []
+
+        def operand_active(subtask: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
+            operand_events.append(("active", subtask, state))
+            self.assertIsNot(subtask, operand_state["active_subtask"])
+            self.assertIs(subtask["nested"], nested)
+            self.assertIs(state, operand_state)
+            return {"required_operands": []}
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=operand_active,
+        ), patch.object(
+            agent,
+            "_complete_required_operand_from_ontology",
+            side_effect=AssertionError("empty operands must stop ontology completion"),
+        ), patch.object(
+            graph_reconciliation,
+            "_query_years_from_state",
+            side_effect=AssertionError("empty operands must stop year resolution"),
+        ), patch.object(
+            agent,
+            "_build_reconciliation_candidates",
+            side_effect=AssertionError("empty operands must stop candidate construction"),
+        ):
+            self.assertEqual(
+                agent._extract_structured_operands_from_reconciliation(operand_state),
+                [],
+            )
+        self.assertEqual([event[0] for event in operand_events], ["active"])
+        self.assertEqual(operand_state, operand_before)
+        self.assertIs(operand_state["nested"], nested)
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=RuntimeError("evidence active projection failed"),
+        ), patch.object(
+            graph_reconciliation,
+            "_query_years_from_state",
+            side_effect=AssertionError("evidence year resolution must stop"),
+        ), patch.object(
+            agent,
+            "_build_reconciliation_candidates",
+            side_effect=AssertionError("evidence candidates must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "evidence active projection failed"):
+                agent._evidence_items_from_reconciliation_matches(evidence_state)
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=RuntimeError("operand active projection failed"),
+        ), patch.object(
+            agent,
+            "_complete_required_operand_from_ontology",
+            side_effect=AssertionError("operand ontology completion must stop"),
+        ), patch.object(
+            graph_reconciliation,
+            "_query_years_from_state",
+            side_effect=AssertionError("operand year resolution must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "operand active projection failed"):
+                agent._extract_structured_operands_from_reconciliation(operand_state)
+        self.assertEqual(evidence_state, evidence_before)
+        self.assertEqual(operand_state, operand_before)
+
+    def test_current_source_dependency_reconciliation_caller_pins_order_adoption_and_stop(self) -> None:
+        from src.agent import financial_graph_reconciliation as graph_reconciliation
+        from src.agent.financial_graph import FinancialAgent
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"keep": True}
+        state = {
+            "active_subtask": {"task_id": "raw-task", "operation_family": "ratio", "nested": nested},
+            "tasks": [{"task_id": "raw-task", "nested": nested}],
+            "artifacts": [],
+            "reconciliation_retry_count": 0,
+            "nested": nested,
+        }
+        state_before = deepcopy(state)
+        projected_active = {"task_id": "projected-task", "operation_family": "ratio", "nested": nested}
+        dependency_state = {
+            "all_resolved": True,
+            "bindings": [{"preferred_task_id": "source-task"}],
+            "nested": nested,
+        }
+        resolved_result = {
+            "status": "ready",
+            "task_id": "projected-task",
+            "matched_operands": [],
+            "nested": nested,
+        }
+        evidence_refs = ["task_output:source-task"]
+        ledger_tasks = [{"task_id": "projected-task", "status": "completed"}]
+        ledger_artifacts = [{"artifact_id": "reconciliation:projected-task"}]
+        events: List[Any] = []
+
+        def active_owner(subtask: Dict[str, Any], received_state: Dict[str, Any]) -> Dict[str, Any]:
+            events.append(("active", subtask, received_state))
+            self.assertIsNot(subtask, state["active_subtask"])
+            self.assertEqual(subtask, state["active_subtask"])
+            self.assertIs(subtask["nested"], nested)
+            self.assertIs(received_state, state)
+            return projected_active
+
+        def dependency_owner(received_state: Dict[str, Any]) -> Dict[str, Any]:
+            events.append(("dependency", received_state))
+            self.assertIs(received_state, state)
+            return dependency_state
+
+        def preference_owner(received_state: Dict[str, Any]) -> bool:
+            events.append(("preference", received_state))
+            self.assertIs(received_state, state)
+            return True
+
+        def result_owner(**kwargs: Any) -> Dict[str, Any]:
+            events.append(("result", kwargs))
+            self.assertIs(kwargs["active_subtask"], projected_active)
+            self.assertIs(kwargs["dependency_state"], dependency_state)
+            return resolved_result
+
+        def refs_owner(received_result: Dict[str, Any]) -> List[str]:
+            events.append(("refs", received_result))
+            self.assertIs(received_result, resolved_result)
+            return evidence_refs
+
+        def ledger_owner(**kwargs: Any) -> Dict[str, Any]:
+            events.append(("ledger", kwargs))
+            self.assertIs(kwargs["active_subtask"], projected_active)
+            self.assertIs(kwargs["reconciliation_result"], resolved_result)
+            self.assertIs(kwargs["evidence_refs"], evidence_refs)
+            self.assertEqual(kwargs["summary"], "reconciliation=ready(dependency_outputs)")
+            return {"tasks": ledger_tasks, "artifacts": ledger_artifacts}
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=active_owner,
+        ), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=dependency_owner,
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=preference_owner,
+        ), patch.object(
+            graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
+            side_effect=result_owner,
+        ), patch.object(
+            graph_reconciliation,
+            "reconciliation_evidence_refs",
+            side_effect=refs_owner,
+        ), patch.object(
+            graph_reconciliation,
+            "_reconciliation_result_artifact_update",
+            side_effect=ledger_owner,
+        ), patch.object(
+            agent,
+            "_build_reconciliation_candidates",
+            side_effect=AssertionError("dependency-ready path must skip candidates"),
+        ):
+            updates = agent._reconcile_retrieved_evidence(state)
+
+        self.assertEqual(
+            [event[0] for event in events],
+            ["active", "dependency", "preference", "result", "refs", "ledger"],
+        )
+        self.assertIs(updates["reconciliation_result"], resolved_result)
+        self.assertEqual(updates["tasks"], ledger_tasks)
+        self.assertIsNot(updates["tasks"], ledger_tasks)
+        self.assertIs(updates["tasks"][0], ledger_tasks[0])
+        self.assertEqual(updates["artifacts"], ledger_artifacts)
+        self.assertIsNot(updates["artifacts"], ledger_artifacts)
+        self.assertIs(updates["artifacts"][0], ledger_artifacts[0])
+        self.assertEqual(updates["retry_strategy"], "")
+        self.assertEqual(updates["retry_queries"], [])
+        self.assertEqual(updates["retry_reason"], "")
+        self.assertEqual(state, state_before)
+        self.assertIs(state["nested"], nested)
+
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=RuntimeError("active owner failed"),
+        ), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=AssertionError("dependency resolution must stop"),
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=AssertionError("preference must stop"),
+        ), patch.object(
+            graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
+            side_effect=AssertionError("result projection must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "active owner failed"):
+                agent._reconcile_retrieved_evidence(state)
+
+        failure_events: List[str] = []
+        with patch.object(
+            graph_reconciliation,
+            "active_subtask_with_sibling_lookup_surfaces",
+            side_effect=lambda subtask, received_state: failure_events.append("active") or projected_active,
+        ), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=lambda received_state: failure_events.append("dependency") or dependency_state,
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=lambda received_state: failure_events.append("preference") or True,
+        ), patch.object(
+            graph_reconciliation,
+            "dependency_resolved_reconciliation_result",
+            side_effect=RuntimeError("result owner failed"),
+        ), patch.object(
+            graph_reconciliation,
+            "reconciliation_evidence_refs",
+            side_effect=AssertionError("evidence refs must stop"),
+        ), patch.object(
+            graph_reconciliation,
+            "_reconciliation_result_artifact_update",
+            side_effect=AssertionError("ledger must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "result owner failed"):
+                agent._reconcile_retrieved_evidence(state)
+        self.assertEqual(failure_events, ["active", "dependency", "preference"])
+        self.assertEqual(state, state_before)
 
 
 if __name__ == "__main__":

@@ -37,7 +37,11 @@ from src.agent.financial_graph_helpers import (
 from src.agent.financial_operand_resolution import (
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
 )
-from src.agent.financial_dependency_projection import task_prefers_sibling_output_synthesis
+from src.agent.financial_dependency_projection import (
+    active_subtask_with_sibling_lookup_surfaces,
+    dependency_resolved_reconciliation_result,
+    task_prefers_sibling_output_synthesis,
+)
 from src.agent.financial_graph_model_loaders import (
     _reconciliation_candidate_rerank_model,
     _reflection_query_plan_model,
@@ -129,84 +133,6 @@ def _candidate_statement_type(candidate: Dict[str, Any], metadata: Dict[str, Any
 
 
 class FinancialAgentReconciliationMixin:
-    def _active_subtask_with_sibling_lookup_surfaces(
-        self,
-        active_subtask: Dict[str, Any],
-        state: FinancialAgentState,
-    ) -> Dict[str, Any]:
-        enriched = dict(active_subtask or {})
-        active_task_id = str(enriched.get("task_id") or "").strip()
-        surfaces = [
-            str(item).strip()
-            for item in (enriched.get("sibling_lookup_surfaces") or [])
-            if str(item).strip()
-        ]
-        for task in list(state.get("calc_subtasks") or []):
-            current = dict(task or {})
-            task_id = str(current.get("task_id") or "").strip()
-            if active_task_id and task_id == active_task_id:
-                continue
-            operation_family = str(current.get("operation_family") or "").strip().lower()
-            metric_family = str(current.get("metric_family") or "").strip().lower()
-            if operation_family not in {"lookup", "single_value"} and metric_family not in {
-                "concept_lookup",
-                "concept_single_value",
-            }:
-                continue
-            period_prefix_pattern = str(RECONCILIATION_POLICY.get("lookup_surface_period_prefix_pattern") or "")
-            metric_label = (
-                re.sub(period_prefix_pattern, "", str(current.get("metric_label") or "").strip())
-                if period_prefix_pattern
-                else str(current.get("metric_label") or "").strip()
-            )
-            if metric_label:
-                surfaces.append(metric_label)
-            for operand in list(current.get("required_operands") or []):
-                operand_data = dict(operand or {})
-                label = (
-                    re.sub(period_prefix_pattern, "", str(operand_data.get("label") or "").strip())
-                    if period_prefix_pattern
-                    else str(operand_data.get("label") or "").strip()
-                )
-                if label:
-                    surfaces.append(label)
-                surfaces.extend(
-                    str(alias).strip()
-                    for alias in list(operand_data.get("aliases") or [])
-                    if str(alias).strip()
-                )
-        enriched["sibling_lookup_surfaces"] = list(dict.fromkeys(surface for surface in surfaces if surface))
-        return enriched
-
-    def _dependency_resolved_reconciliation_result(
-        self,
-        *,
-        active_subtask: Dict[str, Any],
-        dependency_state: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        matched_operands: List[Dict[str, Any]] = []
-        for binding in list(dependency_state.get("bindings") or []):
-            preferred_task_id = _normalise_spaces(str(binding.get("preferred_task_id") or ""))
-            matched_operands.append(
-                {
-                    "label": _normalise_spaces(str(binding.get("label") or "")),
-                    "role": _normalise_spaces(str(binding.get("role") or "")),
-                    "concept": _normalise_spaces(str(binding.get("concept") or "")),
-                    "matched": True,
-                    "candidate_ids": [f"task_output:{preferred_task_id}"] if preferred_task_id else [],
-                    "reason": "resolved_from_task_outputs",
-                }
-            )
-        return {
-            "status": "ready",
-            "task_id": str(active_subtask.get("task_id") or ""),
-            "matched_operands": matched_operands,
-            "missing_operands": [],
-            "retry_queries": [],
-            "notes": ["dependency_task_outputs_ready"],
-            "retry_strategy": "",
-        }
-
     def _structured_candidate_unit_hint(
         self,
         *,
@@ -948,7 +874,7 @@ class FinancialAgentReconciliationMixin:
         candidates: List[Dict[str, Any]],
         years: List[int],
     ) -> Dict[str, Any]:
-        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+        active_subtask = active_subtask_with_sibling_lookup_surfaces(
             dict(state.get("active_subtask") or {}),
             state,
         )
@@ -1039,7 +965,7 @@ class FinancialAgentReconciliationMixin:
         if str(reconciliation_result.get("status") or "") not in {"ready", "retry_retrieval", "insufficient_operands"}:
             return []
 
-        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+        active_subtask = active_subtask_with_sibling_lookup_surfaces(
             dict(state.get("active_subtask") or {}),
             state,
         )
@@ -1179,7 +1105,7 @@ class FinancialAgentReconciliationMixin:
         if str(reconciliation_result.get("status") or "") != "ready":
             return []
 
-        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+        active_subtask = active_subtask_with_sibling_lookup_surfaces(
             dict(state.get("active_subtask") or {}),
             state,
         )
@@ -1499,13 +1425,13 @@ class FinancialAgentReconciliationMixin:
 
     def _reconcile_retrieved_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Match required operands to the best available evidence candidates."""
-        active_subtask = self._active_subtask_with_sibling_lookup_surfaces(
+        active_subtask = active_subtask_with_sibling_lookup_surfaces(
             dict(state.get("active_subtask") or {}),
             state,
         )
         dependency_state = self._dependency_binding_resolution_state(state)
         if dependency_state.get("all_resolved") and task_prefers_sibling_output_synthesis(state):
-            result = self._dependency_resolved_reconciliation_result(
+            result = dependency_resolved_reconciliation_result(
                 active_subtask=active_subtask,
                 dependency_state=dependency_state,
             )
