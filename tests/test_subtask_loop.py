@@ -19177,7 +19177,7 @@ class SubtaskLoopTests(unittest.TestCase):
             self.assertIn("11.5%", composed["compressed_answer"])
             self.assertIn("781.0 thousand units", composed["compressed_answer"])
             self.assertIn("from 2022Y 781.0 thousand units", composed["compressed_answer"])
-            numeric_answer = self.agent._compose_complete_growth_numeric_answer(
+            numeric_answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(
                 ordered_results[0],
                 ordered_results,
                 evidence_items=[],

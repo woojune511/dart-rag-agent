@@ -8685,7 +8685,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        answer = agent._compose_complete_growth_numeric_answer(growth_row, [growth_row])
+        answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(growth_row, [growth_row])
 
         self.assertIn("3,146,409백만원", answer)
         self.assertIn("1,847,775백만원", answer)

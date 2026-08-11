@@ -3442,7 +3442,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 {
                     "growth_slots_share_material": 2,
                     "growth_required_display_values": 3,
-                    "_compose_complete_growth_numeric_answer": 2,
+                    "compose_complete_growth_numeric_answer": 2,
                     "_compose_growth_narrative_answer": 2,
                 }
             ),
@@ -3452,7 +3452,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             Counter(
                 {
                     "growth_required_display_values": 1,
-                    "_compose_complete_growth_numeric_answer": 1,
+                    "compose_complete_growth_numeric_answer": 1,
                     "_compose_growth_narrative_answer": 1,
                     "_recover_duplicate_growth_prior_operand": 1,
                 }
@@ -3463,7 +3463,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             Counter(
                 {
                     "growth_required_display_values": 1,
-                    "_compose_complete_growth_numeric_answer": 1,
+                    "compose_complete_growth_numeric_answer": 1,
                     "_compose_growth_narrative_answer": 1,
                     "_recover_duplicate_growth_prior_operand": 1,
                 }
@@ -3730,21 +3730,21 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         }
         absolute = Mock(side_effect=lambda value: str(value))
         with (
-            patch.object(self.agent, "_aggregate_result_operation_family", return_value="growth_rate"),
-            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
-            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=display) as display_owner,
-            patch.object(financial_graph_calculation, "growth_slots_share_material", side_effect=share) as share_owner,
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=display) as display_owner,
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", side_effect=share) as share_owner,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "recover_growth_prior_material_from_evidence",
                 side_effect=recover,
             ) as recover_owner,
-            patch.object(financial_graph_calculation.calculation_rendering, "absolute_display_value", absolute),
-            patch.object(financial_graph_calculation, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
-            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
-            patch.object(financial_graph_calculation, "_topic_particle", return_value="|P|"),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", absolute),
+            patch.object(financial_aggregate_projection, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_aggregate_projection, "topic_particle", return_value="|P|"),
         ):
-            answer = self.agent._compose_complete_growth_numeric_answer(
+            answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(
                 row,
                 ordered_results,
                 evidence_items,
@@ -3769,19 +3769,19 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         downstream_recovery = Mock()
         downstream_absolute = Mock()
         with (
-            patch.object(self.agent, "_aggregate_result_operation_family", return_value="growth_rate"),
-            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_slot_display_value",
                 side_effect=RuntimeError("display failed"),
             ),
-            patch.object(financial_graph_calculation, "growth_slots_share_material", downstream_share),
-            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", downstream_recovery),
-            patch.object(financial_graph_calculation.calculation_rendering, "absolute_display_value", downstream_absolute),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", downstream_share),
+            patch.object(financial_aggregate_projection, "recover_growth_prior_material_from_evidence", downstream_recovery),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", downstream_absolute),
             self.assertRaisesRegex(RuntimeError, "display failed"),
         ):
-            self.agent._compose_complete_growth_numeric_answer(row, ordered_results, evidence_items)
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(row, ordered_results, evidence_items)
         downstream_share.assert_not_called()
         downstream_recovery.assert_not_called()
         downstream_absolute.assert_not_called()
@@ -5516,10 +5516,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         agent = GrowthAgent()
         agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
-        agent._compose_complete_growth_numeric_answer = Mock(return_value="complete 10 200 100")
+        compose_owner = Mock(return_value="complete 10 200 100")
         required_owner = Mock(return_value=["10", "200", "100"])
         untraced_owner = Mock(return_value=False)
         with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
             patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", untraced_owner),
@@ -5542,6 +5543,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         downstream_owner = Mock()
         failing_required_owner = Mock(side_effect=RuntimeError("required failed"))
         with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
             patch.object(financial_graph_calculation, "growth_required_display_values", failing_required_owner),
             patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
             patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", downstream_owner),
@@ -5802,6 +5804,942 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(state, before_state)
         self.assertEqual(context_rows, before_context_rows)
         self.assertEqual(context_evidence, before_context_evidence)
+
+    def test_current_source_growth_numeric_renderer_gates_values_recovery_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+
+        class CopyBomb:
+            def keys(self):
+                raise RuntimeError("copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("copy item accessed")
+
+        family_after_copy = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_after_copy),
+            self.assertRaisesRegex(RuntimeError, "copy failed"),
+        ):
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(
+                {"calculation_result": CopyBomb()},
+                [],
+            )
+        family_after_copy.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_after_copy),
+            self.assertRaisesRegex(RuntimeError, "copy failed"),
+        ):
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(
+                {"calculation_result": {"answer_slots": CopyBomb()}},
+                [],
+            )
+        family_after_copy.assert_not_called()
+
+        class SlotCopyBomb:
+            def keys(self):
+                raise AssertionError("slot copied after non-growth gate")
+
+        non_growth_row = {
+            "calculation_result": {
+                "answer_slots": {
+                    "primary_value": SlotCopyBomb(),
+                    "current_value": SlotCopyBomb(),
+                    "prior_value": SlotCopyBomb(),
+                }
+            }
+        }
+        material_owner = Mock()
+        display_owner = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="lookup") as family_owner,
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", material_owner),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", display_owner),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.compose_complete_growth_numeric_answer(non_growth_row, [non_growth_row]),
+                "",
+            )
+        family_owner.assert_called_once_with(non_growth_row)
+        material_owner.assert_not_called()
+        display_owner.assert_not_called()
+
+        primary_nested = {"primary": nested}
+        primary = {"rendered_value": "10%", "nested": primary_nested}
+        current = {"label": "Metric", "period": "2024", "nested": nested}
+        prior = {"period": "2023", "nested": nested}
+        gated_row = {
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": primary,
+                    "current_value": current,
+                    "prior_value": prior,
+                },
+            }
+        }
+
+        def no_material(slot):
+            self.assertIsNot(slot, primary)
+            self.assertIs(slot["nested"], primary_nested)
+            return False
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                side_effect=no_material,
+            ) as gated_material,
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", display_owner),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.compose_complete_growth_numeric_answer(gated_row, [gated_row]),
+                "",
+            )
+        gated_material.assert_called_once()
+        display_owner.assert_not_called()
+
+        slot_material_owner = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", slot_material_owner),
+            self.assertRaisesRegex(RuntimeError, "copy failed"),
+        ):
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(
+                {
+                    "calculation_result": {
+                        "answer_slots": {
+                            "primary_value": CopyBomb(),
+                            "current_value": {},
+                            "prior_value": {},
+                        }
+                    }
+                },
+                [],
+            )
+        slot_material_owner.assert_not_called()
+
+        class LabelStringBomb:
+            def __str__(self):
+                raise AssertionError("label accessed after missing display")
+
+        missing_row = {
+            "metric_label": LabelStringBomb(),
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": {"rendered_value": "10%"},
+                    "current_value": {"label": LabelStringBomb()},
+                    "prior_value": {},
+                },
+            },
+        }
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["", "PRIOR"]),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", side_effect=str),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.compose_complete_growth_numeric_answer(missing_row, [missing_row]),
+                "",
+            )
+
+        row_slot_fallback = {
+            "answer_slots": {
+                "primary_value": {
+                    "label": "Metric",
+                    "rendered_value": "12%",
+                    "normalized_value": 12,
+                    "direction": "increase",
+                },
+                "current_value": {"period": "2024"},
+                "prior_value": {"period": "2023"},
+            },
+            "calculation_result": {"rendered_value": ""},
+        }
+        fallback_policy = {
+            "direction_words": {"increase": "UP", "decrease": "DOWN", "growth": "GROW"},
+            "growth_direction_metric_terms": (),
+            "period_year_suffix": "Y",
+            "period_prefix_with_year_template": "[{period}]",
+            "period_prefix_template": "[{period}]",
+            "prior_phrase_with_value_template": "prior {period} {value}",
+            "growth_numeric_sentence_template": (
+                "{period_prefix} {metric_label}{topic_particle} {current_value} "
+                "{prior_phrase} {growth_value} {direction_word}"
+            ),
+        }
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["CURRENT", "PRIOR"]),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", side_effect=str),
+            patch.object(financial_aggregate_projection, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", fallback_policy),
+            patch.object(financial_aggregate_projection, "topic_particle", return_value="P"),
+        ):
+            fallback_answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(
+                row_slot_fallback,
+                [row_slot_fallback],
+            )
+        self.assertEqual(fallback_answer, "[2024] MetricP CURRENT prior 2023Y PRIOR 12% UP")
+
+        primary = {
+            "role": "primary",
+            "rendered_value": "PRIMARY-BOMB-SUPPRESSED",
+            "normalized_value": 10,
+            "direction": "increase",
+            "nested": nested,
+        }
+        current = {"role": "current", "label": "Metric", "period": "2024", "nested": nested}
+        prior = {"role": "prior", "period": "2023", "nested": nested}
+        row = {
+            "metric_label": "Fallback Metric",
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": primary,
+                    "current_value": current,
+                    "prior_value": prior,
+                },
+            },
+            "nested": nested,
+        }
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_row = deepcopy(row)
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def family(prepared_row):
+            events.append(("family", prepared_row))
+            return "growth_rate"
+
+        def material(slot):
+            events.append(("material", slot))
+            self.assertIsNot(slot, primary)
+            self.assertIs(slot["nested"], nested)
+            return True
+
+        def display(slot, results):
+            events.append(("display", slot["role"], slot, results))
+            self.assertIs(results, ordered_results)
+            return "CURRENT" if slot["role"] == "current" else "PRIOR"
+
+        def share(current_slot, prior_slot, results):
+            events.append(("share", current_slot, prior_slot, results))
+            self.assertIs(results, ordered_results)
+            return True
+
+        def recover(*, current_slot, prior_slot, evidence_items):
+            events.append(("recover", current_slot, prior_slot, evidence_items))
+            self.assertIs(evidence_items, evidence_items_ref)
+            return {"display": "RECOVERED", "period": "2022"}
+
+        def absolute(value):
+            events.append(("absolute", value))
+            return str(value)
+
+        evidence_items_ref = evidence_items
+        policy = {
+            "direction_words": {"increase": "UP", "decrease": "DOWN", "growth": "GROW"},
+            "growth_direction_metric_terms": (),
+            "period_year_suffix": "Y",
+            "period_prefix_with_year_template": "[{period}]",
+            "period_prefix_template": "[{period}]",
+            "prior_phrase_with_value_template": "prior {period} {value}",
+            "growth_numeric_sentence_template": (
+                "{period_prefix} {metric_label}{topic_particle} {current_value} "
+                "{prior_phrase} {growth_value} {direction_word}"
+            ),
+        }
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=family),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", side_effect=material),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=display),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", side_effect=share),
+            patch.object(
+                financial_aggregate_projection,
+                "recover_growth_prior_material_from_evidence",
+                side_effect=recover,
+            ),
+            patch.object(
+                financial_aggregate_projection.calculation_rendering,
+                "absolute_display_value",
+                side_effect=absolute,
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_aggregate_projection, "topic_particle", return_value="|P|"),
+        ):
+            answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(
+                row,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(answer, "[2024] Metric|P| CURRENT prior 2022Y RECOVERED 10% UP")
+        self.assertEqual(
+            [event[0] for event in events],
+            ["family", "material", "display", "absolute", "display", "absolute", "share", "recover", "absolute", "absolute"],
+        )
+        self.assertEqual(row, before_row)
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        downstream_share = Mock()
+        downstream_recover = Mock()
+        downstream_policy = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_slot_display_value",
+                side_effect=RuntimeError("display failed"),
+            ),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", downstream_share),
+            patch.object(
+                financial_aggregate_projection,
+                "recover_growth_prior_material_from_evidence",
+                downstream_recover,
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", downstream_policy),
+            self.assertRaisesRegex(RuntimeError, "display failed"),
+        ):
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(row, ordered_results, evidence_items)
+        downstream_share.assert_not_called()
+        downstream_recover.assert_not_called()
+        downstream_policy.get.assert_not_called()
+        self.assertEqual(row, before_row)
+        self.assertEqual(evidence_items, before_evidence)
+
+    def test_current_source_growth_numeric_renderer_label_period_direction_and_policy_matrix(self) -> None:
+        nested = {"preserve": True}
+
+        def render(*, primary, current, prior, row_label, policy, slot_policy=None):
+            row = {
+                "metric_label": row_label,
+                "calculation_result": {
+                    "rendered_value": "10%",
+                    "answer_slots": {
+                        "primary_value": primary,
+                        "current_value": current,
+                        "prior_value": prior,
+                    },
+                },
+                "nested": nested,
+            }
+            ordered_results = [row]
+            topic_owner = Mock(return_value="P")
+            recovery_owner = Mock(side_effect=AssertionError("recovery accessed when material differs"))
+            with (
+                patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+                patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+                patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["200", "100"]),
+                patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+                patch.object(
+                    financial_aggregate_projection,
+                    "recover_growth_prior_material_from_evidence",
+                    recovery_owner,
+                ),
+                patch.object(
+                    financial_aggregate_projection.calculation_rendering,
+                    "absolute_display_value",
+                    side_effect=lambda value: str(value),
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "CALCULATION_SLOT_POLICY",
+                    slot_policy or {"period_pattern": r"$^"},
+                ),
+                patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+                patch.object(financial_aggregate_projection, "topic_particle", topic_owner),
+            ):
+                answer = financial_aggregate_projection.compose_complete_growth_numeric_answer(row, ordered_results)
+            recovery_owner.assert_not_called()
+            return answer, row, topic_owner
+
+        base_policy = {
+            "direction_words": {"increase": "UP", "decrease": "DOWN", "growth": "GROW"},
+            "growth_direction_metric_terms": (),
+            "period_year_suffix": "년",
+            "period_prefix_with_year_template": "Y:{period}",
+            "period_prefix_template": "P:{period}",
+            "default_prior_period": "DEFAULT",
+            "prior_phrase_with_value_template": "prior:{period}:{value}",
+            "growth_numeric_sentence_template": (
+                "{period_prefix}|{metric_label}|{topic_particle}|{current_value}|"
+                "{prior_phrase}|{growth_value}|{direction_word}"
+            ),
+        }
+        primary = {
+            "label": "Primary Label",
+            "rendered_value": "10%",
+            "normalized_value": 10,
+            "direction": "decrease",
+            "nested": nested,
+        }
+        current = {"label": "2024 Revenue", "period": "2024", "nested": nested}
+        prior = {"period": "2023", "nested": nested}
+        answer, row, topic_owner = render(
+            primary=primary,
+            current=current,
+            prior=prior,
+            row_label="Row Label",
+            policy=base_policy,
+            slot_policy={"period_pattern": r"\b2024\b"},
+        )
+        self.assertEqual(answer, "Y:2024|Revenue|P|200|prior:2023년:100|10%|DOWN")
+        topic_owner.assert_called_once_with("Revenue")
+        self.assertIs(row["nested"], nested)
+
+        growth_policy = {
+            **base_policy,
+            "growth_direction_metric_terms": ("GrowthTerm",),
+        }
+        answer, _, topic_owner = render(
+            primary={
+                "label": "GrowthTerm Metric",
+                "rendered_value": "10%",
+                "normalized_value": 5,
+                "nested": nested,
+            },
+            current={"label": "", "period": "2024년", "nested": nested},
+            prior={"period": "", "nested": nested},
+            row_label="Row Label",
+            policy=growth_policy,
+        )
+        self.assertEqual(answer, "P:2024년|GrowthTerm Metric|P|200|prior:DEFAULT:100|10%|GROW")
+        topic_owner.assert_called_once_with("GrowthTerm Metric")
+
+        answer, _, topic_owner = render(
+            primary={
+                "label": "",
+                "period": "2025",
+                "rendered_value": "10%",
+                "normalized_value": 1,
+                "direction_hint": "decrease",
+                "nested": nested,
+            },
+            current={"label": "", "period": "", "nested": nested},
+            prior={"period": "", "nested": nested},
+            row_label="Row Fallback",
+            policy=base_policy,
+        )
+        self.assertEqual(answer, "Y:2025|Row Fallback|P|200|prior:DEFAULT:100|10%|DOWN")
+        topic_owner.assert_called_once_with("Row Fallback")
+
+        class TypeFloat:
+            def __float__(self):
+                raise TypeError("soft type")
+
+        class ValueFloat:
+            def __float__(self):
+                raise ValueError("soft value")
+
+        for bad_value in (TypeFloat(), ValueFloat()):
+            answer, _, _ = render(
+                primary={
+                    "label": "Fallback Metric",
+                    "rendered_value": "-10%",
+                    "normalized_value": bad_value,
+                    "nested": nested,
+                },
+                current={"period": "", "nested": nested},
+                prior={"period": "", "nested": nested},
+                row_label="Row Label",
+                policy=base_policy,
+            )
+            self.assertTrue(answer.endswith("|DOWN"), answer)
+
+        class RuntimeFloat:
+            def __float__(self):
+                raise RuntimeError("direction failed")
+
+        topic_owner = Mock()
+        failing_row = {
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": {
+                        "label": "Metric",
+                        "rendered_value": "10%",
+                        "normalized_value": RuntimeFloat(),
+                    },
+                    "current_value": {},
+                    "prior_value": {},
+                },
+            }
+        }
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["200", "100"]),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", side_effect=str),
+            patch.object(financial_aggregate_projection, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", base_policy),
+            patch.object(financial_aggregate_projection, "topic_particle", topic_owner),
+            self.assertRaisesRegex(RuntimeError, "direction failed"),
+        ):
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(failing_row, [failing_row])
+        topic_owner.assert_not_called()
+
+        regex_topic_owner = Mock()
+        regex_row = {
+            "metric_label": "Metric",
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": {"rendered_value": "10%", "normalized_value": 1},
+                    "current_value": {"label": "Metric"},
+                    "prior_value": {},
+                },
+            },
+        }
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["200", "100"]),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", side_effect=str),
+            patch.object(financial_aggregate_projection, "CALCULATION_SLOT_POLICY", {"period_pattern": "pattern"}),
+            patch.object(financial_aggregate_projection.re, "sub", side_effect=RuntimeError("regex failed")),
+            patch.object(financial_aggregate_projection, "topic_particle", regex_topic_owner),
+            self.assertRaisesRegex(RuntimeError, "regex failed"),
+        ):
+            financial_aggregate_projection.compose_complete_growth_numeric_answer(regex_row, [regex_row])
+        regex_topic_owner.assert_not_called()
+
+        bad_template_policy = {**base_policy, "growth_numeric_sentence_template": "{missing}"}
+        with self.assertRaises(KeyError):
+            render(
+                primary={"label": "Metric", "rendered_value": "10%", "normalized_value": 1},
+                current={},
+                prior={},
+                row_label="Metric",
+                policy=bad_template_policy,
+            )
+
+        class NarrativePolicyBomb:
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("narrative policy accessed after blank label")
+
+        blank_label_row = {
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": {"rendered_value": "10%", "normalized_value": 1},
+                    "current_value": {},
+                    "prior_value": {},
+                },
+            }
+        }
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["200", "100"]),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+            patch.object(financial_aggregate_projection.calculation_rendering, "absolute_display_value", side_effect=str),
+            patch.object(financial_aggregate_projection, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", NarrativePolicyBomb()),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.compose_complete_growth_numeric_answer(blank_label_row, [blank_label_row]),
+                "",
+            )
+
+    def test_current_source_growth_numeric_renderer_static_bindings_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        trees = {
+            "graph": ast.parse(graph_path.read_text(encoding="utf-8-sig")),
+            "owner": ast.parse(owner_path.read_text(encoding="utf-8-sig")),
+        }
+        public_name = "compose_complete_growth_numeric_answer"
+        private_name = f"_{public_name}"
+        definitions = {}
+        calls = []
+        noncall_refs = []
+        try_depths = []
+
+        class Visitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in {private_name, public_name}:
+                    definitions[(self.module_name, node.name)] = node
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = ""
+                receiver = ""
+                if isinstance(node.func, ast.Attribute):
+                    name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    name = node.func.id
+                if name in {private_name, public_name}:
+                    calls.append(
+                        (
+                            self.module_name,
+                            tuple(self.stack),
+                            receiver,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((item.arg, ast.unparse(item.value)) for item in node.keywords),
+                        )
+                    )
+                    try_depths.append(self.try_depth)
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in {private_name, public_name} and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if node.id in {private_name, public_name} and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.id, node.lineno))
+
+        for module_name, tree in trees.items():
+            Visitor(module_name).visit(tree)
+
+        self.assertEqual(set(definitions), {("owner", public_name)})
+        definition = definitions[("owner", public_name)]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 99)
+        self.assertEqual(
+            sorted(
+                node.attr
+                for node in ast.walk(definition)
+                if isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "self"
+            ),
+            [],
+        )
+        self.assertEqual(len(calls), 9)
+        self.assertEqual(noncall_refs, [])
+        self.assertEqual(try_depths, [0] * 9)
+        self.assertTrue(all(module == "graph" and receiver == "" for module, _stack, receiver, _args, _kwargs in calls))
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls),
+            Counter(
+                {
+                    "_preferred_complete_numeric_answer": 1,
+                    "_ensure_complete_growth_numeric_answer": 1,
+                    "_final_growth_answer_without_untraced_numeric_sentences": 1,
+                    "_enforce_source_stated_growth_answer_contract": 1,
+                    "_strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
+                    "_growth_answer_has_untraced_numeric_material": 1,
+                    "_narrative_summary_conflicts_with_growth_trace": 1,
+                    "_growth_narrative_numeric_incompatible_with_trace": 1,
+                    "_is_growth_supported_sentence": 1,
+                }
+            ),
+        )
+        self.assertTrue(all(args == ("row", "ordered_results") for _module, _stack, _receiver, args, _kwargs in calls))
+        self.assertEqual(
+            Counter(kwargs for _module, _stack, _receiver, _args, kwargs in calls),
+            Counter({(("evidence_items", "evidence_items"),): 6, (): 3}),
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 99)
+        selected_names = {private_name, public_name}
+        external = sum(
+            not selected_names.intersection(stack)
+            for _module, stack, _receiver, _args, _kwargs in calls
+        )
+        self.assertEqual((external, len(calls) - external), (9, 0))
+
+        module_paths = list(Path("src/agent").glob("*.py")) + list(Path("src/config").glob("*.py"))
+        import_graph = {}
+        for path in module_paths:
+            module_name = ".".join(path.with_suffix("").parts)
+            imported = set()
+            for node in ast.parse(path.read_text(encoding="utf-8-sig")).body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names)
+            import_graph[module_name] = imported
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(import_graph.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_aggregate_projection"
+        for dependency in (
+            "src.agent.financial_text_surface",
+            "src.config.retrieval_policy",
+        ):
+            self.assertFalse(reaches(dependency, owner_module), dependency)
+        self.assertIn("src.agent.financial_text_surface", import_graph[owner_module])
+        self.assertIn("src.config.retrieval_policy", import_graph[owner_module])
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set(range(definition.lineno, definition.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_aggregate_projection.py"
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_growth_numeric_renderer_preferred_and_complete_callers(self) -> None:
+        nested = {"preserve": True}
+        row = {
+            "status": "ok",
+            "operation_family": "growth_rate",
+            "metric_label": "Metric",
+            "calculation_result": {"answer_slots": {}, "nested": nested},
+            "nested": nested,
+        }
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+
+        class PreferredAgent:
+            pass
+
+        preferred = PreferredAgent()
+        preferred._aggregate_dependency_source_slot_by_task_id = Mock(return_value={})
+        preferred._aggregate_result_operation_family = Mock(return_value="growth_rate")
+        preferred._ratio_answer_from_dependency_source_slots = Mock()
+        preferred._compact_ratio_answer = Mock()
+        compose_owner = Mock(return_value="complete growth")
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_graph_calculation, "narrative_context_terms", return_value=[]),
+            patch.object(financial_graph_calculation, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_graph_calculation, "aggregate_result_dependency_coherence_ranks", return_value=(1, 1)),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+        ):
+            answer = financial_graph_calculation.FinancialAgentCalculationMixin._preferred_complete_numeric_answer(
+                preferred,
+                ordered_results,
+                query="query",
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(answer, "complete growth")
+        compose_owner.assert_called_once_with(row, ordered_results, evidence_items=evidence_items)
+        self.assertIs(compose_owner.call_args.args[0], row)
+        self.assertIs(compose_owner.call_args.args[1], ordered_results)
+        self.assertIs(compose_owner.call_args.kwargs["evidence_items"], evidence_items)
+        preferred._compact_ratio_answer.assert_not_called()
+
+        failing_compose = Mock(side_effect=RuntimeError("compose failed"))
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", failing_compose),
+            patch.object(financial_graph_calculation, "narrative_context_terms", return_value=[]),
+            patch.object(financial_graph_calculation, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_graph_calculation, "aggregate_result_dependency_coherence_ranks", return_value=(1, 1)),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            self.assertRaisesRegex(RuntimeError, "compose failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._preferred_complete_numeric_answer(
+                preferred,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        preferred._compact_ratio_answer.assert_not_called()
+
+        class CompleteAgent:
+            pass
+
+        complete = CompleteAgent()
+        complete._aggregate_result_operation_family = Mock(return_value="growth_rate")
+        events = []
+
+        def compose(row_arg, results_arg, *, evidence_items):
+            events.append(("compose", row_arg, results_arg, evidence_items))
+            return "complete 10"
+
+        compose_owner = Mock(side_effect=compose)
+
+        def required(row_arg, results_arg, evidence_arg):
+            events.append(("required", row_arg, results_arg, evidence_arg))
+            return ["10"]
+
+        def untraced(answer_arg, complete_arg, values_arg):
+            events.append(("untraced", answer_arg, complete_arg, values_arg))
+            return False
+
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "growth_required_display_values", side_effect=required),
+            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", side_effect=untraced),
+        ):
+            answer = financial_graph_calculation.FinancialAgentCalculationMixin._ensure_complete_growth_numeric_answer(
+                complete,
+                "existing 10",
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(answer, "existing 10")
+        self.assertEqual([event[0] for event in events], ["compose", "required", "untraced"])
+        self.assertIs(events[0][1], row)
+        self.assertIs(events[0][2], ordered_results)
+        self.assertIs(events[0][3], evidence_items)
+
+        required_owner = Mock()
+        failing_compose = Mock(side_effect=RuntimeError("owner failed"))
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", failing_compose),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
+            self.assertRaisesRegex(RuntimeError, "owner failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._ensure_complete_growth_numeric_answer(
+                complete,
+                "answer",
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        required_owner.assert_not_called()
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+
+    def test_current_source_growth_numeric_renderer_narrative_and_support_callers(self) -> None:
+        nested = {"preserve": True}
+        row = {"operation_family": "growth_rate", "nested": nested}
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+
+        class NarrativeAgent:
+            pass
+
+        agent = NarrativeAgent()
+        agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+        events = []
+
+        def compose(row_arg, results_arg, *, evidence_items):
+            events.append(("compose", row_arg, results_arg, evidence_items))
+            return "trace 10"
+
+        compose_owner = Mock(side_effect=compose)
+
+        def required(row_arg, results_arg, *, evidence_items):
+            events.append(("required", row_arg, results_arg, evidence_items))
+            return ["200", "100"]
+
+        def extract(surface):
+            events.append(("extract", surface))
+            return [{"value": 99}] if surface == "narrative 99" else [{"value": 10}]
+
+        def equivalent(narrative_candidate, trace_candidate):
+            events.append(("equivalent", narrative_candidate, trace_candidate))
+            return False
+
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "growth_required_display_values", side_effect=required),
+            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", side_effect=extract),
+            patch.object(financial_graph_calculation, "numeric_surface_candidates_equivalent", side_effect=equivalent),
+        ):
+            incompatible = financial_graph_calculation.FinancialAgentCalculationMixin._growth_narrative_numeric_incompatible_with_trace(
+                agent,
+                narrative_answer="narrative 99",
+                numeric_answer="numeric 10",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertTrue(incompatible)
+        self.assertEqual([event[0] for event in events], ["compose", "required", "extract", "extract", "equivalent"])
+        self.assertIs(events[0][1], row)
+        self.assertIs(events[0][2], ordered_results)
+        self.assertIs(events[0][3], evidence_items)
+        self.assertIs(events[1][3], evidence_items)
+
+        required_owner = Mock()
+        extract_owner = Mock()
+        failing_compose = Mock(side_effect=RuntimeError("narrative compose failed"))
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", failing_compose),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
+            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", extract_owner),
+            self.assertRaisesRegex(RuntimeError, "narrative compose failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._growth_narrative_numeric_incompatible_with_trace(
+                agent,
+                narrative_answer="narrative 99",
+                numeric_answer="numeric 10",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        required_owner.assert_not_called()
+        extract_owner.assert_not_called()
+
+        compose_owner = Mock(return_value="trace 10")
+        required_owner = Mock(return_value=["10"])
+        untraced_owner = Mock(return_value=True)
+        splitter = Mock(side_effect=AssertionError("splitter accessed after direct conflict"))
+        with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
+            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", untraced_owner),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", splitter),
+        ):
+            self.assertTrue(
+                financial_graph_calculation.FinancialAgentCalculationMixin._growth_answer_has_untraced_numeric_material(
+                    agent,
+                    "answer 99",
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+            )
+        compose_owner.assert_called_once_with(row, ordered_results)
+        required_owner.assert_called_once_with(row, ordered_results, evidence_items)
+        untraced_owner.assert_called_once_with("answer 99", "trace 10", ["10"])
+        splitter.assert_not_called()
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
 
 
 if __name__ == "__main__":

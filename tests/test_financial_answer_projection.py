@@ -1113,8 +1113,8 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                 return_value=True,
             ) as growth_owner,
             patch.object(
-                self.calculation_agent,
-                "_compose_complete_growth_numeric_answer",
+                financial_graph_calculation,
+                "compose_complete_growth_numeric_answer",
                 compose_owner,
             ),
         ):
@@ -1141,8 +1141,8 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                 side_effect=RuntimeError("growth binding failed"),
             ),
             patch.object(
-                self.calculation_agent,
-                "_compose_complete_growth_numeric_answer",
+                financial_graph_calculation,
+                "compose_complete_growth_numeric_answer",
                 compose_owner,
             ),
         ):
@@ -3298,10 +3298,15 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
             agent = financial_graph_calculation.FinancialAgentCalculationMixin()
             source_owner = Mock(return_value=result)
             agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
-            agent._compose_complete_growth_numeric_answer = Mock(
+            compose_owner = Mock(
                 side_effect=RuntimeError("source gate continued")
             )
             with (
+                patch.object(
+                    financial_graph_calculation,
+                    "compose_complete_growth_numeric_answer",
+                    compose_owner,
+                ),
                 patch.object(
                     financial_graph_calculation,
                     "growth_uses_source_stated_result",
@@ -3319,17 +3324,22 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
                     )
             source_owner.assert_called_once_with(row)
             if result:
-                agent._compose_complete_growth_numeric_answer.assert_called_once()
+                compose_owner.assert_called_once()
             else:
-                agent._compose_complete_growth_numeric_answer.assert_not_called()
+                compose_owner.assert_not_called()
 
         agent = financial_graph_calculation.FinancialAgentCalculationMixin()
         source_owner = Mock(side_effect=RuntimeError("source owner"))
         agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
-        agent._compose_complete_growth_numeric_answer = Mock(
+        compose_owner = Mock(
             side_effect=AssertionError("source exception leaked downstream")
         )
         with (
+            patch.object(
+                financial_graph_calculation,
+                "compose_complete_growth_numeric_answer",
+                compose_owner,
+            ),
             patch.object(
                 financial_graph_calculation,
                 "growth_uses_source_stated_result",
@@ -3339,18 +3349,18 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
             self.assertRaisesRegex(RuntimeError, "source owner"),
         ):
             agent._enforce_source_stated_growth_answer_contract("answer", [row], [])
-        agent._compose_complete_growth_numeric_answer.assert_not_called()
+        compose_owner.assert_not_called()
 
         def configured_material_agent():
             agent = financial_graph_calculation.FinancialAgentCalculationMixin()
             agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
-            agent._compose_complete_growth_numeric_answer = Mock(return_value="complete 10%")
-            return agent
+            return agent, Mock(return_value="complete 10%")
 
         answer_owner = Mock(return_value=True)
         sentence_owner = Mock(side_effect=AssertionError("answer guard failed to short-circuit sentence guard"))
-        agent = configured_material_agent()
+        agent, compose_owner = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
@@ -3370,8 +3380,9 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
 
         answer_owner = Mock(return_value=False)
         sentence_owner = Mock(return_value=True)
-        agent = configured_material_agent()
+        agent, compose_owner = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
@@ -3391,8 +3402,9 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
 
         answer_owner = Mock(side_effect=RuntimeError("answer owner"))
         sentence_owner = Mock(side_effect=AssertionError("answer exception leaked to sentence guard"))
-        agent = configured_material_agent()
+        agent, compose_owner = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,
@@ -3412,8 +3424,9 @@ class FinancialAnswerProjectionTraceGuardTests(unittest.TestCase):
 
         answer_owner = Mock(return_value=False)
         sentence_owner = Mock(side_effect=RuntimeError("sentence owner"))
-        agent = configured_material_agent()
+        agent, compose_owner = configured_material_agent()
         with (
+            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
             patch.object(financial_graph_calculation, "growth_required_display_values", return_value=["10%"]),
             patch.object(
                 financial_graph_calculation,

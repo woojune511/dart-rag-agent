@@ -43,8 +43,13 @@ from src.agent.financial_text_surface import (
     narrative_sentence_looks_abbreviated_fragment,
     narrative_sentence_looks_table_noisy,
     split_narrative_sentences as _split_narrative_sentences,
+    topic_particle,
 )
-from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY, CALCULATION_RENDER_POLICY
+from src.config.retrieval_policy import (
+    CALCULATION_NARRATIVE_POLICY,
+    CALCULATION_RENDER_POLICY,
+    CALCULATION_SLOT_POLICY,
+)
 
 
 AggregateStaleRepairTargetResolution = Literal[
@@ -922,6 +927,107 @@ def growth_required_display_values(
         ),
     ]
     return list(dict.fromkeys(value for value in required_values if value))
+
+
+def compose_complete_growth_numeric_answer(
+    row: Dict[str, Any],
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: Optional[List[Dict[str, Any]]] = None,
+) -> str:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    if aggregate_result_operation_family(row) != "growth_rate":
+        return ""
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    current_slot = dict(answer_slots.get("current_value") or {})
+    prior_slot = dict(answer_slots.get("prior_value") or {})
+    if not answer_slot_has_material(primary_slot):
+        return ""
+
+    growth_value = _normalise_spaces(str(calculation_result.get("rendered_value") or ""))
+    if not growth_value:
+        growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
+    current_value = calculation_rendering.absolute_display_value(growth_slot_display_value(current_slot, ordered_results))
+    prior_value = calculation_rendering.absolute_display_value(growth_slot_display_value(prior_slot, ordered_results))
+    recovered_prior_period = ""
+    if growth_slots_share_material(current_slot, prior_slot, ordered_results):
+        recovered_prior_material = recover_growth_prior_material_from_evidence(
+            current_slot=current_slot,
+            prior_slot=prior_slot,
+            evidence_items=evidence_items,
+        )
+        if recovered_prior_material.get("display"):
+            prior_value = calculation_rendering.absolute_display_value(str(recovered_prior_material["display"]))
+            recovered_prior_period = _normalise_spaces(str(recovered_prior_material.get("period") or ""))
+    if not (growth_value and current_value and prior_value):
+        return ""
+
+    metric_label = _normalise_spaces(
+        str(current_slot.get("label") or primary_slot.get("label") or row.get("metric_label") or "")
+    )
+    metric_label = re.sub(str(CALCULATION_SLOT_POLICY.get("period_pattern") or r"$^"), " ", metric_label)
+    metric_label = _normalise_spaces(metric_label)
+    if not metric_label:
+        return ""
+
+    current_period = _normalise_spaces(str(current_slot.get("period") or primary_slot.get("period") or ""))
+    prior_period = _normalise_spaces(
+        str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
+    )
+    if recovered_prior_period:
+        prior_period = recovered_prior_period
+    direction = _normalise_spaces(str(primary_slot.get("direction") or primary_slot.get("direction_hint") or "")).lower()
+    if not direction:
+        normalized_value = primary_slot.get("normalized_value")
+        if normalized_value is not None:
+            try:
+                direction = "decrease" if float(normalized_value) < 0 else "increase"
+            except (TypeError, ValueError):
+                direction = ""
+        if not direction:
+            direction = "decrease" if str(primary_slot.get("rendered_value") or "").strip().startswith("-") else "increase"
+    direction_words = dict(CALCULATION_NARRATIVE_POLICY.get("direction_words") or {})
+    growth_direction_metric_terms = tuple(
+        str(item)
+        for item in (CALCULATION_NARRATIVE_POLICY.get("growth_direction_metric_terms") or ())
+        if str(item)
+    )
+    if direction == "decrease":
+        direction_word = str(direction_words.get("decrease") or "decrease")
+    elif any(term in metric_label for term in growth_direction_metric_terms):
+        direction_word = str(direction_words.get("growth") or direction_words.get("increase") or "increase")
+    else:
+        direction_word = str(direction_words.get("increase") or "increase")
+
+    year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
+    if current_period and year_suffix and not current_period.endswith(year_suffix):
+        period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_with_year_template") or "").format(
+            period=current_period
+        )
+    elif current_period:
+        period_prefix = str(CALCULATION_NARRATIVE_POLICY.get("period_prefix_template") or "").format(
+            period=current_period
+        )
+    else:
+        period_prefix = ""
+    prior_period_display = prior_period
+    if prior_period_display and year_suffix and re.fullmatch(r"\d{4}", prior_period_display):
+        prior_period_display = f"{prior_period_display}{year_suffix}"
+    prior_phrase = str(CALCULATION_NARRATIVE_POLICY.get("prior_phrase_with_value_template") or "").format(
+        period=prior_period_display,
+        value=prior_value,
+    )
+    return _normalise_spaces(
+        str(CALCULATION_NARRATIVE_POLICY.get("growth_numeric_sentence_template") or "").format(
+            period_prefix=period_prefix,
+            metric_label=metric_label,
+            topic_particle=topic_particle(metric_label),
+            current_value=current_value,
+            prior_phrase=prior_phrase,
+            growth_value=calculation_rendering.absolute_display_value(growth_value),
+            direction_word=direction_word,
+        )
+    )
 
 
 def has_strong_growth_trace_for_answer_refresh(
