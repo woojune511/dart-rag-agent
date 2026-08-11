@@ -1634,6 +1634,46 @@ callbacks, and final orchestration remain graph-owned. The range proves no
 behavior, accuracy, ranking, performance, total-code or executed-path reduction,
 benchmark improvement, or Phase 3 completion.
 
+### Aggregate answer-surface owner milestone
+
+- `515ccab` publishes `row_is_narrative_summary(...)` and
+  `safe_partial_answer_for_numeric_gap(...)` from aggregate projection. Thirty
+  old graph definition-span lines were removed. All 20 row-predicate and four
+  safe-partial calls remain represented; the safe-partial predicate call is now
+  owner-local. Source is `+58/-55`, tests are `+550/-5`, and the whole commit is
+  `+608/-60`.
+- `18e75a3` publishes `compose_lookup_list_numeric_answer(...)` and
+  `append_uncovered_lookup_numeric_items(...)`, and co-locates owner-private
+  `_lookup_numeric_item_answer(...)`. One hundred fifty-three old graph
+  definition-span lines were removed. The compose and append calls remain in the
+  graph, while both private-lookup calls are owner-local. Source is `+162/-159`,
+  tests are `+1,153/-69`, and the whole commit is `+1,315/-228`.
+- Across `c4fd42a..18e75a3`, 183 selected old graph definition-span lines became
+  four public APIs plus one owner-private helper. The 28 calls finish at 23
+  external graph calls and five owner-local calls; retired graph-private
+  references are zero. The range-level source diff is `+218/-212`, net `+6`:
+  the graph moved from 16,770 to 16,585 physical lines and aggregate projection
+  from 1,511 to 1,702. Tests are `+1,655/-26`, net `+1,629`; the whole changed-
+  file range is `+1,873/-238`. Nine test methods were added, moving full discovery
+  from 1,614 to 1,623 tests.
+- Final clean-HEAD validation passed focused 5/5 and 699/699 across
+  `tests.test_financial_aggregate_rank_dedupe`,
+  `tests.test_financial_answer_projection`,
+  `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+  `tests.test_financial_agent_run_projection`,
+  `tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`;
+  `tests.test_import_side_effects` 19/19; the 217-literal runtime audit; full
+  discovery over 1,623/1,623 tests; and `git diff --check`. Benchmark refresh was
+  **NOT RUN**; no remote CI run is claimed or verified for this local branch.
+
+This milestone closes only the selected aggregate narrative-row, numeric-gap,
+lookup-list composition, and uncovered-lookup preservation ownership. Query and
+evidence preparation, answer composition/feedback, mutable state/evidence,
+artifact/ledger work, promotion, sync/rebuild, callbacks, and final sequencing
+remain graph-owned. The range proves no behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, or Phase 3
+completion.
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

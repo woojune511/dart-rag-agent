@@ -1446,6 +1446,72 @@ and final orchestration remain graph/planning-owned. These owner moves make no
 behavior, ranking, accuracy, performance, total-code, executed-path, or Phase 3
 completion claim.
 
+Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
+`financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`
+normalizes and lowercases the row metric family before resolving the aggregate
+operation family, then returns the exact OR of either value being
+`narrative_summary`. It neither copies the row nor catches access, string,
+normalization, or operation-family exceptions.
+
+Public `safe_partial_answer_for_numeric_gap(ordered_results)` scans rows in
+source order, skips narrative rows, resolves status from the row before its
+calculation result, and invokes material-gap feedback only for an `ok` row. It
+normalizes the row answer first; only a blank answer copies the calculation
+result and falls back from formatted result to rendered value. Nonblank answers
+are stably deduplicated and space-joined. It does not mutate input or catch
+iteration, mapping, truthiness, predicate, copy, normalization, or string
+exceptions.
+
+Public `compose_lookup_list_numeric_answer(ordered_results)` skips narrative
+rows but returns `""` immediately when any remaining row is not exact `lookup`
+or `single_value`. Every eligible row increments the lookup-row count before
+status and material-gap filtering. An `ok`, gap-free row delegates to owner-
+private `_lookup_numeric_item_answer`; retained items are stably deduplicated,
+and both the eligible-row count and item count must be at least two. Only then
+are the configured separator and answer template read and the formatted answer
+normalized.
+
+`_lookup_numeric_item_answer(...)` shallow-copies calculation result, result-
+first answer slots, and primary slot. Its optional primary-material gate precedes
+surface access. Value precedence is primary rendered value, result formatted
+result, result rendered value, then row answer. Only `TypeError` and `ValueError`
+from primary normalized-value conversion are caught. A converted nonnegative
+value strips one leading parenthesis and its first closing parenthesis from the
+display. Label precedence is primary label before row metric label; blank label
+or value returns `""`. The optional numeric gate calls the numeric-surface owner
+before the configured item template is read and formatted.
+
+Public `append_uncovered_lookup_numeric_items(answer, ordered_results)` first
+normalizes the answer and returns it when blank. It then requires at least one
+dictionary row whose aggregate operation is exact `ratio`, `sum`, `difference`,
+or `growth_rate`. Ratio component slots are shallow-copied in row, group, and
+slot order. The owner-local conflict predicate copies the lookup primary slot,
+requires matching nonblank labels, tolerates unequal units when either unit is
+blank, and treats values as conflicting only when their difference exceeds
+`max(abs(component), abs(lookup), 1.0) * 5e-4`. Only numeric-conversion
+`TypeError` and `ValueError` are suppressed.
+
+The append scan then keeps only dictionary, non-narrative, exact lookup/single-
+value, `ok`, gap-free, nonconflicting rows. It requires a material primary slot
+and numeric item, skips items already covered by numeric-answer comparison, and
+also skips a label-overlapping answer that already has a numeric surface.
+Remaining items are stably deduplicated, stripped of terminal periods, joined as
+period-delimited prefix sentences, and prepended to the original normalized
+answer. Inputs and nested values remain unmodified. Apart from the two explicit
+numeric-conversion catches, access, copy, truthiness, iteration, predicate,
+normalization, numeric-surface, matching, policy, and formatting exceptions
+propagate.
+
+These 183 old graph definition-span lines now form four public APIs plus the one
+owner-private formatter. Of 28 calls, 23 remain external and five are owner-
+local: row predicate 17/3, safe partial 4/0, compose 1/0, append 1/0, and private
+lookup 0/2. Retired graph-private references are zero. The graph retains all
+external caller gates and argument/adoption/exception order, query/evidence
+preparation, answer composition and feedback, mutable state/evidence, artifacts
+and ledger, promotion, sync/rebuild, callbacks, and final sequencing. This is an
+ownership relocation only; it establishes no behavior, accuracy, ranking,
+performance, total-code, executed-path, benchmark, or Phase 3 completion claim.
+
 Narrative-answer validation is public in `financial_answer_projection.py`.
 `query_requests_explanatory_context(query)` stringifies, normalizes, and
 lowercases the query, and returns `False` for blank text before policy access.

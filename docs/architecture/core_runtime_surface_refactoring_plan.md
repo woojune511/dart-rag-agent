@@ -194,8 +194,8 @@ Current ownership is intentionally split by state boundary:
 | Operand resolution and policy | `financial_operand_resolution.py` | State-free candidate resolution, unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth alignment/period conflict, and ratio sign policy; no graph-state lookup |
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
-| Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, and scale predicates |
-| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate signatures, source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, and row/sentence/rendered selectors |
+| Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared sentence/token surfaces |
+| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate signatures, source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, `financial_task_artifacts.py` | State carriers and prepared projection transforms; graph retains surrounding orchestration |
 
 Detailed identity, laziness, exception, precedence, and caller-placement semantics
@@ -208,9 +208,10 @@ The current checkpoint has explicit owners for the major bounded seams completed
 so far, including ratio sign and presentation/readiness/scale policy, generic
 numeric support, aggregate row/sentence/rendered selection, answer-slot period and
 material policy, aggregate source/coherence preparation, result/nested ranking,
-stable dedupe, narrative intent/surface/trace validation, prepared KRW raw-unit/
-growth alignment/period-conflict policy, dependency-task KRW consistency, and
-table-metadata KRW repair. Current validation and benchmark
+stable dedupe, narrative intent/surface/trace validation, bounded aggregate row/
+gap/lookup-answer policy, prepared KRW raw-unit/growth alignment/period-conflict
+policy, dependency-task KRW consistency, and table-metadata KRW repair. Current
+validation and benchmark
 status belong only in
 [project_status.md](../overview/project_status.md); commit-level diffs and claim
 limits belong only in
@@ -218,9 +219,10 @@ limits belong only in
 
 Phase 3 remains open for four durable debt groups:
 
-1. partially advanced: period/material/source/coherence/rank/dedupe and selected
-   narrative-validation policy are owned, while promotion, sync/rebuild, mutable
-   state/evidence, and final sequencing remain graph-owned;
+1. partially advanced: period/material/source/coherence/rank/dedupe, selected
+   narrative-validation policy, and bounded row/gap/lookup-answer surfaces are
+   owned, while promotion, sync/rebuild, mutable state/evidence, and final
+   sequencing remain graph-owned;
 2. partially advanced: ratio presentation/readiness/scale, bounded operand-
    preparation, and unit/table-repair seams are owned; isolate remaining dependency
    and ratio/absolute seams that do not require graph-state lookup, broader evidence
@@ -235,12 +237,21 @@ Priority and sequencing are owned by
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
 Selected ratio presentation/readiness/scale, narrative intent/surface/trace,
-prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW
-consistency, and table-metadata KRW repair boundaries are complete in their
-state-free owners. Their retained external graph call placements remain, while
-broader evidence repair, dependency-source lookup, answer composition/refresh,
-evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
-callbacks, and final projection remain outside those owner batches.
+aggregate row/gap/lookup-answer, prepared KRW raw-unit/growth alignment/period-
+conflict, dependency-task KRW consistency, and table-metadata KRW repair
+boundaries are complete in their state-free owners. Their retained external graph
+call placements remain, while broader evidence repair, dependency-source lookup,
+answer composition/refresh, evidence construction, promotion, sync/rebuild,
+mutable state/evidence, ledger, callbacks, and final projection remain outside
+those owner batches.
+
+The completed `c4fd42a..18e75a3` range is an ownership relocation only: 183 old
+graph definition-span lines became four public aggregate APIs plus one owner-
+private helper, with 23 external and five owner-local calls. It does not establish
+behavior, performance, total-code, executed-path, ledger, or Phase 3 completion.
+The sole selected implementation priority remains
+[project_status.md#next-work](../overview/project_status.md#next-work); this plan
+does not maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

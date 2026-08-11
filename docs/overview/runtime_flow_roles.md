@@ -285,7 +285,8 @@ State-free owner topology:
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors |
+| `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, and narrative table-noise/fragment predicates |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
@@ -303,11 +304,12 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 
 최근 owner 이동에는 ratio sign/presentation/readiness/scale policy, numeric support,
 aggregate selector, slot-material/period policy, aggregate source/coherence preparation,
-material-gap, result/nested rank, dedupe, narrative-answer validation, prepared KRW
-raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와 table-
-metadata KRW repair가 포함된다. Graph는 query/evidence preparation, caller placement,
-answer composition/refresh, promotion, sync/rebuild, mutable state/evidence, ledger와
-callback/final orchestration을 유지하고, planning은 nested traversal을 유지한다.
+material-gap, result/nested rank, dedupe, narrative-answer validation, bounded aggregate
+row/gap/lookup-answer policy, prepared KRW raw-unit/growth alignment/period-conflict,
+dependency-task KRW consistency와 table-metadata KRW repair가 포함된다. Graph는
+query/evidence preparation, caller placement, answer composition/refresh, promotion,
+sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
+planning은 nested traversal을 유지한다.
 
 함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
 [Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.
@@ -335,6 +337,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   helpers: 더 완성된 answer candidate를 evidence-visible 숫자 표면으로 비교한다.
 - 이 모듈은 회사명, benchmark id, report phrase, metric-specific keyword branch를
   갖지 않는다.
+
+### `src/agent/financial_text_surface.py`
+
+여러 answer-composition 경로가 공유하는 state-free text surface owner다.
+
+- 내부 token/sentence/anchor/rerank-metadata helpers는 정규화된 text fragment를
+  준비한다.
+- `topic_particle(...)`와 `polish_korean_particle_pairs(...)`는 policy와 한글
+  음절 구조에 따라 조사 표면만 다듬는다.
+- `split_narrative_sentences(...)`,
+  `narrative_sentence_looks_table_noisy(...)`,
+  `narrative_sentence_looks_abbreviated_fragment(...)`는 sentence splitting과
+  table-noise/fragment 판정만 소유한다.
+- 이 owner로 선택된 다음 narrative-context boundary와 정확한 hard stop은
+  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+  아직 이동하지 않은 API를 이 문서에서 구현 완료로 간주하지 않는다.
 
 ### `src/agent/financial_graph_helpers.py`
 
