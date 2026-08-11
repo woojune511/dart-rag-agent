@@ -2514,8 +2514,6 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             )
             agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
             agent._supported_growth_driver_groups = Mock(return_value=[])
-            agent._growth_slot_display_value = Mock(side_effect=["200", "100"])
-            agent._growth_slots_share_material = Mock(return_value=False)
             agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
             return agent, row
 
@@ -2534,6 +2532,8 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             compose_agent, row = configured_compose_agent()
             truncation_owner = Mock(return_value=truncated)
             narrative_policy = NarrativePolicyProbe()
+            display_owner = Mock(side_effect=["200", "100"])
+            share_owner = Mock(return_value=False)
             contexts = (
                 patch.object(
                     financial_graph_calculation,
@@ -2547,6 +2547,8 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=[]),
                 patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
                 patch.object(financial_graph_calculation, "narrative_row_focus_context", return_value=None),
+                patch.object(financial_graph_calculation, "growth_slot_display_value", display_owner),
+                patch.object(financial_graph_calculation, "growth_slots_share_material", share_owner),
             )
             if truncated:
                 with (
@@ -2558,6 +2560,8 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[5],
                     contexts[6],
                     contexts[7],
+                    contexts[8],
+                    contexts[9],
                     self.assertRaisesRegex(RuntimeError, "continued after truncated answer"),
                 ):
                     compose_agent._compose_growth_narrative_answer(
@@ -2577,6 +2581,8 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[5],
                     contexts[6],
                     contexts[7],
+                    contexts[8],
+                    contexts[9],
                 ):
                     result = compose_agent._compose_growth_narrative_answer(
                         query="why",

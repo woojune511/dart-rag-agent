@@ -79,7 +79,10 @@ from src.agent.financial_aggregate_projection import (
     dedupe_aggregate_subtask_results,
     dependency_source_slot_match_score,
     filter_aggregate_projection_provenance,
+    growth_slot_display_value,
+    growth_slots_share_material,
     row_is_narrative_summary,
+    recover_growth_prior_material_from_evidence,
     safe_partial_answer_for_numeric_gap,
     growth_operand_sign_consistency_rank,
     narrative_row_focus_context,
@@ -2942,117 +2945,6 @@ class FinancialAgentCalculationMixin:
                 return True
         return False
 
-    def _slot_display_from_source_task(
-        self,
-        slot: Dict[str, Any],
-        ordered_results: List[Dict[str, Any]],
-    ) -> str:
-        source_task_id = _normalise_spaces(str(slot.get("source_task_id") or ""))
-        if not source_task_id:
-            source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
-            if source_row_id.startswith("task_output:"):
-                source_task_id = source_row_id.split(":", 1)[1]
-        if not source_task_id:
-            return ""
-        source_slot_name = _normalise_spaces(str(slot.get("source_slot") or "primary_value")) or "primary_value"
-        for row in ordered_results:
-            if _normalise_spaces(str(row.get("task_id") or "")) != source_task_id:
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-            source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
-            if answer_slot_has_material(source_slot):
-                return _normalise_spaces(
-                    str(source_slot.get("rendered_value") or source_slot.get("raw_value") or "")
-                )
-        return ""
-
-    def _growth_slot_display_value(
-        self,
-        slot: Dict[str, Any],
-        ordered_results: List[Dict[str, Any]],
-    ) -> str:
-        source_display = self._slot_display_from_source_task(slot, ordered_results)
-        if source_display and financial_answer_slots.source_task_display_compatible_with_slot(slot, source_display):
-            return source_display
-        return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
-
-    def _growth_slots_share_material(
-        self,
-        current_slot: Dict[str, Any],
-        prior_slot: Dict[str, Any],
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        current_display = self._growth_slot_display_value(current_slot, ordered_results)
-        prior_display = self._growth_slot_display_value(prior_slot, ordered_results)
-        if current_display and prior_display and current_display == prior_display:
-            return True
-        current_value = current_slot.get("normalized_value")
-        prior_value = prior_slot.get("normalized_value")
-        if current_value is None or prior_value is None:
-            return False
-        try:
-            return float(current_value) == float(prior_value)
-        except (TypeError, ValueError):
-            return False
-
-    def _recover_growth_prior_material_from_evidence(
-        self,
-        *,
-        current_slot: Dict[str, Any],
-        prior_slot: Dict[str, Any],
-        evidence_items: Optional[List[Dict[str, Any]]],
-    ) -> Dict[str, str]:
-        if not evidence_items:
-            return {}
-        current_year_match = re.search(r"\d{4}", str(current_slot.get("period") or current_slot.get("label") or ""))
-        if not current_year_match:
-            return {}
-        current_year = int(current_year_match.group(0))
-        current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
-        current_raw_compact = re.sub(r"[^\d.]", "", current_raw)
-        raw_unit = _normalise_spaces(str(prior_slot.get("raw_unit") or current_slot.get("raw_unit") or ""))
-        if raw_unit:
-            unit_pattern = r"\s*".join(re.escape(part) for part in re.split(r"\s+", raw_unit) if part)
-        else:
-            unit_pattern = r"[^\s\d,.;:()]{0,12}"
-        number_with_unit_pattern = re.compile(
-            rf"(?P<value>\d[\d,]*(?:\.\d+)?)\s*(?P<unit>{unit_pattern})"
-        )
-        for item in evidence_items:
-            surface = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for value in (
-                        (item or {}).get("claim"),
-                        (item or {}).get("quote_span"),
-                        (item or {}).get("raw_row_text"),
-                    )
-                )
-            )
-            if not surface:
-                continue
-            for sentence in _split_narrative_sentences(surface) or [surface]:
-                years = [int(match.group(0)) for match in re.finditer(r"\d{4}", sentence)]
-                if not years or min(years) >= current_year:
-                    continue
-                prior_year = max(year for year in years if year < current_year)
-                for match in number_with_unit_pattern.finditer(sentence):
-                    value_text = _normalise_spaces(match.group("value"))
-                    value_compact = re.sub(r"[^\d.]", "", value_text)
-                    if current_raw_compact and value_compact == current_raw_compact:
-                        continue
-                    display = _normalise_spaces(match.group(0))
-                    if display:
-                        year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
-                        return {
-                            "display": display,
-                            "period": f"{prior_year}{year_suffix}" if year_suffix else str(prior_year),
-                            "raw_value": value_text,
-                            "source_quote": _normalise_spaces(sentence),
-                        }
-        return {}
-
     def _growth_required_display_values(
         self,
         row: Dict[str, Any],
@@ -3064,9 +2956,9 @@ class FinancialAgentCalculationMixin:
         primary_slot = dict(answer_slots.get("primary_value") or {})
         current_slot = dict(answer_slots.get("current_value") or {})
         prior_slot = dict(answer_slots.get("prior_value") or {})
-        prior_display = self._growth_slot_display_value(prior_slot, ordered_results)
-        if self._growth_slots_share_material(current_slot, prior_slot, ordered_results):
-            recovered_prior_material = self._recover_growth_prior_material_from_evidence(
+        prior_display = growth_slot_display_value(prior_slot, ordered_results)
+        if growth_slots_share_material(current_slot, prior_slot, ordered_results):
+            recovered_prior_material = recover_growth_prior_material_from_evidence(
                 current_slot=current_slot,
                 prior_slot=prior_slot,
                 evidence_items=evidence_items,
@@ -3074,12 +2966,12 @@ class FinancialAgentCalculationMixin:
             if recovered_prior_material.get("display"):
                 prior_display = recovered_prior_material["display"]
         required_values = [
-            self._growth_slot_display_value(current_slot, ordered_results),
+            growth_slot_display_value(current_slot, ordered_results),
             prior_display,
             _normalise_spaces(
                 str(
                     calculation_result.get("rendered_value")
-                    or self._growth_slot_display_value(primary_slot, ordered_results)
+                    or growth_slot_display_value(primary_slot, ordered_results)
                     or ""
                 )
             ),
@@ -3105,11 +2997,11 @@ class FinancialAgentCalculationMixin:
         growth_value = _normalise_spaces(str(calculation_result.get("rendered_value") or ""))
         if not growth_value:
             growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
-        current_value = calculation_rendering.absolute_display_value(self._growth_slot_display_value(current_slot, ordered_results))
-        prior_value = calculation_rendering.absolute_display_value(self._growth_slot_display_value(prior_slot, ordered_results))
+        current_value = calculation_rendering.absolute_display_value(growth_slot_display_value(current_slot, ordered_results))
+        prior_value = calculation_rendering.absolute_display_value(growth_slot_display_value(prior_slot, ordered_results))
         recovered_prior_period = ""
-        if self._growth_slots_share_material(current_slot, prior_slot, ordered_results):
-            recovered_prior_material = self._recover_growth_prior_material_from_evidence(
+        if growth_slots_share_material(current_slot, prior_slot, ordered_results):
+            recovered_prior_material = recover_growth_prior_material_from_evidence(
                 current_slot=current_slot,
                 prior_slot=prior_slot,
                 evidence_items=evidence_items,
@@ -8122,8 +8014,8 @@ class FinancialAgentCalculationMixin:
         current_slot = growth_slots["current_value"]
         prior_slot = growth_slots["prior_value"]
         growth_value = _normalise_spaces(str(primary_slot.get("rendered_value") or primary_slot.get("raw_value") or ""))
-        current_value = self._growth_slot_display_value(current_slot, ordered_results)
-        prior_value = self._growth_slot_display_value(prior_slot, ordered_results)
+        current_value = growth_slot_display_value(current_slot, ordered_results)
+        prior_value = growth_slot_display_value(prior_slot, ordered_results)
         prior_period = _normalise_spaces(
             str(prior_slot.get("period") or CALCULATION_NARRATIVE_POLICY.get("default_prior_period") or "")
         )
@@ -8136,8 +8028,8 @@ class FinancialAgentCalculationMixin:
         metric_label = _normalise_spaces(metric_label)
         if not growth_value or not current_value or not metric_label:
             return None
-        if self._growth_slots_share_material(current_slot, prior_slot, ordered_results):
-            recovered_prior_material = self._recover_growth_prior_material_from_evidence(
+        if growth_slots_share_material(current_slot, prior_slot, ordered_results):
+            recovered_prior_material = recover_growth_prior_material_from_evidence(
                 current_slot=current_slot,
                 prior_slot=prior_slot,
                 evidence_items=evidence_items,
@@ -10201,10 +10093,10 @@ class FinancialAgentCalculationMixin:
         )
         if not current_row or not prior_row:
             return ordered_operands
-        if not self._growth_slots_share_material(current_row, prior_row, []):
+        if not growth_slots_share_material(current_row, prior_row, []):
             return ordered_operands
 
-        recovered = self._recover_growth_prior_material_from_evidence(
+        recovered = recover_growth_prior_material_from_evidence(
             current_slot=current_row,
             prior_slot=prior_row,
             evidence_items=evidence_items,

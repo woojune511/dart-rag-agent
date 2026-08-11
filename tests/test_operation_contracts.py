@@ -18,6 +18,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent import (
+    financial_aggregate_projection,
     financial_answer_slots,
     financial_calculation_execution,
     financial_graph_calculation,
@@ -8517,7 +8518,6 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("주요 성장 요인", answer)
 
     def test_growth_slot_keeps_display_when_source_task_unit_conflicts(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
         slot = {
             "status": "ok",
             "source_task_id": "task_prior",
@@ -8547,29 +8547,29 @@ class OperationContractTests(unittest.TestCase):
         ]
 
         self.assertEqual(
-            agent._growth_slot_display_value(slot, ordered_results),
+            financial_aggregate_projection.growth_slot_display_value(slot, ordered_results),
             "1조 8,011억원",
         )
 
-        with patch.object(agent, "_slot_display_from_source_task", return_value="") as source_owner, patch.object(
-            financial_graph_calculation.financial_answer_slots,
+        with patch.object(financial_aggregate_projection, "_slot_display_from_source_task", return_value="") as source_owner, patch.object(
+            financial_aggregate_projection,
             "source_task_display_compatible_with_slot",
         ) as compatibility_owner:
-            self.assertEqual(agent._growth_slot_display_value(slot, ordered_results), slot["rendered_value"])
+            self.assertEqual(financial_aggregate_projection.growth_slot_display_value(slot, ordered_results), slot["rendered_value"])
         source_owner.assert_called_once_with(slot, ordered_results)
         compatibility_owner.assert_not_called()
 
         for owner_result, expected in ((True, "source display"), (False, slot["rendered_value"])):
             with self.subTest(owner_result=owner_result), patch.object(
-                agent,
+                financial_aggregate_projection,
                 "_slot_display_from_source_task",
                 return_value="source display",
             ), patch.object(
-                financial_graph_calculation.financial_answer_slots,
+                financial_aggregate_projection,
                 "source_task_display_compatible_with_slot",
                 return_value=owner_result,
             ) as compatibility_owner:
-                self.assertEqual(agent._growth_slot_display_value(slot, ordered_results), expected)
+                self.assertEqual(financial_aggregate_projection.growth_slot_display_value(slot, ordered_results), expected)
             compatibility_owner.assert_called_once()
             slot_arg, display_arg = compatibility_owner.call_args.args
             self.assertIs(slot_arg, slot)
@@ -8594,7 +8594,7 @@ class OperationContractTests(unittest.TestCase):
             }
         )
         with patch.object(
-            agent,
+            financial_aggregate_projection,
             "_slot_display_from_source_task",
             return_value="source won",
         ), patch.object(
@@ -8603,7 +8603,7 @@ class OperationContractTests(unittest.TestCase):
             {"krw_normalized_unit": "KRW", "krw_display_units": ["won"]},
         ):
             self.assertEqual(
-                agent._growth_slot_display_value(tracked_slot, ordered_results),
+                financial_aggregate_projection.growth_slot_display_value(tracked_slot, ordered_results),
                 "slot fallback",
             )
         self.assertEqual(
@@ -8625,16 +8625,16 @@ class OperationContractTests(unittest.TestCase):
 
         fallback_bomb = FallbackBomb(slot)
         with patch.object(
-            agent,
+            financial_aggregate_projection,
             "_slot_display_from_source_task",
             return_value="source display",
         ), patch.object(
-            financial_graph_calculation.financial_answer_slots,
+            financial_aggregate_projection,
             "source_task_display_compatible_with_slot",
             side_effect=RuntimeError("compatibility owner failed"),
         ) as compatibility_owner:
             with self.assertRaisesRegex(RuntimeError, "compatibility owner failed"):
-                agent._growth_slot_display_value(fallback_bomb, ordered_results)
+                financial_aggregate_projection.growth_slot_display_value(fallback_bomb, ordered_results)
         compatibility_owner.assert_called_once_with(fallback_bomb, "source display")
 
     def test_growth_numeric_answer_uses_magnitude_for_parenthesized_currency_displays(self) -> None:

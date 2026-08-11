@@ -2708,8 +2708,6 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             )
             local_agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
             local_agent._supported_growth_driver_groups = Mock(return_value=[])
-            local_agent._growth_slot_display_value = Mock(side_effect=["200", "100"])
-            local_agent._growth_slots_share_material = Mock(return_value=False)
             local_agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
             return local_agent, row
 
@@ -2720,6 +2718,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             runtime_results = [row]
             context_owner = Mock(return_value=context_result)
             sentence_owner = Mock(return_value=sentence_result)
+            display_owner = Mock(side_effect=["200", "100"])
+            share_owner = Mock(return_value=False)
             before_row = deepcopy(row)
             before_evidence = deepcopy(evidence_items)
             with (
@@ -2733,6 +2733,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "answer_covers_narrative_context", return_value=False),
                 patch.object(financial_graph_calculation, "narrative_row_focus_context", context_owner),
                 patch.object(financial_graph_calculation, "narrative_row_focus_sentence", sentence_owner),
+                patch.object(financial_graph_calculation, "growth_slot_display_value", display_owner),
+                patch.object(financial_graph_calculation, "growth_slots_share_material", share_owner),
             ):
                 result = local_agent._compose_growth_narrative_answer(
                     query="growth query",
@@ -2783,6 +2785,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
             patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=["Needle"]),
             patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=["Needle"]),
+            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=["200", "100"]),
+            patch.object(financial_graph_calculation, "growth_slots_share_material", return_value=False),
             patch.object(
                 financial_graph_calculation,
                 "narrative_row_focus_context",
@@ -2914,6 +2918,1044 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(operation_family.call_count, 1)
         self.assertEqual(ordered_results, before_results)
         self.assertEqual(evidence_items, before_evidence)
+
+    def test_current_source_growth_slot_display_pair_pins_precedence_laziness_identity_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        source_slot = {
+            "rendered_value": " SOURCE DISPLAY ",
+            "raw_value": "source raw",
+            "nested": nested,
+        }
+        ordered_results = [
+            {"task_id": "other", "answer_slots": {"primary_value": {"rendered_value": "other"}}},
+            {
+                "task_id": " task_2 ",
+                "calculation_result": {
+                    "answer_slots": {"prior_value": source_slot},
+                    "nested": nested,
+                },
+                "nested": nested,
+            },
+        ]
+        slot = {
+            "source_task_id": " task_2 ",
+            "source_slot": " prior_value ",
+            "rendered_value": "slot display",
+            "nested": nested,
+        }
+        before_slot = deepcopy(slot)
+        before_results = deepcopy(ordered_results)
+
+        def normalize(value):
+            return " ".join(str(value).split())
+
+        material = Mock(return_value=True)
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", material),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._slot_display_from_source_task(slot, ordered_results),
+                "SOURCE DISPLAY",
+            )
+        material.assert_called_once()
+        material_arg = material.call_args.args[0]
+        self.assertIsNot(material_arg, source_slot)
+        self.assertIs(material_arg["nested"], nested)
+        self.assertEqual(slot, before_slot)
+        self.assertEqual(ordered_results, before_results)
+        self.assertIs(slot["nested"], nested)
+        self.assertIs(ordered_results[1]["nested"], nested)
+
+        fallback_source_slot = {"rendered_value": "", "raw_value": " raw fallback ", "nested": nested}
+        fallback_results = [
+            {
+                "task_id": "task_3",
+                "answer_slots": {"primary_value": fallback_source_slot},
+            }
+        ]
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._slot_display_from_source_task(
+                    {"source_row_id": "task_output:task_3", "source_slot": ""},
+                    fallback_results,
+                ),
+                "raw fallback",
+            )
+
+        class ResultsBomb:
+            def __iter__(self):
+                raise AssertionError("rows accessed without a source id")
+
+        self.assertEqual(
+            financial_aggregate_projection._slot_display_from_source_task(
+                {"source_task_id": "", "source_row_id": "unrelated"},
+                ResultsBomb(),
+            ),
+            "",
+        )
+
+        class FallbackBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("slot fallback accessed")
+
+        fallback_bomb = FallbackBomb({"nested": nested})
+        source_owner = Mock(return_value="source display")
+        compatibility = Mock(return_value=True)
+        normalizer = Mock(side_effect=AssertionError("fallback normalized"))
+        with (
+            patch.object(financial_aggregate_projection, "_slot_display_from_source_task", source_owner),
+            patch.object(
+                financial_aggregate_projection,
+                "source_task_display_compatible_with_slot",
+                compatibility,
+            ),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", normalizer),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.growth_slot_display_value(fallback_bomb, ordered_results),
+                "source display",
+            )
+        source_owner.assert_called_once_with(fallback_bomb, ordered_results)
+        compatibility.assert_called_once_with(fallback_bomb, "source display")
+        normalizer.assert_not_called()
+
+        compatibility = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "_slot_display_from_source_task", return_value=""),
+            patch.object(
+                financial_aggregate_projection,
+                "source_task_display_compatible_with_slot",
+                compatibility,
+            ),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.growth_slot_display_value(
+                    {"rendered_value": "", "raw_value": " raw value "},
+                    ordered_results,
+                ),
+                "raw value",
+            )
+        compatibility.assert_not_called()
+
+        for compatibility_result, expected in ((False, "slot display"), (True, "source display")):
+            with (
+                self.subTest(compatibility_result=compatibility_result),
+                patch.object(financial_aggregate_projection, "_slot_display_from_source_task", return_value="source display"),
+                patch.object(
+                    financial_aggregate_projection,
+                    "source_task_display_compatible_with_slot",
+                    return_value=compatibility_result,
+                ),
+                patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize),
+            ):
+                self.assertEqual(
+                    financial_aggregate_projection.growth_slot_display_value(slot, ordered_results),
+                    expected,
+                )
+
+        compatibility = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_slot_display_from_source_task",
+                side_effect=RuntimeError("source display failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "source_task_display_compatible_with_slot",
+                compatibility,
+            ),
+            self.assertRaisesRegex(RuntimeError, "source display failed"),
+        ):
+            financial_aggregate_projection.growth_slot_display_value(slot, ordered_results)
+        compatibility.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_slot_display_from_source_task", return_value="source display"),
+            patch.object(
+                financial_aggregate_projection,
+                "source_task_display_compatible_with_slot",
+                side_effect=RuntimeError("compatibility failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "compatibility failed"),
+        ):
+            financial_aggregate_projection.growth_slot_display_value(fallback_bomb, ordered_results)
+
+    def test_current_source_growth_material_sharing_pins_display_float_and_exception_scope(self) -> None:
+        nested = {"preserve": True}
+        current_slot = {"normalized_value": "10", "nested": nested}
+        prior_slot = {"normalized_value": 10.0, "nested": nested}
+        ordered_results = [{"nested": nested}]
+        before_current = deepcopy(current_slot)
+        before_prior = deepcopy(prior_slot)
+        before_results = deepcopy(ordered_results)
+
+        class NormalizedAccessBomb(dict):
+            def get(self, key, default=None):
+                if key == "normalized_value":
+                    raise AssertionError("normalized value accessed")
+                return super().get(key, default)
+
+        equal_current = NormalizedAccessBomb({"nested": nested})
+        equal_prior = NormalizedAccessBomb({"nested": nested})
+        display_owner = Mock(side_effect=["same display", "same display"])
+        with patch.object(financial_aggregate_projection, "growth_slot_display_value", display_owner):
+            self.assertTrue(
+                financial_aggregate_projection.growth_slots_share_material(
+                    equal_current,
+                    equal_prior,
+                    ordered_results,
+                )
+            )
+        self.assertEqual(
+            [call.args for call in display_owner.call_args_list],
+            [(equal_current, ordered_results), (equal_prior, ordered_results)],
+        )
+
+        for current_value, prior_value, expected in (
+            ("10", 10.0, True),
+            ("10", 11.0, False),
+            (None, 10.0, False),
+        ):
+            with (
+                self.subTest(current_value=current_value, prior_value=prior_value),
+                patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["current", "prior"]),
+            ):
+                self.assertEqual(
+                    financial_aggregate_projection.growth_slots_share_material(
+                        {"normalized_value": current_value},
+                        {"normalized_value": prior_value},
+                        ordered_results,
+                    ),
+                    expected,
+                )
+
+        class FloatBomb:
+            def __init__(self, exc):
+                self.exc = exc
+
+            def __float__(self):
+                raise self.exc("float failed")
+
+        for exc in (TypeError, ValueError):
+            with (
+                self.subTest(exc=exc.__name__),
+                patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["current", "prior"]),
+            ):
+                self.assertFalse(
+                    financial_aggregate_projection.growth_slots_share_material(
+                        {"normalized_value": FloatBomb(exc)},
+                        {"normalized_value": 10},
+                        ordered_results,
+                    )
+                )
+
+        with (
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", side_effect=["current", "prior"]),
+            self.assertRaisesRegex(RuntimeError, "float failed"),
+        ):
+            financial_aggregate_projection.growth_slots_share_material(
+                {"normalized_value": FloatBomb(RuntimeError)},
+                {"normalized_value": 10},
+                ordered_results,
+            )
+
+        display_owner = Mock(side_effect=RuntimeError("display failed"))
+        with (
+            patch.object(financial_aggregate_projection, "growth_slot_display_value", display_owner),
+            self.assertRaisesRegex(RuntimeError, "display failed"),
+        ):
+            financial_aggregate_projection.growth_slots_share_material(current_slot, prior_slot, ordered_results)
+        display_owner.assert_called_once_with(current_slot, ordered_results)
+        self.assertEqual(current_slot, before_current)
+        self.assertEqual(prior_slot, before_prior)
+        self.assertEqual(ordered_results, before_results)
+        self.assertIs(current_slot["nested"], nested)
+        self.assertIs(prior_slot["nested"], nested)
+        self.assertIs(ordered_results[0]["nested"], nested)
+
+    def test_current_source_recover_growth_prior_material_pins_scan_fallback_and_exceptions(self) -> None:
+        class SlotBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("slot accessed")
+
+        self.assertEqual(
+            financial_aggregate_projection.recover_growth_prior_material_from_evidence(
+                current_slot=SlotBomb(),
+                prior_slot=SlotBomb(),
+                evidence_items=[],
+            ),
+            {},
+        )
+
+        split_owner = Mock(side_effect=AssertionError("split accessed"))
+        with patch.object(financial_aggregate_projection, "_split_narrative_sentences", split_owner):
+            self.assertEqual(
+                financial_aggregate_projection.recover_growth_prior_material_from_evidence(
+                    current_slot={"period": "current", "label": "metric"},
+                    prior_slot=SlotBomb(),
+                    evidence_items=[{"claim": "unused"}],
+                ),
+                {},
+            )
+        split_owner.assert_not_called()
+
+        nested = {"preserve": True}
+        current_slot = {
+            "period": "2024",
+            "raw_value": "100",
+            "raw_unit": "USD",
+            "nested": nested,
+        }
+        prior_slot = {"period": "2023", "raw_unit": " USD ", "nested": nested}
+        evidence_items = [
+            {"claim": "surface", "quote_span": "quote", "raw_row_text": "raw", "nested": nested},
+            {"claim": "later", "nested": nested},
+        ]
+        before_current = deepcopy(current_slot)
+        before_prior = deepcopy(prior_slot)
+        before_evidence = deepcopy(evidence_items)
+        split_owner = Mock(
+            side_effect=[
+                ["2023 100 USD", "2022 80 USD", "2021 70 USD"],
+                ["2020 60 USD"],
+            ]
+        )
+        policy = {"period_year_suffix": "Y", "nested": nested}
+        with (
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", split_owner),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", policy),
+        ):
+            recovered = financial_aggregate_projection.recover_growth_prior_material_from_evidence(
+                current_slot=current_slot,
+                prior_slot=prior_slot,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(
+            recovered,
+            {
+                "display": "80 USD",
+                "period": "2022Y",
+                "raw_value": "80",
+                "source_quote": "2022 80 USD",
+            },
+        )
+        split_owner.assert_called_once_with("surface quote raw")
+        self.assertEqual(current_slot, before_current)
+        self.assertEqual(prior_slot, before_prior)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(current_slot["nested"], nested)
+        self.assertIs(prior_slot["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+        self.assertEqual(policy, {"period_year_suffix": "Y", "nested": nested})
+
+        with patch.object(
+            financial_aggregate_projection,
+            "_split_narrative_sentences",
+            return_value=["2023 40 units"],
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.recover_growth_prior_material_from_evidence(
+                    current_slot={"label": "metric 2024", "raw_value": "50", "raw_unit": ""},
+                    prior_slot={"raw_unit": ""},
+                    evidence_items=[{"claim": "2023 40 units"}],
+                )["raw_value"],
+                "2023",
+            )
+
+        downstream_split = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalizer failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", downstream_split),
+            self.assertRaisesRegex(RuntimeError, "normalizer failed"),
+        ):
+            financial_aggregate_projection.recover_growth_prior_material_from_evidence(
+                current_slot=current_slot,
+                prior_slot=prior_slot,
+                evidence_items=evidence_items,
+            )
+        downstream_split.assert_not_called()
+
+        class PolicyBomb(dict):
+            def get(self, key, default=None):
+                if key == "period_year_suffix":
+                    raise RuntimeError("policy failed")
+                return super().get(key, default)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_split_narrative_sentences",
+                return_value=["2022 80 USD"],
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", PolicyBomb()),
+            self.assertRaisesRegex(RuntimeError, "policy failed"),
+        ):
+            financial_aggregate_projection.recover_growth_prior_material_from_evidence(
+                current_slot=current_slot,
+                prior_slot=prior_slot,
+                evidence_items=evidence_items,
+            )
+
+    def test_current_source_growth_display_bindings_pin_defs_calls_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        module_sources = {
+            "graph": inspect.getsource(financial_graph_calculation),
+            "owner": inspect.getsource(financial_aggregate_projection),
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        current_targets = {
+            "source": "_slot_display_from_source_task",
+            "display": "growth_slot_display_value",
+            "share": "growth_slots_share_material",
+            "recover": "recover_growth_prior_material_from_evidence",
+        }
+        definitions = {}
+        all_definition_names = set()
+        calls = {key: [] for key in current_targets}
+        try_depths = {key: [] for key in current_targets}
+        noncall_refs = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                all_definition_names.add(node.name)
+                if node.name in current_targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else ""
+                for key, target in current_targets.items():
+                    if called_name == target:
+                        calls[key].append(
+                            (
+                                self.module_name,
+                                tuple(self.function_stack),
+                                receiver,
+                                tuple(ast.unparse(arg) for arg in node.args),
+                                tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            )
+                        )
+                        try_depths[key].append(self.try_depth)
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in current_targets.values() and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "_slot_display_from_source_task": ("owner", 23),
+                "growth_slot_display_value": ("owner", 8),
+                "growth_slots_share_material": ("owner", 17),
+                "recover_growth_prior_material_from_evidence": ("owner", 55),
+            },
+        )
+        self.assertTrue(
+            {
+                f"_{current_targets[key]}"
+                for key in ("display", "share", "recover")
+            }.isdisjoint(all_definition_names)
+        )
+        self.assertEqual(
+            {key: len(entries) for key, entries in calls.items()},
+            {"source": 1, "display": 9, "share": 4, "recover": 4},
+        )
+        self.assertEqual(
+            try_depths,
+            {
+                "source": [0],
+                "display": [0] * 9,
+                "share": [0] * 4,
+                "recover": [0] * 4,
+            },
+        )
+        self.assertEqual(noncall_refs, [])
+        self.assertTrue(
+            all(
+                receiver == ""
+                for entries in calls.values()
+                for _module, _stack, receiver, _args, _kwargs in entries
+            )
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["source"]),
+            Counter({"growth_slot_display_value": 1}),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["display"]),
+            Counter(
+                {
+                    "growth_slots_share_material": 2,
+                    "_growth_required_display_values": 3,
+                    "_compose_complete_growth_numeric_answer": 2,
+                    "_compose_growth_narrative_answer": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["share"]),
+            Counter(
+                {
+                    "_growth_required_display_values": 1,
+                    "_compose_complete_growth_numeric_answer": 1,
+                    "_compose_growth_narrative_answer": 1,
+                    "_recover_duplicate_growth_prior_operand": 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["recover"]),
+            Counter(
+                {
+                    "_growth_required_display_values": 1,
+                    "_compose_complete_growth_numeric_answer": 1,
+                    "_compose_growth_narrative_answer": 1,
+                    "_recover_duplicate_growth_prior_operand": 1,
+                }
+            ),
+        )
+        self.assertTrue(
+            all(not kwargs for entries in (calls["source"], calls["display"], calls["share"]) for *_head, kwargs in entries)
+        )
+        self.assertTrue(
+            all(
+                not args
+                and tuple(name for name, _value in kwargs)
+                == ("current_slot", "prior_slot", "evidence_items")
+                for _module, _stack, _receiver, args, kwargs in calls["recover"]
+            )
+        )
+
+        self.assertEqual(
+            {
+                name: node.end_lineno - node.lineno + 1
+                for name, (_module, node) in definitions.items()
+            },
+            {
+                "_slot_display_from_source_task": 23,
+                "growth_slot_display_value": 8,
+                "growth_slots_share_material": 17,
+                "recover_growth_prior_material_from_evidence": 55,
+            },
+        )
+
+        selected_names = set(current_targets.values())
+        distribution = {}
+        for key, entries in calls.items():
+            external = sum(not selected_names.intersection(stack) for _module, stack, *_rest in entries)
+            distribution[key] = (external, len(entries) - external)
+        self.assertEqual(
+            distribution,
+            {"source": (0, 1), "display": (7, 2), "share": (4, 0), "recover": (4, 0)},
+        )
+        self.assertEqual(
+            (
+                sum(external for external, _local in distribution.values()),
+                sum(local for _external, local in distribution.values()),
+            ),
+            (15, 3),
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        owner_imports = imported_modules(module_trees["owner"])
+        self.assertIn("src.agent.financial_answer_slots", owner_imports)
+        self.assertIn("src.agent.financial_text_surface", owner_imports)
+        self.assertIn("src.config.retrieval_policy", owner_imports)
+        answer_slots_tree = ast.parse(
+            Path("src/agent/financial_answer_slots.py").read_text(encoding="utf-8")
+        )
+        text_tree = ast.parse(Path("src/agent/financial_text_surface.py").read_text(encoding="utf-8"))
+        self.assertNotIn("src.agent.financial_aggregate_projection", imported_modules(answer_slots_tree))
+        self.assertNotIn("src.agent.financial_aggregate_projection", imported_modules(text_tree))
+        graph_owner_imports = {
+            alias.name
+            for node in module_trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_aggregate_projection"
+            for alias in node.names
+        }
+        self.assertTrue(
+            {
+                "growth_slot_display_value",
+                "growth_slots_share_material",
+                "recover_growth_prior_material_from_evidence",
+            }.issubset(graph_owner_imports)
+        )
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        moved_owner_lines = {
+            line
+            for _module, node in definitions.values()
+            for line in range(node.lineno, node.end_lineno + 1)
+        }
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_aggregate_projection.py"
+                and moved_owner_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_growth_required_display_caller_pins_args_adoption_laziness_and_stop(self) -> None:
+        nested = {"preserve": True}
+        primary = {"role": "primary", "rendered_value": "PRIMARY", "nested": nested}
+        current = {"role": "current", "rendered_value": "CURRENT", "nested": nested}
+        prior = {"role": "prior", "rendered_value": "PRIOR", "nested": nested}
+        row = {
+            "calculation_result": {
+                "rendered_value": "GROWTH",
+                "answer_slots": {
+                    "primary_value": primary,
+                    "current_value": current,
+                    "prior_value": prior,
+                },
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_row = deepcopy(row)
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def display(slot, results):
+            events.append(("display", slot.get("role"), slot, results))
+            return {"primary": "PRIMARY", "current": "CURRENT", "prior": "PRIOR"}[slot["role"]]
+
+        def share(current_slot, prior_slot, results):
+            events.append(("share", current_slot, prior_slot, results))
+            return True
+
+        def recover(*, current_slot, prior_slot, evidence_items):
+            events.append(("recover", current_slot, prior_slot, evidence_items))
+            return {"display": "RECOVERED", "period": "2022"}
+
+        with (
+            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=display) as display_owner,
+            patch.object(financial_graph_calculation, "growth_slots_share_material", side_effect=share) as share_owner,
+            patch.object(
+                financial_graph_calculation,
+                "recover_growth_prior_material_from_evidence",
+                side_effect=recover,
+            ) as recover_owner,
+        ):
+            values = self.agent._growth_required_display_values(
+                row,
+                ordered_results,
+                evidence_items,
+            )
+        self.assertEqual(values, ["CURRENT", "RECOVERED", "GROWTH"])
+        self.assertEqual([event[0] for event in events], ["display", "share", "recover", "display"])
+        self.assertEqual([event[1] for event in events if event[0] == "display"], ["prior", "current"])
+        self.assertEqual(display_owner.call_count, 2)
+        share_owner.assert_called_once()
+        recover_owner.assert_called_once()
+        prior_arg = display_owner.call_args_list[0].args[0]
+        current_arg = display_owner.call_args_list[1].args[0]
+        self.assertIsNot(prior_arg, prior)
+        self.assertIsNot(current_arg, current)
+        self.assertIs(prior_arg["nested"], nested)
+        self.assertIs(current_arg["nested"], nested)
+        self.assertIs(display_owner.call_args_list[0].args[1], ordered_results)
+        self.assertIs(share_owner.call_args.args[2], ordered_results)
+        self.assertIs(recover_owner.call_args.kwargs["evidence_items"], evidence_items)
+        self.assertEqual(row, before_row)
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        recovery_owner = Mock()
+        primary_display = Mock(side_effect=AssertionError("primary display accessed"))
+        with (
+            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=["PRIOR", "CURRENT"]) as display_owner,
+            patch.object(financial_graph_calculation, "growth_slots_share_material", return_value=False),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recovery_owner),
+        ):
+            self.assertEqual(
+                self.agent._growth_required_display_values(row, ordered_results, evidence_items),
+                ["CURRENT", "PRIOR", "GROWTH"],
+            )
+        recovery_owner.assert_not_called()
+        self.assertEqual(display_owner.call_count, 2)
+        primary_display.assert_not_called()
+
+        recovery_owner = Mock()
+        current_display = Mock(side_effect=AssertionError("current display accessed"))
+        with (
+            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=["PRIOR", current_display]),
+            patch.object(
+                financial_graph_calculation,
+                "growth_slots_share_material",
+                side_effect=RuntimeError("share failed"),
+            ),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recovery_owner),
+            self.assertRaisesRegex(RuntimeError, "share failed"),
+        ):
+            self.agent._growth_required_display_values(row, ordered_results, evidence_items)
+        recovery_owner.assert_not_called()
+        self.assertEqual(row, before_row)
+        self.assertEqual(evidence_items, before_evidence)
+
+    def test_current_source_complete_growth_caller_pins_args_adoption_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        primary = {
+            "role": "primary",
+            "rendered_value": "10%",
+            "normalized_value": 10,
+            "direction": "increase",
+            "nested": nested,
+        }
+        current = {
+            "role": "current",
+            "label": "Metric",
+            "period": "2024",
+            "nested": nested,
+        }
+        prior = {"role": "prior", "period": "2023", "nested": nested}
+        row = {
+            "metric_label": "Metric",
+            "calculation_result": {
+                "rendered_value": "10%",
+                "answer_slots": {
+                    "primary_value": primary,
+                    "current_value": current,
+                    "prior_value": prior,
+                },
+            },
+            "nested": nested,
+        }
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_row = deepcopy(row)
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def display(slot, results):
+            events.append(("display", slot["role"], slot, results))
+            return "CURRENT" if slot["role"] == "current" else "PRIOR"
+
+        def share(current_slot, prior_slot, results):
+            events.append(("share", current_slot, prior_slot, results))
+            return True
+
+        def recover(*, current_slot, prior_slot, evidence_items):
+            events.append(("recover", current_slot, prior_slot, evidence_items))
+            return {"display": "RECOVERED", "period": "2022"}
+
+        policy = {
+            "direction_words": {"increase": "UP", "decrease": "DOWN", "growth": "GROW"},
+            "growth_direction_metric_terms": (),
+            "period_year_suffix": "Y",
+            "period_prefix_with_year_template": "[{period}]",
+            "period_prefix_template": "[{period}]",
+            "prior_phrase_with_value_template": "prior {period} {value}",
+            "growth_numeric_sentence_template": (
+                "{period_prefix} {metric_label}{topic_particle} {current_value} "
+                "{prior_phrase} {growth_value} {direction_word}"
+            ),
+        }
+        absolute = Mock(side_effect=lambda value: str(value))
+        with (
+            patch.object(self.agent, "_aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=display) as display_owner,
+            patch.object(financial_graph_calculation, "growth_slots_share_material", side_effect=share) as share_owner,
+            patch.object(
+                financial_graph_calculation,
+                "recover_growth_prior_material_from_evidence",
+                side_effect=recover,
+            ) as recover_owner,
+            patch.object(financial_graph_calculation.calculation_rendering, "absolute_display_value", absolute),
+            patch.object(financial_graph_calculation, "CALCULATION_SLOT_POLICY", {"period_pattern": r"$^"}),
+            patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", policy),
+            patch.object(financial_graph_calculation, "_topic_particle", return_value="|P|"),
+        ):
+            answer = self.agent._compose_complete_growth_numeric_answer(
+                row,
+                ordered_results,
+                evidence_items,
+            )
+        self.assertEqual(
+            answer,
+            "[2024] Metric|P| CURRENT prior 2022Y RECOVERED 10% UP",
+        )
+        self.assertEqual([event[0] for event in events], ["display", "display", "share", "recover"])
+        self.assertEqual([event[1] for event in events if event[0] == "display"], ["current", "prior"])
+        self.assertIs(display_owner.call_args_list[0].args[1], ordered_results)
+        self.assertIs(share_owner.call_args.args[2], ordered_results)
+        self.assertIs(recover_owner.call_args.kwargs["evidence_items"], evidence_items)
+        self.assertEqual([call.args[0] for call in absolute.call_args_list], ["CURRENT", "PRIOR", "RECOVERED", "10%"])
+        self.assertEqual(row, before_row)
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(primary["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        downstream_share = Mock()
+        downstream_recovery = Mock()
+        downstream_absolute = Mock()
+        with (
+            patch.object(self.agent, "_aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "growth_slot_display_value",
+                side_effect=RuntimeError("display failed"),
+            ),
+            patch.object(financial_graph_calculation, "growth_slots_share_material", downstream_share),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", downstream_recovery),
+            patch.object(financial_graph_calculation.calculation_rendering, "absolute_display_value", downstream_absolute),
+            self.assertRaisesRegex(RuntimeError, "display failed"),
+        ):
+            self.agent._compose_complete_growth_numeric_answer(row, ordered_results, evidence_items)
+        downstream_share.assert_not_called()
+        downstream_recovery.assert_not_called()
+        downstream_absolute.assert_not_called()
+        self.assertEqual(row, before_row)
+        self.assertEqual(evidence_items, before_evidence)
+
+    def test_current_source_growth_composer_and_duplicate_recovery_pin_selected_owner_calls(self) -> None:
+        nested = {"preserve": True}
+
+        def configured_agent():
+            primary = {
+                "rendered_value": "10%",
+                "normalized_value": 10,
+                "direction": "increase",
+                "nested": nested,
+            }
+            current = {"period": "2024", "label": "Revenue", "nested": nested}
+            prior = {"period": "2023", "nested": nested}
+            row = {
+                "calculation_result": {
+                    "answer_slots": {
+                        "primary_value": primary,
+                        "current_value": current,
+                        "prior_value": prior,
+                    }
+                },
+                "nested": nested,
+            }
+            local_agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            local_agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+            local_agent._growth_narrative_sentence_candidates = Mock(
+                return_value=[(1, "base candidate", ["base"])]
+            )
+            local_agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
+            local_agent._supported_growth_driver_groups = Mock(return_value=[])
+            local_agent._growth_required_display_values = Mock(return_value=[])
+            return local_agent, row
+
+        local_agent, row = configured_agent()
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        before_row = deepcopy(row)
+        before_evidence = deepcopy(evidence_items)
+        display_owner = Mock(side_effect=["CURRENT", "PRIOR"])
+        share_owner = Mock(return_value=True)
+        recover_owner = Mock(return_value={"display": "RECOVERED", "period": "2022"})
+        with (
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=[]),
+            patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
+            patch.object(financial_graph_calculation, "narrative_row_focus_context", return_value=None),
+            patch.object(financial_graph_calculation, "narrative_row_focus_sentence", return_value=None),
+            patch.object(financial_graph_calculation, "growth_slot_display_value", display_owner),
+            patch.object(financial_graph_calculation, "growth_slots_share_material", share_owner),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recover_owner),
+        ):
+            result = local_agent._compose_growth_narrative_answer(
+                query="growth query",
+                ordered_results=ordered_results,
+                existing_answer="",
+                evidence_items=evidence_items,
+            )
+        self.assertIsNotNone(result)
+        self.assertIn("RECOVERED", result["compressed_answer"])
+        self.assertEqual(
+            [call.args for call in display_owner.call_args_list],
+            [(share_owner.call_args.args[0], ordered_results), (share_owner.call_args.args[1], ordered_results)],
+        )
+        self.assertIs(share_owner.call_args.args[2], ordered_results)
+        self.assertIs(recover_owner.call_args.kwargs["evidence_items"], evidence_items)
+        self.assertEqual(row, before_row)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        local_agent, row = configured_agent()
+        downstream_required = local_agent._growth_required_display_values
+        with (
+            patch.object(financial_graph_calculation, "_query_requests_narrative_context", return_value=True),
+            patch.object(financial_graph_calculation, "answer_looks_truncated", return_value=False),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
+            patch.object(financial_graph_calculation, "growth_slot_display_value", side_effect=["CURRENT", "PRIOR"]),
+            patch.object(financial_graph_calculation, "growth_slots_share_material", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "recover_growth_prior_material_from_evidence",
+                side_effect=RuntimeError("recovery failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "recovery failed"),
+        ):
+            local_agent._compose_growth_narrative_answer(
+                query="growth query",
+                ordered_results=[row],
+                existing_answer="",
+                evidence_items=evidence_items,
+            )
+        downstream_required.assert_not_called()
+        self.assertEqual(row, before_row)
+        self.assertEqual(evidence_items, before_evidence)
+
+        current_row = {
+            "operand_id": "current",
+            "matched_operand_role": "current_period",
+            "raw_unit": "USD",
+            "nested": nested,
+        }
+        prior_row = {
+            "operand_id": "prior",
+            "matched_operand_role": "prior_period",
+            "raw_unit": "USD",
+            "nested": nested,
+        }
+        ordered_operands = [current_row, prior_row]
+        before_operands = deepcopy(ordered_operands)
+        share_owner = Mock(return_value=True)
+        recover_owner = Mock(
+            return_value={
+                "display": "80 USD",
+                "raw_value": "80",
+                "period": "2022",
+                "source_quote": "source sentence",
+            }
+        )
+        with (
+            patch.object(financial_graph_calculation, "growth_slots_share_material", share_owner),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recover_owner),
+            patch.object(financial_graph_calculation, "_normalise_operand_value", return_value=(80.0, "USD")),
+        ):
+            updated = self.agent._recover_duplicate_growth_prior_operand(
+                ordered_operands,
+                evidence_items,
+            )
+        self.assertIsNot(updated, ordered_operands)
+        self.assertIs(updated[0], current_row)
+        self.assertIsNot(updated[1], prior_row)
+        self.assertEqual(updated[1]["raw_value"], "80")
+        self.assertEqual(updated[1]["period"], "2022")
+        self.assertEqual(updated[1]["prior_recovery_source"], "evidence_period_display")
+        share_current, share_prior, share_results = share_owner.call_args.args
+        self.assertIsNot(share_current, current_row)
+        self.assertIsNot(share_prior, prior_row)
+        self.assertIs(share_current["nested"], nested)
+        self.assertIs(share_prior["nested"], nested)
+        self.assertEqual(share_results, [])
+        self.assertIs(recover_owner.call_args.kwargs["current_slot"], share_current)
+        self.assertIs(recover_owner.call_args.kwargs["prior_slot"], share_prior)
+        self.assertIs(recover_owner.call_args.kwargs["evidence_items"], evidence_items)
+        self.assertEqual(ordered_operands, before_operands)
+        self.assertIs(ordered_operands[0]["nested"], nested)
+        self.assertIs(ordered_operands[1]["nested"], nested)
+
+        recovery_owner = Mock()
+        with (
+            patch.object(financial_graph_calculation, "growth_slots_share_material", return_value=False),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recovery_owner),
+        ):
+            unchanged = self.agent._recover_duplicate_growth_prior_operand(
+                ordered_operands,
+                evidence_items,
+            )
+        self.assertIs(unchanged, ordered_operands)
+        recovery_owner.assert_not_called()
+
+        recovery_owner = Mock()
+        normalizer = Mock()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "growth_slots_share_material",
+                side_effect=RuntimeError("share failed"),
+            ),
+            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recovery_owner),
+            patch.object(financial_graph_calculation, "_normalise_operand_value", normalizer),
+            self.assertRaisesRegex(RuntimeError, "share failed"),
+        ):
+            self.agent._recover_duplicate_growth_prior_operand(ordered_operands, evidence_items)
+        recovery_owner.assert_not_called()
+        normalizer.assert_not_called()
+        self.assertEqual(ordered_operands, before_operands)
 
 
 if __name__ == "__main__":

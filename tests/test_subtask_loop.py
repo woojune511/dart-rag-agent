@@ -12856,7 +12856,7 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
     def test_growth_prior_recovery_skips_parenthesized_current_value(self) -> None:
-        recovered = self.agent._recover_growth_prior_material_from_evidence(
+        recovered = financial_aggregate_projection.recover_growth_prior_material_from_evidence(
             current_slot={
                 "label": "target metric",
                 "period": "2023",

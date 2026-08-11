@@ -7,7 +7,11 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
-from src.agent.financial_answer_slots import answer_slot_has_material, build_operand_value_slot
+from src.agent.financial_answer_slots import (
+    answer_slot_has_material,
+    build_operand_value_slot,
+    source_task_display_compatible_with_slot,
+)
 from src.agent.financial_answer_projection import (
     material_gap_feedback_for_subtask_result,
     subtask_row_has_material,
@@ -685,6 +689,117 @@ def narrative_row_focus_context(
         if selected:
             return (0, _normalise_spaces(" ".join(selected)), claim_ids)
     return None
+
+
+def _slot_display_from_source_task(
+    slot: Dict[str, Any],
+    ordered_results: List[Dict[str, Any]],
+) -> str:
+    source_task_id = _normalise_spaces(str(slot.get("source_task_id") or ""))
+    if not source_task_id:
+        source_row_id = _normalise_spaces(str(slot.get("source_row_id") or ""))
+        if source_row_id.startswith("task_output:"):
+            source_task_id = source_row_id.split(":", 1)[1]
+    if not source_task_id:
+        return ""
+    source_slot_name = _normalise_spaces(str(slot.get("source_slot") or "primary_value")) or "primary_value"
+    for row in ordered_results:
+        if _normalise_spaces(str(row.get("task_id") or "")) != source_task_id:
+            continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+        source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
+        if answer_slot_has_material(source_slot):
+            return _normalise_spaces(
+                str(source_slot.get("rendered_value") or source_slot.get("raw_value") or "")
+            )
+    return ""
+
+
+def growth_slot_display_value(
+    slot: Dict[str, Any],
+    ordered_results: List[Dict[str, Any]],
+) -> str:
+    source_display = _slot_display_from_source_task(slot, ordered_results)
+    if source_display and source_task_display_compatible_with_slot(slot, source_display):
+        return source_display
+    return _normalise_spaces(str(slot.get("rendered_value") or slot.get("raw_value") or ""))
+
+
+def growth_slots_share_material(
+    current_slot: Dict[str, Any],
+    prior_slot: Dict[str, Any],
+    ordered_results: List[Dict[str, Any]],
+) -> bool:
+    current_display = growth_slot_display_value(current_slot, ordered_results)
+    prior_display = growth_slot_display_value(prior_slot, ordered_results)
+    if current_display and prior_display and current_display == prior_display:
+        return True
+    current_value = current_slot.get("normalized_value")
+    prior_value = prior_slot.get("normalized_value")
+    if current_value is None or prior_value is None:
+        return False
+    try:
+        return float(current_value) == float(prior_value)
+    except (TypeError, ValueError):
+        return False
+
+
+def recover_growth_prior_material_from_evidence(
+    *,
+    current_slot: Dict[str, Any],
+    prior_slot: Dict[str, Any],
+    evidence_items: Optional[List[Dict[str, Any]]],
+) -> Dict[str, str]:
+    if not evidence_items:
+        return {}
+    current_year_match = re.search(r"\d{4}", str(current_slot.get("period") or current_slot.get("label") or ""))
+    if not current_year_match:
+        return {}
+    current_year = int(current_year_match.group(0))
+    current_raw = _normalise_spaces(str(current_slot.get("raw_value") or ""))
+    current_raw_compact = re.sub(r"[^\d.]", "", current_raw)
+    raw_unit = _normalise_spaces(str(prior_slot.get("raw_unit") or current_slot.get("raw_unit") or ""))
+    if raw_unit:
+        unit_pattern = r"\s*".join(re.escape(part) for part in re.split(r"\s+", raw_unit) if part)
+    else:
+        unit_pattern = r"[^\s\d,.;:()]{0,12}"
+    number_with_unit_pattern = re.compile(
+        rf"(?P<value>\d[\d,]*(?:\.\d+)?)\s*(?P<unit>{unit_pattern})"
+    )
+    for item in evidence_items:
+        surface = _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in (
+                    (item or {}).get("claim"),
+                    (item or {}).get("quote_span"),
+                    (item or {}).get("raw_row_text"),
+                )
+            )
+        )
+        if not surface:
+            continue
+        for sentence in _split_narrative_sentences(surface) or [surface]:
+            years = [int(match.group(0)) for match in re.finditer(r"\d{4}", sentence)]
+            if not years or min(years) >= current_year:
+                continue
+            prior_year = max(year for year in years if year < current_year)
+            for match in number_with_unit_pattern.finditer(sentence):
+                value_text = _normalise_spaces(match.group("value"))
+                value_compact = re.sub(r"[^\d.]", "", value_text)
+                if current_raw_compact and value_compact == current_raw_compact:
+                    continue
+                display = _normalise_spaces(match.group(0))
+                if display:
+                    year_suffix = str(CALCULATION_NARRATIVE_POLICY.get("period_year_suffix") or "")
+                    return {
+                        "display": display,
+                        "period": f"{prior_year}{year_suffix}" if year_suffix else str(prior_year),
+                        "raw_value": value_text,
+                        "source_quote": _normalise_spaces(sentence),
+                    }
+    return {}
 
 
 def safe_partial_answer_for_numeric_gap(
