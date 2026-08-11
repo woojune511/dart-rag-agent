@@ -7,7 +7,9 @@ import re
 from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from src.agent import financial_answer_slots
+from src.agent.financial_graph_helpers import _operand_period_focus
 from src.agent.financial_graph_planning import _synthesize_lookup_answer_slot_from_prose
+from src.agent.financial_graph_state import FinancialAgentState
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates, numeric_surface_slot_components
 from src.agent.financial_operand_resolution import (
     merge_operand_rows,
@@ -334,6 +336,104 @@ class DependencyProducerScope:
     producer_task: Dict[str, Any]
     preferred_statement_types: Tuple[str, ...]
     preferred_sections: Tuple[str, ...]
+
+
+def dependency_slot_matches_input(
+    binding: Dict[str, Any],
+    slot: Dict[str, Any],
+    *,
+    sibling_row: Dict[str, Any],
+    state: Optional[FinancialAgentState] = None,
+) -> bool:
+    binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
+    slot_concept = _normalise_spaces(str(slot.get("concept") or ""))
+    if binding_concept and slot_concept and binding_concept != slot_concept:
+        return False
+
+    binding_period = _normalise_spaces(str(binding.get("period") or ""))
+    slot_period = _normalise_spaces(str(slot.get("period") or ""))
+    if binding_period and slot_period and binding_period != slot_period:
+        binding_focus = _operand_period_focus(
+            {
+                "period_hint": binding_period,
+                "role": binding.get("role") or "",
+            },
+            "unknown",
+        )
+        if binding_focus not in {"current", "prior"}:
+            return False
+        report_scope = dict((state or {}).get("report_scope") or {})
+        report_year: Optional[int] = None
+        try:
+            if report_scope.get("year") not in (None, ""):
+                report_year = int(report_scope.get("year"))
+        except (TypeError, ValueError):
+            report_year = None
+        slot_years = [int(match) for match in re.findall(r"20\d{2}", slot_period)]
+        if report_year is not None and slot_years:
+            if binding_focus == "current" and report_year not in slot_years:
+                return False
+            if binding_focus == "prior" and (report_year - 1) not in slot_years:
+                return False
+        elif _operand_period_focus({"period_hint": slot_period}, "unknown") != binding_focus:
+            return False
+
+    binding_label = _normalise_spaces(str(binding.get("label") or ""))
+    slot_label = _normalise_spaces(str(slot.get("label") or ""))
+    sibling_label = _normalise_spaces(str(sibling_row.get("metric_label") or ""))
+    if binding_label and slot_label and binding_label != slot_label:
+        if binding_label not in slot_label and binding_label not in sibling_label:
+            return False
+
+    binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
+    if binding_segment:
+        label_text = " ".join(
+            part
+            for part in [
+                slot_label.lower(),
+                sibling_label.lower(),
+            ]
+            if part
+        )
+        if binding_segment.lower() not in label_text:
+            return False
+
+    return True
+
+
+def task_prefers_sibling_output_synthesis(state: FinancialAgentState) -> bool:
+    active_subtask = dict(state.get("active_subtask") or {})
+    operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
+    if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
+        return False
+    for binding in (active_subtask.get("inputs") or []):
+        binding_data = dict(binding)
+        source_preference = [
+            _normalise_spaces(str(item or "")).lower()
+            for item in (binding_data.get("source_preference") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        if "task_output" in source_preference and _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
+            return True
+    return False
+
+
+def task_output_input_bindings(state: FinancialAgentState) -> List[Dict[str, Any]]:
+    active_subtask = dict(state.get("active_subtask") or {})
+    bindings: List[Dict[str, Any]] = []
+    for binding in (active_subtask.get("inputs") or []):
+        binding_data = dict(binding)
+        source_preference = [
+            _normalise_spaces(str(item or "")).lower()
+            for item in (binding_data.get("source_preference") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        if "task_output" not in source_preference:
+            continue
+        if not _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
+            continue
+        bindings.append(binding_data)
+    return bindings
 
 
 def build_dependency_ratio_result_projection(

@@ -3942,6 +3942,1167 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
 
         self.assertIs(preferred, operand_rows)
 
+    def test_current_source_dependency_slot_match_policy_matrix(self) -> None:
+        matches = dependency_projection.dependency_slot_matches_input
+
+        def binding(**updates: Any) -> Dict[str, Any]:
+            row = {
+                "concept": "revenue",
+                "period": "2023",
+                "role": "current_period",
+                "label": "segment revenue",
+                "segment_label": "enterprise",
+                "nested": {"keep": True},
+            }
+            row.update(updates)
+            return row
+
+        def slot(**updates: Any) -> Dict[str, Any]:
+            row = {
+                "concept": "revenue",
+                "period": "2023",
+                "label": "2023 segment revenue",
+                "nested": {"keep": True},
+            }
+            row.update(updates)
+            return row
+
+        sibling = {"metric_label": "Enterprise segment revenue", "nested": {"keep": True}}
+        state = {"report_scope": {"year": 2023}, "nested": {"keep": True}}
+        originals = deepcopy((binding(), slot(), sibling, state))
+
+        self.assertTrue(matches(binding(), slot(), sibling_row=sibling, state=state))
+        self.assertEqual((binding(), slot(), sibling, state), originals)
+
+        class StringBomb:
+            def __str__(self) -> str:
+                raise RuntimeError("period accessed after concept mismatch")
+
+        self.assertFalse(
+            matches(
+                binding(concept="other", period=StringBomb()),
+                slot(period=StringBomb()),
+                sibling_row=sibling,
+                state=state,
+            )
+        )
+
+        for name, row_binding, row_slot, row_state, expected in (
+            (
+                "current report year",
+                binding(period="current", role="current_period", segment_label=""),
+                slot(period="2023"),
+                {"report_scope": {"year": 2023}},
+                True,
+            ),
+            (
+                "current wrong year",
+                binding(period="current", role="current_period", segment_label=""),
+                slot(period="2022"),
+                {"report_scope": {"year": 2023}},
+                False,
+            ),
+            (
+                "prior report year",
+                binding(period="prior", role="prior_period", segment_label=""),
+                slot(period="2022"),
+                {"report_scope": {"year": 2023}},
+                True,
+            ),
+            (
+                "prior wrong year",
+                binding(period="prior", role="prior_period", segment_label=""),
+                slot(period="2023"),
+                {"report_scope": {"year": 2023}},
+                False,
+            ),
+            (
+                "unknown binding focus",
+                binding(period="custom", role="operand", segment_label=""),
+                slot(period="2023"),
+                {"report_scope": {"year": 2023}},
+                False,
+            ),
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    matches(row_binding, row_slot, sibling_row=sibling, state=row_state),
+                    expected,
+                )
+
+        focus_events: List[Any] = []
+
+        def focus_side_effect(row: Mapping[str, Any], default: str) -> str:
+            focus_events.append((dict(row), default))
+            return "current"
+
+        with patch.object(dependency_projection, "_operand_period_focus", side_effect=focus_side_effect):
+            self.assertTrue(
+                matches(
+                    binding(period="binding period", segment_label=""),
+                    slot(period="slot period"),
+                    sibling_row=sibling,
+                    state={"report_scope": {"year": "not-a-year"}},
+                )
+            )
+        self.assertEqual(
+            focus_events,
+            [
+                ({"period_hint": "binding period", "role": "current_period"}, "unknown"),
+                ({"period_hint": "slot period"}, "unknown"),
+            ],
+        )
+
+        class YearTypeError:
+            def __int__(self) -> int:
+                raise TypeError("unsupported year")
+
+        with patch.object(dependency_projection, "_operand_period_focus", side_effect=focus_side_effect):
+            focus_events.clear()
+            self.assertTrue(
+                matches(
+                    binding(period="binding period", segment_label=""),
+                    slot(period="slot period"),
+                    sibling_row=sibling,
+                    state={"report_scope": {"year": YearTypeError()}},
+                )
+            )
+        self.assertEqual(len(focus_events), 2)
+
+        class YearRuntimeError:
+            def __int__(self) -> int:
+                raise RuntimeError("year conversion escaped")
+
+        with patch.object(dependency_projection, "_operand_period_focus", return_value="current") as focus:
+            with self.assertRaisesRegex(RuntimeError, "year conversion escaped"):
+                matches(
+                    binding(period="binding period", segment_label=""),
+                    slot(period="slot period"),
+                    sibling_row=sibling,
+                    state={"report_scope": {"year": YearRuntimeError()}},
+                )
+        self.assertEqual(focus.call_count, 1)
+
+        self.assertTrue(
+            matches(
+                binding(label="revenue", segment_label=""),
+                slot(label="segment revenue schedule"),
+                sibling_row={"metric_label": "other"},
+                state=state,
+            )
+        )
+        self.assertTrue(
+            matches(
+                binding(label="revenue", segment_label=""),
+                slot(label="other"),
+                sibling_row={"metric_label": "revenue schedule"},
+                state=state,
+            )
+        )
+        self.assertFalse(
+            matches(
+                binding(label="revenue", segment_label=""),
+                slot(label="other"),
+                sibling_row={"metric_label": "unrelated"},
+                state=state,
+            )
+        )
+        self.assertTrue(
+            matches(
+                binding(label="", segment_label="ENTERPRISE"),
+                slot(label="enterprise segment"),
+                sibling_row={"metric_label": ""},
+                state=state,
+            )
+        )
+        self.assertFalse(
+            matches(
+                binding(label="", segment_label="retail"),
+                slot(label="enterprise segment"),
+                sibling_row={"metric_label": ""},
+                state=state,
+            )
+        )
+
+        class LabelBomb:
+            def __str__(self) -> str:
+                raise AssertionError("label normalization must stay after period resolution")
+
+        with patch.object(dependency_projection.re, "findall", side_effect=RuntimeError("year scan failed")):
+            with self.assertRaisesRegex(RuntimeError, "year scan failed"):
+                matches(
+                    binding(period="current", label=LabelBomb(), segment_label=""),
+                    slot(period="2023", label=LabelBomb()),
+                    sibling_row={"metric_label": LabelBomb()},
+                    state=state,
+                )
+
+    def test_current_source_sibling_output_preference_policy_matrix(self) -> None:
+        prefers = dependency_projection.task_prefers_sibling_output_synthesis
+
+        class IterBomb:
+            def __iter__(self):
+                raise AssertionError("inputs must stay lazy behind operation gate")
+
+        self.assertFalse(
+            prefers(
+                {
+                    "active_subtask": {
+                        "operation_family": "lookup",
+                        "inputs": IterBomb(),
+                    }
+                }
+            )
+        )
+
+        qualifying = {
+            "source_preference": [" retrieval ", " TASK_OUTPUT "],
+            "preferred_task_id": " task_source ",
+            "nested": {"keep": True},
+        }
+
+        class BindingBomb(Mapping[str, Any]):
+            def __iter__(self):
+                raise AssertionError("stable scan must stop at first qualifying binding")
+
+            def __len__(self) -> int:
+                return 1
+
+            def __getitem__(self, key: str) -> Any:
+                raise AssertionError(key)
+
+        for operation in (" difference ", "GROWTH_RATE", "ratio", "sum"):
+            late_bomb = BindingBomb()
+            inputs = [qualifying, late_bomb]
+            state = {
+                "active_subtask": {
+                    "operation_family": operation,
+                    "inputs": inputs,
+                    "nested": {"keep": True},
+                },
+                "nested": {"keep": True},
+            }
+            qualifying_before = deepcopy(qualifying)
+            with self.subTest(operation=operation):
+                self.assertTrue(prefers(state))
+                self.assertIs(state["active_subtask"]["inputs"], inputs)
+                self.assertIs(inputs[0], qualifying)
+                self.assertIs(inputs[1], late_bomb)
+                self.assertEqual(qualifying, qualifying_before)
+
+        for name, candidate in (
+            ("no task output", {"source_preference": ["retrieval"], "preferred_task_id": "task"}),
+            ("blank task id", {"source_preference": ["task_output"], "preferred_task_id": "  "}),
+            ("empty source preference", {"source_preference": ["", None], "preferred_task_id": "task"}),
+        ):
+            with self.subTest(name=name):
+                self.assertFalse(
+                    prefers(
+                        {
+                            "active_subtask": {
+                                "operation_family": "ratio",
+                                "inputs": [candidate],
+                            }
+                        }
+                    )
+                )
+
+        events: List[str] = []
+
+        def normalise(value: str) -> str:
+            events.append(value)
+            if value == "task_output":
+                raise RuntimeError("source preference normalization failed")
+            return value.strip()
+
+        with patch.object(dependency_projection, "_normalise_spaces", side_effect=normalise):
+            with self.assertRaisesRegex(RuntimeError, "source preference normalization failed"):
+                prefers(
+                    {
+                        "active_subtask": {
+                            "operation_family": "ratio",
+                            "inputs": [
+                                {
+                                    "source_preference": ["task_output"],
+                                    "preferred_task_id": "task",
+                                }
+                            ],
+                        }
+                    }
+                )
+        self.assertEqual(events, ["ratio", "task_output"])
+
+    def test_current_source_task_output_binding_projection_matrix(self) -> None:
+        project = dependency_projection.task_output_input_bindings
+        shared_nested = {"keep": True}
+        operation_sentinel = object()
+        state = {
+            "active_subtask": {
+                "operation_family": operation_sentinel,
+                "inputs": [
+                    {
+                        "role": "first",
+                        "source_preference": [" task_output ", "retrieval"],
+                        "preferred_task_id": " task_a ",
+                        "nested": shared_nested,
+                    },
+                    {
+                        "role": "skip_source",
+                        "source_preference": ["retrieval"],
+                        "preferred_task_id": "task_b",
+                    },
+                    {
+                        "role": "skip_id",
+                        "source_preference": ["task_output"],
+                        "preferred_task_id": " ",
+                    },
+                    {
+                        "role": "second",
+                        "source_preference": ["TASK_OUTPUT"],
+                        "preferred_task_id": "task_c",
+                        "nested": shared_nested,
+                    },
+                ],
+            },
+            "nested": {"keep": True},
+        }
+        inputs_before = deepcopy(state["active_subtask"]["inputs"])
+        state_nested_before = deepcopy(state["nested"])
+
+        projected = project(state)
+
+        self.assertEqual([item["role"] for item in projected], ["first", "second"])
+        self.assertIsNot(projected, state["active_subtask"]["inputs"])
+        self.assertIsNot(projected[0], state["active_subtask"]["inputs"][0])
+        self.assertIsNot(projected[1], state["active_subtask"]["inputs"][3])
+        self.assertIs(projected[0]["nested"], shared_nested)
+        self.assertIs(projected[1]["nested"], shared_nested)
+        self.assertIs(state["active_subtask"]["operation_family"], operation_sentinel)
+        self.assertEqual(state["active_subtask"]["inputs"], inputs_before)
+        self.assertEqual(state["nested"], state_nested_before)
+        self.assertEqual(project({"active_subtask": {"inputs": []}}), [])
+
+        class CopyBomb(Mapping[str, Any]):
+            def __iter__(self):
+                raise RuntimeError("binding copy failed")
+
+            def __len__(self) -> int:
+                return 1
+
+            def __getitem__(self, key: str) -> Any:
+                raise RuntimeError(key)
+
+        with self.assertRaisesRegex(RuntimeError, "binding copy failed"):
+            project({"active_subtask": {"inputs": [CopyBomb()]}})
+
+        normalised: List[str] = []
+
+        def normalise(value: str) -> str:
+            normalised.append(value)
+            if value == "task_a":
+                raise RuntimeError("task id normalization failed")
+            return value.strip()
+
+        with patch.object(dependency_projection, "_normalise_spaces", side_effect=normalise):
+            with self.assertRaisesRegex(RuntimeError, "task id normalization failed"):
+                project(
+                    {
+                        "active_subtask": {
+                            "inputs": [
+                                {
+                                    "source_preference": ["task_output"],
+                                    "preferred_task_id": "task_a",
+                                },
+                                CopyBomb(),
+                            ]
+                        }
+                    }
+                )
+        self.assertEqual(normalised, ["task_output", "task_output", "task_a"])
+
+    def test_current_source_dependency_input_policy_bindings_pin_exact_boundary(self) -> None:
+        import ast
+        import inspect
+        import json
+        from pathlib import Path
+
+        from src.agent import financial_graph_calculation as graph_calculation
+        from src.agent import financial_graph_reconciliation as graph_reconciliation
+
+        targets = {
+            "dependency_slot_matches_input": 61,
+            "task_prefers_sibling_output_synthesis": 15,
+            "task_output_input_bindings": 16,
+        }
+        retired = {f"_{name}" for name in targets}
+        graph_tree = ast.parse(inspect.getsource(graph_calculation))
+        reconciliation_tree = ast.parse(inspect.getsource(graph_reconciliation))
+        owner_tree = ast.parse(inspect.getsource(dependency_projection))
+        graph_defs = {
+            node.name: node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        owner_defs = {
+            node.name: node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        reconciliation_defs = {
+            node.name: node
+            for node in ast.walk(reconciliation_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        self.assertEqual(
+            {name: owner_defs[name].end_lineno - owner_defs[name].lineno + 1 for name in targets},
+            targets,
+        )
+        self.assertTrue(retired.isdisjoint(graph_defs))
+        self.assertTrue(retired.isdisjoint(reconciliation_defs))
+        self.assertEqual(sum(targets.values()), 92)
+
+        def target_name(call: ast.Call) -> str:
+            if isinstance(call.func, ast.Name):
+                return call.func.id
+            if isinstance(call.func, ast.Attribute):
+                return call.func.attr
+            return ""
+
+        graph_calls = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, ast.Call) and target_name(node) in targets
+        ]
+        reconciliation_calls = [
+            node
+            for node in ast.walk(reconciliation_tree)
+            if isinstance(node, ast.Call) and target_name(node) in targets
+        ]
+        owner_calls = [
+            node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, ast.Call) and target_name(node) in targets
+        ]
+        calls = [*graph_calls, *reconciliation_calls, *owner_calls]
+        self.assertEqual(
+            {name: sum(target_name(call) == name for call in calls) for name in targets},
+            {
+                "dependency_slot_matches_input": 2,
+                "task_prefers_sibling_output_synthesis": 4,
+                "task_output_input_bindings": 1,
+            },
+        )
+        self.assertEqual((len(graph_calls), len(reconciliation_calls), len(owner_calls)), (4, 3, 0))
+
+        caller_expectations = {
+            ("calculation", "_build_dependency_operand_rows"): (
+                graph_defs,
+                graph_calls,
+                "dependency_slot_matches_input",
+                ["binding", "source_slot"],
+                {"sibling_row": "sibling_row", "state": "state"},
+            ),
+            ("calculation", "_append_ratio_result_from_task_outputs"): (
+                graph_defs,
+                graph_calls,
+                "dependency_slot_matches_input",
+                ["binding", "source_slot"],
+                {"sibling_row": "sibling_row", "state": "state"},
+            ),
+            ("calculation", "_dependency_binding_resolution_state"): (
+                graph_defs,
+                graph_calls,
+                "task_output_input_bindings",
+                ["state"],
+                {},
+            ),
+            ("calculation", "_extract_calculation_operands"): (
+                graph_defs,
+                graph_calls,
+                "task_prefers_sibling_output_synthesis",
+                ["state"],
+                {},
+            ),
+            ("reconciliation", "_reconcile_retrieved_evidence"): (
+                reconciliation_defs,
+                reconciliation_calls,
+                "task_prefers_sibling_output_synthesis",
+                ["state"],
+                {},
+            ),
+            ("reconciliation", "_select_retry_strategy_for_reconciliation"): (
+                reconciliation_defs,
+                reconciliation_calls,
+                "task_prefers_sibling_output_synthesis",
+                ["state"],
+                {},
+            ),
+            ("reconciliation", "_heuristic_reflection_query_plan"): (
+                reconciliation_defs,
+                reconciliation_calls,
+                "task_prefers_sibling_output_synthesis",
+                ["state"],
+                {},
+            ),
+        }
+
+        def try_depth(root: ast.AST, target: ast.AST) -> int:
+            def visit(node: ast.AST, depth: int) -> int | None:
+                if node is target:
+                    return depth
+                next_depth = depth + int(isinstance(node, (ast.Try, ast.TryStar)))
+                for child in ast.iter_child_nodes(node):
+                    found = visit(child, next_depth)
+                    if found is not None:
+                        return found
+                return None
+
+            result = visit(root, 0)
+            self.assertIsNotNone(result)
+            return int(result)
+
+        distributed: List[ast.Call] = []
+        for (module_name, caller_name), (definitions, module_calls, callee_name, args, kwargs) in caller_expectations.items():
+            caller = definitions[caller_name]
+            caller_calls = [call for call in module_calls if call in ast.walk(caller)]
+            self.assertEqual(len(caller_calls), 1, (module_name, caller_name))
+            call = caller_calls[0]
+            self.assertEqual(target_name(call), callee_name)
+            self.assertIsInstance(call.func, ast.Name)
+            self.assertEqual(
+                [ast.dump(argument) for argument in call.args],
+                [ast.dump(ast.Name(id=name, ctx=ast.Load())) for name in args],
+            )
+            self.assertEqual(
+                {item.arg: ast.dump(item.value) for item in call.keywords},
+                {
+                    name: ast.dump(ast.Name(id=value, ctx=ast.Load()))
+                    for name, value in kwargs.items()
+                },
+            )
+            self.assertEqual(try_depth(caller, call), 0)
+            distributed.append(call)
+        self.assertEqual(set(distributed), set(calls))
+
+        graph_bindings = [
+            (alias.name, alias.asname)
+            for node in graph_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_dependency_projection"
+            for alias in node.names
+            if alias.name in targets
+        ]
+        reconciliation_bindings = [
+            (alias.name, alias.asname)
+            for node in reconciliation_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_dependency_projection"
+            for alias in node.names
+            if alias.name in targets
+        ]
+        self.assertEqual(
+            graph_bindings,
+            [
+                ("dependency_slot_matches_input", None),
+                ("task_output_input_bindings", None),
+                ("task_prefers_sibling_output_synthesis", None),
+            ],
+        )
+        self.assertEqual(reconciliation_bindings, [("task_prefers_sibling_output_synthesis", None)])
+
+        dependency_names = {"re", "_normalise_spaces", "_operand_period_focus", "FinancialAgentState"}
+        graph_loads = {
+            name: sum(
+                isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id == name
+                for node in ast.walk(graph_tree)
+            )
+            for name in dependency_names
+        }
+        selected_loads = {
+            name: sum(
+                isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load) and node.id == name
+                for method_name in targets
+                for node in ast.walk(owner_defs[method_name])
+            )
+            for name in dependency_names
+        }
+        self.assertTrue(all(graph_loads[name] > 0 for name in dependency_names))
+        self.assertTrue(all(selected_loads[name] > 0 for name in dependency_names))
+
+        agent_dir = Path(inspect.getfile(graph_calculation)).parent
+
+        def agent_imports(path: Path) -> set[str]:
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            imports: set[str] = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom):
+                    if node.module == "src.agent":
+                        imports.update(alias.name for alias in node.names)
+                    elif node.module and node.module.startswith("src.agent."):
+                        imports.add(node.module.rsplit(".", 1)[-1])
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith("src.agent."):
+                            imports.add(alias.name.rsplit(".", 1)[-1])
+            return imports
+
+        graph: Dict[str, set[str]] = {
+            path.stem: agent_imports(path)
+            for path in agent_dir.glob("*.py")
+        }
+
+        def reaches(start: str, target: str) -> bool:
+            pending = [start]
+            seen: set[str] = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    pending.append(dependency)
+            return False
+
+        self.assertFalse(reaches("financial_graph_helpers", "financial_dependency_projection"))
+        self.assertFalse(reaches("financial_graph_state", "financial_dependency_projection"))
+        self.assertFalse(reaches("financial_dependency_projection", "financial_graph_calculation"))
+        self.assertFalse(reaches("financial_dependency_projection", "financial_graph_reconciliation"))
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_literals = {
+            node.value
+            for method_name in targets
+            for node in ast.walk(owner_defs[method_name])
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        }
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_dependency_projection.py"
+                and record.get("text") in selected_literals
+            ],
+            [],
+        )
+
+    def test_current_source_dependency_slot_match_callers_pin_adoption_and_exception_stop(self) -> None:
+        from src.agent import financial_graph_calculation as graph_calculation
+        from src.agent.financial_graph import FinancialAgent
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {
+            "active_subtask": {
+                "task_id": "task_growth",
+                "operation_family": "growth_rate",
+                "inputs": [
+                    {
+                        "role": "current_period",
+                        "concept": "revenue",
+                        "period": "2023",
+                        "label": "2023 segment revenue",
+                        "preferred_task_id": "task_current",
+                        "source_slot": "primary_value",
+                        "source_preference": ["task_output"],
+                    }
+                ],
+            },
+            "calc_subtasks": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 segment revenue",
+                    "operation_family": "lookup",
+                }
+            ],
+            "subtask_results": [
+                {
+                    "task_id": "task_current",
+                    "metric_family": "concept_lookup",
+                    "metric_label": "2023 segment revenue",
+                    "answer": "2023 segment revenue is 100.",
+                    "calculation_result": {
+                        "status": "ok",
+                        "result_value": 100,
+                        "result_unit": "KRW",
+                        "rendered_value": "100",
+                    },
+                }
+            ],
+            "nested": {"keep": True},
+        }
+        state_before = deepcopy(state)
+        matcher_calls: List[Any] = []
+
+        def matcher(*args: Any, **kwargs: Any) -> bool:
+            matcher_calls.append((args, kwargs))
+            return True
+
+        with patch.object(graph_calculation, "dependency_slot_matches_input", side_effect=matcher):
+            rows = agent._build_dependency_operand_rows(state)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(len(matcher_calls), 1)
+        match_args, match_kwargs = matcher_calls[0]
+        self.assertEqual(match_args[0]["preferred_task_id"], "task_current")
+        self.assertEqual(match_args[1]["normalized_value"], 100)
+        self.assertEqual(match_kwargs["sibling_row"]["task_id"], "task_current")
+        self.assertIs(match_kwargs["state"], state)
+        self.assertEqual(state, state_before)
+
+        with patch.object(graph_calculation, "dependency_slot_matches_input", return_value=False):
+            self.assertEqual(agent._build_dependency_operand_rows(state), [])
+
+        with patch.object(
+            graph_calculation,
+            "dependency_slot_matches_input",
+            side_effect=RuntimeError("dependency match failed"),
+        ), patch.object(
+            graph_calculation,
+            "score_direct_structured_lookup_evidence",
+            side_effect=AssertionError("downstream scoring must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dependency match failed"):
+                agent._build_dependency_operand_rows(state)
+        self.assertEqual(state, state_before)
+
+        ordered = [
+            {
+                "task_id": "task_source",
+                "operation_family": "lookup",
+                "status": "ok",
+                "metric_label": "metric",
+                "calculation_result": {
+                    "status": "ok",
+                    "answer_slots": {
+                        "primary_value": {
+                            "status": "ok",
+                            "label": "metric",
+                            "concept": "metric",
+                            "period": "2023",
+                            "raw_value": "10",
+                            "raw_unit": "COUNT",
+                            "normalized_value": 10.0,
+                            "normalized_unit": "COUNT",
+                        }
+                    },
+                },
+            }
+        ]
+        ratio_state = {
+            "query": "ratio",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_ratio",
+                    "operation_family": "ratio",
+                    "metric_label": "ratio",
+                    "inputs": [
+                        {
+                            "label": "metric",
+                            "concept": "metric",
+                            "period": "2023",
+                            "role": "numerator_1",
+                            "source_preference": ["task_output"],
+                            "preferred_task_id": "task_source",
+                        }
+                    ],
+                }
+            ],
+        }
+        ordered_before = deepcopy(ordered)
+        ratio_before = deepcopy(ratio_state)
+        fallback_calls: List[Any] = []
+        matcher_calls.clear()
+        with patch.object(graph_calculation, "dependency_slot_matches_input", side_effect=matcher), patch.object(
+            graph_calculation,
+            "_operand_text_match",
+            side_effect=lambda *args, **kwargs: fallback_calls.append((args, kwargs)) or False,
+        ):
+            self.assertIs(agent._append_ratio_result_from_task_outputs(ordered, ratio_state), ordered)
+        self.assertEqual(len(matcher_calls), 1)
+        self.assertEqual(fallback_calls, [])
+        ratio_args, ratio_kwargs = matcher_calls[0]
+        self.assertEqual([item.get("concept") for item in ratio_args], ["metric", "metric"])
+        self.assertEqual(ratio_kwargs["sibling_row"]["task_id"], "task_source")
+        self.assertIs(ratio_kwargs["state"], ratio_state)
+
+        with patch.object(graph_calculation, "dependency_slot_matches_input", return_value=False), patch.object(
+            graph_calculation,
+            "_operand_text_match",
+            side_effect=lambda *args, **kwargs: fallback_calls.append((args, kwargs)) or False,
+        ):
+            fallback_calls.clear()
+            self.assertIs(agent._append_ratio_result_from_task_outputs(ordered, ratio_state), ordered)
+        self.assertEqual(len(fallback_calls), 1)
+
+        with patch.object(
+            graph_calculation,
+            "dependency_slot_matches_input",
+            side_effect=RuntimeError("ratio dependency match failed"),
+        ), patch.object(
+            graph_calculation,
+            "_operand_text_match",
+            side_effect=AssertionError("fallback must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ratio dependency match failed"):
+                agent._append_ratio_result_from_task_outputs(ordered, ratio_state)
+        self.assertEqual(ordered, ordered_before)
+        self.assertEqual(ratio_state, ratio_before)
+
+    def test_current_source_dependency_binding_callers_pin_adoption_and_exception_stop(self) -> None:
+        from src.agent import financial_graph_calculation as graph_calculation
+        from src.agent import financial_graph_reconciliation as graph_reconciliation
+        from src.agent.financial_graph import FinancialAgent
+
+        agent = FinancialAgent.__new__(FinancialAgent)
+        state = {"active_subtask": {"inputs": []}, "nested": {"keep": True}}
+        bindings = [{"role": "numerator", "nested": {"keep": True}}]
+        rows = [{"matched_operand_role": "numerator", "nested": {"keep": True}}]
+        owner_result = {"bindings": bindings, "rows": rows, "all_resolved": True}
+        events: List[Any] = []
+
+        def binding_projection(received_state: Mapping[str, Any]) -> List[Dict[str, Any]]:
+            events.append(("bindings", received_state))
+            return bindings
+
+        def row_projection(received_state: Mapping[str, Any]) -> List[Dict[str, Any]]:
+            events.append(("rows", received_state))
+            return rows
+
+        def summarize(received_bindings: Any, received_rows: Any) -> Dict[str, Any]:
+            events.append(("summarize", received_bindings, received_rows))
+            self.assertIs(received_bindings, bindings)
+            self.assertIs(received_rows, rows)
+            return owner_result
+
+        with patch.object(graph_calculation, "task_output_input_bindings", side_effect=binding_projection), patch.object(
+            agent,
+            "_build_dependency_operand_rows",
+            side_effect=row_projection,
+        ), patch.object(graph_calculation, "summarize_dependency_bindings", side_effect=summarize):
+            resolved = agent._dependency_binding_resolution_state(state)
+        self.assertIs(resolved, owner_result)
+        self.assertEqual(
+            events,
+            [("bindings", state), ("rows", state), ("summarize", bindings, rows)],
+        )
+
+        with patch.object(
+            graph_calculation,
+            "task_output_input_bindings",
+            side_effect=RuntimeError("binding projection failed"),
+        ), patch.object(
+            agent,
+            "_build_dependency_operand_rows",
+            side_effect=AssertionError("row projection must stop"),
+        ), patch.object(
+            graph_calculation,
+            "summarize_dependency_bindings",
+            side_effect=AssertionError("summary must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "binding projection failed"):
+                agent._dependency_binding_resolution_state(state)
+
+        extract_state = {
+            "query": "q",
+            "query_type": "numeric_fact",
+            "intent": "numeric_fact",
+            "retry_strategy": "synthesize_from_task_outputs",
+            "active_subtask": {
+                "task_id": "task_ratio",
+                "metric_family": "concept_ratio",
+                "metric_label": "ratio",
+                "operation_family": "ratio",
+                "required_operands": [],
+                "inputs": [],
+            },
+            "subtask_results": [],
+            "evidence_items": [],
+            "evidence_bullets": [],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "reconciliation_result": {},
+            "calc_subtasks": [],
+            "semantic_plan": {},
+            "tasks": [],
+            "artifacts": [],
+            "resolved_calculation_trace": {},
+            "structured_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {},
+            "nested": {"keep": True},
+        }
+        extract_before = deepcopy(extract_state)
+        empty_dependency_state = {
+            "rows": [],
+            "bindings": [],
+            "binding_keys": set(),
+            "resolved_keys": set(),
+            "missing_bindings": [],
+            "all_resolved": True,
+        }
+
+        for preference, expected_source in ((True, "dependency_synthesis_only"), (False, "")):
+            call_states: List[Any] = []
+
+            def preference_owner(received_state: Mapping[str, Any]) -> bool:
+                call_states.append(received_state)
+                return preference
+
+            with patch.object(
+                agent,
+                "_dependency_binding_resolution_state",
+                return_value=empty_dependency_state,
+            ), patch.object(
+                graph_calculation,
+                "task_prefers_sibling_output_synthesis",
+                side_effect=preference_owner,
+            ):
+                extracted = agent._extract_calculation_operands(extract_state)
+            self.assertEqual(call_states, [extract_state])
+            self.assertEqual(
+                str(extracted.get("calculation_debug_trace", {}).get("source") or ""),
+                expected_source,
+            )
+            self.assertEqual(extract_state, extract_before)
+
+        with patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            return_value=empty_dependency_state,
+        ), patch.object(
+            agent,
+            "_active_retry_strategy",
+            return_value="retry_retrieval",
+        ), patch.object(
+            graph_calculation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=AssertionError("preference must stay lazy for other retry strategies"),
+        ):
+            agent._extract_calculation_operands(extract_state)
+
+        with patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            return_value=empty_dependency_state,
+        ), patch.object(
+            graph_calculation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=RuntimeError("synthesis preference failed"),
+        ), patch.object(
+            graph_calculation,
+            "resolve_main_operand_precedence",
+            side_effect=AssertionError("main precedence must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "synthesis preference failed"):
+                agent._extract_calculation_operands(extract_state)
+        self.assertEqual(extract_state, extract_before)
+
+        reconciliation_state = {
+            "active_subtask": {"task_id": "task_ratio", "operation_family": "ratio"},
+            "tasks": [{"task_id": "task_ratio"}],
+            "artifacts": [],
+            "reconciliation_retry_count": 0,
+            "query": "ratio query",
+            "topic": "ratio topic",
+            "intent": "numeric_fact",
+            "nested": {"keep": True},
+        }
+        reconciliation_before = deepcopy(reconciliation_state)
+        resolved_dependency_state = {"all_resolved": True, "rows": rows, "bindings": bindings}
+        resolved_reconciliation = {"task_id": "task_ratio", "status": "ready"}
+        active_subtask = {"task_id": "task_ratio", "operation_family": "ratio"}
+        reconciliation_events: List[Any] = []
+
+        with patch.object(
+            agent,
+            "_active_subtask_with_sibling_lookup_surfaces",
+            side_effect=lambda subtask, received_state: reconciliation_events.append(
+                ("active", subtask, received_state)
+            )
+            or active_subtask,
+        ), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=lambda received_state: reconciliation_events.append(
+                ("dependency", received_state)
+            )
+            or resolved_dependency_state,
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=lambda received_state: reconciliation_events.append(
+                ("preference", received_state)
+            )
+            or True,
+        ), patch.object(
+            agent,
+            "_dependency_resolved_reconciliation_result",
+            side_effect=lambda **kwargs: reconciliation_events.append(("resolved", kwargs))
+            or resolved_reconciliation,
+        ), patch.object(
+            agent,
+            "_reconciliation_evidence_refs",
+            return_value=[],
+        ), patch.object(
+            graph_reconciliation,
+            "_reconciliation_result_artifact_update",
+            return_value={"tasks": reconciliation_state["tasks"], "artifacts": []},
+        ):
+            reconciled = agent._reconcile_retrieved_evidence(reconciliation_state)
+        self.assertIs(reconciled["reconciliation_result"], resolved_reconciliation)
+        self.assertEqual([event[0] for event in reconciliation_events], ["active", "dependency", "preference", "resolved"])
+        self.assertIs(reconciliation_events[0][2], reconciliation_state)
+        self.assertIs(reconciliation_events[1][1], reconciliation_state)
+        self.assertIs(reconciliation_events[2][1], reconciliation_state)
+        self.assertIs(reconciliation_events[3][1]["active_subtask"], active_subtask)
+        self.assertIs(reconciliation_events[3][1]["dependency_state"], resolved_dependency_state)
+        self.assertEqual(reconciliation_state, reconciliation_before)
+
+        with patch.object(
+            agent,
+            "_active_subtask_with_sibling_lookup_surfaces",
+            return_value=active_subtask,
+        ), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            return_value=resolved_dependency_state,
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=RuntimeError("reconciliation preference failed"),
+        ), patch.object(
+            agent,
+            "_dependency_resolved_reconciliation_result",
+            side_effect=AssertionError("resolved reconciliation must stop"),
+        ), patch.object(
+            graph_reconciliation,
+            "_reconciliation_result_artifact_update",
+            side_effect=AssertionError("artifact update must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "reconciliation preference failed"):
+                agent._reconcile_retrieved_evidence(reconciliation_state)
+
+        with patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=AssertionError("ready status must skip preference"),
+        ):
+            self.assertEqual(
+                agent._select_retry_strategy_for_reconciliation(
+                    reconciliation_state,
+                    {"status": " ready "},
+                ),
+                "",
+            )
+
+        retry_events: List[Any] = []
+        with patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=lambda received_state: retry_events.append(("preference", received_state)) or True,
+        ), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=lambda received_state: retry_events.append(("dependency", received_state))
+            or resolved_dependency_state,
+        ):
+            self.assertEqual(
+                agent._select_retry_strategy_for_reconciliation(
+                    reconciliation_state,
+                    {"status": "retry_retrieval"},
+                ),
+                "synthesize_from_task_outputs",
+            )
+        self.assertEqual(retry_events, [("preference", reconciliation_state), ("dependency", reconciliation_state)])
+
+        with patch.object(graph_reconciliation, "task_prefers_sibling_output_synthesis", return_value=False), patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=AssertionError("dependency state must stay lazy after false preference"),
+        ):
+            self.assertEqual(
+                agent._select_retry_strategy_for_reconciliation(
+                    reconciliation_state,
+                    {"status": "insufficient_operands"},
+                ),
+                "stop_insufficient",
+            )
+
+        reflection_events: List[Any] = []
+        with patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            side_effect=lambda received_state: reflection_events.append(("dependency", received_state))
+            or resolved_dependency_state,
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=lambda received_state: reflection_events.append(("preference", received_state))
+            or True,
+        ), patch.object(
+            agent,
+            "_infer_missing_info",
+            side_effect=lambda received_state, operands: reflection_events.append(
+                ("missing", received_state, operands)
+            )
+            or ["missing value"],
+        ), patch.object(
+            agent,
+            "_build_retry_queries",
+            side_effect=lambda received_state, missing: reflection_events.append(
+                ("queries", received_state, missing)
+            )
+            or ["retry query"],
+        ), patch.object(
+            graph_reconciliation,
+            "_preferred_calc_sections",
+            side_effect=lambda *args: reflection_events.append(("sections", args)) or ["section"],
+        ):
+            reflection_plan = agent._heuristic_reflection_query_plan(
+                reconciliation_state,
+                [],
+                retry_objective="resolve_binding",
+                explanation="explain",
+            )
+        self.assertEqual(reflection_plan["retry_strategy"], "synthesize_from_task_outputs")
+        self.assertEqual(reflection_plan["subqueries"], ["retry query"])
+        self.assertEqual(
+            [event[0] for event in reflection_events],
+            ["dependency", "preference", "missing", "queries", "sections"],
+        )
+        self.assertIs(reflection_events[0][1], reconciliation_state)
+        self.assertIs(reflection_events[1][1], reconciliation_state)
+        self.assertIs(reflection_events[2][1], reconciliation_state)
+        self.assertIs(reflection_events[3][1], reconciliation_state)
+
+        with patch.object(
+            agent,
+            "_dependency_binding_resolution_state",
+            return_value=resolved_dependency_state,
+        ), patch.object(
+            graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=RuntimeError("reflection preference failed"),
+        ), patch.object(
+            agent,
+            "_infer_missing_info",
+            side_effect=AssertionError("missing-info projection must stop"),
+        ), patch.object(
+            agent,
+            "_build_retry_queries",
+            side_effect=AssertionError("query projection must stop"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "reflection preference failed"):
+                agent._heuristic_reflection_query_plan(reconciliation_state, [])
+        self.assertEqual(reconciliation_state, reconciliation_before)
+
 
 if __name__ == "__main__":
     unittest.main()

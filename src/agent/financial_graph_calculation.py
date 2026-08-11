@@ -145,6 +145,7 @@ from src.agent.financial_dependency_projection import (
     collect_table_label_evidence_candidates,
     dedupe_dependency_operands_by_id,
     dependency_binding_identity,
+    dependency_slot_matches_input,
     dependency_operand_from_answer_slot,
     dependency_operand_can_use_source_slot,
     dependency_operand_from_source_slot,
@@ -171,6 +172,8 @@ from src.agent.financial_dependency_projection import (
     resolve_ratio_artifact_conflict_selection,
     source_task_id_for_dependency_operand,
     summarize_dependency_bindings,
+    task_output_input_bindings,
+    task_prefers_sibling_output_synthesis,
 )
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
@@ -6010,69 +6013,6 @@ class FinancialAgentCalculationMixin:
 
         return updated
 
-    def _dependency_slot_matches_input(
-        self,
-        binding: Dict[str, Any],
-        slot: Dict[str, Any],
-        *,
-        sibling_row: Dict[str, Any],
-        state: Optional[FinancialAgentState] = None,
-    ) -> bool:
-        binding_concept = _normalise_spaces(str(binding.get("concept") or ""))
-        slot_concept = _normalise_spaces(str(slot.get("concept") or ""))
-        if binding_concept and slot_concept and binding_concept != slot_concept:
-            return False
-
-        binding_period = _normalise_spaces(str(binding.get("period") or ""))
-        slot_period = _normalise_spaces(str(slot.get("period") or ""))
-        if binding_period and slot_period and binding_period != slot_period:
-            binding_focus = _operand_period_focus(
-                {
-                    "period_hint": binding_period,
-                    "role": binding.get("role") or "",
-                },
-                "unknown",
-            )
-            if binding_focus not in {"current", "prior"}:
-                return False
-            report_scope = dict((state or {}).get("report_scope") or {})
-            report_year: Optional[int] = None
-            try:
-                if report_scope.get("year") not in (None, ""):
-                    report_year = int(report_scope.get("year"))
-            except (TypeError, ValueError):
-                report_year = None
-            slot_years = [int(match) for match in re.findall(r"20\d{2}", slot_period)]
-            if report_year is not None and slot_years:
-                if binding_focus == "current" and report_year not in slot_years:
-                    return False
-                if binding_focus == "prior" and (report_year - 1) not in slot_years:
-                    return False
-            elif _operand_period_focus({"period_hint": slot_period}, "unknown") != binding_focus:
-                return False
-
-        binding_label = _normalise_spaces(str(binding.get("label") or ""))
-        slot_label = _normalise_spaces(str(slot.get("label") or ""))
-        sibling_label = _normalise_spaces(str(sibling_row.get("metric_label") or ""))
-        if binding_label and slot_label and binding_label != slot_label:
-            if binding_label not in slot_label and binding_label not in sibling_label:
-                return False
-
-        binding_segment = _normalise_spaces(str(binding.get("segment_label") or ""))
-        if binding_segment:
-            label_text = " ".join(
-                part
-                for part in [
-                    slot_label.lower(),
-                    sibling_label.lower(),
-                ]
-                if part
-            )
-            if binding_segment.lower() not in label_text:
-                return False
-
-        return True
-
     def _build_dependency_operand_rows(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
         active_subtask = dict(state.get("active_subtask") or {})
         input_bindings = [dict(item) for item in (active_subtask.get("inputs") or [])]
@@ -6177,7 +6117,7 @@ class FinancialAgentCalculationMixin:
                 }
             if not answer_slot_has_material(source_slot):
                 continue
-            if not self._dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row, state=state):
+            if not dependency_slot_matches_input(binding, source_slot, sibling_row=sibling_row, state=state):
                 continue
             source_slot_from_answer_slots = True
             current_evidence = _evidence_item_for_operand_row(
@@ -6708,42 +6648,9 @@ class FinancialAgentCalculationMixin:
             best_score = score
         return best_payload
 
-    def _task_prefers_sibling_output_synthesis(self, state: FinancialAgentState) -> bool:
-        active_subtask = dict(state.get("active_subtask") or {})
-        operation_family = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
-        if operation_family not in {"difference", "growth_rate", "ratio", "sum"}:
-            return False
-        for binding in (active_subtask.get("inputs") or []):
-            binding_data = dict(binding)
-            source_preference = [
-                _normalise_spaces(str(item or "")).lower()
-                for item in (binding_data.get("source_preference") or [])
-                if _normalise_spaces(str(item or ""))
-            ]
-            if "task_output" in source_preference and _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
-                return True
-        return False
-
-    def _task_output_input_bindings(self, state: FinancialAgentState) -> List[Dict[str, Any]]:
-        active_subtask = dict(state.get("active_subtask") or {})
-        bindings: List[Dict[str, Any]] = []
-        for binding in (active_subtask.get("inputs") or []):
-            binding_data = dict(binding)
-            source_preference = [
-                _normalise_spaces(str(item or "")).lower()
-                for item in (binding_data.get("source_preference") or [])
-                if _normalise_spaces(str(item or ""))
-            ]
-            if "task_output" not in source_preference:
-                continue
-            if not _normalise_spaces(str(binding_data.get("preferred_task_id") or "")):
-                continue
-            bindings.append(binding_data)
-        return bindings
-
     def _dependency_binding_resolution_state(self, state: FinancialAgentState) -> Dict[str, Any]:
         return summarize_dependency_bindings(
-            self._task_output_input_bindings(state),
+            task_output_input_bindings(state),
             self._build_dependency_operand_rows(state),
         )
 
@@ -11270,7 +11177,7 @@ class FinancialAgentCalculationMixin:
         retry_strategy = self._active_retry_strategy(state)
         synthesis_only_retry = (
             retry_strategy == "synthesize_from_task_outputs"
-            and self._task_prefers_sibling_output_synthesis(state)
+            and task_prefers_sibling_output_synthesis(state)
         )
         direct_rows_cover_required_operands = bool(
             required_operands
@@ -13723,7 +13630,7 @@ class FinancialAgentCalculationMixin:
                 source_slot = dict(answer_slots.get(source_slot_name) or answer_slots.get("primary_value") or {})
                 if not answer_slot_has_material(source_slot):
                     continue
-                slot_matches_binding = self._dependency_slot_matches_input(
+                slot_matches_binding = dependency_slot_matches_input(
                     binding,
                     source_slot,
                     sibling_row=sibling_row,

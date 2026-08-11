@@ -21,6 +21,7 @@ from src.agent import (
     financial_aggregate_projection,
     financial_answer_slots,
     financial_calculation_execution,
+    financial_dependency_projection,
     financial_graph_calculation,
 )
 from src.agent import financial_graph_evidence, financial_operand_resolution
@@ -6598,7 +6599,7 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertFalse(
-            agent._dependency_slot_matches_input(
+            financial_dependency_projection.dependency_slot_matches_input(
                 binding,
                 current_slot,
                 sibling_row=sibling_row,
@@ -6606,7 +6607,7 @@ class OperationContractTests(unittest.TestCase):
             )
         )
         self.assertTrue(
-            agent._dependency_slot_matches_input(
+            financial_dependency_projection.dependency_slot_matches_input(
                 binding,
                 prior_slot,
                 sibling_row=sibling_row,

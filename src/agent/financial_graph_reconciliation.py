@@ -37,6 +37,7 @@ from src.agent.financial_graph_helpers import (
 from src.agent.financial_operand_resolution import (
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
 )
+from src.agent.financial_dependency_projection import task_prefers_sibling_output_synthesis
 from src.agent.financial_graph_model_loaders import (
     _reconciliation_candidate_rerank_model,
     _reflection_query_plan_model,
@@ -1721,7 +1722,7 @@ class FinancialAgentReconciliationMixin:
             state,
         )
         dependency_state = self._dependency_binding_resolution_state(state)
-        if dependency_state.get("all_resolved") and self._task_prefers_sibling_output_synthesis(state):
+        if dependency_state.get("all_resolved") and task_prefers_sibling_output_synthesis(state):
             result = self._dependency_resolved_reconciliation_result(
                 active_subtask=active_subtask,
                 dependency_state=dependency_state,
@@ -1842,7 +1843,7 @@ class FinancialAgentReconciliationMixin:
         status = _normalise_spaces(str(result.get("status") or "")).lower()
         if status == "ready":
             return ""
-        if self._task_prefers_sibling_output_synthesis(state):
+        if task_prefers_sibling_output_synthesis(state):
             dependency_state = self._dependency_binding_resolution_state(state)
             if dependency_state.get("all_resolved"):
                 return "synthesize_from_task_outputs"
@@ -2148,7 +2149,7 @@ class FinancialAgentReconciliationMixin:
     ) -> Dict[str, Any]:
         retry_strategy = "retry_retrieval"
         dependency_state = self._dependency_binding_resolution_state(state)
-        if self._task_prefers_sibling_output_synthesis(state) and dependency_state.get("all_resolved"):
+        if task_prefers_sibling_output_synthesis(state) and dependency_state.get("all_resolved"):
             retry_strategy = "synthesize_from_task_outputs"
         elif not operands and not (state.get("missing_info") or []):
             retry_strategy = "stop_insufficient"
