@@ -18,6 +18,7 @@ from src.agent.financial_dependency_projection import (
     structured_unit_realigned_operand_matches_source_slot,
 )
 from src.agent.financial_numeric_surface import (
+    answer_covers_numeric_answer,
     extract_numeric_surface_candidates,
     numeric_surface_candidates_equivalent,
     numeric_surface_slot_components,
@@ -27,6 +28,7 @@ from src.agent.financial_runtime_normalization import _clean_source_row_ids, _no
 from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
 from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.agent.financial_text_surface import _tokenize_terms, split_narrative_sentences as _split_narrative_sentences
+from src.config.retrieval_policy import CALCULATION_RENDER_POLICY
 
 
 AggregateStaleRepairTargetResolution = Literal[
@@ -611,6 +613,162 @@ def aggregate_row_primary_answer_slot(row: Dict[str, Any]) -> Dict[str, Any]:
     calculation_result = dict(row.get("calculation_result") or {})
     answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
     return dict(answer_slots.get("primary_value") or {})
+
+
+def compose_lookup_list_numeric_answer(
+    ordered_results: List[Dict[str, Any]],
+) -> str:
+    lookup_result_count = 0
+    items: List[str] = []
+    for row in ordered_results:
+        if row_is_narrative_summary(row):
+            continue
+        operation_family = aggregate_result_operation_family(row)
+        if operation_family not in {"lookup", "single_value"}:
+            return ""
+        lookup_result_count += 1
+        status = _normalise_spaces(
+            str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+        ).lower()
+        if status != "ok" or material_gap_feedback_for_subtask_result(row):
+            continue
+        item_answer = _lookup_numeric_item_answer(row)
+        if item_answer:
+            items.append(item_answer)
+    items = list(dict.fromkeys(item for item in items if item))
+    if lookup_result_count < 2 or len(items) < 2:
+        return ""
+    separator = str(CALCULATION_RENDER_POLICY.get("lookup_list_separator") or ", ")
+    answer_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_answer_template") or "{items}")
+    return _normalise_spaces(answer_template.format(items=separator.join(items)))
+
+
+def _lookup_numeric_item_answer(
+    row: Dict[str, Any],
+    *,
+    require_primary_slot: bool = False,
+    require_numeric: bool = False,
+) -> str:
+    calculation_result = dict(row.get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
+    primary_slot = dict(answer_slots.get("primary_value") or {})
+    if require_primary_slot and not answer_slot_has_material(primary_slot):
+        return ""
+    value = _normalise_spaces(
+        str(
+            primary_slot.get("rendered_value")
+            or calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+            or row.get("answer")
+            or ""
+        )
+    )
+    try:
+        normalized_value = float(primary_slot.get("normalized_value"))
+    except (TypeError, ValueError):
+        normalized_value = None
+    if normalized_value is not None and normalized_value >= 0 and value.startswith("("):
+        value = _normalise_spaces(value[1:].replace(")", "", 1))
+    label = _normalise_spaces(str(primary_slot.get("label") or row.get("metric_label") or ""))
+    if not (label and value):
+        return ""
+    if require_numeric and not extract_numeric_surface_candidates(value):
+        return ""
+    item_template = str(CALCULATION_RENDER_POLICY.get("lookup_list_item_template") or "{label} {value}")
+    return _normalise_spaces(item_template.format(label=label, value=value))
+
+
+def append_uncovered_lookup_numeric_items(
+    answer: str,
+    ordered_results: List[Dict[str, Any]],
+) -> str:
+    answer_text = _normalise_spaces(str(answer or ""))
+    if not answer_text:
+        return answer_text
+    has_aggregate_numeric = any(
+        aggregate_result_operation_family(row) in {"ratio", "sum", "difference", "growth_rate"}
+        for row in ordered_results
+        if isinstance(row, dict)
+    )
+    if not has_aggregate_numeric:
+        return answer_text
+    ratio_component_slots: List[Dict[str, Any]] = []
+    for result_row in ordered_results:
+        if not isinstance(result_row, dict) or aggregate_result_operation_family(result_row) != "ratio":
+            continue
+        calculation_result = dict(result_row.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or {})
+        components_by_group = dict(answer_slots.get("components_by_group") or {})
+        for slots in components_by_group.values():
+            ratio_component_slots.extend(dict(slot) for slot in list(slots or []) if isinstance(slot, dict))
+
+    def _lookup_conflicts_with_ratio_component(result_row: Dict[str, Any]) -> bool:
+        if not ratio_component_slots:
+            return False
+        lookup_slot = aggregate_row_primary_answer_slot(result_row)
+        lookup_label = _normalise_spaces(str(lookup_slot.get("label") or result_row.get("metric_label") or ""))
+        if not lookup_label:
+            return False
+        lookup_unit = _normalise_spaces(str(lookup_slot.get("normalized_unit") or "")).upper()
+        lookup_value = lookup_slot.get("normalized_value")
+        try:
+            lookup_float = float(lookup_value)
+        except (TypeError, ValueError):
+            return False
+        for component in ratio_component_slots:
+            component_label = _normalise_spaces(str(component.get("label") or ""))
+            if not component_label:
+                continue
+            if not _operand_text_match(component_label, {"label": lookup_label, "concept": ""}):
+                continue
+            component_unit = _normalise_spaces(str(component.get("normalized_unit") or "")).upper()
+            if lookup_unit and component_unit and lookup_unit != component_unit:
+                continue
+            try:
+                component_float = float(component.get("normalized_value"))
+            except (TypeError, ValueError):
+                continue
+            tolerance = max(abs(component_float), abs(lookup_float), 1.0) * 5e-4
+            if abs(component_float - lookup_float) > tolerance:
+                return True
+        return False
+
+    missing_items: List[str] = []
+    for row in ordered_results:
+        if not isinstance(row, dict) or row_is_narrative_summary(row):
+            continue
+        if aggregate_result_operation_family(row) not in {"lookup", "single_value"}:
+            continue
+        status = _normalise_spaces(
+            str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
+        ).lower()
+        if status != "ok" or material_gap_feedback_for_subtask_result(row):
+            continue
+        if _lookup_conflicts_with_ratio_component(row):
+            continue
+        item_answer = _lookup_numeric_item_answer(
+            row,
+            require_primary_slot=True,
+            require_numeric=True,
+        )
+        if not item_answer or answer_covers_numeric_answer(answer_text, item_answer):
+            continue
+        lookup_slot = aggregate_row_primary_answer_slot(row)
+        lookup_label = _normalise_spaces(str(lookup_slot.get("label") or row.get("metric_label") or ""))
+        if (
+            lookup_label
+            and extract_numeric_surface_candidates(answer_text)
+            and _operand_text_match(answer_text, {"label": lookup_label, "aliases": []})
+        ):
+            continue
+        missing_items.append(item_answer)
+    missing_items = list(dict.fromkeys(item for item in missing_items if item))
+    if not missing_items:
+        return answer_text
+    prefix = ". ".join(item.rstrip(".") for item in missing_items)
+    if prefix:
+        prefix = f"{prefix}."
+    return _normalise_spaces(" ".join([prefix, answer_text]))
 
 
 def aggregate_source_slot_by_task_id(ordered_results: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:

@@ -5017,10 +5017,14 @@ class SubtaskLoopTests(unittest.TestCase):
             "_preferred_complete_numeric_answer": complete_owner,
             "_answer_covers_numeric_projection": Mock(return_value=True),
             "_complete_numeric_answer_can_replace_final": replacement_gate,
-            "_compose_lookup_list_numeric_answer": later_composer,
         }
         with (
             patch.multiple(self.agent, **patched_owners),
+            patch.object(
+                financial_graph_calculation,
+                "compose_lookup_list_numeric_answer",
+                later_composer,
+            ),
             patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
             patch.object(
                 financial_graph_calculation,
@@ -5251,7 +5255,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        answer = self.agent._append_uncovered_lookup_numeric_items(
+        answer = financial_aggregate_projection.append_uncovered_lookup_numeric_items(
             "translation gain was 5,739억원 and net effect was -3,322억원.",
             [lookup_row, difference_row],
         )

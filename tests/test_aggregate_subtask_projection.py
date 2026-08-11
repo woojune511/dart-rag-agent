@@ -533,8 +533,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 {
                     ("_unresolved_structured_numeric_gap", ("row",)): 1,
                     ("safe_partial_answer_for_numeric_gap", ("row",)): 1,
-                    ("_compose_lookup_list_numeric_answer", ("row",)): 1,
-                    ("_append_uncovered_lookup_numeric_items", ("row",)): 1,
+                    ("compose_lookup_list_numeric_answer", ("row",)): 1,
+                    ("append_uncovered_lookup_numeric_items", ("row",)): 1,
                     ("_supported_aggregate_subtask_answer", ("row",)): 1,
                     ("_preferred_conflicting_growth_narrative_answer", ("row",)): 1,
                     ("_answer_reuses_narrative_summary_text", ("row",)): 1,
@@ -576,7 +576,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             for module, _caller, _receiver, _args, _keywords in entries
         )
         graph_external = sum(map(len, calls.values())) - owner_local
-        self.assertEqual((graph_external, owner_local), (23, 1))
+        self.assertEqual((graph_external, owner_local), (21, 3))
         self.assertEqual(
             [
                 (key, caller, args)
@@ -584,7 +584,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 for module, caller, _receiver, args, _keywords in entries
                 if module == "owner"
             ],
-            [("row", "safe_partial_answer_for_numeric_gap", ("row",))],
+            [
+                ("row", "safe_partial_answer_for_numeric_gap", ("row",)),
+                ("row", "compose_lookup_list_numeric_answer", ("row",)),
+                ("row", "append_uncovered_lookup_numeric_items", ("row",)),
+            ],
         )
 
     def test_current_source_safe_partial_caller_gate_adoption_and_exception_stop(self) -> None:
@@ -645,6 +649,1082 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             )
         safe_partial.assert_not_called()
         downstream.assert_called_once_with(ordered_results)
+
+    def test_current_source_lookup_list_compose_all_lookup_status_gap_dedupe_and_policy(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+        nested = {"preserve": True}
+
+        class AccessBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError(f"unexpected {key} access")
+
+        narrative = AccessBomb()
+        failed = {
+            "kind": "lookup",
+            "status": "failed",
+            "calculation_result": AccessBomb(),
+        }
+        gap = {"kind": "lookup", "status": "ok", "answer": "gap"}
+        first = {"kind": "lookup", "status": "ok", "nested": nested}
+        duplicate = {"kind": "single_value", "calculation_result": {"status": "ok"}}
+        second = {"kind": "lookup", "status": "OK"}
+        rows = [narrative, failed, gap, first, duplicate, second]
+        snapshots = [dict(row) for row in rows]
+        policy_events = []
+
+        class RecordingPolicy(dict):
+            def get(self, key, default=None):
+                policy_events.append(key)
+                return super().get(key, default)
+
+        operation_family = Mock(side_effect=lambda row: row["kind"])
+        gap_gate = Mock(side_effect=lambda row: "missing" if row is gap else "")
+        item_answer = Mock(
+            side_effect=lambda row: {
+                id(first): "first 1",
+                id(duplicate): "first 1",
+                id(second): "second 2",
+            }[id(row)]
+        )
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "row_is_narrative_summary",
+                side_effect=lambda row: row is narrative,
+            ) as narrative_gate,
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                operation_family,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                gap_gate,
+            ),
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", item_answer),
+            patch.object(
+                financial_aggregate_projection,
+                "CALCULATION_RENDER_POLICY",
+                RecordingPolicy(
+                    lookup_list_separator=" | ",
+                    lookup_list_answer_template="items=[{items}]",
+                ),
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.compose_lookup_list_numeric_answer(rows),
+                "items=[first 1 | second 2]",
+            )
+        self.assertEqual(narrative_gate.call_count, len(rows))
+        self.assertEqual(
+            [call.args[0] for call in operation_family.call_args_list],
+            [failed, gap, first, duplicate, second],
+        )
+        self.assertEqual(
+            [call.args[0] for call in gap_gate.call_args_list],
+            [gap, first, duplicate, second],
+        )
+        self.assertEqual(
+            [call.args[0] for call in item_answer.call_args_list],
+            [first, duplicate, second],
+        )
+        self.assertEqual(policy_events, ["lookup_list_separator", "lookup_list_answer_template"])
+        self.assertEqual([dict(row) for row in rows], snapshots)
+        self.assertIs(first["nested"], nested)
+
+        later_row = AccessBomb()
+        policy = AccessBomb()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "row_is_narrative_summary",
+                return_value=False,
+            ) as narrative_gate,
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=("lookup", "ratio"),
+            ) as operation_family,
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_lookup_numeric_item_answer",
+                return_value="first 1",
+            ) as item_answer,
+            patch.object(financial_aggregate_projection, "CALCULATION_RENDER_POLICY", policy),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.compose_lookup_list_numeric_answer(
+                    [{"status": "ok"}, {"status": "ok"}, later_row]
+                ),
+                "",
+            )
+        self.assertEqual(narrative_gate.call_count, 2)
+        self.assertEqual(operation_family.call_count, 2)
+        item_answer.assert_called_once()
+
+        for candidate_rows, answers in (
+            ([{"status": "ok"}], ["only 1"]),
+            ([{"status": "ok"}, {"status": "ok"}], ["same 1", "same 1"]),
+        ):
+            with (
+                patch.object(
+                    financial_aggregate_projection,
+                    "row_is_narrative_summary",
+                    return_value=False,
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "aggregate_result_operation_family",
+                    return_value="lookup",
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "material_gap_feedback_for_subtask_result",
+                    return_value="",
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "_lookup_numeric_item_answer",
+                    side_effect=answers,
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "CALCULATION_RENDER_POLICY",
+                    AccessBomb(),
+                ),
+            ):
+                self.assertEqual(
+                    financial_aggregate_projection.compose_lookup_list_numeric_answer(candidate_rows),
+                    "",
+                )
+
+        gap_gate = Mock()
+        item_answer = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=RuntimeError("operation family failed"),
+            ) as operation_family,
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", gap_gate),
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", item_answer),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "operation family failed"):
+                financial_aggregate_projection.compose_lookup_list_numeric_answer(
+                    [{"status": "ok"}]
+                )
+        operation_family.assert_called_once()
+        gap_gate.assert_not_called()
+        item_answer.assert_not_called()
+
+    def test_current_source_append_uncovered_lookup_filter_conflict_dedupe_and_copy_contract(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+
+        class IterationBomb(list):
+            def __iter__(self):
+                raise RuntimeError("ordered results accessed")
+
+        operation_family = Mock()
+        with patch.object(
+            financial_aggregate_projection,
+            "aggregate_result_operation_family",
+            operation_family,
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.append_uncovered_lookup_numeric_items(
+                    "  ", IterationBomb()
+                ),
+                "",
+            )
+        operation_family.assert_not_called()
+
+        lookup_only = {"kind": "lookup"}
+        narrative_gate = Mock()
+        primary_slot_owner = Mock()
+        item_answer = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=lambda row: row["kind"],
+            ) as operation_family,
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", narrative_gate),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_row_primary_answer_slot",
+                primary_slot_owner,
+            ),
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", item_answer),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.append_uncovered_lookup_numeric_items(
+                    "  base answer  ",
+                    [object(), lookup_only],
+                ),
+                "base answer",
+            )
+        operation_family.assert_called_once_with(lookup_only)
+        narrative_gate.assert_not_called()
+        primary_slot_owner.assert_not_called()
+        item_answer.assert_not_called()
+
+        nested = {"preserve": True}
+
+        class CopyOnlySlot(dict):
+            def get(self, key, default=None):
+                raise RuntimeError("original component slot accessed")
+
+        component_slot = CopyOnlySlot(
+            label="ratio component",
+            normalized_value=100.0,
+            normalized_unit="COUNT",
+            nested=nested,
+        )
+        ratio = {
+            "kind": "ratio",
+            "calculation_result": {
+                "answer_slots": {
+                    "components_by_group": {
+                        "numerator": [component_slot, object()],
+                        "empty": None,
+                    }
+                }
+            },
+        }
+        narrative = {"kind": "narrative"}
+        failed = {"kind": "lookup", "status": "failed"}
+        gap = {"kind": "lookup", "status": "ok"}
+        conflict = {"kind": "lookup", "status": "ok"}
+        covered = {"kind": "lookup", "calculation_result": {"status": "ok"}}
+        label_covered = {"kind": "single_value", "status": "OK"}
+        duplicate_one = {"kind": "lookup", "status": "ok"}
+        duplicate_two = {"kind": "single_value", "status": "ok"}
+        blank_item = {"kind": "lookup", "status": "ok"}
+        within_tolerance = {"kind": "lookup", "status": "ok"}
+        unit_mismatch = {"kind": "lookup", "status": "ok"}
+        invalid_value = {"kind": "lookup", "status": "ok"}
+        rows = [
+            ratio,
+            narrative,
+            failed,
+            gap,
+            conflict,
+            covered,
+            label_covered,
+            duplicate_one,
+            duplicate_two,
+            blank_item,
+            within_tolerance,
+            unit_mismatch,
+            invalid_value,
+            object(),
+        ]
+
+        def freeze(value):
+            if isinstance(value, dict):
+                return tuple((key, freeze(item)) for key, item in value.items())
+            if isinstance(value, list):
+                return tuple(freeze(item) for item in value)
+            if isinstance(value, (str, int, float, bool, type(None))):
+                return value
+            return ("identity", id(value))
+
+        rows_snapshot = freeze(rows)
+        slots = {
+            id(conflict): {
+                "label": "conflict metric",
+                "normalized_value": 101.0,
+                "normalized_unit": "COUNT",
+            },
+            id(covered): {
+                "label": "covered metric",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+            },
+            id(label_covered): {
+                "label": "mentioned metric",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+            },
+            id(duplicate_one): {
+                "label": "missing metric",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+            },
+            id(duplicate_two): {
+                "label": "missing metric",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+            },
+            id(blank_item): {
+                "label": "blank metric",
+                "normalized_value": 100.0,
+                "normalized_unit": "COUNT",
+            },
+            id(within_tolerance): {
+                "label": "ratio component",
+                "normalized_value": 100.04,
+                "normalized_unit": "COUNT",
+            },
+            id(unit_mismatch): {
+                "label": "ratio component",
+                "normalized_value": 101.0,
+                "normalized_unit": "KG",
+            },
+            id(invalid_value): {
+                "label": "ratio component",
+                "normalized_value": "not numeric",
+                "normalized_unit": "COUNT",
+            },
+        }
+        answers = {
+            id(covered): "covered 20",
+            id(label_covered): "mentioned 30",
+            id(duplicate_one): "missing 40.",
+            id(duplicate_two): "missing 40.",
+            id(blank_item): "",
+            id(within_tolerance): "near 50.",
+            id(unit_mismatch): "unit 60.",
+            id(invalid_value): "invalid 70.",
+        }
+
+        def operand_match(text, candidate):
+            return (
+                text == "ratio component"
+                and candidate.get("label") in {"conflict metric", "ratio component"}
+            ) or (
+                text == "base 100" and candidate.get("label") == "mentioned metric"
+            )
+
+        gap_gate = Mock(side_effect=lambda row: "missing" if row is gap else "")
+        item_answer = Mock(side_effect=lambda row, **_kwargs: answers[id(row)])
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=lambda row: row["kind"],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "row_is_narrative_summary",
+                side_effect=lambda row: row is narrative,
+            ) as narrative_gate,
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                gap_gate,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_row_primary_answer_slot",
+                side_effect=lambda row: slots[id(row)],
+            ) as primary_slot_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "_operand_text_match",
+                side_effect=operand_match,
+            ) as operand_match_owner,
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", item_answer),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_covers_numeric_answer",
+                side_effect=lambda _answer, item: item == "covered 20",
+            ) as coverage_gate,
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=["100"],
+            ) as numeric_candidates,
+        ):
+            appended = financial_aggregate_projection.append_uncovered_lookup_numeric_items(
+                " base 100 ", rows
+            )
+        self.assertEqual(
+            appended,
+            "missing 40. near 50. unit 60. invalid 70. base 100",
+        )
+        self.assertEqual(
+            [call.args[0] for call in gap_gate.call_args_list],
+            [
+                gap,
+                conflict,
+                covered,
+                label_covered,
+                duplicate_one,
+                duplicate_two,
+                blank_item,
+                within_tolerance,
+                unit_mismatch,
+                invalid_value,
+            ],
+        )
+        self.assertEqual(
+            [call.args[0] for call in item_answer.call_args_list],
+            [
+                covered,
+                label_covered,
+                duplicate_one,
+                duplicate_two,
+                blank_item,
+                within_tolerance,
+                unit_mismatch,
+                invalid_value,
+            ],
+        )
+        self.assertTrue(
+            all(
+                call.kwargs == {"require_primary_slot": True, "require_numeric": True}
+                for call in item_answer.call_args_list
+            )
+        )
+        self.assertEqual(primary_slot_owner.call_count, 15)
+        self.assertEqual(coverage_gate.call_count, 7)
+        self.assertEqual(numeric_candidates.call_count, 6)
+        self.assertGreaterEqual(operand_match_owner.call_count, 12)
+        self.assertEqual(freeze(rows), rows_snapshot)
+        self.assertIs(component_slot["nested"], nested)
+        self.assertEqual(narrative_gate.call_count, 13)
+
+        item_answer = Mock()
+        coverage_gate = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=lambda row: row["kind"],
+            ),
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                return_value="",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_row_primary_answer_slot",
+                side_effect=RuntimeError("primary slot failed"),
+            ) as primary_slot_owner,
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", item_answer),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", coverage_gate),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "primary slot failed"):
+                financial_aggregate_projection.append_uncovered_lookup_numeric_items(
+                    "base 100",
+                    [ratio, covered],
+                )
+        primary_slot_owner.assert_called_once_with(covered)
+        item_answer.assert_not_called()
+        coverage_gate.assert_not_called()
+
+        operation_family = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("answer normalization failed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                operation_family,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "answer normalization failed"):
+                financial_aggregate_projection.append_uncovered_lookup_numeric_items(
+                    "base", [ratio]
+                )
+        operation_family.assert_not_called()
+
+    def test_current_source_lookup_numeric_item_slot_value_float_flags_and_template(self) -> None:
+        agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+
+        class StringBomb:
+            def __str__(self) -> str:
+                raise RuntimeError("later value accessed")
+
+        class PolicyBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError("template policy accessed")
+
+        missing_slot_row = {
+            "calculation_result": {
+                "answer_slots": {"primary_value": {"rendered_value": StringBomb()}},
+                "formatted_result": StringBomb(),
+            },
+            "answer": StringBomb(),
+        }
+        with (
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=False) as material,
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates") as numeric,
+            patch.object(financial_aggregate_projection, "CALCULATION_RENDER_POLICY", PolicyBomb()),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(
+                    missing_slot_row,
+                    require_primary_slot=True,
+                ),
+                "",
+            )
+        material_primary_slot = material.call_args.args[0]
+        self.assertIsNot(
+            material_primary_slot,
+            missing_slot_row["calculation_result"]["answer_slots"]["primary_value"],
+        )
+        numeric.assert_not_called()
+
+        nested = {"preserve": True}
+        primary_slot = {
+            "label": " target ",
+            "rendered_value": " (10) ",
+            "normalized_value": "10",
+            "nested": nested,
+        }
+        row = {
+            "metric_label": "fallback label",
+            "answer": StringBomb(),
+            "calculation_result": {
+                "formatted_result": StringBomb(),
+                "rendered_value": StringBomb(),
+                "answer_slots": {"primary_value": primary_slot},
+            },
+        }
+        answer_bomb = row["answer"]
+        calculation_result = row["calculation_result"]
+        formatted_bomb = calculation_result["formatted_result"]
+        rendered_bomb = calculation_result["rendered_value"]
+        row_keys = tuple(row)
+        calculation_result_keys = tuple(calculation_result)
+        primary_slot_snapshot = {
+            key: value
+            for key, value in primary_slot.items()
+            if key != "nested"
+        }
+        policy_events = []
+
+        class RecordingPolicy(dict):
+            def get(self, key, default=None):
+                policy_events.append(key)
+                return super().get(key, default)
+
+        numeric = Mock(return_value=["10"])
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                return_value=True,
+            ) as material,
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", numeric),
+            patch.object(
+                financial_aggregate_projection,
+                "CALCULATION_RENDER_POLICY",
+                RecordingPolicy(lookup_list_item_template="{label}={value}"),
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(
+                    row,
+                    require_primary_slot=True,
+                    require_numeric=True,
+                ),
+                "target=10",
+            )
+        numeric.assert_called_once_with("10")
+        self.assertEqual(policy_events, ["lookup_list_item_template"])
+        material_primary_slot = material.call_args.args[0]
+        self.assertIsNot(material_primary_slot, primary_slot)
+        self.assertIs(material_primary_slot["nested"], nested)
+        self.assertEqual(tuple(row), row_keys)
+        self.assertEqual(tuple(calculation_result), calculation_result_keys)
+        self.assertEqual(
+            {key: value for key, value in primary_slot.items() if key != "nested"},
+            primary_slot_snapshot,
+        )
+        self.assertIs(row["answer"], answer_bomb)
+        self.assertIs(row["calculation_result"], calculation_result)
+        self.assertIs(calculation_result["formatted_result"], formatted_bomb)
+        self.assertIs(calculation_result["rendered_value"], rendered_bomb)
+        self.assertIs(primary_slot["nested"], nested)
+
+        calc_formatted = {
+            "metric_label": " row label ",
+            "answer": StringBomb(),
+            "answer_slots": {
+                "primary_value": {
+                    "label": "slot label",
+                    "rendered_value": "row-slot value",
+                }
+            },
+            "calculation_result": {
+                "formatted_result": "formatted 20",
+                "rendered_value": StringBomb(),
+                "answer_slots": {"primary_value": {"normalized_value": "bad"}},
+            },
+        }
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates") as numeric,
+            patch.object(
+                financial_aggregate_projection,
+                "CALCULATION_RENDER_POLICY",
+                {"lookup_list_item_template": "{label}: {value}"},
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(calc_formatted),
+                "row label: formatted 20",
+            )
+        numeric.assert_not_called()
+
+        negative_row = {
+            "calculation_result": {
+                "answer_slots": {
+                    "primary_value": {
+                        "label": "loss",
+                        "rendered_value": "(5)",
+                        "normalized_value": -5,
+                    }
+                }
+            }
+        }
+        soft_float_row = {
+            "calculation_result": {
+                "answer_slots": {
+                    "primary_value": {
+                        "label": "unknown",
+                        "rendered_value": "(value)",
+                        "normalized_value": object(),
+                    }
+                }
+            }
+        }
+        with patch.object(
+            financial_aggregate_projection,
+            "CALCULATION_RENDER_POLICY",
+            {"lookup_list_item_template": "{label} {value}"},
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(negative_row),
+                "loss (5)",
+            )
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(soft_float_row),
+                "unknown (value)",
+            )
+
+        numeric_row = {
+            "metric_label": "metric",
+            "answer": "no digits",
+        }
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(financial_aggregate_projection, "CALCULATION_RENDER_POLICY", PolicyBomb()),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(
+                    numeric_row,
+                    require_numeric=True,
+                ),
+                "",
+            )
+
+        with patch.object(
+            financial_aggregate_projection,
+            "CALCULATION_RENDER_POLICY",
+            PolicyBomb(),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer({"answer": "10"}),
+                "",
+            )
+            self.assertEqual(
+                financial_aggregate_projection._lookup_numeric_item_answer(
+                    {"metric_label": "metric"}
+                ),
+                "",
+            )
+
+        numeric = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", numeric),
+            patch.object(financial_aggregate_projection, "CALCULATION_RENDER_POLICY", PolicyBomb()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "later value accessed"):
+                financial_aggregate_projection._lookup_numeric_item_answer(
+                    {
+                        "metric_label": "metric",
+                        "calculation_result": {
+                            "answer_slots": {
+                                "primary_value": {"rendered_value": StringBomb()}
+                            }
+                        },
+                    }
+                )
+        numeric.assert_not_called()
+
+    def test_current_source_lookup_surface_static_bindings_and_planned_owner_distribution(self) -> None:
+        module_trees = {
+            "graph": ast.parse(inspect.getsource(financial_graph_calculation)),
+            "owner": ast.parse(inspect.getsource(financial_aggregate_projection)),
+        }
+        targets = {
+            "row": "row_is_narrative_summary",
+            "safe": "safe_partial_answer_for_numeric_gap",
+            "compose": "compose_lookup_list_numeric_answer",
+            "lookup": "_lookup_numeric_item_answer",
+            "append": "append_uncovered_lookup_numeric_items",
+        }
+        definitions = {}
+        calls = {key: [] for key in targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name) -> None:
+                self.module_name = module_name
+                self.function_stack = []
+
+            def visit_FunctionDef(self, node):
+                if node.name in targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = (
+                    ast.unparse(node.func.value)
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                for key, target in targets.items():
+                    if called_name == target:
+                        calls[key].append(
+                            (
+                                self.module_name,
+                                self.function_stack[-1] if self.function_stack else "<module>",
+                                receiver,
+                                tuple(ast.unparse(arg) for arg in node.args),
+                                tuple(
+                                    (keyword.arg, ast.unparse(keyword.value))
+                                    for keyword in node.keywords
+                                ),
+                            )
+                        )
+                self.generic_visit(node)
+
+        for module_name, module_tree in module_trees.items():
+            BindingVisitor(module_name).visit(module_tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "row_is_narrative_summary": ("owner", 4),
+                "safe_partial_answer_for_numeric_gap": ("owner", 25),
+                "compose_lookup_list_numeric_answer": ("owner", 26),
+                "_lookup_numeric_item_answer": ("owner", 33),
+                "append_uncovered_lookup_numeric_items": ("owner", 91),
+            },
+        )
+        self.assertEqual(
+            {key: len(entries) for key, entries in calls.items()},
+            {"row": 20, "safe": 4, "compose": 1, "lookup": 2, "append": 1},
+        )
+        self.assertEqual(
+            calls["compose"],
+            [("graph", "_prepare_initial_aggregate_state", "", ("ordered_results",), ())],
+        )
+        self.assertEqual(
+            calls["lookup"],
+            [
+                ("owner", "compose_lookup_list_numeric_answer", "", ("row",), ()),
+                (
+                    "owner",
+                    "append_uncovered_lookup_numeric_items",
+                    "",
+                    ("row",),
+                    (("require_primary_slot", "True"), ("require_numeric", "True")),
+                ),
+            ],
+        )
+        self.assertEqual(
+            calls["append"],
+            [
+                (
+                    "graph",
+                    "_aggregate_calculation_subtasks",
+                    "",
+                    ("final_answer", "ordered_results"),
+                    (),
+                )
+            ],
+        )
+        self.assertEqual(
+            [
+                (module, caller, receiver, args, keywords)
+                for module, caller, receiver, args, keywords in calls["row"]
+                if caller
+                in {"compose_lookup_list_numeric_answer", "append_uncovered_lookup_numeric_items"}
+            ],
+            [
+                ("owner", "compose_lookup_list_numeric_answer", "", ("row",), ()),
+                ("owner", "append_uncovered_lookup_numeric_items", "", ("row",), ()),
+            ],
+        )
+        owner_local = sum(
+            module == "owner"
+            for entries in calls.values()
+            for module, _caller, _receiver, _args, _keywords in entries
+        )
+        graph_external = sum(map(len, calls.values())) - owner_local
+        self.assertEqual((graph_external, owner_local), (23, 5))
+        self.assertEqual(
+            [
+                (key, caller, args)
+                for key, entries in calls.items()
+                for module, caller, _receiver, args, _keywords in entries
+                if module == "owner"
+            ],
+            [
+                ("row", "safe_partial_answer_for_numeric_gap", ("row",)),
+                ("row", "compose_lookup_list_numeric_answer", ("row",)),
+                ("row", "append_uncovered_lookup_numeric_items", ("row",)),
+                ("lookup", "compose_lookup_list_numeric_answer", ("row",)),
+                ("lookup", "append_uncovered_lookup_numeric_items", ("row",)),
+            ],
+        )
+
+    def test_current_source_lookup_surface_callers_adopt_exact_args_order_and_exception_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = None
+        nested = {"preserve": True}
+        row = {"task_id": "lookup", "answer": "row answer", "nested": nested}
+        ordered_results = [row]
+        prepare_state = {
+            "query": "",
+            "subtask_results": [],
+            "calc_subtasks": [],
+        }
+
+        def run_prepare(compose_owner, prepared_constructor, events):
+            with (
+                patch.object(agent, "_capture_current_subtask_result", return_value=row),
+                patch.object(agent, "_upsert_subtask_result", return_value=[row]),
+                patch.object(
+                    financial_graph_calculation,
+                    "dedupe_aggregate_subtask_results",
+                    side_effect=lambda _rows: ordered_results,
+                ),
+                patch.object(
+                    agent,
+                    "_recover_lookup_results_from_sibling_table_evidence",
+                    side_effect=lambda rows, _state: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_promote_stronger_nested_aggregate_results",
+                    side_effect=lambda rows: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_align_lookup_result_units_from_peer_source_slots",
+                    side_effect=lambda rows: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_append_ratio_result_from_retrieved_context",
+                    side_effect=lambda rows, _state: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_append_ratio_result_from_task_outputs",
+                    side_effect=lambda rows, _state: rows,
+                ),
+                patch.object(
+                    agent,
+                    "_sync_ratio_result_displays_in_ordered_results",
+                    side_effect=lambda rows: events.append(("sync", rows)) or rows,
+                ),
+                patch.object(agent, "_aggregate_result_operation_family", return_value="lookup"),
+                patch.object(
+                    agent,
+                    "_preferred_aggregate_fallback_answer",
+                    side_effect=lambda rows, answer: events.append(("fallback", rows, answer)) or answer,
+                ),
+                patch.object(
+                    agent,
+                    "_rebuild_aggregate_projection",
+                    return_value={"calculation_result": {"status": "ok"}},
+                ),
+                patch.object(
+                    agent,
+                    "_align_lookup_results_with_dependency_projection",
+                    side_effect=lambda rows, _state, _projection: rows,
+                ),
+                patch.object(agent, "_supported_aggregate_subtask_answer", return_value=""),
+                patch.object(agent, "_preferred_complete_numeric_answer", return_value=""),
+                patch.object(
+                    financial_graph_calculation,
+                    "row_is_narrative_summary",
+                    side_effect=lambda candidate: events.append(("narrative", candidate)) or False,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "compose_lookup_list_numeric_answer",
+                    compose_owner,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_PreparedAggregateState",
+                    prepared_constructor,
+                ),
+            ):
+                return agent._prepare_initial_aggregate_state(prepare_state)
+
+        adopted_lookup_list = "lookup one 1, lookup two 2"
+        prepare_events = []
+        compose_owner = Mock(
+            side_effect=lambda rows: prepare_events.append(("compose", rows)) or adopted_lookup_list
+        )
+        prepared_constructor = Mock(wraps=financial_graph_calculation._PreparedAggregateState)
+        prepared = run_prepare(compose_owner, prepared_constructor, prepare_events)
+        compose_owner.assert_called_once_with(ordered_results)
+        self.assertIs(compose_owner.call_args.args[0], ordered_results)
+        self.assertEqual(
+            [event[0] for event in prepare_events],
+            ["sync", "fallback", "narrative", "compose"],
+        )
+        self.assertIs(prepared.ordered_results, ordered_results)
+        self.assertIs(prepared.fallback_answer, adopted_lookup_list)
+        self.assertIs(prepared.ordered_results[0], row)
+        self.assertIs(row["nested"], nested)
+        prepared_constructor.assert_called_once_with(
+            ordered_results=ordered_results,
+            fallback_answer=adopted_lookup_list,
+            supported_aggregate_answer="",
+            complete_numeric_answer="",
+            has_narrative_summary=False,
+            has_growth_rate_result=False,
+            numeric_answer_locked=False,
+        )
+
+        compose_owner = Mock(side_effect=RuntimeError("compose failed"))
+        prepared_constructor = Mock(wraps=financial_graph_calculation._PreparedAggregateState)
+        with self.assertRaisesRegex(RuntimeError, "compose failed"):
+            run_prepare(compose_owner, prepared_constructor, [])
+        compose_owner.assert_called_once_with(ordered_results)
+        prepared_constructor.assert_not_called()
+
+        aggregate_state = {
+            "query": "",
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [],
+            "evidence_items": [],
+            "tasks": [],
+            "artifacts": [],
+        }
+        aggregate_state_snapshot = deepcopy(aggregate_state)
+        base_answer = "base aggregate 100"
+        prepared_state = financial_graph_calculation._PreparedAggregateState(
+            ordered_results,
+            base_answer,
+            "",
+            "",
+            False,
+            False,
+            False,
+        )
+        adopted_answer = "missing lookup 40. base aggregate 100"
+        aggregate_events = []
+        original_replace = agent._replace_mutable_aggregate_answer
+
+        def record_replace(*args, **kwargs):
+            if kwargs.get("candidate_answer") is adopted_answer:
+                aggregate_events.append(("adopt", args, kwargs))
+            return original_replace(*args, **kwargs)
+
+        with (
+            patch.object(
+                agent,
+                "_prepare_initial_aggregate_state",
+                return_value=prepared_state,
+            ) as prepare_owner,
+            patch.object(
+                agent,
+                "_compact_ratio_answer_from_projection",
+                side_effect=lambda *_args, **_kwargs: aggregate_events.append(("compact",)) or "",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_uncovered_lookup_numeric_items",
+                side_effect=lambda answer, rows: aggregate_events.append(("append", answer, rows))
+                or adopted_answer,
+            ) as append_owner,
+            patch.object(
+                agent,
+                "_replace_mutable_aggregate_answer",
+                side_effect=record_replace,
+            ),
+        ):
+            aggregate_update = agent._aggregate_calculation_subtasks(aggregate_state)
+        prepare_owner.assert_called_once_with(aggregate_state)
+        append_owner.assert_called_once()
+        self.assertEqual(append_owner.call_args.args[0], base_answer)
+        self.assertIs(append_owner.call_args.args[1], ordered_results)
+        self.assertEqual([event[0] for event in aggregate_events], ["compact", "append", "adopt"])
+        adopt_call = aggregate_events[-1]
+        self.assertIs(adopt_call[2]["candidate_answer"], adopted_answer)
+        self.assertFalse(adopt_call[2]["sync_rendered_for_aggregate"])
+        self.assertTrue(adopt_call[2]["refresh_operand_evidence"])
+        self.assertEqual(aggregate_update["answer"], adopted_answer)
+        self.assertEqual(aggregate_state, aggregate_state_snapshot)
+        self.assertIs(ordered_results[0], row)
+        self.assertIs(row["nested"], nested)
+
+        downstream_filter = Mock()
+        aggregate_events = []
+        with (
+            patch.object(agent, "_prepare_initial_aggregate_state", return_value=prepared_state),
+            patch.object(
+                agent,
+                "_compact_ratio_answer_from_projection",
+                side_effect=lambda *_args, **_kwargs: aggregate_events.append(("compact",)) or "",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_uncovered_lookup_numeric_items",
+                side_effect=lambda answer, rows: aggregate_events.append(("append", answer, rows))
+                or (_ for _ in ()).throw(RuntimeError("append failed")),
+            ) as append_owner,
+            patch.object(
+                agent,
+                "_filter_final_aggregate_evidence_and_projection",
+                downstream_filter,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "append failed"):
+                agent._aggregate_calculation_subtasks(aggregate_state)
+        append_owner.assert_called_once()
+        self.assertEqual(append_owner.call_args.args[0], base_answer)
+        self.assertIs(append_owner.call_args.args[1], ordered_results)
+        self.assertEqual([event[0] for event in aggregate_events], ["compact", "append"])
+        downstream_filter.assert_not_called()
+        self.assertEqual(aggregate_state, aggregate_state_snapshot)
 
     def test_aggregate_dependency_candidates_preserve_order_copy_and_access_contract(self) -> None:
         agent = financial_graph_calculation.FinancialAgentCalculationMixin()
@@ -2149,27 +3229,27 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         }
         with (
             patch.object(
-                agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=lambda row: row.get("kind", ""),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_row_primary_answer_slot",
                 side_effect=[lookup_slot, lookup_slot],
             ) as primary_owner,
-            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
-            patch.object(agent, "_lookup_numeric_item_answer", return_value="metric 10"),
-            patch.object(financial_graph_calculation, "_operand_text_match", return_value=False),
-            patch.object(financial_graph_calculation, "answer_covers_numeric_answer", return_value=False),
-            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", return_value="metric 10"),
+            patch.object(financial_aggregate_projection, "_operand_text_match", return_value=False),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=[]),
         ):
-            appended = agent._append_uncovered_lookup_numeric_items(
+            appended = financial_aggregate_projection.append_uncovered_lookup_numeric_items(
                 "aggregate answer 20",
                 [lookup_row, ratio_row],
             )
@@ -2181,25 +3261,25 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         lookup_answer_owner = Mock(return_value="metric 10")
         with (
             patch.object(
-                agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=lambda row: row.get("kind", ""),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_row_primary_answer_slot",
                 side_effect=RuntimeError("primary failed"),
             ),
-            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", return_value=False),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
-            patch.object(agent, "_lookup_numeric_item_answer", lookup_answer_owner),
+            patch.object(financial_aggregate_projection, "_lookup_numeric_item_answer", lookup_answer_owner),
         ):
             with self.assertRaisesRegex(RuntimeError, "primary failed"):
-                agent._append_uncovered_lookup_numeric_items(
+                financial_aggregate_projection.append_uncovered_lookup_numeric_items(
                     "aggregate answer 20",
                     [lookup_row, ratio_row],
                 )
