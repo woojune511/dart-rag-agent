@@ -285,8 +285,11 @@ from src.agent.financial_numeric_surface import (
     text_supports_numeric_candidates,
 )
 from src.agent.financial_text_surface import (
+    narrative_context_terms,
+    narrative_focus_variants,
     narrative_sentence_looks_abbreviated_fragment as _narrative_sentence_looks_abbreviated_fragment,
     narrative_sentence_looks_table_noisy as _narrative_sentence_looks_table_noisy,
+    parenthetical_focus_variants,
     polish_korean_particle_pairs as _polish_korean_particle_pairs,
     split_narrative_sentences as _split_narrative_sentences,
     topic_particle as _topic_particle,
@@ -2478,7 +2481,7 @@ class FinancialAgentCalculationMixin:
     ) -> str:
         query_terms = {
             token.lower()
-            for token in self._narrative_context_terms(str(query or ""))
+            for token in narrative_context_terms(str(query or ""))
             if len(token) >= 2
         }
 
@@ -2486,7 +2489,7 @@ class FinancialAgentCalculationMixin:
             normalized_label = _normalise_spaces(label_text)
             label_terms = {
                 token.lower()
-                for token in self._narrative_context_terms(normalized_label)
+                for token in narrative_context_terms(normalized_label)
                 if len(token) >= 2
             }
             overlap = {
@@ -3567,7 +3570,7 @@ class FinancialAgentCalculationMixin:
             return ""
         narrative_terms = [
             term
-            for term in self._narrative_context_terms(sanitized)
+            for term in narrative_context_terms(sanitized)
             if len(term) >= 3
         ]
         if len(narrative_terms) < 2:
@@ -6037,7 +6040,7 @@ class FinancialAgentCalculationMixin:
         def _content_terms(text: str) -> set[str]:
             return {
                 term.lower()
-                for term in self._narrative_context_terms(text)
+                for term in narrative_context_terms(text)
                 if len(term) >= 3
             }
 
@@ -7376,12 +7379,12 @@ class FinancialAgentCalculationMixin:
             score += 3
         left_terms = {
             token.lower()
-            for token in self._narrative_context_terms(left)
+            for token in narrative_context_terms(left)
             if len(token) >= 2
         }
         right_terms = {
             token.lower()
-            for token in self._narrative_context_terms(right)
+            for token in narrative_context_terms(right)
             if len(token) >= 2
         }
         return score + len(left_terms & right_terms)
@@ -7732,72 +7735,6 @@ class FinancialAgentCalculationMixin:
         ).ordered_results
         return preserved_results, self._rebuild_aggregate_projection(preserved_results, final_answer)
 
-    def _narrative_context_terms(self, query: str) -> List[str]:
-        tokens = re.findall(r"[가-힣A-Za-z0-9()]+", _normalise_spaces(str(query or "")))
-        stopwords = {
-            str(item)
-            for item in (CALCULATION_NARRATIVE_POLICY.get("context_stopwords") or ())
-            if str(item)
-        }
-        terms: List[str] = []
-        for token in tokens:
-            cleaned = token.strip()
-            if len(cleaned) < 2 or cleaned in stopwords:
-                continue
-            if re.search(r"\d", cleaned):
-                continue
-            if re.fullmatch(r"\d+", cleaned):
-                continue
-            terms.append(cleaned)
-        return list(dict.fromkeys(terms))
-
-    def _narrative_focus_variants(self, query: str) -> List[str]:
-        generic_terms = {
-            _normalise_spaces(str(item)).lower()
-            for item in (
-                tuple(CALCULATION_NARRATIVE_POLICY.get("growth_generic_focus_terms") or ())
-                + tuple(CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
-            )
-            if _normalise_spaces(str(item))
-        }
-        variants: List[str] = []
-        for term in self._narrative_context_terms(query):
-            cleaned = _normalise_spaces(str(term))
-            if not cleaned or cleaned.lower() in generic_terms:
-                continue
-            candidates = [cleaned]
-            candidates.extend(
-                _normalise_spaces(match)
-                for match in re.findall(r"\(([^)]+)\)", cleaned)
-                if _normalise_spaces(match)
-            )
-            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
-            if outside_parentheses:
-                candidates.append(outside_parentheses)
-            for candidate in candidates:
-                if len(candidate) < 2:
-                    continue
-                if candidate.lower() in generic_terms:
-                    continue
-                variants.append(candidate)
-        return list(dict.fromkeys(variants))
-
-    def _parenthetical_focus_variants(self, query: str) -> List[str]:
-        variants: List[str] = []
-        for term in self._narrative_context_terms(query):
-            cleaned = _normalise_spaces(str(term))
-            if not cleaned or "(" not in cleaned:
-                continue
-            variants.extend(
-                _normalise_spaces(match)
-                for match in re.findall(r"\(([^)]+)\)", cleaned)
-                if _normalise_spaces(match)
-            )
-            outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
-            if outside_parentheses:
-                variants.append(outside_parentheses)
-        return list(dict.fromkeys(variant for variant in variants if len(variant) >= 2))
-
     def _narrative_context_sentence_from_evidence(
         self,
         query: str,
@@ -7805,7 +7742,7 @@ class FinancialAgentCalculationMixin:
     ) -> str:
         if not _query_requests_narrative_context(query):
             return ""
-        query_terms = self._narrative_context_terms(query)
+        query_terms = narrative_context_terms(query)
         if not query_terms:
             return ""
 
@@ -7870,7 +7807,7 @@ class FinancialAgentCalculationMixin:
             return answer_text
         key_terms = [
             term
-            for term in self._narrative_context_terms(query)
+            for term in narrative_context_terms(query)
             if term not in {
                 str(item)
                 for item in (CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
@@ -8290,7 +8227,7 @@ class FinancialAgentCalculationMixin:
         def _content_terms(text: str) -> set[str]:
             return {
                 term.lower()
-                for term in self._narrative_context_terms(text)
+                for term in narrative_context_terms(text)
                 if len(term) >= 3
             }
 
@@ -8393,7 +8330,7 @@ class FinancialAgentCalculationMixin:
         ordered_results: List[Dict[str, Any]],
         evidence_items: List[Dict[str, Any]],
     ) -> List[tuple[int, str, List[str]]]:
-        query_terms = self._narrative_context_terms(query)
+        query_terms = narrative_context_terms(query)
         driver_groups = self._narrative_driver_groups(query)
         narrative_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ()))
         missing_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ()))
@@ -8510,7 +8447,7 @@ class FinancialAgentCalculationMixin:
     ) -> Optional[tuple[int, str, List[str]]]:
         if not focus_variants:
             return None
-        query_terms = self._narrative_context_terms(query)
+        query_terms = narrative_context_terms(query)
         impact_markers = tuple(str(item) for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ()))
         for row in ordered_results or []:
             operation_family = self._aggregate_result_operation_family(row)
@@ -8666,8 +8603,8 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             evidence_items=evidence_items,
         )
-        focus_variants = self._narrative_focus_variants(query)
-        focus_required_variants = self._parenthetical_focus_variants(query) or focus_variants
+        focus_variants = narrative_focus_variants(query)
+        focus_required_variants = parenthetical_focus_variants(query) or focus_variants
         answer_has_focus = not focus_required_variants or any(
             variant.lower() in existing_answer_text.lower()
             for variant in focus_required_variants
@@ -8777,7 +8714,7 @@ class FinancialAgentCalculationMixin:
         elif uncovered_focus_variants:
             parenthetical_variants = [
                 variant
-                for variant in self._parenthetical_focus_variants(query)
+                for variant in parenthetical_focus_variants(query)
                 if variant.lower() not in existing_context
             ]
             row_focus_candidate = self._narrative_row_focus_sentence(
@@ -8883,10 +8820,10 @@ class FinancialAgentCalculationMixin:
         }
         focus_terms = [
             term
-            for term in self._narrative_context_terms(query_text)
+            for term in narrative_context_terms(query_text)
             if term not in generic_terms and len(term) >= 2
         ]
-        parenthetical_focus_terms = self._parenthetical_focus_variants(query_text)
+        parenthetical_focus_terms = parenthetical_focus_variants(query_text)
         required_focus_terms = parenthetical_focus_terms or focus_terms
         if required_focus_terms and not any(term.lower() in answer_text.lower() for term in required_focus_terms):
             return False
@@ -8985,7 +8922,7 @@ class FinancialAgentCalculationMixin:
             evidence_items=evidence_items,
         )
 
-        focus_variants = [_normalise_spaces(str(item)) for item in self._narrative_focus_variants(query) if item]
+        focus_variants = [_normalise_spaces(str(item)) for item in narrative_focus_variants(query) if item]
         impact_markers = [
             _normalise_spaces(str(item))
             for item in (CALCULATION_NARRATIVE_POLICY.get("growth_impact_markers") or ())
@@ -9001,12 +8938,12 @@ class FinancialAgentCalculationMixin:
         def _token_overlap_supported(sentence: str, candidate: str) -> bool:
             sentence_terms = {
                 term.lower()
-                for term in self._narrative_context_terms(sentence)
+                for term in narrative_context_terms(sentence)
                 if len(term) >= 3
             }
             candidate_terms = {
                 term.lower()
-                for term in self._narrative_context_terms(candidate)
+                for term in narrative_context_terms(candidate)
                 if len(term) >= 3
             }
             if not sentence_terms or not candidate_terms:
@@ -10180,7 +10117,7 @@ class FinancialAgentCalculationMixin:
             return []
 
         query_requests_narrative = _query_requests_narrative_context(query)
-        query_terms = self._narrative_context_terms(query) if query_requests_narrative else []
+        query_terms = narrative_context_terms(query) if query_requests_narrative else []
 
         grouped_items: Dict[tuple[str, str], List[Dict[str, Any]]] = {}
         for item in evidence_items:
@@ -11003,7 +10940,7 @@ class FinancialAgentCalculationMixin:
                 text = _normalise_spaces(str(slot.get("concept") or ""))
             terms = [
                 term
-                for term in self._narrative_context_terms(text)
+                for term in narrative_context_terms(text)
                 if len(term) >= 2
             ]
             return list(dict.fromkeys(terms))

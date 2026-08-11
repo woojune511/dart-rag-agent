@@ -37,13 +37,13 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_calculation.py",
+      "path": "src/agent/financial_text_surface.py",
       "text": "[가-힣A-Za-z0-9()]+",
       "category": "regex_or_pattern",
-      "fingerprint": "856229ecec7673f5",
+      "fingerprint": "8de82bc58774a578",
       "count": 1,
       "first_lines": [
-        6229
+        37
       ]
     },
     {

@@ -2262,7 +2262,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         preferred_results = [preferred_row]
         source_slots = {"task_lookup": {"normalized_value": 1.0}}
         with (
-            patch.object(agent, "_narrative_context_terms", return_value=[]),
+            patch.object(financial_graph_calculation, "narrative_context_terms", return_value=[]),
             patch.object(
                 agent,
                 "_aggregate_dependency_source_slot_by_task_id",

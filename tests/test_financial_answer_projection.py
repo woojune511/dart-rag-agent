@@ -2517,8 +2517,6 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
             agent._growth_slot_display_value = Mock(side_effect=["200", "100"])
             agent._growth_slots_share_material = Mock(return_value=False)
             agent._growth_required_display_values = Mock(return_value=["10%", "200", "100"])
-            agent._narrative_focus_variants = Mock(return_value=[])
-            agent._parenthetical_focus_variants = Mock(return_value=[])
             agent._narrative_row_focus_context = Mock(return_value=None)
             return agent, row
 
@@ -2547,6 +2545,8 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                 patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
                 patch.object(financial_graph_calculation, "answer_slot_has_material", return_value=True),
                 patch.object(financial_graph_calculation, "CALCULATION_NARRATIVE_POLICY", narrative_policy),
+                patch.object(financial_graph_calculation, "narrative_focus_variants", return_value=[]),
+                patch.object(financial_graph_calculation, "parenthetical_focus_variants", return_value=[]),
             )
             if truncated:
                 with (
@@ -2555,6 +2555,8 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     contexts[2],
                     contexts[3],
                     contexts[4],
+                    contexts[5],
+                    contexts[6],
                     self.assertRaisesRegex(RuntimeError, "continued after truncated answer"),
                 ):
                     compose_agent._compose_growth_narrative_answer(
@@ -2565,7 +2567,15 @@ class FinancialAnswerProjectionNarrativeSurfaceTests(unittest.TestCase):
                     )
                 self.assertEqual(narrative_policy.events[-1], "direction_words")
             else:
-                with contexts[0], contexts[1], contexts[2], contexts[3], contexts[4]:
+                with (
+                    contexts[0],
+                    contexts[1],
+                    contexts[2],
+                    contexts[3],
+                    contexts[4],
+                    contexts[5],
+                    contexts[6],
+                ):
                     result = compose_agent._compose_growth_narrative_answer(
                         query="why",
                         ordered_results=[row],

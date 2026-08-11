@@ -33,6 +33,75 @@ def _strip_rerank_metadata(text: str) -> str:
     return raw.strip()
 
 
+def narrative_context_terms(query: str) -> List[str]:
+    tokens = re.findall(r"[가-힣A-Za-z0-9()]+", _normalise_spaces(str(query or "")))
+    stopwords = {
+        str(item)
+        for item in (CALCULATION_NARRATIVE_POLICY.get("context_stopwords") or ())
+        if str(item)
+    }
+    terms: List[str] = []
+    for token in tokens:
+        cleaned = token.strip()
+        if len(cleaned) < 2 or cleaned in stopwords:
+            continue
+        if re.search(r"\d", cleaned):
+            continue
+        if re.fullmatch(r"\d+", cleaned):
+            continue
+        terms.append(cleaned)
+    return list(dict.fromkeys(terms))
+
+
+def narrative_focus_variants(query: str) -> List[str]:
+    generic_terms = {
+        _normalise_spaces(str(item)).lower()
+        for item in (
+            tuple(CALCULATION_NARRATIVE_POLICY.get("growth_generic_focus_terms") or ())
+            + tuple(CALCULATION_NARRATIVE_POLICY.get("context_reuse_excluded_terms") or ())
+        )
+        if _normalise_spaces(str(item))
+    }
+    variants: List[str] = []
+    for term in narrative_context_terms(query):
+        cleaned = _normalise_spaces(str(term))
+        if not cleaned or cleaned.lower() in generic_terms:
+            continue
+        candidates = [cleaned]
+        candidates.extend(
+            _normalise_spaces(match)
+            for match in re.findall(r"\(([^)]+)\)", cleaned)
+            if _normalise_spaces(match)
+        )
+        outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
+        if outside_parentheses:
+            candidates.append(outside_parentheses)
+        for candidate in candidates:
+            if len(candidate) < 2:
+                continue
+            if candidate.lower() in generic_terms:
+                continue
+            variants.append(candidate)
+    return list(dict.fromkeys(variants))
+
+
+def parenthetical_focus_variants(query: str) -> List[str]:
+    variants: List[str] = []
+    for term in narrative_context_terms(query):
+        cleaned = _normalise_spaces(str(term))
+        if not cleaned or "(" not in cleaned:
+            continue
+        variants.extend(
+            _normalise_spaces(match)
+            for match in re.findall(r"\(([^)]+)\)", cleaned)
+            if _normalise_spaces(match)
+        )
+        outside_parentheses = _normalise_spaces(re.sub(r"\([^)]*\)", " ", cleaned))
+        if outside_parentheses:
+            variants.append(outside_parentheses)
+    return list(dict.fromkeys(variant for variant in variants if len(variant) >= 2))
+
+
 def topic_particle(value: str) -> str:
     particles = dict(CALCULATION_NARRATIVE_POLICY.get("topic_particles") or {})
     with_final = str(particles.get("with_final_consonant") or "")
