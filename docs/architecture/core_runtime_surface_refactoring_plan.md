@@ -242,46 +242,46 @@ aggregate row/gap/lookup-answer, narrative term/variant/context presentation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW
 consistency, and table-metadata KRW repair boundaries are complete in their
 state-free owners. Aggregate dependency-source seed/scoring/selection/component
-preparation and narrative row-focus selection are also owner-resident. Retained
+preparation, narrative row-focus selection, and aggregate growth display/material
+projection are also owner-resident. Retained
 external graph call placements remain, while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `fcf4c55` commit is an ownership relocation only. Exactly five
-source/test files changed. Two graph bodies spanning 95 lines became public
-aggregate APIs with spans 26 + 67 = 93. Their three calls remain graph-external,
-with retired graph-private definitions zero. Source is `+105/-101`, net `+4`:
-the graph moved from 16,164 to 16,069 physical lines and the aggregate owner from
-1,845 to 1,944. Tests are `+721/-3`, net `+718`, and the whole commit is
-`+826/-104`, net `+722`. Five AST-counted unittest methods were added, moving
-both the method inventory and full discovery from 1,644 to 1,649. Final gates
-passed focused 5/5, aggregate owner 15/15, migrated existing methods 3/3,
-semantic 730/730, import 19/19, union 749/749, audit 217, full discovery
-1,649/1,649, and diff check. Benchmark refresh was **NOT RUN** and remote CI is
-unverified. This establishes neither behavior, accuracy, ranking, performance,
-total-code, executed-path, ledger, benchmark, nor Phase 3 completion.
+The completed `d4d19fc` commit is an ownership relocation only. Exactly six
+source/test files changed. Four graph bodies spanning 107 lines became three
+public aggregate APIs and one owner-private helper with spans
+23 + 8 + 17 + 55 = 103. Their 18 calls finish at 15 graph-external and three
+owner-local, with retired graph-private definitions and test refs zero. Source is
+`+134/-127`, net `+7`: the graph moved from 16,069 to 15,961 physical lines and
+the aggregate owner from 1,944 to 2,059. Tests are `+1,066/-18`, net `+1,048`,
+and the whole commit is `+1,200/-145`, net `+1,055`. Seven AST-counted unittest
+methods were added, moving both the method inventory and full discovery from
+1,649 to 1,656. Final gates passed focused 7/7, aggregate owner 22/22, migrated
+existing methods 4/4, semantic 737/737, import 19/19, union 756/756, audit 217,
+full discovery 1,656/1,656, and diff check. Benchmark refresh was **NOT RUN** and
+remote CI is unverified. This establishes neither behavior, accuracy, ranking,
+performance, total-code, executed-path, ledger, benchmark, nor Phase 3
+completion.
 
-The selected follow-on is the 107-line aggregate growth display/material cluster
-at graph lines 2945-3054. Three public functions plus one owner-private source-
-task display helper move to `financial_aggregate_projection.py`; 18 calls finish
-at 15 graph-external and three owner-local, and projected owner spans are
-23 + 8 + 17 + 55 = 103 lines. The aggregate owner already has every dependency
-edge; only an answer-slots symbol/import is added on an existing edge, so the
-move adds no module edge and no runtime-domain baseline record. The exact
-APIs, seven-method characterization gate, call distribution, and rejected
-expansions live only in
+The selected follow-on is the 81-line aggregate result support/reuse predicate
+cluster. Four public functions move to `financial_aggregate_projection.py`; 12
+calls finish at 11 graph-external and one owner-local, and projected owner spans
+are 39 + 10 + 16 + 12 = 77 lines. The aggregate owner already has every symbol
+and module edge, so the move adds no import, dependency edge, or runtime-domain
+baseline record. The exact APIs, six-method characterization gate, call
+distribution, and rejected expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-Growth required-value construction, complete/narrative answer composition,
-duplicate-prior recovery, and all evidence/state sequencing stay in the graph.
-Existing direct and instance-patched tests must retarget to the owner or graph-
-imported public symbols, but production has no compatibility gate for the
-cluster. Direct structured evidence remains blocked by the correct-owner cycle;
-source-visible query terms retain inherited retrieval and ontology seams; the
-ratio-artifact cluster crosses the artifact ledger; compact ratio retains state/
-trace carriers; and precision, evidence mutation, callback, promotion,
-sync/rebuild, and final-orchestration expansions remain excluded.
+Answer choice, mutable state/evidence, composition, refresh, and final sequencing
+stay in the graph. Existing aggregate-subtask and text-surface test references
+must retarget to the owner or graph-imported public symbols, but production has
+no compatibility gate for the cluster. Growth trace incompatibility, dynamic
+narrative candidates, direct structured evidence, source-visible query terms,
+ratio artifacts, compact-ratio state/trace, precision, evidence mutation,
+callbacks, promotion, sync/rebuild, and final-orchestration expansions remain
+excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

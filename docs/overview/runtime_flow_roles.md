@@ -374,9 +374,13 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - 완료된 narrative row-focus selection도 같은 owner의 public sentence/context
   함수로 배치된다. 세 call은 모두 graph-external이고 dynamic driver discovery,
   answer composition/validation, evidence/state sequencing은 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 107-line growth display/material
-  cluster다. public 3개와 owner-private 1개, external 15/local 3 call,
-  characterize-first gate와 composition/duplicate-recovery hard stop은
+- 완료된 growth display/material projection도 같은 owner의 public display,
+  material-equality, prior-recovery 함수와 owner-private source-task helper로
+  배치된다. 18 call은 graph external 15개와 owner-local 3개이며 growth answer
+  construction, duplicate recovery, evidence/state sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 81-line result support/reuse
+  predicate cluster다. public 4개, external 11/local 1 call, characterize-first
+  gate와 composition/state/final-sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

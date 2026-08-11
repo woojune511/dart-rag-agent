@@ -1856,6 +1856,50 @@ Exact APIs, dependencies, seven-method characterization gate, and rejected
 expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Aggregate growth display/material owner milestone
+
+- `d4d19fc` moves four former graph helpers into
+  `financial_aggregate_projection.py`: owner-private
+  `_slot_display_from_source_task(...)` and public
+  `growth_slot_display_value(...)`, `growth_slots_share_material(...)`, and
+  `recover_growth_prior_material_from_evidence(...)`. The former definition
+  spans were 24 + 9 + 18 + 56 = 107 lines; the owner spans are
+  23 + 8 + 17 + 55 = 103. Eighteen selected calls now place 15 in the graph and
+  three owner-local, and retired graph-private definitions and test refs are zero.
+- Exactly six source/test files changed. Source is `+134/-127`, net `+7`: the
+  graph is `+18/-126` and moves from 16,069 to 15,961 physical lines; aggregate
+  projection is `+116/-1` and moves from 1,944 to 2,059. Tests are
+  `+1,066/-18`, net `+1,048`; the whole commit is `+1,200/-145`, net `+1,055`.
+  The four touched test files move from 41,326 to 42,374 physical lines.
+- The frozen source-only diff SHA-256 is
+  `c25590b321b0cc32e6220d9f33c196c0570b15442cfe840bd34d6242f2ac8d02`.
+  Literal body parity passed 4/4 after only self removal and owner-local name
+  rebinding. Full caller parity passed for required displays, complete/narrative
+  composition, and duplicate recovery. The import DAG remains acyclic; public
+  import identity is exact; old mixin attributes are absent.
+- Seven AST-counted unittest methods were added, moving the method inventory and
+  full discovery from 1,649 to 1,656. Final validation passed focused 7/7,
+  aggregate-owner module 22/22, migrated existing methods 4/4, the eight-module
+  semantic set 737/737, import-side-effects 19/19, the nine-module union 756/756,
+  runtime audit 217, full discovery 1,656/1,656, pycompile/fresh-import binding
+  checks, and `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote
+  CI run is claimed or verified for this local branch.
+
+This milestone closes only state-free growth display/material projection. Growth
+answer construction, duplicate-prior recovery, broader evidence work, mutable
+state/evidence, artifact/ledger work, promotion, sync/rebuild, and final
+sequencing remain graph-owned. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 81-line aggregate result
+support/reuse predicate cluster. Four public aggregate-projection functions are
+projected at 39 + 10 + 16 + 12 = 77 owner lines; 12 calls finish as 11 graph-
+external and one owner-local. Answer choice, composition, refresh, mutable state/
+evidence, and final sequencing remain hard stops. Exact APIs, dependencies, six-
+method characterization gate, and rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

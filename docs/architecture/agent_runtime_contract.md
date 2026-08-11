@@ -1629,14 +1629,15 @@ sequencing, and artifact/ledger work remain graph-owned. Benchmark refresh was
 behavior, accuracy, ranking, performance, total-code, executed-path, benchmark,
 schedule, or Phase 3 completion claim.
 
-The next selected growth display/material cluster is not yet an owner contract.
-It is the 107-line four-function boundary governed solely by
-[Project Status Next Work](../overview/project_status.md#next-work): three public
-aggregate-projection APIs plus one owner-private helper, 18 calls projected as
-15 graph-external and three owner-local, owner spans 23 + 8 + 17 + 55 = 103, and
-no dependency or baseline-record move. Required-value construction, complete and
-narrative answer composition, duplicate recovery, state/evidence sequencing, and
-artifact/ledger work remain graph hard stops.
+The growth display/material cluster subsequently moved in `d4d19fc`; its exact
+owner semantics are specified in the source-task compatibility section below.
+The next selected aggregate result support/reuse predicate cluster is not yet an
+owner contract. It is the 81-line four-function boundary governed solely by
+[Project Status Next Work](../overview/project_status.md#next-work): four public
+aggregate-projection APIs, 12 calls projected as 11 graph-external and one owner-
+local, owner spans 39 + 10 + 16 + 12 = 77, and no import, dependency, or baseline-
+record move. Answer choice, composition, refresh, mutable state/evidence,
+artifact/ledger work, and final sequencing remain graph hard stops.
 
 Aggregate narrative-row, numeric-gap, and lookup-answer policy is also owned by
 `financial_aggregate_projection.py`. Public `row_is_narrative_summary(row)`
@@ -2340,16 +2341,45 @@ the source display returns `False`; all other paths return `True`. The owner doe
 not copy or mutate inputs and catches no mapping, truthiness, string, iteration,
 containment, normalization, policy, or other exception.
 
-The graph retains source-task and source-slot lookup, calculation-result/answer-
-slot copies, and the source-slot material gate. `_growth_slot_display_value`
-obtains that source display first; blank output is owner-zero. A truthy display
-calls the public owner once with the exact slot and prepared string. Owner `True`
-adopts the source display; owner `False` repeats the graph's normalized
-`rendered_value`-then-`raw_value` fallback, and an owner exception stops that
-fallback and later growth-material work. Source-task lookup, growth calculation
-and material semantics, state, artifact, and final orchestration remain graph-
-owned. This seam claims only source-task display-compatibility ownership, not
-lookup or growth semantics, numeric/render-policy improvement, behavior or
+Prepared aggregate growth display/material projection is now a state-free
+`financial_aggregate_projection.py` owner seam. Owner-private
+`_slot_display_from_source_task(slot, ordered_results)` resolves normalized
+`source_task_id` before a `task_output:` source-row fallback, defaults the source
+slot to `primary_value`, scans rows in stable order, and shallow-copies the
+calculation-result, answer-slot map, and selected source slot before the material
+gate. The first material slot returns normalized `rendered_value` before
+`raw_value`; absent ids, rows, or material return a blank string. Top-level inputs
+remain unmodified and copied nested values retain identity.
+
+Public `growth_slot_display_value(slot, ordered_results)` obtains that source
+display first. A truthy display calls
+`source_task_display_compatible_with_slot(...)` once with the exact slot and
+prepared string; owner `True` adopts it. Blank or incompatible source display
+uses normalized `rendered_value` before `raw_value`. Public
+`growth_slots_share_material(current_slot, prior_slot, ordered_results)` calls
+the display owner current-first and prior-second. Equal truthy displays return
+`True` before normalized-value access; otherwise missing normalized values return
+`False`, and exact `float` equality decides the result. Only `TypeError` and
+`ValueError` from numeric coercion become `False`; display, mapping, truthiness,
+string, normalization, and other exceptions propagate.
+
+Public `recover_growth_prior_material_from_evidence(...)` is owner-zero for empty
+evidence or a current slot without a four-digit period/label year. It normalizes
+the current raw value and the prior-then-current raw-unit fallback, builds the
+same unit-aware number pattern, scans evidence and split sentences in stable
+order, requires an earlier year, skips the current value, and returns the first
+fresh `{display, period, raw_value, source_quote}` dictionary. A configured year
+suffix is applied only on success. The existing blank-unit wildcard behavior,
+including its first regex match, is preserved exactly. Inputs and evidence items
+are not mutated; mapping, string, regex, sentence splitting, policy, and other
+exceptions remain uncaught.
+
+The graph retains `_growth_required_display_values(...)`, complete and narrative
+growth answer construction, duplicate-prior operand recovery, evidence choice,
+adoption, state, artifacts, and final orchestration. Its 15 direct public calls
+remain in their original positions; the three helper calls above are owner-local.
+This seam claims display/material ownership only, not growth-calculation or
+answer-composition ownership, numeric/render-policy improvement, behavior or
 performance improvement, total-code or executed-path reduction, broad private-
 surface cleanup, or Phase 3 completion.
 
