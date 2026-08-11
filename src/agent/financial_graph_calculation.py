@@ -67,12 +67,16 @@ from src.agent.financial_aggregate_projection import (
     aggregate_result_dependency_coherence_ranks,
     aggregate_result_operation_family as _aggregate_result_operation_family,
     aggregate_result_signature,
+    aggregate_results_include_dependency_numeric_result,
+    aggregate_results_include_source_task_slot_realignment,
     aggregate_selected_claim_ids as _aggregate_selected_claim_ids,
     aggregate_source_slot_by_task_id,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     aggregate_synthesis_prompt_rows,
     append_uncovered_lookup_numeric_items,
     apply_aggregate_answer_candidate,
+    answer_reuses_narrative_summary_text,
+    answer_reuses_numeric_narrative_summary_text,
     best_dependency_source_for_seed,
     component_slot_from_dependency_source,
     compose_lookup_list_numeric_answer,
@@ -2904,47 +2908,6 @@ class FinancialAgentCalculationMixin:
             ).candidate
         return best_candidate
 
-    def _aggregate_results_include_dependency_numeric_result(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        for row in ordered_results:
-            operation_family = self._aggregate_result_operation_family(row)
-            if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            candidate_sources = _clean_source_row_ids([
-                calculation_result.get("source_row_ids"),
-                row.get("source_row_ids"),
-                [
-                    [
-                        operand.get("evidence_id"),
-                        operand.get("source_row_id"),
-                        operand.get("source_row_ids"),
-                    ]
-                    for operand in list(row.get("calculation_operands") or [])
-                    if isinstance(operand, dict)
-                ],
-                [
-                    [
-                        operand.get("evidence_id"),
-                        operand.get("source_row_id"),
-                        operand.get("source_row_ids"),
-                    ]
-                    for operand in list(calculation_result.get("calculation_operands") or [])
-                    if isinstance(operand, dict)
-                ],
-            ])
-            if any(str(source_id).startswith("task_output:") for source_id in candidate_sources):
-                return True
-            if any(
-                bool((operand or {}).get("dependency_resolved"))
-                for operand in list(row.get("calculation_operands") or [])
-                if isinstance(operand, dict)
-            ):
-                return True
-        return False
-
     def _growth_required_display_values(
         self,
         row: Dict[str, Any],
@@ -3620,18 +3583,6 @@ class FinancialAgentCalculationMixin:
             }
         return {}
 
-    def _aggregate_results_include_source_task_slot_realignment(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        for row in ordered_results:
-            if not row.get("aligned_from_source_task_slots"):
-                continue
-            operation_family = self._aggregate_result_operation_family(row)
-            if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
-                return True
-        return False
-
     def _growth_narrative_numeric_incompatible_with_trace(
         self,
         *,
@@ -3676,38 +3627,6 @@ class FinancialAgentCalculationMixin:
             )
             for narrative_candidate in narrative_numeric_candidates
         )
-
-    def _answer_reuses_narrative_summary_text(
-        self,
-        answer: str,
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text:
-            return False
-        for row in ordered_results:
-            if not row_is_narrative_summary(row):
-                continue
-            narrative_answer = _normalise_spaces(str(row.get("answer") or ""))
-            if len(narrative_answer) < 20 or not re.search(r"\d", narrative_answer):
-                continue
-            if narrative_answer in answer_text or answer_text in narrative_answer:
-                return True
-        return False
-
-    def _answer_reuses_numeric_narrative_summary_text(
-        self,
-        answer: str,
-        ordered_results: List[Dict[str, Any]],
-    ) -> bool:
-        if not self._answer_reuses_narrative_summary_text(answer, ordered_results):
-            return False
-        non_percent_candidates = [
-            candidate
-            for candidate in extract_numeric_surface_candidates(answer)
-            if str(candidate.get("kind") or "") != "percent"
-        ]
-        return len(non_percent_candidates) >= 2
 
     def _uncovered_supported_growth_narrative_candidate(
         self,
@@ -3800,7 +3719,7 @@ class FinancialAgentCalculationMixin:
 
         if (
             query_requests_explanatory_context(query_text)
-            and self._answer_reuses_numeric_narrative_summary_text(current_answer_text, ordered_results)
+            and answer_reuses_numeric_narrative_summary_text(current_answer_text, ordered_results)
             and _has_explanatory_signal(current_answer_text)
             and re.search(str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or r"$^"), current_answer_text)
         ):
@@ -4200,7 +4119,7 @@ class FinancialAgentCalculationMixin:
         complete_numeric_answer = self._preferred_complete_numeric_answer(ordered_results)
         if complete_numeric_answer and (
             has_narrative_summary
-            or self._aggregate_results_include_dependency_numeric_result(ordered_results)
+            or aggregate_results_include_dependency_numeric_result(ordered_results)
         ):
             return complete_numeric_answer
 
@@ -4506,7 +4425,7 @@ class FinancialAgentCalculationMixin:
         if (
             deterministic_feedback
             and self._unresolved_structured_numeric_gap(ordered_results)
-            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
+            and answer_reuses_narrative_summary_text(final_answer, ordered_results)
         ):
             safe_partial_answer = safe_partial_answer_for_numeric_gap(ordered_results)
             final_answer = safe_partial_answer or ""
@@ -4532,7 +4451,7 @@ class FinancialAgentCalculationMixin:
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
                 query_requests_explanatory_context(str(state.get("query") or ""))
-                and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
             final_answer = self._ensure_complete_growth_numeric_answer(
@@ -4980,7 +4899,7 @@ class FinancialAgentCalculationMixin:
         unresolved_numeric_gap = self._unresolved_structured_numeric_gap(ordered_results)
         blocked_narrative_numeric_gap = bool(
             unresolved_numeric_gap
-            and self._answer_reuses_narrative_summary_text(final_answer, ordered_results)
+            and answer_reuses_narrative_summary_text(final_answer, ordered_results)
         )
         if blocked_narrative_numeric_gap:
             safe_partial_answer = safe_partial_answer_for_numeric_gap(ordered_results)
@@ -4993,7 +4912,7 @@ class FinancialAgentCalculationMixin:
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
                 query_requests_explanatory_context(str(state.get("query") or ""))
-                and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
             numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
@@ -15218,7 +15137,7 @@ class FinancialAgentCalculationMixin:
         if aligned_ordered_results is not ordered_results:
             refresh_aligned_numeric = (
                 not narrative_answer_locked
-                or self._aggregate_results_include_source_task_slot_realignment(aligned_ordered_results)
+                or aggregate_results_include_source_task_slot_realignment(aligned_ordered_results)
             )
             mutable_state = self._replace_mutable_aggregate_results(
                 mutable_state,
@@ -15266,7 +15185,7 @@ class FinancialAgentCalculationMixin:
             and not self._answer_matches_supported_aggregate_subtask(final_answer, ordered_results)
             and not (
                 query_requests_explanatory_context(str(state.get("query") or ""))
-                and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
             final_answer = self._ensure_complete_growth_numeric_answer(
@@ -15388,7 +15307,7 @@ class FinancialAgentCalculationMixin:
         final_answer_satisfies_requested_growth_narrative = bool(
             query_requests_explanatory_context(str(state.get("query") or ""))
             and (
-                self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
                 or self._answer_satisfies_growth_narrative_intent(
                     query=str(state.get("query") or ""),
                     answer=final_answer,
@@ -15659,7 +15578,7 @@ class FinancialAgentCalculationMixin:
             and not (
                 query_requests_explanatory_context(str(state.get("query") or ""))
                 and (
-                    self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+                    answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
                     or self._answer_satisfies_growth_narrative_intent(
                         query=str(state.get("query") or ""),
                         answer=final_answer,
@@ -15743,7 +15662,7 @@ class FinancialAgentCalculationMixin:
             _sync_state(aggregate_projection=aggregate_projection, final_answer=final_answer)
         if self._has_strong_growth_trace_for_answer_refresh(ordered_results) and not (
             query_requests_explanatory_context(str(state.get("query") or ""))
-            and self._answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
+            and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
         ):
             trace_clean_growth_answer = self._final_growth_answer_without_untraced_numeric_sentences(
                 query=str(state.get("query") or ""),

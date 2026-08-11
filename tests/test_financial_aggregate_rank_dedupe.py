@@ -3957,6 +3957,900 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         normalizer.assert_not_called()
         self.assertEqual(ordered_operands, before_operands)
 
+    def test_current_source_dependency_numeric_result_predicate_pins_sources_laziness_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+
+        class SkippedRow(dict):
+            def get(self, key, default=None):
+                if key == "calculation_result":
+                    raise AssertionError("unsupported row inspected")
+                return super().get(key, default)
+
+        skipped = SkippedRow(operation_family="lookup", nested=nested)
+        row_operand = {
+            "evidence_id": "row-evidence",
+            "source_row_id": "row-source",
+            "source_row_ids": ["row-list"],
+            "dependency_resolved": True,
+            "nested": nested,
+        }
+        result_operand = {
+            "evidence_id": "result-evidence",
+            "source_row_id": "result-source",
+            "source_row_ids": ["result-list"],
+            "nested": nested,
+        }
+        calculation_result = {
+            "source_row_ids": ["result-top"],
+            "calculation_operands": [result_operand, "skip"],
+            "nested": nested,
+        }
+        row = {
+            "operation_family": "ratio",
+            "source_row_ids": ["row-top"],
+            "calculation_operands": [row_operand, None],
+            "calculation_result": calculation_result,
+            "nested": nested,
+        }
+        ordered_results = [skipped, row]
+        before_results = deepcopy(ordered_results)
+        operation_owner = Mock(side_effect=["lookup", "ratio"])
+        clean_owner = Mock(return_value=[])
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", operation_owner),
+            patch.object(financial_aggregate_projection, "_clean_source_row_ids", clean_owner),
+        ):
+            self.assertTrue(
+                financial_aggregate_projection.aggregate_results_include_dependency_numeric_result(ordered_results)
+            )
+        self.assertEqual([call.args[0] for call in operation_owner.call_args_list], ordered_results)
+        clean_owner.assert_called_once()
+        source_payload = clean_owner.call_args.args[0]
+        self.assertEqual(source_payload[0], ["result-top"])
+        self.assertEqual(source_payload[1], ["row-top"])
+        self.assertEqual(
+            source_payload[2],
+            [["row-evidence", "row-source", ["row-list"]]],
+        )
+        self.assertEqual(
+            source_payload[3],
+            [["result-evidence", "result-source", ["result-list"]]],
+        )
+        self.assertEqual(ordered_results, before_results)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(calculation_result["nested"], nested)
+        self.assertIs(row_operand["nested"], nested)
+
+        class DependencyAccessBomb(dict):
+            def get(self, key, default=None):
+                if key == "dependency_resolved":
+                    raise AssertionError("dependency flag accessed after task source")
+                return super().get(key, default)
+
+        task_operand = DependencyAccessBomb(
+            evidence_id="task-evidence",
+            source_row_id="task-source",
+            source_row_ids=[],
+        )
+        task_row = {"calculation_operands": [task_operand]}
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="sum"),
+            patch.object(
+                financial_aggregate_projection,
+                "_clean_source_row_ids",
+                return_value=["task_output:upstream"],
+            ),
+        ):
+            self.assertTrue(
+                financial_aggregate_projection.aggregate_results_include_dependency_numeric_result([task_row])
+            )
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="difference"),
+            patch.object(financial_aggregate_projection, "_clean_source_row_ids", return_value=[]),
+        ):
+            self.assertFalse(
+                financial_aggregate_projection.aggregate_results_include_dependency_numeric_result(
+                    [{"calculation_operands": [{"dependency_resolved": False}]}]
+                )
+            )
+
+        clean_owner = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=RuntimeError("operation failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_clean_source_row_ids", clean_owner),
+            self.assertRaisesRegex(RuntimeError, "operation failed"),
+        ):
+            financial_aggregate_projection.aggregate_results_include_dependency_numeric_result([row])
+        clean_owner.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="ratio"),
+            patch.object(
+                financial_aggregate_projection,
+                "_clean_source_row_ids",
+                side_effect=RuntimeError("source cleanup failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "source cleanup failed"),
+        ):
+            financial_aggregate_projection.aggregate_results_include_dependency_numeric_result([row])
+
+    def test_current_source_source_task_realignment_predicate_pins_scan_laziness_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        events = []
+
+        class AlignmentFalseRow(dict):
+            def get(self, key, default=None):
+                events.append(("get", key))
+                return super().get(key, default)
+
+        false_row = AlignmentFalseRow(aligned_from_source_task_slots=False, nested=nested)
+        unsupported_row = {"aligned_from_source_task_slots": True, "nested": nested}
+        supported_row = {"aligned_from_source_task_slots": "yes", "nested": nested}
+        ordered_results = [false_row, unsupported_row, supported_row]
+        before_results = deepcopy(ordered_results)
+        operation_owner = Mock(side_effect=lambda row: events.append(("operation", row)) or (
+            "lookup" if row is unsupported_row else "growth_rate"
+        ))
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", operation_owner):
+            self.assertTrue(
+                financial_aggregate_projection.aggregate_results_include_source_task_slot_realignment(ordered_results)
+            )
+        self.assertEqual(
+            [call.args[0] for call in operation_owner.call_args_list],
+            [unsupported_row, supported_row],
+        )
+        self.assertEqual(ordered_results, before_results)
+        self.assertIs(false_row["nested"], nested)
+        self.assertIs(supported_row["nested"], nested)
+
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="lookup"):
+            self.assertFalse(
+                financial_aggregate_projection.aggregate_results_include_source_task_slot_realignment(
+                    [{"aligned_from_source_task_slots": True}]
+                )
+            )
+
+        class AlignmentBoolBomb:
+            def __bool__(self):
+                raise RuntimeError("alignment truthiness failed")
+
+        operation_owner = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", operation_owner),
+            self.assertRaisesRegex(RuntimeError, "alignment truthiness failed"),
+        ):
+            financial_aggregate_projection.aggregate_results_include_source_task_slot_realignment(
+                [{"aligned_from_source_task_slots": AlignmentBoolBomb()}]
+            )
+        operation_owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=RuntimeError("family failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "family failed"),
+        ):
+            financial_aggregate_projection.aggregate_results_include_source_task_slot_realignment(
+                [{"aligned_from_source_task_slots": True}]
+            )
+
+    def test_current_source_narrative_reuse_predicates_pin_substrings_numeric_kinds_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+
+        class RowsBomb:
+            def __iter__(self):
+                raise AssertionError("rows iterated for blank answer")
+
+        self.assertFalse(financial_aggregate_projection.answer_reuses_narrative_summary_text("", RowsBomb()))
+
+        class AnswerAccessBomb(dict):
+            def get(self, key, default=None):
+                if key == "answer":
+                    raise AssertionError("non-narrative answer accessed")
+                return super().get(key, default)
+
+        ignored = AnswerAccessBomb(metric_family="other", nested=nested)
+        short = {"metric_family": "narrative_summary", "answer": "short 1", "nested": nested}
+        no_digit = {
+            "metric_family": "narrative_summary",
+            "answer": "a sufficiently long narrative without a numeric surface",
+            "nested": nested,
+        }
+        narrative = {
+            "metric_family": "narrative_summary",
+            "answer": "Revenue increased to 120 units during the reported period.",
+            "nested": nested,
+        }
+        ordered_results = [ignored, short, no_digit, narrative]
+        before_results = deepcopy(ordered_results)
+        with patch.object(
+            financial_aggregate_projection,
+            "row_is_narrative_summary",
+            side_effect=lambda row: row.get("metric_family") == "narrative_summary",
+        ) as narrative_owner:
+            self.assertTrue(
+                financial_aggregate_projection.answer_reuses_narrative_summary_text(
+                    "Prefix Revenue increased to 120 units during the reported period. Suffix",
+                    ordered_results,
+                )
+            )
+            self.assertTrue(
+                financial_aggregate_projection.answer_reuses_narrative_summary_text(
+                    "Revenue increased to 120 units",
+                    [narrative],
+                )
+            )
+        self.assertEqual(narrative_owner.call_count, 5)
+        self.assertEqual(ordered_results, before_results)
+        self.assertIs(narrative["nested"], nested)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "row_is_narrative_summary",
+            return_value=True,
+        ):
+            self.assertFalse(
+                financial_aggregate_projection.answer_reuses_narrative_summary_text(
+                    "different 999 narrative material",
+                    [narrative],
+                )
+            )
+
+        reuse_owner = Mock(return_value=False)
+        extractor = Mock(side_effect=AssertionError("numeric extraction accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "answer_reuses_narrative_summary_text", reuse_owner),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", extractor),
+        ):
+            self.assertFalse(
+                financial_aggregate_projection.answer_reuses_numeric_narrative_summary_text("answer", ordered_results)
+            )
+        reuse_owner.assert_called_once_with("answer", ordered_results)
+        extractor.assert_not_called()
+
+        candidates = [
+            {"kind": "percent", "value": 10},
+            {"kind": "number", "value": 120},
+            {"kind": "currency", "value": 90},
+        ]
+        with (
+            patch.object(financial_aggregate_projection, "answer_reuses_narrative_summary_text", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=candidates,
+            ) as extractor,
+        ):
+            self.assertTrue(
+                financial_aggregate_projection.answer_reuses_numeric_narrative_summary_text("120 and 90 plus 10%", ordered_results)
+            )
+        extractor.assert_called_once_with("120 and 90 plus 10%")
+        self.assertIs(candidates[0], extractor.return_value[0])
+
+        with (
+            patch.object(financial_aggregate_projection, "answer_reuses_narrative_summary_text", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"kind": "percent"}, {"kind": "number"}],
+            ),
+        ):
+            self.assertFalse(
+                financial_aggregate_projection.answer_reuses_numeric_narrative_summary_text("120 and 10%", ordered_results)
+            )
+
+        row_owner = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalizer failed"),
+            ),
+            patch.object(financial_aggregate_projection, "row_is_narrative_summary", row_owner),
+            self.assertRaisesRegex(RuntimeError, "normalizer failed"),
+        ):
+            financial_aggregate_projection.answer_reuses_narrative_summary_text("answer", ordered_results)
+        row_owner.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "answer_reuses_narrative_summary_text", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=RuntimeError("extractor failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "extractor failed"),
+        ):
+            financial_aggregate_projection.answer_reuses_numeric_narrative_summary_text("answer", ordered_results)
+
+    def test_current_source_result_support_bindings_pin_defs_calls_plan_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        module_sources = {
+            "graph": inspect.getsource(financial_graph_calculation),
+            "owner": inspect.getsource(financial_aggregate_projection),
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        current_targets = {
+            "dependency": "aggregate_results_include_dependency_numeric_result",
+            "realignment": "aggregate_results_include_source_task_slot_realignment",
+            "narrative": "answer_reuses_narrative_summary_text",
+            "numeric": "answer_reuses_numeric_narrative_summary_text",
+        }
+        retired_targets = {f"_{name}" for name in current_targets.values()}
+        definitions = {}
+        all_definition_names = set()
+        calls = {key: [] for key in current_targets}
+        try_depths = {key: [] for key in current_targets}
+        noncall_refs = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                all_definition_names.add(node.name)
+                if node.name in current_targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else ""
+                for key, target in current_targets.items():
+                    if called_name == target:
+                        calls[key].append(
+                            (
+                                self.module_name,
+                                tuple(self.function_stack),
+                                receiver,
+                                tuple(ast.unparse(arg) for arg in node.args),
+                                tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            )
+                        )
+                        try_depths[key].append(self.try_depth)
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in current_targets.values() and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if node.id in current_targets.values() and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.id, node.lineno))
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                current_targets["dependency"]: ("owner", 39),
+                current_targets["realignment"]: ("owner", 10),
+                current_targets["narrative"]: ("owner", 16),
+                current_targets["numeric"]: ("owner", 12),
+            },
+        )
+        self.assertTrue(retired_targets.isdisjoint(all_definition_names))
+        self.assertEqual(
+            {key: len(entries) for key, entries in calls.items()},
+            {"dependency": 1, "realignment": 1, "narrative": 3, "numeric": 7},
+        )
+        self.assertEqual(
+            try_depths,
+            {
+                "dependency": [0],
+                "realignment": [0],
+                "narrative": [0, 0, 0],
+                "numeric": [0] * 7,
+            },
+        )
+        self.assertEqual(noncall_refs, [])
+        self.assertTrue(
+            all(
+                receiver == ""
+                for entries in calls.values()
+                for _module, _stack, receiver, _args, _kwargs in entries
+            )
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, *_rest in calls["dependency"]),
+            Counter({"_preferred_aggregate_fallback_answer": 1}),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, *_rest in calls["realignment"]),
+            Counter({"_aggregate_calculation_subtasks": 1}),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, *_rest in calls["narrative"]),
+            Counter(
+                {
+                    current_targets["numeric"]: 1,
+                    "_apply_initial_aggregate_answer_composition": 1,
+                    "_apply_final_narrative_repair_pipeline": 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, *_rest in calls["numeric"]),
+            Counter(
+                {
+                    "_refresh_numeric_answer_preserving_narrative_context": 1,
+                    "_apply_initial_aggregate_answer_composition": 1,
+                    "_apply_final_narrative_repair_pipeline": 1,
+                    "_aggregate_calculation_subtasks": 4,
+                }
+            ),
+        )
+        self.assertTrue(
+            all(
+                not kwargs and len(args) == expected_arg_count
+                for key, entries in calls.items()
+                for expected_arg_count in [1 if key in {"dependency", "realignment"} else 2]
+                for _module, _stack, _receiver, args, kwargs in entries
+            )
+        )
+
+        selected_names = set(current_targets.values())
+        distribution = {}
+        for key, entries in calls.items():
+            external = sum(not selected_names.intersection(stack) for _module, stack, *_rest in entries)
+            distribution[key] = (external, len(entries) - external)
+        self.assertEqual(
+            distribution,
+            {"dependency": (1, 0), "realignment": (1, 0), "narrative": (2, 1), "numeric": (7, 0)},
+        )
+        self.assertEqual(
+            (
+                sum(external for external, _local in distribution.values()),
+                sum(local for _external, local in distribution.values()),
+            ),
+            (11, 1),
+        )
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        owner_imports = imported_modules(module_trees["owner"])
+        self.assertIn("src.agent.financial_numeric_surface", owner_imports)
+        self.assertIn("src.agent.financial_runtime_normalization", owner_imports)
+        graph_owner_bindings = {
+            alias.asname or alias.name
+            for node in module_trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_aggregate_projection"
+            for alias in node.names
+        }
+        self.assertTrue(set(current_targets.values()).issubset(graph_owner_bindings))
+        numeric_tree = ast.parse(Path("src/agent/financial_numeric_surface.py").read_text(encoding="utf-8"))
+        normalization_tree = ast.parse(
+            Path("src/agent/financial_runtime_normalization.py").read_text(encoding="utf-8")
+        )
+        self.assertNotIn("src.agent.financial_aggregate_projection", imported_modules(numeric_tree))
+        self.assertNotIn("src.agent.financial_aggregate_projection", imported_modules(normalization_tree))
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines_by_path = {
+            "src/agent/financial_aggregate_projection.py": {
+                line
+                for module_name, node in definitions.values()
+                if module_name == "owner"
+                for line in range(node.lineno, node.end_lineno + 1)
+            },
+            "src/agent/financial_graph_calculation.py": {
+                line
+                for module_name, node in definitions.values()
+                if module_name == "graph"
+                for line in range(node.lineno, node.end_lineno + 1)
+            },
+        }
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if selected_lines_by_path.get(record.get("path"), set()).intersection(
+                    record.get("first_lines") or []
+                )
+            ],
+            [],
+        )
+
+    def test_current_source_result_support_callers_pin_fallback_and_alignment_gate(self) -> None:
+        ordered_results = [{"task_id": "task_1"}]
+        events = []
+        dependency_owner = Mock(
+            side_effect=lambda rows: events.append(("dependency", rows)) or True
+        )
+        with (
+            patch.object(self.agent, "_unresolved_structured_numeric_gap", return_value=False),
+            patch.object(self.agent, "_supported_aggregate_subtask_answer", return_value=""),
+            patch.object(self.agent, "_preferred_conflicting_growth_narrative_answer", return_value={}),
+            patch.object(
+                financial_graph_calculation,
+                "row_is_narrative_summary",
+                side_effect=lambda row: events.append(("narrative", row)) or False,
+            ),
+            patch.object(
+                self.agent,
+                "_preferred_complete_numeric_answer",
+                side_effect=lambda rows: events.append(("complete", rows)) or "complete 100",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_results_include_dependency_numeric_result",
+                dependency_owner,
+            ),
+        ):
+            self.assertEqual(
+                self.agent._preferred_aggregate_fallback_answer(ordered_results, "default"),
+                "complete 100",
+            )
+        dependency_owner.assert_called_once_with(ordered_results)
+        self.assertIs(dependency_owner.call_args.args[0], ordered_results)
+        self.assertEqual([event[0] for event in events], ["narrative", "complete", "dependency"])
+
+        with (
+            patch.object(self.agent, "_unresolved_structured_numeric_gap", return_value=False),
+            patch.object(self.agent, "_supported_aggregate_subtask_answer", return_value=""),
+            patch.object(self.agent, "_preferred_conflicting_growth_narrative_answer", return_value={}),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
+            patch.object(self.agent, "_preferred_complete_numeric_answer", return_value="complete 100"),
+            patch.object(
+                financial_graph_calculation,
+                "aggregate_results_include_dependency_numeric_result",
+                side_effect=RuntimeError("dependency predicate failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "dependency predicate failed"),
+        ):
+            self.agent._preferred_aggregate_fallback_answer(ordered_results, "default")
+
+        base_row = {"task_id": "base"}
+        aligned_row = {"task_id": "aligned"}
+        base_rows = [base_row]
+        aligned_rows = [aligned_row]
+        state = {
+            "query": "",
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [],
+            "plan_loop_count": 0,
+        }
+        prepared = financial_graph_calculation._PreparedAggregateState(
+            base_rows, "base answer", "", "", False, False, False
+        )
+        evidence_state = financial_graph_calculation._AggregateEvidenceState(
+            base_rows, [], "base answer", "base answer", "", ""
+        )
+        composition_state = financial_graph_calculation.AggregateCompositionState(
+            "base answer", [], None, True, "", ""
+        )
+        feedback_state = financial_graph_calculation._AggregateFeedbackState(
+            "base answer", "", "", [], {}, False, ""
+        )
+        projection = {
+            "calculation_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+        }
+
+        alignment_events = []
+
+        def run_alignment(predicate_owner, replacement_owner):
+            alignment_events.clear()
+            with (
+                patch.object(self.agent, "_prepare_initial_aggregate_state", return_value=prepared),
+                patch.object(self.agent, "_infer_planner_feedback_from_answer_slots", return_value=""),
+                patch.object(self.agent, "_collect_initial_aggregate_evidence_state", return_value=evidence_state),
+                patch.object(self.agent, "_rebuild_aggregate_projection", return_value=projection),
+                patch.object(self.agent, "_runtime_evidence_rows_with_context_docs", return_value=[]),
+                patch.object(
+                    self.agent,
+                    "_apply_period_context_realignment_to_aggregate",
+                    side_effect=lambda **kwargs: kwargs["aggregate_state"],
+                ),
+                patch.object(financial_graph_calculation, "narrative_context_sentence_from_evidence", return_value=""),
+                patch.object(self.agent, "_apply_initial_aggregate_answer_composition", return_value=(composition_state, "")),
+                patch.object(self.agent, "_preserve_source_visible_query_terms", side_effect=lambda answer, **_kwargs: answer),
+                patch.object(
+                    self.agent,
+                    "_preserve_policy_required_context_in_narrative_results",
+                    side_effect=lambda rows, **_kwargs: rows,
+                ),
+                patch.object(self.agent, "_resolve_aggregate_feedback_state", return_value=feedback_state),
+                patch.object(financial_graph_calculation, "_aggregate_selected_claim_ids", return_value=[]),
+                patch.object(
+                    self.agent,
+                    "_align_lookup_results_with_dependency_projection",
+                    side_effect=lambda rows, _state, _projection: alignment_events.append(("align", rows)) or aligned_rows,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "aggregate_results_include_source_task_slot_realignment",
+                    side_effect=lambda rows: alignment_events.append(("predicate", rows)) or predicate_owner(rows),
+                ),
+                patch.object(
+                    self.agent,
+                    "_replace_mutable_aggregate_results",
+                    side_effect=lambda *args, **kwargs: alignment_events.append(("replace", args, kwargs))
+                    or replacement_owner(*args, **kwargs),
+                ),
+            ):
+                self.agent._aggregate_calculation_subtasks(state)
+
+        predicate_owner = Mock(return_value=True)
+        replacement_owner = Mock(side_effect=RuntimeError("stop after alignment"))
+        with self.assertRaisesRegex(RuntimeError, "stop after alignment"):
+            run_alignment(predicate_owner, replacement_owner)
+        predicate_owner.assert_called_once_with(aligned_rows)
+        self.assertIs(predicate_owner.call_args.args[0], aligned_rows)
+        replacement_owner.assert_called_once()
+        self.assertIs(replacement_owner.call_args.args[2], aligned_rows)
+        self.assertTrue(replacement_owner.call_args.kwargs["refresh_numeric_answer"])
+        self.assertEqual([event[0] for event in alignment_events], ["align", "predicate", "replace"])
+
+        replacement_owner = Mock()
+        with self.assertRaisesRegex(RuntimeError, "realignment predicate failed"):
+            run_alignment(
+                Mock(side_effect=RuntimeError("realignment predicate failed")),
+                replacement_owner,
+            )
+        replacement_owner.assert_not_called()
+
+    def test_current_source_narrative_reuse_callers_pin_initial_and_final_stop(self) -> None:
+        ordered_results = [{"task_id": "task_1"}]
+        state = {"query": "why", "report_scope": {}}
+
+        class InitialAgent:
+            pass
+
+        initial_agent = InitialAgent()
+        initial_agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
+        numeric_reuse_owner = Mock(return_value=True)
+        initial_agent._ensure_complete_growth_numeric_answer = Mock(
+            side_effect=AssertionError("numeric completion accessed")
+        )
+        include_owner = Mock(side_effect=RuntimeError("stop after numeric reuse"))
+        with (
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "coerce_sign_aware_subtraction_answer",
+                side_effect=lambda answer, **_kwargs: answer,
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "compose_slot_based_difference_answer",
+                return_value="",
+            ),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "answer_reuses_numeric_narrative_summary_text",
+                numeric_reuse_owner,
+            ),
+            patch.object(financial_graph_calculation, "include_narrative_context_if_needed", include_owner),
+            self.assertRaisesRegex(RuntimeError, "stop after numeric reuse"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
+                initial_agent,
+                state,
+                ordered_results=ordered_results,
+                preliminary_projection={"calculation_result": {}},
+                aggregate_evidence_items=[],
+                narrative_docs=[],
+                narrative_context="context",
+                final_answer="answer 120 and 90",
+                supported_aggregate_answer="",
+                complete_numeric_answer="",
+                has_narrative_summary=True,
+                has_growth_rate_result=False,
+                numeric_answer_locked=False,
+                planner_feedback="",
+                deterministic_feedback="",
+            )
+        numeric_reuse_owner.assert_called_once_with("answer 120 and 90", ordered_results)
+        self.assertIs(numeric_reuse_owner.call_args.args[1], ordered_results)
+        initial_agent._ensure_complete_growth_numeric_answer.assert_not_called()
+
+        include_owner = Mock()
+        numeric_reuse_failure = Mock(side_effect=RuntimeError("numeric reuse failed"))
+        with (
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "coerce_sign_aware_subtraction_answer",
+                side_effect=lambda answer, **_kwargs: answer,
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "compose_slot_based_difference_answer",
+                return_value="",
+            ),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "answer_reuses_numeric_narrative_summary_text",
+                numeric_reuse_failure,
+            ),
+            patch.object(financial_graph_calculation, "include_narrative_context_if_needed", include_owner),
+            self.assertRaisesRegex(RuntimeError, "numeric reuse failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
+                initial_agent,
+                state,
+                ordered_results=ordered_results,
+                preliminary_projection={"calculation_result": {}},
+                aggregate_evidence_items=[],
+                narrative_docs=[],
+                narrative_context="context",
+                final_answer="answer 120 and 90",
+                supported_aggregate_answer="",
+                complete_numeric_answer="",
+                has_narrative_summary=True,
+                has_growth_rate_result=False,
+                numeric_answer_locked=False,
+                planner_feedback="",
+                deterministic_feedback="",
+            )
+        include_owner.assert_not_called()
+
+        nested = {"preserve": True}
+        evidence_items = [{"evidence_id": "ev_1", "nested": nested}]
+        mutable_state = financial_graph_calculation._AggregateMutableState(
+            financial_graph_calculation._AggregateSynthesisState(
+                ordered_results,
+                {"calculation_result": {}},
+                "source answer 120",
+                [],
+            ),
+            evidence_items,
+        )
+
+        class FinalAgent:
+            pass
+
+        def configured_final_agent(replace_owner):
+            agent = FinalAgent()
+            agent._preserve_policy_required_realized_context = Mock(
+                side_effect=lambda answer, **_kwargs: answer
+            )
+            agent._replace_mutable_aggregate_answer = replace_owner
+            agent._append_operand_evidence_for_final_answer = Mock(
+                side_effect=lambda current, **_kwargs: current
+            )
+            agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
+                side_effect=lambda current, **_kwargs: (current, [])
+            )
+            agent._apply_period_context_realignment_to_aggregate = Mock(
+                side_effect=lambda **kwargs: kwargs["aggregate_state"]
+            )
+            agent._enforce_source_stated_growth_answer_contract = Mock(
+                side_effect=lambda answer, _rows, **_kwargs: answer
+            )
+            agent._unresolved_structured_numeric_gap = Mock(return_value=True)
+            agent._prune_nonfocus_numeric_narrative_sentences = Mock()
+            agent._answer_satisfies_growth_narrative_intent = Mock()
+            agent._answer_matches_supported_aggregate_subtask = Mock()
+            agent._promote_and_align_aggregate_results = Mock()
+            return agent
+
+        narrative_reuse_owner = Mock(return_value=True)
+
+        def replace_until_safe(current_state, *, candidate_answer, **_kwargs):
+            if candidate_answer == "safe partial":
+                raise RuntimeError("stop after safe adoption")
+            return current_state, False
+
+        replace_owner = Mock(side_effect=replace_until_safe)
+        final_agent = configured_final_agent(replace_owner)
+        safe_owner = Mock(return_value="safe partial")
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                side_effect=lambda answer, _items: answer,
+            ),
+            patch.object(financial_graph_calculation, "safe_partial_answer_for_numeric_gap", safe_owner),
+            patch.object(
+                financial_graph_calculation,
+                "answer_reuses_narrative_summary_text",
+                narrative_reuse_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "stop after safe adoption"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                final_agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=[],
+                has_narrative_summary=False,
+                has_growth_rate_result=False,
+                deterministic_feedback="",
+            )
+        narrative_reuse_owner.assert_called_once_with("source answer 120", ordered_results)
+        self.assertIs(narrative_reuse_owner.call_args.args[1], ordered_results)
+        safe_owner.assert_called_once_with(ordered_results)
+        self.assertEqual(
+            [call.kwargs["candidate_answer"] for call in replace_owner.call_args_list],
+            ["source answer 120", "source answer 120", "safe partial"],
+        )
+
+        safe_owner = Mock()
+        replace_owner = Mock(side_effect=lambda current_state, **_kwargs: (current_state, False))
+        final_agent = configured_final_agent(replace_owner)
+        narrative_reuse_failure = Mock(side_effect=RuntimeError("narrative reuse failed"))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "preserve_retrieved_narrative_source_surface",
+                side_effect=lambda answer, _items: answer,
+            ),
+            patch.object(financial_graph_calculation, "safe_partial_answer_for_numeric_gap", safe_owner),
+            patch.object(
+                financial_graph_calculation,
+                "answer_reuses_narrative_summary_text",
+                narrative_reuse_failure,
+            ),
+            self.assertRaisesRegex(RuntimeError, "narrative reuse failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                final_agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=[],
+                has_narrative_summary=False,
+                has_growth_rate_result=False,
+                deterministic_feedback="",
+            )
+        safe_owner.assert_not_called()
+        self.assertEqual(
+            [call.kwargs["candidate_answer"] for call in replace_owner.call_args_list],
+            ["source answer 120", "source answer 120"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3285,9 +3285,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             side_effect=lambda rows: events.append(("gap", rows)) or False
         )
         agent._unresolved_structured_numeric_gap = gap
-        agent._answer_reuses_narrative_summary_text = Mock(
-            side_effect=AssertionError("gap fallback accessed")
-        )
+        narrative_reuse = Mock(side_effect=AssertionError("gap fallback accessed"))
         prune = Mock(
             side_effect=lambda answer, **kwargs: events.append(("prune", answer, kwargs))
             or answer
@@ -3319,6 +3317,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 "query_requests_explanatory_context",
                 side_effect=lambda query: events.append(("explanatory", query)) or False,
             ) as explanatory,
+            patch.object(
+                financial_graph_calculation,
+                "answer_reuses_narrative_summary_text",
+                narrative_reuse,
+            ),
         ):
             updated = financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
                 agent,
@@ -3355,6 +3358,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         )
         polish.assert_called_once_with("source-surface answer")
         explanatory.assert_called_once_with("why narrative")
+        narrative_reuse.assert_not_called()
         self.assertEqual(updated.final_answer, "source-surface answer")
         self.assertIs(updated.evidence_items, evidence_items)
         self.assertEqual(ordered_results, snapshots["ordered"])

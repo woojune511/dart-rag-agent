@@ -594,6 +594,91 @@ def row_is_narrative_summary(row: Dict[str, Any]) -> bool:
     return metric_family == "narrative_summary" or operation_family == "narrative_summary"
 
 
+def aggregate_results_include_dependency_numeric_result(
+    ordered_results: List[Dict[str, Any]],
+) -> bool:
+    for row in ordered_results:
+        operation_family = aggregate_result_operation_family(row)
+        if operation_family not in {"ratio", "sum", "difference", "growth_rate"}:
+            continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        candidate_sources = _clean_source_row_ids([
+            calculation_result.get("source_row_ids"),
+            row.get("source_row_ids"),
+            [
+                [
+                    operand.get("evidence_id"),
+                    operand.get("source_row_id"),
+                    operand.get("source_row_ids"),
+                ]
+                for operand in list(row.get("calculation_operands") or [])
+                if isinstance(operand, dict)
+            ],
+            [
+                [
+                    operand.get("evidence_id"),
+                    operand.get("source_row_id"),
+                    operand.get("source_row_ids"),
+                ]
+                for operand in list(calculation_result.get("calculation_operands") or [])
+                if isinstance(operand, dict)
+            ],
+        ])
+        if any(str(source_id).startswith("task_output:") for source_id in candidate_sources):
+            return True
+        if any(
+            bool((operand or {}).get("dependency_resolved"))
+            for operand in list(row.get("calculation_operands") or [])
+            if isinstance(operand, dict)
+        ):
+            return True
+    return False
+
+
+def aggregate_results_include_source_task_slot_realignment(
+    ordered_results: List[Dict[str, Any]],
+) -> bool:
+    for row in ordered_results:
+        if not row.get("aligned_from_source_task_slots"):
+            continue
+        operation_family = aggregate_result_operation_family(row)
+        if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
+            return True
+    return False
+
+
+def answer_reuses_narrative_summary_text(
+    answer: str,
+    ordered_results: List[Dict[str, Any]],
+) -> bool:
+    answer_text = _normalise_spaces(str(answer or ""))
+    if not answer_text:
+        return False
+    for row in ordered_results:
+        if not row_is_narrative_summary(row):
+            continue
+        narrative_answer = _normalise_spaces(str(row.get("answer") or ""))
+        if len(narrative_answer) < 20 or not re.search(r"\d", narrative_answer):
+            continue
+        if narrative_answer in answer_text or answer_text in narrative_answer:
+            return True
+    return False
+
+
+def answer_reuses_numeric_narrative_summary_text(
+    answer: str,
+    ordered_results: List[Dict[str, Any]],
+) -> bool:
+    if not answer_reuses_narrative_summary_text(answer, ordered_results):
+        return False
+    non_percent_candidates = [
+        candidate
+        for candidate in extract_numeric_surface_candidates(answer)
+        if str(candidate.get("kind") or "") != "percent"
+    ]
+    return len(non_percent_candidates) >= 2
+
+
 def narrative_row_focus_sentence(
     *,
     ordered_results: List[Dict[str, Any]],

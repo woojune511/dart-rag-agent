@@ -537,7 +537,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     ("append_uncovered_lookup_numeric_items", ("row",)): 1,
                     ("_supported_aggregate_subtask_answer", ("row",)): 1,
                     ("_preferred_conflicting_growth_narrative_answer", ("row",)): 1,
-                    ("_answer_reuses_narrative_summary_text", ("row",)): 1,
+                    ("answer_reuses_narrative_summary_text", ("row",)): 1,
                     ("_refresh_numeric_answer_preserving_narrative_context", ("row",)): 3,
                     ("_preferred_aggregate_fallback_answer", ("row",)): 2,
                     ("_apply_final_narrative_repair_pipeline", ("row",)): 1,
@@ -576,7 +576,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             for module, _caller, _receiver, _args, _keywords in entries
         )
         graph_external = sum(map(len, calls.values())) - owner_local
-        self.assertEqual((graph_external, owner_local), (21, 3))
+        self.assertEqual((graph_external, owner_local), (20, 4))
         self.assertEqual(
             [
                 (key, caller, args)
@@ -585,6 +585,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 if module == "owner"
             ],
             [
+                ("row", "answer_reuses_narrative_summary_text", ("row",)),
                 ("row", "safe_partial_answer_for_numeric_gap", ("row",)),
                 ("row", "compose_lookup_list_numeric_answer", ("row",)),
                 ("row", "append_uncovered_lookup_numeric_items", ("row",)),
@@ -1492,7 +1493,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             for module, _caller, _receiver, _args, _keywords in entries
         )
         graph_external = sum(map(len, calls.values())) - owner_local
-        self.assertEqual((graph_external, owner_local), (23, 5))
+        self.assertEqual((graph_external, owner_local), (22, 6))
         self.assertEqual(
             [
                 (key, caller, args)
@@ -1501,6 +1502,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 if module == "owner"
             ],
             [
+                ("row", "answer_reuses_narrative_summary_text", ("row",)),
                 ("row", "safe_partial_answer_for_numeric_gap", ("row",)),
                 ("row", "compose_lookup_list_numeric_answer", ("row",)),
                 ("row", "append_uncovered_lookup_numeric_items", ("row",)),
