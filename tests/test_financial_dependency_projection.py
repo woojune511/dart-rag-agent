@@ -4947,8 +4947,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             side_effect=lambda **kwargs: reconciliation_events.append(("resolved", kwargs))
             or resolved_reconciliation,
         ), patch.object(
-            agent,
-            "_reconciliation_evidence_refs",
+            graph_reconciliation,
+            "reconciliation_evidence_refs",
             return_value=[],
         ), patch.object(
             graph_reconciliation,

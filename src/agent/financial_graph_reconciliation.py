@@ -55,12 +55,16 @@ from src.agent.financial_surface_contracts import _operand_needles
 from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
-    _operand_text_match,
     _parse_unstructured_table_row_cells,
 )
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState, ReflectionPlanRecord, ReflectionRequest
-from src.agent.financial_task_artifacts import reconciliation_result_artifact_update as _reconciliation_result_artifact_update
+from src.agent.financial_task_artifacts import (
+    reconciliation_artifact_candidate_ids,
+    reconciliation_artifact_candidate_ids_for_operand,
+    reconciliation_evidence_refs,
+    reconciliation_result_artifact_update as _reconciliation_result_artifact_update,
+)
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_operation_policies import (
     _is_percent_point_difference_query,
@@ -193,104 +197,6 @@ def _reflection_evidence_summary(state: FinancialAgentState) -> Dict[str, Any]:
 
 
 class FinancialAgentReconciliationMixin:
-    def _artifact_text_matches_operand_surface(self, text: str, operand: Dict[str, Any]) -> bool:
-        normalized_text = _normalise_spaces(str(text or ""))
-        if not normalized_text:
-            return False
-        if _operand_text_match(normalized_text, operand):
-            return True
-        compact_text = re.sub(r"\s+", "", normalized_text)
-        for needle in _operand_needles(operand):
-            normalized_needle = _normalise_spaces(str(needle or ""))
-            if not normalized_needle:
-                continue
-            compact_needle = re.sub(r"\s+", "", normalized_needle)
-            if compact_needle and (compact_needle in compact_text or compact_text in compact_needle):
-                return True
-        return False
-
-    def _reconciliation_artifact_candidate_ids_for_operand(
-        self,
-        state: FinancialAgentState,
-        *,
-        operand: Dict[str, Any],
-    ) -> List[str]:
-        candidate_ids: List[str] = []
-        seen: set[str] = set()
-
-        def append_candidate_id(raw_value: Any) -> None:
-            candidate_id = str(raw_value or "").strip()
-            if candidate_id and candidate_id not in seen:
-                seen.add(candidate_id)
-                candidate_ids.append(candidate_id)
-
-        for artifact in list(state.get("artifacts") or []):
-            artifact_data = dict(artifact or {})
-            kind = str(artifact_data.get("kind") or "").strip()
-            if "reconciliation_result" not in kind:
-                continue
-
-            payload = dict(artifact_data.get("payload") or {})
-            reconciliation_result = dict(payload.get("reconciliation_result") or {})
-            matched_operands = [
-                dict(item)
-                for item in (reconciliation_result.get("matched_operands") or [])
-                if isinstance(item, dict)
-            ]
-            matched_operand_seen = False
-            for match_entry in matched_operands:
-                match_surfaces = [
-                    str(match_entry.get("label") or ""),
-                    str(match_entry.get("concept") or ""),
-                    str(match_entry.get("role") or ""),
-                ]
-                if not any(
-                    self._artifact_text_matches_operand_surface(surface, operand)
-                    for surface in match_surfaces
-                    if str(surface).strip()
-                ):
-                    continue
-                matched_operand_seen = True
-                for candidate_id in list(match_entry.get("candidate_ids") or []):
-                    append_candidate_id(candidate_id)
-
-            if matched_operand_seen:
-                continue
-            for evidence_ref in list(artifact_data.get("evidence_refs") or []):
-                append_candidate_id(evidence_ref)
-
-        return candidate_ids
-
-    def _reconciliation_artifact_candidate_ids(self, state: FinancialAgentState) -> List[str]:
-        candidate_ids: List[str] = []
-        seen: set[str] = set()
-
-        def append_candidate_id(raw_value: Any) -> None:
-            candidate_id = str(raw_value or "").strip()
-            if candidate_id and candidate_id not in seen:
-                seen.add(candidate_id)
-                candidate_ids.append(candidate_id)
-
-        reconciliation_result = dict(state.get("reconciliation_result") or {})
-        for key in ("evidence_refs", "source_evidence_ids"):
-            for evidence_ref in list(reconciliation_result.get(key) or []):
-                append_candidate_id(evidence_ref)
-
-        for artifact in list(state.get("artifacts") or []):
-            artifact_data = dict(artifact or {})
-            kind = str(artifact_data.get("kind") or "").strip()
-            if "reconciliation_result" not in kind:
-                continue
-            for evidence_ref in list(artifact_data.get("evidence_refs") or []):
-                append_candidate_id(evidence_ref)
-            payload = dict(artifact_data.get("payload") or {})
-            artifact_result = dict(payload.get("reconciliation_result") or {})
-            for key in ("evidence_refs", "source_evidence_ids"):
-                for evidence_ref in list(artifact_result.get(key) or []):
-                    append_candidate_id(evidence_ref)
-
-        return candidate_ids
-
     def _build_reflection_request(
         self,
         state: FinancialAgentState,
@@ -391,39 +297,6 @@ class FinancialAgentReconciliationMixin:
             "notes": ["dependency_task_outputs_ready"],
             "retry_strategy": "",
         }
-
-    def _reconciliation_evidence_refs(self, result: Dict[str, Any]) -> List[str]:
-        values: List[Any] = []
-        for item in result.get("matched_operands") or []:
-            if not isinstance(item, dict):
-                continue
-            values.extend(
-                [
-                    item.get("candidate_ids"),
-                    item.get("candidate_id"),
-                    item.get("source_row_ids"),
-                    item.get("source_row_id"),
-                    item.get("source_evidence_ids"),
-                    item.get("source_evidence_id"),
-                    item.get("evidence_ids"),
-                    item.get("evidence_id"),
-                    item.get("row_ids"),
-                    item.get("row_id"),
-                ]
-            )
-        refs: List[str] = []
-
-        def _append(value: Any) -> None:
-            if isinstance(value, (list, tuple, set)):
-                for nested in value:
-                    _append(nested)
-                return
-            cleaned = str(value).strip()
-            if cleaned and cleaned.lower() not in {"none", "null", "nan"} and cleaned not in refs:
-                refs.append(cleaned)
-
-        _append(values)
-        return refs
 
     def _structured_candidate_unit_hint(
         self,
@@ -1479,12 +1352,12 @@ class FinancialAgentReconciliationMixin:
             ]
             if operation_family in {"ratio", "sum", "difference", "growth_rate"}:
                 candidate_ids.extend(
-                    self._reconciliation_artifact_candidate_ids_for_operand(
+                    reconciliation_artifact_candidate_ids_for_operand(
                         state,
                         operand=operand,
                     )
                 )
-                candidate_ids.extend(self._reconciliation_artifact_candidate_ids(state))
+                candidate_ids.extend(reconciliation_artifact_candidate_ids(state))
             candidate_ids = self._expand_structured_candidate_ids(candidate_ids, candidate_map)
             structured_candidates: List[Dict[str, Any]] = []
             for candidate_id in candidate_ids:
@@ -1742,7 +1615,7 @@ class FinancialAgentReconciliationMixin:
                 active_subtask=active_subtask,
                 reconciliation_result=result,
                 summary="reconciliation=ready(dependency_outputs)",
-                evidence_refs=self._reconciliation_evidence_refs(result),
+                evidence_refs=reconciliation_evidence_refs(result),
             )
             return {
                 "reconciliation_result": result,
@@ -1798,7 +1671,7 @@ class FinancialAgentReconciliationMixin:
             active_subtask=active_subtask,
             reconciliation_result=result,
             summary=f"reconciliation={status}",
-            evidence_refs=self._reconciliation_evidence_refs(result),
+            evidence_refs=reconciliation_evidence_refs(result),
         )
         updates: Dict[str, Any] = {
             "reconciliation_result": result,

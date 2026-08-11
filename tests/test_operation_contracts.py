@@ -23,6 +23,7 @@ from src.agent import (
     financial_calculation_execution,
     financial_dependency_projection,
     financial_graph_calculation,
+    financial_task_artifacts,
 )
 from src.agent import financial_graph_evidence, financial_operand_resolution
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
@@ -2755,7 +2756,7 @@ class OperationContractTests(unittest.TestCase):
             ],
         }
 
-        refs = agent._reconciliation_evidence_refs(result)
+        refs = financial_task_artifacts.reconciliation_evidence_refs(result)
 
         self.assertEqual(refs, ["row:alpha", "row:beta", "ev:beta"])
 
