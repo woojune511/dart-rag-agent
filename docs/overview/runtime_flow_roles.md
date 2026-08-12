@@ -282,13 +282,13 @@ State-free owner topology:
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, and candidate-ID projection; collection, reranking, evidence construction, retry, and state mutation remain outside |
-| `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
+| `financial_calculation_execution.py` | state-free deterministic plan construction/validation, guard, formula execution, stale-value assessment; graph-state planning wrappers are still migrating |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, and direct structured-row/value projection |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
@@ -509,11 +509,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   138줄로 옮겼다. 다섯 call은 graph external이고 owner public/private 함수
   수는 11/7이다. Focused 4/4 per seam, combined 8/8, lookup owner 24/24,
   semantic 818/818, import 19/19, audit 217과 full 1,811/1,811이 통과했다.
-- 다음 선택은 calculation mixin의 own-evidence lookup-unit alignment 62줄을
-  aggregate owner의 public 61줄로 옮기는 단일 seam이다. 두 call은 graph
-  external로 유지한다. Peer-source callback binding, evidence preparation,
-  dedupe/rebuild, dependency alignment, mutable state/evidence, artifact/ledger와
-  final sequencing hard stop은
+- 완료된 own-evidence lookup-unit alignment는 calculation mixin의 62줄을
+  aggregate owner의 public 61줄로 옮겼다. 두 call은 graph external이고 owner
+  public/private 함수 수는 75/11이다. Focused 4/4, aggregate owner 88/88,
+  semantic 882/882, import 19/19, audit 217과 full 1,815/1,815가 통과했다.
+- 다음 선택은 calculation mixin의 deterministic operation-plan 37줄과
+  ontology-plan 200줄을 calculation-execution owner의 projected public
+  36줄과 196줄로 순차 이동하는 두 seam이다. 네 call은 graph external로
+  유지하고 dynamic metric-family dispatch는 graph에 남긴다. Deterministic
+  lookup/guard/LLM planning, state/trace/artifact update, execution과 final
+  sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

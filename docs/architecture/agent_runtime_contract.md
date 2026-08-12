@@ -3448,32 +3448,55 @@ selection/scoring, state/report scope, table-label lookup, precision refinement,
 mutable evidence, artifact/ledger mutation, and final sequencing remain
 graph-owned.
 
-The selected next aggregate boundary is public
+The completed aggregate boundary is public
 `align_lookup_result_units_from_own_evidence(ordered_results, evidence_items)`
-in `financial_aggregate_projection.py`. It must preserve the current 62-line
-graph contract in a projected 61 owner lines: evidence-ID indexing and empty-
-evidence identity; row order; explicit operation-family precedence with
-aggregate-family fallback; lookup/single-value, material-slot, raw-value,
-evidence, coerced-unit, unchanged-unit, and normalized-value gates; source-ID
-cleanup; exact primary-slot update and replacement marker; unchanged-row alias
-identity; original-list identity when nothing changes and a fresh list only on
-material change; nested aliases; input/evidence immutability; access laziness;
-and uncaught exceptions.
+in `financial_aggregate_projection.py`. It preserves the former 62-line graph
+contract in 61 owner lines: evidence-ID indexing and empty-evidence identity;
+row order; explicit operation-family precedence with aggregate-family fallback;
+lookup/single-value, material-slot, raw-value, evidence, coerced-unit,
+unchanged-unit, and normalized-value gates; source-ID cleanup; exact primary-
+slot update and replacement marker; unchanged-row alias identity; original-
+list identity when nothing changes and a fresh list only on material change;
+nested aliases; input/evidence immutability; access laziness; and uncaught
+exceptions.
 
 Both calculation callers retain exact positional list identity and remain
 outside `try` blocks. The initial-evidence caller adopts the result before
 peer-source alignment and the equality-gated dedupe/rebuild path. The late
 aggregate caller invokes it after missing-context evidence adoption and before
-peer-source alignment and late result replacement. The peer-source wrapper
-remains graph-owned because it passes the dynamic aggregate-operation-family
-callback into the dependency owner. Evidence preparation, dedupe, projection
-rebuild, dependency alignment, answer refresh, mutable state/evidence,
-artifact/ledger mutation, and final sequencing remain graph-owned. The moved
-body owns the graph's only `lookup_primary_slot` and
-`replace_lookup_primary_slot` loads, so those calculation imports retire. The
-exact CURRENT-SOURCE gate, affected validation set, retired-ref rule,
-dependency/DAG/dead-import contract, and hard stops are maintained only in
-[Project Status Next Work](../overview/project_status.md#next-work).
+peer-source alignment and late result replacement. The old mixin definition
+and source/test private refs are zero. The graph's now-dead
+`lookup_primary_slot` and `replace_lookup_primary_slot` imports retired. Commit
+`a476dd9` records source `+74/-68`, tests `+786/-13`, and whole-commit
+`+860/-81`. Focused 4/4, aggregate owner 88/88, semantic 882/882, import 19/19,
+union 901/901, audit 217, and full discovery 1,815/1,815 passed. The source diff
+SHA-256 is
+`bbe5f3cc62535f3fe8b6d2c2a4a56a27b10d0515cf0fff2083105d34ed171e19`.
+
+The next deterministic-plan boundary is sequential and remains governed by
+[Project Status Next Work](../overview/project_status.md#next-work). Seam A
+moves the former 37-line `_build_deterministic_operation_plan(...)` wrapper to
+public 36-line `build_runtime_deterministic_operation_plan(...)` in
+`financial_calculation_execution.py`. Preserve resolved-active-task copying,
+required filtering, metric fallback, exact base-plan keyword construction,
+difference percent-point policy, query fallback laziness, output copying,
+input immutability, and exception propagation. Its three graph calls keep their
+current positional and `active_subtask` keyword contracts and remain outside
+`try` blocks.
+
+After Seam A freezes, Seam B moves the former 200-line
+`_build_deterministic_ontology_plan(...)` to projected 196-line public
+`build_deterministic_ontology_plan(active_subtask, operands, *, metric_key)` in
+the same owner. Preserve role/scope/statement/stage/source preference, stable
+ties, required and ratio-role gates, operand ordering and variable bindings,
+average-denominator behavior, unit normalization, ratio/sum formula and
+explanation surfaces, input immutability, laziness, and exceptions. Its sole
+graph caller must copy the active subtask before invoking dynamic
+`self._calc_metric_family(state)` and then pass both resolved values to the
+owner, preserving compatibility and access order. Three reviewed runtime-
+domain records move with unchanged text/category/count; audit total remains
+217. Deterministic lookup planning, guard/adoption, LLM planning,
+state/trace/artifact updates, execution, and final sequencing stay graph-owned.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

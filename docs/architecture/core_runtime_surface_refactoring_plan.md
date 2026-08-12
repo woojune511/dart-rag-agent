@@ -195,7 +195,7 @@ Current ownership is intentionally split by state boundary:
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared term/variant/context sentence surfaces |
-| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate calculation/public projection, subtask upsert/rank, signatures, source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
+| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate calculation/public projection, subtask upsert/rank, signatures, source preparation, dependency-coherence ranks, own-evidence lookup-unit alignment, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, `financial_task_artifacts.py` | State carriers and prepared projection transforms; graph retains surrounding orchestration |
 
 Detailed identity, laziness, exception, precedence, and caller-placement semantics
@@ -491,17 +491,34 @@ selection/scoring, graph state/report scope, table-label lookup, precision
 refinement, mutable evidence, artifact/ledger mutation, and final sequencing
 remain graph-owned.
 
-The selected follow-on is one characterize-first 62-line own-evidence lookup-
-unit alignment seam into `financial_aggregate_projection.py`. It projects to
-one 61-line public function and retains two graph-external calls with zero
-owner-local calls. The destination adds symbols only on its existing operand-
-resolution and dependency-projection edges; no reviewed runtime-domain record
-moves. The graph's now-sole `lookup_primary_slot` and
-`replace_lookup_primary_slot` imports retire with the body. Peer-source
-alignment remains graph-owned because it binds the dynamic operation-family
-callback. Evidence preparation, dedupe/rebuild, dependency alignment, mutable
-state/evidence, artifact/ledger mutation, and final sequencing remain hard
-stops. Exact API, four-method characterization gate, call distribution, DAG,
+The completed `a476dd9` follow-on moved the former 62-line own-evidence lookup-
+unit alignment transform into `financial_aggregate_projection.py` as one
+61-line public function. Its two calls remain graph-external. Source is
+`+74/-68`, tests are `+786/-13`, and the whole commit is `+860/-81`.
+Calculation moved from 13,887 to 13,823 physical lines, aggregate projection
+from 3,644 to 3,714, and four new unittest methods moved full discovery from
+1,811 to 1,815. Final gates passed focused 4/4, aggregate owner 88/88, migrated
+direct contract 1/1, affected semantic 882/882, import 19/19,
+semantic/import union 901/901, audit 217, full discovery 1,815/1,815,
+pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and diff
+check. The source diff SHA-256 is
+`bbe5f3cc62535f3fe8b6d2c2a4a56a27b10d0515cf0fff2083105d34ed171e19`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Peer-source
+callback alignment, evidence preparation, dedupe/rebuild, dependency
+alignment, mutable state/evidence, artifact/ledger mutation, and final
+sequencing remain graph-owned.
+
+The selected follow-on is one-owner, two-seam deterministic planning
+convergence into `financial_calculation_execution.py`: first the former
+37-line runtime deterministic-operation wrapper as a projected 36-line public
+function with three graph-external calls, then the former 200-line ontology
+plan as a projected 196-line public function with one graph-external call.
+Dynamic metric-family dispatch stays in the graph caller. The selected 237 old
+definition-span lines become a projected 232 owner lines; the destination moves
+from public/private 11/0 to 13/0. Deterministic lookup planning, plan guard and
+adoption, LLM planning, state/trace/artifact updates, execution, and final
+sequencing remain hard stops. Exact APIs, sequential four- then five-method
+characterization gates, call distribution, DAG, three-record baseline move,
 dead-import consequence, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains

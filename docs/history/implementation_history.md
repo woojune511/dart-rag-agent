@@ -3174,6 +3174,56 @@ projected validation counts, DAG/dead-import consequence, and rejected
 cycle/callback/state expansions are maintained only
 in [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Own-evidence lookup-unit alignment owner milestone
+
+- `a476dd9` moves the former 62-line
+  `_align_lookup_result_units_from_own_evidence(...)` definition out of
+  `FinancialAgentCalculationMixin` as public 61-line
+  `align_lookup_result_units_from_own_evidence(...)` in
+  `financial_aggregate_projection.py`. Both selected calls remain direct,
+  graph-external, positional, and outside `try` blocks.
+- Literal body parity and both full-caller parity checks passed. The old mixin
+  definition and source/test private refs are zero, public import identity is
+  live, and the aggregate owner contains 75 public and 11 private top-level
+  functions. The move adds no module edge. The newly dead calculation
+  `lookup_primary_slot` and `replace_lookup_primary_slot` imports were removed;
+  all other touched imports remain live, and the reviewed runtime-domain count
+  stays 217.
+- Source is `+74/-68`, net `+6`; tests are `+786/-13`, net `+773`; the whole
+  commit is `+860/-81`, net `+779`. Calculation moved from 13,887 to 13,823
+  physical lines and aggregate projection from 3,644 to 3,714. Four new test
+  methods moved discovery from 1,811 to 1,815. The source diff SHA-256 is
+  `bbe5f3cc62535f3fe8b6d2c2a4a56a27b10d0515cf0fff2083105d34ed171e19`.
+- Final validation passed focused 4/4, aggregate owner 88/88, migrated direct
+  contract 1/1, affected seven-module semantic 882/882,
+  import-side-effects 19/19, semantic/import union 901/901, runtime audit 217,
+  full discovery 1,815/1,815, pycompile/fresh import, DAG/body/caller parity,
+  retired-ref zero, and `git diff --check`. Benchmark refresh was **NOT RUN**,
+  and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only own-evidence lookup-unit projection ownership.
+Peer-source callback alignment, evidence preparation, dedupe/rebuild,
+dependency alignment, mutable state/evidence, artifact/ledger mutation, and
+final sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one-owner, two sequential
+characterize-first deterministic-plan seams into
+`financial_calculation_execution.py`. The former 37-line runtime operation-plan
+wrapper becomes projected public 36-line
+`build_runtime_deterministic_operation_plan(...)` with three graph-external
+calls. After it freezes, the former 200-line ontology plan becomes projected
+public 196-line
+`build_deterministic_ontology_plan(active_subtask, operands, *, metric_key)`
+with one graph-external call. The execution owner projects from public/private
+11/0 to 13/0. Dynamic metric-family dispatch, deterministic lookup planning,
+guard/adoption, LLM planning, state/trace/artifact updates, execution, and final
+sequencing stay graph-owned. Exact APIs, four- then five-method CURRENT-SOURCE
+gates, projected validation counts, DAG/dead-import/baseline consequences, and
+rejected callback/compatibility/carrier/state expansions are maintained only
+in [Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
