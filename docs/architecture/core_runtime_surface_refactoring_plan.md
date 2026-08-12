@@ -508,19 +508,42 @@ callback alignment, evidence preparation, dedupe/rebuild, dependency
 alignment, mutable state/evidence, artifact/ledger mutation, and final
 sequencing remain graph-owned.
 
-The selected follow-on is one-owner, two-seam deterministic planning
-convergence into `financial_calculation_execution.py`: first the former
-37-line runtime deterministic-operation wrapper as a projected 36-line public
-function with three graph-external calls, then the former 200-line ontology
-plan as a projected 196-line public function with one graph-external call.
-Dynamic metric-family dispatch stays in the graph caller. The selected 237 old
-definition-span lines become a projected 232 owner lines; the destination moves
-from public/private 11/0 to 13/0. Deterministic lookup planning, plan guard and
-adoption, LLM planning, state/trace/artifact updates, execution, and final
-sequencing remain hard stops. Exact APIs, sequential four- then five-method
-characterization gates, call distribution, DAG, three-record baseline move,
-dead-import consequence, and stop lines live only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+The completed `c021d30` follow-on moved the former 37-line runtime deterministic-
+operation adapter and 200-line ontology plan into
+`financial_calculation_execution.py` as public 36-line and 195-line functions.
+All four selected calls remain graph-external. Source is `+247/-244`, tests are
+`+1,111/-17`, the reviewed baseline is `+9/-9`, and the whole commit is
+`+1,367/-270`. Calculation moved from 13,823 to 13,589 physical lines, the
+execution owner from 837 to 1,074, and nine new unittest methods moved full
+discovery from 1,815 to 1,824. Final gates passed focused 4/4 then 5/5 and
+combined 9/9, execution owner 45/45, affected semantic 883/883, import 19/19,
+semantic/import union 902/902, audit 217, full discovery 1,824/1,824,
+pycompile/fresh import, DAG/body/caller parity, retired executable private-ref
+zero, and diff check. Its source diff SHA-256 is
+`3d93584b12246297296b01f738fedb55e3b8aa71b7805b5d7003f430bbfd411b`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Dynamic metric-
+family dispatch, deterministic lookup/LLM planning, state/trace/artifact work,
+execution orchestration, and final sequencing remain graph-owned.
+
+The selected follow-on is one-owner, two-seam query-focus/text-surface
+convergence into `financial_text_surface.py`. First move the former 85-line
+marker-group and 8-line flattened-marker definitions as projected public
+85-line and 8-line functions; after Seam A their ten calls finish external
+nine/local one. Then move the former 127-line source-visible query-term
+preserver as projected public 126 lines. Across the 220 old definition lines,
+three projected public functions total 219 lines and 12 selected calls finish
+external ten/local two. All caller modules already import the text owner, so no
+agent-module edge is added. One reviewed regex occurrence splits an existing
+path-qualified count-two record, projecting audit records from 217 to 218 while
+literal/category/occurrence count remain unchanged. Retrieval/reranking,
+evidence construction, active-policy dispatch, aggregate orchestration, mutable
+state/evidence, artifact/ledger work, and final sequencing remain hard stops.
+The private stopword class alias has no repository override/patch/guard/binding;
+the reviewed config constant becomes canonical, and a discovered compatibility
+caller stops the seam instead of creating an adapter.
+Exact APIs, sequential five- then five-method characterization gates, call
+distribution, DAG, baseline split, dead-alias consequence, and stop lines live
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

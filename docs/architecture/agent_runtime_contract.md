@@ -3473,30 +3473,48 @@ union 901/901, audit 217, and full discovery 1,815/1,815 passed. The source diff
 SHA-256 is
 `bbe5f3cc62535f3fe8b6d2c2a4a56a27b10d0515cf0fff2083105d34ed171e19`.
 
-The next deterministic-plan boundary is sequential and remains governed by
-[Project Status Next Work](../overview/project_status.md#next-work). Seam A
-moves the former 37-line `_build_deterministic_operation_plan(...)` wrapper to
-public 36-line `build_runtime_deterministic_operation_plan(...)` in
-`financial_calculation_execution.py`. Preserve resolved-active-task copying,
+The deterministic-plan boundary completed in `c021d30` and remains governed by
+the literal ownership contract recorded here. Public 36-line
+`build_runtime_deterministic_operation_plan(...)` in
+`financial_calculation_execution.py` preserves resolved-active-task copying,
 required filtering, metric fallback, exact base-plan keyword construction,
-difference percent-point policy, query fallback laziness, output copying,
-input immutability, and exception propagation. Its three graph calls keep their
-current positional and `active_subtask` keyword contracts and remain outside
-`try` blocks.
+difference percent-point policy, query fallback laziness, copied output, input
+immutability, and exception propagation. Its three graph calls retain their
+positional and `active_subtask` keyword contracts outside `try` blocks.
 
-After Seam A freezes, Seam B moves the former 200-line
-`_build_deterministic_ontology_plan(...)` to projected 196-line public
+Public 195-line
 `build_deterministic_ontology_plan(active_subtask, operands, *, metric_key)` in
-the same owner. Preserve role/scope/statement/stage/source preference, stable
-ties, required and ratio-role gates, operand ordering and variable bindings,
-average-denominator behavior, unit normalization, ratio/sum formula and
-explanation surfaces, input immutability, laziness, and exceptions. Its sole
-graph caller must copy the active subtask before invoking dynamic
-`self._calc_metric_family(state)` and then pass both resolved values to the
-owner, preserving compatibility and access order. Three reviewed runtime-
-domain records move with unchanged text/category/count; audit total remains
-217. Deterministic lookup planning, guard/adoption, LLM planning,
-state/trace/artifact updates, execution, and final sequencing stay graph-owned.
+the same owner preserves role/scope/statement/stage/source preference, stable
+first-max ties, required and ratio-role gates, operand ordering and variable
+bindings, average-denominator behavior, unit normalization, ratio/sum formula
+and explanation surfaces, input immutability, laziness, and exceptions. Its
+sole graph caller copies the active subtask before invoking dynamic
+`self._calc_metric_family(state)` and passes both resolved values to the owner.
+The former 237 graph definition lines are now 231 owner lines, all four calls
+remain graph-external, and three reviewed runtime-domain records moved with
+unchanged text/category/count while audit total remains 217. Deterministic
+lookup planning, guard/adoption, LLM planning, state/trace/artifact updates,
+execution orchestration, and final sequencing stay graph-owned.
+
+The next query-focus/text-surface boundary is sequential and is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). Public
+`query_focus_marker_groups(query, *, limit=8)` and
+`query_focus_markers(query, *, limit=8)` must preserve normalization, policy
+copying, connector/particle cleanup, configured stopword/year/digit/letter/
+length gates, extraction order, case-insensitive stable dedupe, labels, slicing,
+fresh outputs, laziness, and uncaught exceptions. Public
+`preserve_source_visible_query_terms(...)` must preserve answer/marker gates,
+support-surface and ontology sibling matching, case-insensitive missing-term
+dedupe, four-term cap, template formatting, copied read-only inputs, laziness,
+and exceptions. All selected calls stay direct and outside `try`; marker groups
+finish external three/local two, flattened markers external five/local zero,
+and preservation external two/local zero. Retrieval/reranking, evidence
+construction, dynamic active-policy dispatch, aggregate orchestration, mutable
+state/evidence, artifact/ledger mutation, and final sequencing stay outside the
+text owner. The private stopword class alias has no repository override, patch,
+`hasattr`, or non-call binding; the moved public helper owns the reviewed config
+constant directly, and a newly discovered compatibility caller is a stop
+condition rather than a reason to add a wrapper.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

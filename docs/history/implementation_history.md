@@ -3224,6 +3224,68 @@ gates, projected validation counts, DAG/dead-import/baseline consequences, and
 rejected callback/compatibility/carrier/state expansions are maintained only
 in [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Deterministic calculation-plan ownership milestone
+
+- `c021d30` moves the former 37-line
+  `_build_deterministic_operation_plan(...)` adapter and 200-line
+  `_build_deterministic_ontology_plan(...)` out of
+  `FinancialAgentCalculationMixin` as public 36-line
+  `build_runtime_deterministic_operation_plan(...)` and 195-line
+  `build_deterministic_ontology_plan(...)` in
+  `financial_calculation_execution.py`. All four selected calls remain direct,
+  graph-external, and outside `try` blocks.
+- Literal body parity passed for both moves. The three runtime-adapter callers
+  and the ontology formula caller are AST-identical after normalizing only the
+  selected call expression; static tests separately pin exact arguments,
+  active-task copying, dynamic metric-family access, adoption, order, and
+  exception stop. The old mixin definitions and executable private call/patch
+  refs are zero, fresh imports bind both public functions, and the execution
+  owner contains 13 public and zero private top-level functions.
+- Source is `+247/-244`, net `+3`; tests are `+1,111/-17`, net `+1,094`;
+  the reviewed runtime-domain baseline is `+9/-9`; the whole commit is
+  `+1,367/-270`, net `+1,097`. Calculation moved from 13,823 to 13,589
+  physical lines and execution from 837 to 1,074. Nine new test methods moved
+  discovery from 1,815 to 1,824. The source diff SHA-256 is
+  `3d93584b12246297296b01f738fedb55e3b8aa71b7805b5d7003f430bbfd411b`.
+- Exactly three reviewed runtime-domain records moved from calculation to the
+  execution owner with text, category, and count unchanged; audit total remains
+  217. The graph's dead base-plan import retired, while its remaining ontology
+  and percent-policy loads stay live. The new owner dependencies are acyclic.
+- Final validation passed focused runtime adapter 4/4, ontology planner 5/5,
+  combined 9/9, execution owner 45/45, affected seven-module semantic 883/883,
+  import-side-effects 19/19, semantic/import union 902/902, runtime audit 217,
+  full discovery 1,824/1,824, pycompile/fresh import, DAG/body/caller parity,
+  and `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI
+  run is claimed or verified for this local branch.
+
+This milestone changes only deterministic planning ownership. Dynamic metric-
+family selection, deterministic lookup planning, guard/adoption, LLM planning,
+state/trace/artifact updates, execution orchestration, and final sequencing
+remain graph-owned. It proves no behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one-owner, two sequential
+characterize-first query-focus/text-surface seams into
+`financial_text_surface.py`. The former 85-line marker-group and 8-line
+flattened-marker definitions become projected public 85-line and 8-line
+functions. After that seam freezes, the former 127-line source-visible query-
+term preserver becomes projected public 126 lines. Across 220 old definition
+lines, public 3 total a projected 219 lines and the 12 selected calls finish
+external 10/local 2. All caller modules already import the text owner, so no
+agent-module edge is added. One reviewed regex occurrence splits a current
+path-qualified count-two record, projecting the reviewed record total from 217
+to 218 while literal/category/occurrence count stay unchanged. Retrieval/
+reranking, evidence construction, active-policy dispatch, aggregate
+orchestration, mutable state/evidence, artifact/ledger work, and final
+sequencing remain hard stops. The private stopword class alias has no repository
+override, patch, guard, or non-call binding; the reviewed config constant becomes
+canonical, and a discovered compatibility caller stops the seam. Exact APIs,
+five- then five-method CURRENT-SOURCE
+gates, projected validation counts, DAG/dead-alias/baseline consequences, and
+rejected compatibility/callback/carrier/state expansions are maintained only
+in [Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

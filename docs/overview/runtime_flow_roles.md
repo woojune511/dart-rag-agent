@@ -282,7 +282,7 @@ State-free owner topology:
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, and candidate-ID projection; collection, reranking, evidence construction, retry, and state mutation remain outside |
-| `financial_calculation_execution.py` | state-free deterministic plan construction/validation, guard, formula execution, stale-value assessment; graph-state planning wrappers are still migrating |
+| `financial_calculation_execution.py` | state-free base/runtime operation and ontology plan construction, validation/guard, formula execution, and stale-value assessment; dynamic metric-family selection, lookup/LLM planning, and state projection remain graph-owned |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
@@ -513,12 +513,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   aggregate owner의 public 61줄로 옮겼다. 두 call은 graph external이고 owner
   public/private 함수 수는 75/11이다. Focused 4/4, aggregate owner 88/88,
   semantic 882/882, import 19/19, audit 217과 full 1,815/1,815가 통과했다.
-- 다음 선택은 calculation mixin의 deterministic operation-plan 37줄과
-  ontology-plan 200줄을 calculation-execution owner의 projected public
-  36줄과 196줄로 순차 이동하는 두 seam이다. 네 call은 graph external로
-  유지하고 dynamic metric-family dispatch는 graph에 남긴다. Deterministic
-  lookup/guard/LLM planning, state/trace/artifact update, execution과 final
-  sequencing hard stop은
+- 완료된 deterministic-plan batch는 calculation mixin의 runtime adapter
+  37줄과 ontology plan 200줄을 calculation-execution owner의 public 36줄과
+  195줄로 옮겼다. 네 call은 graph external이고 owner public/private 함수
+  수는 13/0이다. Focused 9/9, execution owner 45/45, semantic 883/883,
+  import 19/19, audit 217과 full 1,824/1,824가 통과했다. Dynamic metric-family
+  dispatch, lookup/LLM planning, state/trace/artifact update, execution
+  orchestration과 final sequencing은 graph에 남는다.
+- 다음 선택은 retrieval mixin의 query-focus marker 85+8줄과 calculation
+  mixin의 source-visible term preservation 127줄을 text owner의 projected
+  public 85+8+126줄로 순차 이동하는 두 seam이다. 열두 call은 최종 external
+  10/local 2이며 새 agent-module edge는 없다. Retrieval/reranking, evidence
+  construction, active-policy dispatch, aggregate orchestration, mutable
+  state/evidence, artifact/ledger와 final sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

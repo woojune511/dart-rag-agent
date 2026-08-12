@@ -15,11 +15,11 @@ Last updated: 2026-08-13
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; own-evidence lookup-unit alignment is aggregate-owned, four named debt groups remain |
-| What just changed? | One 62-line own-evidence lookup-unit seam moved to `financial_aggregate_projection.py` in `a476dd9` |
-| What passed? | Focused 4/4, aggregate owner 88/88, migrated direct contract 1/1, affected seven-module semantic set 882/882, import-side-effect 19/19, union 901/901, runtime audit 217, full unittest 1,815/1,815 |
+| What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
+| What just changed? | Two deterministic planner definitions totaling 237 lines moved to `financial_calculation_execution.py` in `c021d30` |
+| What passed? | Focused 9/9, execution owner 45/45, affected seven-module semantic set 883/883, import-side-effect 19/19, union 902/902, runtime audit 217, full unittest 1,824/1,824 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Two sequential characterize-first deterministic-plan seams totaling 237 old lines into `financial_calculation_execution.py`; dynamic metric dispatch, lookup/LLM planning, state/trace/artifact updates, execution, and final sequencing remain hard stops |
+| What is next? | Two sequential characterize-first query-focus/text-surface seams totaling 220 old lines into `financial_text_surface.py`; retrieval/evidence construction, aggregate orchestration, mutable state/evidence, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -142,7 +142,28 @@ or an unconfigured `FinancialAgent` invocation.
   preparation, rebuild, mutable state/evidence, artifact/ledger mutation, and
   final sequencing remain graph-owned. This is ownership relocation, not a
   behavior claim.
-- Current physical sizes are: calculation graph 13,823 lines, main graph 938,
+- Commit `c021d30` moved the former 37-line runtime operation-plan adapter and
+  200-line ontology plan out of the calculation mixin as public 36-line
+  `build_runtime_deterministic_operation_plan(...)` and 195-line
+  `build_deterministic_ontology_plan(...)` in
+  `financial_calculation_execution.py`. All four selected calls remain direct,
+  graph-external, and outside `try` blocks; the ontology caller still copies
+  the active task before invoking dynamic `self._calc_metric_family(state)`.
+  Source is `+247/-244`, net `+3`; tests are `+1,111/-17`, net `+1,094`;
+  the reviewed baseline is `+9/-9`; the whole commit is `+1,367/-270`, net
+  `+1,097`. Calculation moved from 13,823 to 13,589 physical lines and the
+  execution owner from 837 to 1,074. Nine new test methods moved discovery from
+  1,815 to 1,824. The source diff SHA-256 is
+  `3d93584b12246297296b01f738fedb55e3b8aa71b7805b5d7003f430bbfd411b`.
+  The execution owner contains 13 public and zero private top-level functions,
+  the old mixin definitions and executable private call/patch refs are zero,
+  and exactly three reviewed runtime-domain records moved with unchanged text,
+  category, and count; the reviewed total remains 217. Deterministic lookup
+  planning, guard/adoption, LLM planning, state/trace/artifact updates,
+  execution orchestration, and final sequencing remain graph-owned. This is
+  ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 13,589 lines, calculation
+  execution 1,074, main graph 938,
   graph helpers 6,269,
   planning 2,048, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 411, operand resolution 3,603,
@@ -165,7 +186,7 @@ Commit-level diffs and validation are kept in
 | Retrieval | `financial_retrieval_pipeline.py`; graph evidence owns structure expansion and evidence construction |
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
-| Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py` |
+| Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py`, including base/runtime deterministic operation planning, ontology planning, plan guarding, execution, and value freshness |
 | Lookup recovery | `financial_lookup_recovery.py`, including lookup magnitude/unit recovery, selected-evidence consistency/refinement, successful-row alignment/replacement, and direct structured lookup-row/value projection over already supplied evidence |
 | Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match and candidate-ID projection over already prepared mappings |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
@@ -195,20 +216,21 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, own-evidence lookup-unit alignment 4 / 4; aggregate owner 88 / 88; migrated direct contract 1 / 1 |
-| Latest semantic regression set | PASS, affected seven-module set 882 / 882; semantic/import union 901 / 901 |
+| Latest focused owner checkpoint | PASS, runtime adapter 4 / 4; ontology planner 5 / 5; combined 9 / 9; calculation-execution owner 45 / 45 |
+| Latest semantic regression set | PASS, affected seven-module set 883 / 883; semantic/import union 902 / 902 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,815 / 1,815 |
+| Full unittest discovery | PASS, 1,824 / 1,824 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_lookup_recovery_policy`,
-`tests.test_financial_calculation_execution`, `tests.test_financial_operand_resolution`,
+The semantic set is `tests.test_financial_calculation_execution`,
+`tests.test_financial_operand_resolution`,
 `tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
+`tests.test_financial_agent_run_projection`, `tests.test_operation_contracts`,
+and `tests.test_semantic_numeric_plan`.
 `tests.test_import_side_effects` passed separately at 19 / 19 and together with
-the semantic set as an 837-test union.
+the semantic set as a 902-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -230,7 +252,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, and growth-answer completion/sanitization; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude, same-block unit/table repair, direct structured lookup-row/value projection, and dependency input matching/binding; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude, same-block unit/table repair, direct structured lookup-row/value projection, dependency input matching/binding, and deterministic runtime/ontology planning; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
 
@@ -240,87 +262,88 @@ may split or close only after caller, test, and stop-line characterization.
 ## Next Work
 
 The sole selected architecture work is one owner, two sequential
-characterize-first deterministic-plan seams from
-`financial_graph_calculation.py` into the existing
-`financial_calculation_execution.py` owner. Seam A moves graph-private
-`_build_deterministic_operation_plan(...)` (37 lines) as public
-`build_runtime_deterministic_operation_plan(...)` (projected 36 lines). Its
-three calls stay direct, graph-external, and outside `try` blocks in
-`_recalculate_row_from_source_slots(...)`,
-`_realign_period_comparison_results_from_table_label_context(...)`, and
-`_plan_formula_calculation_from_operation_decision(...)`; preserve the first
-call's exact `active_subtask=active_subtask` keyword and the other two calls'
-two positional arguments.
+characterize-first query-focus/text-surface seams into the existing
+`financial_text_surface.py` owner. Seam A moves retrieval-private
+`_query_focus_marker_groups(query, *, limit=8)` (85 lines) and
+`_query_focus_markers(query, *, limit=8)` (8 lines) as public projected
+85-line `query_focus_marker_groups(...)` and 8-line
+`query_focus_markers(...)`. Their ten current direct calls finish as nine
+external and one owner-local after Seam A: marker groups external four/local
+one and flattened markers external five/local zero. All calls remain outside
+`try`; no callback, wrapper, alias, or graph-state input is introduced.
 
-Seam B starts only after Seam A freezes. Move graph-private
-`_build_deterministic_ontology_plan(state, operands)` (200 lines) as public
-`build_deterministic_ontology_plan(active_subtask, operands, *, metric_key)`
-(projected 196 lines). Its sole formula-planning call remains graph-external
-and outside `try`. The caller must first copy `state["active_subtask"]`, then
-invoke the dynamic `self._calc_metric_family(state)` compatibility seam, and
-only then call the owner. This preserves current access, dispatch, and
-exception order without a callback, wrapper, or alias. Across the selected
-batch, 237 old definition-span lines become two public functions totaling a
-projected 232 lines; four selected calls remain external and none becomes
-owner-local. The calculation-execution owner moves from public/private 11/0 to
-13/0.
+Seam B starts only after Seam A freezes. Move calculation-private
+`_preserve_source_visible_query_terms(...)` (127 lines) as projected public
+126-line `preserve_source_visible_query_terms(...)`. Its two aggregate callers
+remain direct, graph-external, and outside `try`, with exact answer positional
+input plus query/results/evidence/docs keywords. Its marker-group call becomes
+owner-local. Across both seams, 220 old definition-span lines become three
+projected public functions totaling 219 lines; 12 selected calls finish as ten
+external and two owner-local. Final placement is marker groups external
+three/local two, flattened markers external five/local zero, and source-visible
+preservation external two/local zero. The text owner projects from
+public/private 12/4 to 15/4.
 
-Seam A preserves active-subtask override versus state fallback; shallow task
-copy; required-operand filtering; operation-family and metric-label fallback;
-the exact owner-local `build_deterministic_operation_plan(...)` keyword
-contract including blank `difference_result_unit`; difference-only percent-
-point coercion; query fallback laziness; copied result-unit replacement; input
-immutability; and propagated exceptions. Moving it makes the graph import of
-`build_deterministic_operation_plan` dead. The graph's second percent-point
-policy call remains live, while the execution owner adds
-`_should_coerce_percent_point_unit` on a new acyclic operation-policy edge.
+Seam A preserves query normalization and empty-query laziness; copied marker
+policy; connector/particle stripping; configured stopword, year, digit,
+single-letter, and length gates; parenthetical, quoted, acronym, English, and
+generic-token order; case-insensitive stable dedupe; labels; limit slicing;
+fresh output structures; no input/policy mutation; and propagated access,
+regex, formatting, and normalization exceptions. Every caller module already
+imports `financial_text_surface`, so no agent-module edge is added. The target
+adds the existing retrieval-policy `QUERY_FOCUS_MARKER_POLICY` and
+`QUERY_FOCUS_STOPWORDS` symbols. The evidence mixin's now-dead private stopword
+class alias and import retire. One reviewed `[가-힣]` regex occurrence moves
+while another stays in retrieval; text/category/occurrence count are unchanged,
+but splitting the path-qualified record projects the reviewed record total from
+217 to 218. A repository-wide scan finds no override, patch, `hasattr`, or
+non-call binding for the private stopword alias; this seam explicitly makes the
+reviewed config constant canonical. Stop rather than move if characterization
+finds a live compatibility caller.
 
-Seam B preserves ontology and operation-family fallback; required-operand
-copies and gates; role, consolidation-scope, statement, aggregation-stage, and
-source-evidence preference ranking; stable first-max tie behavior; missing and
-ratio-role rejection; numerator/denominator ordering; variable binding;
-average-denominator projection; result-unit normalization; ratio/sum formula,
-label, explanation, and missing-info surfaces; input immutability; access
-laziness; and propagated exceptions. The execution owner already imports every
-operand-matching and normalization dependency; add only
-`get_financial_ontology` from config. Config has no agent reverse edge, and
-operation policies and operand resolution do not reach the execution owner.
-Exactly three reviewed runtime-domain records move with Seam B, with text,
-category, and count unchanged; the reviewed total remains 217.
+Seam B preserves answer and marker gates; uppercase/length filtering; stable
+marker-group and variant order; evidence claim/quote/raw/allowed-term and table
+metadata support; result answer/label/rendered support; tuple/document and
+metadata surfaces; ontology display/alias/keyword sibling support; case-
+insensitive missing-term dedupe; four-term cap; configured note template;
+copied read-only inputs; access laziness; and propagated ontology, formatting,
+normalization, and mapping exceptions. Add only `get_financial_ontology` from
+config; config has no reverse agent edge. Retrieval/reranking, evidence
+supplement and construction, aggregate answer adoption, mutable graph state,
+artifact/ledger mutation, and final sequencing remain in their current mixins.
 
-Before Seam A production moves, add exactly four CURRENT-SOURCE methods to
-`tests.test_financial_calculation_execution`: two direct branch/access/
-laziness/copy/no-mutation/exception matrices, one exact 37-line/three-call/
-signature/try-depth/DAG/baseline/dead-import inventory, and one executable
-three-caller argument/adoption/order/exception-stop contract. Freeze and
-retarget Seam A before beginning Seam B. Before Seam B production moves, add
-exactly five more CURRENT-SOURCE methods: three direct ranking/formula/gate/
-tie/copy/no-mutation/exception matrices, one exact 200-line/one-call/DAG/
-three-record baseline inventory, and one executable formula-caller test that
-pins active-task copy before dynamic metric-family dispatch, exact owner args,
-adoption, and exception stop. Require retired private source/test refs to reach
-zero after each seam.
+Before Seam A production moves, add exactly five CURRENT-SOURCE methods to
+`tests.test_financial_text_surface`: direct group and flattened-marker matrices,
+one exact 85+8-line/ten-call/signature/try-depth/DAG/dead-alias/baseline
+inventory, one executable retrieval caller, and one executable evidence caller.
+Before Seam B production moves, add exactly five more CURRENT-SOURCE methods:
+three direct gate/support/ontology/template/access/laziness/copy/no-mutation/
+exception matrices, one exact 127-line/two-call/final-distribution/DAG/baseline
+inventory, and one executable two-placement aggregate-caller argument/adoption/
+order/exception-stop contract. Freeze and public-retarget each seam before the
+next begins; compatibility wrappers and retired executable private call/patch
+refs are forbidden.
 
-Projected final gates are focused Seam A 4/4, Seam B 5/5, combined 9/9,
-calculation-execution owner 45/45, affected seven-module semantic 883/883,
-import-side-effect 19/19, semantic/import union 902/902, runtime audit 217,
-full discovery 1,824/1,824, pycompile/fresh import, DAG/body/caller parity,
+Projected final gates are focused Seam A 5/5, Seam B 5/5, combined 10/10,
+text-surface owner 30/30, affected seven-module semantic 808/808,
+import-side-effect 19/19, semantic/import union 827/827, runtime audit 218,
+full discovery 1,834/1,834, pycompile/fresh import, DAG/body/caller parity,
 retired-ref zero, and diff check. The semantic set is
-`tests.test_financial_calculation_execution`, `tests.test_financial_operand_resolution`,
-`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, `tests.test_operation_contracts`,
-and `tests.test_semantic_numeric_plan`.
+`tests.test_financial_text_surface`, `tests.test_financial_retrieval_pipeline`,
+`tests.test_operation_contracts`, `tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
+`tests.test_aggregate_subtask_projection`.
 
-Keep deterministic lookup planning, guard/adoption, LLM formula planning,
-calculation state/trace/artifact updates, execution, and final sequencing in
-the graph. Keep `_calc_metric_family(...)` dynamically dispatched in the graph.
-Continue to reject `_complete_required_operand_from_ontology(...)` because its
-three guarded compatibility placements depend on the old mixin attribute;
-table-label lookup with its `_slot_metric_keys` callback; graph-helper and
-precision/carrier relocation; prepared-candidate and compact-ratio state
-carriers; peer-source callback alignment; and state/ledger expansions. No
-behavior, accuracy, ranking, performance, total-code or executed-path
-reduction, benchmark, schedule, or Phase 3 completion claim follows.
+Keep active narrative-policy dispatch, retrieval/reranking and document
+selection, evidence supplementation/construction, aggregate orchestration,
+mutable state/evidence, artifact/ledger work, and final sequencing in their
+current owners. Continue to reject the policy-context parent because it uses
+dynamic active-policy dispatch; ontology completion with its three guarded
+compatibility placements; table-label callback lookup; precision and prepared-
+candidate carriers; compact-ratio state; peer-source callbacks; and broader
+state/ledger expansion. No behavior, accuracy, ranking, performance, total-code
+or executed-path reduction, benchmark, schedule, or Phase 3 completion claim
+follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.
