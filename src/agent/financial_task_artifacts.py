@@ -28,11 +28,13 @@ __all__ = [
     "aggregate_answer_artifact_update",
     "calculation_plan_artifact_update",
     "calculation_result_artifact_update",
+    "evidence_items_with_runtime",
     "enrich_reconciliation_artifact_refs",
     "synchronize_calculation_result_artifact",
     "next_reflection_task_id",
     "operand_set_artifact_update",
     "reconciliation_result_artifact_update",
+    "ratio_result_rows_from_task_artifacts",
     "reflection_report_artifact_update",
     "semantic_plan_artifact_update",
     "synchronize_aggregate_artifact_projection_payload",
@@ -59,6 +61,72 @@ class AggregateArtifactProjectionPayloadSyncResult:
     """Fresh artifact records after the first matching payload replacement."""
 
     artifacts: List[Dict[str, Any]]
+
+
+def evidence_items_with_runtime(
+    evidence_items: List[Dict[str, Any]],
+    state: FinancialAgentState,
+) -> List[Dict[str, Any]]:
+    combined = list(evidence_items)
+    existing_ids = {
+        str(item.get("evidence_id") or "").strip()
+        for item in combined
+        if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+    }
+    for item in state.get("runtime_evidence") or []:
+        if not isinstance(item, dict):
+            continue
+        evidence_id = str(item.get("evidence_id") or "").strip()
+        if evidence_id and evidence_id in existing_ids:
+            continue
+        if evidence_id:
+            existing_ids.add(evidence_id)
+        combined.append(dict(item))
+    return combined
+
+
+def ratio_result_rows_from_task_artifacts(
+    state: FinancialAgentState,
+    task: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    task_id = _normalise_spaces(str(task.get("task_id") or ""))
+    if not task_id:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for artifact in list(state.get("artifacts") or []):
+        artifact_data = dict(artifact or {})
+        if _normalise_spaces(str(artifact_data.get("task_id") or "")) != task_id:
+            continue
+        if _normalise_spaces(str(artifact_data.get("kind") or "")) != ArtifactKind.CALCULATION_RESULT.value:
+            continue
+        payload = dict(artifact_data.get("payload") or {})
+        calculation_result = dict(payload.get("calculation_result") or {})
+        if not calculation_result:
+            continue
+        answer = _normalise_spaces(
+            str(
+                calculation_result.get("formatted_result")
+                or calculation_result.get("rendered_value")
+                or artifact_data.get("summary")
+                or ""
+            )
+        )
+        rows.append(
+            {
+                "task_id": task_id,
+                "metric_family": task.get("metric_family") or "concept_ratio",
+                "metric_label": task.get("metric_label") or task.get("target_metric") or "",
+                "operation_family": "ratio",
+                "status": calculation_result.get("status") or artifact_data.get("status") or "",
+                "answer": answer,
+                "calculation_result": calculation_result,
+                "calculation_operands": payload.get("calculation_operands") or [],
+                "source_row_ids": calculation_result.get("source_row_ids") or artifact_data.get("evidence_refs") or [],
+                "source_evidence_ids": calculation_result.get("source_evidence_ids") or artifact_data.get("evidence_refs") or [],
+                "artifact_backed_complete_result": True,
+            }
+        )
+    return rows
 
 
 def synchronize_aggregate_artifact_projection_payload(

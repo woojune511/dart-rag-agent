@@ -4,12 +4,13 @@ import ast
 import json
 import unittest
 from collections.abc import Mapping
+from contextlib import ExitStack
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
 
-from src.agent import financial_graph_reconciliation, financial_task_artifacts
+from src.agent import financial_graph_calculation, financial_graph_reconciliation, financial_task_artifacts
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_task_artifacts import enrich_reconciliation_artifact_refs
 
@@ -1852,6 +1853,907 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "normal refs failed"):
                 agent._reconcile_retrieved_evidence(normal_state)
         self.assertEqual(normal_state, normal_before)
+
+    def test_current_source_runtime_evidence_merge_pins_identity_order_and_exceptions(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"keep": True}
+        existing = {"evidence_id": " e1 ", "nested": nested}
+        existing_marker = "existing-nondict"
+        duplicate = {"evidence_id": "e1", "nested": {"duplicate": True}}
+        fresh = {"evidence_id": " e2 ", "nested": nested}
+        blank_first = {"evidence_id": "", "claim": "blank-first", "nested": nested}
+        blank_second = {"claim": "blank-second", "nested": nested}
+        duplicate_fresh = {"evidence_id": "e2", "claim": "duplicate-fresh"}
+        evidence_items = [existing, existing_marker]
+        state = {
+            "runtime_evidence": [
+                "skip-runtime-nondict",
+                duplicate,
+                fresh,
+                blank_first,
+                blank_second,
+                duplicate_fresh,
+            ],
+            "nested": nested,
+        }
+        evidence_before = deepcopy(evidence_items)
+        state_before = deepcopy(state)
+
+        combined = financial_task_artifacts.evidence_items_with_runtime(evidence_items, state)
+
+        self.assertEqual(
+            [
+                item if not isinstance(item, dict) else item.get("claim") or str(item.get("evidence_id") or "").strip()
+                for item in combined
+            ],
+            ["e1", existing_marker, "e2", "blank-first", "blank-second"],
+        )
+        self.assertIsNot(combined, evidence_items)
+        self.assertIs(combined[0], existing)
+        self.assertIs(combined[1], existing_marker)
+        self.assertIsNot(combined[2], fresh)
+        self.assertIsNot(combined[3], blank_first)
+        self.assertIsNot(combined[4], blank_second)
+        self.assertIs(combined[2]["nested"], nested)
+        self.assertIs(combined[3]["nested"], nested)
+        self.assertIs(combined[4]["nested"], nested)
+        self.assertEqual(evidence_items, evidence_before)
+        self.assertEqual(state, state_before)
+        self.assertIs(evidence_items[0]["nested"], nested)
+        self.assertIs(state["nested"], nested)
+
+        class StateAccessBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("state must remain lazy")
+
+        class EvidenceIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("input evidence iterated")
+
+        with self.assertRaisesRegex(RuntimeError, "input evidence iterated"):
+            financial_task_artifacts.evidence_items_with_runtime(EvidenceIterationBomb(), StateAccessBomb())
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("evidence id string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "evidence id string failed"):
+            financial_task_artifacts.evidence_items_with_runtime(
+                [{"evidence_id": StringBomb()}],
+                StateAccessBomb(),
+            )
+
+        class RuntimeIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("runtime evidence iterated")
+
+        with self.assertRaisesRegex(RuntimeError, "runtime evidence iterated"):
+            financial_task_artifacts.evidence_items_with_runtime([], {"runtime_evidence": RuntimeIterationBomb()})
+
+        class RuntimeStateGetBomb(dict):
+            def get(self, _key, _default=None):
+                raise RuntimeError("runtime evidence state access failed")
+
+        with self.assertRaisesRegex(RuntimeError, "runtime evidence state access failed"):
+            financial_task_artifacts.evidence_items_with_runtime([], RuntimeStateGetBomb())
+
+        later = {"evidence_id": "later"}
+        with self.assertRaisesRegex(RuntimeError, "evidence id string failed"):
+            financial_task_artifacts.evidence_items_with_runtime(
+                [],
+                {"runtime_evidence": [{"evidence_id": StringBomb()}, later]},
+            )
+
+    def test_current_source_ratio_artifact_rows_pin_gates_fallbacks_and_copy_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        class StateAccessBomb(dict):
+            def get(self, _key, _default=None):
+                raise AssertionError("artifacts must remain lazy")
+
+        self.assertEqual(
+            financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+                StateAccessBomb(),
+                {"task_id": "   "},
+            ),
+            [],
+        )
+
+        nested = {"keep": True}
+        operand_rows = [{"label": "Numerator", "nested": nested}]
+        row_ids = ["row-1"]
+        evidence_ids = ["evidence-1"]
+        fallback_refs = ["fallback-ref"]
+        primary_result = {
+            "formatted_result": " 10.00% ",
+            "rendered_value": "ignored-rendered",
+            "status": "complete",
+            "source_row_ids": row_ids,
+            "source_evidence_ids": evidence_ids,
+            "nested": nested,
+        }
+        rendered_result = {
+            "formatted_result": "",
+            "rendered_value": " 20.00% ",
+            "nested": nested,
+        }
+        summary_result = {
+            "formatted_result": "",
+            "rendered_value": "",
+            "nested": nested,
+        }
+
+        class PayloadAccessBomb:
+            def __bool__(self):
+                raise AssertionError("payload truthiness must stay lazy")
+
+        artifacts = [
+            {
+                "task_id": "other-task",
+                "kind": "calculation_result",
+                "payload": PayloadAccessBomb(),
+            },
+            {
+                "task_id": "ratio-task",
+                "kind": "other-kind",
+                "payload": PayloadAccessBomb(),
+            },
+            {
+                "task_id": "ratio-task",
+                "kind": "calculation_result",
+                "payload": {"calculation_result": {}},
+            },
+            {
+                "task_id": "ratio-task",
+                "kind": "calculation_result",
+                "status": "artifact-status",
+                "evidence_refs": fallback_refs,
+                "payload": {
+                    "calculation_result": primary_result,
+                    "calculation_operands": operand_rows,
+                },
+                "nested": nested,
+            },
+            {
+                "task_id": "ratio-task",
+                "kind": "calculation_result",
+                "status": "artifact-rendered-status",
+                "evidence_refs": fallback_refs,
+                "payload": {"calculation_result": rendered_result},
+                "nested": nested,
+            },
+            {
+                "task_id": "ratio-task",
+                "kind": "calculation_result",
+                "summary": " summary fallback ",
+                "evidence_refs": fallback_refs,
+                "payload": {"calculation_result": summary_result},
+                "nested": nested,
+            },
+        ]
+        task = {
+            "task_id": " ratio-task ",
+            "metric_family": "explicit-ratio",
+            "metric_label": "Explicit label",
+            "target_metric": "Fallback label",
+            "nested": nested,
+        }
+        state = {"artifacts": artifacts, "nested": nested}
+        valid_artifacts_before = deepcopy(artifacts[2:])
+        task_before = deepcopy(task)
+
+        rows = financial_task_artifacts.ratio_result_rows_from_task_artifacts(state, task)
+
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(
+            [row["answer"] for row in rows],
+            ["10.00%", "20.00%", "summary fallback"],
+        )
+        self.assertEqual(
+            [row["status"] for row in rows],
+            ["complete", "artifact-rendered-status", ""],
+        )
+        self.assertTrue(all(row["task_id"] == "ratio-task" for row in rows))
+        self.assertTrue(all(row["metric_family"] == "explicit-ratio" for row in rows))
+        self.assertTrue(all(row["metric_label"] == "Explicit label" for row in rows))
+        self.assertTrue(all(row["operation_family"] == "ratio" for row in rows))
+        self.assertTrue(all(row["artifact_backed_complete_result"] for row in rows))
+        self.assertIs(rows[0]["calculation_operands"], operand_rows)
+        self.assertIs(rows[0]["source_row_ids"], row_ids)
+        self.assertIs(rows[0]["source_evidence_ids"], evidence_ids)
+        self.assertIs(rows[1]["source_row_ids"], fallback_refs)
+        self.assertIs(rows[1]["source_evidence_ids"], fallback_refs)
+        self.assertIsNot(rows[0]["calculation_result"], primary_result)
+        self.assertIs(rows[0]["calculation_result"]["nested"], nested)
+        self.assertIs(state["artifacts"], artifacts)
+        self.assertEqual(state["artifacts"][2:], valid_artifacts_before)
+        self.assertEqual(task, task_before)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(task["nested"], nested)
+
+        fallback_task = {"task_id": "ratio-task", "target_metric": "Target only"}
+        fallback_rows = financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+            {"artifacts": [artifacts[3]]},
+            fallback_task,
+        )
+        self.assertEqual(fallback_rows[0]["metric_family"], "concept_ratio")
+        self.assertEqual(fallback_rows[0]["metric_label"], "Target only")
+
+        class ArtifactIterationBomb:
+            def __iter__(self):
+                raise RuntimeError("artifacts iterated")
+
+        with self.assertRaisesRegex(RuntimeError, "artifacts iterated"):
+            financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+                {"artifacts": ArtifactIterationBomb()},
+                {"task_id": "ratio-task"},
+            )
+
+        class CopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("artifact copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("artifact item must not be read")
+
+        with self.assertRaisesRegex(RuntimeError, "artifact copy failed"):
+            financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+                {"artifacts": [CopyBomb()]},
+                {"task_id": "ratio-task"},
+            )
+
+        class PayloadCopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("payload copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("payload item must not be read")
+
+        with self.assertRaisesRegex(RuntimeError, "payload copy failed"):
+            financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+                {
+                    "artifacts": [
+                        {
+                            "task_id": "ratio-task",
+                            "kind": "calculation_result",
+                            "payload": PayloadCopyBomb(),
+                        }
+                    ]
+                },
+                {"task_id": "ratio-task"},
+            )
+
+        class ResultCopyBomb(Mapping):
+            def __len__(self):
+                return 1
+
+            def __iter__(self):
+                raise RuntimeError("calculation result copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("calculation result item must not be read")
+
+        with self.assertRaisesRegex(RuntimeError, "calculation result copy failed"):
+            financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+                {
+                    "artifacts": [
+                        {
+                            "task_id": "ratio-task",
+                            "kind": "calculation_result",
+                            "payload": {"calculation_result": ResultCopyBomb()},
+                        }
+                    ]
+                },
+                {"task_id": "ratio-task"},
+            )
+
+        original_normalise = financial_task_artifacts._normalise_spaces
+        normalise_events = []
+
+        def tracked_normalise(value):
+            normalise_events.append(value)
+            if value == "bad-answer":
+                raise RuntimeError("answer normalization failed")
+            return original_normalise(value)
+
+        bad_answer_artifact = {
+            "task_id": "ratio-task",
+            "kind": "calculation_result",
+            "payload": {"calculation_result": {"formatted_result": "bad-answer"}},
+        }
+        with patch.object(
+            financial_task_artifacts,
+            "_normalise_spaces",
+            side_effect=tracked_normalise,
+        ), self.assertRaisesRegex(RuntimeError, "answer normalization failed"):
+            financial_task_artifacts.ratio_result_rows_from_task_artifacts(
+                {"artifacts": [bad_answer_artifact]},
+                {"task_id": "ratio-task"},
+            )
+        self.assertEqual(
+            normalise_events,
+            ["ratio-task", "ratio-task", "calculation_result", "bad-answer"],
+        )
+
+    def test_current_source_task_artifact_read_bindings_pin_exact_move_boundary(self) -> None:
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_task_artifacts.py")
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8-sig"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
+        public_targets = {
+            "evidence_items_with_runtime",
+            "ratio_result_rows_from_task_artifacts",
+        }
+        private_targets = {f"_{name}": name for name in public_targets}
+        graph_class = next(
+            node
+            for node in graph_tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "FinancialAgentCalculationMixin"
+        )
+        graph_defs = {
+            node.name: node
+            for node in graph_class.body
+            if isinstance(node, ast.FunctionDef) and node.name in private_targets
+        }
+        self.assertEqual(graph_defs, {})
+        owner_public_defs = {
+            node.name: node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name in private_targets.values()
+        }
+        self.assertEqual(
+            {
+                name: (node.lineno, node.end_lineno, node.end_lineno - node.lineno + 1)
+                for name, node in owner_public_defs.items()
+            },
+            {
+                "evidence_items_with_runtime": (66, 85, 20),
+                "ratio_result_rows_from_task_artifacts": (88, 129, 42),
+            },
+        )
+        self.assertIn("evidence_items_with_runtime", financial_task_artifacts.__all__)
+        self.assertIn("ratio_result_rows_from_task_artifacts", financial_task_artifacts.__all__)
+
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                target_name = None
+                receiver = None
+                if isinstance(node.func, ast.Attribute):
+                    target_name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    target_name = node.func.id
+                    receiver = "Name"
+                if target_name in private_targets or target_name in private_targets.values():
+                    calls.append(
+                        (
+                            target_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            receiver,
+                            [ast.unparse(value) for value in node.args],
+                            [(item.arg, ast.unparse(item.value)) for item in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        BindingVisitor().visit(graph_tree)
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "ratio_result_rows_from_task_artifacts",
+                    "_preferred_ratio_artifact_row_for_conflicting_recalculation",
+                    "Name",
+                    ["state", "task"],
+                    [],
+                    0,
+                ),
+                (
+                    "evidence_items_with_runtime",
+                    "_extract_calculation_operands",
+                    "Name",
+                    ["evidence_items", "state"],
+                    [],
+                    0,
+                ),
+                (
+                    "evidence_items_with_runtime",
+                    "_extract_calculation_operands",
+                    "Name",
+                    ["evidence_items", "state"],
+                    [],
+                    0,
+                ),
+                (
+                    "ratio_result_rows_from_task_artifacts",
+                    "_append_ratio_result_from_retrieved_context",
+                    "Name",
+                    ["state", "task"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+        self.assertEqual(sum(name == "evidence_items_with_runtime" for name, *_ in calls), 2)
+        self.assertEqual(sum(name == "ratio_result_rows_from_task_artifacts" for name, *_ in calls), 2)
+        self.assertEqual({item[-1] for item in calls}, {0})
+        self.assertEqual({21 - 1, 43 - 1}, {20, 42})
+        self.assertEqual((4, 0), (len(calls), 0))
+
+        module_paths = list(Path("src/agent").glob("*.py"))
+        modules = {f"src.agent.{path.stem}": path for path in module_paths}
+        imports = {module: set() for module in modules}
+        for module, path in modules.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module in modules:
+                    imports[module].add(node.module)
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name in modules:
+                            imports[module].add(alias.name)
+
+        def reaches(start, target):
+            pending = [start]
+            visited = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in visited:
+                    continue
+                visited.add(current)
+                pending.extend(imports.get(current, set()))
+            return False
+
+        graph_module = "src.agent.financial_graph_calculation"
+        owner_module = "src.agent.financial_task_artifacts"
+        aggregate_module = "src.agent.financial_aggregate_projection"
+        self.assertTrue(reaches(graph_module, owner_module))
+        self.assertFalse(reaches(owner_module, graph_module))
+        self.assertTrue(reaches(aggregate_module, owner_module))
+        self.assertFalse(reaches(owner_module, aggregate_module))
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_hits = [
+            record
+            for record in baseline["records"]
+            if (
+                str(record.get("path") or "").replace("\\", "/").endswith(
+                    "src/agent/financial_graph_calculation.py"
+                )
+                and any(
+                    524 <= line <= 544 or 10517 <= line <= 10559
+                    for line in (record.get("first_lines") or [])
+                )
+            )
+            or (
+                str(record.get("path") or "").replace("\\", "/").endswith(
+                    "src/agent/financial_task_artifacts.py"
+                )
+                and any(66 <= line <= 129 for line in (record.get("first_lines") or []))
+            )
+        ]
+        self.assertEqual(selected_hits, [])
+
+        rank_text = Path("tests/test_financial_aggregate_rank_dedupe.py").read_text(encoding="utf-8-sig")
+        subtask_text = Path("tests/test_subtask_loop.py").read_text(encoding="utf-8-sig")
+        self.assertTrue(all(private_name not in rank_text + subtask_text for private_name in private_targets))
+
+    def test_current_source_operand_extraction_runtime_evidence_calls_pin_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"keep": True}
+        evidence_item = {"evidence_id": "base", "nested": nested}
+        runtime_item = {"evidence_id": "runtime", "nested": nested}
+        required_operand = {"label": "Metric", "required": True, "nested": nested}
+        direct_row = {"operand_id": "op_001", "nested": nested}
+
+        def execute(operation_family, *, owner_exception=False):
+            state = {
+                "query": "query",
+                "topic": "topic",
+                "intent": "numeric_fact",
+                "query_type": "numeric_fact",
+                "evidence_items": [evidence_item],
+                "evidence_bullets": [],
+                "runtime_evidence": [runtime_item],
+                "retrieved_docs": [],
+                "seed_retrieved_docs": [],
+                "report_scope": {},
+                "active_subtask": {
+                    "task_id": "task",
+                    "operation_family": operation_family,
+                    "metric_family": "concept_ratio",
+                    "required_operands": [required_operand],
+                },
+                "nested": nested,
+            }
+            before = deepcopy(state)
+            events = []
+            combined = [evidence_item, runtime_item]
+
+            def acceptance_owner(value):
+                events.append("acceptance")
+                self.assertIs(value.direct_operand_rows[0], direct_row)
+                return Mock(accepted_operand_rows=[direct_row])
+
+            def runtime_owner(items, received_state):
+                events.append("runtime")
+                self.assertIs(received_state, state)
+                self.assertIsNot(items, state["evidence_items"])
+                self.assertIs(items[0], evidence_item)
+                if owner_exception:
+                    raise RuntimeError("runtime owner failed")
+                return combined
+
+            def preferred_owner(rows, *, evidence_items, required_operands, operation_family, state):
+                events.append("preferred")
+                self.assertIs(rows[0], direct_row)
+                self.assertIs(evidence_items, combined)
+                self.assertIsNot(required_operands[0], required_operand)
+                self.assertEqual(required_operands[0], required_operand)
+                self.assertIs(required_operands[0]["nested"], nested)
+                self.assertEqual(operation_family, operation_family_value)
+                self.assertIs(state, state_value)
+                raise RuntimeError("preferred stop")
+
+            operation_family_value = operation_family
+            state_value = state
+            preferred_name = (
+                "_prefer_direct_structured_lookup_evidence_rows"
+                if operation_family in {"lookup", "single_value"}
+                else "_prefer_direct_structured_evidence_rows"
+            )
+            other_name = (
+                "_prefer_direct_structured_evidence_rows"
+                if preferred_name == "_prefer_direct_structured_lookup_evidence_rows"
+                else "_prefer_direct_structured_lookup_evidence_rows"
+            )
+            with ExitStack() as stack:
+                stack.enter_context(patch.object(agent, "_calc_query", return_value="query"))
+                stack.enter_context(patch.object(agent, "_calc_topic", return_value="topic"))
+                stack.enter_context(
+                    patch.object(agent, "_extract_structured_operands_from_reconciliation", return_value=[direct_row])
+                )
+                stack.enter_context(
+                    patch.object(agent, "_evidence_items_from_reconciliation_matches", return_value=[])
+                )
+                stack.enter_context(patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _item: row))
+                stack.enter_context(patch.object(agent, "_direct_target_metric_operand_from_evidence", return_value=({}, {})))
+                stack.enter_context(
+                    patch.object(financial_graph_calculation, "evidence_items_with_runtime", side_effect=runtime_owner)
+                )
+                preferred_mock = stack.enter_context(patch.object(agent, preferred_name, side_effect=preferred_owner))
+                other_mock = stack.enter_context(
+                    patch.object(agent, other_name, side_effect=AssertionError("other preference must stay lazy"))
+                )
+                dependency_mock = stack.enter_context(
+                    patch.object(agent, "_dependency_binding_resolution_state", side_effect=AssertionError("dependency must stop"))
+                )
+                stack.enter_context(patch.object(financial_graph_calculation, "_desired_consolidation_scope", return_value=""))
+                stack.enter_context(patch.object(financial_graph_calculation, "_calculation_debug_state_update", return_value={}))
+                stack.enter_context(patch.object(financial_graph_calculation, "_runtime_trace_state_update", return_value={}))
+                stack.enter_context(patch.object(financial_graph_calculation, "_requires_direct_numeric_grounding", return_value=False))
+                stack.enter_context(
+                    patch.object(financial_graph_calculation, "surface_contract_numeric_evidence_items", return_value=[])
+                )
+                stack.enter_context(patch.object(financial_graph_calculation, "_evidence_items_by_id", return_value={}))
+                stack.enter_context(patch.object(financial_graph_calculation, "_evidence_item_for_operand_row", return_value={}))
+                stack.enter_context(
+                    patch.object(financial_graph_calculation, "operand_row_conflicts_requested_scope", return_value=False)
+                )
+                stack.enter_context(
+                    patch.object(financial_graph_calculation, "evidence_item_conflicts_requested_scope", return_value=False)
+                )
+                stack.enter_context(
+                    patch.object(financial_graph_calculation, "resolve_direct_structured_operand_acceptance", side_effect=acceptance_owner)
+                )
+                expected_message = "runtime owner failed" if owner_exception else "preferred stop"
+                with self.assertRaisesRegex(RuntimeError, expected_message):
+                    agent._extract_calculation_operands(state)
+            self.assertEqual(events, ["acceptance", "runtime"] if owner_exception else ["acceptance", "runtime", "preferred"])
+            if owner_exception:
+                preferred_mock.assert_not_called()
+            else:
+                preferred_mock.assert_called_once()
+            other_mock.assert_not_called()
+            dependency_mock.assert_not_called()
+            self.assertEqual(state, before)
+            self.assertIs(state["nested"], nested)
+            self.assertIs(state["evidence_items"][0], evidence_item)
+            self.assertIs(state["runtime_evidence"][0], runtime_item)
+
+        execute("lookup")
+        execute("ratio")
+        execute("lookup", owner_exception=True)
+
+    def test_current_source_preferred_ratio_artifact_caller_pins_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"keep": True}
+        state = {"artifacts": [{"artifact_id": "a", "nested": nested}], "nested": nested}
+        task = {"task_id": "ratio-task", "nested": nested}
+        recalculated_result = {"result_value": "10", "nested": nested}
+        artifact_rows = [{"task_id": "ratio-task", "answer": "9%", "nested": nested}]
+        selected = {"task_id": "ratio-task", "answer": "9%", "nested": nested}
+        state_before = deepcopy(state)
+        task_before = deepcopy(task)
+        result_before = deepcopy(recalculated_result)
+        events = []
+
+        def row_owner(received_state, received_task):
+            events.append("rows")
+            self.assertIs(received_state, state)
+            self.assertIs(received_task, task)
+            return artifact_rows
+
+        def selection_owner(selection_input):
+            events.append("selection")
+            self.assertIs(selection_input.artifact_rows, artifact_rows)
+            self.assertEqual(selection_input.recalculated_value, 10.0)
+            return Mock(selected_artifact_row=selected)
+
+        with patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "coerce_slot_numeric",
+            return_value=10.0,
+        ), patch.object(
+            financial_graph_calculation,
+            "ratio_result_rows_from_task_artifacts",
+            side_effect=row_owner,
+        ), patch.object(
+            financial_graph_calculation,
+            "resolve_ratio_artifact_conflict_selection",
+            side_effect=selection_owner,
+        ):
+            resolved = agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                state,
+                task,
+                recalculated_result,
+            )
+        self.assertIs(resolved, selected)
+        self.assertEqual(events, ["rows", "selection"])
+
+        row_mock = Mock(side_effect=AssertionError("rows must stay lazy"))
+        with patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "coerce_slot_numeric",
+            return_value=None,
+        ), patch.object(financial_graph_calculation, "ratio_result_rows_from_task_artifacts", row_mock), patch.object(
+            financial_graph_calculation,
+            "resolve_ratio_artifact_conflict_selection",
+            side_effect=AssertionError("selection must stay lazy"),
+        ):
+            self.assertEqual(
+                agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                    state,
+                    task,
+                    recalculated_result,
+                ),
+                {},
+            )
+        row_mock.assert_not_called()
+
+        selection_mock = Mock(side_effect=AssertionError("selection must stop"))
+        with patch.object(
+            financial_graph_calculation.financial_answer_slots,
+            "coerce_slot_numeric",
+            return_value=10.0,
+        ), patch.object(
+            financial_graph_calculation,
+            "ratio_result_rows_from_task_artifacts",
+            side_effect=RuntimeError("artifact rows failed"),
+        ), patch.object(
+            financial_graph_calculation,
+            "resolve_ratio_artifact_conflict_selection",
+            selection_mock,
+        ), self.assertRaisesRegex(RuntimeError, "artifact rows failed"):
+            agent._preferred_ratio_artifact_row_for_conflicting_recalculation(
+                state,
+                task,
+                recalculated_result,
+            )
+        selection_mock.assert_not_called()
+        self.assertEqual(state, state_before)
+        self.assertEqual(task, task_before)
+        self.assertEqual(recalculated_result, result_before)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(task["nested"], nested)
+        self.assertIs(recalculated_result["nested"], nested)
+
+    def test_current_source_retrieved_ratio_caller_pins_artifact_rows_order_adoption_and_stop(self) -> None:
+        nested = {"keep": True}
+        ordered_results = [{"answer": "existing", "nested": nested}]
+        context_rows = [
+            {
+                "matched_operand_role": "numerator_1",
+                "label": "Numerator",
+                "normalized_value": 100.0,
+                "raw_value": "100",
+                "raw_unit": "KRW",
+                "evidence_id": "ev_num",
+                "source_row_id": "ev_num",
+                "nested": nested,
+            },
+            {
+                "matched_operand_role": "denominator_1",
+                "label": "Denominator",
+                "normalized_value": 1000.0,
+                "raw_value": "1000",
+                "raw_unit": "KRW",
+                "evidence_id": "ev_den",
+                "source_row_id": "ev_den",
+                "nested": nested,
+            },
+        ]
+        context_evidence = [
+            {"evidence_id": "ev_num", "claim": "Numerator 100", "nested": nested},
+            {"evidence_id": "ev_den", "claim": "Denominator 1000", "nested": nested},
+        ]
+        task = {
+            "task_id": "ratio-task",
+            "metric_label": "Margin",
+            "operation_family": "ratio",
+            "required_operands": [
+                {"role": "numerator_1", "label": "Numerator"},
+                {"role": "denominator_1", "label": "Denominator"},
+            ],
+            "nested": nested,
+        }
+        state = {
+            "query": "ratio",
+            "topic": "Margin",
+            "calc_subtasks": [task],
+            "retrieved_docs": [],
+            "seed_retrieved_docs": [],
+            "nested": nested,
+        }
+        artifact_rows = [{"answer": "artifact", "nested": nested}]
+        projection = {
+            "result_value": 10.0,
+            "result_unit": "%",
+            "normalized_unit": "%",
+            "rendered_value": "10.00%",
+        }
+        ordered_before = deepcopy(ordered_results)
+        state_before = deepcopy(state)
+        rows_before = deepcopy(context_rows)
+        evidence_before = deepcopy(context_evidence)
+        events = []
+
+        class RatioAgent:
+            pass
+
+        ratio_agent = RatioAgent()
+        ratio_agent._aggregate_result_operation_family = Mock(return_value="lookup")
+        ratio_agent._ratio_operand_context_evidence_from_docs = Mock(return_value=context_evidence)
+        ratio_agent._build_complete_ratio_operands_from_coherent_context = Mock(return_value=context_rows)
+
+        def artifact_owner(received_state, received_task):
+            events.append("artifact_rows")
+            self.assertIs(received_state, state)
+            self.assertIsNot(received_task, task)
+            self.assertEqual(received_task, task)
+            self.assertIs(received_task["nested"], nested)
+            return artifact_rows
+
+        def conflict_owner(existing_rows, received_task, *, result_value, context_evidence):
+            events.append("conflict")
+            self.assertEqual(existing_rows, [*ordered_results, *artifact_rows])
+            self.assertIs(existing_rows[0], ordered_results[0])
+            self.assertIs(existing_rows[1], artifact_rows[0])
+            self.assertIsNot(received_task, task)
+            self.assertEqual(received_task, task)
+            self.assertEqual(result_value, 10.0)
+            self.assertEqual(context_evidence, context_evidence_value)
+            return False
+
+        context_evidence_value = context_evidence
+        ratio_agent._compact_ratio_answer = Mock(side_effect=lambda *_args, **_kwargs: events.append("compact") or "10.00%")
+
+        with patch.object(
+            financial_graph_calculation,
+            "ratio_result_rows_from_task_artifacts",
+            side_effect=artifact_owner,
+        ), patch.object(
+            financial_graph_calculation,
+            "retrieved_ratio_projection_conflicts_with_existing_complete_result",
+            side_effect=conflict_owner,
+        ), patch.object(
+            financial_graph_calculation,
+            "collect_retrieval_context_docs",
+            return_value=["doc"],
+        ), patch.object(
+            financial_graph_calculation,
+            "_missing_required_operands",
+            return_value=False,
+        ), patch.object(
+            financial_graph_calculation,
+            "_ratio_operand_rows_collapse_to_same_slot",
+            return_value=False,
+        ), patch.object(
+            financial_graph_calculation.calculation_rendering,
+            "ratio_result_projection",
+            return_value=projection,
+        ):
+            appended = financial_graph_calculation.FinancialAgentCalculationMixin._append_ratio_result_from_retrieved_context(
+                ratio_agent,
+                ordered_results,
+                state,
+            )
+        self.assertEqual(events, ["artifact_rows", "conflict", "compact"])
+        self.assertEqual(len(appended), 2)
+        self.assertIs(appended[0], ordered_results[0])
+        self.assertTrue(appended[1]["recovered_from_retrieved_ratio_context"])
+
+        conflict_mock = Mock(side_effect=AssertionError("conflict must stop"))
+        ratio_agent._compact_ratio_answer.reset_mock()
+        with patch.object(
+            financial_graph_calculation,
+            "ratio_result_rows_from_task_artifacts",
+            side_effect=RuntimeError("artifact owner failed"),
+        ), patch.object(
+            financial_graph_calculation,
+            "retrieved_ratio_projection_conflicts_with_existing_complete_result",
+            conflict_mock,
+        ), patch.object(
+            financial_graph_calculation,
+            "collect_retrieval_context_docs",
+            return_value=["doc"],
+        ), patch.object(
+            financial_graph_calculation,
+            "_missing_required_operands",
+            return_value=False,
+        ), patch.object(
+            financial_graph_calculation,
+            "_ratio_operand_rows_collapse_to_same_slot",
+            return_value=False,
+        ), patch.object(
+            financial_graph_calculation.calculation_rendering,
+            "ratio_result_projection",
+            return_value=projection,
+        ), self.assertRaisesRegex(RuntimeError, "artifact owner failed"):
+            financial_graph_calculation.FinancialAgentCalculationMixin._append_ratio_result_from_retrieved_context(
+                ratio_agent,
+                ordered_results,
+                state,
+            )
+        conflict_mock.assert_not_called()
+        ratio_agent._compact_ratio_answer.assert_not_called()
+        self.assertEqual(ordered_results, ordered_before)
+        self.assertEqual(state, state_before)
+        self.assertEqual(context_rows, rows_before)
+        self.assertEqual(context_evidence, evidence_before)
+        self.assertIs(ordered_results[0]["nested"], nested)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(context_rows[0]["nested"], nested)
+        self.assertIs(context_evidence[0]["nested"], nested)
+
 
 if __name__ == "__main__":
     unittest.main()

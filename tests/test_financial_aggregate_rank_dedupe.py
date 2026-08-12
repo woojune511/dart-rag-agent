@@ -5748,7 +5748,6 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         ratio_agent._aggregate_result_operation_family = Mock(return_value="lookup")
         ratio_agent._ratio_operand_context_evidence_from_docs = Mock(return_value=context_evidence)
         ratio_agent._build_complete_ratio_operands_from_coherent_context = Mock(return_value=context_rows)
-        ratio_agent._ratio_result_rows_from_task_artifacts = Mock(return_value=[])
         conflict_owner = Mock(return_value=False)
         compact_owner = Mock(return_value="10.00%")
         ratio_agent._compact_ratio_answer = compact_owner
@@ -5759,6 +5758,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             "rendered_value": "10.00%",
         }
         with (
+            patch.object(financial_graph_calculation, "ratio_result_rows_from_task_artifacts", return_value=[]),
             patch.object(
                 financial_graph_calculation,
                 "retrieved_ratio_projection_conflicts_with_existing_complete_result",
@@ -5792,6 +5792,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         failing_conflict_owner = Mock(side_effect=RuntimeError("conflict failed"))
         compact_owner.reset_mock()
         with (
+            patch.object(financial_graph_calculation, "ratio_result_rows_from_task_artifacts", return_value=[]),
             patch.object(
                 financial_graph_calculation,
                 "retrieved_ratio_projection_conflicts_with_existing_complete_result",

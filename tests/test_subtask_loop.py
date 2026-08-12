@@ -4678,9 +4678,9 @@ class SubtaskLoopTests(unittest.TestCase):
         artifact_inputs_before = deepcopy([artifact_state, artifact_task, recalculated_result])
         with (
             patch.object(
-                self.agent,
-                "_ratio_result_rows_from_task_artifacts",
-                wraps=self.agent._ratio_result_rows_from_task_artifacts,
+                financial_graph_calculation,
+                "ratio_result_rows_from_task_artifacts",
+                wraps=financial_graph_calculation.ratio_result_rows_from_task_artifacts,
             ) as artifact_builder,
             patch.object(
                 financial_graph_calculation,
@@ -4703,9 +4703,9 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_ratio_result_rows_from_task_artifacts",
-                wraps=self.agent._ratio_result_rows_from_task_artifacts,
+                financial_graph_calculation,
+                "ratio_result_rows_from_task_artifacts",
+                wraps=financial_graph_calculation.ratio_result_rows_from_task_artifacts,
             ) as invalid_builder,
             patch.object(
                 financial_graph_calculation,
