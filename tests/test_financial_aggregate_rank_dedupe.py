@@ -11748,7 +11748,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (74, 11),
+            (75, 11),
         )
         self.assertEqual(len(calls), 3)
         self.assertEqual(noncall_refs, [])
@@ -12596,7 +12596,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (74, 11),
+            (75, 11),
         )
         self.assertEqual(len(calls), 4)
         self.assertEqual(noncall_refs, [])
@@ -13766,7 +13766,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (74, 11),
+            (75, 11),
         )
         owner_symbols = {
             node.name
@@ -13991,6 +13991,776 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ["target-1", "runtime-ratio", "stale-repair", "target-2"],
         )
         second_failure_ratio.assert_called_once()
+
+    def test_current_source_own_evidence_unit_alignment_pins_gates_laziness_and_identity(self) -> None:
+        target = financial_aggregate_projection.align_lookup_result_units_from_own_evidence
+        shared = {"preserve": True}
+        evidence_item = {"evidence_id": "ev", "nested": shared}
+
+        empty_rows = [{"operation_family": "lookup", "nested": shared}]
+        empty_before = deepcopy(empty_rows)
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={},
+            ) as index_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=AssertionError("row access must stay lazy"),
+            ) as later_normalizer,
+        ):
+            self.assertIs(target(empty_rows, [evidence_item]), empty_rows)
+        index_owner.assert_called_once_with([evidence_item])
+        later_normalizer.assert_not_called()
+        self.assertEqual(empty_rows, empty_before)
+        self.assertIs(empty_rows[0]["nested"], shared)
+
+        ratio_row = {"operation_family": " ratio ", "nested": shared}
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev": evidence_item},
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=AssertionError("truthy explicit family must win"),
+            ) as fallback_family,
+            patch.object(
+                financial_aggregate_projection,
+                "lookup_primary_slot",
+                side_effect=AssertionError("non-lookup row must stop"),
+            ) as primary_owner,
+        ):
+            rows = [ratio_row]
+            self.assertIs(target(rows, [evidence_item]), rows)
+        fallback_family.assert_not_called()
+        primary_owner.assert_not_called()
+
+        lookup_row = {"operation_family": "", "nested": shared}
+        empty_slot = {"raw_value": "not-read", "nested": shared}
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev": evidence_item},
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                return_value=" SINGLE_VALUE ",
+            ) as fallback_family,
+            patch.object(
+                financial_aggregate_projection,
+                "lookup_primary_slot",
+                return_value=empty_slot,
+            ) as primary_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                return_value=False,
+            ) as material_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_item_for_operand_row",
+                side_effect=AssertionError("non-material slot must stop"),
+            ) as evidence_owner,
+        ):
+            rows = [lookup_row]
+            self.assertIs(target(rows, [evidence_item]), rows)
+        fallback_family.assert_called_once_with(lookup_row)
+        primary_owner.assert_called_once_with(lookup_row)
+        material_owner.assert_called_once_with(empty_slot)
+        evidence_owner.assert_not_called()
+
+        access_events = []
+
+        class RecordingSlot(dict):
+            def get(self, key, default=None):
+                access_events.append(("slot-get", key))
+                return super().get(key, default)
+
+        blank_slot = RecordingSlot(raw_value="", raw_unit="KRW", source_row_id="ev")
+
+        def evidence_lookup(slot, evidence_by_id):
+            access_events.append(("evidence", slot, evidence_by_id))
+            return evidence_item
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev": evidence_item},
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "lookup_primary_slot",
+                return_value=blank_slot,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "answer_slot_has_material",
+                return_value=True,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_item_for_operand_row",
+                side_effect=evidence_lookup,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_operand_unit_from_evidence",
+                side_effect=AssertionError("blank value must stop coercion"),
+            ) as unit_owner,
+        ):
+            rows = [{"operation_family": "lookup"}]
+            self.assertIs(target(rows, [evidence_item]), rows)
+        self.assertEqual(
+            access_events,
+            [
+                ("slot-get", "raw_value"),
+                ("slot-get", "raw_unit"),
+                ("evidence", blank_slot, {"ev": evidence_item}),
+            ],
+        )
+        unit_owner.assert_not_called()
+
+        base_slot = {
+            "raw_value": "100",
+            "raw_unit": "KRW",
+            "source_row_id": "ev",
+            "nested": shared,
+        }
+        base_row = {"operation_family": "lookup", "nested": shared}
+        for coerced_unit in ("", "KRW"):
+            with self.subTest(coerced_unit=coerced_unit):
+                with (
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_evidence_items_by_id",
+                        return_value={"ev": evidence_item},
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "lookup_primary_slot",
+                        return_value=base_slot,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "answer_slot_has_material",
+                        return_value=True,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_evidence_item_for_operand_row",
+                        return_value=evidence_item,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "coerce_operand_unit_from_evidence",
+                        return_value=coerced_unit,
+                    ) as unit_owner,
+                    patch.object(
+                        financial_aggregate_projection,
+                        "_normalise_operand_value",
+                        side_effect=AssertionError("unchanged unit must stop normalization"),
+                    ) as value_owner,
+                ):
+                    rows = [base_row]
+                    self.assertIs(target(rows, [evidence_item]), rows)
+            unit_owner.assert_called_once_with(
+                raw_value="100",
+                raw_unit="KRW",
+                evidence_item=evidence_item,
+            )
+            value_owner.assert_not_called()
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev": evidence_item},
+            ),
+            patch.object(financial_aggregate_projection, "lookup_primary_slot", return_value=base_slot),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_item_for_operand_row",
+                return_value=evidence_item,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_operand_unit_from_evidence",
+                return_value="USD",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_operand_value",
+                return_value=(None, "USD"),
+            ) as value_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "replace_lookup_primary_slot",
+                side_effect=AssertionError("missing normalized value must stop replacement"),
+            ) as replacement_owner,
+        ):
+            rows = [base_row]
+            self.assertIs(target(rows, [evidence_item]), rows)
+        value_owner.assert_called_once_with("100", "USD")
+        replacement_owner.assert_not_called()
+
+    def test_current_source_own_evidence_unit_alignment_pins_copy_order_and_exceptions(self) -> None:
+        target = financial_aggregate_projection.align_lookup_result_units_from_own_evidence
+        shared = {"preserve": True}
+        ratio_row = {"task_id": "ratio", "operation_family": "ratio", "nested": shared}
+        same_row = {"task_id": "same", "operation_family": "lookup", "nested": shared}
+        changed_row = {"task_id": "changed", "operation_family": "single_value", "nested": shared}
+        same_slot = {
+            "raw_value": "10",
+            "raw_unit": "KRW",
+            "source_row_id": "ev-same",
+            "nested": shared,
+        }
+        changed_slot = {
+            "raw_value": "100",
+            "raw_unit": "thousand KRW",
+            "source_row_id": "ev-changed",
+            "source_row_ids": ["ev-extra", "ev-changed"],
+            "nested": shared,
+        }
+        same_evidence = {"evidence_id": "ev-same", "nested": shared}
+        changed_evidence = {"evidence_id": "ev-changed", "nested": shared}
+        evidence_items = [same_evidence, changed_evidence]
+        rows = [ratio_row, same_row, changed_row]
+        rows_before = deepcopy(rows)
+        evidence_before = deepcopy(evidence_items)
+        replacements = []
+
+        def primary(row):
+            return {"same": same_slot, "changed": changed_slot}[row["task_id"]]
+
+        def evidence(slot, evidence_by_id):
+            return evidence_by_id[slot["source_row_id"]]
+
+        def coerce(*, raw_value, raw_unit, evidence_item):
+            if evidence_item is same_evidence:
+                self.assertEqual((raw_value, raw_unit), ("10", "KRW"))
+                return "KRW"
+            self.assertIs(evidence_item, changed_evidence)
+            self.assertEqual((raw_value, raw_unit), ("100", "thousand KRW"))
+            return "KRW"
+
+        def replace(row, updated_primary, *, marker_key, component_source_ids):
+            replacements.append((row, updated_primary, marker_key, component_source_ids))
+            return {**row, "answer": updated_primary["rendered_value"], marker_key: True}
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev-same": same_evidence, "ev-changed": changed_evidence},
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=AssertionError("explicit family must remain authoritative"),
+            ) as fallback_family,
+            patch.object(financial_aggregate_projection, "lookup_primary_slot", side_effect=primary),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_item_for_operand_row",
+                side_effect=evidence,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_operand_unit_from_evidence",
+                side_effect=coerce,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_operand_value",
+                return_value=(100.0, "KRW"),
+            ) as value_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "_clean_source_row_ids",
+                return_value=["ev-changed", "ev-extra", "ev-changed"],
+            ) as source_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "replace_lookup_primary_slot",
+                side_effect=replace,
+            ) as replacement_owner,
+        ):
+            aligned = target(rows, evidence_items)
+
+        fallback_family.assert_not_called()
+        value_owner.assert_called_once_with("100", "KRW")
+        source_owner.assert_called_once_with(
+            ["ev-changed", ["ev-extra", "ev-changed"]]
+        )
+        replacement_owner.assert_called_once()
+        self.assertIsNot(aligned, rows)
+        self.assertEqual([row["task_id"] for row in aligned], ["ratio", "same", "changed"])
+        self.assertIs(aligned[0], ratio_row)
+        self.assertIs(aligned[1], same_row)
+        self.assertIsNot(aligned[2], changed_row)
+        replaced_row, updated_primary, marker_key, component_ids = replacements[0]
+        self.assertIs(replaced_row, changed_row)
+        self.assertEqual(marker_key, "unit_aligned_from_own_evidence")
+        self.assertEqual(component_ids, {"ev-changed", "ev-extra"})
+        self.assertEqual(
+            {
+                "raw_unit": updated_primary["raw_unit"],
+                "normalized_value": updated_primary["normalized_value"],
+                "normalized_unit": updated_primary["normalized_unit"],
+                "rendered_value": updated_primary["rendered_value"],
+                "marker": updated_primary["unit_aligned_from_own_evidence"],
+            },
+            {
+                "raw_unit": "KRW",
+                "normalized_value": 100.0,
+                "normalized_unit": "KRW",
+                "rendered_value": "100KRW",
+                "marker": True,
+            },
+        )
+        self.assertIs(updated_primary["nested"], shared)
+        self.assertEqual(rows, rows_before)
+        self.assertEqual(evidence_items, evidence_before)
+        self.assertIs(rows[0]["nested"], shared)
+        self.assertIs(changed_slot["nested"], shared)
+        self.assertIs(evidence_items[0]["nested"], shared)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev-same": same_evidence, "ev-changed": changed_evidence},
+            ),
+            patch.object(financial_aggregate_projection, "lookup_primary_slot", side_effect=primary),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_item_for_operand_row",
+                side_effect=evidence,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_operand_unit_from_evidence",
+                side_effect=lambda *, raw_value, raw_unit, evidence_item: raw_unit,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_operand_value",
+                side_effect=AssertionError("all unchanged rows must stay lazy"),
+            ) as value_owner,
+        ):
+            self.assertIs(target(rows, evidence_items), rows)
+        value_owner.assert_not_called()
+
+        later_value = Mock(side_effect=AssertionError("coercion exception must stop later work"))
+        later_replace = Mock(side_effect=AssertionError("coercion exception must stop replacement"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_items_by_id",
+                return_value={"ev-changed": changed_evidence},
+            ),
+            patch.object(financial_aggregate_projection, "lookup_primary_slot", return_value=changed_slot),
+            patch.object(financial_aggregate_projection, "answer_slot_has_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "_evidence_item_for_operand_row",
+                return_value=changed_evidence,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_operand_unit_from_evidence",
+                side_effect=RuntimeError("unit coercion failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_normalise_operand_value", later_value),
+            patch.object(financial_aggregate_projection, "replace_lookup_primary_slot", later_replace),
+            self.assertRaisesRegex(RuntimeError, "unit coercion failed"),
+        ):
+            target([changed_row], evidence_items)
+        later_value.assert_not_called()
+        later_replace.assert_not_called()
+        self.assertEqual(rows, rows_before)
+        self.assertEqual(evidence_items, evidence_before)
+
+    def test_current_source_own_evidence_unit_alignment_pins_static_binding_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        target_private = "_align_lookup_result_units_from_own_evidence"
+        target_public = "align_lookup_result_units_from_own_evidence"
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8"))
+        definition = next(
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == target_public
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 61)
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["ordered_results", "evidence_items"],
+        )
+        self.assertEqual(
+            [
+                node
+                for node in ast.walk(graph_tree)
+                if isinstance(node, ast.FunctionDef) and node.name == target_private
+            ],
+            [],
+        )
+        self.assertEqual(
+            [
+                node
+                for node in ast.walk(definition)
+                if isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "self"
+            ],
+            [],
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "aggregate_result_operation_family"
+                for node in ast.walk(definition)
+            ),
+            1,
+        )
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.function_stack = []
+                self.try_depth = 0
+                self.calls = []
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                called_name = ""
+                receiver = ""
+                if isinstance(node.func, ast.Attribute):
+                    called_name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    called_name = node.func.id
+                if called_name in {target_private, target_public}:
+                    self.calls.append(
+                        (
+                            self.function_stack[-1],
+                            called_name,
+                            receiver,
+                            [ast.unparse(argument) for argument in node.args],
+                            [keyword.arg for keyword in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        visitor = BindingVisitor()
+        visitor.visit(graph_tree)
+        self.assertEqual(
+            visitor.calls,
+            [
+                (
+                    "_collect_initial_aggregate_evidence_state",
+                    target_public,
+                    "",
+                    ["ordered_results", "aggregate_evidence_items"],
+                    [],
+                    0,
+                ),
+                (
+                    "_aggregate_calculation_subtasks",
+                    target_public,
+                    "",
+                    ["ordered_results", "aggregate_evidence_items"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+
+        graph_imports = {
+            alias.name
+            for node in graph_tree.body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        owner_imports = {
+            alias.name
+            for node in owner_tree.body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        for dead_name in ("lookup_primary_slot", "replace_lookup_primary_slot"):
+            self.assertNotIn(dead_name, graph_imports)
+            self.assertIn(dead_name, owner_imports)
+            graph_loads = sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == dead_name
+                for node in ast.walk(graph_tree)
+            )
+            owner_loads = sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == dead_name
+                for node in ast.walk(owner_tree)
+            )
+            selected_loads = sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == dead_name
+                for node in ast.walk(definition)
+            )
+            self.assertEqual((graph_loads, owner_loads, selected_loads), (0, 1, 1))
+        for live_name in (
+            "_evidence_items_by_id",
+            "_evidence_item_for_operand_row",
+            "coerce_operand_unit_from_evidence",
+            "answer_slot_has_material",
+            "_clean_source_row_ids",
+            "_normalise_operand_value",
+            "_normalise_spaces",
+        ):
+            total_loads = sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == live_name
+                for node in ast.walk(graph_tree)
+            )
+            selected_loads = sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == live_name
+                for node in ast.walk(definition)
+            )
+            self.assertGreater(selected_loads, 0, live_name)
+            if live_name in {
+                "answer_slot_has_material",
+                "_clean_source_row_ids",
+                "_normalise_operand_value",
+                "_normalise_spaces",
+            }:
+                self.assertGreater(total_loads, 0, live_name)
+
+        owner_public = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and not node.name.startswith("_")
+        ]
+        owner_private = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("_")
+        ]
+        self.assertEqual((len(owner_public), len(owner_private)), (75, 11))
+
+        modules = {
+            f"src.agent.{path.stem}": path
+            for path in Path("src/agent").glob("*.py")
+        }
+        imports = {name: set() for name in modules}
+        for module_name, path in modules.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module in modules:
+                    imports[module_name].add(node.module)
+
+        def reaches(source, target):
+            pending = [source]
+            visited = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in visited:
+                    continue
+                visited.add(current)
+                pending.extend(imports.get(current, set()) - visited)
+            return False
+
+        aggregate_module = "src.agent.financial_aggregate_projection"
+        operand_module = "src.agent.financial_operand_resolution"
+        dependency_module = "src.agent.financial_dependency_projection"
+        self.assertIn(operand_module, imports[aggregate_module])
+        self.assertIn(dependency_module, imports[aggregate_module])
+        self.assertFalse(reaches(operand_module, aggregate_module))
+        self.assertFalse(reaches(dependency_module, aggregate_module))
+
+        subtask_tree = ast.parse(Path("tests/test_subtask_loop.py").read_text(encoding="utf-8"))
+        legacy_calls = [
+            node
+            for node in ast.walk(subtask_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == target_private
+        ]
+        self.assertEqual(len(legacy_calls), 0)
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set(range(definition.lineno, definition.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == owner_path.as_posix()
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_own_evidence_unit_alignment_callers_pin_adoption_order_and_stop(self) -> None:
+        shared = {"preserve": True}
+        input_row = {
+            "task_id": "task_lookup",
+            "status": "ok",
+            "operation_family": "lookup",
+            "answer": "",
+            "runtime_evidence": [],
+            "nested": shared,
+        }
+        input_evidence = {"evidence_id": "ev", "nested": shared}
+        state = {
+            "query": "",
+            "calc_subtasks": [],
+            "subtask_results": [input_row],
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [],
+            "plan_loop_count": 0,
+            "answer": "",
+            "evidence_items": [input_evidence],
+            "selected_claim_ids": [],
+            "nested": shared,
+        }
+        before = deepcopy(state)
+        events = []
+        target_calls = []
+        peer_calls = []
+        agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+        agent.llm = None
+
+        def target(rows, evidence_items):
+            call_number = len(target_calls) + 1
+            events.append(f"target-{call_number}")
+            target_calls.append((rows, evidence_items))
+            return [{**row, "unit_marker": call_number} for row in rows]
+
+        def peer(rows):
+            events.append("peer")
+            peer_calls.append(rows)
+            return rows
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "align_lookup_result_units_from_own_evidence",
+                side_effect=target,
+            ),
+            patch.object(
+                agent,
+                "_align_lookup_result_units_from_peer_source_slots",
+                side_effect=peer,
+            ),
+        ):
+            result = agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(events, ["peer", "target-1", "peer", "target-2", "peer"])
+        self.assertEqual(len(target_calls), 2)
+        self.assertEqual(len(peer_calls), 3)
+        self.assertNotIn("unit_marker", peer_calls[0][0])
+        self.assertEqual(peer_calls[1][0]["unit_marker"], 1)
+        self.assertEqual(target_calls[1][0][0]["unit_marker"], 1)
+        self.assertEqual(peer_calls[2][0]["unit_marker"], 2)
+        self.assertEqual(result["subtask_results"][0]["unit_marker"], 2)
+        for rows, evidence_items in target_calls:
+            self.assertIsNot(rows, state["subtask_results"])
+            self.assertIsNot(rows[0], input_row)
+            self.assertIs(rows[0]["nested"], shared)
+            self.assertIsNot(evidence_items, state["evidence_items"])
+            self.assertIsNot(evidence_items[0], input_evidence)
+            self.assertIs(evidence_items[0]["nested"], shared)
+        self.assertEqual(state, before)
+        self.assertIs(state["nested"], shared)
+        self.assertIs(state["subtask_results"][0]["nested"], shared)
+        self.assertIs(state["evidence_items"][0]["nested"], shared)
+
+        def run_failure(fail_on_call):
+            failure_events = []
+            failure_calls = 0
+            failure_agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+            failure_agent.llm = None
+            complete_owner = Mock(return_value="")
+
+            def failure_target(rows, evidence_items):
+                nonlocal failure_calls
+                failure_calls += 1
+                failure_events.append(f"target-{failure_calls}")
+                self.assertIs(rows[0]["nested"], shared)
+                self.assertIs(evidence_items[0]["nested"], shared)
+                if failure_calls == fail_on_call:
+                    raise RuntimeError(f"unit alignment {fail_on_call} failed")
+                return [{**row, "unit_marker": failure_calls} for row in rows]
+
+            def failure_peer(rows):
+                failure_events.append("peer")
+                return rows
+
+            with (
+                patch.object(
+                    financial_graph_calculation,
+                    "align_lookup_result_units_from_own_evidence",
+                    side_effect=failure_target,
+                ),
+                patch.object(
+                    failure_agent,
+                    "_align_lookup_result_units_from_peer_source_slots",
+                    side_effect=failure_peer,
+                ),
+                patch.object(
+                    failure_agent,
+                    "_complete_numeric_projection_replacement_answer",
+                    complete_owner,
+                ),
+                self.assertRaisesRegex(RuntimeError, f"unit alignment {fail_on_call} failed"),
+            ):
+                failure_agent._aggregate_calculation_subtasks(state)
+            complete_owner.assert_not_called()
+            self.assertEqual(state, before)
+            self.assertIs(state["nested"], shared)
+            self.assertIs(state["subtask_results"][0]["nested"], shared)
+            self.assertIs(state["evidence_items"][0]["nested"], shared)
+            return failure_events
+
+        self.assertEqual(run_failure(1), ["peer", "target-1"])
+        self.assertEqual(run_failure(2), ["peer", "target-1", "peer", "target-2"])
 
 
 if __name__ == "__main__":

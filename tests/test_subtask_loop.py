@@ -21125,11 +21125,11 @@ class SubtaskLoopTests(unittest.TestCase):
         original_rows = [row]
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "coerce_operand_unit_from_evidence",
             return_value="억원",
         ) as owner:
-            aligned = self.agent._align_lookup_result_units_from_own_evidence(
+            aligned = financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
                 original_rows,
                 [evidence_item],
             )
@@ -21148,11 +21148,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(slot["raw_unit"], "원")
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "coerce_operand_unit_from_evidence",
             return_value="원",
         ) as owner:
-            unchanged = self.agent._align_lookup_result_units_from_own_evidence(
+            unchanged = financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
                 original_rows,
                 [evidence_item],
             )
@@ -21160,28 +21160,31 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIs(unchanged, original_rows)
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "coerce_operand_unit_from_evidence",
         ) as owner:
             self.assertIs(
-                self.agent._align_lookup_result_units_from_own_evidence(original_rows, []),
+                financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
+                    original_rows,
+                    [],
+                ),
                 original_rows,
             )
         owner.assert_not_called()
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "coerce_operand_unit_from_evidence",
                 side_effect=RuntimeError("unit owner failed"),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "replace_lookup_primary_slot",
             ) as later_replacement,
         ):
             with self.assertRaisesRegex(RuntimeError, "unit owner failed"):
-                self.agent._align_lookup_result_units_from_own_evidence(
+                financial_aggregate_projection.align_lookup_result_units_from_own_evidence(
                     original_rows,
                     [evidence_item],
                 )

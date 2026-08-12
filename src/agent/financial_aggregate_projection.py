@@ -28,6 +28,8 @@ from src.agent.financial_dependency_projection import (
     dependency_operand_from_source_slot,
     dependency_projection_slot_differs_from_operand,
     dependency_ratio_role_group,
+    lookup_primary_slot,
+    replace_lookup_primary_slot,
     structured_unit_realigned_operand_matches_source_slot,
 )
 from src.agent.financial_numeric_surface import (
@@ -42,7 +44,12 @@ from src.agent.financial_numeric_surface import (
     promote_table_numeric_support_evidence,
     text_supports_numeric_candidates,
 )
-from src.agent.financial_operand_resolution import ratio_context_has_metric_surface
+from src.agent.financial_operand_resolution import (
+    _evidence_item_for_operand_row,
+    _evidence_items_by_id,
+    coerce_operand_unit_from_evidence,
+    ratio_context_has_metric_surface,
+)
 from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading_period_qualifiers
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
@@ -1311,6 +1318,69 @@ def aggregate_result_operation_family(row: Mapping[str, Any]) -> str:
         "addition": "sum",
     }
     return operation_aliases.get(operation_family, operation_family)
+
+
+def align_lookup_result_units_from_own_evidence(
+    ordered_results: List[Dict[str, Any]],
+    evidence_items: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    evidence_by_id = _evidence_items_by_id(evidence_items)
+    if not evidence_by_id:
+        return ordered_results
+
+    aligned_results: List[Dict[str, Any]] = []
+    changed_any = False
+    for row in ordered_results:
+        operation_family = _normalise_spaces(
+            str(row.get("operation_family") or aggregate_result_operation_family(row) or "")
+        ).lower()
+        if operation_family not in {"lookup", "single_value"}:
+            aligned_results.append(row)
+            continue
+        primary_slot = lookup_primary_slot(row)
+        if not answer_slot_has_material(primary_slot):
+            aligned_results.append(row)
+            continue
+        raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
+        raw_unit = _normalise_spaces(str(primary_slot.get("raw_unit") or ""))
+        evidence_item = _evidence_item_for_operand_row(primary_slot, evidence_by_id)
+        if not raw_value or not evidence_item:
+            aligned_results.append(row)
+            continue
+        coerced_unit = coerce_operand_unit_from_evidence(
+            raw_value=raw_value,
+            raw_unit=raw_unit,
+            evidence_item=evidence_item,
+        )
+        if not coerced_unit or coerced_unit == raw_unit:
+            aligned_results.append(row)
+            continue
+        normalized_value, normalized_unit = _normalise_operand_value(raw_value, coerced_unit)
+        if normalized_value is None:
+            aligned_results.append(row)
+            continue
+
+        source_ids = set(
+            _clean_source_row_ids([primary_slot.get("source_row_id"), primary_slot.get("source_row_ids")])
+        )
+        updated_primary = {
+            **primary_slot,
+            "raw_unit": coerced_unit,
+            "normalized_value": normalized_value,
+            "normalized_unit": normalized_unit,
+            "rendered_value": f"{raw_value}{coerced_unit}",
+            "unit_aligned_from_own_evidence": True,
+        }
+        aligned_results.append(
+            replace_lookup_primary_slot(
+                row,
+                updated_primary,
+                marker_key="unit_aligned_from_own_evidence",
+                component_source_ids=source_ids,
+            )
+        )
+        changed_any = True
+    return aligned_results if changed_any else ordered_results
 
 
 def row_is_narrative_summary(row: Dict[str, Any]) -> bool:

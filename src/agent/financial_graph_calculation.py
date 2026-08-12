@@ -72,6 +72,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_synthesis_prompt_rows,
     append_operand_evidence_for_final_answer,
     append_uncovered_lookup_numeric_items,
+    align_lookup_result_units_from_own_evidence,
     apply_aggregate_answer_candidate,
     answer_reuses_narrative_summary_text,
     answer_reuses_numeric_narrative_summary_text,
@@ -159,11 +160,9 @@ from src.agent.financial_dependency_projection import (
     filter_direct_rows_by_dependency_producer_scope,
     infer_dependency_row_unit,
     dependency_lookup_slot_match_score,
-    lookup_primary_slot,
     refresh_dependency_operands_from_lookup_slots,
     realign_lookup_row_from_dependency_projection,
     rebuild_dependency_calculation_plan,
-    replace_lookup_primary_slot,
     resolve_dependency_producer_scope,
     resolve_dependency_recalculation_candidate_projection,
     resolve_late_dependency_remerge,
@@ -2027,69 +2026,6 @@ class FinancialAgentCalculationMixin:
                 }
             )
         return recovered_results
-
-    def _align_lookup_result_units_from_own_evidence(
-        self,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        evidence_by_id = _evidence_items_by_id(evidence_items)
-        if not evidence_by_id:
-            return ordered_results
-
-        aligned_results: List[Dict[str, Any]] = []
-        changed_any = False
-        for row in ordered_results:
-            operation_family = _normalise_spaces(
-                str(row.get("operation_family") or self._aggregate_result_operation_family(row) or "")
-            ).lower()
-            if operation_family not in {"lookup", "single_value"}:
-                aligned_results.append(row)
-                continue
-            primary_slot = lookup_primary_slot(row)
-            if not answer_slot_has_material(primary_slot):
-                aligned_results.append(row)
-                continue
-            raw_value = _normalise_spaces(str(primary_slot.get("raw_value") or ""))
-            raw_unit = _normalise_spaces(str(primary_slot.get("raw_unit") or ""))
-            evidence_item = _evidence_item_for_operand_row(primary_slot, evidence_by_id)
-            if not raw_value or not evidence_item:
-                aligned_results.append(row)
-                continue
-            coerced_unit = coerce_operand_unit_from_evidence(
-                raw_value=raw_value,
-                raw_unit=raw_unit,
-                evidence_item=evidence_item,
-            )
-            if not coerced_unit or coerced_unit == raw_unit:
-                aligned_results.append(row)
-                continue
-            normalized_value, normalized_unit = _normalise_operand_value(raw_value, coerced_unit)
-            if normalized_value is None:
-                aligned_results.append(row)
-                continue
-
-            source_ids = set(
-                _clean_source_row_ids([primary_slot.get("source_row_id"), primary_slot.get("source_row_ids")])
-            )
-            updated_primary = {
-                **primary_slot,
-                "raw_unit": coerced_unit,
-                "normalized_value": normalized_value,
-                "normalized_unit": normalized_unit,
-                "rendered_value": f"{raw_value}{coerced_unit}",
-                "unit_aligned_from_own_evidence": True,
-            }
-            aligned_results.append(
-                replace_lookup_primary_slot(
-                    row,
-                    updated_primary,
-                    marker_key="unit_aligned_from_own_evidence",
-                    component_source_ids=source_ids,
-                )
-            )
-            changed_any = True
-        return aligned_results if changed_any else ordered_results
 
     def _align_lookup_result_units_from_peer_source_slots(
         self,
@@ -12701,7 +12637,7 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             docs=narrative_docs,
         )
-        own_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
+        own_unit_aligned_results = align_lookup_result_units_from_own_evidence(
             ordered_results,
             aggregate_evidence_items,
         )
@@ -13284,7 +13220,7 @@ class FinancialAgentCalculationMixin:
                 missing_context_claim_ids,
             )
             _sync_state(selected_claim_ids=selected_claim_ids)
-        late_unit_aligned_results = self._align_lookup_result_units_from_own_evidence(
+        late_unit_aligned_results = align_lookup_result_units_from_own_evidence(
             ordered_results,
             aggregate_evidence_items,
         )
