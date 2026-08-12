@@ -433,11 +433,19 @@ Aggregate/narrative row의 state-free answer policy owner다.
   graph-external이며 retrieved evidence preparation, selected-claim/provenance,
   answer composition/refresh, artifact/ledger mutation, mutable state/evidence와
   final sequencing은 graph에 남는다.
-- 다음 선택은 같은 aggregate owner로 가는 155-line growth-answer numeric
-  completion/sanitization 두 함수다. public 2개, external 19/local 0 call,
-  characterize-first gate와 final-growth selection, answer refresh/composition,
-  compact-ratio state/trace, mutable state/evidence, artifact/ledger mutation 및
-  final-sequencing hard stop은
+- 완료된 growth-answer cleanup도 같은 aggregate owner의 public
+  `ensure_complete_growth_numeric_answer(...)`와
+  `strip_untraced_numeric_material_from_growth_narrative_sentence(...)`로
+  배치된다. 19개 call은 모두 graph-external이며 final-growth selection,
+  answer refresh/composition, compact-ratio state/trace, mutable state/evidence,
+  artifact/ledger mutation과 final sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 313-line final-answer surface
+  operand projection이다. public 1개, external 2/local 0 call이며 prepared
+  projection/evidence를 복사해 operand와 stale growth result를 투영하는
+  state-free 경계다. 두 caller, evidence filtering/provenance adoption,
+  public-answer/runtime-evidence preparation, retrieval/provenance construction,
+  evidence-list mutation, mutable state, artifact/ledger mutation 및 final-
+  sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

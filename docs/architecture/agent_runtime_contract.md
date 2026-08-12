@@ -2921,15 +2921,14 @@ refresh was **NOT RUN**, remote CI is unverified, and the move proves no
 behavior, accuracy, ranking, performance, total-code, executed-path, benchmark,
 schedule, ledger, or Phase 3 completion.
 
-The next selected growth-answer boundary retains its current behavior until
-characterized and moved. Graph-private
-`_ensure_complete_growth_numeric_answer(answer, ordered_results,
+Public aggregate-owner
+`ensure_complete_growth_numeric_answer(answer, ordered_results,
 evidence_items=None)` scans growth rows in reverse order, skips conflicting
 periods, adopts the prepared complete growth answer and required display values,
 preserves an already complete answer without untraced numeric material, and
 otherwise retains stable extra sentences only when they are not already in the
-complete answer, do not repeat required values, and are trace-safe. Graph-private
-`_strip_untraced_numeric_material_from_growth_narrative_sentence(sentence,
+complete answer, do not repeat required values, and are trace-safe. Public
+`strip_untraced_numeric_material_from_growth_narrative_sentence(sentence,
 ordered_results, evidence_items=None)` prepares complete growth surfaces and
 required values, removes only configured untraced percent/KRW tokens, normalizes
 punctuation, revalidates numeric trace support, and requires narrative markers,
@@ -2938,16 +2937,50 @@ sanitized sentence. Neither mutates caller inputs or catches mapping, iteration,
 truthiness, string, regex, normalization, sentence, numeric-surface, or policy
 exceptions.
 
-Their selected movement to `financial_aggregate_projection.py` is exactly the
-155-line, 19-call, external-19/local-zero batch specified in
+Commit `3674bb1` moved the former 47 + 108 = 155 definition-span lines to public
+46 + 107 = 153 owner lines. All 19 direct calls remain graph-external and at Try
+depth zero. Source is `+178/-176`, tests are `+1,547/-77`, and the whole commit is
+`+1,725/-253`; the source diff SHA-256 is
+`fb580debe8b766ce98f9258f55b13b00d712d5844fb6c18268abed685d38ebb5`.
+Focused 6/6, aggregate owner 58/58, affected semantic 773/773, import 19/19,
+union 792/792, audit 217, and full discovery 1,722/1,722 passed. Final-growth
+selection, answer refresh, initial composition, final narrative repair,
+aggregate orchestration, mutable state/evidence, artifact/ledger mutation,
+promotion, sync/rebuild, and final sequencing remain graph-owned. Benchmark
+refresh was **NOT RUN**, remote CI is unverified, and the move proves no
+behavior, accuracy, ranking, performance, total-code, executed-path, benchmark,
+schedule, ledger, or Phase 3 completion.
+
+The next selected boundary retains its current behavior until characterized and
+moved. Graph-private
+`_append_final_answer_surface_operands_from_evidence(projection,
+evidence_items, *, final_answer)` first extracts copied non-percent answer
+candidates and returns the original projection when candidates or evidence are
+absent. Otherwise it shallow-copies projection and operand rows, detects existing
+numeric support, recursively collects period-role hints, scores copied matching
+evidence with stable first-winner ties, infers period/role, and appends the exact
+fresh operand schema when an answer numeric surface is not represented. It also
+may synchronize a stale growth calculation result and plan when copied current/
+prior operands produce a percent surface within the existing relative tolerance,
+including fresh operand-value answer slots and cleaned source-row ids. It never
+mutates caller projection or evidence inputs; after the initial identity gates it
+returns a fresh top-level projection even when no append or growth synchronization
+occurs. Only candidate-span integer conversion catches `TypeError`/`ValueError`;
+other mapping, iteration, truthiness, string, regex, normalization, numeric-
+surface, scoring, slot, and copy exceptions propagate.
+
+Its selected movement to public aggregate-owner
+`append_final_answer_surface_operands_from_evidence(...)` is exactly the
+313-line, two-call, external-two/local-zero batch specified in
 [Project Status Next Work](../overview/project_status.md#next-work). The owner
-already holds every dependency and gains no module edge. Final-growth selection,
-answer refresh, initial composition, final narrative repair, aggregate
-orchestration, mutable state/evidence, artifact/ledger mutation, promotion,
-sync/rebuild, and final sequencing remain graph-owned. Compact-ratio state/trace,
-dynamic focus-marker dispatch, general structured-cell helper expansion, bound
-callbacks, ontology compatibility, carriers, and evidence construction/mutation
-remain excluded.
+uses existing numeric-surface, answer-slot, and runtime-normalization dependency
+edges and gains no module edge. Both callers, evidence filtering/provenance
+adoption, public-answer/runtime-evidence preparation, debug/citation projection,
+mutable state/evidence, artifact/ledger mutation, promotion, sync/rebuild, and
+final sequencing remain graph-owned. Collapsed-ratio repair, prepared-candidate
+and compact-ratio state/trace carriers, general structured-cell helper expansion,
+bound callbacks, ontology compatibility, retrieval/provenance construction, and
+evidence-list mutation remain excluded.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

@@ -223,8 +223,9 @@ Phase 3 remains open for four durable debt groups:
 
 1. partially advanced: period/material/source/coherence/rank/dedupe, selected
    narrative-validation policy, bounded row/gap/lookup-answer surfaces, and
-   final-answer evidence projection are owned, while promotion, sync/rebuild,
-   mutable state/evidence, and final sequencing remain graph-owned;
+   final-answer evidence projection and growth-answer completion/sanitization
+   are owned, while promotion, sync/rebuild, mutable state/evidence, and final
+   sequencing remain graph-owned;
 2. partially advanced: ratio presentation/readiness/scale, bounded operand-
    preparation, and unit/table-repair seams are owned; isolate remaining dependency
    and ratio/absolute seams that do not require graph-state lookup, broader evidence
@@ -272,23 +273,39 @@ was **NOT RUN** and remote CI is unverified. This establishes neither behavior,
 accuracy, ranking, performance, total-code, executed-path, ledger, benchmark,
 nor Phase 3 completion.
 
-The selected follow-on is the 155-line growth-answer numeric completion/
-sanitization pair. Public `ensure_complete_growth_numeric_answer(...)` and
-`strip_untraced_numeric_material_from_growth_narrative_sentence(...)` move to
-the existing `financial_aggregate_projection.py` owner. Nineteen current calls
-finish graph-external and zero finish owner-local; projected owner function spans
-total 153. The owner already has every dependency, so the move adds no module
-edge, and the selected spans move no runtime-domain baseline record. Exact APIs,
-six-method characterization, call distribution, and rejected expansions live
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+The completed `3674bb1` follow-on is another ownership relocation only. It moved
+the former 47 + 108 = 155 growth-answer completion/sanitization definition-span
+lines to public 46 + 107 = 153 aggregate-owner lines. All 19 calls remain graph-
+external and retired private source/test refs are zero. Source is `+178/-176`,
+tests are `+1,547/-77`, and the whole commit is `+1,725/-253`; calculation moved
+from 15,185 to 15,030 physical lines and aggregate projection from 2,703 to
+2,860. Six new unittest methods moved full discovery from 1,716 to 1,722. Final
+gates passed focused 6/6, aggregate owner 58/58, affected semantic 773/773,
+import 19/19, semantic/import union 792/792, audit 217, full discovery
+1,722/1,722, pycompile/fresh import, DAG/body/caller parity, and diff check. Its
+source diff SHA-256 is
+`fb580debe8b766ce98f9258f55b13b00d712d5844fb6c18268abed685d38ebb5`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
-All six callers and their answer selection/refresh, composition, mutable state/
-evidence, artifact and ledger mutation, promotion, sync/rebuild, and final
-sequencing stay in the graph. The direct parent final-growth helper remains
-excluded because it coordinates graph-private numeric-coverage and narrative-
-intent gates. Compact-ratio state/trace, dynamic focus-marker dispatch, general
-structured-cell helper expansion, bound answer-slot callbacks, ontology
-compatibility, carriers, and evidence construction/mutation remain excluded.
+The selected follow-on is the 313-line graph-private final-answer surface operand
+projection. Public `append_final_answer_surface_operands_from_evidence(...)`
+moves to the existing aggregate owner at a projected 312 lines. Its two calls
+finish graph-external and none finishes owner-local. The owner adds symbols only
+on existing numeric-surface and runtime-normalization edges, normalizes two
+answer-slot calls to existing owner imports, and retains an acyclic DAG. This is
+bounded copy-based projection over already prepared projection/evidence inputs,
+not retrieval, evidence-window or provenance construction, evidence-list
+mutation, graph-state update, or final orchestration. Exact API, six-method
+characterization, call distribution, and rejected expansions live only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
+
+Both callers and their evidence filtering/provenance adoption, public-answer and
+runtime-evidence preparation, debug/citation projection, mutable state/evidence,
+artifact and ledger mutation, promotion, sync/rebuild, and final sequencing stay
+in the graph. Collapsed-ratio repair, prepared-candidate and compact-ratio state/
+trace carriers, dynamic dispatch, general structured-cell helper expansion,
+bound callbacks, ontology compatibility, retrieval/provenance construction, and
+evidence mutation remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.
