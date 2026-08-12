@@ -15,11 +15,11 @@ Last updated: 2026-08-13
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; bounded nested-result replacement and arithmetic surface synchronization are aggregate-projection-owned, four named debt groups remain |
-| What just changed? | The two-seam 188-line aggregate-result batch moved to `financial_aggregate_projection.py` in `8e840b8` and `b5d97ee` |
-| What passed? | Focused 12/12, aggregate owner 76/76, affected seven-module semantic set 798/798, import-side-effect 19/19, runtime audit 217, full unittest 1,789/1,789 |
+| What is the architecture state? | Phase 3 OPEN; duplicate growth-prior recovery is aggregate-projection-owned, four named debt groups remain |
+| What just changed? | The 53-line duplicate growth-prior recovery seam moved to `financial_aggregate_projection.py` in `b3bb764` |
+| What passed? | Focused 4/4, aggregate owner 80/80, affected eight-module semantic set 838/838, import-side-effect 19/19, runtime audit 217, full unittest 1,793/1,793 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | One characterize-first 53-line duplicate growth-prior operand recovery seam into `financial_aggregate_projection.py`; calculation candidate preparation, state, evidence orchestration, alignment/rebuild, ledger, and final sequencing remain hard stops |
+| What is next? | One characterize-first 48-line final aggregate evidence/provenance projection seam into `financial_aggregate_projection.py`; evidence preparation, stale repair, mutable state, ledger, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -62,12 +62,26 @@ or an unconfigured `FinancialAgent` invocation.
   Graph state/evidence, dependency alignment, projection rebuild,
   artifact/ledger mutation, and final sequencing remain graph-owned. This is
   ownership relocation, not a behavior claim.
-- Current physical sizes are: calculation graph 14,521 lines, main graph 937,
+- Commit `b3bb764` moved the former 53-line
+  `_recover_duplicate_growth_prior_operand(...)` body to one 52-line public
+  `recover_duplicate_growth_prior_operand(...)` owner function. Its sole call
+  remains graph-external in calculation-candidate preparation, after growth
+  unit alignment and before the period-conflict gate. Source is `+56/-55`, net
+  `+1`; tests are `+629/-26`, net `+603`; the whole commit is `+685/-81`, net
+  `+604`. Calculation moved from 14,521 to 14,468 physical lines and aggregate
+  projection from 3,541 to 3,595. Four new test methods moved discovery from
+  1,789 to 1,793. The source diff SHA-256 is
+  `1a02ec371d28b6012b064281260ad3b274bc9f1ef0b330d0724c36d545b56d1a`.
+  Retired private refs are zero in source and tests. Candidate construction,
+  unit/period alignment, execution, state/evidence, rebuild, artifact/ledger,
+  and final sequencing remain graph-owned. This is ownership relocation, not a
+  behavior claim.
+- Current physical sizes are: calculation graph 14,468 lines, main graph 937,
   graph helpers 6,269,
   planning 2,048, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 411, operand resolution 3,603,
   dependency projection 3,417, reconciliation 1,667, reconciliation candidates
-  329, aggregate projection 3,541, task artifacts 1,460, reflection projection
+  329, aggregate projection 3,595, task artifacts 1,460, reflection projection
   374, and run projection 302.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
@@ -88,7 +102,7 @@ Commit-level diffs and validation are kept in
 | Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match and candidate-ID projection over already prepared mappings |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
-| Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, nested-result replacement, arithmetic subtask-surface synchronization, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
+| Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, nested-result replacement, arithmetic subtask-surface synchronization, duplicate growth-prior recovery, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection but not ledger mutation orchestration |
 | Caller-facing run projection | `financial_agent_run_projection.py`; state-free runtime-evidence metadata/citation, agent-answer/review/debug, structured missing-answer selection, aggregate completion, and prepared public-answer state projection, excluding evidence selection, dynamic answer/trace repair, graph execution, and final sequencing |
 | Reflection projection | `financial_reflection_projection.py`; deterministic retry-query construction/finalization, action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
@@ -113,20 +127,21 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, both characterization seams 12 / 12; aggregate owner 76 / 76 |
-| Latest semantic regression set | PASS, affected seven-module set 798 / 798; semantic/import union 817 / 817 |
+| Latest focused owner checkpoint | PASS, duplicate-recovery characterization 4 / 4; aggregate owner 80 / 80 |
+| Latest semantic regression set | PASS, affected eight-module set 838 / 838; semantic/import union 857 / 857 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,789 / 1,789 |
+| Full unittest discovery | PASS, 1,793 / 1,793 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_aggregate_rank_dedupe`,
 `tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
 `tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`,
-`tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`.
+`tests.test_lookup_recovery_policy`, `tests.test_operation_contracts`, and
+`tests.test_financial_calculation_execution`.
 `tests.test_import_side_effects` passed separately at 19 / 19 and together with
-the semantic set as an 817-test union.
+the semantic set as an 857-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -157,65 +172,72 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture seam is the state-free duplicate growth-prior
-operand recovery transform in `financial_graph_calculation.py`. Move the current
-`_recover_duplicate_growth_prior_operand(ordered_operands, evidence_items)`
-definition (53 lines) to `financial_aggregate_projection.py` as public
-`recover_duplicate_growth_prior_operand(...)` (projected 52 lines). Its sole
-caller remains `_prepare_calculation_candidate(...)`, outside a `try`, with
-exact positional arguments `ordered_operands` and
-`list(candidate_input.evidence_items)`. Delete the old body and retarget the
-call directly; add no wrapper, alias, callback, carrier, reason, flag, or output
-field. The selected distribution remains one graph-external call and adds no
-owner-local call of the new API.
+The sole selected architecture seam is the state-free final aggregate
+evidence/provenance projection transform in `financial_graph_calculation.py`.
+Move the current
+`_filter_final_aggregate_evidence_and_projection(aggregate_evidence_items,
+aggregate_projection, *, final_answer, selected_claim_ids)` definition (48
+lines) to `financial_aggregate_projection.py` as public
+`filter_final_aggregate_evidence_and_projection(...)` (projected 47 lines).
+Both calls remain in `_aggregate_calculation_subtasks(...)`, outside `try`
+blocks. The first passes `aggregate_evidence_items, aggregate_projection`; the
+stale-repair call passes `stale_repair_evidence_items, aggregate_projection`;
+both retain exact keyword arguments `final_answer=final_answer` and
+`selected_claim_ids=selected_claim_ids`. Delete the old body and retarget both
+calls directly; add no wrapper, alias, callback, carrier, reason, flag, or output
+field. The selected API distribution is two graph-external calls and zero
+owner-local calls.
 
-Preserve the exact two-operand gate, current/prior role selection and copy
-order, material-sharing gate, evidence recovery call, display/raw-value gates,
-raw-unit fallback precedence, operand normalization, normalized-unit fallback,
-period/source-quote provenance carry-forward, stable operand order, replacement
-by operand ID, unchanged-list identity, changed-prior shallow copy, nested
-aliases, input/evidence immutability, access laziness, and uncaught exceptions.
-The aggregate owner already imports `_normalise_operand_value`,
-`_normalise_spaces`, `growth_slots_share_material`, and
-`recover_growth_prior_material_from_evidence`; the move adds no module edge.
-Runtime normalization and the answer/operand dependencies do not reach aggregate,
-and aggregate does not reach calculation, so the DAG remains acyclic. Every
-selected dependency remains used in calculation after removal, and the span
-hits no reviewed runtime-domain record; the audit count stays 217.
+Preserve final-answer evidence filtering, stable kept-evidence-ID collection,
+non-dict and blank-ID exclusion, the nonempty-kept-ID gate, selected-claim
+intersection order, operand-evidence append order, stable dedupe, projection
+provenance filtering, final-answer surface-operand append, the exact four-value
+return order, shallow copy and nested-alias behavior, input immutability, access
+laziness, and uncaught exceptions. The destination already owns
+`filter_aggregate_evidence_for_final_answer(...)`,
+`AggregateProjectionProvenanceFilterInput`,
+`filter_aggregate_projection_provenance(...)`, and
+`append_final_answer_surface_operands_from_evidence(...)`; the move adds no
+import. Aggregate still has no route back to calculation, the candidate span
+contains no reviewed runtime-domain record, and the audit count remains 217.
 
 Before production movement, add exactly four CURRENT-SOURCE methods to
-`tests.test_financial_aggregate_rank_dedupe`: two direct matrices covering all
-gates, precedence, copies/identity/no-mutation and representative exceptions;
-one exact 53-line/one-call/import-DAG/baseline/try-depth inventory; and one
-executable `_prepare_calculation_candidate(...)` caller test fixing exact args,
-adoption order, duplicate-recovery placement after growth unit alignment and
-before the growth-period conflict check,
-laziness, and exception stop. Hold production until focused 4/4 passes. After
-the literal move, retarget direct tests to the aggregate owner and runtime caller
-patches to the calculation import site; migrate existing private references in
-`tests.test_financial_aggregate_rank_dedupe` and
-`tests.test_financial_calculation_execution`, and require retired private refs
-to reach zero.
+`tests.test_financial_aggregate_rank_dedupe`: two direct matrices covering
+filter/adoption gates, stable ID/claim ordering, copy/identity/no-mutation,
+laziness, and representative dependency/access exceptions; one exact
+48-line/two-call/import-DAG/baseline/try-depth inventory; and one executable
+`_aggregate_calculation_subtasks(...)` caller test fixing both calls' exact
+args, the ordinary-call adoption point, stale-repair conditional second call,
+downstream order, mutable-input preservation, and exception stop. Hold
+production until focused 4/4 passes. After the literal move, retarget direct
+tests to the aggregate owner and runtime caller patches to the calculation
+import site; migrate existing private references in
+`tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_aggregate_subtask_projection`, and `tests.test_subtask_loop`, and
+require retired private refs to reach zero.
 
-Projected gates are focused 4/4, aggregate owner 80/80, affected eight-module
-semantic 838/838, import-side-effect 19/19, semantic/import union 857/857,
-runtime audit 217, full discovery 1,793/1,793, pycompile/fresh import,
-DAG/body/caller parity, retired-ref zero, and diff check. The affected semantic
-set is the current seven-module set plus
-`tests.test_financial_calculation_execution`.
+Projected gates are focused 4/4, aggregate owner 84/84, affected seven-module
+semantic 806/806, import-side-effect 19/19, semantic/import union 825/825,
+runtime audit 217, full discovery 1,797/1,797, pycompile/fresh import,
+DAG/body/caller parity, retired-ref zero, and diff check. The projected semantic
+set is `tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
+`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`,
+`tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`.
+The calculation-execution module was specific to the completed
+duplicate-recovery seam and is not part of this projection boundary.
 
-Keep `_prepare_calculation_candidate(...)`, direct-target/evidence selection,
-unit and period alignment, duplicate-prior caller adoption, calculation
-execution, graph state/evidence, projection rebuild, artifact/ledger mutation,
-and final sequencing in calculation. Reject moving the larger direct-structured
-or precision clusters because the correct operand owner still creates the known
-graph-helper reverse cycle; reject the slot/gap cluster because it crosses
-callback and final-ledger consumers; reject source-visible term preservation
-because it depends on inherited retrieval-pipeline dynamic dispatch; and keep
-compact-ratio, ontology-compatibility, prepared-carrier, evidence-construction,
-state, and ledger expansions stopped. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, schedule, or
-Phase 3 completion claim follows.
+Keep `_aggregate_calculation_subtasks(...)`, stale-repair evidence snapshots,
+mutable state synchronization, runtime ratio and stale projection repair,
+answer selection/composition, retrieval/evidence construction, artifact/ledger
+mutation, and final sequencing in calculation. Keep
+`_ordered_aggregate_subtask_results_for_repair(...)` graph-owned because it
+reads graph state directly. Reject moving the larger retrieved-narrative
+evidence constructor, direct-structured or precision clusters, slot/gap
+callback-and-ledger cluster, compact-ratio state carrier, ontology compatibility
+path, prepared-candidate carrier, and state/ledger expansions. No behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark, schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

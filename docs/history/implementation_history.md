@@ -2980,6 +2980,53 @@ projected validation counts, DAG, and rejected cycle/callback/state expansions
 are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Duplicate growth-prior recovery owner milestone
+
+- `b3bb764` moves the former 53-line
+  `_recover_duplicate_growth_prior_operand(...)` definition out of
+  `FinancialAgentCalculationMixin` as public
+  `recover_duplicate_growth_prior_operand(...)` in
+  `financial_aggregate_projection.py`. The owner definition is 52 lines after
+  removing only `self`. Its sole `_prepare_calculation_candidate(...)` call
+  remains graph-external with the same two positional arguments after growth
+  unit alignment and before the period-conflict check.
+- Literal body parity and complete caller parity passed. The old mixin
+  definition and source/test private refs are zero, public import identity is
+  live, and the aggregate owner contains 73 public and 11 private top-level
+  functions. The move adds no import edge or reviewed runtime-domain record.
+- Source is `+56/-55`, net `+1`; tests are `+629/-26`, net `+603`; the whole
+  commit is `+685/-81`, net `+604`. Calculation moved from 14,521 to 14,468
+  physical lines and aggregate projection from 3,541 to 3,595. Four new test
+  methods moved discovery from 1,789 to 1,793. The source diff SHA-256 is
+  `1a02ec371d28b6012b064281260ad3b274bc9f1ef0b330d0724c36d545b56d1a`.
+- Final validation passed focused 4/4, aggregate owner 80/80, affected
+  eight-module semantic 838/838, import-side-effects 19/19, semantic/import
+  union 857/857, runtime audit 217, full discovery 1,793/1,793,
+  pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only duplicate-prior recovery ownership. Candidate
+construction, direct evidence selection, unit/period alignment, calculation
+execution, state/evidence, projection rebuild, artifact/ledger mutation, and
+final sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 48-line
+final aggregate evidence/provenance projection seam from calculation into the
+same aggregate owner. Public
+`filter_final_aggregate_evidence_and_projection(...)` projects to 47 owner
+lines and retains two graph-external calls in
+`_aggregate_calculation_subtasks(...)`. Its evidence filter, provenance filter,
+input carrier, and final-answer surface-operand append dependencies are already
+owner-local, so no new edge or cycle is introduced. Evidence preparation,
+stale-repair orchestration, mutable state synchronization, runtime-ratio repair,
+answer composition, artifact/ledger mutation, and final sequencing remain hard
+stops. Exact API, four-method CURRENT-SOURCE gate, projected validation counts,
+DAG, and rejected state/cycle/callback expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

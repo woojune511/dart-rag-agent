@@ -425,16 +425,30 @@ range, source is `+197/-204`, tests are `+1,569/-184`, and full discovery is
 mutable state/evidence, artifact/ledger mutation, and final sequencing remain
 excluded.
 
-The selected follow-on is one characterize-first 53-line duplicate growth-prior
-operand recovery transform into `financial_aggregate_projection.py`. It
-projects to one 52-line public function and retains one graph-external call in
-calculation candidate preparation. All dependencies are already owner-local or
-already imported on one-way edges, so it adds no module edge or reverse cycle.
-Only this prepared two-operand recovery transform narrows the remaining operand
-repair boundary. Candidate preparation, direct evidence selection, unit/period
-alignment, execution, state/evidence orchestration, rebuild, artifact/ledger
-mutation, and final sequencing stay graph-owned. Exact API, four-method
-characterization gate, call distribution, DAG, and stop lines live only in
+The completed `b3bb764` follow-on moved the former 53-line duplicate
+growth-prior recovery transform into `financial_aggregate_projection.py` as one
+52-line public function. Its sole call remains graph-external in calculation
+candidate preparation. Source is `+56/-55`, tests are `+629/-26`, and the whole
+commit is `+685/-81`. Calculation moved from 14,521 to 14,468 physical lines,
+aggregate projection from 3,541 to 3,595, and four new unittest methods moved
+full discovery from 1,789 to 1,793. Final gates passed focused 4/4, aggregate
+owner 80/80, affected semantic 838/838, import 19/19, semantic/import union
+857/857, audit 217, full discovery 1,793/1,793, pycompile/fresh import,
+DAG/body/caller parity, and diff check. The source diff SHA-256 is
+`1a02ec371d28b6012b064281260ad3b274bc9f1ef0b330d0724c36d545b56d1a`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Candidate
+preparation, direct evidence selection, unit/period alignment, execution,
+state/evidence orchestration, rebuild, artifact/ledger mutation, and final
+sequencing remain graph-owned.
+
+The selected follow-on is one characterize-first 48-line final aggregate
+evidence/provenance projection transform into the same aggregate owner. It
+projects to one 47-line public function, retains two graph-external calls, and
+co-locates its three existing public owner dependencies without adding an
+import. Graph-state lookup, stale-repair orchestration, mutable state/evidence,
+runtime ratio repair, artifact/ledger mutation, and final sequencing remain
+hard stops. Exact API, four-method characterization gate, call distribution,
+DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

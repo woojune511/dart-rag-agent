@@ -3346,7 +3346,7 @@ Only these two prepared-row transforms supersede the earlier broad
 synchronization stop. Dependency alignment, projection rebuild, state/evidence
 orchestration, artifact/ledger mutation, and final sequencing remain graph-owned.
 
-The selected next prepared-growth boundary is public
+The completed prepared-growth boundary is public
 `recover_duplicate_growth_prior_operand(ordered_operands, evidence_items)` in
 `financial_aggregate_projection.py`. It must preserve the former 53-line graph
 contract after `self` removal: exact two-operand gating; stable current/prior
@@ -3362,11 +3362,40 @@ growth-period conflict check.
 
 The aggregate owner already owns every selected dependency on existing one-way
 edges and has no route back to calculation. The move therefore adds no module
-edge or cycle and moves no reviewed runtime-domain record. Candidate input/
-carrier construction, direct evidence selection, duplicate-prior caller
-adoption, unit and period alignment, calculation execution, state/evidence,
-projection rebuild, artifact/ledger mutation, and final sequencing remain
-graph-owned. The exact four-method CURRENT-SOURCE gate, affected validation set,
+edge or cycle and moves no reviewed runtime-domain record. Commit `b3bb764`
+records source `+56/-55`, tests `+629/-26`, and whole-commit `+685/-81`.
+Focused 4/4, aggregate owner 80/80, affected semantic 838/838, import 19/19,
+semantic/import union 857/857, audit 217, and full discovery 1,793/1,793
+passed. The source diff SHA-256 is
+`1a02ec371d28b6012b064281260ad3b274bc9f1ef0b330d0724c36d545b56d1a`.
+Candidate input/carrier construction, direct evidence selection,
+duplicate-prior caller adoption, unit and period alignment, calculation
+execution, state/evidence, projection rebuild, artifact/ledger mutation, and
+final sequencing remain graph-owned.
+
+The selected next aggregate-projection boundary is public
+`filter_final_aggregate_evidence_and_projection(aggregate_evidence_items,
+aggregate_projection, *, final_answer, selected_claim_ids)` in
+`financial_aggregate_projection.py`. It must preserve the former 48-line graph
+contract after `self` removal: exact delegation to final-answer evidence
+filtering; stable kept-evidence-ID collection with non-dict/blank exclusion;
+the nonempty-kept-ID gate; selected-claim intersection before operand-evidence
+append; stable dedupe and order; prepared provenance filtering; final-answer
+surface-operand append; exact four-value return order; shallow copies, nested
+aliases, input immutability, access laziness, and uncaught exceptions. The
+projected owner span is 47 lines.
+
+Both `_aggregate_calculation_subtasks(...)` calls retain their exact two
+positional arguments and `final_answer`/`selected_claim_ids` keywords. The first
+adopts ordinary aggregate evidence/projection output before state sync and
+runtime-ratio repair. The conditional second call uses the stale-repair evidence
+snapshot only after stale aggregate-state replacement and before the next state
+sync. Both remain outside `try` blocks. The destination already owns all three
+selected helper APIs and the provenance input carrier, so the move adds no
+module edge or runtime-domain baseline record. Evidence preparation, stale
+repair, mutable state synchronization, runtime-ratio repair, answer
+composition, artifact/ledger mutation, and final sequencing remain graph-owned.
+The exact four-method CURRENT-SOURCE gate, affected validation set,
 retired-ref rule, and hard stops are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 

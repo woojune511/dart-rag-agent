@@ -287,7 +287,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
@@ -488,13 +488,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   subtask-surface sync 124줄을 aggregate owner의 public 2개, 실제 186줄로
   옮겼다. 네 call은 external 4/local 0이며 broader alignment/rebuild와 caller
   orchestration은 그대로 남는다.
-- 다음 선택은 calculation mixin의 duplicate growth-prior operand recovery
-  53줄을 aggregate owner의 public 1개, 예상 52줄로 옮기는 batch다. 한 call은
-  external 1/local 0이다. aggregate owner는 normalization과 growth material/
-  evidence recovery dependency를 이미 보유하고 calculation reverse path가 없어
-  acyclic하다. Candidate preparation과 unit/period alignment, calculation
-  execution, projection rebuild, mutable state/evidence,
-  artifact/ledger와 final sequencing hard stop은
+- 완료된 duplicate growth-prior recovery는 calculation mixin의 53줄을
+  aggregate owner의 public 52줄로 옮겼다. 한 call은 graph-external이고 owner
+  public/private 함수 수는 73/11이다. Candidate preparation과 unit/period
+  alignment, execution, state/evidence, rebuild, artifact/ledger와 final
+  sequencing은 graph에 남는다.
+- 다음 선택은 calculation mixin의 final aggregate evidence/provenance
+  projection 48줄을 aggregate owner의 public 47줄로 옮기는 batch다. 두 call은
+  graph-external이고 선택 함수 안의 evidence filter, provenance filter,
+  surface-operand append는 owner-local이 된다. Evidence preparation, stale
+  repair, mutable state sync, runtime-ratio repair, artifact/ledger와 final
+  sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
