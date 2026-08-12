@@ -284,7 +284,7 @@ State-free owner topology:
 | `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, and candidate-ID projection; collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
-| `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
+| `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
@@ -302,7 +302,7 @@ Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
 3. owner 입력 preparation, caller placement, sequential adoption과 equality gate
 4. LLM invocation, prompt/debug payload, retry와 exception/fallback orchestration
 5. mutable calculation/task/artifact/ledger state projection
-6. aggregate evidence selection, rebuild, nested promotion와 final-answer sequencing
+6. aggregate evidence selection, dependency-coherence row replacement, sync/rebuild와 final-answer sequencing
 7. broader ledger synchronization과 아직 선택되지 않은 private helper mesh
 
 최근 owner 이동에는 ratio sign/presentation/readiness/scale policy, numeric support,
@@ -315,10 +315,11 @@ prepared-document snippet projection and retrieved-source preservation,
 projection, aggregate result support/reuse predicate와 prepared growth-numeric
 rendering, dependency input matching/binding/synthesis policy, prepared structured-
 reconciliation candidate projection, final-answer evidence filtering/operand
-append/surface-operand projection이 포함된다. Graph는 query/evidence preparation, caller
-placement, answer composition/refresh, promotion,
-sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
-planning은 nested traversal을 유지한다.
+append/surface-operand projection, nested-row traversal/operation/specificity와
+bounded selected-result promotion이 포함된다. Graph는 query/evidence preparation,
+caller placement, answer composition/refresh, broader dependency-coherence row
+replacement, sync/rebuild, mutable state/evidence, ledger와 callback/final
+orchestration을 유지한다.
 
 함수별 identity, copy, laziness, access, exception, precedence와 caller stop line은
 [Agent Runtime Contract](../architecture/agent_runtime_contract.md)가 단일 기준이다.
@@ -342,6 +343,11 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `growth_sentence_has_untraced_material_numeric(...)`,
   `growth_answer_has_untraced_numeric_sentence(...)`: source-stated result와
   untraced numeric narrative를 판정한다.
+- `nested_subtask_rows(...)`와 owner-private operation/specificity helpers는
+  준비된 nested result를 depth-first로 투영하고 rank를 계산하며,
+  `promote_nested_subtask_result_if_more_specific(...)`는 현재 material 보호와
+  stable winner 규칙 안에서 선택된 result만 반환한다. Task/state capture와
+  broader dependency-coherence replacement는 소유하지 않는다.
 - `_preferred_complete_aggregate_subtask_answer(...)`와 내부 numeric-surface
   helpers: 더 완성된 answer candidate를 evidence-visible 숫자 표면으로 비교한다.
 - 이 모듈은 회사명, benchmark id, report phrase, metric-specific keyword branch를
@@ -474,13 +480,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   projection과 subtask upsert/rank 156줄을 기존 aggregate owner의 public 3개와
   owner-private 1개, 실제 153줄로 옮겼다. 여섯 call은 external 4/local 2이며
   distinct runtime-trace private builder는 그대로 남는다.
-- 다음 선택은 planning mixin의 nested subtask traversal/operation/specificity/
-  promotion 128줄을 기존 answer-projection owner의 public 2개와 owner-private
-  2개, 예상 126줄로 옮기는 한 batch다. 여섯 call은 external 2/local 4다.
-  planning과 calculation은 이미 answer projection을 import하고 reverse path는
-  없다. state/task/evidence capture, dependency-coherence row replacement,
-  projection sync/rebuild, mutable state/evidence, artifact/ledger와 final
-  sequencing hard stop은
+- 완료된 nested selection/promotion batch는 traversal, operation/specificity
+  scoring과 bounded selected-result promotion 128줄을 answer-projection owner의
+  public 2개와 owner-private 2개, 실제 126줄로 옮겼다. 여섯 call은 external
+  2/local 4이며 state/task capture와 broader replacement는 그대로 남는다.
+- 다음 선택은 calculation mixin의 nested-result replacement 64줄과 arithmetic
+  subtask-surface sync 124줄을 순차적으로 aggregate owner의 public 2개, 예상
+  186줄로 옮기는 batch다. 네 call은 external 4/local 0이다. aggregate owner는
+  필요한 dependency를 이미 보유하고 calculation reverse path가 없어 acyclic하다.
+  dependency alignment, projection rebuild, mutable state/evidence,
+  artifact/ledger와 final sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

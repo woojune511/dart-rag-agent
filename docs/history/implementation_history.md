@@ -2864,6 +2864,68 @@ hard stops. Exact APIs, the six-method CURRENT-SOURCE gate, projected validation
 counts, DAG, and rejected state/callback/carrier/cycle expansions are maintained
 only in [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Nested subtask selection/promotion owner milestone
+
+- `a8ad25f` moves `_nested_subtask_rows(...)`,
+  `_subtask_row_operation_family(...)`, `_subtask_row_specificity_score(...)`,
+  and `_promote_nested_subtask_result_if_more_specific(...)` out of
+  `FinancialAgentPlanningMixin`. They become public
+  `nested_subtask_rows(...)`, owner-private
+  `_subtask_row_operation_family(...)`, owner-private
+  `_subtask_row_specificity_score(...)`, and public
+  `promote_nested_subtask_result_if_more_specific(...)` in
+  `financial_answer_projection.py`. The former 20 + 19 + 38 + 51 = 128
+  definition-span lines become 20 + 19 + 37 + 50 = 126 owner lines.
+- Six selected calls finish as two graph-external and four owner-local. The
+  planning caller adopts promoted answer/status/result before later synthesis;
+  the calculation caller delegates prepared nested-row traversal before its
+  separate dependency-coherence replacement. Retired planning definitions and
+  selected mixin-qualified refs are zero; no wrapper, compatibility alias,
+  callback, carrier, reason, flag, or output field remains.
+- Literal body parity passed for all four definitions after only `self` removal
+  and owner-local name rebinding. Complete caller parity passed for
+  `_capture_current_subtask_result(...)` and
+  `_promote_stronger_nested_aggregate_results(...)`. Public import identity,
+  removed mixin-attribute absence, pycompile/fresh import, DAG, and diff check
+  passed. No selected span moved a reviewed runtime-domain record; the count
+  remains 217.
+- Exactly six source/test files changed. Source is `+138/-135`, net `+3`:
+  answer projection moved from 491 to 625 physical lines, planning from 2,180
+  to 2,048, and calculation from 14,718 to 14,719. Tests are `+673/-23`, net
+  `+650`; the whole commit is `+811/-158`, net `+653`. Exactly six new unittest
+  methods moved full discovery from 1,771 to 1,777.
+- The committed source-only diff SHA-256 is
+  `ce62390b757ff986fe704f40fce1e690a6473819890d1725a5aec5e82850687b`.
+  Final validation passed focused 6/6, answer-projection owner 23/23, affected
+  six-module semantic 770/770, import-side-effects 19/19, semantic/import union
+  789/789, runtime audit 217, full discovery 1,777/1,777, pycompile/fresh import,
+  DAG/body/caller parity, and `git diff --check`. Benchmark refresh was **NOT
+  RUN**, and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only deterministic nested selection/promotion ownership.
+Task/state/evidence capture, dependency-coherence row replacement, projection
+alignment/rebuild, mutable state/evidence, artifact/ledger mutation, and final
+sequencing remain graph-owned. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is two sequential
+characterize-first aggregate-result seams from
+`financial_graph_calculation.py` into the existing
+`financial_aggregate_projection.py` owner. Public
+`promote_stronger_nested_aggregate_results(...)` moves 64 old lines to 63 owner
+lines, then public `sync_aggregate_arithmetic_subtask_surfaces(...)` moves 124
+old lines to 123 owner lines. The 188-line batch projects to 186 owner lines;
+all four selected calls remain graph-external. The owner already holds all
+dependencies except `nested_subtask_rows(...)` on its existing answer-projection
+edge and has no path back to calculation. Only these two state-free prepared-row
+transforms supersede the prior broad sync hard stop. Alignment, rebuild, graph
+state/evidence, artifact/ledger mutation, and final sequencing stay graph-owned.
+Exact APIs, the two six-method CURRENT-SOURCE gates, projected validation
+counts, dead-import list, DAG, and rejected cycle/callback/state expansions are
+maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

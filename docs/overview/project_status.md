@@ -15,11 +15,11 @@ Last updated: 2026-08-13
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; aggregate calculation/public projection and subtask upsert/rank are now owner-held, four named debt groups remain |
-| What just changed? | The 156-line aggregate subtask projection/upsert cluster moved to `financial_aggregate_projection.py` in `06710c1` |
-| What passed? | Focused 7/7, aggregate-subtask owner 118/118, affected seven-module semantic set 780/780, import-side-effect 19/19, semantic/import union 799/799, runtime audit 217, full unittest 1,771/1,771 |
+| What is the architecture state? | Phase 3 OPEN; bounded nested traversal/scoring/promotion selection is now answer-projection-owned, four named debt groups remain |
+| What just changed? | The 128-line nested subtask selection/promotion cluster moved to `financial_answer_projection.py` in `a8ad25f` |
+| What passed? | Focused 6/6, answer-projection owner 23/23, affected six-module semantic set 770/770, import-side-effect 19/19, semantic/import union 789/789, runtime audit 217, full unittest 1,777/1,777 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | One characterize-first 128-line nested subtask selection/promotion batch into `financial_answer_projection.py`; graph-state capture, broader nested-result replacement, synchronization/rebuild, and final sequencing remain hard stops |
+| What is next? | Two sequential characterize-first aggregate-result seams totaling 188 lines into `financial_aggregate_projection.py`: nested-result replacement first, arithmetic surface sync second; graph state, alignment/rebuild, ledger, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,25 +50,24 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved aggregate calculation/public projection and
-  subtask upsert/rank. In `06710c1`, exactly eleven source/test files changed.
-  The four selected definition spans totaled 156 lines and became three public
-  plus one owner-private functions totaling 153 owner lines. Six calls finish as
-  four graph-external and two owner-local. Retired planning-mixin definitions and
-  selected qualified refs are zero; the distinct runtime-trace private aggregate
-  builder and its six calls remain live. Source is `+181/-184`, net `-3`; tests
-  are `+1,143/-41`, net `+1,102`; the whole commit is `+1,324/-225`, net `+1,099`.
-  Planning moved from 2,356 to 2,180 physical lines, aggregate projection from
-  3,180 to 3,350, calculation from 14,716 to 14,718, and the main graph from 936
-  to 937. The committed source diff SHA-256 is
-  `0cb0b708ee672f115f0a06eea62217f598e87d1a194f6422d422ba126bb51f7b`.
-  State capture, projection filtering, broader nested promotion, recovery/
-  alignment/synchronization, artifact/ledger mutation, and final sequencing
-  remain graph-owned. This is ownership relocation, not a behavior claim.
-- Current physical sizes are: calculation graph 14,718 lines, main graph 937,
+- The latest owner batch moved nested-row traversal, operation/specificity
+  scoring, and bounded selected-result promotion. In `a8ad25f`, exactly six
+  source/test files changed. The four selected definition spans totaled 128
+  lines and became two public plus two owner-private functions totaling 126
+  owner lines. Six calls finish as two graph-external and four owner-local.
+  Retired planning definitions and selected mixin-qualified refs are zero.
+  Source is `+138/-135`, net `+3`; tests are `+673/-23`, net `+650`; the whole
+  commit is `+811/-158`, net `+653`. Answer projection moved from 491 to 625
+  physical lines, planning from 2,180 to 2,048, and calculation from 14,718 to
+  14,719. The committed source diff SHA-256 is
+  `ce62390b757ff986fe704f40fce1e690a6473819890d1725a5aec5e82850687b`.
+  Task/state capture, dependency-coherence winner replacement, projection
+  alignment/rebuild, artifact/ledger mutation, and final sequencing remain
+  graph-owned. This is ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 14,719 lines, main graph 937,
   graph helpers 6,269,
-  planning 2,180, calculation rendering 708, answer slots 734, numeric surface
-  670, answer projection 491, text surface 411, operand resolution 3,603,
+  planning 2,048, calculation rendering 708, answer slots 734, numeric surface
+  670, answer projection 625, text surface 411, operand resolution 3,603,
   dependency projection 3,417, reconciliation 1,667, reconciliation candidates
   329, aggregate projection 3,350, task artifacts 1,460, reflection projection
   374, and run projection 302.
@@ -90,7 +89,7 @@ Commit-level diffs and validation are kept in
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py` |
 | Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match and candidate-ID projection over already prepared mappings |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
-| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
+| Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
 | Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection but not ledger mutation orchestration |
 | Caller-facing run projection | `financial_agent_run_projection.py`; state-free runtime-evidence metadata/citation, agent-answer/review/debug, structured missing-answer selection, aggregate completion, and prepared public-answer state projection, excluding evidence selection, dynamic answer/trace repair, graph execution, and final sequencing |
@@ -116,20 +115,20 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, new focused 7 / 7; aggregate-subtask owner 118 / 118 |
-| Latest semantic regression set | PASS, affected seven-module set 780 / 780; semantic/import union 799 / 799 |
+| Latest focused owner checkpoint | PASS, new focused 6 / 6; answer-projection owner 23 / 23 |
+| Latest semantic regression set | PASS, affected six-module set 770 / 770; semantic/import union 789 / 789 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,771 / 1,771 |
+| Full unittest discovery | PASS, 1,777 / 1,777 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
-`tests.test_lookup_recovery_policy`, `tests.test_financial_agent_run_projection`,
-`tests.test_subtask_loop`, and `tests.test_operation_contracts`.
+The semantic set is `tests.test_financial_answer_projection`,
+`tests.test_aggregate_subtask_projection`, `tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
+`tests.test_operation_contracts`.
 `tests.test_import_side_effects` passed separately at 19 / 19 and together with
-the semantic set as a 799-test union.
+the semantic set as a 789-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -150,7 +149,7 @@ The durable Phase 3 debt is:
 
 | Debt group | Progress boundary |
 | --- | --- |
-| Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/surface-operand projection, and growth-answer completion/sanitization; broader nested promotion, sync/rebuild, and final sequencing remain graph-owned |
+| Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/surface-operand projection, and growth-answer completion/sanitization; broader row replacement, sync/rebuild, and final sequencing remain graph-owned |
 | Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude, same-block unit/table repair, and dependency input matching/binding; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
@@ -160,93 +159,102 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture batch is one characterize-first nested subtask
-selection/promotion move from `financial_graph_planning.py` into the existing
-`financial_answer_projection.py` owner. Move `_nested_subtask_rows(...)` (20
-current definition-span lines) as public `nested_subtask_rows(...)`,
-`_subtask_row_operation_family(...)` (19) as owner-private
-`_subtask_row_operation_family(...)`, `_subtask_row_specificity_score(...)` (38)
-as owner-private `_subtask_row_specificity_score(...)`, and
-`_promote_nested_subtask_result_if_more_specific(...)` (51) as public
-`promote_nested_subtask_result_if_more_specific(...)`. Removing the two
-standalone `self` lines projects the 128 former lines to 126 owner lines. Six
-selected calls finish as two graph-external and four owner-local calls. Delete
-the old bodies and retarget directly; add no wrapper, compatibility alias,
-callback, carrier, reason, flag, or output field. The answer-projection owner
-becomes public 12 plus owner-private nine.
+The sole selected architecture batch is two sequential characterize-first seams
+from `financial_graph_calculation.py` into the existing
+`financial_aggregate_projection.py` owner. Seam A moves
+`_promote_stronger_nested_aggregate_results(...)` (64 current definition-span
+lines) as public `promote_stronger_nested_aggregate_results(...)` (projected 63
+lines). Seam B then moves `_sync_aggregate_arithmetic_subtask_surfaces(...)`
+(124) as public `sync_aggregate_arithmetic_subtask_surfaces(...)` (projected
+123). The batch removes 188 old definition lines, publishes two APIs totaling
+186 owner lines, and leaves the four selected calls graph-external with zero
+selected owner-local calls. Delete each old body and retarget directly; add no
+wrapper, alias, callback, carrier, reason, flag, or output field. After both
+seams the aggregate owner projects from public 70/private 11 to public
+72/private 11.
 
-`nested_subtask_rows(...)` must preserve depth-first source order across direct
-and answer-slot child lists, non-dict skips, fresh top-level child copies,
-nested-object identity, recursive calculation-result access, and input
-immutability. Owner-private `_subtask_row_operation_family(...)` must preserve
-row, answer-slot, and calculation-result precedence; aggregate-child fallback;
-`concept_` metric fallback; normalization/lowercasing; access laziness; and
-uncaught exceptions. Owner-private `_subtask_row_specificity_score(...)` must
-preserve task-ID mismatch rejection and the exact status, material,
-non-aggregate, operation, family, and label rank tuple, including exact,
-substring, and token-overlap label precedence.
+Seam A must preserve task-ID map construction and copy order, source-slot map
+construction before aggregate scanning, non-aggregate and blank-ID skips,
+nested aggregate/material-gap/current-row exclusions, replacement chaining,
+current-status fallback, direct-source/numeric-conflict/sign-consistency
+protection, strict nested-rank and dependency-coherence comparisons, stable
+winner order, carry-forward of four provenance containers, unchanged-list
+identity, changed-row shallow copies, nested aliases, input immutability, and
+uncaught exceptions. Its three exact callers remain
+`_promote_and_align_aggregate_results(ordered_results)`,
+`_sync_projection_subtask_results_with_nested_promotions(projection_subtask_results)`,
+and `_prepare_initial_aggregate_state(ordered_results)`.
 
-`promote_nested_subtask_result_if_more_specific(...)` must preserve the active-
-operation and child-list gates, stable candidate order under equal scores,
-score-prefix filtering, current-material protection, aggregate-child rejection,
-answer/status/result fallback order, fresh best-result copying, unchanged-path
-identity, input immutability, and uncaught exception propagation. It must not
-absorb the caller's state capture or the separate broader nested-result
-replacement policy.
+Seam B must preserve copied projection/result/answer-slot rows, empty-projection
+identity, planned arithmetic-task filtering, operation-family and row-surface
+precedence, lookup and arithmetic coverage gates, stable candidate-index order,
+the second answer-sentence selection on adoption, numeric conflict and lookup
+cardinality rules, rendered-value projection, row-surface synchronization,
+lookup-slot/component synchronization, ordered-result and answer-slot row
+replacement, changed/unchanged identity, nested aliases, input immutability,
+access laziness, and uncaught exceptions. Its sole exact caller remains
+`_aggregate_calculation_subtasks(ordered_results, aggregate_projection,
+final_answer)`. All four calls remain outside `try` blocks and keep their exact
+positional arguments and current adoption points.
 
-The answer-projection owner already owns `re`, `Dict`, `List`, runtime
-normalization, and `subtask_row_has_material(...)`; no new module edge is needed.
-Planning and calculation already import answer projection, while answer
-projection reaches neither graph mixin. Retarget one promotion call in
-`_capture_current_subtask_result(...)` and one nested-row call in
-`_promote_stronger_nested_aggregate_results(...)`. The other four calls become
-owner-local: promotion to nested rows, specificity, and operation family, plus
-specificity to operation family. All six calls remain outside `try` blocks with
-their exact args/kwargs. Remove planning's now-dead
-`subtask_row_has_material` import; its `re`, typing, and normalization imports
-remain live. The selected spans hit no runtime-domain baseline record and the
-reviewed count remains 217.
+The aggregate owner already owns every selected dependency except the public
+`nested_subtask_rows(...)` symbol on its existing one-way answer-projection
+edge. It already owns or imports aggregate operation/rank/coherence/source-slot,
+numeric-surface, row-surface sync, normalization, typing, and synchronization
+input contracts. Aggregate projection reaches answer projection, numeric
+surface, and normalization, none of which reaches aggregate; it does not reach
+the calculation graph, while calculation already imports aggregate. The move
+therefore adds no module edge or cycle. Remove the now-dead calculation imports
+`AggregateArithmeticComponentSyncInput`,
+`AggregateProjectionRowSurfaceSyncInput`, `aggregate_lookup_primary_slots`,
+`aggregate_projection_rendered_value`, `synchronize_aggregate_arithmetic_components`,
+`synchronize_aggregate_projection_row_surface`, `subtask_row_has_direct_source_refs`,
+and `nested_subtask_rows`; all other selected dependencies remain live. The
+selected spans hit no runtime-domain baseline record, so the reviewed count
+remains 217.
 
-Before production movement, add exactly six CURRENT-SOURCE methods to
-`tests.test_financial_answer_projection`: a direct recursive nested-row
-order/copy/access/exception matrix; a direct operation-family plus specificity
-precedence/rank/laziness/exception matrix; a direct promotion gate/tie/adoption/
-identity/no-mutation/exception matrix; exact 20/19/38/51-definition, six-call,
-planned 20/19/37/50-owner-span, public-two/private-two, external-two/local-four,
-import-DAG, baseline, dead-import and try-depth inventory; an executable
-`_capture_current_subtask_result(...)` caller test; and an executable
-`_promote_stronger_nested_aggregate_results(...)` caller test. Pin exact args,
-mapping/list identity, call order, result adoption, input/nested identity, no
-mutation, and owner-exception downstream stop. Only after focused 6/6 is green
-may source move.
+Before Seam A production movement, add exactly six CURRENT-SOURCE methods to
+`tests.test_financial_aggregate_rank_dedupe`: two direct promotion matrices for
+gates, replacement chaining, conflict/sign/rank/coherence ordering, stable
+selection, carry-forward, copy/identity/no-mutation and exceptions; one exact
+64-line/three-call/import-DAG/baseline/dead-import/try-depth inventory; and one
+executable caller method for each of its three callers. Hold source until
+focused 6/6 passes, then move, retarget all direct/private tests, require the old
+definition and qualified refs to reach zero, and freeze the source before Seam
+B characterization.
 
-Then retarget the existing private references in
-`tests.test_financial_answer_projection`,
-`tests.test_aggregate_subtask_projection`, and
-`tests.test_financial_aggregate_rank_dedupe`. Require retired planning
-definitions and selected mixin-qualified refs to be zero, and run answer-
-projection owner 23/23, affected six-module semantic 770/770,
-import-side-effect 19/19, union 789/789, runtime audit 217, projected full
-discovery 1,777/1,777, pycompile/fresh import, DAG/body/caller parity, and diff-
-check gates sequentially. The semantic set is
-`tests.test_financial_answer_projection`,
-`tests.test_aggregate_subtask_projection`,
-`tests.test_financial_aggregate_rank_dedupe`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, and
-`tests.test_operation_contracts`.
+Before Seam B production movement, add exactly six more CURRENT-SOURCE methods
+to the same owner test module: empty/plan/operation gate, candidate eligibility,
+row/answer-slot/component adoption, and access/copy/laziness/no-mutation/
+exception matrices; one exact 124-line/one-call/final-distribution/DAG/baseline/
+dead-import/try-depth inventory; and one executable aggregate-orchestrator
+caller test. Hold source until focused 6/6 passes, then move and retarget the
+existing private references in `tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
+and `tests.test_subtask_loop`.
 
-Keep `_capture_current_subtask_result(...)` and its task-trace/state/evidence
-projection in planning. Keep `_promote_stronger_nested_aggregate_results(...)`,
-dependency-coherence comparison, row replacement, projection synchronization/
-rebuild, mutable state/evidence, artifact/ledger mutation, and final sequencing
-in calculation. The previously rejected aggregate-owner variant remains
-forbidden because it creates the documented planning/aggregate reverse cycle;
-the selected answer-projection owner avoids that cycle and already owns the
-material predicate. Also reject direct structured-value/precision, compact-
-ratio, ontology-compatibility, bound-callback, evidence-mutation, state,
-carrier, and ledger seams. No behavior, accuracy, ranking, performance, total-
-code or executed-path reduction, benchmark, schedule, or Phase 3 completion
-claim follows.
+After both seams require focused 12/12, aggregate owner 76/76, affected
+seven-module semantic 798/798, import-side-effect 19/19, union 817/817, runtime
+audit 217, projected full discovery 1,789/1,789, pycompile/fresh import,
+DAG/body/caller parity, retired selected refs zero, and diff-check gates. The
+semantic set is `tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
+`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`,
+`tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`.
+
+This batch supersedes only the earlier broad synchronization hard stop for these
+two state-free prepared-row transforms. Keep
+`_sync_projection_subtask_results_with_nested_promotions(...)`,
+`_promote_and_align_aggregate_results(...)`, `_prepare_initial_aggregate_state(...)`,
+`_aggregate_calculation_subtasks(...)`, dependency alignment, projection
+rebuild, graph state/evidence, artifact/ledger mutation, and final sequencing in
+calculation. Reject the direct structured/precision cluster because its correct
+operand owner would create the known graph-helper reverse cycle; reject the
+slot/gap cluster because it crosses callback and final-ledger consumers; and
+continue rejecting compact-ratio, ontology-compatibility, carrier,
+evidence-mutation, state, and ledger expansions. No behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark, schedule, or
+Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

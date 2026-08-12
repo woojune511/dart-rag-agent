@@ -416,18 +416,24 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 Heuristic dependency/calc-family resolution, prompt/LLM planning, action/report/
 artifact projection, mutable state, routing/promotion, and final sequencing
-remain excluded. The aggregate subtask projection/upsert batch is now complete.
-The selected follow-on is one characterize-first 128-line nested subtask
-selection/promotion batch into `financial_answer_projection.py`. Public nested-
-row traversal and promotion plus two owner-private scoring helpers project to 126
-owner lines; six calls finish as two graph-external and four owner-local. Both
-current external callers already import answer projection, and that owner reaches
-neither graph mixin, so this exact route adds no cycle. The previously rejected
-aggregate-owner route remains forbidden because aggregate already reaches
-planning through dependency projection. State capture, broader dependency-
-coherence replacement, projection sync/rebuild, mutable state/evidence, artifact/
-ledger mutation, and final sequencing stay graph-owned. Exact APIs, the six-
-method characterization gate, call distribution, DAG, and stop lines live only in
+remain excluded. The nested subtask selection/promotion batch is now complete.
+Commit `a8ad25f` moved the former 128 definition-span lines to two public plus
+two owner-private answer-projection functions totaling 126 lines. Six calls
+finish as two graph-external and four owner-local; source is `+138/-135`, tests
+are `+673/-23`, and full discovery is 1,777/1,777. Task/state capture, broader
+dependency-coherence replacement, projection alignment/rebuild, mutable
+state/evidence, artifact/ledger mutation, and final sequencing remain excluded.
+
+The selected follow-on is two sequential characterize-first aggregate-result
+seams into `financial_aggregate_projection.py`: 64 lines of nested-result
+replacement followed by 124 lines of arithmetic subtask-surface sync. They
+project to two public functions totaling 186 owner lines, and four calls remain
+graph-external. The owner already holds all dependencies except one symbol on an
+existing answer-projection edge; no new edge or reverse cycle is introduced.
+Only these prepared-row transforms supersede the prior broad synchronization
+stop. State-bearing alignment, rebuild, orchestration, artifact/ledger mutation,
+and final sequencing stay graph-owned. Exact APIs, the two six-method
+characterization gates, call distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

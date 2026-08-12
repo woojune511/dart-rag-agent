@@ -3258,15 +3258,14 @@ Focused 7/7, aggregate-subtask owner 118/118, affected semantic 780/780, import
 19/19, union 799/799, audit 217, and full discovery 1,771/1,771 passed. The
 source diff SHA-256 is
 `0cb0b708ee672f115f0a06eea62217f598e87d1a194f6422d422ba126bb51f7b`.
-Nested-row traversal, operation/specificity scoring, nested promotion, state
-capture, projection filtering, recovery/alignment/synchronization, artifact/
-ledger mutation, and final sequencing remain graph-owned. Co-moving the nested
-promotion cluster is forbidden in this batch because it would require planning
-to import aggregate while aggregate already reaches planning through dependency
-projection.
+At that checkpoint nested traversal/scoring/promotion still remained graph-owned;
+the subsequent `a8ad25f` boundary below moved only that selected state-free
+cluster through the acyclic answer-projection route. State capture, projection
+filtering, broader recovery/alignment/synchronization, artifact/ledger mutation,
+and final sequencing remain graph-owned.
 
-The selected next nested subtask selection/promotion boundary belongs to
-`financial_answer_projection.py`, not the aggregate owner. Public
+The completed nested subtask selection/promotion boundary belongs to
+`financial_answer_projection.py`. Public
 `nested_subtask_rows(calculation_result)` traverses direct and answer-slot child
 lists in depth-first source order, skips non-dicts, returns shallow child
 copies, preserves nested identity, and never mutates the prepared result.
@@ -3288,22 +3287,61 @@ calculation result to `nested_subtask_rows(...)` before dependency-coherence
 comparison and broader row replacement. Both calls stay outside `try` blocks;
 owner exceptions stop downstream work.
 
-The former definition spans are 20 + 19 + 38 + 51 = 128 lines and project to
+The former definition spans were 20 + 19 + 38 + 51 = 128 lines and now occupy
 20 + 19 + 37 + 50 = 126 owner lines. The two external calls remain in
 `_capture_current_subtask_result(...)` and
 `_promote_stronger_nested_aggregate_results(...)`; four helper calls become
-owner-local. Answer projection already owns all required dependencies and is
-already imported one-way by planning and calculation, so no new module edge or
-cycle is introduced. The selected spans contain no reviewed runtime-domain
-record. The exact six-method CURRENT-SOURCE gate, affected validation set,
-retired-ref rule, and hard stops are maintained in
-[Project Status Next Work](../overview/project_status.md#next-work).
+owner-local. Answer projection owns all required dependencies and is imported
+one-way by planning and calculation, so no new module edge or cycle was
+introduced. The selected spans contain no reviewed runtime-domain record.
+Source is `+138/-135`, tests are `+673/-23`, and the whole commit is
+`+811/-158`. Focused 6/6, answer-projection owner 23/23, affected semantic
+770/770, import 19/19, union 789/789, audit 217, and full discovery
+1,777/1,777 passed. The source diff SHA-256 is
+`ce62390b757ff986fe704f40fce1e690a6473819890d1725a5aec5e82850687b`.
 
 State/task/evidence capture, dependency-coherence winner comparison, broader row
 replacement, projection synchronization/rebuild, mutable state/evidence,
 artifact/ledger mutation, and final sequencing remain in their current graph
-owners. Moving the same cluster into aggregate projection remains forbidden by
-the existing aggregate-to-planning path.
+owners. This move establishes no behavior, accuracy, performance, total-code,
+executed-path, benchmark, schedule, or Phase 3 completion claim.
+
+The selected next aggregate-result boundary is two sequential state-free moves
+into `financial_aggregate_projection.py`. Public
+`promote_stronger_nested_aggregate_results(ordered_results)` preserves the
+former 64-line graph contract after `self` removal: stable task-ID mapping,
+source-slot preparation, nested traversal, exclusion order, direct-source/
+numeric-conflict/sign protection, strict nested-rank and dependency-coherence
+comparisons, replacement chaining, provenance-container carry-forward,
+unchanged-list identity, changed-row shallow copies, nested aliases, input
+immutability, and uncaught exceptions. Its three graph callers retain their
+exact positional arguments and current adoption points.
+
+Public `sync_aggregate_arithmetic_subtask_surfaces(ordered_results,
+aggregate_projection, final_answer)` preserves the former 124-line graph
+contract after `self` removal: projection/result/slot copying, empty identity,
+planned arithmetic-task gates, stable candidate indexes, operation/answer/
+numeric-conflict/coverage/cardinality ordering, repeated answer-sentence
+selection at adoption, rendered-value and row-surface projection, lookup-slot
+component sync, ordered-result and answer-slot replacement, nested aliases,
+input immutability, access laziness, and uncaught exceptions. Its sole graph
+caller retains exact positional arguments and adopts both returned values at the
+current point.
+
+The two old spans total 188 lines and project to public spans 63 + 123 = 186.
+The selected call distribution remains four graph-external and zero owner-local.
+Aggregate projection already owns every dependency except
+`nested_subtask_rows(...)` on its existing answer-projection edge, and neither
+answer projection nor numeric/normalization dependencies reach aggregate. The
+owner does not reach calculation, while calculation already imports it, so the
+move is acyclic. No selected span contains a reviewed runtime-domain record.
+The two exact six-method CURRENT-SOURCE gates, affected validation set,
+dead-import list, retired-ref rule, and hard stops are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+Only these two prepared-row transforms supersede the earlier broad
+synchronization stop. Dependency alignment, projection rebuild, state/evidence
+orchestration, artifact/ledger mutation, and final sequencing remain graph-owned.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
