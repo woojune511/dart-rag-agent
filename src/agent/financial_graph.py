@@ -52,6 +52,10 @@ def _financial_agent_state_model() -> Any:
 
 
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
+from src.agent.financial_aggregate_projection import (
+    append_operand_evidence_for_final_answer,
+    filter_aggregate_evidence_for_final_answer,
+)
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
 from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
@@ -482,12 +486,12 @@ class FinancialAgent(
         if answer_candidates:
             projection = self._project_runtime_calculation_trace(final)
             operands = list((projection or {}).get("calculation_operands") or [])
-            evidence_items = self._append_operand_evidence_for_final_answer(
+            evidence_items = append_operand_evidence_for_final_answer(
                 existing,
                 operands=operands,
                 final_answer=final_answer,
             )
-            filtered = self._filter_aggregate_evidence_for_final_answer(
+            filtered = filter_aggregate_evidence_for_final_answer(
                 evidence_items,
                 final_answer=final_answer,
                 selected_claim_ids=list(final.get("selected_claim_ids") or []),
@@ -557,7 +561,7 @@ class FinancialAgent(
 
         if not evidence_items:
             return []
-        filtered = self._filter_aggregate_evidence_for_final_answer(
+        filtered = filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=final_answer,
             selected_claim_ids=[],

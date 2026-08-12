@@ -3263,7 +3263,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             return current_state.with_updates(final_answer=candidate_answer), True
 
         agent._replace_mutable_aggregate_answer = Mock(side_effect=replace_answer)
-        agent._append_operand_evidence_for_final_answer = Mock(
+        append_operand_evidence = Mock(
             side_effect=lambda current, **kwargs: events.append(
                 ("append_operand", current, kwargs)
             )
@@ -3330,6 +3330,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 "answer_reuses_narrative_summary_text",
                 narrative_reuse,
             ),
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                append_operand_evidence,
+            ),
         ):
             updated = financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
                 agent,
@@ -3390,9 +3395,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             return current_state.with_updates(final_answer=candidate_answer), True
 
         failing_agent._replace_mutable_aggregate_answer = Mock(side_effect=failing_replace)
-        failing_agent._append_operand_evidence_for_final_answer = Mock(
-            side_effect=lambda current, **_kwargs: current
-        )
+        failing_append_operand_evidence = Mock(side_effect=lambda current, **_kwargs: current)
         failing_agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
             side_effect=lambda current, **_kwargs: (current, [])
         )
@@ -3421,6 +3424,11 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 "_polish_korean_particle_pairs",
                 side_effect=AssertionError("polish accessed"),
             ) as failing_polish,
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                failing_append_operand_evidence,
+            ),
         ):
             with self.assertRaisesRegex(RuntimeError, "preservation failed"):
                 financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(

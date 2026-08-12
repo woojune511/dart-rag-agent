@@ -11,7 +11,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent import financial_graph_calculation
+from src.agent import financial_aggregate_projection, financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 
 
@@ -639,7 +639,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             },
         ]
 
-        filtered = agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=(
                 "The metric was 3,146\uc2ed\uc5b5\uc6d0 versus "
@@ -674,7 +674,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             }
         ]
 
-        filtered = agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=(
                 "credit loss provision expense was 3,146 billion in 2023 "
@@ -708,7 +708,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             }
         ]
 
-        filtered = agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=(
                 "credit loss provision expense was 3,146 billion in 2023 "
@@ -751,7 +751,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             "metadata": {"promoted": "second"},
         }
         final_answer = "target metric is 10%"
-        expected_candidates = financial_graph_calculation.extract_numeric_surface_candidates(
+        expected_candidates = financial_aggregate_projection.extract_numeric_surface_candidates(
             final_answer
         )
         owner_calls = []
@@ -764,11 +764,11 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             }[evidence["evidence_id"]]
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "promote_table_numeric_support_evidence",
             side_effect=promote_owner,
         ) as owner:
-            filtered = agent._filter_aggregate_evidence_for_final_answer(
+            filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
                 [retrieved, eligible, second_eligible],
                 final_answer=final_answer,
                 selected_claim_ids=[
@@ -802,17 +802,17 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "promote_table_numeric_support_evidence",
                 side_effect=RuntimeError("promotion failed"),
             ) as failing_owner,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "evidence_supports_numeric_candidates",
             ) as later_support,
         ):
             with self.assertRaisesRegex(RuntimeError, "promotion failed"):
-                agent._filter_aggregate_evidence_for_final_answer(
+                financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
                     [eligible, {"evidence_id": "later", "claim": "later 10%"}],
                     final_answer=final_answer,
                     selected_claim_ids=[],
@@ -856,27 +856,27 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         globals_answer_candidates = answer_candidates
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "extract_numeric_surface_candidates",
                 return_value=answer_candidates,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "evidence_supports_numeric_candidates",
                 side_effect=evidence_owner,
             ) as evidence_support,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "text_supports_numeric_candidates",
                 side_effect=text_owner,
             ) as text_support,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "promote_table_numeric_support_evidence",
                 side_effect=promote_owner,
             ),
         ):
-            filtered = agent._filter_aggregate_evidence_for_final_answer(
+            filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
                 [selected, operand],
                 final_answer="target 10%",
                 selected_claim_ids=["ev_selected"],
@@ -912,26 +912,26 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "extract_numeric_surface_candidates",
                 return_value=answer_candidates,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "evidence_supports_numeric_candidates",
                 side_effect=generic_evidence_owner,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "text_supports_numeric_candidates",
             ) as text_support,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "promote_table_numeric_support_evidence",
                 side_effect=generic_promote_owner,
             ),
         ):
-            filtered = agent._filter_aggregate_evidence_for_final_answer(
+            filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
                 [generic_first, generic_second],
                 final_answer="target 10%",
                 selected_claim_ids=[],
@@ -963,7 +963,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             }
         ]
 
-        updated = agent._append_operand_evidence_for_final_answer(
+        updated = financial_aggregate_projection.append_operand_evidence_for_final_answer(
             evidence_items,
             operands=operands,
             final_answer="The metric was 1,848\uc2ed\uc5b5\uc6d0.",
@@ -998,12 +998,12 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             },
         ]
 
-        updated = agent._append_operand_evidence_for_final_answer(
+        updated = financial_aggregate_projection.append_operand_evidence_for_final_answer(
             [],
             operands=operands,
             final_answer="The metric increased 70.23%.",
         )
-        filtered = agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             updated,
             final_answer="The metric increased 70.23%.",
             selected_claim_ids=[],

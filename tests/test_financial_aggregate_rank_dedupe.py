@@ -5,7 +5,7 @@ from collections import Counter
 from copy import deepcopy
 from unittest.mock import Mock, patch
 
-from src.agent import financial_aggregate_projection, financial_graph_calculation
+from src.agent import financial_aggregate_projection, financial_graph, financial_graph_calculation
 
 
 class FinancialAggregateRankDedupeTests(unittest.TestCase):
@@ -4768,9 +4768,6 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 side_effect=lambda answer, **_kwargs: answer
             )
             agent._replace_mutable_aggregate_answer = replace_owner
-            agent._append_operand_evidence_for_final_answer = Mock(
-                side_effect=lambda current, **_kwargs: current
-            )
             agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
                 side_effect=lambda current, **_kwargs: (current, [])
             )
@@ -4788,6 +4785,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             return agent
 
         narrative_reuse_owner = Mock(return_value=True)
+        append_passthrough = Mock(side_effect=lambda current, **_kwargs: current)
 
         def replace_until_safe(current_state, *, candidate_answer, **_kwargs):
             if candidate_answer == "safe partial":
@@ -4808,6 +4806,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 financial_graph_calculation,
                 "answer_reuses_narrative_summary_text",
                 narrative_reuse_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                append_passthrough,
             ),
             self.assertRaisesRegex(RuntimeError, "stop after safe adoption"),
         ):
@@ -4843,6 +4846,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 financial_graph_calculation,
                 "answer_reuses_narrative_summary_text",
                 narrative_reuse_failure,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                append_passthrough,
             ),
             self.assertRaisesRegex(RuntimeError, "narrative reuse failed"),
         ):
@@ -7561,6 +7569,1382 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(evidence_items, before_evidence)
         self.assertIs(row["nested"], nested)
         self.assertIs(evidence_items[0]["nested"], nested)
+
+    def test_current_source_final_answer_evidence_filter_pins_branches_copies_and_exceptions(self) -> None:
+        owner = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer
+
+        class IterationBomb:
+            def __iter__(self):
+                raise AssertionError("selected ids accessed")
+
+        extract = Mock(return_value=[])
+        promote = Mock(side_effect=AssertionError("promotion accessed"))
+        support = Mock(side_effect=AssertionError("numeric support accessed"))
+        text_support = Mock(side_effect=AssertionError("text support accessed"))
+        normalize = Mock(side_effect=AssertionError("normalization accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", extract),
+            patch.object(financial_aggregate_projection, "promote_table_numeric_support_evidence", promote),
+            patch.object(financial_aggregate_projection, "evidence_supports_numeric_candidates", support),
+            patch.object(financial_aggregate_projection, "text_supports_numeric_candidates", text_support),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", normalize),
+        ):
+            empty = owner([], final_answer="answer", selected_claim_ids=IterationBomb())
+        self.assertEqual(empty, [])
+        extract.assert_called_once_with("answer")
+        promote.assert_not_called()
+        support.assert_not_called()
+        text_support.assert_not_called()
+        normalize.assert_not_called()
+
+        nested = {"preserve": True}
+        original = {"evidence_id": "existing", "nested": nested}
+        evidence_items = [original]
+        extract = Mock(return_value=[])
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", extract),
+            patch.object(
+                financial_aggregate_projection,
+                "promote_table_numeric_support_evidence",
+                side_effect=AssertionError("promotion accessed"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_supports_numeric_candidates",
+                side_effect=AssertionError("numeric support accessed"),
+            ),
+        ):
+            no_candidates = owner(
+                evidence_items,
+                final_answer="blank",
+                selected_claim_ids=IterationBomb(),
+            )
+        self.assertEqual(no_candidates, evidence_items)
+        self.assertIsNot(no_candidates, evidence_items)
+        self.assertIs(no_candidates[0], original)
+        self.assertIs(no_candidates[0]["nested"], nested)
+
+        answer_candidates = [{"kind": "percent", "value": 10.0}]
+        selected_nested = {"selected": True}
+        narrative_nested = {"narrative": True}
+        selected_drop = {
+            "evidence_id": "selected",
+            "claim": "selected 10%",
+            "quote_span": "quote without number",
+            "raw_row_text": "raw 10%",
+            "metadata": {"nested": selected_nested},
+        }
+        narrative_selected = {
+            "evidence_id": "retrieved_narrative::one",
+            "claim": "narrative 10%",
+            "quote_span": "narrative quote",
+            "raw_row_text": "narrative raw",
+            "metadata": {"nested": narrative_nested},
+        }
+        noise = {"evidence_id": "noise", "claim": "noise 99%"}
+        recon = {"evidence_id": "recon::keep", "claim": "recon 10%"}
+        derived = {
+            "evidence_id": "operand::derived",
+            "claim": "derived operand",
+            "metadata": {"supports_derived_percent": True},
+        }
+        surface = {
+            "evidence_id": "operand::surface",
+            "claim": "surface operand",
+            "metadata": {"supports_answer_numeric_surface": True},
+        }
+        late_noise = {"evidence_id": "late", "claim": "late 10%"}
+        matrix = [selected_drop, narrative_selected, noise, recon, derived, surface, late_noise]
+        before_matrix = deepcopy(matrix)
+        events = []
+        promoted_by_id = {}
+
+        def support_owner(evidence, candidates):
+            self.assertIs(candidates, answer_candidates)
+            evidence_id = evidence.get("evidence_id")
+            events.append(("support", evidence_id))
+            return evidence_id in {"selected", "recon::keep"}
+
+        def promote_owner(evidence, *, final_answer, answer_candidates):
+            self.assertEqual(final_answer, "answer 10%")
+            self.assertIs(answer_candidates, globals_answer_candidates)
+            events.append(("promote", evidence["evidence_id"]))
+            promoted = {**evidence, "promoted": evidence["evidence_id"]}
+            promoted_by_id[evidence["evidence_id"]] = promoted
+            return promoted
+
+        def normalize_owner(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        def text_owner(text, candidates):
+            self.assertIs(candidates, answer_candidates)
+            events.append(("text", text))
+            return False
+
+        globals_answer_candidates = answer_candidates
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=answer_candidates,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_supports_numeric_candidates",
+                side_effect=support_owner,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "promote_table_numeric_support_evidence",
+                side_effect=promote_owner,
+            ),
+            patch.object(financial_aggregate_projection, "text_supports_numeric_candidates", side_effect=text_owner),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize_owner),
+        ):
+            filtered = owner(
+                matrix,
+                final_answer="answer 10%",
+                selected_claim_ids=[" selected ", "retrieved_narrative::one"],
+            )
+
+        self.assertEqual(
+            [row["evidence_id"] for row in filtered],
+            ["retrieved_narrative::one", "recon::keep", "operand::derived", "operand::surface"],
+        )
+        self.assertIsNot(filtered[0], narrative_selected)
+        self.assertIs(filtered[0]["metadata"]["nested"], narrative_nested)
+        self.assertIs(filtered[1], promoted_by_id["recon::keep"])
+        self.assertIs(filtered[2], promoted_by_id["operand::derived"])
+        self.assertIs(filtered[3], promoted_by_id["operand::surface"])
+        self.assertEqual(matrix, before_matrix)
+        self.assertIs(matrix[0]["metadata"]["nested"], selected_nested)
+        self.assertEqual(
+            events,
+            [
+                ("support", "selected"),
+                ("promote", "selected"),
+                ("normalize", "quote without number"),
+                ("normalize", "raw 10%"),
+                ("text", "quote without number"),
+                ("normalize", "narrative quote"),
+                ("normalize", "narrative raw"),
+                ("promote", "noise"),
+                ("promote", "recon::keep"),
+                ("support", "recon::keep"),
+                ("promote", "operand::derived"),
+                ("promote", "operand::surface"),
+                ("promote", "late"),
+            ],
+        )
+
+        fallback_first = {"evidence_id": "first", "nested": nested}
+        fallback_second = {"evidence_id": "second"}
+        fallback_items = [fallback_first, fallback_second]
+        promoted_fallbacks = []
+
+        def promote_fallback(evidence, **_kwargs):
+            promoted = {**evidence, "promoted": True}
+            promoted_fallbacks.append(promoted)
+            return promoted
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"kind": "number", "value": 1}],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "promote_table_numeric_support_evidence",
+                side_effect=promote_fallback,
+            ),
+            patch.object(financial_aggregate_projection, "evidence_supports_numeric_candidates", return_value=False),
+        ):
+            fallback = owner(fallback_items, final_answer="answer 1", selected_claim_ids=[])
+        self.assertEqual(fallback, fallback_items)
+        self.assertIsNot(fallback, fallback_items)
+        self.assertIs(fallback[0], fallback_first)
+        self.assertIs(fallback[1], fallback_second)
+        self.assertTrue(all(row is not original for row, original in zip(promoted_fallbacks, fallback_items)))
+
+        later = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=RuntimeError("extract failed"),
+            ),
+            patch.object(financial_aggregate_projection, "promote_table_numeric_support_evidence", later),
+            self.assertRaisesRegex(RuntimeError, "extract failed"),
+        ):
+            owner([{"evidence_id": "one"}], final_answer="answer", selected_claim_ids=[])
+        later.assert_not_called()
+
+        later_support = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"kind": "number"}],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "promote_table_numeric_support_evidence",
+                side_effect=RuntimeError("promotion failed"),
+            ),
+            patch.object(financial_aggregate_projection, "evidence_supports_numeric_candidates", later_support),
+            self.assertRaisesRegex(RuntimeError, "promotion failed"),
+        ):
+            owner([{"evidence_id": "one"}], final_answer="answer 1", selected_claim_ids=[])
+        later_support.assert_not_called()
+
+        operand_surface = {
+            "evidence_id": "operand::surface",
+            "metadata": {"supports_answer_numeric_surface": True},
+        }
+        later_promotion = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"kind": "number"}],
+            ),
+            patch.object(financial_aggregate_projection, "evidence_supports_numeric_candidates", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "promote_table_numeric_support_evidence",
+                side_effect=lambda evidence, **_kwargs: evidence,
+            ) as first_promotion,
+            patch.object(
+                financial_aggregate_projection,
+                "text_supports_numeric_candidates",
+                side_effect=RuntimeError("text support failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "text support failed"),
+        ):
+            owner(
+                [selected_drop, operand_surface, {"evidence_id": "later"}],
+                final_answer="answer 1",
+                selected_claim_ids=["selected"],
+            )
+        self.assertEqual(first_promotion.call_count, 1)
+        later_promotion.assert_not_called()
+
+    def test_current_source_operand_evidence_append_pins_schema_order_copies_and_exceptions(self) -> None:
+        owner = financial_aggregate_projection.append_operand_evidence_for_final_answer
+
+        class IterationBomb:
+            def __iter__(self):
+                raise AssertionError("operands accessed")
+
+        nested = {"preserve": True}
+        existing_row = {"evidence_id": "existing", "nested": nested}
+        evidence_items = [existing_row]
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                return_value=[{"kind": "number", "value": 1}],
+            ) as extract,
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=AssertionError("normalization accessed"),
+            ),
+        ):
+            no_operands = owner(
+                evidence_items,
+                operands=[],
+                final_answer="answer 1",
+            )
+        extract.assert_called_once_with("answer 1")
+        self.assertEqual(no_operands, evidence_items)
+        self.assertIsNot(no_operands, evidence_items)
+        self.assertIs(no_operands[0], existing_row)
+
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=AssertionError("normalization accessed"),
+            ),
+        ):
+            no_candidates = owner(
+                evidence_items,
+                operands=IterationBomb(),
+                final_answer="blank",
+            )
+        self.assertEqual(no_candidates, evidence_items)
+        self.assertIs(no_candidates[0], existing_row)
+
+        answer_candidates = [{"kind": "percent", "value": 70.0}]
+        supported_candidate = {"kind": "number", "value": 100.0}
+        derived_candidate = {"kind": "number", "value": 200.0}
+        unsupported_candidate = {"kind": "number", "value": 300.0}
+        supported_nested = {"supported": True}
+        supported = {
+            "operand_id": "supported",
+            "label": "metric",
+            "period": "2023",
+            "raw_value": "100",
+            "raw_unit": "KRW",
+            "source_anchor": "[source-a]",
+            "source_quote": "source quote 100",
+            "role": "other",
+            "normalized_unit": "KRW",
+            "nested": supported_nested,
+        }
+        duplicate = {
+            **supported,
+            "raw_value": "101",
+            "source_anchor": "[duplicate]",
+        }
+        derived = {
+            "operand_id": "derived",
+            "label": "prior",
+            "period": "2022",
+            "value": "200",
+            "raw_unit": "KRW",
+            "source_anchor": "[source-b]",
+            "quote_span": "source quote 200",
+            "matched_operand_role": "prior_period",
+            "normalized_unit": " krw ",
+        }
+        unsupported = {
+            "operand_id": "unsupported",
+            "label": "noise",
+            "period": "2021",
+            "raw_value": "300",
+            "raw_unit": "USD",
+            "source_anchor": "[source-c]",
+            "raw_row_text": "source quote 300",
+            "role": "other",
+            "normalized_unit": "USD",
+        }
+        literal = {
+            "operand_id": "literal",
+            "label": "literal",
+            "period": "2020",
+            "rendered_value": "4,000 KRW",
+            "display": "display fallback bomb",
+            "source_anchor": "[source-d]",
+            "raw_row_text": "literal source",
+            "role": "other",
+            "normalized_unit": "KRW",
+        }
+        missing_value = {"operand_id": "missing", "source_anchor": "[source-e]"}
+        missing_anchor = {"operand_id": "anchorless", "raw_value": "500"}
+        operands = [supported, duplicate, derived, unsupported, literal, missing_value, missing_anchor]
+        before_evidence = deepcopy(evidence_items)
+        before_operands = deepcopy(operands)
+        events = []
+
+        def extract_owner(text):
+            events.append(("extract", text))
+            if text == "answer 70% includes 4,000 KRW":
+                return answer_candidates
+            if "100" in text or "101" in text:
+                return [supported_candidate]
+            if "200" in text:
+                return [derived_candidate]
+            if "300" in text:
+                return [unsupported_candidate]
+            if "4,000 KRW" in text:
+                return [{"kind": "number", "value": 4000.0}]
+            return []
+
+        def equivalent(answer_candidate, operand_candidate):
+            events.append(("equivalent", answer_candidate, operand_candidate))
+            return operand_candidate is supported_candidate
+
+        def normalize_owner(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", side_effect=extract_owner),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_candidates_equivalent",
+                side_effect=equivalent,
+            ),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize_owner),
+        ):
+            updated = owner(
+                evidence_items,
+                operands=operands,
+                final_answer="answer 70% includes 4,000 KRW",
+            )
+
+        self.assertEqual(
+            [row["evidence_id"] for row in updated],
+            ["existing", "operand::supported", "operand::derived", "operand::literal"],
+        )
+        self.assertIsNot(updated, evidence_items)
+        self.assertIsNot(updated[0], existing_row)
+        self.assertIs(updated[0]["nested"], nested)
+        supported_evidence = updated[1]
+        self.assertEqual(
+            supported_evidence,
+            {
+                "evidence_id": "operand::supported",
+                "source_anchor": "[source-a]",
+                "claim": "metric 2023 100KRW",
+                "quote_span": "source quote 100",
+                "support_level": "direct",
+                "question_relevance": "high",
+                "metadata": {
+                    "section_path": "[source-a]",
+                    "unit_hint": "KRW",
+                    "operand_role": "other",
+                    "supports_derived_percent": False,
+                    "supports_answer_numeric_surface": False,
+                },
+            },
+        )
+        derived_evidence = updated[2]
+        self.assertEqual(derived_evidence["quote_span"], "source quote 200")
+        self.assertTrue(derived_evidence["metadata"]["supports_derived_percent"])
+        self.assertFalse(derived_evidence["metadata"]["supports_answer_numeric_surface"])
+        literal_evidence = updated[3]
+        self.assertEqual(literal_evidence["claim"], "literal 2020 4,000 KRW")
+        self.assertTrue(literal_evidence["metadata"]["supports_answer_numeric_surface"])
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertEqual(operands, before_operands)
+        self.assertIs(operands[0]["nested"], supported_nested)
+        self.assertEqual(
+            [event for event in events if event[0] == "extract"],
+            [
+                ("extract", "answer 70% includes 4,000 KRW"),
+                ("extract", "metric 2023 100KRW"),
+                ("extract", "metric 2023 101KRW"),
+                ("extract", "prior 2022 200KRW"),
+                ("extract", "noise 2021 300USD"),
+                ("extract", "literal 2020 4,000 KRW"),
+            ],
+        )
+        self.assertEqual(
+            sum(1 for event in events if event[0] == "equivalent"),
+            5,
+        )
+
+        matched_role_fallback = {
+            "matched_operand_role": "numerator",
+            "raw_value": "7",
+            "raw_unit": "KRW",
+            "source_anchor": "[source-f]",
+            "normalized_unit": "KRW",
+        }
+        default_id = {
+            "raw_value": "8",
+            "source_anchor": "[source-g]",
+        }
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=lambda text: answer_candidates if text == "70%" else [{"kind": "number"}],
+            ),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", return_value=True),
+        ):
+            fallback_ids = owner(
+                [],
+                operands=[matched_role_fallback, default_id],
+                final_answer="70%",
+            )
+        self.assertEqual(
+            [row["evidence_id"] for row in fallback_ids],
+            ["operand::numerator", "operand::operand"],
+        )
+
+        downstream = Mock()
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=RuntimeError("answer extraction failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", downstream),
+            self.assertRaisesRegex(RuntimeError, "answer extraction failed"),
+        ):
+            owner([], operands=[supported], final_answer="answer")
+        downstream.assert_not_called()
+
+        later_extract = Mock()
+
+        def failing_normalize(value):
+            if value == "[source-a]":
+                raise RuntimeError("anchor normalization failed")
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=[answer_candidates],
+            ) as answer_extract,
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=failing_normalize),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", later_extract),
+            self.assertRaisesRegex(RuntimeError, "anchor normalization failed"),
+        ):
+            owner([], operands=[supported, derived], final_answer="70%")
+        answer_extract.assert_called_once_with("70%")
+        later_extract.assert_not_called()
+
+        equivalence_failure = Mock(side_effect=RuntimeError("equivalence failed"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=[answer_candidates, [supported_candidate]],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_candidates_equivalent",
+                equivalence_failure,
+            ),
+            self.assertRaisesRegex(RuntimeError, "equivalence failed"),
+        ):
+            owner([], operands=[supported, derived], final_answer="70%")
+        equivalence_failure.assert_called_once_with(answer_candidates[0], supported_candidate)
+
+    def test_current_source_final_answer_evidence_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        from pathlib import Path
+
+        module_sources = {
+            "calculation": inspect.getsource(financial_graph_calculation),
+            "graph": inspect.getsource(financial_graph),
+            "owner": inspect.getsource(financial_aggregate_projection),
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        current_targets = {
+            "filter": "filter_aggregate_evidence_for_final_answer",
+            "append": "append_operand_evidence_for_final_answer",
+        }
+        retired_targets = {key: f"_{value}" for key, value in current_targets.items()}
+        definitions = {}
+        all_definition_names = set()
+        calls = {key: [] for key in current_targets}
+        retired_calls = {key: [] for key in retired_targets}
+        noncall_refs = []
+
+        for module_name, tree in module_trees.items():
+            parents = {}
+            function_stack = []
+            try_depth = 0
+
+            for node in ast.walk(tree):
+                for child in ast.iter_child_nodes(node):
+                    parents[child] = node
+
+            class BindingVisitor(ast.NodeVisitor):
+                def visit_FunctionDef(self, node):
+                    nonlocal function_stack
+                    all_definition_names.add(node.name)
+                    if node.name in {*current_targets.values(), *retired_targets.values()}:
+                        definitions[node.name] = (module_name, node)
+                    function_stack.append(node.name)
+                    self.generic_visit(node)
+                    function_stack.pop()
+
+                visit_AsyncFunctionDef = visit_FunctionDef
+
+                def visit_Try(self, node):
+                    nonlocal try_depth
+                    try_depth += 1
+                    self.generic_visit(node)
+                    try_depth -= 1
+
+                visit_TryStar = visit_Try
+
+                def visit_Call(self, node):
+                    called_name = (
+                        node.func.id
+                        if isinstance(node.func, ast.Name)
+                        else node.func.attr
+                        if isinstance(node.func, ast.Attribute)
+                        else ""
+                    )
+                    receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else ""
+                    entry = (
+                        module_name,
+                        tuple(function_stack),
+                        receiver,
+                        tuple(ast.unparse(arg) for arg in node.args),
+                        tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                        try_depth,
+                    )
+                    for key, target in current_targets.items():
+                        if called_name == target:
+                            calls[key].append(entry)
+                    for key, target in retired_targets.items():
+                        if called_name == target:
+                            retired_calls[key].append(entry)
+                    self.generic_visit(node)
+
+                def visit_Attribute(self, node):
+                    if node.attr in {*current_targets.values(), *retired_targets.values()}:
+                        parent = parents.get(node)
+                        if not (isinstance(parent, ast.Call) and parent.func is node):
+                            noncall_refs.append((module_name, node.attr, node.lineno))
+                    self.generic_visit(node)
+
+                def visit_Name(self, node):
+                    if node.id in {*current_targets.values(), *retired_targets.values()}:
+                        parent = parents.get(node)
+                        if not (isinstance(parent, ast.Call) and parent.func is node):
+                            noncall_refs.append((module_name, node.id, node.lineno))
+                    self.generic_visit(node)
+
+            BindingVisitor().visit(tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                current_targets["filter"]: ("owner", 65),
+                current_targets["append"]: ("owner", 101),
+            },
+        )
+        self.assertTrue(set(retired_targets.values()).isdisjoint(all_definition_names))
+        self.assertEqual({key: len(entries) for key, entries in calls.items()}, {"filter": 3, "append": 4})
+        self.assertEqual({key: len(entries) for key, entries in retired_calls.items()}, {"filter": 0, "append": 0})
+        self.assertEqual(noncall_refs, [])
+        self.assertTrue(
+            all(
+                receiver == "" and try_depth == 0
+                for entries in calls.values()
+                for _module, _stack, receiver, _args, _kwargs, try_depth in entries
+            )
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, *_rest in calls["filter"]),
+            Counter(
+                {
+                    "_filter_final_aggregate_evidence_and_projection": 1,
+                    "_runtime_evidence_from_retrieved_docs": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(stack[-1] for _module, stack, *_rest in calls["append"]),
+            Counter(
+                {
+                    "_replace_mutable_aggregate_answer": 1,
+                    "_apply_final_narrative_repair_pipeline": 2,
+                    "_runtime_evidence_from_retrieved_docs": 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(module for module, *_rest in calls["filter"]),
+            Counter({"calculation": 1, "graph": 2}),
+        )
+        self.assertEqual(
+            Counter(module for module, *_rest in calls["append"]),
+            Counter({"calculation": 3, "graph": 1}),
+        )
+        self.assertEqual(
+            Counter((args, kwargs) for _module, _stack, _receiver, args, kwargs, _depth in calls["filter"]),
+            Counter(
+                {
+                    (
+                        ("aggregate_evidence_items",),
+                        (("final_answer", "final_answer"), ("selected_claim_ids", "selected_claim_ids")),
+                    ): 1,
+                    (
+                        ("evidence_items",),
+                        (
+                            ("final_answer", "final_answer"),
+                            ("selected_claim_ids", "list(final.get('selected_claim_ids') or [])"),
+                        ),
+                    ): 1,
+                    (
+                        ("evidence_items",),
+                        (("final_answer", "final_answer"), ("selected_claim_ids", "[]")),
+                    ): 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter((args, kwargs) for _module, _stack, _receiver, args, kwargs, _depth in calls["append"]),
+            Counter(
+                {
+                    (
+                        ("evidence_items",),
+                        (
+                            ("operands", "list(aggregate_projection.get('calculation_operands') or [])"),
+                            ("final_answer", "candidate_answer"),
+                        ),
+                    ): 1,
+                    (
+                        ("aggregate_evidence_items",),
+                        (
+                            ("operands", "list(aggregate_projection.get('calculation_operands') or [])"),
+                            ("final_answer", "final_answer"),
+                        ),
+                    ): 2,
+                    (
+                        ("existing",),
+                        (("operands", "operands"), ("final_answer", "final_answer")),
+                    ): 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            {
+                "filter": (sum(len(stack) == 1 for _module, stack, *_rest in calls["filter"]), 0),
+                "append": (sum(len(stack) == 1 for _module, stack, *_rest in calls["append"]), 0),
+            },
+            {"filter": (3, 0), "append": (4, 0)},
+        )
+        self.assertEqual(
+            {
+                key: definitions[current_targets[key]][1].end_lineno
+                - definitions[current_targets[key]][1].lineno
+                + 1
+                for key in current_targets
+            },
+            {"filter": 65, "append": 101},
+        )
+
+        owner_numeric_imports = set()
+        calculation_numeric_imports = set()
+        for module_name in ("owner", "calculation"):
+            for node in ast.walk(module_trees[module_name]):
+                if isinstance(node, ast.ImportFrom) and node.module == "src.agent.financial_numeric_surface":
+                    names = {alias.name for alias in node.names}
+                    if module_name == "owner":
+                        owner_numeric_imports.update(names)
+                    else:
+                        calculation_numeric_imports.update(names)
+        owner_additions = {
+            "evidence_supports_numeric_candidates",
+            "promote_table_numeric_support_evidence",
+            "text_supports_numeric_candidates",
+        }
+        self.assertTrue(owner_additions.issubset(owner_numeric_imports))
+        self.assertNotIn("evidence_supports_numeric_candidates", calculation_numeric_imports)
+        self.assertNotIn("promote_table_numeric_support_evidence", calculation_numeric_imports)
+        self.assertIn("text_supports_numeric_candidates", calculation_numeric_imports)
+
+        selected_ranges = [
+            (
+                definitions[current_targets[key]][1].lineno,
+                definitions[current_targets[key]][1].end_lineno,
+            )
+            for key in ("filter", "append")
+        ]
+        outside_loads = {}
+        for name in owner_additions:
+            outside_loads[name] = [
+                node.lineno
+                for node in ast.walk(module_trees["calculation"])
+                if isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == name
+            ]
+        self.assertEqual(outside_loads["evidence_supports_numeric_candidates"], [])
+        self.assertEqual(outside_loads["promote_table_numeric_support_evidence"], [])
+        self.assertEqual(len(outside_loads["text_supports_numeric_candidates"]), 1)
+
+        project_root = Path(inspect.getfile(financial_graph_calculation)).resolve().parents[2]
+        module_edges = {}
+        for path in (project_root / "src" / "agent").glob("*.py"):
+            module_name = f"src.agent.{path.stem}"
+            imported = set()
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names if alias.name.startswith("src.agent."))
+            module_edges[module_name] = imported
+
+        def reachable(source, target):
+            seen = set()
+            pending = list(module_edges.get(source, ()))
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(module_edges.get(current, ()))
+            return False
+
+        aggregate_module = "src.agent.financial_aggregate_projection"
+        calculation_module = "src.agent.financial_graph_calculation"
+        graph_module = "src.agent.financial_graph"
+        numeric_module = "src.agent.financial_numeric_surface"
+        self.assertTrue(reachable(calculation_module, aggregate_module))
+        self.assertTrue(reachable(graph_module, aggregate_module))
+        self.assertFalse(reachable(aggregate_module, calculation_module))
+        self.assertFalse(reachable(aggregate_module, graph_module))
+        self.assertTrue(reachable(aggregate_module, numeric_module))
+        self.assertFalse(reachable(numeric_module, aggregate_module))
+
+        from src.ops.audit_runtime_domain_terms import (
+            collect_runtime_domain_term_occurrences,
+            collect_runtime_domain_terms,
+        )
+
+        records = collect_runtime_domain_terms(project_root)
+        occurrences = collect_runtime_domain_term_occurrences(project_root)
+        selected_hits = [
+            row
+            for row in occurrences
+            if row["path"] == "src/agent/financial_aggregate_projection.py"
+            and any(start <= row["line"] <= end for start, end in selected_ranges)
+        ]
+        self.assertEqual(len(records), 217)
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_runtime_evidence_caller_pins_combined_args_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        existing_row = {"evidence_id": "existing", "nested": nested}
+        operand = {"operand_id": "one", "nested": nested}
+        final = {
+            "answer": " answer 10 ",
+            "evidence_items": [existing_row],
+            "selected_claim_ids": [" selected ", ""],
+            "nested": nested,
+        }
+        before_final = deepcopy(final)
+        events = []
+
+        class Agent:
+            pass
+
+        agent = Agent()
+        trace_projection = {"calculation_operands": [operand]}
+        agent._project_runtime_calculation_trace = Mock(
+            side_effect=lambda value: events.append(("project", value))
+            or trace_projection
+        )
+        appended = [{"evidence_id": "operand::one", "nested": nested}]
+        filtered_rows = [{"evidence_id": f"filtered-{index}"} for index in range(10)]
+
+        def append_owner(items, *, operands, final_answer):
+            events.append(("append", items, operands, final_answer))
+            return appended
+
+        def filter_owner(items, *, final_answer, selected_claim_ids):
+            events.append(("filter", items, final_answer, selected_claim_ids))
+            return filtered_rows
+
+        append_projection = Mock(side_effect=append_owner)
+        filter_projection = Mock(side_effect=filter_owner)
+        enriched = [{"evidence_id": "enriched"}]
+
+        def enrich_owner(value, items):
+            events.append(("enrich", value, items))
+            return enriched
+
+        agent._enrich_runtime_evidence_metadata = Mock(side_effect=enrich_owner)
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        answer_candidates = [{"kind": "number", "value": 10}]
+        with (
+            patch.object(financial_graph, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                financial_graph,
+                "extract_numeric_surface_candidates",
+                side_effect=lambda value: events.append(("extract", value)) or answer_candidates,
+            ),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer", append_projection),
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", filter_projection),
+        ):
+            result = financial_graph.FinancialAgent._runtime_evidence_from_retrieved_docs(agent, final)
+
+        self.assertIs(result, enriched)
+        self.assertEqual([event[0] for event in events], ["normalize", "extract", "project", "append", "filter", "enrich"])
+        append_call = append_projection.call_args
+        prepared_existing = append_call.args[0]
+        self.assertEqual(prepared_existing, [existing_row])
+        self.assertIsNot(prepared_existing, final["evidence_items"])
+        self.assertIsNot(prepared_existing[0], existing_row)
+        self.assertIs(prepared_existing[0]["nested"], nested)
+        self.assertEqual(append_call.kwargs["operands"], [operand])
+        self.assertIsNot(append_call.kwargs["operands"], trace_projection["calculation_operands"])
+        self.assertIs(append_call.kwargs["operands"][0], operand)
+        self.assertEqual(append_call.kwargs["final_answer"], "answer 10")
+        filter_call = filter_projection.call_args
+        self.assertIs(filter_call.args[0], appended)
+        self.assertEqual(filter_call.kwargs["final_answer"], "answer 10")
+        self.assertEqual(filter_call.kwargs["selected_claim_ids"], [" selected ", ""])
+        self.assertIsNot(filter_call.kwargs["selected_claim_ids"], final["selected_claim_ids"])
+        enrich_call = agent._enrich_runtime_evidence_metadata.call_args
+        self.assertIs(enrich_call.args[0], final)
+        self.assertEqual(enrich_call.args[1], filtered_rows[:8])
+        self.assertIsNot(enrich_call.args[1], filtered_rows)
+        self.assertTrue(all(a is b for a, b in zip(enrich_call.args[1], filtered_rows)))
+        self.assertEqual(final, before_final)
+        self.assertIs(final["nested"], nested)
+
+        retrieved_nested = {"retrieved": True}
+        retrieved_doc = {
+            "page_content": " retrieved 20 ",
+            "metadata": {"source_anchor": " [source] ", "nested": retrieved_nested},
+        }
+        fallback_final = {
+            "answer": "answer 20",
+            "evidence_items": [],
+            "selected_claim_ids": ["missing"],
+            "seed_retrieved_docs": [(retrieved_doc, 0.9)],
+            "retrieved_docs": [retrieved_doc],
+        }
+        before_fallback = deepcopy(fallback_final)
+        fallback_agent = Agent()
+        fallback_agent._project_runtime_calculation_trace = Mock(return_value={"calculation_operands": []})
+        fallback_append = Mock(return_value=[])
+        second_filtered = [{"evidence_id": "retrieved::kept"}]
+        fallback_filter = Mock(side_effect=[[], second_filtered])
+        fallback_enriched = [{"evidence_id": "fallback-enriched"}]
+        fallback_agent._enrich_runtime_evidence_metadata = Mock(return_value=fallback_enriched)
+        with (
+            patch.object(financial_graph, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(
+                financial_graph,
+                "extract_numeric_surface_candidates",
+                return_value=[{"kind": "number", "value": 20}],
+            ),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer", fallback_append),
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", fallback_filter),
+        ):
+            fallback_result = financial_graph.FinancialAgent._runtime_evidence_from_retrieved_docs(
+                fallback_agent,
+                fallback_final,
+            )
+        self.assertIs(fallback_result, fallback_enriched)
+        self.assertEqual(fallback_filter.call_count, 2)
+        first_filter, second_filter = fallback_filter.call_args_list
+        self.assertIs(first_filter.args[0], fallback_append.return_value)
+        self.assertEqual(first_filter.kwargs["selected_claim_ids"], ["missing"])
+        generated = second_filter.args[0]
+        self.assertEqual(len(generated), 1)
+        self.assertEqual(generated[0]["evidence_id"], "retrieved::001")
+        self.assertEqual(generated[0]["claim"], "retrieved 20")
+        self.assertIs(generated[0]["metadata"]["nested"], retrieved_nested)
+        self.assertEqual(second_filter.kwargs, {"final_answer": "answer 20", "selected_claim_ids": []})
+        fallback_agent._enrich_runtime_evidence_metadata.assert_called_once_with(fallback_final, second_filtered)
+        self.assertEqual(fallback_final, before_fallback)
+        self.assertIs(fallback_final["seed_retrieved_docs"][0][0]["metadata"]["nested"], retrieved_nested)
+
+        stopped_filter = Mock()
+        stopped_enrich = Mock()
+        failing_agent = Agent()
+        failing_agent._project_runtime_calculation_trace = Mock(return_value={"calculation_operands": [operand]})
+        failing_agent._enrich_runtime_evidence_metadata = stopped_enrich
+        failing_append = Mock(side_effect=RuntimeError("append failed"))
+        with (
+            patch.object(financial_graph, "_normalise_spaces", return_value="answer 10"),
+            patch.object(
+                financial_graph,
+                "extract_numeric_surface_candidates",
+                return_value=answer_candidates,
+            ),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer", failing_append),
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", stopped_filter),
+            self.assertRaisesRegex(RuntimeError, "append failed"),
+        ):
+            financial_graph.FinancialAgent._runtime_evidence_from_retrieved_docs(failing_agent, final)
+        stopped_filter.assert_not_called()
+        stopped_enrich.assert_not_called()
+
+    def test_current_source_final_filter_caller_pins_provenance_adoption_and_stop(self) -> None:
+        from types import SimpleNamespace
+
+        nested = {"preserve": True}
+        aggregate_evidence_items = [{"evidence_id": "input", "nested": nested}]
+        aggregate_projection = {"calculation_result": {"nested": nested}}
+        selected_claim_ids = ["drop", "keep", "keep"]
+        filtered_items = [
+            {"evidence_id": "keep", "nested": nested},
+            {"evidence_id": "operand::one"},
+            {"evidence_id": "keep"},
+            {"evidence_id": ""},
+        ]
+        provenance_projection = {"provenance": True, "nested": nested}
+        appended_projection = {"appended": True, "nested": nested}
+        events = []
+
+        class Agent:
+            pass
+
+        agent = Agent()
+
+        def filter_owner(items, *, final_answer, selected_claim_ids):
+            events.append(("filter", items, final_answer, selected_claim_ids))
+            return filtered_items
+
+        filter_projection = Mock(side_effect=filter_owner)
+
+        def provenance_owner(value):
+            events.append(("provenance", value))
+            self.assertIs(value.aggregate_projection, aggregate_projection)
+            self.assertEqual(value.kept_evidence_ids, ["keep", "operand::one", "keep"])
+            return SimpleNamespace(aggregate_projection=provenance_projection)
+
+        def append_surface(projection, items, *, final_answer):
+            events.append(("append-surface", projection, items, final_answer))
+            return appended_projection
+
+        agent._append_final_answer_surface_operands_from_evidence = Mock(side_effect=append_surface)
+        before_evidence = deepcopy(aggregate_evidence_items)
+        before_projection = deepcopy(aggregate_projection)
+        before_selected = list(selected_claim_ids)
+        with patch.object(
+            financial_graph_calculation,
+            "filter_aggregate_projection_provenance",
+            side_effect=provenance_owner,
+        ) as provenance, patch.object(
+            financial_graph_calculation,
+            "filter_aggregate_evidence_for_final_answer",
+            filter_projection,
+        ):
+            result = financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
+                agent,
+                aggregate_evidence_items,
+                aggregate_projection,
+                final_answer="answer 10",
+                selected_claim_ids=selected_claim_ids,
+            )
+
+        self.assertEqual([event[0] for event in events], ["filter", "provenance", "append-surface"])
+        returned_items, returned_projection, returned_selected, kept_ids = result
+        self.assertIs(returned_items, filtered_items)
+        self.assertIs(returned_projection, appended_projection)
+        self.assertEqual(returned_selected, ["keep", "operand::one"])
+        self.assertEqual(kept_ids, ["keep", "operand::one", "keep"])
+        filter_call = filter_projection.call_args
+        self.assertIs(filter_call.args[0], aggregate_evidence_items)
+        self.assertEqual(filter_call.kwargs, {"final_answer": "answer 10", "selected_claim_ids": selected_claim_ids})
+        self.assertIs(filter_call.kwargs["selected_claim_ids"], selected_claim_ids)
+        provenance.assert_called_once()
+        append_call = agent._append_final_answer_surface_operands_from_evidence.call_args
+        self.assertIs(append_call.args[0], provenance_projection)
+        self.assertIs(append_call.args[1], filtered_items)
+        self.assertEqual(append_call.kwargs, {"final_answer": "answer 10"})
+        self.assertEqual(aggregate_evidence_items, before_evidence)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertEqual(selected_claim_ids, before_selected)
+        self.assertIs(aggregate_evidence_items[0]["nested"], nested)
+
+        later_provenance = Mock()
+        later_append = Mock()
+        failing_agent = Agent()
+        failing_filter = Mock(side_effect=RuntimeError("filter failed"))
+        failing_agent._append_final_answer_surface_operands_from_evidence = later_append
+        with (
+            patch.object(financial_graph_calculation, "filter_aggregate_projection_provenance", later_provenance),
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_evidence_for_final_answer",
+                failing_filter,
+            ),
+            self.assertRaisesRegex(RuntimeError, "filter failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
+                failing_agent,
+                aggregate_evidence_items,
+                aggregate_projection,
+                final_answer="answer 10",
+                selected_claim_ids=selected_claim_ids,
+            )
+        later_provenance.assert_not_called()
+        later_append.assert_not_called()
+
+        failing_append = Mock()
+        provenance_failure_agent = Agent()
+        successful_filter = Mock(return_value=filtered_items)
+        provenance_failure_agent._append_final_answer_surface_operands_from_evidence = failing_append
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_projection_provenance",
+                side_effect=RuntimeError("provenance failed"),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_evidence_for_final_answer",
+                successful_filter,
+            ),
+            self.assertRaisesRegex(RuntimeError, "provenance failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
+                provenance_failure_agent,
+                aggregate_evidence_items,
+                aggregate_projection,
+                final_answer="answer 10",
+                selected_claim_ids=selected_claim_ids,
+            )
+        failing_append.assert_not_called()
+
+    def test_current_source_operand_append_callers_pin_mutable_and_narrative_order_stop(self) -> None:
+        from types import SimpleNamespace
+
+        nested = {"preserve": True}
+        ordered_results = [{"task_id": "one", "nested": nested}]
+        operand = {"operand_id": "one", "nested": nested}
+        aggregate_projection = {"calculation_operands": [operand], "nested": nested}
+        evidence_items = [{"evidence_id": "existing", "nested": nested}]
+        mutable_state = financial_graph_calculation._AggregateMutableState(
+            financial_graph_calculation._AggregateSynthesisState(
+                ordered_results,
+                aggregate_projection,
+                "old answer",
+                ["claim-one"],
+            ),
+            evidence_items,
+        )
+        before_rows = deepcopy(ordered_results)
+        before_projection = deepcopy(aggregate_projection)
+        before_evidence = deepcopy(evidence_items)
+
+        class Agent:
+            pass
+
+        replacement_agent = Agent()
+        synced_projection = {"calculation_operands": [operand], "synced": True, "nested": nested}
+        appended_evidence = [{"evidence_id": "operand::one", "nested": nested}]
+        replacement_append = Mock(return_value=appended_evidence)
+        sync_inputs = []
+
+        def sync_owner(value):
+            sync_inputs.append(value)
+            self.assertIs(value.aggregate_projection, aggregate_projection)
+            self.assertEqual(value.final_answer, "candidate answer")
+            self.assertTrue(value.sync_rendered_for_aggregate)
+            self.assertTrue(value.status_ok)
+            return SimpleNamespace(aggregate_projection=synced_projection)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "_normalise_spaces",
+                side_effect=lambda value: " ".join(str(value).split()),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "sync_aggregate_projection_final_answer",
+                side_effect=sync_owner,
+            ) as sync,
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                replacement_append,
+            ),
+        ):
+            updated_state, changed = financial_graph_calculation.FinancialAgentCalculationMixin._replace_mutable_aggregate_answer(
+                replacement_agent,
+                mutable_state,
+                candidate_answer="  candidate answer  ",
+                sync_rendered_for_aggregate=True,
+                status_ok=True,
+                refresh_operand_evidence=True,
+            )
+        self.assertTrue(changed)
+        sync.assert_called_once()
+        append_call = replacement_append.call_args
+        self.assertIs(append_call.args[0], evidence_items)
+        self.assertEqual(append_call.kwargs["operands"], [operand])
+        self.assertIsNot(append_call.kwargs["operands"], synced_projection["calculation_operands"])
+        self.assertIs(append_call.kwargs["operands"][0], operand)
+        self.assertEqual(append_call.kwargs["final_answer"], "candidate answer")
+        self.assertIs(updated_state.evidence_items, appended_evidence)
+        self.assertIs(updated_state.aggregate_projection, synced_projection)
+        self.assertIs(updated_state.ordered_results, ordered_results)
+        self.assertIs(updated_state.selected_claim_ids, mutable_state.selected_claim_ids)
+        self.assertEqual(updated_state.final_answer, "candidate answer")
+        self.assertEqual(ordered_results, before_rows)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(ordered_results[0]["nested"], nested)
+
+        skipped_sync = Mock()
+        skipped_append = Mock()
+        skip_agent = Agent()
+        with (
+            patch.object(financial_graph_calculation, "_normalise_spaces", return_value="old answer"),
+            patch.object(financial_graph_calculation, "sync_aggregate_projection_final_answer", skipped_sync),
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                skipped_append,
+            ),
+        ):
+            same_state, changed = financial_graph_calculation.FinancialAgentCalculationMixin._replace_mutable_aggregate_answer(
+                skip_agent,
+                mutable_state,
+                candidate_answer="old answer",
+                refresh_operand_evidence=True,
+            )
+        self.assertIs(same_state, mutable_state)
+        self.assertFalse(changed)
+        skipped_sync.assert_not_called()
+        skipped_append.assert_not_called()
+
+        failure_agent = Agent()
+        failing_append = Mock(side_effect=RuntimeError("mutable append failed"))
+        with (
+            patch.object(financial_graph_calculation, "_normalise_spaces", return_value="candidate answer"),
+            patch.object(
+                financial_graph_calculation,
+                "sync_aggregate_projection_final_answer",
+                return_value=SimpleNamespace(aggregate_projection=synced_projection),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                failing_append,
+            ),
+            self.assertRaisesRegex(RuntimeError, "mutable append failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._replace_mutable_aggregate_answer(
+                failure_agent,
+                mutable_state,
+                candidate_answer="candidate answer",
+                refresh_operand_evidence=True,
+            )
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertEqual(evidence_items, before_evidence)
+
+        narrative_docs = [{"page_content": "source", "nested": nested}]
+        before_docs = deepcopy(narrative_docs)
+        pipeline_events = []
+        first_evidence = [{"evidence_id": "operand::first", "nested": nested}]
+        repaired_operand = {"operand_id": "repaired", "nested": nested}
+        repaired_projection = {"calculation_operands": [repaired_operand], "repaired": True}
+
+        pipeline_agent = Agent()
+        pipeline_agent._preserve_policy_required_realized_context = Mock(
+            side_effect=lambda answer, **_kwargs: pipeline_events.append(("realize", answer)) or "realized answer"
+        )
+
+        def replace_owner(current, *, candidate_answer, **kwargs):
+            pipeline_events.append(("replace", candidate_answer, kwargs))
+            return current.with_updates(final_answer=candidate_answer), True
+
+        pipeline_agent._replace_mutable_aggregate_answer = Mock(side_effect=replace_owner)
+
+        def append_owner(items, *, operands, final_answer):
+            pipeline_events.append(("append", items, operands, final_answer))
+            if len([event for event in pipeline_events if event[0] == "append"]) == 1:
+                return first_evidence
+            raise RuntimeError("second append failed")
+
+        pipeline_append = Mock(side_effect=append_owner)
+
+        def retrieved_owner(items, *, final_answer, docs):
+            pipeline_events.append(("retrieved", items, final_answer, docs))
+            return items, []
+
+        pipeline_agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
+            side_effect=retrieved_owner
+        )
+
+        def period_owner(*, aggregate_state, state, evidence_items):
+            pipeline_events.append(("period", aggregate_state, state, evidence_items))
+            return aggregate_state
+
+        pipeline_agent._apply_period_context_realignment_to_aggregate = Mock(side_effect=period_owner)
+        pipeline_agent._answer_satisfies_growth_narrative_intent = Mock(
+            side_effect=lambda **kwargs: pipeline_events.append(("intent", kwargs["answer"]))
+            or (kwargs["answer"] == "repaired answer")
+        )
+        pipeline_agent._compose_growth_narrative_answer = Mock(
+            side_effect=lambda **kwargs: pipeline_events.append(("compose", kwargs))
+            or {"compressed_answer": "repaired answer", "selected_claim_ids": ["repaired-claim"]}
+        )
+        downstream_contract = Mock()
+        pipeline_agent._enforce_source_stated_growth_answer_contract = downstream_contract
+        pipeline_agent._unresolved_structured_numeric_gap = Mock()
+        pipeline_agent._prune_nonfocus_numeric_narrative_sentences = Mock()
+        pipeline_agent._answer_matches_supported_aggregate_subtask = Mock()
+        pipeline_agent._promote_and_align_aggregate_results = Mock()
+
+        def package_owner(value):
+            pipeline_events.append(("package", value))
+            return SimpleNamespace(candidate={"answer": value.answer})
+
+        def application_owner(value):
+            pipeline_events.append(("application", value))
+            return SimpleNamespace(
+                aggregate_projection=repaired_projection,
+                final_answer="repaired answer",
+                selected_claim_ids=["repaired-claim"],
+            )
+
+        state = {"query": "query", "nested": nested}
+        before_state = deepcopy(state)
+        with (
+            patch.object(financial_graph_calculation, "package_aggregate_answer_candidate", side_effect=package_owner),
+            patch.object(financial_graph_calculation, "apply_aggregate_answer_candidate", side_effect=application_owner),
+            patch.object(financial_graph_calculation, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(
+                financial_graph_calculation,
+                "append_operand_evidence_for_final_answer",
+                pipeline_append,
+            ),
+            self.assertRaisesRegex(RuntimeError, "second append failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                pipeline_agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=narrative_docs,
+                has_narrative_summary=True,
+                has_growth_rate_result=False,
+                deterministic_feedback="",
+            )
+
+        self.assertEqual(
+            [event[0] for event in pipeline_events],
+            [
+                "realize",
+                "replace",
+                "append",
+                "retrieved",
+                "period",
+                "intent",
+                "compose",
+                "intent",
+                "package",
+                "application",
+                "append",
+            ],
+        )
+        first_append, second_append = pipeline_append.call_args_list
+        self.assertIs(first_append.args[0], evidence_items)
+        self.assertEqual(first_append.kwargs["operands"], [operand])
+        self.assertIs(first_append.kwargs["operands"][0], operand)
+        self.assertEqual(first_append.kwargs["final_answer"], "realized answer")
+        retrieved_call = pipeline_agent._append_retrieved_narrative_evidence_for_final_answer.call_args
+        self.assertIs(retrieved_call.args[0], first_evidence)
+        self.assertEqual(retrieved_call.kwargs["final_answer"], "realized answer")
+        self.assertIs(retrieved_call.kwargs["docs"], narrative_docs)
+        period_call = pipeline_agent._apply_period_context_realignment_to_aggregate.call_args
+        self.assertIs(period_call.kwargs["evidence_items"], first_evidence)
+        self.assertIs(second_append.args[0], first_evidence)
+        self.assertEqual(second_append.kwargs["operands"], [repaired_operand])
+        self.assertIs(second_append.kwargs["operands"][0], repaired_operand)
+        self.assertEqual(second_append.kwargs["final_answer"], "repaired answer")
+        downstream_contract.assert_not_called()
+        self.assertEqual(ordered_results, before_rows)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertEqual(narrative_docs, before_docs)
+        self.assertEqual(state, before_state)
+        self.assertIs(narrative_docs[0]["nested"], nested)
 
 
 if __name__ == "__main__":

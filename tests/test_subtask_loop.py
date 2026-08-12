@@ -19289,7 +19289,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         ]
 
-        filtered = self.agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             evidence_items,
             final_answer=(
                 "2023 regional sales volume was 870,000 units, up 11.5% "
@@ -19304,7 +19304,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertNotIn("ev_unselected_long_chunk", filtered_ids)
 
     def test_operand_evidence_uses_rendered_display_surface(self) -> None:
-        updated = self.agent._append_operand_evidence_for_final_answer(
+        updated = financial_aggregate_projection.append_operand_evidence_for_final_answer(
             [],
             operands=[
                 {
@@ -19328,7 +19328,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(updated[0]["evidence_id"], "operand::prior")
         self.assertEqual(updated[0]["quote_span"], "The 2022 regional sales volume was 781.0 thousand units.")
         self.assertTrue(updated[0]["metadata"]["supports_answer_numeric_surface"])
-        filtered = self.agent._filter_aggregate_evidence_for_final_answer(
+        filtered = financial_aggregate_projection.filter_aggregate_evidence_for_final_answer(
             updated,
             final_answer="2023 sales rose 11.5% from 781.0 thousand units in 2022.",
             selected_claim_ids=[],

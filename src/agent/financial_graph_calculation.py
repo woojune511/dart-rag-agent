@@ -74,6 +74,7 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_slot_by_task_id,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     aggregate_synthesis_prompt_rows,
+    append_operand_evidence_for_final_answer,
     append_uncovered_lookup_numeric_items,
     apply_aggregate_answer_candidate,
     answer_reuses_narrative_summary_text,
@@ -84,6 +85,7 @@ from src.agent.financial_aggregate_projection import (
     compose_lookup_list_numeric_answer,
     dedupe_aggregate_subtask_results,
     dependency_source_slot_match_score,
+    filter_aggregate_evidence_for_final_answer,
     filter_aggregate_projection_provenance,
     growth_slot_display_value,
     growth_slots_share_material,
@@ -292,7 +294,6 @@ from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
 from src.agent.financial_numeric_surface import (
     answer_covers_numeric_answer,
     answer_has_numeric_material_outside_reference,
-    evidence_supports_numeric_candidates,
     evidence_text_for_numeric_support,
     extract_numeric_surface_candidates,
     numeric_candidates_with_spans_from_surface,
@@ -300,7 +301,6 @@ from src.agent.financial_numeric_surface import (
     numeric_surface_slot_components,
     numeric_surface_candidates_equivalent,
     numeric_surface_conflicts_with_reference,
-    promote_table_numeric_support_evidence,
     ratio_components_have_suspicious_scale,
     ratio_result_has_suspicious_krw_scale,
     text_supports_numeric_candidates,
@@ -4389,7 +4389,7 @@ class FinancialAgentCalculationMixin:
         ).aggregate_projection
         evidence_items = mutable_state.evidence_items
         if refresh_operand_evidence:
-            evidence_items = self._append_operand_evidence_for_final_answer(
+            evidence_items = append_operand_evidence_for_final_answer(
                 evidence_items,
                 operands=list(aggregate_projection.get("calculation_operands") or []),
                 final_answer=candidate_answer,
@@ -4481,7 +4481,7 @@ class FinancialAgentCalculationMixin:
             status_ok=bool(realized_context_answer and not deterministic_feedback),
             force=True,
         )
-        aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+        aggregate_evidence_items = append_operand_evidence_for_final_answer(
             aggregate_evidence_items,
             operands=list(aggregate_projection.get("calculation_operands") or []),
             final_answer=final_answer,
@@ -4545,7 +4545,7 @@ class FinancialAgentCalculationMixin:
                 aggregate_projection = candidate_application.aggregate_projection
                 final_answer = candidate_application.final_answer
                 selected_claim_ids = candidate_application.selected_claim_ids
-                aggregate_evidence_items = self._append_operand_evidence_for_final_answer(
+                aggregate_evidence_items = append_operand_evidence_for_final_answer(
                     aggregate_evidence_items,
                     operands=list(aggregate_projection.get("calculation_operands") or []),
                     final_answer=final_answer,
@@ -4973,7 +4973,7 @@ class FinancialAgentCalculationMixin:
         final_answer: str,
         selected_claim_ids: List[str],
     ) -> tuple[List[Dict[str, Any]], Dict[str, Any], List[str], List[str]]:
-        filtered_evidence_items = self._filter_aggregate_evidence_for_final_answer(
+        filtered_evidence_items = filter_aggregate_evidence_for_final_answer(
             aggregate_evidence_items,
             final_answer=final_answer,
             selected_claim_ids=selected_claim_ids,
@@ -5013,176 +5013,6 @@ class FinancialAgentCalculationMixin:
             final_answer=final_answer,
         )
         return filtered_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids
-
-    def _filter_aggregate_evidence_for_final_answer(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        *,
-        final_answer: str,
-        selected_claim_ids: List[str],
-    ) -> List[Dict[str, Any]]:
-        answer_candidates = extract_numeric_surface_candidates(final_answer)
-        if not evidence_items or not answer_candidates:
-            return list(evidence_items or [])
-        answer_has_percent = any(str(candidate.get("kind") or "") == "percent" for candidate in answer_candidates)
-        selected = {str(value).strip() for value in (selected_claim_ids or []) if str(value).strip()}
-        selected_or_operand_numeric_support = any(
-            (
-                str((item or {}).get("evidence_id") or "").strip() in selected
-                or str((item or {}).get("evidence_id") or "").strip().startswith("operand::")
-            )
-            and evidence_supports_numeric_candidates(dict(item or {}), answer_candidates)
-            for item in list(evidence_items or [])
-        )
-        operand_surface_support = any(
-            str((item or {}).get("evidence_id") or "").strip().startswith("operand::")
-            and bool(dict((item or {}).get("metadata") or {}).get("supports_answer_numeric_surface"))
-            for item in list(evidence_items or [])
-        )
-        filtered: List[Dict[str, Any]] = []
-        for item in list(evidence_items or []):
-            evidence = dict(item or {})
-            evidence_id = str(evidence.get("evidence_id") or "").strip()
-            metadata = dict(evidence.get("metadata") or {})
-            if not evidence_id.startswith("retrieved_narrative::"):
-                evidence = promote_table_numeric_support_evidence(
-                    evidence,
-                    final_answer=final_answer,
-                    answer_candidates=answer_candidates,
-                )
-            if evidence_id and evidence_id in selected:
-                quote_span = _normalise_spaces(str(evidence.get("quote_span") or ""))
-                raw_row_text = _normalise_spaces(str(evidence.get("raw_row_text") or ""))
-                if (
-                    operand_surface_support
-                    and raw_row_text
-                    and quote_span
-                    and not evidence_id.startswith("retrieved_narrative::")
-                    and not text_supports_numeric_candidates(quote_span, answer_candidates)
-                ):
-                    continue
-                filtered.append(evidence)
-                continue
-            if (
-                selected
-                and selected_or_operand_numeric_support
-                and evidence_id
-                and not evidence_id.startswith("operand::")
-                and not evidence_id.startswith("recon::")
-            ):
-                continue
-            if answer_has_percent and evidence_id.startswith("operand::") and metadata.get("supports_derived_percent"):
-                filtered.append(evidence)
-                continue
-            if evidence_id.startswith("operand::") and metadata.get("supports_answer_numeric_surface"):
-                filtered.append(evidence)
-                continue
-            if evidence_supports_numeric_candidates(evidence, answer_candidates):
-                filtered.append(evidence)
-        return filtered or list(evidence_items or [])
-
-    def _append_operand_evidence_for_final_answer(
-        self,
-        evidence_items: List[Dict[str, Any]],
-        *,
-        operands: List[Dict[str, Any]],
-        final_answer: str,
-    ) -> List[Dict[str, Any]]:
-        answer_candidates = extract_numeric_surface_candidates(final_answer)
-        if not operands or not answer_candidates:
-            return list(evidence_items or [])
-        answer_has_percent = any(str(candidate.get("kind") or "") == "percent" for candidate in answer_candidates)
-        derivation_roles = {
-            "current_period",
-            "prior_period",
-            "numerator",
-            "denominator",
-            "numerator_1",
-            "denominator_1",
-            "minuend",
-            "subtrahend",
-        }
-        updated = [dict(item or {}) for item in (evidence_items or [])]
-        seen_ids = {
-            str(item.get("evidence_id") or "").strip()
-            for item in updated
-            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-        }
-        for operand in list(operands or []):
-            row = dict(operand or {})
-            raw_value = _normalise_spaces(str(row.get("raw_value") or row.get("value") or ""))
-            raw_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
-            rendered_value = _normalise_spaces(str(row.get("rendered_value") or row.get("display") or ""))
-            source_anchor = _normalise_spaces(str(row.get("source_anchor") or ""))
-            source_quote = _normalise_spaces(
-                str(row.get("source_quote") or row.get("quote_span") or row.get("raw_row_text") or "")
-            )
-            if (not raw_value and not rendered_value) or not source_anchor:
-                continue
-            display_value = rendered_value or _normalise_spaces(f"{raw_value}{raw_unit}")
-            operand_text = _normalise_spaces(
-                " ".join(
-                    str(value or "")
-                    for value in (
-                        row.get("label"),
-                        row.get("period"),
-                        display_value,
-                    )
-                )
-            )
-            operand_candidates = extract_numeric_surface_candidates(operand_text)
-            supports_answer_numeric = any(
-                numeric_surface_candidates_equivalent(answer_candidate, operand_candidate)
-                for answer_candidate in answer_candidates
-                for operand_candidate in operand_candidates
-            )
-            supports_answer_numeric_surface = False
-            answer_surface = re.sub(r"[\s,]", "", _normalise_spaces(final_answer))
-            raw_surface = re.sub(r"[\s,]", "", raw_value)
-            raw_unit_surface = re.sub(r"[\s,]", "", f"{raw_value}{raw_unit}")
-            rendered_surface = re.sub(r"[\s,]", "", rendered_value)
-            if raw_surface and raw_surface in answer_surface:
-                supports_answer_numeric = True
-                supports_answer_numeric_surface = True
-            if raw_unit_surface and raw_unit_surface in answer_surface:
-                supports_answer_numeric = True
-                supports_answer_numeric_surface = True
-            if rendered_surface and rendered_surface in answer_surface:
-                supports_answer_numeric = True
-                supports_answer_numeric_surface = True
-            role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or ""))
-            normalized_unit = _normalise_spaces(str(row.get("normalized_unit") or "")).upper()
-            supports_derived_percent = bool(
-                answer_has_percent
-                and role in derivation_roles
-                and normalized_unit == "KRW"
-                and operand_candidates
-            )
-            if not supports_answer_numeric and not supports_derived_percent:
-                continue
-            operand_id = _normalise_spaces(str(row.get("operand_id") or row.get("matched_operand_role") or "operand"))
-            evidence_id = f"operand::{operand_id}"
-            if evidence_id in seen_ids:
-                continue
-            seen_ids.add(evidence_id)
-            updated.append(
-                {
-                    "evidence_id": evidence_id,
-                    "source_anchor": source_anchor,
-                    "claim": operand_text,
-                    "quote_span": source_quote or operand_text,
-                    "support_level": "direct",
-                    "question_relevance": "high",
-                    "metadata": {
-                        "section_path": source_anchor,
-                        "unit_hint": raw_unit,
-                        "operand_role": role,
-                        "supports_derived_percent": supports_derived_percent,
-                        "supports_answer_numeric_surface": supports_answer_numeric_surface,
-                    },
-                }
-            )
-        return updated
 
     def _append_final_answer_surface_operands_from_evidence(
         self,
