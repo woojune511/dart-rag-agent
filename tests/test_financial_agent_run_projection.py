@@ -4430,14 +4430,15 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             agent._repair_public_runtime_calculation_trace = Mock(
                 side_effect=[initial_trace, repaired_trace]
             )
-            agent._public_projection_state = Mock(return_value={})
+            projections = {}
+            projections["public_state"] = Mock(return_value={})
             agent._late_runtime_numeric_answer = Mock(return_value="")
-            agent._with_public_answer = Mock(
+            projections["with_answer"] = Mock(
                 side_effect=lambda state, answer: {**dict(state), "answer": answer}
             )
             agent._runtime_evidence_from_retrieved_docs = Mock(return_value=runtime_evidence)
-            agent._complete_aggregate_public_answer_projection = Mock(return_value=("", {}))
-            agent._structured_result_answer_for_missing_public_answer = Mock(return_value="")
+            projections["complete"] = Mock(return_value=("", {}))
+            projections["structured"] = Mock(return_value="")
             agent._apply_stale_structured_numeric_public_answer_repair = Mock(
                 side_effect=lambda state, **kwargs: (
                     kwargs["public_answer"],
@@ -4447,7 +4448,6 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             )
             agent._structured_public_answer_trace_projection = Mock(return_value={})
             agent._retrieved_ratio_context_projection_for_public_answer = Mock(return_value={})
-            projections = {}
             projections["debug"] = Mock(
                 side_effect=lambda final_arg: events.append(("debug", final_arg)) or debug_traces
             )
@@ -4493,6 +4493,18 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             return task_artifact_trace
 
         with (
+            patch.object(financial_graph, "public_projection_state", projections["public_state"]),
+            patch.object(financial_graph, "with_public_answer", projections["with_answer"]),
+            patch.object(
+                financial_graph,
+                "complete_aggregate_public_answer_projection",
+                projections["complete"],
+            ),
+            patch.object(
+                financial_graph,
+                "structured_result_answer_for_missing_public_answer",
+                projections["structured"],
+            ),
             patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(
                 financial_graph,
@@ -4553,6 +4565,26 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         failure_events = []
         failing_agent, failing_projections = configure(final, failure_events, fail_review=True)
         with (
+            patch.object(
+                financial_graph,
+                "public_projection_state",
+                failing_projections["public_state"],
+            ),
+            patch.object(
+                financial_graph,
+                "with_public_answer",
+                failing_projections["with_answer"],
+            ),
+            patch.object(
+                financial_graph,
+                "complete_aggregate_public_answer_projection",
+                failing_projections["complete"],
+            ),
+            patch.object(
+                financial_graph,
+                "structured_result_answer_for_missing_public_answer",
+                failing_projections["structured"],
+            ),
             patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(
                 financial_graph,
@@ -4593,6 +4625,1209 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertIs(failure_events[5][2]["task_artifact_trace"], task_artifact_trace)
         self.assertEqual(final, before_final)
         self.assertIs(final["nested"], nested)
+        self.assertIs(runtime_evidence[0]["nested"], nested)
+
+    def test_current_source_public_state_projection_structured_result_fallback_contract(self) -> None:
+        owner = financial_agent_run_projection
+        nested = {"preserve": True}
+        structured_result = {"nested": nested}
+        before = deepcopy(structured_result)
+        events = []
+
+        class RecordingPolicy(dict):
+            def get(self, key, default=None):
+                events.append(("policy", key))
+                return super().get(key, default)
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        def structured_projection(value):
+            events.append(("structured", value))
+            return [], "매출 123 원"
+
+        def search(pattern, value):
+            events.append(("search", pattern, value))
+            return Mock() if any(character.isdigit() for character in value) else None
+
+        with (
+            patch.object(owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(
+                owner,
+                "_structured_result_subtask_rows_and_answer",
+                side_effect=structured_projection,
+            ),
+            patch.object(owner, "CALCULATION_NARRATIVE_POLICY", RecordingPolicy({
+                "missing_answer_markers": ["정보 부족", "확인 불가"],
+            })),
+            patch.object(owner.re, "search", side_effect=search),
+        ):
+            projected = owner.structured_result_answer_for_missing_public_answer(
+                "  정보   부족  ",
+                structured_result,
+            )
+
+        self.assertEqual(projected, "매출 123 원")
+        self.assertEqual(
+            events,
+            [
+                ("normalize", "  정보   부족  "),
+                ("structured", structured_result),
+                ("search", r"\d", "매출 123 원"),
+                ("policy", "missing_answer_markers"),
+            ],
+        )
+        self.assertEqual(structured_result, before)
+        self.assertIs(structured_result["nested"], nested)
+
+        class PolicyAccessBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("policy should stay lazy")
+
+        for structured_answer in ("", "same", "nonnumeric"):
+            public_answer = "same" if structured_answer == "same" else "정보 부족"
+            with (
+                patch.object(owner, "_normalise_spaces", return_value=public_answer),
+                patch.object(
+                    owner,
+                    "_structured_result_subtask_rows_and_answer",
+                    return_value=([], structured_answer),
+                ),
+                patch.object(owner, "CALCULATION_NARRATIVE_POLICY", PolicyAccessBomb()),
+            ):
+                self.assertEqual(
+                    owner.structured_result_answer_for_missing_public_answer(
+                        public_answer,
+                        structured_result,
+                    ),
+                    "",
+                )
+
+        with (
+            patch.object(owner, "_normalise_spaces", return_value="정보 부족"),
+            patch.object(
+                owner,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=([], "123 원"),
+            ),
+            patch.object(owner, "CALCULATION_NARRATIVE_POLICY", {
+                "missing_answer_markers": [],
+            }),
+        ):
+            self.assertEqual(
+                owner.structured_result_answer_for_missing_public_answer(
+                    "정보 부족",
+                    structured_result,
+                ),
+                "",
+            )
+
+        cases = [
+            ("정상 답변", "123 원", ""),
+            ("정보 부족", "정보 부족 123 원", ""),
+            ("확인 불가", "123 원", "123 원"),
+        ]
+        for public_answer, structured_answer, expected in cases:
+            with (
+                patch.object(owner, "_normalise_spaces", return_value=public_answer),
+                patch.object(
+                    owner,
+                    "_structured_result_subtask_rows_and_answer",
+                    return_value=([], structured_answer),
+                ),
+                patch.object(owner, "CALCULATION_NARRATIVE_POLICY", {
+                    "missing_answer_markers": ["정보 부족", "확인 불가"],
+                }),
+            ):
+                self.assertEqual(
+                    owner.structured_result_answer_for_missing_public_answer(
+                        public_answer,
+                        structured_result,
+                    ),
+                    expected,
+                )
+
+        structured_owner = Mock(side_effect=AssertionError("structured owner should stay lazy"))
+        with (
+            patch.object(
+                owner,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            patch.object(
+                owner,
+                "_structured_result_subtask_rows_and_answer",
+                structured_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "normalization failed"),
+        ):
+            owner.structured_result_answer_for_missing_public_answer("answer", structured_result)
+        structured_owner.assert_not_called()
+
+        class PolicyRuntimeBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("policy failed")
+
+        with (
+            patch.object(owner, "_normalise_spaces", return_value="정보 부족"),
+            patch.object(
+                owner,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=([], "123 원"),
+            ),
+            patch.object(owner, "CALCULATION_NARRATIVE_POLICY", PolicyRuntimeBomb()),
+            self.assertRaisesRegex(RuntimeError, "policy failed"),
+        ):
+            owner.structured_result_answer_for_missing_public_answer(
+                "정보 부족",
+                structured_result,
+            )
+
+    def test_current_source_public_state_projection_complete_aggregate_contract(self) -> None:
+        owner = financial_agent_run_projection
+        nested = {"preserve": True}
+        subtask_results = [{"answer": "row", "nested": nested}]
+        before = deepcopy(subtask_results)
+        events = []
+
+        def preferred(rows, answer):
+            events.append(("preferred", rows, answer))
+            return "complete answer"
+
+        built_projection = {
+            "calculation_result": {"subtask_results": subtask_results, "nested": nested},
+            "runtime_projection": {"existing": True, "nested": nested},
+            "nested": nested,
+        }
+
+        def build(rows, answer):
+            events.append(("build", rows, answer))
+            return built_projection
+
+        attached_projection = {
+            **built_projection,
+            "runtime_projection": dict(built_projection["runtime_projection"]),
+        }
+
+        def attach(projection, *, source):
+            events.append(("attach", projection, source))
+            self.assertIs(projection, built_projection)
+            return attached_projection
+
+        with (
+            patch.object(
+                owner,
+                "_preferred_complete_aggregate_subtask_answer",
+                side_effect=preferred,
+            ),
+            patch.object(
+                owner,
+                "_build_aggregate_calculation_projection",
+                side_effect=build,
+            ),
+            patch.object(
+                owner,
+                "_attach_runtime_projection_metadata",
+                side_effect=attach,
+            ),
+        ):
+            answer, projection = owner.complete_aggregate_public_answer_projection(
+                subtask_results=subtask_results,
+                base_answer="base answer",
+                public_answer="public answer",
+            )
+
+        self.assertEqual(answer, "complete answer")
+        self.assertIs(projection, attached_projection)
+        self.assertEqual(
+            projection["runtime_projection"],
+            {
+                "existing": True,
+                "nested": nested,
+                "public_answer_repaired": True,
+                "complete_aggregate_answer_selected": True,
+            },
+        )
+        self.assertIs(projection["nested"], nested)
+        self.assertEqual(
+            [(event[0], event[-1]) for event in events],
+            [
+                ("preferred", "base answer"),
+                ("build", "complete answer"),
+                ("attach", "structured_result_subtasks"),
+            ],
+        )
+        self.assertIs(events[0][1], subtask_results)
+        self.assertIs(events[1][1], subtask_results)
+        self.assertEqual(subtask_results, before)
+        self.assertIs(subtask_results[0]["nested"], nested)
+
+        builder = Mock(side_effect=AssertionError("builder should stay lazy"))
+        with (
+            patch.object(
+                owner,
+                "_preferred_complete_aggregate_subtask_answer",
+                return_value="",
+            ) as preferred_mock,
+            patch.object(owner, "_build_aggregate_calculation_projection", builder),
+        ):
+            self.assertEqual(
+                owner.complete_aggregate_public_answer_projection(
+                    subtask_results=subtask_results,
+                    base_answer="",
+                    public_answer="fallback answer",
+                ),
+                ("", {}),
+            )
+        preferred_mock.assert_called_once_with(subtask_results, "fallback answer")
+        builder.assert_not_called()
+
+        attach_owner = Mock(side_effect=AssertionError("attach should stay lazy"))
+        projection_without_rows = {
+            "calculation_result": {"status": "ok", "nested": nested},
+            "nested": nested,
+        }
+        with (
+            patch.object(
+                owner,
+                "_preferred_complete_aggregate_subtask_answer",
+                return_value="complete answer",
+            ),
+            patch.object(
+                owner,
+                "_build_aggregate_calculation_projection",
+                return_value=projection_without_rows,
+            ),
+            patch.object(owner, "_attach_runtime_projection_metadata", attach_owner),
+        ):
+            self.assertEqual(
+                owner.complete_aggregate_public_answer_projection(
+                    subtask_results=subtask_results,
+                    base_answer="base",
+                    public_answer="public",
+                ),
+                ("complete answer", {}),
+            )
+        attach_owner.assert_not_called()
+        self.assertIs(projection_without_rows["nested"], nested)
+
+        downstream = Mock(side_effect=AssertionError("downstream should stay lazy"))
+        with (
+            patch.object(
+                owner,
+                "_preferred_complete_aggregate_subtask_answer",
+                side_effect=RuntimeError("preferred failed"),
+            ),
+            patch.object(owner, "_build_aggregate_calculation_projection", downstream),
+            self.assertRaisesRegex(RuntimeError, "preferred failed"),
+        ):
+            owner.complete_aggregate_public_answer_projection(
+                subtask_results=subtask_results,
+                base_answer="base",
+                public_answer="public",
+            )
+        downstream.assert_not_called()
+
+        with (
+            patch.object(
+                owner,
+                "_preferred_complete_aggregate_subtask_answer",
+                return_value="complete",
+            ),
+            patch.object(
+                owner,
+                "_build_aggregate_calculation_projection",
+                return_value=built_projection,
+            ),
+            patch.object(
+                owner,
+                "_attach_runtime_projection_metadata",
+                side_effect=RuntimeError("attach failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "attach failed"),
+        ):
+            owner.complete_aggregate_public_answer_projection(
+                subtask_results=subtask_results,
+                base_answer="base",
+                public_answer="public",
+            )
+
+    def test_current_source_public_state_projection_state_copy_contract(self) -> None:
+        owner = financial_agent_run_projection
+        nested = {"preserve": True}
+        original_evidence = {"evidence_id": "original", "nested": nested}
+        runtime_row = {"evidence_id": "runtime", "nested": nested}
+        existing_runtime_evidence = [{"evidence_id": "existing", "nested": nested}]
+        final = {
+            "answer": "old",
+            "compressed_answer": "old compressed",
+            "resolved_calculation_trace": {"old": True},
+            "runtime_evidence": existing_runtime_evidence,
+            "evidence_items": [original_evidence],
+            "nested": nested,
+        }
+        before = deepcopy(final)
+
+        copied = owner.with_public_answer(final, "new answer")
+        self.assertIsNot(copied, final)
+        self.assertEqual(copied["answer"], "new answer")
+        self.assertEqual(copied["compressed_answer"], "new answer")
+        self.assertIs(copied["nested"], nested)
+        self.assertIs(copied["evidence_items"], final["evidence_items"])
+
+        trace = {"calculation_result": {"status": "ok"}, "nested": nested}
+        projected_without_evidence = owner.public_projection_state(
+            final,
+            public_answer="public",
+            runtime_calculation_trace=trace,
+        )
+        self.assertIsNot(projected_without_evidence, final)
+        self.assertIs(projected_without_evidence["resolved_calculation_trace"], trace)
+        self.assertIs(projected_without_evidence["runtime_evidence"], existing_runtime_evidence)
+        self.assertIs(projected_without_evidence["evidence_items"], final["evidence_items"])
+
+        runtime_evidence = [runtime_row]
+        projected = owner.public_projection_state(
+            final,
+            public_answer="public",
+            runtime_calculation_trace=trace,
+            runtime_evidence=runtime_evidence,
+        )
+        self.assertIsNot(projected, final)
+        self.assertEqual(projected["answer"], "public")
+        self.assertEqual(projected["compressed_answer"], "public")
+        self.assertIs(projected["resolved_calculation_trace"], trace)
+        self.assertIs(projected["runtime_evidence"], runtime_evidence)
+        self.assertIsNot(projected["evidence_items"], final["evidence_items"])
+        self.assertEqual(projected["evidence_items"], [original_evidence, runtime_row])
+        self.assertIs(projected["evidence_items"][0], original_evidence)
+        self.assertIs(projected["evidence_items"][1], runtime_row)
+        self.assertIs(projected["nested"], nested)
+        self.assertEqual(final, before)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(final["evidence_items"][0], original_evidence)
+        self.assertIs(runtime_evidence[0], runtime_row)
+
+        empty_runtime_evidence = []
+        projected_empty = owner.public_projection_state(
+            final,
+            public_answer="public",
+            runtime_calculation_trace=trace,
+            runtime_evidence=empty_runtime_evidence,
+        )
+        self.assertIs(projected_empty["runtime_evidence"], empty_runtime_evidence)
+        self.assertEqual(projected_empty["evidence_items"], [original_evidence])
+        self.assertIsNot(projected_empty["evidence_items"], final["evidence_items"])
+
+        class StateCopyBomb:
+            def keys(self):
+                raise RuntimeError("state copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("state values should stay unread")
+
+        with self.assertRaisesRegex(RuntimeError, "state copy failed"):
+            owner.with_public_answer(StateCopyBomb(), "answer")
+
+        class EvidenceIterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("evidence iteration failed")
+
+        with self.assertRaisesRegex(RuntimeError, "evidence iteration failed"):
+            owner.public_projection_state(
+                {"evidence_items": EvidenceIterationBomb()},
+                public_answer="answer",
+                runtime_calculation_trace=trace,
+                runtime_evidence=[],
+            )
+
+        with_public_answer_mock = Mock(side_effect=RuntimeError("answer copy failed"))
+
+        class RuntimeEvidenceBomb:
+            def __iter__(self):
+                raise AssertionError("runtime evidence should stay lazy")
+
+        with (
+            patch.object(owner, "with_public_answer", with_public_answer_mock),
+            self.assertRaisesRegex(RuntimeError, "answer copy failed"),
+        ):
+            owner.public_projection_state(
+                final,
+                public_answer="answer",
+                runtime_calculation_trace=trace,
+                runtime_evidence=RuntimeEvidenceBomb(),
+            )
+        with_public_answer_mock.assert_called_once_with(final, "answer")
+
+    def test_current_source_public_state_projection_static_binding_dag_and_baseline_contract(self) -> None:
+        module_trees = {
+            "graph": ast.parse(inspect.getsource(financial_graph)),
+            "owner": ast.parse(inspect.getsource(financial_agent_run_projection)),
+        }
+        public_targets = {
+            "structured_result_answer_for_missing_public_answer": 20,
+            "complete_aggregate_public_answer_projection": 29,
+            "public_projection_state": 16,
+            "with_public_answer": 6,
+        }
+        retired_targets = {f"_{name}" for name in public_targets}
+        graph_class = next(
+            node
+            for node in module_trees["graph"].body
+            if isinstance(node, ast.ClassDef) and node.name == "FinancialAgent"
+        )
+        graph_definitions = {
+            node.name: node
+            for node in graph_class.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in retired_targets
+        }
+        owner_definitions = {
+            node.name: node
+            for node in module_trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in public_targets
+        }
+        self.assertEqual(graph_definitions, {})
+        self.assertEqual(set(owner_definitions), set(public_targets))
+        self.assertEqual(
+            {
+                name: node.end_lineno - node.lineno + 1
+                for name, node in owner_definitions.items()
+            },
+            public_targets,
+        )
+
+        calls = {name: [] for name in public_targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Attribute):
+                    name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    name = node.func.id
+                    receiver = ""
+                else:
+                    name = ""
+                    receiver = ""
+                if name in calls:
+                    calls[name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "<module>",
+                            receiver,
+                            [ast.unparse(arg) for arg in node.args],
+                            [(keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, module_tree in module_trees.items():
+            BindingVisitor(module_name).visit(module_tree)
+
+        self.assertEqual(
+            calls,
+            {
+                "structured_result_answer_for_missing_public_answer": [
+                    ("graph", "run", "", ["public_answer", "structured_result"], [], 0),
+                ],
+                "complete_aggregate_public_answer_projection": [
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        [],
+                        [
+                            ("subtask_results", "structured_subtask_results"),
+                            ("base_answer", "structured_base_answer"),
+                            ("public_answer", "public_answer"),
+                        ],
+                        0,
+                    ),
+                ],
+                "public_projection_state": [
+                    (
+                        "graph",
+                        "_structured_public_answer_trace_projection",
+                        "",
+                        ["final"],
+                        [
+                            ("public_answer", "public_answer"),
+                            ("runtime_calculation_trace", "structured_public_projection"),
+                            ("runtime_evidence", "runtime_evidence"),
+                        ],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "_repair_public_runtime_calculation_trace",
+                        "",
+                        ["final"],
+                        [
+                            ("public_answer", "public_answer"),
+                            ("runtime_calculation_trace", "runtime_calculation_trace"),
+                            ("runtime_evidence", "runtime_evidence"),
+                        ],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final"],
+                        [
+                            ("public_answer", "public_answer"),
+                            ("runtime_calculation_trace", "runtime_calculation_trace"),
+                        ],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final_for_evidence"],
+                        [
+                            ("public_answer", "public_answer"),
+                            ("runtime_calculation_trace", "runtime_calculation_trace"),
+                            ("runtime_evidence", "runtime_evidence"),
+                        ],
+                        0,
+                    ),
+                ],
+                "with_public_answer": [
+                    (
+                        "graph",
+                        "_apply_stale_structured_numeric_public_answer_repair",
+                        "",
+                        ["final", "structured_numeric_answer"],
+                        [],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "_structured_public_answer_trace_projection",
+                        "",
+                        ["final", "public_answer"],
+                        [],
+                        0,
+                    ),
+                    ("graph", "run", "", ["final", "public_answer"], [], 0),
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final_for_evidence", "public_answer"],
+                        [],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final_for_evidence", "public_answer"],
+                        [],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final_for_evidence", "public_answer"],
+                        [],
+                        0,
+                    ),
+                    (
+                        "owner",
+                        "public_projection_state",
+                        "",
+                        ["final", "public_answer"],
+                        [],
+                        0,
+                    ),
+                ],
+            },
+        )
+        self.assertEqual(sum(len(rows) for rows in calls.values()), 13)
+        self.assertEqual(
+            sum(
+                1
+                for row in calls["with_public_answer"]
+                if row[0:2] == ("owner", "public_projection_state")
+            ),
+            1,
+        )
+
+        existing_public = {
+            "enrich_runtime_evidence_metadata",
+            "project_debug_traces",
+            "project_agent_answer",
+            "project_review_trace",
+            "project_debug_bundle",
+            "augment_citations_from_runtime_evidence",
+        }
+        existing_private = {
+            "_runtime_evidence_defaults",
+            "_compact_runtime_evidence_metadata",
+        }
+        owner_top_level = {
+            node.name
+            for node in module_trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        self.assertTrue(existing_public | existing_private <= owner_top_level)
+        self.assertEqual(len(existing_public | set(public_targets)), 10)
+        self.assertEqual(len(existing_private), 2)
+
+        existing_external = 0
+        existing_local = 0
+        for module_name, module_tree in module_trees.items():
+            for node in ast.walk(module_tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                if isinstance(node.func, ast.Name) and node.func.id in existing_public:
+                    existing_external += module_name == "graph"
+                if isinstance(node.func, ast.Name) and node.func.id in existing_private:
+                    existing_local += module_name == "owner"
+        self.assertEqual((existing_external, existing_local), (9, 2))
+        self.assertEqual((existing_external + 12, existing_local + 1), (21, 3))
+
+        project_root = Path(__file__).resolve().parents[1]
+        agent_module_trees = {}
+        for path in (project_root / "src" / "agent").glob("*.py"):
+            agent_module_trees[f"src.agent.{path.stem}"] = ast.parse(
+                path.read_text(encoding="utf-8-sig")
+            )
+        edges = {name: set() for name in agent_module_trees}
+        for module_name, module_tree in agent_module_trees.items():
+            for node in ast.walk(module_tree):
+                if isinstance(node, ast.ImportFrom) and node.module in edges:
+                    edges[module_name].add(node.module)
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_agent_run_projection"
+        graph_module = "src.agent.financial_graph"
+        self.assertIn(owner_module, edges[graph_module])
+        for dependency in (
+            "src.agent.financial_answer_projection",
+            "src.agent.financial_runtime_trace",
+            "src.agent.financial_runtime_normalization",
+        ):
+            self.assertIn(dependency, edges[owner_module])
+            self.assertFalse(reachable(dependency, owner_module))
+            self.assertFalse(reachable(dependency, graph_module))
+        self.assertFalse(reachable(owner_module, graph_module))
+
+        graph_name_loads = [
+            node.id
+            for node in ast.walk(module_trees["graph"])
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        ]
+        owner_name_loads = [
+            node.id
+            for node in ast.walk(module_trees["owner"])
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        ]
+        self.assertEqual(graph_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 0)
+        self.assertEqual(owner_name_loads.count("CALCULATION_NARRATIVE_POLICY"), 1)
+        self.assertEqual(graph_name_loads.count("_preferred_complete_aggregate_subtask_answer"), 1)
+        self.assertEqual(graph_name_loads.count("_attach_runtime_projection_metadata"), 2)
+        self.assertEqual(graph_name_loads.count("_build_aggregate_calculation_projection"), 1)
+        self.assertEqual(graph_name_loads.count("_structured_result_subtask_rows_and_answer"), 2)
+        graph_imports = [
+            alias.name
+            for node in module_trees["graph"].body
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+            for alias in node.names
+        ]
+        self.assertNotIn("re", graph_imports)
+
+        from src.ops.audit_runtime_domain_terms import (
+            collect_runtime_domain_term_occurrences,
+            collect_runtime_domain_terms,
+        )
+
+        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 217)
+        occurrences = collect_runtime_domain_term_occurrences(project_root)
+        selected_ranges = [
+            (node.lineno, node.end_lineno)
+            for node in owner_definitions.values()
+        ]
+        self.assertEqual(
+            [
+                row
+                for row in occurrences
+                if row["path"] == "src/agent/financial_agent_run_projection.py"
+                and any(start <= row["line"] <= end for start, end in selected_ranges)
+            ],
+            [],
+        )
+
+    def test_current_source_public_state_projection_run_caller_contract(self) -> None:
+        nested = {"preserve": True}
+        final = self._base_final_state()
+        final["answer"] = " base answer "
+        final["structured_result"] = {"status": "structured", "nested": nested}
+        final["evidence_items"] = [{"evidence_id": "final", "nested": nested}]
+        final["nested"] = nested
+        before = deepcopy(final)
+        trace_initial = {"trace": "initial", "nested": nested}
+        trace_first = {"trace": "first", "nested": nested}
+        trace_second = {"trace": "second", "nested": nested}
+        trace_complete = {"trace": "complete", "nested": nested}
+        trace_appended = {"trace": "appended", "nested": nested}
+        runtime_evidence = [{"evidence_id": "runtime", "nested": nested}]
+        structured_rows = [{"answer": "row", "nested": nested}]
+
+        def configure(events, *, fail_complete=False):
+            agent = FinancialAgent.__new__(FinancialAgent)
+            agent.graph = _FakeGraph(final)
+            agent.vsm = object()
+            agent._project_runtime_calculation_trace = Mock(return_value=trace_initial)
+            agent._repair_public_runtime_calculation_trace = Mock(
+                side_effect=[trace_first, trace_second]
+            )
+
+            def public_state(state, **kwargs):
+                events.append(("public_state", state, kwargs))
+                return {"projection_index": len(events), "nested": nested}
+
+            selected = {"public_state": Mock(side_effect=public_state)}
+
+            def late_numeric(state, answer):
+                events.append(("late", state, answer))
+                return "numeric one" if sum(event[0] == "late" for event in events) == 1 else "numeric two"
+
+            agent._late_runtime_numeric_answer = Mock(side_effect=late_numeric)
+
+            def with_answer(state, answer):
+                events.append(("with", state, answer))
+                return {**dict(state), "answer": answer, "compressed_answer": answer}
+
+            selected["with_answer"] = Mock(side_effect=with_answer)
+
+            def runtime_projection(state):
+                events.append(("runtime_evidence", state))
+                return runtime_evidence
+
+            agent._runtime_evidence_from_retrieved_docs = Mock(side_effect=runtime_projection)
+
+            def complete(**kwargs):
+                events.append(("complete", kwargs))
+                if fail_complete:
+                    raise RuntimeError("complete projection failed")
+                return "complete answer", trace_complete
+
+            selected["complete"] = Mock(side_effect=complete)
+
+            def structured(answer, structured_result):
+                events.append(("structured", answer, structured_result))
+                return "structured answer"
+
+            selected["structured"] = Mock(side_effect=structured)
+
+            def stale(state, **kwargs):
+                events.append(("stale", state, kwargs))
+                return kwargs["public_answer"], state, kwargs["runtime_calculation_trace"]
+
+            agent._apply_stale_structured_numeric_public_answer_repair = Mock(side_effect=stale)
+            agent._structured_public_answer_trace_projection = Mock(return_value={})
+            agent._retrieved_ratio_context_projection_for_public_answer = Mock(return_value={})
+            return agent, selected
+
+        events = []
+        agent, selected = configure(events)
+
+        def structured_projection(value):
+            events.append(("structured_rows", value))
+            return structured_rows, "structured base"
+
+        def append_surface(trace, evidence, *, final_answer):
+            events.append(("append", trace, evidence, final_answer))
+            return trace_appended
+
+        with (
+            patch.object(financial_graph, "public_projection_state", selected["public_state"]),
+            patch.object(financial_graph, "with_public_answer", selected["with_answer"]),
+            patch.object(
+                financial_graph,
+                "complete_aggregate_public_answer_projection",
+                selected["complete"],
+            ),
+            patch.object(
+                financial_graph,
+                "structured_result_answer_for_missing_public_answer",
+                selected["structured"],
+            ),
+            patch.object(
+                financial_graph,
+                "_structured_result_subtask_rows_and_answer",
+                side_effect=structured_projection,
+            ),
+            patch.object(
+                financial_graph,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=append_surface,
+            ),
+            patch.object(financial_graph, "project_debug_traces", return_value={}),
+            patch.object(
+                financial_graph,
+                "augment_citations_from_runtime_evidence",
+                return_value=[],
+            ),
+            patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
+            patch.object(
+                financial_graph,
+                "project_agent_answer",
+                side_effect=lambda _final, **kwargs: {"answer": kwargs["public_answer"]},
+            ),
+            patch.object(financial_graph, "project_review_trace", return_value={}),
+            patch.object(financial_graph, "project_debug_bundle", return_value={}),
+        ):
+            result = FinancialAgent.run(agent, "query")
+
+        self.assertEqual(
+            [event[0] for event in events],
+            [
+                "public_state",
+                "late",
+                "with",
+                "runtime_evidence",
+                "public_state",
+                "late",
+                "with",
+                "structured_rows",
+                "complete",
+                "with",
+                "structured",
+                "with",
+                "stale",
+                "append",
+            ],
+        )
+        public_state_events = [event for event in events if event[0] == "public_state"]
+        self.assertEqual(len(public_state_events), 2)
+        self.assertIsNot(public_state_events[0][1], final)
+        self.assertEqual(public_state_events[0][1], final)
+        self.assertIs(public_state_events[0][1]["nested"], nested)
+        self.assertEqual(public_state_events[0][2]["public_answer"], "base answer")
+        self.assertIs(public_state_events[0][2]["runtime_calculation_trace"], trace_first)
+        self.assertNotIn("runtime_evidence", public_state_events[0][2])
+        first_with = [event for event in events if event[0] == "with"][0]
+        self.assertIsNot(first_with[1], final)
+        self.assertEqual(first_with[1], final)
+        self.assertEqual(first_with[2], "numeric one")
+        self.assertIs(public_state_events[1][1], events[3][1])
+        self.assertEqual(public_state_events[1][2]["public_answer"], "numeric one")
+        self.assertIs(public_state_events[1][2]["runtime_calculation_trace"], trace_second)
+        self.assertIs(public_state_events[1][2]["runtime_evidence"], runtime_evidence)
+        complete_event = next(event for event in events if event[0] == "complete")
+        self.assertIs(complete_event[1]["subtask_results"], structured_rows)
+        self.assertEqual(complete_event[1]["base_answer"], "structured base")
+        self.assertEqual(complete_event[1]["public_answer"], "numeric two")
+        structured_event = next(event for event in events if event[0] == "structured")
+        self.assertEqual(structured_event[1], "complete answer")
+        self.assertIsNot(structured_event[2], final["structured_result"])
+        self.assertEqual(structured_event[2], final["structured_result"])
+        self.assertIs(structured_event[2]["nested"], nested)
+        self.assertEqual([event[2] for event in events if event[0] == "with"], [
+            "numeric one",
+            "numeric two",
+            "complete answer",
+            "structured answer",
+        ])
+        stale_event = next(event for event in events if event[0] == "stale")
+        self.assertEqual(stale_event[2]["public_answer"], "structured answer")
+        self.assertIs(stale_event[2]["runtime_calculation_trace"], trace_complete)
+        self.assertIs(stale_event[2]["runtime_evidence"], runtime_evidence)
+        self.assertEqual(result["answer"], "structured answer")
+        self.assertEqual(final, before)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(final["evidence_items"][0]["nested"], nested)
+
+        failure_events = []
+        failing_agent, failing_selected = configure(failure_events, fail_complete=True)
+        with (
+            patch.object(
+                financial_graph,
+                "public_projection_state",
+                failing_selected["public_state"],
+            ),
+            patch.object(
+                financial_graph,
+                "with_public_answer",
+                failing_selected["with_answer"],
+            ),
+            patch.object(
+                financial_graph,
+                "complete_aggregate_public_answer_projection",
+                failing_selected["complete"],
+            ),
+            patch.object(
+                financial_graph,
+                "structured_result_answer_for_missing_public_answer",
+                failing_selected["structured"],
+            ),
+            patch.object(
+                financial_graph,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=(structured_rows, "structured base"),
+            ),
+            patch.object(
+                financial_graph,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=AssertionError("append should stay lazy"),
+            ),
+            patch.object(financial_graph, "project_debug_traces", return_value={}),
+            patch.object(financial_graph, "augment_citations_from_runtime_evidence", return_value=[]),
+            patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
+            patch.object(financial_graph, "project_agent_answer", return_value={}),
+            patch.object(financial_graph, "project_review_trace", return_value={}),
+            patch.object(financial_graph, "project_debug_bundle", return_value={}),
+            self.assertRaisesRegex(RuntimeError, "complete projection failed"),
+        ):
+            FinancialAgent.run(failing_agent, "query")
+        self.assertEqual(
+            [event[0] for event in failure_events],
+            [
+                "public_state",
+                "late",
+                "with",
+                "runtime_evidence",
+                "public_state",
+                "late",
+                "with",
+                "complete",
+            ],
+        )
+        failing_selected["structured"].assert_not_called()
+        failing_agent._apply_stale_structured_numeric_public_answer_repair.assert_not_called()
+        self.assertEqual(final, before)
+        self.assertIs(final["nested"], nested)
+
+    def test_current_source_public_state_projection_retained_repair_callers_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        final = {
+            "answer": "old",
+            "evidence_items": [{"evidence_id": "final", "nested": nested}],
+            "nested": nested,
+        }
+        structured_result = {"status": "structured", "nested": nested}
+        trace = {"trace": "initial", "nested": nested}
+        replacement_trace = {"trace": "replacement", "nested": nested}
+        runtime_evidence = [{"evidence_id": "runtime", "nested": nested}]
+        before_final = deepcopy(final)
+        before_structured = deepcopy(structured_result)
+        before_evidence = deepcopy(runtime_evidence)
+        events = []
+
+        def stale_source(final_arg, **kwargs):
+            events.append(("stale_source", final_arg, kwargs))
+            return "replacement answer", replacement_trace
+
+        def with_answer(state, answer):
+            events.append(("with", state, answer))
+            return {**dict(state), "answer": answer, "compressed_answer": answer}
+
+        agent._structured_result_projection_for_stale_public_numeric_answer = Mock(
+            side_effect=stale_source
+        )
+        with_answer_mock = Mock(side_effect=with_answer)
+        with patch.object(financial_graph, "with_public_answer", with_answer_mock):
+            answer, projected_state, projected_trace = (
+                agent._apply_stale_structured_numeric_public_answer_repair(
+                    final,
+                    public_answer="public",
+                    structured_result=structured_result,
+                    runtime_calculation_trace=trace,
+                    runtime_evidence=runtime_evidence,
+                )
+            )
+        self.assertEqual([event[0] for event in events], ["stale_source", "with"])
+        self.assertIs(events[0][1], final)
+        self.assertEqual(events[0][2]["public_answer"], "public")
+        self.assertIs(events[0][2]["structured_result"], structured_result)
+        self.assertIs(events[0][2]["evidence_items"], runtime_evidence)
+        self.assertIs(events[1][1], final)
+        self.assertEqual(events[1][2], "replacement answer")
+        self.assertEqual(answer, "replacement answer")
+        self.assertIs(projected_trace, replacement_trace)
+        self.assertIsNot(projected_state, final)
+        self.assertIs(projected_state["nested"], nested)
+
+        lazy_with = Mock(side_effect=AssertionError("answer copy should stay lazy"))
+        agent._structured_result_projection_for_stale_public_numeric_answer = Mock(
+            return_value=("", {})
+        )
+        with patch.object(financial_graph, "with_public_answer", lazy_with):
+            unchanged = agent._apply_stale_structured_numeric_public_answer_repair(
+                final,
+                public_answer="public",
+                structured_result=structured_result,
+                runtime_calculation_trace=trace,
+                runtime_evidence=runtime_evidence,
+            )
+        self.assertEqual(unchanged[0], "public")
+        self.assertIs(unchanged[1], final)
+        self.assertIs(unchanged[2], trace)
+        lazy_with.assert_not_called()
+
+        structured_projection = {"trace": "structured", "nested": nested}
+        structured_state = {"state": "structured", "nested": nested}
+        repaired_projection = {"trace": "repaired", "nested": nested}
+        events.clear()
+
+        def structured_with(state, answer):
+            events.append(("with", state, answer))
+            return {**dict(state), "answer": answer}
+
+        def structured_owner(state, current_trace):
+            events.append(("structured_owner", state, current_trace))
+            return structured_projection
+
+        def public_state(state, **kwargs):
+            events.append(("public_state", state, kwargs))
+            return structured_state
+
+        def collapsed(state, current_trace):
+            events.append(("collapsed", state, current_trace))
+            return repaired_projection
+
+        structured_with_mock = Mock(side_effect=structured_with)
+        agent._structured_subtask_projection_for_public_answer = Mock(
+            side_effect=structured_owner
+        )
+        public_state_mock = Mock(side_effect=public_state)
+        agent._repair_collapsed_ratio_trace_from_evidence = Mock(side_effect=collapsed)
+        with (
+            patch.object(financial_graph, "with_public_answer", structured_with_mock),
+            patch.object(financial_graph, "public_projection_state", public_state_mock),
+        ):
+            projected = agent._structured_public_answer_trace_projection(
+                final,
+                public_answer="public",
+                structured_result=structured_result,
+                runtime_calculation_trace=trace,
+                runtime_evidence=runtime_evidence,
+            )
+        self.assertIs(projected, repaired_projection)
+        self.assertEqual(
+            [event[0] for event in events],
+            ["with", "structured_owner", "public_state", "collapsed"],
+        )
+        self.assertIs(events[0][1], final)
+        self.assertEqual(events[0][2], "public")
+        projection_state = events[1][1]
+        self.assertIsNot(projection_state, final)
+        self.assertIs(projection_state["structured_result"], structured_result)
+        self.assertIs(projection_state["resolved_calculation_trace"], trace)
+        self.assertIs(events[1][2], trace)
+        self.assertIs(events[2][1], final)
+        self.assertEqual(events[2][2]["public_answer"], "public")
+        self.assertIs(events[2][2]["runtime_calculation_trace"], structured_projection)
+        self.assertIs(events[2][2]["runtime_evidence"], runtime_evidence)
+        self.assertIs(events[3][1], structured_state)
+        self.assertIs(events[3][2], structured_projection)
+
+        events.clear()
+        collapsed_trace = {"trace": "collapsed", "nested": nested}
+        period_trace = {"trace": "period", "nested": nested}
+        public_state_mock = Mock(
+            side_effect=lambda state, **kwargs: events.append(
+                ("public_state", state, kwargs)
+            )
+            or structured_state
+        )
+        agent._repair_collapsed_ratio_trace_from_evidence = Mock(
+            side_effect=lambda state, current_trace: events.append(
+                ("collapsed", state, current_trace)
+            )
+            or collapsed_trace
+        )
+        agent._repair_period_comparison_trace_from_evidence = Mock(
+            side_effect=lambda state, current_trace: events.append(
+                ("period", state, current_trace)
+            )
+            or period_trace
+        )
+        with patch.object(financial_graph, "public_projection_state", public_state_mock):
+            repaired = agent._repair_public_runtime_calculation_trace(
+                final,
+                trace,
+                public_answer="public",
+                runtime_evidence=runtime_evidence,
+            )
+        self.assertIs(repaired, period_trace)
+        self.assertEqual([event[0] for event in events], ["public_state", "collapsed", "period"])
+        self.assertIs(events[0][1], final)
+        self.assertEqual(events[0][2]["public_answer"], "public")
+        self.assertIs(events[0][2]["runtime_calculation_trace"], trace)
+        self.assertIs(events[0][2]["runtime_evidence"], runtime_evidence)
+        self.assertIs(events[1][1], structured_state)
+        self.assertIs(events[1][2], trace)
+        self.assertIs(events[2][1], structured_state)
+        self.assertIs(events[2][2], collapsed_trace)
+
+        downstream = Mock(side_effect=AssertionError("repair should stay lazy"))
+        agent._repair_collapsed_ratio_trace_from_evidence = downstream
+        agent._repair_period_comparison_trace_from_evidence = downstream
+        with (
+            patch.object(
+                financial_graph,
+                "public_projection_state",
+                side_effect=RuntimeError("public state failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "public state failed"),
+        ):
+            agent._repair_public_runtime_calculation_trace(
+                final,
+                trace,
+                public_answer="public",
+                runtime_evidence=runtime_evidence,
+            )
+        downstream.assert_not_called()
+
+        self.assertEqual(final, before_final)
+        self.assertEqual(structured_result, before_structured)
+        self.assertEqual(runtime_evidence, before_evidence)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(final["evidence_items"][0]["nested"], nested)
+        self.assertIs(structured_result["nested"], nested)
         self.assertIs(runtime_evidence[0]["nested"], nested)
 
 

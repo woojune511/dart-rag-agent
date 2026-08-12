@@ -11276,10 +11276,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             def with_public(state, answer):
                 return {**dict(state), "answer": answer, "compressed_answer": answer}
 
-            agent._with_public_answer = Mock(side_effect=with_public)
             agent._runtime_evidence_from_retrieved_docs = Mock(return_value=[runtime_evidence_row])
-            agent._complete_aggregate_public_answer_projection = Mock(return_value=("", {}))
-            agent._structured_result_answer_for_missing_public_answer = Mock(return_value="")
             agent._apply_stale_structured_numeric_public_answer_repair = Mock(
                 side_effect=lambda state, **kwargs: (
                     kwargs["public_answer"],
@@ -11290,6 +11287,9 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             agent._structured_public_answer_trace_projection = Mock(return_value=structured_trace)
             agent._retrieved_ratio_context_projection_for_public_answer = Mock(return_value=ratio_trace)
             projections = {}
+            projections["with_answer"] = Mock(side_effect=with_public)
+            projections["complete"] = Mock(return_value=("", {}))
+            projections["structured"] = Mock(return_value="")
             projections["debug"] = Mock(
                 side_effect=lambda _final: events.append("debug") or {}
             )
@@ -11315,6 +11315,17 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         agent, projections = configure(success_events)
         with (
+            patch.object(financial_graph, "with_public_answer", projections["with_answer"]),
+            patch.object(
+                financial_graph,
+                "complete_aggregate_public_answer_projection",
+                projections["complete"],
+            ),
+            patch.object(
+                financial_graph,
+                "structured_result_answer_for_missing_public_answer",
+                projections["structured"],
+            ),
             patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
             patch.object(
@@ -11363,6 +11374,21 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         failing_agent, failing_projections = configure(failure_events)
         with (
+            patch.object(
+                financial_graph,
+                "with_public_answer",
+                failing_projections["with_answer"],
+            ),
+            patch.object(
+                financial_graph,
+                "complete_aggregate_public_answer_projection",
+                failing_projections["complete"],
+            ),
+            patch.object(
+                financial_graph,
+                "structured_result_answer_for_missing_public_answer",
+                failing_projections["structured"],
+            ),
             patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
             patch.object(

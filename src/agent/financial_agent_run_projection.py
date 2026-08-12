@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import re
+from typing import Any, Dict, Optional
 
+from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
 from src.agent.financial_graph_state import (
     AgentAnswer,
     DebugBundle,
@@ -12,6 +14,12 @@ from src.agent.financial_graph_state import (
     RuntimeCalculationTrace,
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_trace import (
+    _attach_runtime_projection_metadata,
+    _build_aggregate_calculation_projection,
+    _structured_result_subtask_rows_and_answer,
+)
+from src.config.retrieval_policy import CALCULATION_NARRATIVE_POLICY
 from src.config.runtime_contract import CALCULATION_DEBUG_TRACE_FIELD
 
 
@@ -80,6 +88,85 @@ def enrich_runtime_evidence_metadata(
         row["metadata"] = _compact_runtime_evidence_metadata(metadata)
         enriched.append(row)
     return enriched
+
+
+def structured_result_answer_for_missing_public_answer(
+    public_answer: str,
+    structured_result: Dict[str, Any],
+) -> str:
+    answer_text = _normalise_spaces(str(public_answer or ""))
+    _, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+    if not structured_answer or structured_answer == answer_text or not re.search(r"\d", structured_answer):
+        return ""
+    missing_markers = tuple(
+        str(item)
+        for item in (CALCULATION_NARRATIVE_POLICY.get("missing_answer_markers") or ())
+        if str(item)
+    )
+    if not missing_markers:
+        return ""
+    if any(marker in answer_text for marker in missing_markers) and not any(
+        marker in structured_answer for marker in missing_markers
+    ):
+        return structured_answer
+    return ""
+
+
+def complete_aggregate_public_answer_projection(
+    *,
+    subtask_results: list[Dict[str, Any]],
+    base_answer: str,
+    public_answer: str,
+) -> tuple[str, RuntimeCalculationTrace]:
+    complete_answer = _preferred_complete_aggregate_subtask_answer(
+        subtask_results,
+        base_answer or public_answer,
+    )
+    if not complete_answer:
+        return "", {}
+    projection = _build_aggregate_calculation_projection(
+        subtask_results,
+        complete_answer,
+    )
+    projection_result = dict(projection.get("calculation_result") or {})
+    if not projection_result.get("subtask_results"):
+        return complete_answer, {}
+    projection = _attach_runtime_projection_metadata(
+        projection,
+        source="structured_result_subtasks",
+    )
+    projection["runtime_projection"] = {
+        **dict(projection.get("runtime_projection") or {}),
+        "public_answer_repaired": True,
+        "complete_aggregate_answer_selected": True,
+    }
+    return complete_answer, projection
+
+
+def with_public_answer(state: Dict[str, Any], public_answer: str) -> Dict[str, Any]:
+    return {
+        **dict(state),
+        "answer": public_answer,
+        "compressed_answer": public_answer,
+    }
+
+
+def public_projection_state(
+    final: Dict[str, Any],
+    *,
+    public_answer: str,
+    runtime_calculation_trace: RuntimeCalculationTrace,
+    runtime_evidence: Optional[list[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    projection_state = with_public_answer(final, public_answer)
+    projection_state["resolved_calculation_trace"] = runtime_calculation_trace
+    if runtime_evidence is not None:
+        projection_state["runtime_evidence"] = runtime_evidence
+        projection_state["evidence_items"] = [
+            *list(final.get("evidence_items") or []),
+            *list(runtime_evidence or []),
+        ]
+    return projection_state
 
 
 def project_debug_traces(final: Dict[str, Any]) -> DebugTraceBundle:
