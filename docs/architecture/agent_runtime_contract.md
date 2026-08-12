@@ -3026,8 +3026,8 @@ remote CI is unverified, and the move proves no behavior, accuracy, ranking,
 performance, total-code, executed-path, benchmark, schedule, ledger, or Phase 3
 completion.
 
-The next selected caller-facing run-projection boundary retains current behavior
-until each seam is characterized. Owner-private
+The completed caller-facing run-projection boundary preserves characterized
+behavior. Owner-private
 `_runtime_evidence_defaults(final)` preserves report-scope company/year
 precedence and first-list fallback. Owner-private
 `_compact_runtime_evidence_metadata(metadata)` shallow-copies metadata, always
@@ -3049,13 +3049,54 @@ current fallback chain, adds company/year brackets only to unbracketed anchors,
 and leaves inputs unchanged. These projections catch no mapping, iteration,
 truthiness, string, copy, or normalization exceptions.
 
-The combined selected movement is exactly the 189-line, 11-call, public-six/
-owner-private-two, external-nine/local-two batch specified in
-[Project Status Next Work](../overview/project_status.md#next-work). It adds a
-cycle-free run-projection owner but no new output field. Runtime-evidence
-fallback and selection, structured/stale answer repair, trace resolution and
-rebuild, task-artifact projection, graph execution, compatibility assembly,
-retrieval/provenance construction, mutable state/evidence, ledger mutation, and
+Commit `84fe1d5` moved the former 189 definition-span lines to a 184-line owner
+surface with six public and two owner-private functions. Eleven calls finish as
+nine graph-external and two owner-local. Source is `+232/-211`, tests are
+`+1,702/-17`, and the whole commit is `+1,934/-228`; its source diff SHA-256 is
+`84b8d32bee450cde9370fa6f72646f006ce9bb47413169b34c1c50b0053a5a24`.
+Focused 8/8, run-projection owner 65/65, affected semantic 515/515, import
+19/19, union 534/534, audit 217, and full discovery 1,744/1,744 passed. The move
+adds no output field. Runtime-evidence fallback and selection, structured/stale
+answer repair, trace resolution and rebuild, task-artifact projection, graph
+execution, compatibility assembly, retrieval/provenance construction, mutable
+state/evidence, ledger mutation, and final sequencing remain graph/existing-owner
+responsibilities. Benchmark refresh was **NOT RUN**, remote CI is unverified,
+and the move proves no behavior, accuracy, ranking, performance, total-code,
+executed-path, benchmark, schedule, ledger, or Phase 3 completion.
+
+The next prepared public-answer state boundary retains current behavior until
+its seam is characterized. Public
+`structured_result_answer_for_missing_public_answer(public_answer,
+structured_result)` normalizes the public answer, reads the structured subtask
+answer, rejects blank/equal/nonnumeric structured answers, then requires the
+configured missing-marker set and returns the structured answer only when the
+public answer has a marker that the structured answer lacks. It catches no
+mapping, truthiness, string, regex, normalization, policy, or structured-result
+projection exception.
+
+Public `complete_aggregate_public_answer_projection(*, subtask_results,
+base_answer, public_answer)` selects the preferred complete answer using the
+base/public fallback, returns empty values when no answer exists, builds an
+aggregate runtime projection, and returns the answer with an empty trace when
+that projection lacks subtask rows. Otherwise it attaches the existing source
+metadata and sets `public_answer_repaired` plus
+`complete_aggregate_answer_selected` on a fresh runtime-projection mapping.
+
+Public `with_public_answer(state, public_answer)` shallow-copies state and sets
+both `answer` and `compressed_answer`. Public `public_projection_state(final,
+*, public_answer, runtime_calculation_trace, runtime_evidence=None)` owner-locally
+uses that copy, installs the supplied trace identity, and when runtime evidence
+is provided stores that list identity while constructing `evidence_items` as the
+stable concatenation of copied list surfaces from final and runtime evidence.
+Both leave caller mappings and lists unchanged; mapping, iteration, copy, and
+truthiness exceptions propagate.
+
+The selected movement is the exact 74-line, four-public-function, 13-call batch
+specified in [Project Status Next Work](../overview/project_status.md#next-work).
+It projects to 71 owner lines and finishes as 12 graph-external plus one owner-
+local call. Dynamic complete-numeric, structured-subtask, collapsed-ratio,
+period-repair, retrieved-ratio, runtime-evidence selection, graph execution,
+compatibility assembly, mutable state/evidence, artifact/ledger mutation, and
 final sequencing remain graph/existing-owner responsibilities.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter

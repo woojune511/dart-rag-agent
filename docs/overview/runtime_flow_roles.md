@@ -70,7 +70,8 @@ benchmark profile
 
 이 class는 실제 runtime의 중심이다. 구현 세부는 mixin에 나뉘어 있고,
 `FinancialAgent` 본체는 초기화, LLM route 구성, graph wiring, caller-facing
-output projection을 담당한다.
+output sequencing을 담당한다. 준비된 evidence/answer/review/debug 값의 state-free
+projection은 `financial_agent_run_projection.py`가 소유한다.
 
 - `__init__()`: vector store, router, LLM route, graph를 초기화한다.
 - `_build_llm_routes()`: phase별 LLM 설정을 만든다.
@@ -81,16 +82,15 @@ output projection을 담당한다.
   실행한 뒤 API/benchmark가 쓰는 안정적인 결과 dict로 정규화한다. 최신 return
   shape는 named projection인 `agent_answer`, `review_trace`, `debug_bundle`을
   포함하고, 기존 flat field는 compatibility adapter로 유지한다.
-- `_project_agent_answer()`: public answer, citations, `structured_result`,
-  `resolved_calculation_trace`를 묶는다.
-- `_project_review_trace()`: retrieval/evidence/numeric/retry/subtask/task-artifact
-  review material을 묶는다.
-- `_project_debug_bundle()`: calculation debug trace, LLM usage, phase usage,
-  embedding usage를 묶는다.
-- `_project_debug_traces()`: calculation debug trace를 caller-facing bundle로
+- `financial_agent_run_projection.project_agent_answer()`: public answer,
+  citations, `structured_result`, `resolved_calculation_trace`를 묶는다.
+- `financial_agent_run_projection.project_review_trace()`: retrieval/evidence/
+  numeric/retry/subtask/task-artifact review material을 묶는다.
+- `financial_agent_run_projection.project_debug_bundle()`와
+  `project_debug_traces()`: calculation trace와 usage를 caller-facing bundle로
   모은다.
-- `_augment_citations_from_runtime_evidence()`: runtime evidence에서 citation을
-  보강한다.
+- `financial_agent_run_projection.augment_citations_from_runtime_evidence()`:
+  이미 준비된 runtime evidence에서 citation을 보강한다.
 - `_runtime_evidence_from_retrieved_docs()`: retrieved docs를 runtime evidence
   fallback으로 투영한다.
 
@@ -289,7 +289,7 @@ State-free owner topology:
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
-| planned `financial_agent_run_projection.py` | caller-facing evidence metadata/citation and agent-answer/review/debug bundle projection over already prepared values; graph execution, answer repair, evidence selection, trace/ledger work remain outside |
+| `financial_agent_run_projection.py` | caller-facing evidence metadata/citation and agent-answer/review/debug bundle projection over already prepared values; graph execution, answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_graph_calculation_rendering.py` | calculation answer rendering plus ratio result-unit, absolute-query, and result projection policy |
 
@@ -452,12 +452,15 @@ Aggregate/narrative row의 state-free answer policy owner다.
   배치한다. 15개 call은 external 12/local 3이며 lookup-record recovery,
   report-file/local-unit lookup, structured-cell selection, candidate extraction,
   mutable reconciliation state/artifact/retry와 final sequencing은 기존 owner에 남는다.
-- 다음 선택은 caller-facing run projection의 189-line 두 seam이다. 준비된
-  evidence metadata/citation과 public agent-answer/review/debug bundle만 public 6개와
-  owner-private 2개로 배치하며, 11개 call은 external 9/local 2다. runtime-evidence
-  선택/fallback, structured/stale answer repair, trace resolution/rebuild, graph
-  execution, compatibility assembly, mutable state/evidence, artifact/ledger와 final
-  sequencing hard stop은 [Project Status의 Next Work](project_status.md#next-work)만
+- 완료된 caller-facing run projection은 준비된 evidence metadata/citation과
+  public agent-answer/review/debug bundle을 public 6개와 owner-private 2개로
+  배치한다. 11개 call은 external 9/local 2이며 runtime-evidence 선택/fallback,
+  structured/stale answer repair, trace resolution/rebuild, graph execution,
+  compatibility assembly, mutable state/evidence, artifact/ledger와 final sequencing은
+  graph에 남는다.
+- 다음 선택은 prepared public-answer state projection의 74-line 한 seam이다.
+  public 4개와 13개 call의 exact boundary, external 12/local 1 distribution,
+  dynamic repair caller hard stop은 [Project Status의 Next Work](project_status.md#next-work)만
   기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

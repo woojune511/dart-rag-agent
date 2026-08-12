@@ -321,19 +321,34 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified.
 Lookup-record recovery, report-file/local-unit lookup, structured-cell
 selection, candidate extraction, LLM reranking, mutable reconciliation state/
 evidence, artifact/ledger mutation, and final sequencing remain in their prior
-owners. The selected follow-on is now the 189-line, two-seam caller-facing run-
-projection batch from `financial_graph.py` into a new
-`financial_agent_run_projection.py`. Six public and two owner-private functions
-total a projected 184 lines; 11 current calls finish as nine graph-external and
-two owner-local. Exact APIs, the eight-method characterization gate, call
-distribution, and rejected expansions live only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+owners.
+
+The completed `84fe1d5` follow-on is another ownership relocation only. It moved
+the former 189 caller-facing run-projection definition-span lines to six public
+and two owner-private functions totaling 184 lines in the new
+`financial_agent_run_projection.py`. Eleven calls finish as nine graph-external
+and two owner-local; retired selected private refs are zero. Source is
+`+232/-211`, tests are `+1,702/-17`, and the whole commit is `+1,934/-228`.
+Main graph moved from 1,205 to 1,011 physical lines, the new owner contains 215,
+and eight new unittest methods moved full discovery from 1,736 to 1,744. Final
+gates passed focused 8/8, run-projection owner 65/65, affected semantic 515/515,
+import 19/19, semantic/import union 534/534, audit 217, full discovery
+1,744/1,744, pycompile/fresh import, DAG/body/caller parity, and diff check. Its
+source diff SHA-256 is
+`84b8d32bee450cde9370fa6f72646f006ce9bb47413169b34c1c50b0053a5a24`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 Runtime-evidence fallback/selection, structured and stale public-answer repair,
 trace resolution/rebuild, graph execution, compatibility assembly, retrieval/
 provenance construction, mutable state/evidence, artifact/ledger work,
 collapsed-ratio and prepared-candidate carriers, bound callbacks, ontology
-compatibility, and final sequencing remain excluded.
+compatibility, and final sequencing remain excluded. The selected follow-on is
+now the 74-line prepared public-answer state-projection seam from
+`financial_graph.py` into the existing run-projection owner. Four public
+functions project to 71 owner lines; 13 calls finish as 12 graph-external and
+one owner-local. Exact APIs, the six-method characterization gate, call
+distribution, and dynamic-repair stop lines live only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

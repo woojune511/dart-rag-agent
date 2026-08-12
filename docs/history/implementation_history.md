@@ -2581,6 +2581,60 @@ first gates, projected validation counts, and rejected state/carrier/cycle
 expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Caller-facing run-projection owner milestone
+
+- `84fe1d5` creates `financial_agent_run_projection.py` and moves prepared
+  runtime-evidence defaults/metadata compaction/enrichment plus literal agent-
+  answer, review/debug, and citation projection out of `FinancialAgent`.
+  The former 11 + 25 + 26 + 2 + 34 + 45 + 14 + 32 = 189 definition-span lines
+  become 184 owner lines across six public and two owner-private functions.
+- Eleven selected direct calls finish as nine graph-external and two owner-local.
+  Retired selected private source/test refs are zero; no wrapper, compatibility
+  alias, callback, reason, flag, carrier, or new output field remains.
+- Literal body parity passed for all eight moved functions after only `self` and
+  selected-name normalization. Complete caller parity passed for
+  `_runtime_evidence_from_retrieved_docs(...)` and `FinancialAgent.run()`.
+  Public import identity, removed mixin-attribute absence, pycompile/fresh import,
+  DAG, and diff check passed. None of the selected spans moved a runtime-domain
+  baseline record; the reviewed count remains 217.
+- Exactly four source/test files changed. Source is `+232/-211`, net `+21`:
+  main graph moved from 1,205 to 1,011 physical lines and the new owner contains
+  215. Tests are `+1,702/-17`, net `+1,685`; the whole commit is
+  `+1,934/-228`, net `+1,706`. Run-projection tests moved from 57 to 65 methods,
+  and exactly eight new unittest methods moved full discovery from 1,736 to
+  1,744.
+- The committed source-only diff SHA-256 is
+  `84b8d32bee450cde9370fa6f72646f006ce9bb47413169b34c1c50b0053a5a24`.
+  Final validation passed focused 8/8, run-projection owner 65/65, affected
+  eight-module semantic 515/515, import-side-effects 19/19, semantic/import union
+  534/534, runtime audit 217, and full discovery 1,744/1,744. Benchmark refresh
+  was **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only ownership of deterministic projection over already
+prepared runtime values. Runtime-evidence fallback/selection, structured and
+stale public-answer repair, trace resolution/rebuild, graph execution,
+compatibility assembly, retrieval/provenance construction, mutable state/
+evidence, artifact/ledger mutation, and final sequencing remain graph/existing-
+owner responsibilities. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first seam
+totaling 74 current definition-span lines in `financial_graph.py`. Structured-
+result missing-answer selection, aggregate complete-answer projection, public-
+answer state copying, and public projection-state assembly move into the
+existing run-projection owner as four public functions totaling a projected 71
+lines. Thirteen current calls finish as 12 graph-external and one owner-local;
+the cumulative owner surface becomes public ten plus owner-private two with 24
+selected calls split external 21/local three. Dynamic complete-numeric,
+structured-subtask, collapsed-ratio, period-repair and retrieved-ratio callers,
+runtime-evidence selection, graph execution, compatibility assembly, mutable
+state/evidence, artifact/ledger mutation, and final sequencing remain hard stops.
+Exact APIs, the six-method characterize-first gate, projected validation counts,
+and rejected state/callback/carrier/cycle expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

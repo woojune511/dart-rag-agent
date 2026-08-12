@@ -15,11 +15,11 @@ Last updated: 2026-08-12
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; bounded lookup magnitude and same-block note-unit ownership is closed, four named debt groups remain |
-| What just changed? | Four lookup/unit helpers moved to `financial_operand_resolution.py` in `5bd9e6f` |
-| What passed? | Focused 8/8, operand owner 69/69, affected eight-module semantic set 813/813, import-side-effect 19/19, semantic/import union 832/832, runtime audit 217, full unittest 1,736/1,736 |
+| What is the architecture state? | Phase 3 OPEN; bounded caller-facing run-projection ownership is closed, four named debt groups remain |
+| What just changed? | Six public and two owner-private evidence/answer/review/debug projections moved to `financial_agent_run_projection.py` in `84fe1d5` |
+| What passed? | Focused 8/8, run-projection owner 65/65, affected eight-module semantic set 515/515, import-side-effect 19/19, semantic/import union 534/534, runtime audit 217, full unittest 1,744/1,744 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Two characterize-first seams totaling 189 lines of caller-facing answer/evidence/review/debug projection into a dedicated `financial_agent_run_projection.py`; graph execution, evidence selection, answer repair, trace/ledger work, and final sequencing remain hard stops |
+| What is next? | One characterize-first 74-line prepared public-answer state-projection seam into `financial_agent_run_projection.py`; dynamic repair/rebuild callers, evidence selection, graph execution, trace/ledger work, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,28 +50,26 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved bounded lookup/magnitude and same-block note-unit
-  resolution. In `5bd9e6f`, exactly seven source/test files changed. The four
-  selected definition spans totaled 135 lines and became four public 134-line
-  operand-owner functions. Fifteen calls finish as 12 external and three owner-
-  local; retired selected private source/test refs are zero and no wrapper or
-  alias remains. Source is `+156/-154`, net `+2`; tests are `+867/-13`, net
-  `+854`; the whole commit is `+1,023/-167`, net `+856`. Graph helpers moved from
-  6,299 to 6,269 physical lines, reconciliation from 2,137 to 2,079, lookup
-  recovery from 609 to 557, and operand resolution from 3,461 to 3,603. The
+- The latest owner batch moved bounded caller-facing run projection. In
+  `84fe1d5`, exactly four source/test files changed. The eight selected definition
+  spans totaled 189 lines and became six public plus two owner-private functions
+  totaling 184 owner lines. Eleven calls finish as nine graph-external and two
+  owner-local; retired selected private source/test refs are zero and no wrapper
+  or alias remains. Source is `+232/-211`, net `+21`; tests are `+1,702/-17`, net
+  `+1,685`; the whole commit is `+1,934/-228`, net `+1,706`. Main graph moved from
+  1,205 to 1,011 physical lines and the new owner contains 215 lines. The
   committed source diff SHA-256 is
-  `b7bcf68a9cd79ab91f6e30978e434d9b5b504f06a85b4e582c20b0497bbecf21`.
-  Lookup-record recovery, report-file/local-unit lookup, structured-cell
-  selection, candidate extraction, mutable reconciliation state/evidence,
-  artifact/ledger mutation, and final sequencing remain graph/existing-owner
-  responsibilities. This is ownership relocation, not a behavior
-  claim.
-- Current physical sizes are: calculation graph 14,715 lines, main graph 1,205,
-  graph helpers 6,299,
+  `84b8d32bee450cde9370fa6f72646f006ce9bb47413169b34c1c50b0053a5a24`.
+  Runtime-evidence selection/fallback, structured and stale answer repair, trace
+  resolution/rebuild, graph execution, compatibility assembly, mutable state/
+  evidence, artifact/ledger mutation, and final sequencing remain graph/existing-
+  owner responsibilities. This is ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 14,715 lines, main graph 1,011,
+  graph helpers 6,269,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
-  670, answer projection 491, text surface 411, operand resolution 3,461,
-  dependency projection 3,417, reconciliation 2,137, aggregate projection 3,180,
-  task artifacts 1,460, and reflection projection 260.
+  670, answer projection 491, text surface 411, operand resolution 3,603,
+  dependency projection 3,417, reconciliation 2,079, aggregate projection 3,180,
+  task artifacts 1,460, reflection projection 260, and run projection 215.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -92,6 +90,7 @@ Commit-level diffs and validation are kept in
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
 | Aggregate projection | `financial_aggregate_projection.py`, including selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection but not ledger mutation orchestration |
+| Caller-facing run projection | `financial_agent_run_projection.py`; state-free runtime-evidence metadata/citation and agent-answer/review/debug projection over already prepared values, excluding evidence selection, answer/trace repair, graph execution, and final sequencing |
 | Reflection projection | `financial_reflection_projection.py`; deterministic action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
 
@@ -114,21 +113,23 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, new focused 8 / 8; operand owner 69 / 69 |
-| Latest semantic regression set | PASS, affected eight-module set 813 / 813; semantic/import union 832 / 832 |
+| Latest focused owner checkpoint | PASS, new focused 8 / 8; run-projection owner 65 / 65 |
+| Latest semantic regression set | PASS, affected eight-module set 515 / 515; semantic/import union 534 / 534 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,736 / 1,736 |
+| Full unittest discovery | PASS, 1,744 / 1,744 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_operand_resolution`,
-`tests.test_operation_contracts`, `tests.test_reconciliation_plan`,
-`tests.test_financial_task_artifacts`, `tests.test_subtask_loop`,
-`tests.test_aggregate_subtask_projection`,
-`tests.test_financial_agent_run_projection`, and
-`tests.test_lookup_recovery_policy`. `tests.test_import_side_effects` passed
-separately at 19 / 19 and together with the semantic set as an 832-test union.
+The semantic set is `tests.test_financial_agent_run_projection`,
+`tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_evaluator_runtime_projection`,
+`tests.test_benchmark_runner_runtime_projection`,
+`tests.test_operation_contracts`, `tests.test_financial_router_response`,
+`tests.test_ops_runtime_projection_modes`, and
+`tests.test_report_scoped_cache_contract`. `tests.test_import_side_effects`
+passed separately at 19 / 19 and together with the semantic set as a 534-test
+union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -159,94 +160,76 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture batch is two sequential characterize-first seams
-from `financial_graph.py` into a new state-free
-`financial_agent_run_projection.py` owner. The eight current definition spans are
-11 + 25 + 26 + 2 + 34 + 45 + 14 + 32 = 189 lines. Removing the five standalone
-`self` signature lines projects 184 owner lines. Their 11 current direct calls
-finish as nine graph-external and two owner-local. Publish six graph-called
-functions without the leading underscore; keep the defaults and compaction
-helpers owner-private because their only calls become local. Delete every old
-body and retarget directly. Do not add a
-mixin wrapper, compatibility alias, callback, result carrier, reason, flag, or
-new output field.
+The sole selected architecture batch is one characterize-first seam from
+`financial_graph.py` into the existing state-free
+`financial_agent_run_projection.py` owner. Move
+`_structured_result_answer_for_missing_public_answer(...)` (21 definition-span
+lines), `_complete_aggregate_public_answer_projection(...)` (30),
+`_public_projection_state(...)` (17), and `_with_public_answer(...)` (6) as four
+public functions without the leading underscore. The 74 former lines project to
+20 + 29 + 16 + 6 = 71 owner lines. Thirteen current direct calls finish as 12
+graph-external and one owner-local: `with_public_answer` is external six/local
+one, `public_projection_state` external four, and the two answer selectors
+external one each. Together with the completed owner, the selected surface would
+be public ten plus owner-private two with 24 calls split external 21/local three.
+Delete every old body and retarget directly; add no wrapper, alias, callback,
+carrier, reason, flag, or new output field.
 
-Seam A moves owner-private `_runtime_evidence_defaults(final)`, owner-private
-`_compact_runtime_evidence_metadata(metadata)`, and public
-`enrich_runtime_evidence_metadata(final, evidence_items)`. The first two calls
-become owner-local to enrichment, while the four existing calls from
-`_runtime_evidence_from_retrieved_docs(...)` remain graph-external. Preserve
-company/year fallback precedence, copied metadata and evidence rows, source-
-anchor fallback order, 4,000/20,000-character compaction thresholds, sorted
-unique compaction fields, stable evidence order, nested aliases, and no mutation
-of final/evidence/metadata inputs. Mapping, iteration, truthiness, string, copy,
-and normalization exceptions continue to propagate.
+Public `structured_result_answer_for_missing_public_answer(public_answer,
+structured_result)` preserves normalized answer comparison, structured-answer
+numeric gating, configured missing-marker access, and the exact rule that only a
+missing-marked public answer may adopt a non-missing structured answer. Public
+`complete_aggregate_public_answer_projection(*, subtask_results, base_answer,
+public_answer)` preserves preferred complete-answer selection, projection
+construction, the answer-without-trace fallback, runtime-projection metadata,
+and both repair flags. Public `with_public_answer(state, public_answer)` returns a
+fresh shallow state with synchronized `answer` and `compressed_answer`. Public
+`public_projection_state(final, *, public_answer, runtime_calculation_trace,
+runtime_evidence=None)` owner-locally applies that copy, installs the supplied
+trace, and only when evidence is supplied preserves its list identity under
+`runtime_evidence` while creating the current stable concatenated
+`evidence_items` list. No selected function mutates caller input.
 
-Seam B moves `project_debug_traces(final)`,
-`project_agent_answer(final, *, public_answer, citations, structured_result,
-runtime_calculation_trace)`, `project_review_trace(final, *, runtime_evidence,
-task_artifact_trace)`, `project_debug_bundle(*, debug_traces, llm_usage,
-llm_usage_by_phase, embedding_usage)`, and
-`augment_citations_from_runtime_evidence(citations, runtime_evidence)`. All five
-calls remain direct from `FinancialAgent.run()` at Try depth zero. Preserve exact
-output keys, fallback/get/default order, supplied list/dict identities where the
-current literal projection retains them, stable citation order and normalized
-case-insensitive dedupe, anchor/company/year formatting, shallow row/metadata
-copies, and unchanged inputs. These functions only project already prepared
-values; they do not select evidence, repair answers, resolve traces, or mutate
-runtime state.
+The owner adds `re`/`Optional`, `CALCULATION_NARRATIVE_POLICY`, existing answer-
+projection `_preferred_complete_aggregate_subtask_answer`, runtime-trace
+`_attach_runtime_projection_metadata`, `_build_aggregate_calculation_projection`,
+and `_structured_result_subtask_rows_and_answer`; `_normalise_spaces` and
+`RuntimeCalculationTrace` are already owner-held. These dependency modules do
+not import the run-projection owner or graph, so the DAG remains acyclic. The
+selected spans hit no runtime-domain baseline record; the reviewed count remains
+217. Only the graph's narrative-policy import is projected to become dead; all
+other touched graph imports retain nonselected uses.
 
-The new owner imports only `Any`/`Dict`, the existing `AgentAnswer`,
-`DebugBundle`, `DebugTraceBundle`, `ReviewTrace`, and `RuntimeCalculationTrace`
-typed contracts from `financial_graph_state`, `_normalise_spaces` from runtime
-normalization, and `CALCULATION_DEBUG_TRACE_FIELD` from runtime config. None of
-those modules imports the new owner or `financial_graph`, so the import DAG is
-acyclic. The selected spans hit no runtime-domain baseline record; the reviewed
-count remains 217. Graph retains the regex and narrative-policy imports for
-unmoved public-answer repair, and all other touched imports remain live.
+Before source movement, add exactly six CURRENT-SOURCE methods: direct structured-
+result fallback; direct aggregate completion; direct public-state/answer-copy;
+exact four-definition/13-call/import-DAG/baseline inventory; executable
+`FinancialAgent.run()` exact args/order/adoption/laziness/exception-stop; and an
+executable retained-repair caller matrix spanning stale structured repair,
+structured-public trace projection, and public runtime-trace repair. Pin shallow
+copy and nested/list identity, stable evidence concatenation, missing-marker and
+subtask-result gates, metadata flags, unchanged mutable inputs, and propagating
+exceptions. Then move, retarget, delete, migrate current graph-private test
+patches, require retired refs zero, and run focused six, run-projection tests
+71/71, affected
+semantic 521, import-side-effect 19, union 540, runtime audit 217, projected full
+discovery 1,750, pycompile/fresh import, DAG, body/caller parity, and diff-check
+gates sequentially. The affected eight-module set remains the current one.
 
-Before each source movement, add exactly four CURRENT-SOURCE methods, eight total.
-For Seam A require direct defaults/metadata compaction, direct enrichment, exact
-three-definition/six-call/import-DAG/baseline inventory, and executable
-`_runtime_evidence_from_retrieved_docs(...)` adoption/order/laziness/exception-
-stop. For Seam B require direct public-answer/debug projection, direct review-
-trace/citation projection, exact five-definition/five-call/import-DAG inventory,
-and executable `FinancialAgent.run()` exact args/order/adoption/exception-stop.
-Pin shallow copies and nested identity, stable order, compaction thresholds,
-source-anchor fallback, citation formatting/dedupe, exact projection keys,
-unchanged mutable inputs, and uncaught exceptions. Then move, retarget, delete,
-migrate current private/mixin test patches, require retired refs zero, and run
-focused eight, new owner, affected semantic, import-side-effect, union, runtime-
-audit, full-discovery, pycompile/fresh-import, DAG, body/caller parity, and diff-
-check gates sequentially. The final surface is public six plus owner-private two.
-Current inventory is 57 run-projection, 507 affected semantic, 526 union, and
-1,736 full tests; eight new methods project 65, 515, 534, and 1,744. The
-provisional affected semantic set is
-`tests.test_financial_agent_run_projection`,
-`tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_evaluator_runtime_projection`,
-`tests.test_benchmark_runner_runtime_projection`,
-`tests.test_operation_contracts`, `tests.test_financial_router_response`,
-`tests.test_ops_runtime_projection_modes`, and
-`tests.test_report_scoped_cache_contract`; it currently contains 507 tests, or
-526 with the 19 import-side-effect tests, and should become 515/534 after the
-characterization methods.
-
-Keep `_runtime_evidence_from_retrieved_docs(...)`, structured/public-answer
-repair, trace resolution/repair, task-artifact projection, `FinancialAgent.run()`
-sequencing, graph construction, and the legacy flat compatibility assembly in
-`financial_graph.py`. Keep retrieval/provenance construction, evidence
-selection/filtering, answer composition, mutable state/evidence, task/artifact
-ledger mutation, promotion, sync/rebuild, and final sequencing in their current
-owners. The nearby structured-result and retrieved-ratio projection methods are
-excluded because they call graph-owned repair/rebuild/stateful owners; runtime-
-evidence fallback is excluded because it selects evidence and resolves traces.
-Do not revive the direct structured-row/value pair, which remains blocked by the
-graph-helper/operand-owner reverse edge, or expand collapsed-ratio, prepared-
-candidate, compact-ratio, ontology-compatibility, bound-callback, evidence-
-mutation, or ledger seams. No behavior, accuracy, ranking, performance, total-
-code or executed-path reduction, benchmark, schedule, or Phase 3 completion
-claim follows.
+Keep `_structured_result_projection_for_stale_public_numeric_answer(...)` and
+`_apply_stale_structured_numeric_public_answer_repair(...)` graph-owned because
+they call the dynamic calculation-mixin complete-numeric replacement path. Keep
+`_structured_public_answer_trace_projection(...)` and
+`_repair_public_runtime_calculation_trace(...)` because they call dynamic
+structured-subtask, collapsed-ratio, and period-repair owners. Keep retrieved-
+ratio context repair, `_runtime_evidence_from_retrieved_docs(...)`,
+`FinancialAgent.run()` sequencing, graph construction, legacy compatibility
+assembly, retrieval/provenance construction, mutable state/evidence, task/
+artifact ledger mutation, promotion, sync/rebuild, and final sequencing in their
+current owners. Do not expand route construction, model initialization, direct
+structured-row/value, collapsed-ratio, prepared-candidate, compact-ratio,
+ontology-compatibility, bound-callback, evidence-mutation, or ledger seams. No
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark, schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

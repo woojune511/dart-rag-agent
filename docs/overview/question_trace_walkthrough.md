@@ -86,6 +86,7 @@ citations, `structured_result`, `resolved_calculation_trace` 같은 public field
 파일:
 
 - [src/agent/financial_graph.py](../../src/agent/financial_graph.py)
+- [src/agent/financial_agent_run_projection.py](../../src/agent/financial_agent_run_projection.py)
 
 이 class는 facade다. 실제 node body는 mixin에 있고, 본체는 아래 책임을 갖는다.
 
@@ -95,11 +96,11 @@ citations, `structured_result`, `resolved_calculation_trace` 같은 public field
 | LangGraph node/edge wiring | `_build_graph()` |
 | phase별 LLM 선택 | `_build_llm_routes()`, `_llm_for_phase()` |
 | graph 실행 | `run()` |
-| caller-facing output 조립 | `run()`, `_project_agent_answer()`, `_project_review_trace()`, `_project_debug_bundle()` |
-| runtime evidence/citation fallback | `_runtime_evidence_from_retrieved_docs()`, `_augment_citations_from_runtime_evidence()` |
+| caller-facing output 조립 | `run()` plus `financial_agent_run_projection.project_agent_answer()`, `project_review_trace()`, `project_debug_bundle()` |
+| runtime evidence/citation fallback | `_runtime_evidence_from_retrieved_docs()` plus `financial_agent_run_projection.enrich_runtime_evidence_metadata()`, `augment_citations_from_runtime_evidence()` |
 | final answer projection repair | `run()` plus helper modules |
 
-`FinancialAgent`는 아직 작지 않지만, “graph wiring + output projection facade”로
+`FinancialAgent`는 아직 작지 않지만, “graph wiring + output sequencing facade”로
 보면 읽을 수 있다. retrieval, 계산, evidence, reconciliation, planning의 세부 로직은 아래
 mixin 파일들로 내려간다.
 
