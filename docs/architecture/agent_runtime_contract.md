@@ -2951,9 +2951,8 @@ refresh was **NOT RUN**, remote CI is unverified, and the move proves no
 behavior, accuracy, ranking, performance, total-code, executed-path, benchmark,
 schedule, ledger, or Phase 3 completion.
 
-The next selected boundary retains its current behavior until characterized and
-moved. Graph-private
-`_append_final_answer_surface_operands_from_evidence(projection,
+Public aggregate-owner
+`append_final_answer_surface_operands_from_evidence(projection,
 evidence_items, *, final_answer)` first extracts copied non-percent answer
 candidates and returns the original projection when candidates or evidence are
 absent. Otherwise it shallow-copies projection and operand rows, detects existing
@@ -2969,18 +2968,56 @@ occurs. Only candidate-span integer conversion catches `TypeError`/`ValueError`;
 other mapping, iteration, truthiness, string, regex, normalization, numeric-
 surface, scoring, slot, and copy exceptions propagate.
 
-Its selected movement to public aggregate-owner
-`append_final_answer_surface_operands_from_evidence(...)` is exactly the
-313-line, two-call, external-two/local-zero batch specified in
-[Project Status Next Work](../overview/project_status.md#next-work). The owner
-uses existing numeric-surface, answer-slot, and runtime-normalization dependency
-edges and gains no module edge. Both callers, evidence filtering/provenance
-adoption, public-answer/runtime-evidence preparation, debug/citation projection,
-mutable state/evidence, artifact/ledger mutation, promotion, sync/rebuild, and
-final sequencing remain graph-owned. Collapsed-ratio repair, prepared-candidate
-and compact-ratio state/trace carriers, general structured-cell helper expansion,
-bound callbacks, ontology compatibility, retrieval/provenance construction, and
-evidence-list mutation remain excluded.
+Commit `fae0516` moved the former 313-line definition to a public 312-line owner
+function. Its calculation-filter and `FinancialAgent.run()` calls remain direct,
+graph-external, and at Try depth zero. Source is `+325/-319`, tests are
+`+983/-9`, and the whole commit is `+1,308/-328`; the source diff SHA-256 is
+`6b45dd51cfe790304227f99242525c54a7ddb2c0a65dafe940cb7e42069b8020`.
+Focused 6/6, aggregate owner 64/64, affected semantic 790/790, import 19/19,
+union 809/809, audit 217, and full discovery 1,728/1,728 passed. Both callers,
+evidence filtering/provenance adoption, public-answer/runtime-evidence
+preparation, debug/citation projection, mutable state/evidence, artifact/ledger
+mutation, promotion, sync/rebuild, and final sequencing remain graph-owned.
+Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
+no behavior, accuracy, ranking, performance, total-code, executed-path,
+benchmark, schedule, ledger, or Phase 3 completion.
+
+The next selected operand-owner boundary retains current behavior until each seam
+is characterized. Existing public `lookup_hints_for_concept_key(concept_key)`
+normalizes the concept key, reads the financial ontology, returns a copied direct
+concept hint map when present, otherwise scans non-group concept specs for the
+first normalized concept match, and returns a copied hint map or empty mapping.
+Existing public `coerce_lookup_magnitude_value(...)` returns unchanged for null,
+non-KRW, or nonnegative values; otherwise it requires ontology opt-in, one of the
+current statement types, compatible magnitude surface tokens, and a current
+parenthesis/minus source marker before returning the absolute value. It catches
+no mapping, ontology, normalization, iteration, string, or truthiness exception.
+After movement, the hint helper is owner-local to magnitude coercion while three
+graph-helper hint calls remain external; lookup-record and one reconciliation
+magnitude call remain external and same-block repair becomes owner-local.
+
+Public `candidate_row_block_signature(candidate)` will preserve the current
+graph-helper contract: copy metadata, require row-context text, softly reject an
+invalid integer row index, normalize nonblank lines, validate bounds, find the
+nearest preceding contiguous pipe-header block, and return the table-source/
+header-position/header-text signature or empty string. Public
+`repair_note_operand_units_from_same_block(operand_rows, candidate_map)` will
+preserve the reconciliation contract: return the original list for fewer than
+two rows; otherwise shallow-copy rows, group only configured note rows by the
+signature, inherit a unit only when exactly one resolved unit exists, normalize
+and ontology-coerce ambiguous rows, retain rows whose normalized value is null,
+and preserve stable order, nested aliases, and all caller inputs. The signature's
+integer conversion catches only `TypeError`/`ValueError`; other mapping,
+iteration, truthiness, string, normalization, ontology, policy, and coercion
+exceptions propagate.
+
+The combined selected movement is exactly the 135-line, 15-call, public-four,
+external-twelve/local-three batch specified in
+[Project Status Next Work](../overview/project_status.md#next-work). It adds no
+module edge. Lookup-record recovery, report-file/local-unit lookup, structured-
+cell selection, operand-row construction, candidate extraction, LLM reranking,
+reconciliation state/artifact/retry work, mutable evidence, ledger mutation, and
+final sequencing remain graph/existing-owner responsibilities.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

@@ -2470,6 +2470,62 @@ hard stops. Exact API, the six-method characterize-first gate, projected test
 counts, and rejected state/carrier/cycle expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Final-answer surface operand owner milestone
+
+- `fae0516` moves graph-private
+  `_append_final_answer_surface_operands_from_evidence(...)` into
+  `financial_aggregate_projection.py` as public
+  `append_final_answer_surface_operands_from_evidence(...)`. The former definition
+  span was 313 lines and the public owner span is 312. Both selected calls remain
+  graph-external, retired selected private source/test refs are zero, and no
+  compatibility wrapper or alias remains.
+- The owner adds only symbols on its existing numeric-surface and runtime-
+  normalization edges and normalizes two answer-slot calls to existing owner
+  imports. Literal body parity and both complete caller-body parity checks passed
+  after only receiver/name normalization. Public import identity, old mixin-
+  attribute absence, pycompile/fresh import, DAG, and `git diff --check` passed.
+  The selected span moved no runtime-domain baseline record; the reviewed count
+  remains 217.
+- Exactly six source/test files changed. Source is `+325/-319`, net `+6`:
+  calculation moved from 15,030 to 14,715 physical lines, main graph from 1,204
+  to 1,205, and aggregate projection from 2,860 to 3,180. Tests are `+983/-9`,
+  net `+974`; the whole commit is `+1,308/-328`, net `+980`. The aggregate test
+  file moved from 10,402 to 11,375 lines, numeric-provenance tests from 1,014 to
+  1,015, and subtask-loop tests from 23,448 to 23,448.
+- The committed source-only diff SHA-256 is
+  `6b45dd51cfe790304227f99242525c54a7ddb2c0a65dafe940cb7e42069b8020`.
+  Exactly six new unittest methods moved full discovery from 1,722 to 1,728.
+  Final validation passed focused 6/6, aggregate owner 64/64, affected nine-
+  module semantic 790/790, import-side-effects 19/19, semantic/import union
+  809/809, runtime audit 217, and full discovery 1,728/1,728. Benchmark refresh
+  was **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only ownership of deterministic projection over already
+prepared answer, calculation, and evidence surfaces. Both callers, evidence
+preparation/filtering and provenance adoption, public-answer/runtime-evidence
+assembly, mutable state/evidence, artifact/ledger mutation, promotion,
+sync/rebuild, and final sequencing remain graph-owned. The commit proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is two characterize-first seams
+totaling 135 current definition-span lines in lookup recovery, graph helpers, and
+reconciliation. Existing public `lookup_hints_for_concept_key(...)` and
+`coerce_lookup_magnitude_value(...)` move first to
+`financial_operand_resolution.py`; public
+`candidate_row_block_signature(...)` and
+`repair_note_operand_units_from_same_block(...)` follow. The projected owner
+surface is 134 lines across four public functions. Fifteen current direct calls
+finish as 12 external and three owner-local. Existing import directions make the
+move cycle-free and no selected span moves a runtime-domain baseline record.
+Lookup-record recovery, report-file/local-unit lookup, structured-cell selection,
+candidate extraction, LLM reranking, mutable reconciliation state/artifact/retry,
+ledger mutation, and final sequencing remain hard stops. Exact APIs, per-seam
+four-method characterize-first gates, projected validation counts, and rejected
+state/carrier/cycle expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

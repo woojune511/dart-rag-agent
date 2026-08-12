@@ -212,7 +212,7 @@ stable dedupe, narrative intent/surface/trace validation, bounded aggregate row/
 gap/lookup-answer policy, narrative term/variant/context presentation, prepared
 KRW raw-unit/growth alignment/period-conflict policy, dependency-task KRW
 consistency, table-metadata KRW repair, and final-answer evidence filtering/
-operand append projection. Current
+operand append and surface-operand projection. Current
 validation and benchmark
 status belong only in
 [project_status.md](../overview/project_status.md); commit-level diffs and claim
@@ -223,9 +223,9 @@ Phase 3 remains open for four durable debt groups:
 
 1. partially advanced: period/material/source/coherence/rank/dedupe, selected
    narrative-validation policy, bounded row/gap/lookup-answer surfaces, and
-   final-answer evidence projection and growth-answer completion/sanitization
-   are owned, while promotion, sync/rebuild, mutable state/evidence, and final
-   sequencing remain graph-owned;
+   final-answer evidence/surface-operand projection and growth-answer completion/
+   sanitization are owned, while promotion, sync/rebuild, mutable state/evidence,
+   and final sequencing remain graph-owned;
 2. partially advanced: ratio presentation/readiness/scale, bounded operand-
    preparation, and unit/table-repair seams are owned; isolate remaining dependency
    and ratio/absolute seams that do not require graph-state lookup, broader evidence
@@ -250,7 +250,8 @@ inspection, prepared growth-numeric rendering, and growth trace inspection are
 also owner-resident. Dependency input matching, sibling-output synthesis
 preference, task-output binding projection, prepared runtime-evidence merge, and
 ratio task-artifact row projection are owner-resident as well. Final-answer
-evidence filtering and operand-evidence append are also owner-resident.
+evidence filtering, operand-evidence append, and surface-operand projection are
+also owner-resident.
 Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
@@ -287,25 +288,41 @@ source diff SHA-256 is
 `fb580debe8b766ce98f9258f55b13b00d712d5844fb6c18268abed685d38ebb5`.
 Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
-The selected follow-on is the 313-line graph-private final-answer surface operand
-projection. Public `append_final_answer_surface_operands_from_evidence(...)`
-moves to the existing aggregate owner at a projected 312 lines. Its two calls
-finish graph-external and none finishes owner-local. The owner adds symbols only
-on existing numeric-surface and runtime-normalization edges, normalizes two
-answer-slot calls to existing owner imports, and retains an acyclic DAG. This is
-bounded copy-based projection over already prepared projection/evidence inputs,
-not retrieval, evidence-window or provenance construction, evidence-list
-mutation, graph-state update, or final orchestration. Exact API, six-method
-characterization, call distribution, and rejected expansions live only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+The completed `fae0516` follow-on is another ownership relocation only. It moved
+the former 313-line final-answer surface-operand definition to public 312-line
+`append_final_answer_surface_operands_from_evidence(...)` in the aggregate owner.
+Both calls remain graph-external and retired private source/test refs are zero.
+Source is `+325/-319`, tests are `+983/-9`, and the whole commit is
+`+1,308/-328`; calculation moved from 15,030 to 14,715 physical lines, main graph
+from 1,204 to 1,205, and aggregate projection from 2,860 to 3,180. Six new
+unittest methods moved full discovery from 1,722 to 1,728. Final gates passed
+focused 6/6, aggregate owner 64/64, affected semantic 790/790, import 19/19,
+semantic/import union 809/809, audit 217, full discovery 1,728/1,728,
+pycompile/fresh import, DAG/body/caller parity, and diff check. Its source diff
+SHA-256 is
+`6b45dd51cfe790304227f99242525c54a7ddb2c0a65dafe940cb7e42069b8020`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 Both callers and their evidence filtering/provenance adoption, public-answer and
 runtime-evidence preparation, debug/citation projection, mutable state/evidence,
 artifact and ledger mutation, promotion, sync/rebuild, and final sequencing stay
-in the graph. Collapsed-ratio repair, prepared-candidate and compact-ratio state/
-trace carriers, dynamic dispatch, general structured-cell helper expansion,
-bound callbacks, ontology compatibility, retrieval/provenance construction, and
-evidence mutation remain excluded.
+in the graph. The selected follow-on is now the 135-line, two-seam operand
+magnitude and same-block unit-resolution batch into
+`financial_operand_resolution.py`: existing public lookup hints and magnitude
+coercion move first, then row-block signature and note-unit repair. Four public
+owner functions total a projected 134 lines; 15 current calls finish as 12
+external and three owner-local. The move creates no module edge because lookup
+recovery, graph helpers, and reconciliation already import the operand owner.
+Exact APIs, the eight-method characterization gate, call distribution, and
+rejected expansions live only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
+
+Report-file/local-unit lookup, structured-cell selection, candidate extraction,
+LLM reranking, reconciliation state/artifact/retry work, collapsed-ratio repair,
+prepared-candidate and compact-ratio state/trace carriers, dynamic dispatch,
+general structured-cell helper expansion, bound callbacks, ontology
+compatibility, retrieval/provenance construction, and evidence mutation remain
+excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.
