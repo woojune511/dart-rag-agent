@@ -3373,30 +3373,54 @@ duplicate-prior caller adoption, unit and period alignment, calculation
 execution, state/evidence, projection rebuild, artifact/ledger mutation, and
 final sequencing remain graph-owned.
 
-The selected next aggregate-projection boundary is public
+The completed final-evidence boundary is public
 `filter_final_aggregate_evidence_and_projection(aggregate_evidence_items,
 aggregate_projection, *, final_answer, selected_claim_ids)` in
-`financial_aggregate_projection.py`. It must preserve the former 48-line graph
+`financial_aggregate_projection.py`. It preserves the former 48-line graph
 contract after `self` removal: exact delegation to final-answer evidence
 filtering; stable kept-evidence-ID collection with non-dict/blank exclusion;
 the nonempty-kept-ID gate; selected-claim intersection before operand-evidence
 append; stable dedupe and order; prepared provenance filtering; final-answer
 surface-operand append; exact four-value return order; shallow copies, nested
-aliases, input immutability, access laziness, and uncaught exceptions. The
-projected owner span is 47 lines.
+aliases, input immutability, access laziness, and uncaught exceptions. The owner
+span is 47 lines.
 
 Both `_aggregate_calculation_subtasks(...)` calls retain their exact two
 positional arguments and `final_answer`/`selected_claim_ids` keywords. The first
 adopts ordinary aggregate evidence/projection output before state sync and
 runtime-ratio repair. The conditional second call uses the stale-repair evidence
 snapshot only after stale aggregate-state replacement and before the next state
-sync. Both remain outside `try` blocks. The destination already owns all three
-selected helper APIs and the provenance input carrier, so the move adds no
-module edge or runtime-domain baseline record. Evidence preparation, stale
-repair, mutable state synchronization, runtime-ratio repair, answer
-composition, artifact/ledger mutation, and final sequencing remain graph-owned.
-The exact four-method CURRENT-SOURCE gate, affected validation set,
-retired-ref rule, and hard stops are maintained only in
+sync. Both remain outside `try` blocks. The destination owns all three selected
+helper APIs and the provenance input carrier, so the move adds no module edge or
+runtime-domain baseline record. Evidence preparation, stale repair, mutable
+state synchronization, runtime-ratio repair, answer composition,
+artifact/ledger mutation, and final sequencing remain graph-owned. Commit
+`d31e67a` records source `+52/-53`, tests `+646/-41`, and whole-commit
+`+698/-94`. Focused 4/4, aggregate owner 84/84, affected semantic 806/806,
+import 19/19, semantic/import union 825/825, audit 217, and full discovery
+1,797/1,797 passed. The source diff SHA-256 is
+`f10c327aca0fb5a4a885892354bef1b840caaf224a9696ae113c9d650df45df1`.
+
+The selected next runtime-trace boundary is public
+`repair_collapsed_ratio_trace_from_evidence(state, trace)` in
+`financial_runtime_trace.py`. It must preserve the former 310-line graph
+contract after `self` removal: ratio/status/component gates; cleaned
+source/value identity; copied prepared evidence/context-doc collection;
+aggregate-token, label/concept, anchor and unit matching; stable numeric
+candidate rank/tie behavior; zero/equal rejection; formatted percent result;
+slot/source/role and operand overlay projection; trace copies/nested aliases;
+input immutability; access laziness; existing soft conversion failures; and all
+other propagated exceptions. The projected owner span is 309 lines.
+
+Both `financial_graph.py` callers retain exact positional arguments and remain
+outside `try` blocks. `_structured_public_answer_trace_projection(...)` calls
+the owner only after a nonempty structured projection. The public runtime-trace
+repair caller adopts the returned trace before the separate period-comparison
+repair. Retrieval, public-answer orchestration, period repair, canonical
+evidence-ID/window/provenance construction, mutable state or evidence,
+artifact/ledger mutation, and final sequencing remain graph-owned.
+The exact six-method CURRENT-SOURCE gate, affected validation set,
+retired-ref rule, dependency/DAG contract, and hard stops are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter

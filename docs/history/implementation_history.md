@@ -3027,6 +3027,51 @@ stops. Exact API, four-method CURRENT-SOURCE gate, projected validation counts,
 DAG, and rejected state/cycle/callback expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Final aggregate evidence/provenance projection owner milestone
+
+- `d31e67a` moves the former 48-line
+  `_filter_final_aggregate_evidence_and_projection(...)` definition out of
+  `FinancialAgentCalculationMixin` as public
+  `filter_final_aggregate_evidence_and_projection(...)` in
+  `financial_aggregate_projection.py`. The owner definition is 47 lines after
+  removing only `self`. Both `_aggregate_calculation_subtasks(...)` calls remain
+  graph-external with their original positional and keyword arguments.
+- Literal body parity and complete aggregate-caller parity passed. The old
+  mixin definition and source/test private refs are zero, public import identity
+  is live, and the aggregate owner contains 74 public and 11 private top-level
+  functions. The move adds no import edge or reviewed runtime-domain record.
+- Source is `+52/-53`, net `-1`; tests are `+646/-41`, net `+605`; the whole
+  commit is `+698/-94`, net `+604`. Calculation moved from 14,468 to 14,418
+  physical lines and aggregate projection from 3,595 to 3,644. Four new test
+  methods moved discovery from 1,793 to 1,797. The source diff SHA-256 is
+  `f10c327aca0fb5a4a885892354bef1b840caaf224a9696ae113c9d650df45df1`.
+- Final validation passed focused 4/4, aggregate owner 84/84, affected
+  seven-module semantic 806/806, import-side-effects 19/19, semantic/import
+  union 825/825, runtime audit 217, full discovery 1,797/1,797,
+  pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only final evidence/provenance projection ownership.
+Evidence preparation, stale/runtime-ratio repair, mutable state synchronization,
+answer composition, artifact/ledger mutation, and final sequencing remain
+graph-owned. It proves no behavior, accuracy, ranking, performance, total-code
+or executed-path reduction, benchmark improvement, schedule, ledger completion,
+or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 310-line
+collapsed-ratio trace-repair seam from calculation into the existing runtime
+trace owner. Public `repair_collapsed_ratio_trace_from_evidence(state, trace)`
+projects to 309 owner lines and retains two graph-external calls in
+`financial_graph.py`. The owner already holds operand overlay and normalization;
+the added rendering, numeric-surface, text-surface, and policy imports are
+acyclic. Public-answer orchestration, period repair, retrieval/canonical
+evidence construction, mutable state/evidence, artifact/ledger mutation, and final
+sequencing remain hard stops. Exact API, six-method CURRENT-SOURCE gate,
+projected validation counts, DAG, and rejected state/cycle/callback expansions
+are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

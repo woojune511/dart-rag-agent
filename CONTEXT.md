@@ -21,11 +21,11 @@ Last updated: 2026-08-13
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `b3bb764` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `d31e67a` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; aggregate calculation/public projection, subtask upsert/rank, nested-result replacement, arithmetic surface sync와 duplicate growth-prior recovery는 `financial_aggregate_projection.py`, nested traversal/scoring/selected-result promotion은 `financial_answer_projection.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared structured-reconciliation candidate projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
-| Phase 3 | OPEN; aggregate duplicate growth-prior recovery milestone까지 완료됐지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; aggregate calculation/public projection, subtask upsert/rank, nested-result replacement, arithmetic surface sync, duplicate growth-prior recovery와 final aggregate evidence/provenance projection은 `financial_aggregate_projection.py`, nested traversal/scoring/selected-result promotion은 `financial_answer_projection.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared structured-reconciliation candidate projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
+| Phase 3 | OPEN; final aggregate evidence/provenance projection milestone까지 완료됐지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -37,7 +37,7 @@ Last updated: 2026-08-13
 1. 일부 진행된 aggregate repair/precedence decision; period/material/source/
    coherence/rank/dedupe, narrative-validation policy, row-focus, growth display/material,
    result support/reuse, prepared material inspection/rendering, growth trace inspection,
-   bounded aggregate row/gap/lookup-answer surface, final-answer evidence/operand
+   bounded aggregate row/gap/lookup-answer surface, final-answer evidence/provenance/operand
    projection, aggregate calculation/public projection, subtask upsert/rank,
    nested traversal/scoring/selected-result promotion과
    growth-answer numeric completion/sanitization은 state-free owner로 이동했으며
@@ -53,7 +53,7 @@ Last updated: 2026-08-13
 
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
-선택된 final aggregate evidence/provenance projection 작업과 hard stop은
+선택된 collapsed-ratio runtime-trace repair 작업과 hard stop은
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 구현 원칙

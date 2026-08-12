@@ -441,14 +441,31 @@ preparation, direct evidence selection, unit/period alignment, execution,
 state/evidence orchestration, rebuild, artifact/ledger mutation, and final
 sequencing remain graph-owned.
 
-The selected follow-on is one characterize-first 48-line final aggregate
-evidence/provenance projection transform into the same aggregate owner. It
-projects to one 47-line public function, retains two graph-external calls, and
-co-locates its three existing public owner dependencies without adding an
-import. Graph-state lookup, stale-repair orchestration, mutable state/evidence,
-runtime ratio repair, artifact/ledger mutation, and final sequencing remain
-hard stops. Exact API, four-method characterization gate, call distribution,
-DAG, and stop lines live only in
+The completed `d31e67a` follow-on moved the former 48-line final aggregate
+evidence/provenance projection transform into `financial_aggregate_projection.py`
+as one 47-line public function. Its two calls remain graph-external in aggregate
+orchestration. Source is `+52/-53`, tests are `+646/-41`, and the whole commit
+is `+698/-94`. Calculation moved from 14,468 to 14,418 physical lines,
+aggregate projection from 3,595 to 3,644, and four new unittest methods moved
+full discovery from 1,793 to 1,797. Final gates passed focused 4/4, aggregate
+owner 84/84, affected semantic 806/806, import 19/19, semantic/import union
+825/825, audit 217, full discovery 1,797/1,797, pycompile/fresh import,
+DAG/body/caller parity, retired-ref zero, and diff check. The source diff
+SHA-256 is
+`f10c327aca0fb5a4a885892354bef1b840caaf224a9696ae113c9d650df45df1`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Evidence
+preparation, stale/runtime-ratio repair, mutable state synchronization,
+composition, artifact/ledger mutation, and final sequencing remain graph-owned.
+
+The selected follow-on is one characterize-first 310-line collapsed-ratio
+runtime-trace repair transform into the existing runtime-trace owner. It
+projects to one 309-line public function and retains two graph-external calls.
+Only calculation-rendering, numeric-surface, text-surface, and reviewed-policy
+imports are added as acyclic owner-to-helper edges; the runtime-trace owner
+does not reach graph or calculation. Public-answer orchestration, period repair,
+retrieval/canonical evidence construction, mutable state/evidence, artifact/ledger
+mutation, and final sequencing remain hard stops. Exact API, six-method
+characterization gate, call distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
