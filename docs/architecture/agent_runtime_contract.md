@@ -3426,30 +3426,53 @@ union 851/851, audit 217, and full discovery 1,803/1,803 passed. The source diff
 SHA-256 is
 `a83d1ddaa2167516789bc9de1a90033dd7183d6764ddf0609bf91a777199e451`.
 
-The selected next lookup-recovery boundary is two sequential public functions
-in `financial_lookup_recovery.py`. Public
+The completed direct structured-evidence boundary is public
 `lookup_row_from_direct_structured_evidence(operand, evidence_item, *, index)`
-must preserve the former 81-line graph contract in a projected 80 owner lines:
-metadata/cell copies, ordinary then aggregate selection, exact period focus,
-aggregate-role preference, value/unit normalization, empty failure gates, exact
-direct-row fields, magnitude-record adoption, nested aliases, input
-immutability, access laziness, and uncaught exceptions. Its four calculation
-callers retain their exact arguments and remain outside `try` blocks.
+and `coerce_operand_value_from_direct_structured_evidence(row, evidence_item)`
+in `financial_lookup_recovery.py`. They preserve the former 81-line and
+139-line graph contracts in 80 and 138 owner lines after removing only `self`:
+metadata/cell copies; ordinary and aggregate selection; period focus and
+aggregate-role preference; authoritative-surface and query-year handling;
+normalization, equality, `1e-6` tolerance and period-specific override;
+magnitude-record and changed-row adoption; stable order; nested aliases; input
+immutability; access laziness; identity returns; and existing soft versus
+propagated exceptions.
 
-After that seam freezes, public
-`coerce_operand_value_from_direct_structured_evidence(row, evidence_item)` must
-preserve the former 139-line graph contract in a projected 138 owner lines:
-row/evidence identity gates, metadata/cell copies, authoritative-surface
-matching, query-year soft conversion, aggregate and period-specific selection,
-current-value equality and `1e-6` tolerance, normalized and rendered replacement,
-fresh top-level output only on material change, nested aliases, input
-immutability, access laziness, and uncaught exceptions. Its sole calculation
-caller remains after period coercion and before magnitude coercion, dependency
-early return, and precision refinement. Evidence-pool selection/scoring,
-state/report scope, table-label lookup, precision refinement, mutable evidence,
-artifact/ledger mutation, and final sequencing remain graph-owned. The exact
-per-seam CURRENT-SOURCE gates, affected validation set, retired-ref rule,
-dependency/DAG contract, and hard stops are maintained only in
+Their five calculation calls remain direct imported-name calls and outside
+`try` blocks. The four lookup-row calls retain their exact `index=1` or
+`index=operand_index` arguments in evidence-pool and period-table preparation.
+The operand-value call remains after period coercion and before magnitude
+coercion, structured/dependency early returns, and precision refinement. The
+old private definitions and source/test references are zero. Evidence-pool
+selection/scoring, state/report scope, table-label lookup, precision refinement,
+mutable evidence, artifact/ledger mutation, and final sequencing remain
+graph-owned.
+
+The selected next aggregate boundary is public
+`align_lookup_result_units_from_own_evidence(ordered_results, evidence_items)`
+in `financial_aggregate_projection.py`. It must preserve the current 62-line
+graph contract in a projected 61 owner lines: evidence-ID indexing and empty-
+evidence identity; row order; explicit operation-family precedence with
+aggregate-family fallback; lookup/single-value, material-slot, raw-value,
+evidence, coerced-unit, unchanged-unit, and normalized-value gates; source-ID
+cleanup; exact primary-slot update and replacement marker; unchanged-row alias
+identity; original-list identity when nothing changes and a fresh list only on
+material change; nested aliases; input/evidence immutability; access laziness;
+and uncaught exceptions.
+
+Both calculation callers retain exact positional list identity and remain
+outside `try` blocks. The initial-evidence caller adopts the result before
+peer-source alignment and the equality-gated dedupe/rebuild path. The late
+aggregate caller invokes it after missing-context evidence adoption and before
+peer-source alignment and late result replacement. The peer-source wrapper
+remains graph-owned because it passes the dynamic aggregate-operation-family
+callback into the dependency owner. Evidence preparation, dedupe, projection
+rebuild, dependency alignment, answer refresh, mutable state/evidence,
+artifact/ledger mutation, and final sequencing remain graph-owned. The moved
+body owns the graph's only `lookup_primary_slot` and
+`replace_lookup_primary_slot` loads, so those calculation imports retire. The
+exact CURRENT-SOURCE gate, affected validation set, retired-ref rule,
+dependency/DAG/dead-import contract, and hard stops are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter

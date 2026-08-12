@@ -3122,6 +3122,58 @@ projected validation counts, DAG, and rejected callback/cycle/state expansions
 are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Direct structured-evidence lookup-recovery owner milestone
+
+- `5f9dc5c` moves the former 81-line
+  `_lookup_row_from_direct_structured_evidence(...)` and 139-line
+  `_coerce_operand_value_from_direct_structured_evidence(...)` definitions out
+  of `FinancialAgentCalculationMixin` as public 80-line
+  `lookup_row_from_direct_structured_evidence(...)` and 138-line
+  `coerce_operand_value_from_direct_structured_evidence(...)` in
+  `financial_lookup_recovery.py`. All five selected calls remain direct,
+  graph-external, and outside `try` blocks.
+- Literal body parity and full caller parity passed. The old mixin definitions
+  and source/test private refs are zero, public import identity is live, and the
+  lookup owner contains 11 public and seven private top-level functions. The
+  move adds only acyclic helper edges. The newly dead calculation
+  `_structured_cell_period_text` import was removed; all other touched imports
+  remain live, and the reviewed runtime-domain count stays 217.
+- Source is `+241/-229`, net `+12`; tests are `+1,229/-8`, net `+1,221`;
+  the whole commit is `+1,470/-237`, net `+1,233`. Calculation moved from
+  14,106 to 13,887 physical lines and lookup recovery from 557 to 788. Eight
+  new test methods moved discovery from 1,803 to 1,811. The source diff SHA-256
+  is `c4b9c78f90715b4332b559159220e00e6f00d46d2912a4f982cdbabaf0fd271e`.
+- Final validation passed focused 4/4 per seam and combined 8/8, lookup owner
+  24/24, migrated operation contracts 4/4, affected seven-module semantic
+  818/818, import-side-effects 19/19, semantic/import union 837/837, runtime
+  audit 217, full discovery 1,811/1,811, pycompile/fresh import,
+  DAG/body/caller parity, retired-ref zero, and `git diff --check`. Benchmark
+  refresh was **NOT RUN**, and no remote CI run is claimed or verified for this
+  local branch.
+
+This milestone changes only direct structured-evidence projection ownership.
+Evidence-pool selection/scoring, state/report scope, table-label lookup,
+precision refinement, mutable evidence, artifact/ledger mutation, and final
+sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 62-line
+own-evidence lookup-unit alignment seam from calculation into the existing
+aggregate owner. Public
+`align_lookup_result_units_from_own_evidence(ordered_results, evidence_items)`
+projects to 61 owner lines and retains two graph-external calls. Existing
+aggregate-to-operand and aggregate-to-dependency edges provide every moved
+dependency, so no module edge or reviewed runtime-domain record is added. The
+graph's `lookup_primary_slot` and `replace_lookup_primary_slot` imports retire;
+the peer-source wrapper remains graph-owned because it binds the dynamic
+operation-family callback. Evidence preparation, dedupe/rebuild, dependency
+alignment, mutable state/evidence, artifact/ledger mutation, and final
+sequencing remain hard stops. Exact API, four-method CURRENT-SOURCE gate,
+projected validation counts, DAG/dead-import consequence, and rejected
+cycle/callback/state expansions are maintained only
+in [Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

@@ -474,17 +474,35 @@ orchestration, period repair, retrieval/canonical evidence construction,
 mutable state/evidence, artifact/ledger mutation, and final sequencing remain
 graph-owned.
 
-The selected follow-on is a two-seam characterize-first direct
-structured-evidence batch into `financial_lookup_recovery.py`: first the
-81-line direct lookup-row projection, then the 139-line direct operand-value
-coercion. They project to two public functions totaling 218 owner lines and
-retain five graph-external calls with zero owner-local calls. The destination
-adds only acyclic edges to existing structured-cell, row/surface, graph-helper,
-and operand-policy contracts; no reviewed runtime-domain record moves.
-Evidence-pool selection/scoring, graph state/report scope, table-label lookup,
-precision refinement, mutable evidence, artifact/ledger mutation, and final
-sequencing remain hard stops. Exact APIs, per-seam four-method characterization
-gates, call distribution, DAG, and stop lines live only in
+The completed `5f9dc5c` follow-on moved the former 81-line direct structured
+lookup-row and 139-line direct structured operand-value projections into
+`financial_lookup_recovery.py` as public 80-line and 138-line functions. All
+five calls remain graph-external. Source is `+241/-229`, tests are `+1,229/-8`,
+and the whole commit is `+1,470/-237`. Calculation moved from 14,106 to 13,887
+physical lines, lookup recovery from 557 to 788, and eight new unittest methods
+moved full discovery from 1,803 to 1,811. Final gates passed focused 4/4 per
+seam and combined 8/8, lookup owner 24/24, migrated operation contracts 4/4,
+affected semantic 818/818, import 19/19, semantic/import union 837/837, audit
+217, full discovery 1,811/1,811, pycompile/fresh import, DAG/body/caller parity,
+retired-ref zero, and diff check. The source diff SHA-256 is
+`c4b9c78f90715b4332b559159220e00e6f00d46d2912a4f982cdbabaf0fd271e`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Evidence-pool
+selection/scoring, graph state/report scope, table-label lookup, precision
+refinement, mutable evidence, artifact/ledger mutation, and final sequencing
+remain graph-owned.
+
+The selected follow-on is one characterize-first 62-line own-evidence lookup-
+unit alignment seam into `financial_aggregate_projection.py`. It projects to
+one 61-line public function and retains two graph-external calls with zero
+owner-local calls. The destination adds symbols only on its existing operand-
+resolution and dependency-projection edges; no reviewed runtime-domain record
+moves. The graph's now-sole `lookup_primary_slot` and
+`replace_lookup_primary_slot` imports retire with the body. Peer-source
+alignment remains graph-owned because it binds the dynamic operation-family
+callback. Evidence preparation, dedupe/rebuild, dependency alignment, mutable
+state/evidence, artifact/ledger mutation, and final sequencing remain hard
+stops. Exact API, four-method characterization gate, call distribution, DAG,
+dead-import consequence, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

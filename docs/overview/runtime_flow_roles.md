@@ -287,7 +287,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, and the selected next direct structured-row/value projection boundary |
+| `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, and direct structured-row/value projection |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
@@ -312,7 +312,8 @@ material-gap, result/nested rank, dedupe, narrative-answer validation, bounded a
 row/gap/lookup-answer policy, narrative term/variant/context sentence presentation,
 prepared-document snippet projection and retrieved-source preservation,
   prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency,
-  lookup magnitude와 same-block/table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
+  lookup magnitude와 same-block/table-metadata KRW repair, direct structured
+  lookup-row/value projection, aggregate ratio seed/source scoring/selection/component
 projection, aggregate result support/reuse predicate와 prepared growth-numeric
 rendering, dependency input matching/binding/synthesis policy, prepared structured-
 reconciliation candidate projection, final-answer evidence filtering/operand
@@ -503,12 +504,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   owner public/private 함수 수는 3/28이다. Focused 6/6, aggregate-subtask
   124/124, text-surface 20/20, semantic 832/832, import 19/19, audit 217과 full
   1,803/1,803이 통과했다.
-- 다음 선택은 calculation mixin의 direct structured lookup-row 81줄과
-  operand-value coercion 139줄을 순차적으로 lookup-recovery owner의 public
-  80줄과 138줄로 옮기는 두-seam batch다. 다섯 call은 graph external로
-  유지한다. Evidence-pool selection/scoring, state/report scope, table-label
-  lookup, precision refinement, mutable evidence, artifact/ledger와 final
-  sequencing hard stop은
+- 완료된 direct structured-evidence batch는 calculation mixin의 lookup-row
+  81줄과 operand-value coercion 139줄을 lookup-recovery owner의 public 80줄과
+  138줄로 옮겼다. 다섯 call은 graph external이고 owner public/private 함수
+  수는 11/7이다. Focused 4/4 per seam, combined 8/8, lookup owner 24/24,
+  semantic 818/818, import 19/19, audit 217과 full 1,811/1,811이 통과했다.
+- 다음 선택은 calculation mixin의 own-evidence lookup-unit alignment 62줄을
+  aggregate owner의 public 61줄로 옮기는 단일 seam이다. 두 call은 graph
+  external로 유지한다. Peer-source callback binding, evidence preparation,
+  dedupe/rebuild, dependency alignment, mutable state/evidence, artifact/ledger와
+  final sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

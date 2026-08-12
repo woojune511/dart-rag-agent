@@ -15,11 +15,11 @@ Last updated: 2026-08-13
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; collapsed-ratio evidence repair is runtime-trace-owned, four named debt groups remain |
-| What just changed? | The 310-line collapsed-ratio trace-repair seam moved to `financial_runtime_trace.py` in `8861253` |
-| What passed? | Focused 6/6, aggregate-subtask 124/124, text-surface 20/20, affected eight-module semantic set 832/832, import-side-effect 19/19, runtime audit 217, full unittest 1,803/1,803 |
+| What is the architecture state? | Phase 3 OPEN; direct structured lookup-row/value projection is lookup-recovery-owned, four named debt groups remain |
+| What just changed? | Two direct structured-evidence seams totaling 220 old lines moved to `financial_lookup_recovery.py` in `5f9dc5c` |
+| What passed? | Focused 4/4 per seam and combined 8/8, lookup owner 24/24, migrated operation contracts 4/4, affected seven-module semantic set 818/818, import-side-effect 19/19, runtime audit 217, full unittest 1,811/1,811 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Two sequential characterize-first direct structured-evidence seams totaling 220 old lines into `financial_lookup_recovery.py`; graph-state lookup/scoring, operand-row orchestration, precision refinement, mutable evidence, ledger, and final sequencing remain hard stops |
+| What is next? | One characterize-first 62-line own-evidence lookup-unit alignment seam into `financial_aggregate_projection.py`; peer-source callback binding, evidence preparation, rebuild/state mutation, ledger, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,7 +50,7 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest two-seam owner batch moved prepared nested-result replacement and
+- An earlier two-seam owner batch moved prepared nested-result replacement and
   arithmetic subtask-surface synchronization. Across `6ed195e..b5d97ee`, the
   former 64 + 124 = 188 graph definition lines became public 63 + 123 = 186
   owner lines; all four selected calls remain graph-external and retired
@@ -108,12 +108,29 @@ or an unconfigured `FinancialAgent` invocation.
   evidence construction, mutable state/evidence, artifact/ledger mutation, and
   final sequencing remain graph-owned. This is ownership relocation, not a
   behavior claim.
-- Current physical sizes are: calculation graph 14,106 lines, main graph 938,
+- Commit `5f9dc5c` moved the former 81-line direct structured lookup-row and
+  139-line direct structured operand-value bodies to public 80-line
+  `lookup_row_from_direct_structured_evidence(...)` and 138-line
+  `coerce_operand_value_from_direct_structured_evidence(...)` in
+  `financial_lookup_recovery.py`. All five calls remain graph-external and the
+  old private source/test refs are zero. Source is `+241/-229`, net `+12`;
+  tests are `+1,229/-8`, net `+1,221`; the whole commit is `+1,470/-237`, net
+  `+1,233`. Calculation moved from 14,106 to 13,887 physical lines and lookup
+  recovery from 557 to 788. Eight new test methods moved discovery from 1,803
+  to 1,811. The source diff SHA-256 is
+  `c4b9c78f90715b4332b559159220e00e6f00d46d2912a4f982cdbabaf0fd271e`.
+  The lookup owner contains 11 public and seven private top-level functions;
+  the newly dead calculation `_structured_cell_period_text` import was removed
+  and the reviewed runtime-domain count remains 217. Evidence-pool
+  selection/scoring, state/report scope, table-label lookup, precision
+  refinement, mutable evidence, artifact/ledger mutation, and final sequencing
+  remain graph-owned. This is ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 13,887 lines, main graph 938,
   graph helpers 6,269,
   planning 2,048, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 411, operand resolution 3,603,
   dependency projection 3,417, reconciliation 1,667, reconciliation candidates
-  329, aggregate projection 3,644, runtime trace 1,412, lookup recovery 557,
+  329, aggregate projection 3,644, runtime trace 1,412, lookup recovery 788,
   task artifacts 1,460, reflection projection
   374, and run projection 302.
 
@@ -132,6 +149,7 @@ Commit-level diffs and validation are kept in
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py` |
+| Lookup recovery | `financial_lookup_recovery.py`, including lookup magnitude/unit recovery, selected-evidence consistency/refinement, successful-row alignment/replacement, and direct structured lookup-row/value projection over already supplied evidence |
 | Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match and candidate-ID projection over already prepared mappings |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
@@ -160,20 +178,20 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, collapsed-ratio characterization 6 / 6; aggregate-subtask 124 / 124; text-surface 20 / 20 |
-| Latest semantic regression set | PASS, affected eight-module set 832 / 832; semantic/import union 851 / 851 |
+| Latest focused owner checkpoint | PASS, direct structured lookup-row 4 / 4, operand-value 4 / 4, combined 8 / 8; lookup owner 24 / 24; migrated operation contracts 4 / 4 |
+| Latest semantic regression set | PASS, affected seven-module set 818 / 818; semantic/import union 837 / 837 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,803 / 1,803 |
+| Full unittest discovery | PASS, 1,811 / 1,811 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
-`tests.test_financial_text_surface`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, `tests.test_lookup_recovery_policy`,
-and `tests.test_operation_contracts`. `tests.test_import_side_effects` passed
-separately at 19 / 19 and together with the semantic set as an 851-test union.
+The semantic set is `tests.test_lookup_recovery_policy`,
+`tests.test_financial_calculation_execution`, `tests.test_financial_operand_resolution`,
+`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
+`tests.test_import_side_effects` passed separately at 19 / 19 and together with
+the semantic set as an 837-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -195,7 +213,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, and growth-answer completion/sanitization; broader alignment/rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude, same-block unit/table repair, and dependency input matching/binding; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude, same-block unit/table repair, direct structured lookup-row/value projection, and dependency input matching/binding; graph-state lookup, broader evidence orchestration, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts move |
 
@@ -204,87 +222,76 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture work is a two-seam, characterize-first direct
-structured-evidence batch into the existing `financial_lookup_recovery.py`
-owner. Execute the seams sequentially and freeze each before starting the next.
+The sole selected architecture work is one characterize-first lookup-unit
+alignment seam from `financial_graph_calculation.py` into the existing
+`financial_aggregate_projection.py` owner. Move the current graph-private
+`_align_lookup_result_units_from_own_evidence(ordered_results, evidence_items)`
+definition (62 lines) as public
+`align_lookup_result_units_from_own_evidence(ordered_results, evidence_items)`
+(projected 61 lines). Delete the old body and retarget both direct calls; add no
+wrapper, alias, callback, carrier, reason, flag, or output field. Both calls
+remain graph-external, positional, and outside `try` blocks. The first stays in
+`_collect_initial_aggregate_evidence_state(...)` immediately before peer-source
+unit alignment and the equality-gated dedupe/rebuild path. The second stays in
+`_aggregate_calculation_subtasks(...)` after missing-context evidence adoption
+and immediately before the same peer-source alignment and late replacement
+path. The aggregate owner moves from public/private 74/11 to 75/11.
 
-Seam A moves the current graph-private
-`_lookup_row_from_direct_structured_evidence(operand, evidence_item, *, index)`
-definition (81 lines) as public
-`lookup_row_from_direct_structured_evidence(operand, evidence_item, *, index)`
-(projected 80 lines). Its body has no `self` load. The four direct callers remain
-graph-external and outside `try` blocks: three in
-`_best_direct_lookup_slot_from_evidence_pool(...)` use `index=1`, while one in
-`_period_table_direct_operand_rows(...)` uses `index=operand_index`.
+Preserve evidence-ID indexing and its empty-evidence identity return; row order;
+explicit operation-family precedence with owner-local aggregate-family
+fallback; lookup/single-value, primary-slot material, raw-value, evidence,
+coerced-unit, unchanged-unit, and normalized-value gates; evidence-local unit
+coercion; source-ID cleanup; exact updated primary-slot fields and marker;
+`replace_lookup_primary_slot(...)` adoption; unchanged-row alias identity;
+original-list identity when no row changes; a fresh list only when at least one
+row changes; nested alias identity; input/evidence immutability; access
+laziness; and all uncaught exceptions.
 
-Seam B then moves
-`_coerce_operand_value_from_direct_structured_evidence(row, evidence_item)`
-(139 lines) as public
-`coerce_operand_value_from_direct_structured_evidence(row, evidence_item)`
-(projected 138 lines). Its sole direct call remains graph-external and outside a
-`try` block in `_coerce_operand_row_from_evidence(...)`, after period coercion
-and before lookup-magnitude coercion, structured-cell early return, dependency
-early return, and precision refinement. Across both seams, delete the old
-bodies and retarget all five calls directly; add no wrapper, alias, callback,
-carrier, reason, flag, or output field. The final selected distribution is five
-graph-external calls and zero owner-local calls. The lookup owner moves from
-public/private 9/7 to 11/7.
+The aggregate owner already imports `answer_slot_has_material`, normalization,
+operand resolution, and dependency projection, and already owns
+`aggregate_result_operation_family(...)`. Add only
+`_evidence_items_by_id`, `_evidence_item_for_operand_row`, and
+`coerce_operand_unit_from_evidence` on the existing operand-resolution edge,
+plus `lookup_primary_slot` and `replace_lookup_primary_slot` on the existing
+dependency-projection edge. No module edge is added, neither dependency reaches
+the aggregate owner, and the move is acyclic. The calculation imports
+`lookup_primary_slot` and `replace_lookup_primary_slot` become dead and must be
+deleted; every other moved-body dependency import remains live elsewhere. The
+selected span contains no reviewed runtime-domain record, so the audit count
+remains 217.
 
-Preserve metadata and structured-cell shallow copies, stable cell order,
-year/period focus, ordinary and aggregate cell selection, aggregate-role
-preference, normalization, empty/no-selection/no-value identity returns, exact
-direct-row field construction, magnitude-record adoption, authoritative-surface
-matching, query-year soft conversion failures, current-value equality and
-`1e-6` tolerance, period-specific override, rendered-value construction,
-nested alias identity, input immutability, access laziness, and all uncaught
-exceptions. These functions project already-supplied operand rows and prepared
-evidence; they do not select the evidence pool or mutate graph state/evidence.
+Before production moves, add exactly four CURRENT-SOURCE methods to
+`tests.test_financial_aggregate_rank_dedupe`: two direct branch/access/laziness/
+copy/identity/order/no-mutation/exception matrices, one exact 62-line/two-call/
+signature/try-depth/DAG/baseline/dead-import inventory, and one executable combined caller
+test fixing exact argument identity, placement, adoption/equality gates, peer
+alignment handoff, and exception stop. Hold production until focused 4/4 is
+independently green. After the literal move, retarget direct tests to the owner,
+runtime caller patches to the imported graph symbol, and the four existing
+private invocations in `tests.test_subtask_loop`; require retired private
+source/test refs to reach zero.
 
-The destination already owns normalization and
-`coerce_lookup_magnitude_record(...)`, and already imports operand-resolution
-symbols. Add the public aggregate-role preference plus the existing structured
-cell selectors/period-focus helper, structured-cell period text, row-surface
-operand matching, and positive-surface predicate. Those are one-way
-lookup-owner-to-helper edges; none reaches lookup recovery, calculation, or the
-main graph, so the move is acyclic. The selected spans contain no reviewed
-runtime-domain record and the audit count remains 217. Every touched graph
-dependency import remains live outside the selected bodies.
+Projected final gates are focused 4/4, aggregate owner 88/88, affected
+seven-module semantic 882/882, import-side-effect 19/19, semantic/import union
+901/901, runtime audit 217, full discovery 1,815/1,815, pycompile/fresh import,
+DAG/body/caller parity, retired-ref zero, and diff check. The semantic set is
+`tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_financial_calculation_execution`, `tests.test_financial_operand_resolution`,
+`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, and `tests.test_operation_contracts`.
 
-Before each production move, add exactly four CURRENT-SOURCE methods to
-`tests.test_lookup_recovery_policy`. Seam A requires two direct branch/access/
-copy/order/no-mutation/exception matrices, one exact 81-line/four-call/signature/
-try-depth/DAG/baseline inventory, and one executable combined caller test for
-pool and period-table args, index values, adoption, laziness, and exception stop.
-Seam B requires two direct gate/surface/selection/equality/tolerance/copy/
-no-mutation/exception matrices, one exact 139-line/one-call/signature/try-depth/
-DAG/baseline inventory, and one executable `_coerce_operand_row_from_evidence`
-test fixing exact args, adoption, order, early returns, precision handoff, and
-exception stop. Hold production until each focused 4/4 passes, then retarget
-owner-direct tests and graph-import caller patches. Migrate the five existing
-private references in `tests.test_operation_contracts` and require retired
-private source/test refs to reach zero.
-
-Projected final gates after both seams are focused 4/4 per seam and combined
-8/8, lookup-recovery owner 24/24, affected seven-module semantic 818/818,
-import-side-effect 19/19, semantic/import union 837/837, runtime audit 217, full
-discovery 1,811/1,811, pycompile/fresh import, DAG/body/caller parity,
-retired-ref zero, and diff check. The semantic set is
-`tests.test_lookup_recovery_policy`, `tests.test_financial_calculation_execution`,
-`tests.test_financial_operand_resolution`, `tests.test_aggregate_subtask_projection`,
-`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
-`tests.test_operation_contracts`.
-
-Keep `_best_direct_lookup_slot_from_evidence_pool(...)`,
-`_period_table_direct_operand_rows(...)`, `_coerce_operand_row_from_evidence(...)`,
-evidence-pool selection/scoring, state/report scope, table-label lookup,
-precision refinement, mutable evidence, artifact/ledger mutation, and final
-sequencing in the graph. Do not move the broader
-`_lookup_value_from_table_label_metadata(...)` path because it passes the
-dynamic `_slot_metric_keys` callback. Reject graph-helper relocation, the
-precision/carrier cluster, ontology compatibility paths, prepared-candidate and
-compact-ratio state carriers, and state/ledger expansions. No behavior,
-accuracy, ranking, performance, total-code or executed-path reduction,
-benchmark, schedule, or Phase 3 completion claim follows.
+Keep evidence collection and missing-context append, dedupe, projection rebuild,
+dependency alignment, answer refresh, mutable state/evidence replacement,
+artifact/ledger mutation, and final sequencing in the graph. Keep
+`_align_lookup_result_units_from_peer_source_slots(...)` graph-owned because it
+passes the dynamic `_aggregate_result_operation_family` callback into the
+dependency owner; moving it would silently remove the compatibility/dispatch
+seam. Continue to reject table-label lookup with its `_slot_metric_keys`
+callback, graph-helper relocation, precision/carrier and ontology compatibility
+clusters, prepared-candidate and compact-ratio state carriers, and state/ledger
+expansions. No behavior, accuracy, ranking, performance, total-code or
+executed-path reduction, benchmark, schedule, or Phase 3 completion claim
+follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.
