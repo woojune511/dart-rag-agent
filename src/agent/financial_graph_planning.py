@@ -36,7 +36,7 @@ from src.agent.financial_graph_model_loaders import (
 from src.agent.financial_answer_slots import answer_slot_has_material
 from src.agent.financial_langchain_loaders import _chat_prompt_template_from_template
 from src.agent.financial_answer_projection import (
-    subtask_row_has_material,
+    promote_nested_subtask_result_if_more_specific,
 )
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState
@@ -1806,138 +1806,6 @@ class FinancialAgentPlanningMixin:
                 trace["report_cache_candidate"] = report_cache_candidate
         return trace
 
-    def _nested_subtask_rows(self, calculation_result: Dict[str, Any]) -> List[Dict[str, Any]]:
-        rows: List[Dict[str, Any]] = []
-
-        def _walk(current: Dict[str, Any]) -> None:
-            answer_slots = dict(current.get("answer_slots") or {})
-            nested_children = [
-                *list(current.get("subtask_results") or []),
-                *list(answer_slots.get("subtask_results") or []),
-            ]
-            for child in nested_children:
-                if not isinstance(child, dict):
-                    continue
-                child_row = dict(child)
-                rows.append(child_row)
-                child_result = dict(child_row.get("calculation_result") or {})
-                if child_result:
-                    _walk(child_result)
-
-        _walk(dict(calculation_result or {}))
-        return rows
-
-    def _subtask_row_operation_family(self, row: Dict[str, Any]) -> str:
-        calculation_result = dict(row.get("calculation_result") or {})
-        answer_slots = dict(calculation_result.get("answer_slots") or row.get("answer_slots") or {})
-        operation_family = _normalise_spaces(
-            str(
-                row.get("operation_family")
-                or answer_slots.get("operation_family")
-                or calculation_result.get("operation_family")
-                or ""
-            )
-        ).lower()
-        if operation_family:
-            return operation_family
-        if calculation_result.get("subtask_results"):
-            return "aggregate_subtasks"
-        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-        if metric_family.startswith("concept_"):
-            return metric_family.removeprefix("concept_")
-        return ""
-
-    def _subtask_row_specificity_score(
-        self,
-        row: Dict[str, Any],
-        *,
-        active_subtask: Dict[str, Any],
-    ) -> tuple[int, int, int, int, int, int]:
-        active_task_id = _normalise_spaces(str(active_subtask.get("task_id") or ""))
-        active_metric_family = _normalise_spaces(str(active_subtask.get("metric_family") or "")).lower()
-        active_metric_label = _normalise_spaces(str(active_subtask.get("metric_label") or ""))
-        active_operation = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
-
-        task_id = _normalise_spaces(str(row.get("task_id") or ""))
-        metric_family = _normalise_spaces(str(row.get("metric_family") or "")).lower()
-        metric_label = _normalise_spaces(str(row.get("metric_label") or ""))
-        operation_family = self._subtask_row_operation_family(row)
-        status = _normalise_spaces(
-            str(row.get("status") or (row.get("calculation_result") or {}).get("status") or "")
-        ).lower()
-
-        if active_task_id and task_id and active_task_id != task_id:
-            return (0, 0, 0, 0, 0, 0)
-
-        status_rank = {"ok": 4, "partial": 2, "ready": 2}.get(status, 0)
-        material_rank = 1 if subtask_row_has_material(row) else 0
-        operation_rank = 1 if active_operation and operation_family == active_operation else 0
-        non_aggregate_rank = 0 if operation_family == "aggregate_subtasks" else 1
-        family_rank = 1 if active_metric_family and metric_family == active_metric_family else 0
-        label_rank = 0
-        if active_metric_label and metric_label:
-            if active_metric_label == metric_label:
-                label_rank = 3
-            elif active_metric_label in metric_label or metric_label in active_metric_label:
-                label_rank = 2
-            else:
-                active_tokens = {token for token in re.split(r"\s+", active_metric_label) if token}
-                row_tokens = {token for token in re.split(r"\s+", metric_label) if token}
-                label_rank = 1 if active_tokens & row_tokens else 0
-        return (status_rank, material_rank, non_aggregate_rank, operation_rank, family_rank, label_rank)
-
-    def _promote_nested_subtask_result_if_more_specific(
-        self,
-        *,
-        active_subtask: Dict[str, Any],
-        answer: str,
-        status: str,
-        calculation_result: Dict[str, Any],
-    ) -> tuple[str, str, Dict[str, Any]]:
-        active_operation = _normalise_spaces(str(active_subtask.get("operation_family") or "")).lower()
-        if not active_operation or active_operation == "aggregate_subtasks":
-            return answer, status, calculation_result
-        if not calculation_result.get("subtask_results"):
-            return answer, status, calculation_result
-
-        candidates = []
-        for row in self._nested_subtask_rows(calculation_result):
-            score = self._subtask_row_specificity_score(row, active_subtask=active_subtask)
-            if score[:2] == (0, 0):
-                continue
-            candidates.append((score, row))
-        if not candidates:
-            return answer, status, calculation_result
-
-        candidates.sort(key=lambda item: item[0], reverse=True)
-        best_score, best_row = candidates[0]
-        current_material = subtask_row_has_material(
-            {
-                "answer": answer,
-                "status": status,
-                "metric_family": active_subtask.get("metric_family"),
-                "metric_label": active_subtask.get("metric_label"),
-                "operation_family": active_operation,
-                "calculation_result": calculation_result,
-            }
-        )
-        if current_material and best_score[0] < 4:
-            return answer, status, calculation_result
-
-        best_result = dict(best_row.get("calculation_result") or {})
-        if not best_result or self._subtask_row_operation_family(best_row) == "aggregate_subtasks":
-            return answer, status, calculation_result
-        promoted_answer = _normalise_spaces(
-            str(
-                best_row.get("answer")
-                or best_result.get("formatted_result")
-                or best_result.get("rendered_value")
-                or answer
-            )
-        )
-        promoted_status = str(best_row.get("status") or best_result.get("status") or status)
-        return promoted_answer, promoted_status, best_result
-
     def _capture_current_subtask_result(self, state: FinancialAgentState) -> Dict[str, Any]:
         active_subtask = dict(state.get("active_subtask") or {})
         if not active_subtask:
@@ -1955,7 +1823,7 @@ class FinancialAgentPlanningMixin:
             or reconciliation_result.get("status")
             or ("ok" if answer else "unknown")
         )
-        answer, status, calculation_result = self._promote_nested_subtask_result_if_more_specific(
+        answer, status, calculation_result = promote_nested_subtask_result_if_more_specific(
             active_subtask=active_subtask,
             answer=answer,
             status=status,

@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 from src.agent import (
     financial_aggregate_state,
     financial_aggregate_projection,
+    financial_answer_projection,
     financial_answer_slots,
     financial_calculation_execution,
     financial_graph,
@@ -2392,8 +2393,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value=promotion_source_slots,
             ),
             patch.object(
-                agent,
-                "_nested_subtask_rows",
+                financial_graph_calculation,
+                "nested_subtask_rows",
                 return_value=[dict(nested_row)],
             ),
             patch.object(
@@ -2441,8 +2442,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 return_value=promotion_source_slots,
             ),
             patch.object(
-                agent,
-                "_nested_subtask_rows",
+                financial_graph_calculation,
+                "nested_subtask_rows",
                 return_value=[dict(nested_row)],
             ),
             patch.object(
@@ -7518,7 +7519,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             ],
         }
 
-        answer, status, calculation_result = agent._promote_nested_subtask_result_if_more_specific(
+        answer, status, calculation_result = financial_answer_projection.promote_nested_subtask_result_if_more_specific(
             active_subtask=active_subtask,
             answer="2023 segment revenue is 100.",
             status="partial",
@@ -12751,7 +12752,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         )
         self.assertGreater(planning_loads["_clean_source_row_ids"], 1)
-        self.assertGreater(planning_loads["subtask_row_has_material"], 1)
+        self.assertEqual(planning_loads["subtask_row_has_material"], 0)
 
         module_edges = {}
         for path in (project_root / "src" / "agent").glob("*.py"):

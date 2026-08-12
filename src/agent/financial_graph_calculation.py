@@ -31,6 +31,7 @@ from src.agent.financial_answer_projection import (
     growth_sentence_has_untraced_material_numeric,
     growth_uses_source_stated_result,
     material_gap_feedback_for_subtask_result,
+    nested_subtask_rows,
     query_requests_explanatory_context,
     sentence_has_growth_explanatory_signal,
 )
@@ -6255,7 +6256,7 @@ class FinancialAgentCalculationMixin:
             if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
                 continue
             calculation_result = dict(row.get("calculation_result") or {})
-            for nested_row in self._nested_subtask_rows(calculation_result):
+            for nested_row in nested_subtask_rows(calculation_result):
                 nested_task_id = _normalise_spaces(str(nested_row.get("task_id") or ""))
                 if not nested_task_id:
                     continue

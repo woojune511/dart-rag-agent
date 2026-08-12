@@ -819,8 +819,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 return_value=source_slots,
             ),
             patch.object(
-                self.agent,
-                "_nested_subtask_rows",
+                financial_graph_calculation,
+                "nested_subtask_rows",
                 return_value=[nested_row],
                 create=True,
             ),
@@ -873,8 +873,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 return_value=source_slots,
             ),
             patch.object(
-                self.agent,
-                "_nested_subtask_rows",
+                financial_graph_calculation,
+                "nested_subtask_rows",
                 return_value=[nested_row],
                 create=True,
             ),
@@ -918,8 +918,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 return_value=source_slots,
             ),
             patch.object(
-                self.agent,
-                "_nested_subtask_rows",
+                financial_graph_calculation,
+                "nested_subtask_rows",
                 return_value=[nested_row],
                 create=True,
             ),

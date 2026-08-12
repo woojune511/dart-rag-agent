@@ -1028,10 +1028,10 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             Counter(
                 {
                     ("aggregate", "nested_aggregate_result_rank", "row"): 1,
-                    ("planning", "_subtask_row_specificity_score", "row"): 1,
+                    ("owner", "_subtask_row_specificity_score", "row"): 1,
                     (
-                        "planning",
-                        "_promote_nested_subtask_result_if_more_specific",
+                        "owner",
+                        "promote_nested_subtask_result_if_more_specific",
                         "{'answer': answer, 'status': status, 'metric_family': active_subtask.get('metric_family'), 'metric_label': active_subtask.get('metric_label'), 'operation_family': active_operation, 'calculation_result': calculation_result}",
                     ): 1,
                     ("aggregate", "_subtask_upsert_quality_rank", "row"): 1,
@@ -1353,17 +1353,17 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         active_subtask = dict(specificity_row, operation_family="lookup")
         with (
             patch.object(
-                self.planning_agent,
+                financial_answer_projection,
                 "_subtask_row_operation_family",
                 return_value="lookup",
             ),
             patch.object(
-                financial_graph_planning,
+                financial_answer_projection,
                 "subtask_row_has_material",
                 return_value=True,
             ) as specificity_owner,
         ):
-            specificity = self.planning_agent._subtask_row_specificity_score(
+            specificity = financial_answer_projection._subtask_row_specificity_score(
                 specificity_row,
                 active_subtask=active_subtask,
             )
@@ -1374,22 +1374,22 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         best_row = {"task_id": "best", "calculation_result": {"status": "ok"}}
         with (
             patch.object(
-                self.planning_agent,
-                "_nested_subtask_rows",
+                financial_answer_projection,
+                "nested_subtask_rows",
                 return_value=[best_row],
             ),
             patch.object(
-                self.planning_agent,
+                financial_answer_projection,
                 "_subtask_row_specificity_score",
                 return_value=(3, 1, 1, 1, 1, 1),
             ),
             patch.object(
-                financial_graph_planning,
+                financial_answer_projection,
                 "subtask_row_has_material",
                 return_value=True,
             ) as current_owner,
         ):
-            promoted = self.planning_agent._promote_nested_subtask_result_if_more_specific(
+            promoted = financial_answer_projection.promote_nested_subtask_result_if_more_specific(
                 active_subtask={
                     "operation_family": "lookup",
                     "metric_family": "family",
@@ -1421,6 +1421,655 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             )
         self.assertEqual(upsert_rank[:2], (4, 0))
         upsert_owner.assert_called_once_with({"status": "ok", "answer": "10"})
+
+    def test_current_source_nested_rows_preserve_depth_first_copies_and_exceptions(self) -> None:
+        shared = {"preserve": True}
+        leaf = {"task_id": "leaf", "nested": shared}
+        grandchild = {
+            "task_id": "grandchild",
+            "nested": shared,
+            "calculation_result": {"answer_slots": {"subtask_results": [leaf]}},
+        }
+        direct = {
+            "task_id": "direct",
+            "nested": shared,
+            "calculation_result": {"subtask_results": [grandchild]},
+        }
+        slotted = {"task_id": "slotted", "nested": shared}
+
+        class IgnoredChild:
+            def __deepcopy__(self, _memo):
+                return self
+
+        ignored = IgnoredChild()
+        calculation_result = {
+            "subtask_results": [direct, ignored],
+            "answer_slots": {"subtask_results": [slotted]},
+        }
+        before = deepcopy(calculation_result)
+
+        rows = financial_answer_projection.nested_subtask_rows(calculation_result)
+
+        self.assertEqual(
+            [row["task_id"] for row in rows],
+            ["direct", "grandchild", "leaf", "slotted"],
+        )
+        for projected, original in zip(rows, (direct, grandchild, leaf, slotted)):
+            self.assertEqual(projected, original)
+            self.assertIsNot(projected, original)
+            self.assertIs(projected["nested"], shared)
+        self.assertEqual(calculation_result, before)
+        self.assertIs(calculation_result["subtask_results"][0], direct)
+        self.assertIs(calculation_result["answer_slots"]["subtask_results"][0], slotted)
+
+        class FalsyMapping(Mapping):
+            def __bool__(self):
+                return False
+
+            def __getitem__(self, _key):
+                raise AssertionError("falsy mapping was copied")
+
+            def __iter__(self):
+                raise AssertionError("falsy mapping was iterated")
+
+            def __len__(self):
+                raise AssertionError("falsy mapping length was read")
+
+        self.assertEqual(financial_answer_projection.nested_subtask_rows(FalsyMapping()), [])
+
+        class CopyBomb(Mapping):
+            def __getitem__(self, _key):
+                raise AssertionError("mapping value access was unexpected")
+
+            def __iter__(self):
+                raise RuntimeError("nested root copy failed")
+
+            def __len__(self):
+                return 1
+
+        with self.assertRaisesRegex(RuntimeError, "nested root copy failed"):
+            financial_answer_projection.nested_subtask_rows(CopyBomb())
+
+    def test_current_source_subtask_operation_and_specificity_preserve_precedence_and_ranks(self) -> None:
+        class FallbackBomb:
+            def __bool__(self):
+                raise AssertionError("lower-priority operation family accessed")
+
+            def __str__(self):
+                raise AssertionError("lower-priority operation family stringified")
+
+        self.assertEqual(
+            financial_answer_projection._subtask_row_operation_family(
+                {
+                    "operation_family": " Lookup ",
+                    "answer_slots": {"operation_family": FallbackBomb()},
+                    "calculation_result": {"operation_family": FallbackBomb()},
+                }
+            ),
+            "lookup",
+        )
+        self.assertEqual(
+            financial_answer_projection._subtask_row_operation_family(
+                {
+                    "answer_slots": {"operation_family": " Difference "},
+                    "calculation_result": {"operation_family": "growth_rate"},
+                }
+            ),
+            "difference",
+        )
+        self.assertEqual(
+            financial_answer_projection._subtask_row_operation_family(
+                {"calculation_result": {"subtask_results": [{"task_id": "child"}]}}
+            ),
+            "aggregate_subtasks",
+        )
+        self.assertEqual(
+            financial_answer_projection._subtask_row_operation_family(
+                {"metric_family": " Concept_Custom_Metric "}
+            ),
+            "custom_metric",
+        )
+        self.assertEqual(financial_answer_projection._subtask_row_operation_family({}), "")
+
+        active_subtask = {
+            "task_id": "task",
+            "metric_family": "family",
+            "metric_label": "Revenue Growth",
+            "operation_family": "lookup",
+        }
+        row = {
+            "task_id": "task",
+            "status": "ready",
+            "metric_family": "family",
+            "metric_label": "Revenue Growth",
+        }
+        with (
+            patch.object(financial_answer_projection, "_subtask_row_operation_family", return_value="lookup") as operation_owner,
+            patch.object(financial_answer_projection, "subtask_row_has_material", return_value=True) as material_owner,
+        ):
+            self.assertEqual(
+                financial_answer_projection._subtask_row_specificity_score(
+                    row,
+                    active_subtask=active_subtask,
+                ),
+                (2, 1, 1, 1, 1, 3),
+            )
+        operation_owner.assert_called_once_with(row)
+        material_owner.assert_called_once_with(row)
+
+        for metric_label, expected_rank in (
+            ("Revenue", 2),
+            ("Annual Growth", 1),
+            ("Unrelated Metric", 0),
+        ):
+            with (
+                patch.object(financial_answer_projection, "_subtask_row_operation_family", return_value="aggregate_subtasks"),
+                patch.object(financial_answer_projection, "subtask_row_has_material", return_value=False),
+            ):
+                score = financial_answer_projection._subtask_row_specificity_score(
+                    {**row, "status": "ok", "metric_label": metric_label},
+                    active_subtask=active_subtask,
+                )
+            self.assertEqual(score, (4, 0, 0, 0, 1, expected_rank))
+
+        never_material = Mock()
+        with (
+            patch.object(financial_answer_projection, "_subtask_row_operation_family", return_value="lookup"),
+            patch.object(financial_answer_projection, "subtask_row_has_material", never_material),
+        ):
+            self.assertEqual(
+                financial_answer_projection._subtask_row_specificity_score(
+                    {**row, "task_id": "other"},
+                    active_subtask=active_subtask,
+                ),
+                (0, 0, 0, 0, 0, 0),
+            )
+        never_material.assert_not_called()
+
+        later_material = Mock()
+        with (
+            patch.object(financial_answer_projection, "_normalise_spaces", side_effect=RuntimeError("specificity normalization failed")),
+            patch.object(financial_answer_projection, "subtask_row_has_material", later_material),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "specificity normalization failed"):
+                financial_answer_projection._subtask_row_specificity_score(row, active_subtask=active_subtask)
+        later_material.assert_not_called()
+
+        with (
+            patch.object(financial_answer_projection, "_subtask_row_operation_family", return_value="lookup"),
+            patch.object(financial_answer_projection, "subtask_row_has_material", side_effect=RuntimeError("specificity material failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "specificity material failed"):
+                financial_answer_projection._subtask_row_specificity_score(row, active_subtask=active_subtask)
+
+    def test_current_source_nested_promotion_preserves_gates_stable_tie_and_identity(self) -> None:
+        active_subtask = {
+            "operation_family": "lookup",
+            "metric_family": "family",
+            "metric_label": "label",
+        }
+        current_result = {
+            "subtask_results": [{"task_id": "nested"}],
+            "nested": {"current": True},
+        }
+        unchanged = ("current", "partial", current_result)
+        nested_owner = Mock()
+        for inactive in ({}, {"operation_family": "aggregate_subtasks"}):
+            with patch.object(financial_answer_projection, "nested_subtask_rows", nested_owner):
+                self.assertEqual(
+                    financial_answer_projection.promote_nested_subtask_result_if_more_specific(
+                        active_subtask=inactive,
+                        answer="current",
+                        status="partial",
+                        calculation_result=current_result,
+                    ),
+                    unchanged,
+                )
+        nested_owner.assert_not_called()
+
+        no_children = {"nested": {"preserve": True}}
+        with patch.object(financial_answer_projection, "nested_subtask_rows", nested_owner):
+            result = financial_answer_projection.promote_nested_subtask_result_if_more_specific(
+                active_subtask=active_subtask,
+                answer="current",
+                status="partial",
+                calculation_result=no_children,
+            )
+        self.assertEqual(result, ("current", "partial", no_children))
+        self.assertIs(result[2], no_children)
+        nested_owner.assert_not_called()
+
+        shared = {"preserve": True}
+        skipped = {"task_id": "skip", "calculation_result": {"status": "ok"}}
+        best_result = {"status": "ok", "formatted_result": " first answer ", "nested": shared}
+        best = {"task_id": "first", "calculation_result": best_result}
+        tied = {
+            "task_id": "second",
+            "answer": "second answer",
+            "calculation_result": {"status": "ok", "nested": shared},
+        }
+        scores = {
+            "skip": (0, 0, 1, 1, 1, 1),
+            "first": (4, 1, 1, 1, 1, 3),
+            "second": (4, 1, 1, 1, 1, 3),
+        }
+        before_current = deepcopy(current_result)
+        before_rows = deepcopy([skipped, best, tied])
+        with (
+            patch.object(financial_answer_projection, "nested_subtask_rows", return_value=[skipped, best, tied]) as projected_rows,
+            patch.object(
+                financial_answer_projection,
+                "_subtask_row_specificity_score",
+                side_effect=lambda row, *, active_subtask: scores[row["task_id"]],
+            ) as score_owner,
+            patch.object(financial_answer_projection, "_subtask_row_operation_family", return_value="lookup") as operation_owner,
+            patch.object(financial_answer_projection, "subtask_row_has_material", return_value=False) as material_owner,
+        ):
+            promoted = financial_answer_projection.promote_nested_subtask_result_if_more_specific(
+                active_subtask=active_subtask,
+                answer="current",
+                status="partial",
+                calculation_result=current_result,
+            )
+        self.assertEqual(promoted[:2], ("first answer", "ok"))
+        self.assertEqual(promoted[2], best_result)
+        self.assertIsNot(promoted[2], best_result)
+        self.assertIs(promoted[2]["nested"], shared)
+        projected_rows.assert_called_once_with(current_result)
+        self.assertEqual([call.args[0]["task_id"] for call in score_owner.call_args_list], ["skip", "first", "second"])
+        for call in score_owner.call_args_list:
+            self.assertIs(call.kwargs["active_subtask"], active_subtask)
+        operation_owner.assert_called_once_with(best)
+        material_owner.assert_called_once()
+        self.assertEqual(current_result, before_current)
+        self.assertEqual([skipped, best, tied], before_rows)
+
+        downstream_score = Mock()
+        with (
+            patch.object(financial_answer_projection, "nested_subtask_rows", side_effect=RuntimeError("nested projection failed")),
+            patch.object(financial_answer_projection, "_subtask_row_specificity_score", downstream_score),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "nested projection failed"):
+                financial_answer_projection.promote_nested_subtask_result_if_more_specific(
+                    active_subtask=active_subtask,
+                    answer="current",
+                    status="partial",
+                    calculation_result=current_result,
+                )
+        downstream_score.assert_not_called()
+        self.assertEqual(current_result, before_current)
+
+    def test_current_source_nested_selection_pins_exact_bindings_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        targets = {
+            "nested_subtask_rows": 20,
+            "_subtask_row_operation_family": 19,
+            "_subtask_row_specificity_score": 37,
+            "promote_nested_subtask_result_if_more_specific": 50,
+        }
+        retired_targets = {
+            "_" + "nested_subtask_rows",
+            "_" + "promote_nested_subtask_result_if_more_specific",
+        }
+        paths = {
+            "planning": Path("src/agent/financial_graph_planning.py"),
+            "calculation": Path("src/agent/financial_graph_calculation.py"),
+            "owner": Path("src/agent/financial_answer_projection.py"),
+        }
+        trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in paths.items()
+        }
+        selected_owner_defs = {
+            node.name: node
+            for node in trees["owner"].body
+            if isinstance(node, ast.FunctionDef) and node.name in targets
+        }
+        self.assertEqual(
+            {name: node.end_lineno - node.lineno + 1 for name, node in selected_owner_defs.items()},
+            targets,
+        )
+        owner_defs = [node for node in trees["owner"].body if isinstance(node, ast.FunctionDef)]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_defs),
+                sum(node.name.startswith("_") for node in owner_defs),
+            ),
+            (12, 9),
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.FunctionDef) and node.name in retired_targets
+                for tree in trees.values()
+                for node in ast.walk(tree)
+            )
+        )
+
+        calls = []
+        for module_name, tree in trees.items():
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                call_name = (
+                    node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else ""
+                )
+                if call_name not in targets:
+                    continue
+                containers = [
+                    candidate
+                    for candidate in functions
+                    if candidate.lineno <= node.lineno <= candidate.end_lineno
+                ]
+                caller = min(containers, key=lambda item: item.end_lineno - item.lineno)
+                current = node
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                calls.append(
+                    (
+                        module_name,
+                        caller.name,
+                        call_name,
+                        ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "",
+                        tuple(ast.unparse(arg) for arg in node.args),
+                        tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                        try_depth,
+                    )
+                )
+        self.assertCountEqual(
+            calls,
+            [
+                ("owner", "promote_nested_subtask_result_if_more_specific", "nested_subtask_rows", "", ("calculation_result",), (), 0),
+                ("calculation", "_promote_stronger_nested_aggregate_results", "nested_subtask_rows", "", ("calculation_result",), (), 0),
+                ("owner", "_subtask_row_specificity_score", "_subtask_row_operation_family", "", ("row",), (), 0),
+                ("owner", "promote_nested_subtask_result_if_more_specific", "_subtask_row_operation_family", "", ("best_row",), (), 0),
+                ("owner", "promote_nested_subtask_result_if_more_specific", "_subtask_row_specificity_score", "", ("row",), (("active_subtask", "active_subtask"),), 0),
+                (
+                    "planning",
+                    "_capture_current_subtask_result",
+                    "promote_nested_subtask_result_if_more_specific",
+                    "",
+                    (),
+                    (("active_subtask", "active_subtask"), ("answer", "answer"), ("status", "status"), ("calculation_result", "calculation_result")),
+                    0,
+                ),
+            ],
+        )
+        self.assertEqual(sum(targets.values()), 126)
+        self.assertEqual(20 + 19 + 38 + 51, 128)
+        self.assertEqual(
+            (2, 4),
+            (
+                sum(call[0] != "owner" for call in calls),
+                sum(call[0] == "owner" for call in calls),
+            ),
+        )
+
+        module_paths = {path.stem: path for path in Path("src/agent").glob("*.py")}
+        edges = {name: set() for name in module_paths}
+        for name, path in module_paths.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                imported = []
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
+                    imported = [node.module.rsplit(".", 1)[-1]]
+                elif isinstance(node, ast.Import):
+                    imported = [
+                        alias.name.rsplit(".", 1)[-1]
+                        for alias in node.names
+                        if alias.name.startswith("src.agent.")
+                    ]
+                edges[name].update(item for item in imported if item in module_paths)
+
+        def reaches(source, destination):
+            pending = [source]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == destination:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current] - seen)
+            return False
+
+        self.assertTrue(reaches("financial_graph_planning", "financial_answer_projection"))
+        self.assertTrue(reaches("financial_graph_calculation", "financial_answer_projection"))
+        self.assertFalse(reaches("financial_answer_projection", "financial_graph_planning"))
+        self.assertFalse(reaches("financial_answer_projection", "financial_graph_calculation"))
+
+        planning_loads = Counter(
+            node.id
+            for node in ast.walk(trees["planning"])
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        )
+        self.assertEqual(planning_loads["subtask_row_has_material"], 0)
+        for name in ("re", "Dict", "List", "_normalise_spaces"):
+            self.assertGreater(planning_loads[name], 2)
+
+        owner_loads = Counter(
+            node.id
+            for node in ast.walk(trees["owner"])
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        )
+        self.assertEqual(owner_loads["subtask_row_has_material"], 2)
+        planning_imports = {
+            alias.name
+            for node in ast.walk(trees["planning"])
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_answer_projection"
+            for alias in node.names
+        }
+        calculation_imports = {
+            alias.name
+            for node in ast.walk(trees["calculation"])
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_answer_projection"
+            for alias in node.names
+        }
+        self.assertIn("promote_nested_subtask_result_if_more_specific", planning_imports)
+        self.assertNotIn("subtask_row_has_material", planning_imports)
+        self.assertIn("nested_subtask_rows", calculation_imports)
+
+        baseline = json.loads(
+            Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_answer_projection.py"
+                and any(
+                    min(node.lineno for node in selected_owner_defs.values())
+                    <= int(line)
+                    <= max(node.end_lineno for node in selected_owner_defs.values())
+                    for line in record.get("first_lines") or []
+                )
+            ],
+            [],
+        )
+
+    def test_current_source_capture_caller_pins_promotion_args_adoption_and_stop(self) -> None:
+        shared = {"preserve": True}
+        active_subtask = {
+            "task_id": "task",
+            "operation_family": "custom_operation",
+            "metric_family": "family",
+            "metric_label": "label",
+            "query": "task query",
+            "nested": shared,
+        }
+        projected_result = {"status": "partial", "nested": shared}
+        projected = {
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": projected_result,
+            "reconciliation_result": {},
+            "artifact_ids": ["artifact"],
+        }
+        state = {
+            "active_subtask": active_subtask,
+            "query": "state query",
+            "answer": " current answer ",
+            "selected_claim_ids": ["claim"],
+            "evidence_items": [],
+        }
+        before = deepcopy(state)
+        promoted_result = {"status": "ok", "rendered_value": "promoted", "nested": shared}
+        events = []
+
+        def promote_owner(**kwargs):
+            events.append("promote")
+            self.assertEqual(set(kwargs), {"active_subtask", "answer", "status", "calculation_result"})
+            self.assertEqual(kwargs["active_subtask"], active_subtask)
+            self.assertIsNot(kwargs["active_subtask"], active_subtask)
+            self.assertIs(kwargs["active_subtask"]["nested"], shared)
+            self.assertEqual(kwargs["answer"], "current answer")
+            self.assertEqual(kwargs["status"], "partial")
+            self.assertEqual(kwargs["calculation_result"], projected_result)
+            self.assertIsNot(kwargs["calculation_result"], projected_result)
+            self.assertIs(kwargs["calculation_result"]["nested"], shared)
+            return "promoted answer", "ok", promoted_result
+
+        def material_owner(slot):
+            events.append(("material", slot))
+            return False
+
+        with (
+            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected) as trace_owner,
+            patch.object(
+                financial_graph_planning,
+                "promote_nested_subtask_result_if_more_specific",
+                side_effect=promote_owner,
+            ),
+            patch.object(financial_graph_planning, "answer_slot_has_material", side_effect=material_owner),
+        ):
+            captured = self.planning_agent._capture_current_subtask_result(state)
+        trace_owner.assert_called_once_with(state, "task")
+        self.assertEqual(events, ["promote", ("material", {}), ("material", {})])
+        self.assertEqual(captured["answer"], "promoted answer")
+        self.assertEqual(captured["status"], "ok")
+        self.assertIs(captured["calculation_result"], promoted_result)
+        self.assertEqual(captured["artifact_ids"], ["artifact"])
+        self.assertEqual(state, before)
+        self.assertIs(state["active_subtask"], active_subtask)
+
+        later_material = Mock()
+        with (
+            patch.object(financial_graph_planning, "_project_task_trace_from_state", return_value=projected),
+            patch.object(
+                financial_graph_planning,
+                "promote_nested_subtask_result_if_more_specific",
+                side_effect=RuntimeError("capture promotion failed"),
+            ),
+            patch.object(financial_graph_planning, "answer_slot_has_material", later_material),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "capture promotion failed"):
+                self.planning_agent._capture_current_subtask_result(state)
+        later_material.assert_not_called()
+        self.assertEqual(state, before)
+        self.assertIs(state["active_subtask"], active_subtask)
+
+    def test_current_source_nested_aggregate_caller_pins_args_adoption_and_stop(self) -> None:
+        shared = {"preserve": True}
+        current = {
+            "task_id": "child",
+            "status": "partial",
+            "answer": "old answer",
+            "runtime_evidence": [{"evidence_id": "old"}],
+            "nested": shared,
+        }
+        nested = {
+            "task_id": "child",
+            "status": "ok",
+            "answer": "new answer",
+            "calculation_result": {"status": "ok", "nested": shared},
+        }
+        aggregate_result = {"subtask_results": [{"task_id": "source"}], "nested": shared}
+        aggregate = {
+            "task_id": "aggregate",
+            "operation_family": "aggregate_subtasks",
+            "calculation_result": aggregate_result,
+            "nested": shared,
+        }
+        ordered_results = [current, aggregate]
+        before = deepcopy(ordered_results)
+        events = []
+
+        def operation_owner(row):
+            events.append(("operation", row.get("task_id")))
+            return "aggregate_subtasks" if row.get("task_id") == "aggregate" else "lookup"
+
+        def nested_owner(calculation_result):
+            events.append("nested")
+            self.assertEqual(calculation_result, aggregate_result)
+            self.assertIsNot(calculation_result, aggregate_result)
+            self.assertIs(calculation_result["subtask_results"], aggregate_result["subtask_results"])
+            self.assertIs(calculation_result["nested"], shared)
+            return [nested]
+
+        def rank_owner(row):
+            events.append(("rank", row.get("answer")))
+            return (2, 1) if row is nested else (1, 1)
+
+        with (
+            patch.object(financial_graph_calculation, "aggregate_source_slot_by_task_id", return_value={}) as source_owner,
+            patch.object(self.calculation_agent, "_aggregate_result_operation_family", side_effect=operation_owner),
+            patch.object(financial_graph_calculation, "nested_subtask_rows", side_effect=nested_owner),
+            patch.object(financial_graph_calculation, "material_gap_feedback_for_subtask_result", return_value="") as gap_owner,
+            patch.object(financial_graph_calculation, "nested_aggregate_result_rank", side_effect=rank_owner),
+            patch.object(financial_graph_calculation, "aggregate_result_dependency_coherence_ranks", return_value=(1, 0)) as coherence_owner,
+        ):
+            promoted = self.calculation_agent._promote_stronger_nested_aggregate_results(ordered_results)
+        source_rows = source_owner.call_args.args[0]
+        self.assertEqual(source_rows, ordered_results)
+        self.assertIsNot(source_rows[0], current)
+        self.assertIs(source_rows[0]["nested"], shared)
+        self.assertEqual(promoted[0]["answer"], "new answer")
+        self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
+        self.assertIs(promoted[0]["runtime_evidence"], current["runtime_evidence"])
+        self.assertEqual(promoted[1], aggregate)
+        self.assertIsNot(promoted[1], aggregate)
+        gap_owner.assert_called_once_with(nested)
+        self.assertEqual(coherence_owner.call_count, 2)
+        self.assertEqual(ordered_results, before)
+        self.assertIs(ordered_results[0], current)
+        self.assertIs(ordered_results[1], aggregate)
+        self.assertLess(events.index("nested"), events.index(("rank", "new answer")))
+
+        later_rank = Mock()
+        with (
+            patch.object(financial_graph_calculation, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(self.calculation_agent, "_aggregate_result_operation_family", side_effect=operation_owner),
+            patch.object(
+                financial_graph_calculation,
+                "nested_subtask_rows",
+                side_effect=RuntimeError("aggregate nesting failed"),
+            ),
+            patch.object(financial_graph_calculation, "nested_aggregate_result_rank", later_rank),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "aggregate nesting failed"):
+                self.calculation_agent._promote_stronger_nested_aggregate_results(ordered_results)
+        later_rank.assert_not_called()
+        self.assertEqual(ordered_results, before)
+        self.assertIs(ordered_results[0], current)
+        self.assertIs(ordered_results[1], aggregate)
 
 
 class FinancialAnswerProjectionNarrativeValidationTests(unittest.TestCase):
