@@ -3102,13 +3102,12 @@ audit 217, and full discovery 1,750/1,750 passed. Benchmark refresh was **NOT
 RUN**, remote CI is unverified, and the move proves no behavior, accuracy,
 ranking, performance, total-code, executed-path, ledger, or Phase 3 completion.
 
-The next structured-reconciliation candidate-projection boundary must preserve
-the current private implementation until its characterize-first gate passes.
-The selected state-free owner receives already prepared candidate, metadata,
-structured-cell, operand, constraint, and ID mappings. It may normalize, score,
-copy, and project those values, but it must not read or mutate
-`FinancialAgentState`, retrieve evidence, call an LLM, update artifacts, or plan
-a retry.
+The structured-reconciliation candidate-projection boundary is now owned by
+`financial_reconciliation_candidates.py`. The state-free owner receives already
+prepared candidate, metadata, structured-cell, operand, constraint, and ID
+mappings. It may normalize, score, copy, and project those values, but it does
+not read or mutate `FinancialAgentState`, retrieve evidence, call an LLM, update
+artifacts, or plan a retry.
 
 Candidate statement projection first prefers normalized explicit
 `statement_type`, then constructs the current ordered section/title/heading/
@@ -3146,13 +3145,65 @@ lookup strips the requested ID, returns `None` for absence, shallow-copies the
 selected candidate, and changes `evidence_row` to `table_row` only when copied
 metadata has a nonblank `row_text`; nested metadata identity remains unchanged.
 
-The exact selected boundary is the 293-line, 11-function, 26-call sequence in
-[Project Status Next Work](../overview/project_status.md#next-work). It projects
-to seven public and four owner-private functions totaling 285 owner lines, with
-19 reconciliation-external and seven owner-local calls. Structured-pair and
-operand extraction orchestration, candidate collection/selection, LLM rerank,
-evidence-item construction, artifact/retry/state mutation, and final sequencing
-remain in `financial_graph_reconciliation.py`.
+The completed `bb0a982` boundary is the exact 293-line, 11-function, 26-call
+sequence. It became seven public and four owner-private functions totaling 285
+owner lines, with 19 reconciliation-external and seven owner-local calls.
+Focused 8/8, candidate-owner 8/8, affected semantic 486/486, import 19/19, union
+505/505, runtime audit 217, and full discovery 1,758/1,758 passed. Its source
+diff SHA-256 is
+`6469dfd06b0efd36c92d252753ba96ecdeb5421e4dc3fdaac0c492cdd4167a5f`.
+Structured-pair and operand extraction orchestration, candidate collection/
+selection, LLM rerank, evidence-item construction, artifact/retry/state
+mutation, and final sequencing remain in `financial_graph_reconciliation.py`.
+Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
+no behavior, accuracy, ranking, performance, total-code, executed-path, ledger,
+or Phase 3 completion.
+
+The next reflection retry-query projection boundary must preserve the current
+private implementation until its characterize-first gate passes. Public
+`build_retry_queries(state, missing_info)` reads explicit companies first and,
+only when absent, the first company-bearing seed document. It eagerly converts
+every supplied year with `int`, requires `state["query"]`, applies topic and
+intent/query-type fallback, obtains preferred calculation sections, constructs
+one normalized query per missing-info item with at most two section hints, then
+returns a fresh stable first-seen deduplicated list without blanks. It mutates no
+state, document metadata, missing-info list, or nested value; mapping, metadata,
+iteration, integer conversion, helper, string, and normalization exceptions
+retain their current propagation.
+
+Public `finalize_retry_queries(state, reflection_plan, missing_info)` repeatedly
+normalizes planner subqueries as it filters them and calls the public builder
+only when no base query survives. For `find_missing_values`, `resolve_binding`,
+and `find_direct_row`, it appends the first two normalized missing items. It
+retains explicit companies access, finds a report-company hint from seed docs
+before retrieved docs, combines global and planner-preferred sections through
+the current repeated alias calls and stable dedupe, expands section-qualified
+queries only for direct-row/binding objectives, replaces raw planner section
+text with its alias for every base query, prefixes a missing report company, and
+returns a fresh stable deduplicated list. Caller mappings/lists and nested values
+remain unchanged; access, truthiness, iteration, metadata, string, helper, and
+normalizer exceptions are not newly caught.
+
+The current 26-line builder and 81-line finalizer project to 26 and 80 owner
+lines. The builder remains graph-external from
+`_heuristic_reflection_query_plan(...)` and becomes owner-local from the
+finalizer; the finalizer remains graph-external from
+`_prepare_reflection_retry(...)`. Both calls stay outside a `try`, preserve exact
+state/list identity and arguments, adopt the returned list at the current point,
+and allow an owner exception to stop downstream planner-section or action/
+report/artifact work. The three calls therefore finish external two/local one.
+
+The owner adds only `_preferred_calc_sections` and `_section_hint_alias` through
+the existing one-way retrieval-hints dependency; no dependency reaches reflection
+projection or either graph mixin, so the DAG remains acyclic. No selected span
+moves a reviewed runtime-domain record and the count remains 217. The exact
+six-method CURRENT-SOURCE gate, affected validation set, dead-import rule, and
+hard stops are maintained in
+[Project Status Next Work](../overview/project_status.md#next-work).
+`_select_retry_strategy_for_reconciliation(...)`, heuristic missing/dependency
+resolution, `_plan_reflection_retry(...)`, prompt/model invocation,
+`_prepare_reflection_retry(...)`, action/report/artifact construction, state
+clearing, routing/promotion, and final sequencing remain graph-owned.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

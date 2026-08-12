@@ -361,6 +361,7 @@ validation 결과를 먼저 봐야 한다.
 | [financial_retrieval_pipeline.py](../../src/agent/financial_retrieval_pipeline.py) | retrieval query/filter/search/rerank/selection/trace owner |
 | [financial_graph_evidence.py](../../src/agent/financial_graph_evidence.py) | expansion, numeric extraction, evidence/compress/validate |
 | [financial_graph_reconciliation.py](../../src/agent/financial_graph_reconciliation.py) | retrieved candidates와 required operands 매칭 |
+| [financial_reconciliation_candidates.py](../../src/agent/financial_reconciliation_candidates.py) | prepared candidate/cell statement, unit, period, score, identity, row, match, and ID projection |
 | [financial_graph_calculation.py](../../src/agent/financial_graph_calculation.py) | graph-state adapter/orchestrator, owner result projection, subtask loop |
 | [financial_graph_helpers.py](../../src/agent/financial_graph_helpers.py) | shared runtime projection, trace, normalization, matching helpers |
 | [financial_answer_projection.py](../../src/agent/financial_answer_projection.py) | aggregate/narrative answer candidate 선택 |
@@ -383,14 +384,15 @@ validation 결과를 먼저 봐야 한다.
 4. `financial_graph_planning.py::_plan_semantic_numeric_tasks()`
 5. `financial_retrieval_pipeline.py::_retrieve()`
 6. `financial_graph_reconciliation.py::_reconcile_retrieved_evidence()`
-7. `financial_graph_calculation.py::_extract_calculation_operands()` adapter
-8. `financial_operand_resolution.py`와 `financial_dependency_projection.py`
-9. `financial_graph_calculation.py::_plan_formula_calculation()` adapter
-10. `financial_calculation_execution.py` plan guard와 execution
-11. `financial_graph_calculation.py::_execute_calculation()` outcome projection
-12. `financial_graph_calculation.py::_aggregate_calculation_subtasks()`
-13. `financial_answer_projection.py`
-14. 다시 `financial_graph.py::run()` output projection 후반부
+7. `financial_reconciliation_candidates.py`의 prepared candidate projection
+8. `financial_graph_calculation.py::_extract_calculation_operands()` adapter
+9. `financial_operand_resolution.py`와 `financial_dependency_projection.py`
+10. `financial_graph_calculation.py::_plan_formula_calculation()` adapter
+11. `financial_calculation_execution.py` plan guard와 execution
+12. `financial_graph_calculation.py::_execute_calculation()` outcome projection
+13. `financial_graph_calculation.py::_aggregate_calculation_subtasks()`
+14. `financial_answer_projection.py`
+15. 다시 `financial_graph.py::run()` output projection 후반부
 
 helper를 먼저 읽지 않는다. state field와 node order를 먼저 잡고, 증상이 생긴
 layer의 helper만 내려간다.

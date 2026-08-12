@@ -15,11 +15,11 @@ Last updated: 2026-08-12
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; bounded caller-facing run projection plus prepared public-answer state projection are owner-held, four named debt groups remain |
-| What just changed? | Four prepared public-answer selectors/state projections moved to `financial_agent_run_projection.py` in `a88b215` |
-| What passed? | Focused 6/6, run-projection owner 71/71, affected eight-module semantic set 521/521, import-side-effect 19/19, semantic/import union 540/540, runtime audit 217, full unittest 1,750/1,750 |
+| What is the architecture state? | Phase 3 OPEN; prepared structured-reconciliation candidate projection is now owner-held, four named debt groups remain |
+| What just changed? | Eleven structured candidate metadata/unit/period/score/identity/row/match/ID projections moved to `financial_reconciliation_candidates.py` in `bb0a982` |
+| What passed? | Focused 8/8, candidate-owner 8/8, affected seven-module semantic set 486/486, import-side-effect 19/19, semantic/import union 505/505, runtime audit 217, full unittest 1,758/1,758 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | Two characterize-first seams totaling 293 state-free structured-reconciliation candidate-projection lines into a dedicated owner; LLM rerank, evidence/state mutation, artifact/ledger work, retry orchestration, and final sequencing remain hard stops |
+| What is next? | One characterize-first 107-line reflection retry-query projection batch into `financial_reflection_projection.py`; heuristic dependency resolution, prompt/LLM planning, action/report/artifact mutation, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,27 +50,27 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved prepared public-answer selection/state projection.
-  In `a88b215`, exactly four source/test files changed. The four selected
-  definition spans totaled 74 lines and became four public functions totaling
-  71 owner lines. Thirteen calls finish as 12 graph-external and one owner-local;
-  the cumulative run owner is public ten plus owner-private two with 24 selected
-  calls split external 21/local three. Retired selected private source/test refs
-  are zero and no wrapper or alias remains. Source is `+105/-93`, net `+12`;
-  tests are `+1,269/-8`, net `+1,261`; the whole commit is `+1,374/-101`, net
-  `+1,273`. Main graph moved from 1,011 to 936 physical lines and the run owner
-  from 215 to 302. The committed source diff SHA-256 is
-  `45e12114a8bfb2f7513cbde887b7fe4a8a7b5ed65c2300af902939b6dc38fc45`.
-  Dynamic structured/stale answer repair, trace resolution/rebuild, runtime-
-  evidence selection, graph execution, compatibility assembly, mutable state/
-  evidence, artifact/ledger mutation, and final sequencing remain graph/existing-
-  owner responsibilities. This is ownership relocation, not a behavior claim.
+- The latest owner batch moved prepared structured-reconciliation candidate
+  projection. In `bb0a982`, exactly eight source/test files changed. The eleven
+  selected definition spans totaled 293 lines and became seven public plus four
+  owner-private functions totaling 285 owner lines. Twenty-six calls finish as
+  19 reconciliation-external and seven owner-local. Retired selected private
+  source/test refs are zero and no wrapper or alias remains. Source is
+  `+357/-331`, net `+26`; tests are `+686/-30`, net `+656`; the whole commit is
+  `+1,043/-361`, net `+682`. Reconciliation moved from 2,079 to 1,776 physical
+  lines and the new owner contains 329. The committed source diff SHA-256 is
+  `6469dfd06b0efd36c92d252753ba96ecdeb5421e4dc3fdaac0c492cdd4167a5f`.
+  Candidate collection, structured-pair/operand extraction orchestration, LLM
+  reranking, evidence construction, artifact/retry/state mutation, and final
+  sequencing remain graph-owned. This is ownership relocation, not a behavior
+  claim.
 - Current physical sizes are: calculation graph 14,715 lines, main graph 936,
   graph helpers 6,269,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 491, text surface 411, operand resolution 3,603,
-  dependency projection 3,417, reconciliation 2,079, aggregate projection 3,180,
-  task artifacts 1,460, reflection projection 260, and run projection 302.
+  dependency projection 3,417, reconciliation 1,776, reconciliation candidates
+  329, aggregate projection 3,180, task artifacts 1,460, reflection projection
+  260, and run projection 302.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -87,6 +87,7 @@ Commit-level diffs and validation are kept in
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Operand policy and resolution | `financial_operand_resolution.py`, including ratio sign policy, evidence-local unit/period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, and growth alignment/period conflict |
 | Dependency and execution | `financial_dependency_projection.py`, including dependency input matching/binding, sibling-output synthesis preference, sibling lookup-surface preparation, and resolved reconciliation projection, plus `financial_calculation_execution.py` |
+| Structured reconciliation candidates | `financial_reconciliation_candidates.py`; state-free statement/unit/period/score/identity/row/match and candidate-ID projection over already prepared mappings |
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
 | Aggregate projection | `financial_aggregate_projection.py`, including selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
@@ -114,22 +115,20 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, new focused 6 / 6; run-projection owner 71 / 71 |
-| Latest semantic regression set | PASS, affected eight-module set 521 / 521; semantic/import union 540 / 540 |
+| Latest focused owner checkpoint | PASS, new focused 8 / 8; reconciliation-candidate owner 8 / 8 |
+| Latest semantic regression set | PASS, affected seven-module set 486 / 486; semantic/import union 505 / 505 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,750 / 1,750 |
+| Full unittest discovery | PASS, 1,758 / 1,758 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_agent_run_projection`,
-`tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_evaluator_runtime_projection`,
-`tests.test_benchmark_runner_runtime_projection`,
-`tests.test_operation_contracts`, `tests.test_financial_router_response`,
-`tests.test_ops_runtime_projection_modes`, and
-`tests.test_report_scoped_cache_contract`. `tests.test_import_side_effects`
-passed separately at 19 / 19 and together with the semantic set as a 540-test
+The semantic set is `tests.test_financial_reconciliation_candidates`,
+`tests.test_reconciliation_plan`, `tests.test_financial_operand_resolution`,
+`tests.test_financial_dependency_projection`,
+`tests.test_financial_task_artifacts`, `tests.test_operation_contracts`, and
+`tests.test_structured_operand_extraction`. `tests.test_import_side_effects`
+passed separately at 19 / 19 and together with the semantic set as a 505-test
 union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
@@ -161,88 +160,76 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture batch is two sequential characterize-first seams
-from `financial_graph_reconciliation.py` into a new state-free
-`financial_reconciliation_candidates.py` owner. The target boundary is the
-candidate metadata/unit/period/score/identity/row and candidate-ID projection
-that runs over already prepared mappings; it does not read or mutate
-`FinancialAgentState`.
+The sole selected architecture batch is one characterize-first reflection
+retry-query projection move into the existing
+`financial_reflection_projection.py` owner. Move
+`_build_retry_queries(...)` (26 current definition-span lines) as public
+`build_retry_queries(...)` and `_finalize_retry_queries(...)` (81) as public
+`finalize_retry_queries(...)`. Removing the standalone `self` parameter from the
+second signature projects the 107 former lines to 106 owner lines. The three
+current calls finish as two graph-external calls and one owner-local
+`finalize_retry_queries(...) -> build_retry_queries(...)` call. Delete both old
+bodies and retarget directly; add no wrapper, compatibility alias, callback,
+carrier, reason, flag, or output field. The reflection owner becomes public
+eight plus owner-private two.
 
-Seam A moves `_candidate_statement_type(...)` (36 definition-span lines),
-`_structured_candidate_unit_hint(...)` (38),
-`_fallback_period_text_for_operand(...)` (11), `_structured_cell_identity(...)`
-(10), `_resolved_period_text_for_operand(...)` (29),
-`_pair_candidate_period_score(...)` (33),
-`_build_operand_row_from_candidate_cell(...)` (63), and
-`_effective_structured_cell_unit_hint(...)` (17). The 237 former lines project
-to 232 owner lines. Publish `structured_cell_identity`,
-`pair_candidate_period_score`, `build_operand_row_from_candidate_cell`, and
-`effective_structured_cell_unit_hint`; keep the other four owner-private. Its 18
-current direct calls finish as 11 reconciliation-external and seven owner-local.
+`build_retry_queries(...)` must preserve company precedence from explicit state
+then the first seed-document company, eager year integer conversion, required
+query access, topic/intent fallbacks, preferred calculation-section lookup,
+missing-info order, the first two preferred sections, whitespace normalization,
+stable first-seen dedupe, and blank rejection. `finalize_retry_queries(...)`
+must preserve repeated normalization of planner subqueries, fallback to the
+builder only when no base query survives, retry-objective augmentation for the
+first two missing items, explicit companies access, seed-before-retrieved report-
+company fallback, global-plus-plan section aliasing and stable dedupe, section-
+qualified query expansion, per-query raw-section replacement, report-company
+prefixing, and final stable dedupe. Both functions read already prepared state
+and plan mappings, return fresh lists, mutate no caller input, and preserve the
+current access, laziness, identity, `KeyError`, conversion, metadata, helper, and
+normalizer exception scopes.
 
-Seam B moves `_find_reconciliation_match_entry(...)` (17),
-`_expand_structured_candidate_ids(...)` (26), and
-`_structured_candidate_from_id(...)` (13) as three public functions without the
-leading underscore. The 56 former lines project to 53 owner lines and all eight
-current calls remain reconciliation-external. Together the batch is 293 former
-lines becoming 285 owner lines across seven public and four owner-private
-functions. Twenty-six calls finish as 19 external and seven owner-local. Delete
-every old body and retarget directly; add no wrapper, alias, callback, carrier,
-reason, flag, or new output field.
+The owner adds only `_preferred_calc_sections` and `_section_hint_alias` from
+`financial_retrieval_hints`; normalization and state typing are already owned.
+Retrieval hints, runtime normalization, and runtime trace do not import or reach
+reflection projection, and reflection projection does not reach either graph
+mixin, so the import DAG remains acyclic. The selected spans hit no runtime-
+domain baseline record and the reviewed count remains 217. Reconciliation keeps
+its `_preferred_calc_sections` import for heuristic and LLM-plan preparation,
+while `_section_hint_alias` becomes owner-only and should be removed there. All
+calculation imports touched outside the selected call remain live.
 
-The selected functions preserve explicit statement-type fallback, configured
-statement markers, percent and ambiguous-unit handling, period-focus/report-year
-fallback, candidate plus structured-cell scoring, stable identity construction,
-exact-role-before-first-match selection, lookup magnitude coercion, fresh operand
-row construction, stable candidate-ID expansion, and shallow candidate copies.
-They preserve current eager access, first-match/tie order, `None` rejection,
-top-level copy and nested identity, caller-input immutability, and uncaught
-exception behavior.
+Before production movement, add exactly six CURRENT-SOURCE methods to
+`tests.test_reflection_capability_contract`: direct builder branch/access/
+dedupe/no-mutation/exception behavior; direct finalizer planner/objective/
+section/company behavior; direct finalizer fallback/laziness/copy/exception
+behavior; exact 26/81-definition, 2/1-call, planned 26/80-owner-span,
+external-two/local-one, import-DAG, baseline, dead-import and try-depth inventory;
+an executable `_heuristic_reflection_query_plan(...)` caller test; and an
+executable `_prepare_reflection_retry(...)` caller test. Pin exact args and list
+identity, call order, result adoption, input/nested identity, no mutation, and
+owner-exception downstream stop. Only after focused 6/6 is independently green
+may source move. Then retarget existing private build-query patches, require
+retired selected private refs zero, and run reflection owner 24/24, affected
+eight-module semantic 758/758, import-side-effect 19/19, union 777/777, runtime
+audit 217, projected full discovery 1,764/1,764, pycompile/fresh import,
+DAG/body/caller parity, and diff-check gates sequentially. The semantic set is
+`tests.test_reflection_capability_contract`,
+`tests.test_financial_dependency_projection`, `tests.test_reconciliation_plan`,
+`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`,
+`tests.test_operation_contracts`, `tests.test_retrieval_scope`, and
+`tests.test_reflection_promotion_gate`.
 
-The new owner depends on existing normalization, operation-policy, structured-
-cell, operand-resolution, retrieval-policy, and `financial_graph_helpers`
-scoring/period helpers. None imports the new owner, so the import DAG remains
-acyclic; the generic helper module remains a dependency rather than becoming a
-relocation target. The selected spans hit no runtime-domain baseline record and
-the reviewed count remains 217. After movement, reconciliation imports for
-`_operand_target_years`, `_resolve_candidate_local_unit_hint`,
-`_score_structured_cell`, `coerce_lookup_magnitude_value`,
-`_structured_cell_period_text`, `_label_implies_percent_metric`,
-`_normalise_operand_value`, and
-`FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES` become owner-only and should be
-removed from the mixin; every other touched import retains nonselected uses.
-
-Before either source seam moves, add exactly eight CURRENT-SOURCE methods in a
-dedicated candidate-owner test module: direct statement/unit handling; direct
-period/identity resolution; direct candidate/cell scoring; direct row build and
-effective-unit projection; direct reconciliation-match selection; direct ID
-expansion/candidate-copy behavior; exact 11-definition/26-call/import-DAG/
-baseline/dead-import inventory; and an executable caller matrix spanning
-`_extract_structured_period_pair_rows(...)` plus
-`_extract_structured_operands_from_reconciliation(...)`. Pin exact args/order,
-stable first selection, shallow copies and nested/list identity, no input
-mutation, access/laziness boundaries, adoption, and downstream exception-stop.
-Then move A and B sequentially, retarget existing private test patches, require
-retired refs zero, and run focused eight, candidate-owner eight, affected
-seven-module semantic 486, import-side-effect 19, union 505, runtime audit 217,
-projected full discovery 1,758, pycompile/fresh import, DAG, body/caller parity,
-and diff-check gates sequentially. The semantic set is the new candidate-owner
-module plus `tests.test_reconciliation_plan`,
-`tests.test_financial_operand_resolution`,
-`tests.test_financial_dependency_projection`,
-`tests.test_financial_task_artifacts`, `tests.test_operation_contracts`, and
-`tests.test_structured_operand_extraction`.
-
-Keep `_extract_structured_period_pair_rows(...)`, structured-cell selection,
-`_extract_structured_operands_from_reconciliation(...)`, candidate collection,
-LLM reranking, reconciliation evidence-item construction, artifact updates,
-retry planning, mutable reconciliation state/evidence, and final sequencing in
-their current owners. Do not move or duplicate graph-helper scoring primitives
-to avoid a second owner, and do not expand direct structured-value, precision,
-prepared-candidate, compact-ratio, ontology-compatibility, bound-callback,
-evidence-mutation, state, or ledger seams. No behavior, accuracy, ranking,
-performance, total-code or executed-path reduction, benchmark, schedule, or
-Phase 3 completion claim follows.
+Keep `_select_retry_strategy_for_reconciliation(...)`,
+`_heuristic_reflection_query_plan(...)`, `_infer_missing_info(...)`, and
+`_plan_reflection_retry(...)` in reconciliation because they retain dynamic
+dependency-resolution/calc-family/mixin or prompt/LLM behavior. Keep
+`_prepare_reflection_retry(...)`, action/report/artifact construction, mutable
+state clearing, retrieval routing, retry eligibility/budget/promotion, and final
+sequencing in their current owners. Do not expand structured-pair extraction,
+direct structured-value/precision, compact-ratio, ontology-compatibility,
+bound-callback, evidence-mutation, state, carrier, or ledger seams. No behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark, schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

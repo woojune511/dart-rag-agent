@@ -238,16 +238,17 @@ evidence mixin에는 `_retrieve` 호환 복사본이 없다.
   등을 candidate 목록으로 만든다.
 - `_extract_structured_operands_from_reconciliation(state)`: reconciliation match를
   calculation operand row로 변환한다.
-- `_find_reconciliation_match_entry(...)`: required operand와 candidate cell의
-  label/period/unit/provenance match를 찾는다.
+- `financial_reconciliation_candidates.py`: 이미 준비된 candidate/cell의
+  statement/unit/period/score/identity/row/match/ID projection을 담당한다.
 - `_llm_rerank_operand_candidates(...)`: deterministic ranking이 부족한 경우에만
   LLM rerank 후보를 사용한다.
 - `_plan_reflection_retry(state)`: 근거 부족 시 retry query/action 계획을 만든다.
 - `_supplement_section_seed_docs(state)`: 최종 window 밖으로 밀린 seed evidence를
   required operand 계약에 맞게 보존한다.
 
-helper 역할군은 structured cell identity, period score, unit repair, sibling
-lookup surface matching, retry query 생성이다.
+graph mixin에 남은 helper 역할군은 candidate collection, structured-pair/
+operand extraction orchestration, LLM rerank, evidence construction, seed
+preservation과 retry planning이다.
 
 ## 8. Calculation Layer
 
@@ -281,6 +282,7 @@ State-free owner topology:
 | --- | --- |
 | `financial_operand_resolution.py` | candidate match/merge/adoption, unit and period coercion, dependency-task KRW consistency, table-metadata/raw-unit repair, growth raw-scale alignment/period conflict, ratio display alignment, and denominator sign policy |
 | `financial_dependency_projection.py` | dependency precedence/projection, recalculation disposition, provenance and source-slot consistency, plus dependency input matching, sibling-output synthesis preference, and task-output binding projection; dependency-task KRW-consistency implementation and ownership moved to the operand owner |
+| `financial_reconciliation_candidates.py` | prepared candidate/cell statement, unit, period, score, identity, operand-row, match, and candidate-ID projection; collection, reranking, evidence construction, retry, and state mutation remain outside |
 | `financial_calculation_execution.py` | deterministic plan construction, guard, formula execution, stale-value assessment |
 | `financial_answer_slots.py` | answer-slot construction, shared slot-material/period policy, ratio consolidation/collapse/completeness, and source display compatibility |
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
@@ -291,6 +293,7 @@ State-free owner topology:
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
+| `financial_reflection_projection.py` | reflection request/plan normalization, strict summaries, synthesis source, deterministic action/report, and bounded artifact-integrity feedback; heuristic and LLM planning remain outside |
 | `financial_graph_calculation_rendering.py` | calculation answer rendering plus ratio result-unit, absolute-query, and result projection policy |
 
 Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
@@ -311,9 +314,9 @@ prepared-document snippet projection and retrieved-source preservation,
   prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency,
   lookup magnitude와 same-block/table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
 projection, aggregate result support/reuse predicate와 prepared growth-numeric
-rendering, dependency input matching/binding/synthesis policy, final-answer
-evidence filtering/operand append/surface-operand projection이 포함된다. Graph는
-query/evidence preparation, caller
+rendering, dependency input matching/binding/synthesis policy, prepared structured-
+reconciliation candidate projection, final-answer evidence filtering/operand
+append/surface-operand projection이 포함된다. Graph는 query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
 sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
 planning은 nested traversal을 유지한다.
@@ -459,10 +462,15 @@ Aggregate/narrative row의 state-free answer policy owner다.
   runtime-evidence 선택/fallback, dynamic structured/stale answer repair, trace
   resolution/rebuild, graph execution, compatibility assembly, mutable state/evidence,
   artifact/ledger와 final sequencing은 graph에 남는다.
-- 다음 선택은 reconciliation의 prepared candidate metadata/unit/period/score/
-  identity/row/ID projection 293줄을 새 state-free owner로 옮기는 두 seam이다.
-  public 7개와 owner-private 4개, 26개 call의 external 19/local 7 distribution,
-  LLM rerank·evidence/state·artifact/retry hard stop은
+- 완료된 reconciliation-candidate batch는 prepared candidate metadata/unit/
+  period/score/identity/row/match/ID projection 293줄을 새 owner의 public 7개와
+  owner-private 4개로 옮겼다. 26개 call은 external 19/local 7이며 collection,
+  structured-pair extraction, LLM rerank, evidence/state/artifact/retry는 graph에
+  남는다.
+- 다음 선택은 reflection retry-query builder/finalizer 107줄을 기존 reflection
+  owner의 public 2개로 옮기는 한 batch다. 세 call은 external 2/local 1이며
+  heuristic dependency resolution, prompt/LLM planning, action/report/artifact,
+  state/routing/promotion hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

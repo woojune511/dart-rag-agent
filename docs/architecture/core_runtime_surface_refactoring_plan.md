@@ -363,16 +363,33 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified.
 Dynamic structured/stale answer repair, trace rebuild, runtime-evidence
 selection, graph execution, compatibility assembly, mutable state/evidence,
 artifact/ledger work, callbacks, carriers, and final sequencing remain excluded.
-The selected follow-on is now two sequential characterize-first seams totaling
-293 state-free structured-reconciliation candidate-projection lines from
-`financial_graph_reconciliation.py` into a new
-`financial_reconciliation_candidates.py` owner. Seven public and four owner-
-private functions project to 285 owner lines; 26 calls finish as 19
-reconciliation-external and seven owner-local. The graph mixin keeps candidate
-collection/selection orchestration, structured-pair extraction, LLM reranking,
-evidence construction, retry, artifact, mutable-state, and final sequencing.
-Exact APIs, the eight-method characterization gate, call distribution, DAG, and
-stop lines live only in
+
+The completed `bb0a982` follow-on is another ownership relocation only. It moved
+the former 293 structured-reconciliation candidate-projection definition-span
+lines to seven public plus four owner-private functions totaling 285 lines in the
+new `financial_reconciliation_candidates.py` owner. Twenty-six calls finish as
+19 reconciliation-external and seven owner-local; retired selected private refs
+are zero. Source is `+357/-331`, tests are `+686/-30`, and the whole commit is
+`+1,043/-361`. Reconciliation moved from 2,079 to 1,776 physical lines, the new
+owner contains 329, and eight new unittest methods moved full discovery from
+1,750 to 1,758. Final gates passed focused 8/8, candidate owner 8/8, affected
+semantic 486/486, import 19/19, semantic/import union 505/505, audit 217, full
+discovery 1,758/1,758, pycompile/fresh import, DAG/body/caller parity, and diff
+check. Its source diff SHA-256 is
+`6469dfd06b0efd36c92d252753ba96ecdeb5421e4dc3fdaac0c492cdd4167a5f`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
+
+Candidate collection/selection, structured-pair and operand extraction
+orchestration, LLM reranking, evidence construction, retry, artifact/state,
+ledger, and final sequencing remain excluded. The selected follow-on is now one
+characterize-first 107-line reflection retry-query projection batch into the
+existing `financial_reflection_projection.py` owner. Public
+`build_retry_queries(...)` and `finalize_retry_queries(...)` project to 106 owner
+lines; three calls finish as two graph-external and one owner-local. Heuristic
+dependency/calc-family resolution, prompt/LLM planning, action/report/artifact
+projection, mutable state, routing/promotion, and final sequencing stay in their
+current graph owners. Exact APIs, the six-method characterization gate, call
+distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

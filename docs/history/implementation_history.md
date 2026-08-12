@@ -2690,6 +2690,61 @@ characterize-first gate, projected validation counts, import/DAG boundary, and
 rejected state/callback/carrier/cycle expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Structured reconciliation candidate-projection owner milestone
+
+- `bb0a982` creates `financial_reconciliation_candidates.py` and moves prepared
+  candidate statement/unit/period/score/identity/row, reconciliation-match, and
+  candidate-ID projection out of `FinancialAgentReconciliationMixin`. The former
+  36 + 38 + 11 + 10 + 29 + 33 + 17 + 63 + 17 + 26 + 13 = 293 definition-span
+  lines become 285 owner lines across seven public and four owner-private
+  functions.
+- Twenty-six selected direct calls finish as 19 reconciliation-external and
+  seven owner-local. Retired selected private source/test refs are zero; no
+  wrapper, compatibility alias, callback, reason, flag, carrier, or output field
+  remains.
+- Literal body parity passed for all eleven moved functions after only `self`
+  removal and selected-name normalization. Complete caller parity passed for
+  `_extract_structured_period_pair_rows(...)`,
+  `_evidence_items_from_reconciliation_matches(...)`, and
+  `_extract_structured_operands_from_reconciliation(...)`. Public import
+  identity, removed mixin-attribute absence, pycompile/fresh import, DAG, and
+  diff check passed. None of the selected spans moved a runtime-domain baseline
+  record; the reviewed count remains 217.
+- Exactly eight source/test files changed. Source is `+357/-331`, net `+26`:
+  reconciliation moved from 2,079 to 1,776 physical lines and the new owner
+  contains 329. Tests are `+686/-30`, net `+656`; the whole commit is
+  `+1,043/-361`, net `+682`. The touched tests moved from 31,422 to 32,078
+  physical lines, and exactly eight new unittest methods moved full discovery
+  from 1,750 to 1,758.
+- The committed source-only diff SHA-256 is
+  `6469dfd06b0efd36c92d252753ba96ecdeb5421e4dc3fdaac0c492cdd4167a5f`.
+  Final validation passed focused 8/8, candidate owner 8/8, affected seven-
+  module semantic 486/486, import-side-effects 19/19, semantic/import union
+  505/505, runtime audit 217, full discovery 1,758/1,758, pycompile/fresh-import
+  binding checks, DAG/body/caller parity, and `git diff --check`. Benchmark
+  refresh was **NOT RUN**, and no remote CI run is claimed or verified for this
+  local branch.
+
+This milestone changes only ownership of deterministic projection over already
+prepared candidate, cell, operand, match, constraint, and ID mappings. Candidate
+collection/selection, structured-pair and operand extraction orchestration, LLM
+reranking, evidence construction, artifact/retry/state mutation, ledger work,
+and final sequencing remain graph-owned. The commit proves no behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 107-line
+reflection retry-query projection batch into the existing
+`financial_reflection_projection.py` owner. Public `build_retry_queries(...)`
+and `finalize_retry_queries(...)` project to 106 owner lines. Three current calls
+finish as two graph-external and one owner-local. Heuristic dependency/calc-
+family resolution, missing-info inference, prompt/model planning, action/report/
+artifact construction, state clearing, routing/promotion, and final sequencing
+remain hard stops. Exact APIs, the six-method CURRENT-SOURCE gate, projected
+validation counts, DAG, and rejected state/callback/carrier/cycle expansions are
+maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
