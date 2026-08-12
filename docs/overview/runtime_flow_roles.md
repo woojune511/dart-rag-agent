@@ -287,9 +287,10 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, nested-row traversal/operation/specificity and bounded selected-result promotion, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
+| `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, and the selected next direct structured-row/value projection boundary |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
-| `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
+| `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_reflection_projection.py` | reflection request/plan normalization, strict summaries, synthesis source, deterministic action/report, and bounded artifact-integrity feedback; heuristic and LLM planning remain outside |
@@ -497,11 +498,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   48줄을 aggregate owner의 public 47줄로 옮겼다. 두 call은 graph-external이고
   owner public/private 함수 수는 74/11이다. Focused 4/4, semantic 806/806,
   import 19/19, audit 217과 full 1,797/1,797이 통과했다.
-- 다음 선택은 calculation mixin의 collapsed-ratio runtime-trace repair
-  310줄을 runtime-trace owner의 public 309줄로 옮기는 batch다. 두 call은
-  main graph external로 유지한다. Public-answer orchestration, period repair,
-  retrieval/canonical evidence construction, mutable state/evidence, artifact/ledger와
-  final sequencing hard stop은
+- 완료된 collapsed-ratio runtime-trace repair는 calculation mixin의 310줄을
+  runtime-trace owner의 public 309줄로 옮겼다. 두 call은 main graph external이고
+  owner public/private 함수 수는 3/28이다. Focused 6/6, aggregate-subtask
+  124/124, text-surface 20/20, semantic 832/832, import 19/19, audit 217과 full
+  1,803/1,803이 통과했다.
+- 다음 선택은 calculation mixin의 direct structured lookup-row 81줄과
+  operand-value coercion 139줄을 순차적으로 lookup-recovery owner의 public
+  80줄과 138줄로 옮기는 두-seam batch다. 다섯 call은 graph external로
+  유지한다. Evidence-pool selection/scoring, state/report scope, table-label
+  lookup, precision refinement, mutable evidence, artifact/ledger와 final
+  sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

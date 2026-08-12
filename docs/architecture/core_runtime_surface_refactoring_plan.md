@@ -457,15 +457,34 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified. Evidence
 preparation, stale/runtime-ratio repair, mutable state synchronization,
 composition, artifact/ledger mutation, and final sequencing remain graph-owned.
 
-The selected follow-on is one characterize-first 310-line collapsed-ratio
-runtime-trace repair transform into the existing runtime-trace owner. It
-projects to one 309-line public function and retains two graph-external calls.
-Only calculation-rendering, numeric-surface, text-surface, and reviewed-policy
-imports are added as acyclic owner-to-helper edges; the runtime-trace owner
-does not reach graph or calculation. Public-answer orchestration, period repair,
-retrieval/canonical evidence construction, mutable state/evidence, artifact/ledger
-mutation, and final sequencing remain hard stops. Exact API, six-method
-characterization gate, call distribution, DAG, and stop lines live only in
+The completed `8861253` follow-on moved the former 310-line collapsed-ratio
+evidence repair transform into `financial_runtime_trace.py` as one 309-line
+public function. Its two calls remain graph-external. Source is `+322/-315`,
+tests are `+1,574/-166`, and the whole commit is `+1,896/-481`. Calculation
+moved from 14,418 to 14,106 physical lines, main graph from 937 to 938, runtime
+trace from 1,094 to 1,412, and six new unittest methods moved full discovery
+from 1,797 to 1,803. Final gates passed focused 6/6, aggregate-subtask 124/124,
+text-surface 20/20, affected semantic 832/832, import 19/19,
+semantic/import union 851/851, audit 217, full discovery 1,803/1,803,
+pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and diff check.
+The source diff SHA-256 is
+`a83d1ddaa2167516789bc9de1a90033dd7183d6764ddf0609bf91a777199e451`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Public-answer
+orchestration, period repair, retrieval/canonical evidence construction,
+mutable state/evidence, artifact/ledger mutation, and final sequencing remain
+graph-owned.
+
+The selected follow-on is a two-seam characterize-first direct
+structured-evidence batch into `financial_lookup_recovery.py`: first the
+81-line direct lookup-row projection, then the 139-line direct operand-value
+coercion. They project to two public functions totaling 218 owner lines and
+retain five graph-external calls with zero owner-local calls. The destination
+adds only acyclic edges to existing structured-cell, row/surface, graph-helper,
+and operand-policy contracts; no reviewed runtime-domain record moves.
+Evidence-pool selection/scoring, graph state/report scope, table-label lookup,
+precision refinement, mutable evidence, artifact/ledger mutation, and final
+sequencing remain hard stops. Exact APIs, per-seam four-method characterization
+gates, call distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

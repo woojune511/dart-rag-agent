@@ -3401,26 +3401,55 @@ import 19/19, semantic/import union 825/825, audit 217, and full discovery
 1,797/1,797 passed. The source diff SHA-256 is
 `f10c327aca0fb5a4a885892354bef1b840caaf224a9696ae113c9d650df45df1`.
 
-The selected next runtime-trace boundary is public
+The completed runtime-trace boundary is public
 `repair_collapsed_ratio_trace_from_evidence(state, trace)` in
-`financial_runtime_trace.py`. It must preserve the former 310-line graph
-contract after `self` removal: ratio/status/component gates; cleaned
-source/value identity; copied prepared evidence/context-doc collection;
+`financial_runtime_trace.py`. It preserves the former 310-line graph contract
+in 309 owner lines after removing only `self`: ratio/status/component gates;
+cleaned source/value identity; copied prepared evidence/context-doc collection;
 aggregate-token, label/concept, anchor and unit matching; stable numeric
 candidate rank/tie behavior; zero/equal rejection; formatted percent result;
 slot/source/role and operand overlay projection; trace copies/nested aliases;
 input immutability; access laziness; existing soft conversion failures; and all
-other propagated exceptions. The projected owner span is 309 lines.
+other propagated exceptions.
 
 Both `financial_graph.py` callers retain exact positional arguments and remain
 outside `try` blocks. `_structured_public_answer_trace_projection(...)` calls
-the owner only after a nonempty structured projection. The public runtime-trace
-repair caller adopts the returned trace before the separate period-comparison
-repair. Retrieval, public-answer orchestration, period repair, canonical
-evidence-ID/window/provenance construction, mutable state or evidence,
-artifact/ledger mutation, and final sequencing remain graph-owned.
-The exact six-method CURRENT-SOURCE gate, affected validation set,
-retired-ref rule, dependency/DAG contract, and hard stops are maintained only in
+the owner only after a nonempty structured projection.
+`_repair_public_runtime_calculation_trace(...)` adopts the returned trace before
+the separate period-comparison repair. Retrieval, public-answer orchestration,
+period repair, canonical evidence-ID/window/provenance construction, mutable
+state or evidence, artifact/ledger mutation, and final sequencing remain
+graph-owned. Commit `8861253` records source `+322/-315`, tests `+1,574/-166`,
+and whole-commit `+1,896/-481`. Focused 6/6, aggregate-subtask 124/124,
+text-surface 20/20, affected semantic 832/832, import 19/19, semantic/import
+union 851/851, audit 217, and full discovery 1,803/1,803 passed. The source diff
+SHA-256 is
+`a83d1ddaa2167516789bc9de1a90033dd7183d6764ddf0609bf91a777199e451`.
+
+The selected next lookup-recovery boundary is two sequential public functions
+in `financial_lookup_recovery.py`. Public
+`lookup_row_from_direct_structured_evidence(operand, evidence_item, *, index)`
+must preserve the former 81-line graph contract in a projected 80 owner lines:
+metadata/cell copies, ordinary then aggregate selection, exact period focus,
+aggregate-role preference, value/unit normalization, empty failure gates, exact
+direct-row fields, magnitude-record adoption, nested aliases, input
+immutability, access laziness, and uncaught exceptions. Its four calculation
+callers retain their exact arguments and remain outside `try` blocks.
+
+After that seam freezes, public
+`coerce_operand_value_from_direct_structured_evidence(row, evidence_item)` must
+preserve the former 139-line graph contract in a projected 138 owner lines:
+row/evidence identity gates, metadata/cell copies, authoritative-surface
+matching, query-year soft conversion, aggregate and period-specific selection,
+current-value equality and `1e-6` tolerance, normalized and rendered replacement,
+fresh top-level output only on material change, nested aliases, input
+immutability, access laziness, and uncaught exceptions. Its sole calculation
+caller remains after period coercion and before magnitude coercion, dependency
+early return, and precision refinement. Evidence-pool selection/scoring,
+state/report scope, table-label lookup, precision refinement, mutable evidence,
+artifact/ledger mutation, and final sequencing remain graph-owned. The exact
+per-seam CURRENT-SOURCE gates, affected validation set, retired-ref rule,
+dependency/DAG contract, and hard stops are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter

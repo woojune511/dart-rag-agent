@@ -15,11 +15,11 @@ Last updated: 2026-08-13
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; final aggregate evidence/provenance projection is aggregate-projection-owned, four named debt groups remain |
-| What just changed? | The 48-line final aggregate evidence/provenance seam moved to `financial_aggregate_projection.py` in `d31e67a` |
-| What passed? | Focused 4/4, aggregate owner 84/84, affected seven-module semantic set 806/806, import-side-effect 19/19, runtime audit 217, full unittest 1,797/1,797 |
+| What is the architecture state? | Phase 3 OPEN; collapsed-ratio evidence repair is runtime-trace-owned, four named debt groups remain |
+| What just changed? | The 310-line collapsed-ratio trace-repair seam moved to `financial_runtime_trace.py` in `8861253` |
+| What passed? | Focused 6/6, aggregate-subtask 124/124, text-surface 20/20, affected eight-module semantic set 832/832, import-side-effect 19/19, runtime audit 217, full unittest 1,803/1,803 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | One characterize-first 310-line collapsed-ratio runtime-trace repair seam into `financial_runtime_trace.py`; public-answer orchestration, period repair, mutable state, canonical evidence construction, ledger, and final sequencing remain hard stops |
+| What is next? | Two sequential characterize-first direct structured-evidence seams totaling 220 old lines into `financial_lookup_recovery.py`; graph-state lookup/scoring, operand-row orchestration, precision refinement, mutable evidence, ledger, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -91,12 +91,30 @@ or an unconfigured `FinancialAgent` invocation.
   stale/runtime-ratio repair, state synchronization, answer composition,
   artifact/ledger mutation, and final sequencing remain graph-owned. This is
   ownership relocation, not a behavior claim.
-- Current physical sizes are: calculation graph 14,418 lines, main graph 937,
+- Commit `8861253` moved the former 310-line
+  `_repair_collapsed_ratio_trace_from_evidence(...)` body to one 309-line public
+  `repair_collapsed_ratio_trace_from_evidence(...)` runtime-trace function. Its
+  two calls remain graph-external in `financial_graph.py`: one after a nonempty
+  structured public projection and one before the separate period-comparison
+  repair. Source is `+322/-315`, net `+7`; tests are `+1,574/-166`, net
+  `+1,408`; the whole commit is `+1,896/-481`, net `+1,415`. Calculation moved
+  from 14,418 to 14,106 physical lines, main graph from 937 to 938, and runtime
+  trace from 1,094 to 1,412. Six new test methods moved discovery from 1,797 to
+  1,803. The source diff SHA-256 is
+  `a83d1ddaa2167516789bc9de1a90033dd7183d6764ddf0609bf91a777199e451`.
+  Retired private refs are zero, the runtime-trace owner contains three public
+  and 28 private top-level functions, and the reviewed runtime-domain count
+  remains 217. Public-answer orchestration, period repair, retrieval/canonical
+  evidence construction, mutable state/evidence, artifact/ledger mutation, and
+  final sequencing remain graph-owned. This is ownership relocation, not a
+  behavior claim.
+- Current physical sizes are: calculation graph 14,106 lines, main graph 938,
   graph helpers 6,269,
   planning 2,048, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 411, operand resolution 3,603,
   dependency projection 3,417, reconciliation 1,667, reconciliation candidates
-  329, aggregate projection 3,644, runtime trace 1,094, task artifacts 1,460, reflection projection
+  329, aggregate projection 3,644, runtime trace 1,412, lookup recovery 557,
+  task artifacts 1,460, reflection projection
   374, and run projection 302.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
@@ -118,7 +136,7 @@ Commit-level diffs and validation are kept in
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, nested-row traversal/scoring/selected-result promotion, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
 | Aggregate projection | `financial_aggregate_projection.py`, including aggregate calculation/public projection, subtask upsert/rank, selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, nested-result replacement, arithmetic subtask-surface synchronization, duplicate growth-prior recovery, final evidence/provenance projection, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, prepared growth/ratio material inspection, final-answer evidence filtering/operand append/surface-operand projection, and growth-answer completion/sanitization |
-| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection but not ledger mutation orchestration |
+| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; runtime trace includes collapsed-ratio evidence repair and the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection, but neither owns ledger mutation orchestration |
 | Caller-facing run projection | `financial_agent_run_projection.py`; state-free runtime-evidence metadata/citation, agent-answer/review/debug, structured missing-answer selection, aggregate completion, and prepared public-answer state projection, excluding evidence selection, dynamic answer/trace repair, graph execution, and final sequencing |
 | Reflection projection | `financial_reflection_projection.py`; deterministic retry-query construction/finalization, action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
@@ -142,20 +160,20 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, final evidence/provenance characterization 4 / 4; aggregate owner 84 / 84 |
-| Latest semantic regression set | PASS, affected seven-module set 806 / 806; semantic/import union 825 / 825 |
+| Latest focused owner checkpoint | PASS, collapsed-ratio characterization 6 / 6; aggregate-subtask 124 / 124; text-surface 20 / 20 |
+| Latest semantic regression set | PASS, affected eight-module set 832 / 832; semantic/import union 851 / 851 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,797 / 1,797 |
+| Full unittest discovery | PASS, 1,803 / 1,803 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_aggregate_rank_dedupe`,
 `tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
-`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`,
-`tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`.
-`tests.test_import_side_effects` passed separately at 19 / 19 and together with
-the semantic set as an 825-test union.
+`tests.test_financial_text_surface`, `tests.test_subtask_loop`,
+`tests.test_financial_agent_run_projection`, `tests.test_lookup_recovery_policy`,
+and `tests.test_operation_contracts`. `tests.test_import_side_effects` passed
+separately at 19 / 19 and together with the semantic set as an 851-test union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
 claim that the latest owner changes reran a paid benchmark. Their upstream raw
@@ -186,81 +204,87 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture seam is the state-free collapsed-ratio runtime
-trace repair in `financial_graph_calculation.py`. Move the current
-`_repair_collapsed_ratio_trace_from_evidence(state, trace)` definition (310
-lines) to `financial_runtime_trace.py` as public
-`repair_collapsed_ratio_trace_from_evidence(state, trace)` (projected 309
-lines). Its body has no `self` load. The two direct callers remain in
-`financial_graph.py`, outside `try` blocks: `_structured_public_answer_trace_projection(...)`
-passes its prepared `public_projection_state(...)` and
-`structured_public_projection`; `_repair_public_runtime_calculation_trace(...)`
-passes `projection_state, runtime_calculation_trace`, adopts the returned trace,
-and then runs the separate period-comparison repair. Delete the old body and
-retarget both calls directly; add no wrapper, alias, callback, carrier, reason,
-flag, or output field. The selected API distribution is two graph-external
-calls and zero owner-local calls.
+The sole selected architecture work is a two-seam, characterize-first direct
+structured-evidence batch into the existing `financial_lookup_recovery.py`
+owner. Execute the seams sequentially and freeze each before starting the next.
 
-Preserve ratio/status/component gates; numerator/denominator identity by cleaned
-source IDs and normalized value; stable copied collection of already-prepared
-evidence and context-doc surfaces; aggregate-token and label/concept term
-matching; anchor compatibility; numeric-candidate extraction order, unit
-filtering, numerator all-term requirement, stable rank/tie order, and zero/equal
-value rejection; percent formatting; slot/source/role projection; operand
-overlay; trace copy and nested-alias behavior; input immutability; access
-laziness; the existing `TypeError`/`ValueError` soft fallbacks; and all other
-uncaught exceptions. This is bounded read-only evidence-surface selection over
-already supplied state and trace data, not retrieval or canonical
-evidence-ID/window/provenance construction and mutation.
+Seam A moves the current graph-private
+`_lookup_row_from_direct_structured_evidence(operand, evidence_item, *, index)`
+definition (81 lines) as public
+`lookup_row_from_direct_structured_evidence(operand, evidence_item, *, index)`
+(projected 80 lines). Its body has no `self` load. The four direct callers remain
+graph-external and outside `try` blocks: three in
+`_best_direct_lookup_slot_from_evidence_pool(...)` use `index=1`, while one in
+`_period_table_direct_operand_rows(...)` uses `index=operand_index`.
 
-The destination already owns `overlay_calculation_operands_from_slots(...)`,
-normalization, and the graph-state type edge. Add `FinancialAgentState` to that
-existing type import plus direct imports for calculation rendering,
-`extract_numeric_surface_candidates(...)`,
-`numeric_candidates_with_spans_from_surface(...)`,
-`narrative_context_terms(...)`, and `STRUCTURED_CELL_AFFINITY_POLICY`. These add
-one-way owner-to-helper edges; none of those dependencies reaches runtime trace,
-graph, or calculation, so the move is acyclic. The selected span contains no reviewed
-runtime-domain record and the audit count remains 217. The old calculation
-import of `numeric_candidates_with_spans_from_surface(...)` becomes dead;
-`overlay_calculation_operands_from_slots(...)`, normalization, text terms,
-rendering, and policy remain live elsewhere.
+Seam B then moves
+`_coerce_operand_value_from_direct_structured_evidence(row, evidence_item)`
+(139 lines) as public
+`coerce_operand_value_from_direct_structured_evidence(row, evidence_item)`
+(projected 138 lines). Its sole direct call remains graph-external and outside a
+`try` block in `_coerce_operand_row_from_evidence(...)`, after period coercion
+and before lookup-magnitude coercion, structured-cell early return, dependency
+early return, and precision refinement. Across both seams, delete the old
+bodies and retarget all five calls directly; add no wrapper, alias, callback,
+carrier, reason, flag, or output field. The final selected distribution is five
+graph-external calls and zero owner-local calls. The lookup owner moves from
+public/private 9/7 to 11/7.
 
-Before production movement, add exactly six CURRENT-SOURCE methods to
-`tests.test_aggregate_subtask_projection`: direct early-gate/identity/laziness
-coverage; direct evidence/context-doc collection and copy/access coverage;
-direct ranking/anchor/unit/tie coverage; direct numeric/result/slot/overlay and
-exception coverage; one exact 310-line/two-call/import-DAG/dead-import/baseline/
-try-depth inventory; and one executable two-caller test fixing exact args,
-adoption, the structured-projection gate, the runtime-repair-to-period-repair
-order, mutable-input preservation, and exception stop. Hold production until
-focused 6/6 passes. After the literal move, retarget direct tests to the runtime
-trace owner and caller patches to the graph import site; migrate existing
-private references in `tests.test_financial_agent_run_projection`,
-`tests.test_aggregate_subtask_projection`, and `tests.test_subtask_loop`, and
-require retired private source/test refs to reach zero.
+Preserve metadata and structured-cell shallow copies, stable cell order,
+year/period focus, ordinary and aggregate cell selection, aggregate-role
+preference, normalization, empty/no-selection/no-value identity returns, exact
+direct-row field construction, magnitude-record adoption, authoritative-surface
+matching, query-year soft conversion failures, current-value equality and
+`1e-6` tolerance, period-specific override, rendered-value construction,
+nested alias identity, input immutability, access laziness, and all uncaught
+exceptions. These functions project already-supplied operand rows and prepared
+evidence; they do not select the evidence pool or mutate graph state/evidence.
 
-Projected gates are focused 6/6, aggregate-subtask/runtime-trace contract
-124/124, affected seven-module semantic 812/812, import-side-effect 19/19,
-semantic/import union 831/831, runtime audit 217, full discovery 1,803/1,803,
-pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and diff check.
-The semantic set remains `tests.test_financial_aggregate_rank_dedupe`,
-`tests.test_aggregate_subtask_projection`, `tests.test_financial_answer_projection`,
-`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`,
-`tests.test_lookup_recovery_policy`, and `tests.test_operation_contracts`.
+The destination already owns normalization and
+`coerce_lookup_magnitude_record(...)`, and already imports operand-resolution
+symbols. Add the public aggregate-role preference plus the existing structured
+cell selectors/period-focus helper, structured-cell period text, row-surface
+operand matching, and positive-surface predicate. Those are one-way
+lookup-owner-to-helper edges; none reaches lookup recovery, calculation, or the
+main graph, so the move is acyclic. The selected spans contain no reviewed
+runtime-domain record and the audit count remains 217. Every touched graph
+dependency import remains live outside the selected bodies.
 
-Keep `_structured_public_answer_trace_projection(...)`,
-`_repair_public_runtime_calculation_trace(...)`, public-answer projection,
-period-comparison repair, graph execution, retrieval/canonical evidence construction,
-mutable state/evidence, artifact/ledger mutation, and final sequencing in the
-graph. Keep `_ordered_aggregate_subtask_results_for_repair(...)` graph-owned
-because it reads graph state directly. Reject the direct-structured/precision
-clusters that create reverse owner edges, retrieved-narrative evidence
-constructors, slot/gap callback-and-ledger cluster, compact-ratio state carrier,
-ontology compatibility path, prepared-candidate carrier, and state/ledger
-expansions. No behavior, accuracy, ranking, performance, total-code or
-executed-path reduction, benchmark, schedule, or Phase 3 completion claim
-follows.
+Before each production move, add exactly four CURRENT-SOURCE methods to
+`tests.test_lookup_recovery_policy`. Seam A requires two direct branch/access/
+copy/order/no-mutation/exception matrices, one exact 81-line/four-call/signature/
+try-depth/DAG/baseline inventory, and one executable combined caller test for
+pool and period-table args, index values, adoption, laziness, and exception stop.
+Seam B requires two direct gate/surface/selection/equality/tolerance/copy/
+no-mutation/exception matrices, one exact 139-line/one-call/signature/try-depth/
+DAG/baseline inventory, and one executable `_coerce_operand_row_from_evidence`
+test fixing exact args, adoption, order, early returns, precision handoff, and
+exception stop. Hold production until each focused 4/4 passes, then retarget
+owner-direct tests and graph-import caller patches. Migrate the five existing
+private references in `tests.test_operation_contracts` and require retired
+private source/test refs to reach zero.
+
+Projected final gates after both seams are focused 4/4 per seam and combined
+8/8, lookup-recovery owner 24/24, affected seven-module semantic 818/818,
+import-side-effect 19/19, semantic/import union 837/837, runtime audit 217, full
+discovery 1,811/1,811, pycompile/fresh import, DAG/body/caller parity,
+retired-ref zero, and diff check. The semantic set is
+`tests.test_lookup_recovery_policy`, `tests.test_financial_calculation_execution`,
+`tests.test_financial_operand_resolution`, `tests.test_aggregate_subtask_projection`,
+`tests.test_subtask_loop`, `tests.test_financial_agent_run_projection`, and
+`tests.test_operation_contracts`.
+
+Keep `_best_direct_lookup_slot_from_evidence_pool(...)`,
+`_period_table_direct_operand_rows(...)`, `_coerce_operand_row_from_evidence(...)`,
+evidence-pool selection/scoring, state/report scope, table-label lookup,
+precision refinement, mutable evidence, artifact/ledger mutation, and final
+sequencing in the graph. Do not move the broader
+`_lookup_value_from_table_label_metadata(...)` path because it passes the
+dynamic `_slot_metric_keys` callback. Reject graph-helper relocation, the
+precision/carrier cluster, ontology compatibility paths, prepared-candidate and
+compact-ratio state carriers, and state/ledger expansions. No behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark, schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

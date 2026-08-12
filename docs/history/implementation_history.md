@@ -3072,6 +3072,56 @@ projected validation counts, DAG, and rejected state/cycle/callback expansions
 are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Collapsed-ratio runtime-trace repair owner milestone
+
+- `8861253` moves the former 310-line
+  `_repair_collapsed_ratio_trace_from_evidence(...)` definition out of
+  `FinancialAgentCalculationMixin` as public
+  `repair_collapsed_ratio_trace_from_evidence(state, trace)` in
+  `financial_runtime_trace.py`. The owner definition is 309 lines after
+  removing only `self`. Both direct calls remain graph-external in
+  `financial_graph.py` with their original positional arguments.
+- Literal body parity and complete caller parity passed. The old calculation
+  definition and source/test private refs are zero, public import identity is
+  live, and the runtime-trace owner contains three public and 28 private
+  top-level functions. The added rendering, numeric-surface, text-surface,
+  graph-state type, and reviewed-policy edges are acyclic. The old calculation
+  numeric-span import is deleted; all other touched dependencies remain live.
+  The reviewed runtime-domain record count remains 217.
+- Source is `+322/-315`, net `+7`; tests are `+1,574/-166`, net `+1,408`; the
+  whole commit is `+1,896/-481`, net `+1,415`. Calculation moved from 14,418 to
+  14,106 physical lines, main graph from 937 to 938, and runtime trace from
+  1,094 to 1,412. Six new test methods moved discovery from 1,797 to 1,803. The
+  source diff SHA-256 is
+  `a83d1ddaa2167516789bc9de1a90033dd7183d6764ddf0609bf91a777199e451`.
+- Final validation passed focused 6/6, aggregate-subtask 124/124, text-surface
+  20/20, affected eight-module semantic 832/832, import-side-effects 19/19,
+  semantic/import union 851/851, runtime audit 217, full discovery 1,803/1,803,
+  pycompile/fresh import, DAG/body/caller parity, retired-ref zero, and
+  `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only collapsed-ratio evidence-repair ownership.
+Public-answer orchestration, period repair, retrieval/canonical evidence
+construction, mutable state/evidence, artifact/ledger mutation, and final
+sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is a sequential two-seam direct
+structured-evidence batch from calculation into `financial_lookup_recovery.py`.
+The former 81-line direct lookup-row projection becomes one 80-line public
+function with four graph-external calls. After that seam freezes, the former
+139-line direct operand-value coercion becomes one 138-line public function
+with one graph-external call. The destination moves from public/private 9/7 to
+11/7; the final selected call distribution is external five/local zero.
+Evidence-pool selection/scoring, state/report scope, table-label lookup,
+precision refinement, mutable evidence, artifact/ledger mutation, and final
+sequencing remain hard stops. Exact APIs, two four-method CURRENT-SOURCE gates,
+projected validation counts, DAG, and rejected callback/cycle/state expansions
+are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
