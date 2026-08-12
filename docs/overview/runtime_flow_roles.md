@@ -170,7 +170,6 @@ calculation aggregate path는 `aggregate_subtasks -> cite` 또는 추가 plannin
   active subtask로 바꾼다.
 - `_capture_current_subtask_result(state)`: 현재 subtask의 결과를 projection에
   저장한다.
-- `_upsert_subtask_result(...)`: subtask result를 품질 rank 기준으로 갱신한다.
 - `_project_runtime_calculation_trace(state)`: canonical calculation trace를 만든다.
 
 이 파일의 top-level helper들은 대부분 slot 추출, task dedupe, plan shape 보존,
@@ -471,12 +470,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   reflection owner의 public 2개로 옮겼다. 세 call은 external 2/local 1이며
   heuristic dependency resolution, prompt/LLM planning, action/report/artifact,
   state/routing/promotion은 graph에 남는다.
-- 다음 선택은 planning mixin의 aggregate calculation projection, structured
-  public-answer projection, subtask upsert/rank 156줄을 기존 aggregate owner의
-  public 3개와 owner-private 1개로 옮기는 한 batch다. 여섯 call은 external
-  4/local 2다. nested traversal/promotion 확장은 aggregate가 dependency를 통해
-  planning에 도달하는 현재 DAG의 reverse cycle을 만들므로 제외하며 mutable
-  state, filtering, recovery/alignment/synchronization, artifact/ledger와 final
+- 완료된 aggregate subtask projection/upsert batch는 aggregate calculation/public
+  projection과 subtask upsert/rank 156줄을 기존 aggregate owner의 public 3개와
+  owner-private 1개, 실제 153줄로 옮겼다. 여섯 call은 external 4/local 2이며
+  distinct runtime-trace private builder는 그대로 남는다.
+- 다음 선택은 planning mixin의 nested subtask traversal/operation/specificity/
+  promotion 128줄을 기존 answer-projection owner의 public 2개와 owner-private
+  2개, 예상 126줄로 옮기는 한 batch다. 여섯 call은 external 2/local 4다.
+  planning과 calculation은 이미 answer projection을 import하고 reverse path는
+  없다. state/task/evidence capture, dependency-coherence row replacement,
+  projection sync/rebuild, mutable state/evidence, artifact/ledger와 final
   sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 

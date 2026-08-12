@@ -195,7 +195,7 @@ Current ownership is intentionally split by state boundary:
 | Dependency projection | `financial_dependency_projection.py` | State-free dependency precedence, projection, recalculation disposition, provenance adoption, and related predicates; KRW-consistency implementation now belongs to operand resolution |
 | Formula execution | `financial_calculation_execution.py` | Deterministic plan construction, validation, execution, and value freshness |
 | Rendering and answer surfaces | `financial_graph_calculation_rendering.py`, `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, `financial_text_surface.py` | Ratio/result rendering, slot/readiness contracts, narrative validation, numeric comparison, table support, scale predicates, and shared term/variant/context sentence surfaces |
-| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate signatures, source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
+| Aggregate projection | `financial_aggregate_projection.py` | State-free aggregate calculation/public projection, subtask upsert/rank, signatures, source preparation, dependency-coherence ranks, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative-row/gap policy, and lookup-answer surfaces |
 | Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, `financial_task_artifacts.py` | State carriers and prepared projection transforms; graph retains surrounding orchestration |
 
 Detailed identity, laziness, exception, precedence, and caller-placement semantics
@@ -221,7 +221,8 @@ limits belong only in
 
 Phase 3 remains open for four durable debt groups:
 
-1. partially advanced: period/material/source/coherence/rank/dedupe, selected
+1. partially advanced: aggregate calculation/public projection and subtask
+   upsert/rank, period/material/source/coherence/rank/dedupe, selected
    narrative-validation policy, bounded row/gap/lookup-answer surfaces, and
    final-answer evidence/surface-operand projection and growth-answer completion/
    sanitization are owned, while promotion, sync/rebuild, mutable state/evidence,
@@ -257,6 +258,22 @@ while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
+
+The completed `06710c1` follow-on is another ownership relocation only. It moved
+the former 69 + 36 + 23 + 28 = 156 aggregate projection/upsert definition-span
+lines to three public plus one owner-private aggregate-owner functions totaling
+68 + 35 + 22 + 28 = 153 lines. Six calls finish as four graph-external and two
+owner-local; the distinct runtime-trace private aggregate builder remains live.
+Source is `+181/-184`, tests are `+1,143/-41`, and the whole commit is
+`+1,324/-225`. Planning moved from 2,356 to 2,180 physical lines, aggregate
+projection from 3,180 to 3,350, calculation from 14,716 to 14,718, and the main
+graph from 936 to 937. Seven new unittest methods moved full discovery from
+1,764 to 1,771. Final gates passed focused 7/7, aggregate-subtask owner 118/118,
+affected semantic 780/780, import 19/19, semantic/import union 799/799, audit
+217, full discovery 1,771/1,771, pycompile/fresh import, DAG/body/caller parity,
+and diff check. Its source diff SHA-256 is
+`0cb0b708ee672f115f0a06eea62217f598e87d1a194f6422d422ba126bb51f7b`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 The completed `cde3d98` commit is an ownership relocation only. Exactly seven
 source/test files changed. Two selected calculation definition spans totaling
@@ -399,17 +416,18 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 Heuristic dependency/calc-family resolution, prompt/LLM planning, action/report/
 artifact projection, mutable state, routing/promotion, and final sequencing
-remain excluded. The selected follow-on is now one characterize-first 156-line
-aggregate subtask projection/upsert batch into the existing
-`financial_aggregate_projection.py` owner. Three public plus one owner-private
-function project to 152 owner lines; six calls finish as four graph-external and
-two owner-local. This exact cut does not require planning to import aggregate.
-The tempting nested-row/specificity/promotion expansion is rejected because
-aggregate already reaches planning through dependency projection and the reverse
-planning import would create a cycle. Mutable state clearing, projection
-filtering, recovery/alignment/synchronization, artifact/ledger mutation, and
-final sequencing stay graph-owned. Exact APIs, the seven-method characterization
-gate, call distribution, DAG, and stop lines live only in
+remain excluded. The aggregate subtask projection/upsert batch is now complete.
+The selected follow-on is one characterize-first 128-line nested subtask
+selection/promotion batch into `financial_answer_projection.py`. Public nested-
+row traversal and promotion plus two owner-private scoring helpers project to 126
+owner lines; six calls finish as two graph-external and four owner-local. Both
+current external callers already import answer projection, and that owner reaches
+neither graph mixin, so this exact route adds no cycle. The previously rejected
+aggregate-owner route remains forbidden because aggregate already reaches
+planning through dependency projection. State capture, broader dependency-
+coherence replacement, projection sync/rebuild, mutable state/evidence, artifact/
+ledger mutation, and final sequencing stay graph-owned. Exact APIs, the six-
+method characterization gate, call distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

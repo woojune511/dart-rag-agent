@@ -243,18 +243,20 @@ graph node가 만든 raw runtime state이고, 그대로 API에 내보내는 payl
    결과에서 더 완성된 public answer를 고른다.
 7. `_structured_result_projection_for_stale_public_numeric_answer()`가 stale public
    numeric answer를 structured subtask projection으로 교체할 수 있다.
-8. `_structured_subtask_projection_for_public_answer()`가 public answer와 맞는
-   aggregate trace를 재구성한다.
+8. public `structured_subtask_projection_for_public_answer()`가 public answer와
+   맞는 aggregate trace를 재구성한다.
 9. `_retrieved_ratio_context_projection_for_public_answer()`가 retrieved context의
    ratio projection을 보강할 수 있다.
 
 현재 output projection에서 중요한 helper:
 
 - [src/agent/financial_answer_projection.py](../../src/agent/financial_answer_projection.py)
+- [src/agent/financial_aggregate_projection.py](../../src/agent/financial_aggregate_projection.py)
 
-이 파일은 aggregate/narrative answer candidate를 고르는 순수 helper다. 회사명,
-benchmark id, 특정 metric keyword를 보지 않고 answer shape, numeric-surface
-overlap, conflicting numeric surface 감소 여부만 본다.
+`financial_answer_projection.py`는 aggregate/narrative answer candidate를 고르는
+순수 policy helper다. `financial_aggregate_projection.py`는 그 정책을 사용하는
+state-free aggregate calculation/public projection과 subtask upsert/rank를 소유한다.
+둘 다 회사명, benchmark id, 특정 metric keyword에 맞춘 runtime branch를 두지 않는다.
 
 ### 6.4 최종 return shape
 
@@ -422,3 +424,11 @@ public output 계약을 다시 바꿔야 한다면 아래 검증을 먼저 고�
 - `tests.test_financial_agent_run_projection`
 - `tests.test_benchmark_runner_runtime_projection`
 - `python3 -m src.ops.audit_runtime_domain_terms`
+
+현재 aggregate calculation/public projection과 subtask upsert/rank는 aggregate
+owner에 있다. 다음 선택은 planning의 nested subtask traversal/specificity/
+promotion만 answer-projection owner로 옮기는 characterize-first 경계다. 현재
+state/task/evidence capture와 calculation의 dependency-coherence row replacement,
+projection sync/rebuild, artifact/ledger 및 final sequencing은 이동 대상이 아니다.
+정확한 API, gate와 stop line은
+[Project Status의 Next Work](project_status.md#next-work)를 따른다.

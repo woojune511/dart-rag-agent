@@ -3206,8 +3206,8 @@ resolution, `_plan_reflection_retry(...)`, prompt/model invocation,
 `_prepare_reflection_retry(...)`, action/report/artifact construction, state
 clearing, routing/promotion, and final sequencing remain graph-owned.
 
-The next aggregate subtask projection/upsert boundary must preserve its current
-private planning-mixin implementation until its characterize-first gate passes.
+The completed `06710c1` aggregate subtask projection/upsert boundary preserves
+the characterized planning-mixin behavior in its aggregate owner.
 Public `build_aggregate_calculation_projection(ordered_results, final_answer)`
 scans rows in order, uses owner-local `aggregate_result_operation_family(...)`,
 and replaces a conflicting growth row only by fresh row/result/answer-slot
@@ -3237,7 +3237,7 @@ in that exact order, with current fallbacks, truthiness, normalization, and
 exception scopes.
 
 The selected graph definitions span 69 + 36 + 23 + 28 = 156 lines and project
-to owner spans 68 + 35 + 22 + 27 = 152. Four graph call sites remain external:
+to owner spans 68 + 35 + 22 + 28 = 153. Four graph call sites remain external:
 one build call in `_rebuild_aggregate_projection(...)`, one structured-public
 call in `_structured_public_answer_trace_projection(...)`, and two upsert calls
 in `_advance_calculation_subtask(...)` and
@@ -3247,21 +3247,63 @@ identity, adopt the returned value at the current point, and allow an owner
 exception to stop downstream filtering, ratio repair, state clearing, sorting,
 recovery, or aggregation work.
 
-The aggregate owner already has the selected bodies' answer-projection,
+The aggregate owner already had the selected bodies' answer-projection,
 normalization, runtime-trace, and operation-family dependencies or an existing
 one-way edge to them. Runtime trace and graph state do not import aggregate, and
 the main graph plus calculation graph already do. Planning need not import
-aggregate after this exact move, so the DAG stays acyclic. No selected span moves
-a reviewed runtime-domain record and the count remains 217. The exact seven-
-method CURRENT-SOURCE gate, selected-private-ref rule, affected validation set,
-dead-import rule, and hard stops are maintained in
-[Project Status Next Work](../overview/project_status.md#next-work).
+aggregate after this exact move, so the DAG stays acyclic. No selected span moved
+a reviewed runtime-domain record and the count remains 217. Source is
+`+181/-184`, tests are `+1,143/-41`, and the whole commit is `+1,324/-225`.
+Focused 7/7, aggregate-subtask owner 118/118, affected semantic 780/780, import
+19/19, union 799/799, audit 217, and full discovery 1,771/1,771 passed. The
+source diff SHA-256 is
+`0cb0b708ee672f115f0a06eea62217f598e87d1a194f6422d422ba126bb51f7b`.
 Nested-row traversal, operation/specificity scoring, nested promotion, state
 capture, projection filtering, recovery/alignment/synchronization, artifact/
 ledger mutation, and final sequencing remain graph-owned. Co-moving the nested
 promotion cluster is forbidden in this batch because it would require planning
 to import aggregate while aggregate already reaches planning through dependency
 projection.
+
+The selected next nested subtask selection/promotion boundary belongs to
+`financial_answer_projection.py`, not the aggregate owner. Public
+`nested_subtask_rows(calculation_result)` traverses direct and answer-slot child
+lists in depth-first source order, skips non-dicts, returns shallow child
+copies, preserves nested identity, and never mutates the prepared result.
+Owner-private `_subtask_row_operation_family(row)` preserves row, answer-slot,
+and calculation-result operation precedence, aggregate-child inference, and the
+`concept_` metric-family fallback. Owner-private
+`_subtask_row_specificity_score(row, *, active_subtask)` preserves the exact
+status/material/non-aggregate/operation/family/label tuple and its task mismatch,
+exact-label, substring, and token-overlap rules.
+
+Public `promote_nested_subtask_result_if_more_specific(...)` preserves active-
+operation and nested-child gates, stable score ordering, score-prefix filtering,
+current-material protection, aggregate-child rejection, answer/status/result
+fallback order, fresh selected-result copying, unchanged-path identity, input
+immutability, and uncaught exceptions. Its planning caller supplies the exact
+four keyword arguments and adopts the returned answer, status, and result before
+later narrative synthesis. The calculation caller supplies the exact prepared
+calculation result to `nested_subtask_rows(...)` before dependency-coherence
+comparison and broader row replacement. Both calls stay outside `try` blocks;
+owner exceptions stop downstream work.
+
+The former definition spans are 20 + 19 + 38 + 51 = 128 lines and project to
+20 + 19 + 37 + 50 = 126 owner lines. The two external calls remain in
+`_capture_current_subtask_result(...)` and
+`_promote_stronger_nested_aggregate_results(...)`; four helper calls become
+owner-local. Answer projection already owns all required dependencies and is
+already imported one-way by planning and calculation, so no new module edge or
+cycle is introduced. The selected spans contain no reviewed runtime-domain
+record. The exact six-method CURRENT-SOURCE gate, affected validation set,
+retired-ref rule, and hard stops are maintained in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
+State/task/evidence capture, dependency-coherence winner comparison, broader row
+replacement, projection synchronization/rebuild, mutable state/evidence,
+artifact/ledger mutation, and final sequencing remain in their current graph
+owners. Moving the same cluster into aggregate projection remains forbidden by
+the existing aggregate-to-planning path.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
