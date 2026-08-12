@@ -5839,32 +5839,32 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 side_effect=select_for_sync,
             ) as sync_sentence,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_projection_rendered_value",
                 side_effect=render_for_sync,
             ) as sync_rendered,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 side_effect=conflict_for_sync,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "answer_covers_numeric_answer",
                 side_effect=coverage_for_sync,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 side_effect=synchronize_for_sync,
             ) as row_sync,
         ):
-            synced_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            synced_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_row],
                 sync_projection,
                 "target share is 80%.",
@@ -5895,32 +5895,32 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value="target share is 80%.",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_projection_rendered_value",
                 side_effect=RuntimeError("rendered selection failed"),
             ) as failing_rendered,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 return_value=True,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "answer_covers_numeric_answer",
                 return_value=False,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
             ) as stopped_sync,
         ):
             with self.assertRaisesRegex(RuntimeError, "rendered selection failed"):
-                self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                     [stale_row],
                     sync_projection,
                     "target share is 80%.",
@@ -5980,10 +5980,10 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        row_sync = financial_aggregate_projection.synchronize_aggregate_projection_row_surface
         sentence_owner = financial_aggregate_projection.select_aggregate_projection_answer_sentence
         conflict_owner = financial_aggregate_projection.subtask_numeric_answers_conflict
-        coverage_owner = financial_graph_calculation.answer_covers_numeric_answer
+        coverage_owner = financial_aggregate_projection.answer_covers_numeric_answer
 
         with patch.object(
             financial_aggregate_projection,
@@ -6002,27 +6002,27 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ) as sentence_spy,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 wraps=conflict_owner,
             ) as conflict_spy,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as row_sync_spy,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "answer_covers_numeric_answer",
                 wraps=coverage_owner,
             ) as coverage_spy,
         ):
-            ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            ordered_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
                 projection,
                 final_answer,
@@ -6058,20 +6058,20 @@ class SubtaskLoopTests(unittest.TestCase):
         empty_projection = {"calculation_result": {"subtask_results": []}}
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
             ) as gated_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as gated_row_sync,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "answer_covers_numeric_answer",
             ) as gated_coverage,
         ):
-            unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
                 empty_projection,
                 final_answer,
@@ -6084,22 +6084,22 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 return_value=False,
             ) as no_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as false_row_sync,
         ):
-            unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
                 projection,
                 final_answer,
@@ -6111,27 +6111,27 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 return_value=True,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "answer_covers_numeric_answer",
                 return_value=True,
             ) as covering_owner,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as covered_row_sync,
         ):
-            unchanged_results, unchanged_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            unchanged_results, unchanged_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_ratio_row],
                 projection,
                 final_answer,
@@ -6143,28 +6143,28 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 return_value=True,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "answer_covers_numeric_answer",
                 side_effect=RuntimeError("coverage owner failed"),
             ) as failing_coverage,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as stopped_row_sync,
         ):
             with self.assertRaisesRegex(RuntimeError, "coverage owner failed"):
-                self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                     [stale_ratio_row],
                     projection,
                     final_answer,
@@ -6174,23 +6174,23 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value=final_answer,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 side_effect=RuntimeError("conflict owner failed"),
             ) as failing_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 wraps=row_sync,
             ) as stopped_row_sync,
         ):
             with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
-                self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                     [stale_ratio_row],
                     projection,
                     final_answer,
@@ -6269,13 +6269,13 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
+        row_sync = financial_aggregate_projection.synchronize_aggregate_projection_row_surface
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "synchronize_aggregate_projection_row_surface",
             wraps=row_sync,
         ) as row_sync_spy:
-            ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            ordered_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_difference_row],
                 projection,
                 final_answer,
@@ -6446,8 +6446,8 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        row_sync = financial_graph_calculation.synchronize_aggregate_projection_row_surface
-        component_sync = financial_graph_calculation.synchronize_aggregate_arithmetic_components
+        row_sync = financial_aggregate_projection.synchronize_aggregate_projection_row_surface
+        component_sync = financial_aggregate_projection.synchronize_aggregate_arithmetic_components
         component_sync_events = []
 
         def record_component_sync(sync_input):
@@ -6464,15 +6464,15 @@ class SubtaskLoopTests(unittest.TestCase):
             return sync_result
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "synchronize_aggregate_projection_row_surface",
             wraps=row_sync,
         ) as row_sync_spy, patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "synchronize_aggregate_arithmetic_components",
             side_effect=record_component_sync,
         ) as component_sync_spy:
-            ordered_results, synced_projection = self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            ordered_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_lookup_row, precise_lookup_row, net_row],
                 projection,
                 final_answer,
@@ -6539,15 +6539,15 @@ class SubtaskLoopTests(unittest.TestCase):
         )
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "aggregate_lookup_primary_slots",
             return_value=[],
         ) as empty_lookup_slots, patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "synchronize_aggregate_arithmetic_components",
             side_effect=AssertionError("component sync must stay lazy"),
         ) as owner_zero:
-            self.agent._sync_aggregate_arithmetic_subtask_surfaces(
+            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                 [stale_lookup_row, precise_lookup_row, net_row],
                 projection,
                 final_answer,

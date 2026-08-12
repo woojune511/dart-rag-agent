@@ -3074,6 +3074,131 @@ def synchronize_aggregate_projection_row_surface(
     return AggregateProjectionRowSurfaceSyncResult(projection_row=updated)
 
 
+def sync_aggregate_arithmetic_subtask_surfaces(
+    ordered_results: List[Dict[str, Any]],
+    aggregate_projection: Dict[str, Any],
+    final_answer: str,
+) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    calculation_result = dict(aggregate_projection.get("calculation_result") or {})
+    projection_rows = [
+        dict(row)
+        for row in list(calculation_result.get("subtask_results") or [])
+        if isinstance(row, dict)
+    ]
+    if not projection_rows:
+        return ordered_results, aggregate_projection
+    arithmetic_families = {"ratio", "growth_rate", "difference", "sum"}
+    syncable_families = {*arithmetic_families, "lookup"}
+    plan = dict(aggregate_projection.get("calculation_plan") or {})
+    planned_arithmetic_task_ids = {
+        _normalise_spaces(str(item.get("task_id") or ""))
+        for item in list(plan.get("subtasks") or [])
+        if _normalise_spaces(
+            str(
+                (dict(item.get("calculation_plan") or {})).get("operation")
+                or item.get("operation_family")
+                or ""
+            )
+        ).lower()
+        in {"ratio", "growth_rate", "subtract", "difference", "add", "sum"}
+    }
+
+    candidate_indexes: List[int] = []
+    for index, row in enumerate(projection_rows):
+        task_id = _normalise_spaces(str(row.get("task_id") or ""))
+        operation_family = aggregate_result_operation_family(row)
+        if operation_family not in syncable_families:
+            continue
+        if (
+            operation_family in arithmetic_families
+            and planned_arithmetic_task_ids
+            and task_id not in planned_arithmetic_task_ids
+        ):
+            continue
+        row_surface = _normalise_spaces(
+            str(
+                row.get("answer")
+                or (row.get("calculation_result") or {}).get("formatted_result")
+                or (row.get("calculation_result") or {}).get("rendered_value")
+                or ""
+            )
+        )
+        if not row_surface:
+            continue
+        if operation_family == "lookup" and answer_covers_numeric_answer(final_answer, row_surface):
+            continue
+        synced_answer = select_aggregate_projection_answer_sentence(final_answer, row)
+        if not synced_answer:
+            continue
+        if not subtask_numeric_answers_conflict({"answer": synced_answer}, row):
+            continue
+        if operation_family in {"ratio", "growth_rate"} and answer_covers_numeric_answer(final_answer, row_surface):
+            continue
+        if operation_family == "lookup" and len(extract_numeric_surface_candidates(synced_answer)) != 1:
+            continue
+        candidate_indexes.append(index)
+    if not candidate_indexes:
+        return ordered_results, aggregate_projection
+
+    updated_rows_by_task_id: Dict[str, Dict[str, Any]] = {}
+    for target_index in candidate_indexes:
+        target_row = projection_rows[target_index]
+        synced_answer = select_aggregate_projection_answer_sentence(final_answer, target_row)
+        if not synced_answer:
+            continue
+        operation_family = aggregate_result_operation_family(target_row)
+        rendered_value = aggregate_projection_rendered_value(synced_answer, operation_family)
+        updated_row = synchronize_aggregate_projection_row_surface(
+            AggregateProjectionRowSurfaceSyncInput(
+                projection_row=target_row,
+                answer=synced_answer,
+                rendered_value=rendered_value,
+            )
+        ).projection_row
+        projection_rows[target_index] = updated_row
+        target_task_id = _normalise_spaces(str(updated_row.get("task_id") or ""))
+        if target_task_id:
+            updated_rows_by_task_id[target_task_id] = updated_row
+
+    if not updated_rows_by_task_id:
+        return ordered_results, aggregate_projection
+
+    lookup_slots = aggregate_lookup_primary_slots(projection_rows)
+    if lookup_slots:
+        for index, row in enumerate(projection_rows):
+            synced_row = synchronize_aggregate_arithmetic_components(
+                AggregateArithmeticComponentSyncInput(
+                    projection_row=row,
+                    lookup_slots=lookup_slots,
+                )
+            ).projection_row
+            projection_rows[index] = synced_row
+            task_id = _normalise_spaces(str(synced_row.get("task_id") or ""))
+            if task_id and synced_row != row:
+                updated_rows_by_task_id[task_id] = synced_row
+
+    ordered_results = [
+        dict(updated_rows_by_task_id.get(_normalise_spaces(str(row.get("task_id") or ""))) or row)
+        for row in ordered_results
+    ]
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    slot_rows = [dict(row) for row in list(answer_slots.get("subtask_results") or []) if isinstance(row, dict)]
+    if slot_rows:
+        synced_slot_rows: List[Dict[str, Any]] = []
+        for row in slot_rows:
+            task_id = _normalise_spaces(str(row.get("task_id") or ""))
+            updated_row = updated_rows_by_task_id.get(task_id)
+            synced_slot_rows.append(dict(updated_row) if updated_row else row)
+        answer_slots["subtask_results"] = synced_slot_rows
+        calculation_result["answer_slots"] = answer_slots
+    calculation_result["subtask_results"] = projection_rows
+    aggregate_projection = {
+        **dict(aggregate_projection),
+        "calculation_result": calculation_result,
+    }
+    return ordered_results, aggregate_projection
+
+
 def project_runtime_ratio_absolute_magnitude(
     projection_input: RuntimeRatioAbsoluteMagnitudeProjectionInput,
 ) -> RuntimeRatioAbsoluteMagnitudeProjectionResult:

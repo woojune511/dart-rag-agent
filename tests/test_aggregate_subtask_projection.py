@@ -12611,7 +12611,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_defs),
                 sum(name.startswith("_") for name in owner_defs),
             ),
-            (71, 11),
+            (72, 11),
         )
         self.assertEqual(sum(retired_spans.values()), 156)
         self.assertEqual(sum(expected_owner_spans.values()), 153)

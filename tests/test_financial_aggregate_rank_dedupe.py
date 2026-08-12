@@ -5443,7 +5443,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         )
         self.assertEqual(
             [stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["lookup"]],
-            ["_sync_aggregate_arithmetic_subtask_surfaces"],
+            ["sync_aggregate_arithmetic_subtask_surfaces"],
         )
         self.assertEqual(
             [stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["ratio_value"]],
@@ -5650,30 +5650,30 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             return SimpleNamespace(projection_row=payload.projection_row)
 
         with (
-            patch.object(financial_graph_calculation, "aggregate_lookup_primary_slots", lookup_owner),
-            patch.object(financial_graph_calculation, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=lambda row: row.get("operation_family")),
+            patch.object(financial_aggregate_projection, "aggregate_lookup_primary_slots", lookup_owner),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "select_aggregate_projection_answer_sentence",
                 return_value="synced 2",
             ),
-            patch.object(financial_graph_calculation, "subtask_numeric_answers_conflict", return_value=True),
-            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", return_value=["2"]),
-            patch.object(financial_graph_calculation, "aggregate_projection_rendered_value", return_value="2"),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=["2"]),
+            patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", return_value="2"),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_projection_row_surface",
                 side_effect=sync_surface,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "synchronize_aggregate_arithmetic_components",
                 side_effect=sync_components,
             ),
         ):
             synced_results, synced_projection = (
-                financial_graph_calculation.FinancialAgentCalculationMixin._sync_aggregate_arithmetic_subtask_surfaces(
-                    sync_agent,
+                financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
                     ordered_results,
                     aggregate_projection,
                     "final 2",
@@ -5694,18 +5694,19 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         component_owner = Mock()
         failing_lookup_owner = Mock(side_effect=RuntimeError("lookup failed"))
         with (
-            patch.object(financial_graph_calculation, "aggregate_lookup_primary_slots", failing_lookup_owner),
-            patch.object(financial_graph_calculation, "answer_covers_numeric_answer", return_value=False),
-            patch.object(financial_graph_calculation, "select_aggregate_projection_answer_sentence", return_value="synced 2"),
-            patch.object(financial_graph_calculation, "subtask_numeric_answers_conflict", return_value=True),
-            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", return_value=["2"]),
-            patch.object(financial_graph_calculation, "aggregate_projection_rendered_value", return_value="2"),
-            patch.object(financial_graph_calculation, "synchronize_aggregate_projection_row_surface", side_effect=sync_surface),
-            patch.object(financial_graph_calculation, "synchronize_aggregate_arithmetic_components", component_owner),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=lambda row: row.get("operation_family")),
+            patch.object(financial_aggregate_projection, "aggregate_lookup_primary_slots", failing_lookup_owner),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", return_value="synced 2"),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=["2"]),
+            patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", return_value="2"),
+            patch.object(financial_aggregate_projection, "synchronize_aggregate_projection_row_surface", side_effect=sync_surface),
+            patch.object(financial_aggregate_projection, "synchronize_aggregate_arithmetic_components", component_owner),
             self.assertRaisesRegex(RuntimeError, "lookup failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._sync_aggregate_arithmetic_subtask_surfaces(
-                sync_agent, ordered_results, aggregate_projection, "final 2"
+            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results, aggregate_projection, "final 2"
             )
         component_owner.assert_not_called()
 
@@ -11752,7 +11753,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (71, 11),
+            (72, 11),
         )
         self.assertEqual(len(calls), 3)
         self.assertEqual(noncall_refs, [])
@@ -12115,6 +12116,677 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             )
         failing_agent._align_lookup_result_units_from_peer_source_slots.assert_not_called()
         failing_agent._append_ratio_result_from_retrieved_context.assert_not_called()
+        self.assertEqual(state, before)
+        self.assertIs(state["nested"], shared)
+
+    def test_current_source_arithmetic_surface_sync_pins_empty_plan_and_operation_gates(self) -> None:
+        shared = {"preserve": True}
+        ordered_results = [{"task_id": "original", "nested": shared}]
+        empty_projection = {
+            "calculation_result": {"subtask_results": []},
+            "nested": shared,
+        }
+        before_results = deepcopy(ordered_results)
+        before_empty = deepcopy(empty_projection)
+        family_owner = Mock(side_effect=AssertionError("operation family accessed for empty projection"))
+        selector = Mock(side_effect=AssertionError("selector accessed for empty projection"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", selector),
+        ):
+            unchanged = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                empty_projection,
+                "final 20",
+            )
+        self.assertIs(unchanged[0], ordered_results)
+        self.assertIs(unchanged[1], empty_projection)
+        family_owner.assert_not_called()
+        selector.assert_not_called()
+
+        unplanned_ratio = {
+            "task_id": "ratio-unplanned",
+            "operation_family": "ratio",
+            "answer": "ratio 10%",
+            "nested": shared,
+        }
+        narrative = {
+            "task_id": "narrative",
+            "operation_family": "narrative_summary",
+            "answer": "narrative 10",
+            "nested": shared,
+        }
+        planned_blank = {
+            "task_id": "ratio-planned",
+            "operation_family": "ratio",
+            "answer": "",
+            "calculation_result": {},
+            "nested": shared,
+        }
+        projection = {
+            "calculation_plan": {
+                "subtasks": [
+                    {
+                        "task_id": " ratio-planned ",
+                        "calculation_plan": {"operation": " RATIO "},
+                    },
+                    {
+                        "task_id": "ignored",
+                        "operation_family": "lookup",
+                    },
+                ]
+            },
+            "calculation_result": {
+                "subtask_results": [unplanned_ratio, narrative, planned_blank, "skip-nondict"]
+            },
+            "nested": shared,
+        }
+        before_projection = deepcopy(projection)
+        operation_rows = []
+
+        def operation_owner(row):
+            operation_rows.append(row)
+            return row.get("operation_family", "")
+
+        family_owner = Mock(side_effect=operation_owner)
+        selector = Mock(side_effect=AssertionError("selector accessed past operation/plan/surface gate"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", selector),
+        ):
+            unchanged = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                projection,
+                "final 20",
+            )
+        self.assertIs(unchanged[0], ordered_results)
+        self.assertIs(unchanged[1], projection)
+        self.assertEqual([row["task_id"] for row in operation_rows], ["ratio-unplanned", "narrative", "ratio-planned"])
+        self.assertTrue(all(row is not original for row, original in zip(operation_rows, [unplanned_ratio, narrative, planned_blank])))
+        self.assertTrue(all(row["nested"] is shared for row in operation_rows))
+        selector.assert_not_called()
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(empty_projection, before_empty)
+        self.assertEqual(projection, before_projection)
+        self.assertIs(projection["nested"], shared)
+
+    def test_current_source_arithmetic_surface_sync_pins_candidate_eligibility_order(self) -> None:
+        def projection_for(row):
+            return {
+                "calculation_result": {"subtask_results": [row]},
+                "calculation_plan": {},
+            }
+
+        def run_case(row, *, coverage, selected, conflict, numeric_candidates):
+            family_owner = Mock(side_effect=lambda prepared: prepared["operation_family"])
+            coverage_owner = Mock(side_effect=coverage)
+            selector_owner = Mock(return_value=selected)
+            conflict_owner = Mock(return_value=conflict)
+            numeric_owner = Mock(return_value=numeric_candidates)
+            render_owner = Mock(side_effect=AssertionError("render accessed past candidate gate"))
+            with (
+                patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+                patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", coverage_owner),
+                patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", selector_owner),
+                patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", conflict_owner),
+                patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", numeric_owner),
+                patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", render_owner),
+            ):
+                result = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                    [row],
+                    projection_for(row),
+                    "final 20",
+                )
+            self.assertIs(result[0][0], row)
+            return coverage_owner, selector_owner, conflict_owner, numeric_owner, render_owner
+
+        lookup = {"task_id": "lookup", "operation_family": "lookup", "answer": "lookup 10"}
+        coverage, selector, conflict, numeric, render = run_case(
+            lookup,
+            coverage=[True],
+            selected="selected 20",
+            conflict=True,
+            numeric_candidates=["20"],
+        )
+        coverage.assert_called_once_with("final 20", "lookup 10")
+        selector.assert_not_called()
+        conflict.assert_not_called()
+        numeric.assert_not_called()
+        render.assert_not_called()
+
+        ratio = {"task_id": "ratio", "operation_family": "ratio", "answer": "ratio 10%"}
+        coverage, selector, conflict, numeric, render = run_case(
+            ratio,
+            coverage=[],
+            selected="",
+            conflict=True,
+            numeric_candidates=["20%"],
+        )
+        selector.assert_called_once()
+        conflict.assert_not_called()
+        coverage.assert_not_called()
+        render.assert_not_called()
+
+        coverage, selector, conflict, numeric, render = run_case(
+            ratio,
+            coverage=[],
+            selected="ratio 20%",
+            conflict=False,
+            numeric_candidates=["20%"],
+        )
+        conflict.assert_called_once()
+        coverage.assert_not_called()
+        render.assert_not_called()
+
+        coverage, selector, conflict, numeric, render = run_case(
+            ratio,
+            coverage=[True],
+            selected="ratio 20%",
+            conflict=True,
+            numeric_candidates=["20%"],
+        )
+        conflict.assert_called_once()
+        coverage.assert_called_once_with("final 20", "ratio 10%")
+        numeric.assert_not_called()
+        render.assert_not_called()
+
+        coverage, selector, conflict, numeric, render = run_case(
+            lookup,
+            coverage=[False],
+            selected="lookup 20 and 30",
+            conflict=True,
+            numeric_candidates=["20", "30"],
+        )
+        selector.assert_called_once()
+        conflict.assert_called_once()
+        numeric.assert_called_once_with("lookup 20 and 30")
+        render.assert_not_called()
+
+    def test_current_source_arithmetic_surface_sync_pins_row_slot_component_adoption(self) -> None:
+        from types import SimpleNamespace
+
+        shared = {"preserve": True}
+        lookup_projection_row = {
+            "task_id": "lookup",
+            "operation_family": "lookup",
+            "answer": "lookup 10",
+            "nested": shared,
+        }
+        ratio_projection_row = {
+            "task_id": "ratio",
+            "operation_family": "ratio",
+            "answer": "ratio 10%",
+            "nested": shared,
+        }
+        ordered_lookup = {"task_id": "lookup", "answer": "old lookup", "nested": shared}
+        ordered_ratio = {"task_id": "ratio", "answer": "old ratio", "nested": shared}
+        untouched = {"task_id": "untouched", "answer": "same", "nested": shared}
+        ordered_results = [ordered_lookup, ordered_ratio, untouched]
+        slot_lookup = {"task_id": "lookup", "answer": "slot lookup", "nested": shared}
+        slot_ratio = {"task_id": "ratio", "answer": "slot ratio", "nested": shared}
+        slot_other = {"task_id": "slot-other", "answer": "slot other", "nested": shared}
+        aggregate_projection = {
+            "calculation_plan": {},
+            "calculation_result": {
+                "subtask_results": [lookup_projection_row, ratio_projection_row],
+                "answer_slots": {"subtask_results": [slot_lookup, slot_ratio, slot_other]},
+                "nested": shared,
+            },
+            "nested": shared,
+        }
+        before_results = deepcopy(ordered_results)
+        before_projection = deepcopy(aggregate_projection)
+        row_payloads = []
+        component_payloads = []
+        lookup_slots = [{"task_id": "lookup", "raw_value": "20", "nested": shared}]
+
+        def operation_owner(row):
+            return row.get("operation_family", "")
+
+        def select_owner(_answer, row):
+            return "lookup 20" if row["task_id"] == "lookup" else "ratio 20%"
+
+        def render_owner(answer, operation):
+            return "20" if operation == "lookup" else "20%"
+
+        def row_sync(payload):
+            row_payloads.append(payload)
+            return SimpleNamespace(
+                projection_row={
+                    **dict(payload.projection_row),
+                    "answer": payload.answer,
+                    "rendered_value": payload.rendered_value,
+                }
+            )
+
+        def component_sync(payload):
+            component_payloads.append(payload)
+            row = dict(payload.projection_row)
+            if row["task_id"] == "ratio":
+                row["component_synced"] = True
+            return SimpleNamespace(projection_row=row)
+
+        family_owner = Mock(side_effect=operation_owner)
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", side_effect=select_owner),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "extract_numeric_surface_candidates", return_value=["20"]),
+            patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", side_effect=render_owner),
+            patch.object(financial_aggregate_projection, "synchronize_aggregate_projection_row_surface", side_effect=row_sync),
+            patch.object(financial_aggregate_projection, "aggregate_lookup_primary_slots", return_value=lookup_slots) as lookup_owner,
+            patch.object(financial_aggregate_projection, "synchronize_aggregate_arithmetic_components", side_effect=component_sync),
+        ):
+            synced_results, synced_projection = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                aggregate_projection,
+                "final lookup 20 and ratio 20%",
+            )
+
+        self.assertEqual(len(row_payloads), 2)
+        self.assertIsNot(row_payloads[0].projection_row, lookup_projection_row)
+        self.assertEqual(row_payloads[0].projection_row, lookup_projection_row)
+        self.assertIs(row_payloads[0].projection_row["nested"], shared)
+        self.assertEqual((row_payloads[0].answer, row_payloads[0].rendered_value), ("lookup 20", "20"))
+        self.assertEqual((row_payloads[1].answer, row_payloads[1].rendered_value), ("ratio 20%", "20%"))
+        lookup_owner.assert_called_once()
+        lookup_rows = lookup_owner.call_args.args[0]
+        self.assertIsNot(lookup_rows, aggregate_projection["calculation_result"]["subtask_results"])
+        self.assertEqual([row["answer"] for row in lookup_rows], ["lookup 20", "ratio 20%"])
+        self.assertEqual(len(component_payloads), 2)
+        self.assertIs(component_payloads[0].lookup_slots, lookup_slots)
+        self.assertIs(component_payloads[1].lookup_slots, lookup_slots)
+        self.assertEqual(synced_results[0]["answer"], "lookup 20")
+        self.assertEqual(synced_results[1]["answer"], "ratio 20%")
+        self.assertTrue(synced_results[1]["component_synced"])
+        self.assertEqual(synced_results[2], untouched)
+        self.assertIsNot(synced_results[2], untouched)
+        projected_rows = synced_projection["calculation_result"]["subtask_results"]
+        self.assertEqual([row["answer"] for row in projected_rows], ["lookup 20", "ratio 20%"])
+        self.assertTrue(projected_rows[1]["component_synced"])
+        slot_rows = synced_projection["calculation_result"]["answer_slots"]["subtask_results"]
+        self.assertEqual(slot_rows[0]["answer"], "lookup 20")
+        self.assertEqual(slot_rows[1]["answer"], "ratio 20%")
+        self.assertTrue(slot_rows[1]["component_synced"])
+        self.assertEqual(slot_rows[2], slot_other)
+        self.assertIsNot(slot_rows[2], slot_other)
+        self.assertIs(slot_rows[2]["nested"], shared)
+        self.assertIsNot(synced_projection, aggregate_projection)
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertIs(aggregate_projection["nested"], shared)
+
+    def test_current_source_arithmetic_surface_sync_pins_second_pass_and_exception_stop(self) -> None:
+        from types import SimpleNamespace
+
+        shared = {"preserve": True}
+        row = {
+            "task_id": "ratio",
+            "operation_family": "ratio",
+            "answer": "ratio 10%",
+            "nested": shared,
+        }
+        ordered_results = [row]
+        projection = {
+            "calculation_result": {"subtask_results": [row]},
+            "calculation_plan": {},
+            "nested": shared,
+        }
+        before_results = deepcopy(ordered_results)
+        before_projection = deepcopy(projection)
+        family_owner = Mock(side_effect=lambda prepared: prepared["operation_family"])
+        render_owner = Mock(side_effect=AssertionError("render accessed after blank second pass"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", side_effect=["ratio 20%", ""]),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", render_owner),
+        ):
+            unchanged = financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                projection,
+                "ratio 20%",
+            )
+        self.assertIs(unchanged[0], ordered_results)
+        self.assertIs(unchanged[1], projection)
+        render_owner.assert_not_called()
+
+        stopped_sync = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", return_value="ratio 20%"),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_projection_rendered_value",
+                side_effect=RuntimeError("render failed"),
+            ),
+            patch.object(financial_aggregate_projection, "synchronize_aggregate_projection_row_surface", stopped_sync),
+            self.assertRaisesRegex(RuntimeError, "render failed"),
+        ):
+            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                projection,
+                "ratio 20%",
+            )
+        stopped_sync.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "select_aggregate_projection_answer_sentence", return_value="ratio 20%"),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "answer_covers_numeric_answer", return_value=False),
+            patch.object(financial_aggregate_projection, "aggregate_projection_rendered_value", return_value="20%"),
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_projection_row_surface",
+                return_value=SimpleNamespace(projection_row={**row, "answer": "ratio 20%"}),
+            ),
+            patch.object(financial_aggregate_projection, "aggregate_lookup_primary_slots", return_value=[{"raw_value": "20"}]),
+            patch.object(
+                financial_aggregate_projection,
+                "synchronize_aggregate_arithmetic_components",
+                side_effect=RuntimeError("component sync failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "component sync failed"),
+        ):
+            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                projection,
+                "ratio 20%",
+            )
+
+        class ProjectionBomb(dict):
+            def get(self, key, default=None):
+                if key == "calculation_result":
+                    raise RuntimeError("projection access failed")
+                return super().get(key, default)
+
+        with self.assertRaisesRegex(RuntimeError, "projection access failed"):
+            financial_aggregate_projection.sync_aggregate_arithmetic_subtask_surfaces(
+                ordered_results,
+                ProjectionBomb(),
+                "ratio 20%",
+            )
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(projection, before_projection)
+        self.assertIs(projection["nested"], shared)
+
+    def test_current_source_arithmetic_surface_sync_pins_static_binding_dag_and_dead_imports(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        trees = {
+            "graph": ast.parse(graph_path.read_text(encoding="utf-8-sig")),
+            "owner": ast.parse(owner_path.read_text(encoding="utf-8-sig")),
+        }
+        targets = {
+            "promotion": ("promote_stronger_nested_aggregate_results", 63),
+            "sync": ("sync_aggregate_arithmetic_subtask_surfaces", 123),
+        }
+        definitions = {}
+        calls = []
+        noncall_refs = []
+
+        class Visitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in {value[0] for value in targets.values()}:
+                    definitions[(self.module_name, node.name)] = node
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = node.func.attr if isinstance(node.func, ast.Attribute) else node.func.id if isinstance(node.func, ast.Name) else ""
+                if name in {value[0] for value in targets.values()}:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.stack[-1],
+                            name,
+                            ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "",
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((item.arg, ast.unparse(item.value)) for item in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in {value[0] for value in targets.values()} and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if node.id in {value[0] for value in targets.values()} and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.id, node.lineno))
+
+        for module_name, tree in trees.items():
+            Visitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {key: node.end_lineno - node.lineno + 1 for key, node in definitions.items()},
+            {
+                ("owner", targets["promotion"][0]): 63,
+                ("owner", targets["sync"][0]): 123,
+            },
+        )
+        sync_definition = definitions[("owner", targets["sync"][0])]
+        self.assertEqual(sync_definition.end_lineno - sync_definition.lineno, 122)
+        owner_functions = [
+            node.name
+            for node in trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in owner_functions),
+                sum(name.startswith("_") for name in owner_functions),
+            ),
+            (72, 11),
+        )
+        self.assertEqual(len(calls), 4)
+        self.assertEqual(noncall_refs, [])
+        self.assertEqual(
+            Counter((caller, name, args) for _module, caller, name, _receiver, args, _kwargs, _depth in calls),
+            Counter(
+                {
+                    ("_promote_and_align_aggregate_results", targets["promotion"][0], ("ordered_results",)): 1,
+                    ("_sync_projection_subtask_results_with_nested_promotions", targets["promotion"][0], ("projection_subtask_results",)): 1,
+                    ("_prepare_initial_aggregate_state", targets["promotion"][0], ("ordered_results",)): 1,
+                    (
+                        "_aggregate_calculation_subtasks",
+                        targets["sync"][0],
+                        ("ordered_results", "aggregate_projection", "final_answer"),
+                    ): 1,
+                }
+            ),
+        )
+        self.assertTrue(all(not kwargs and depth == 0 for *_head, kwargs, depth in calls))
+        self.assertEqual(
+            Counter(receiver for _m, _c, _n, receiver, _a, _k, _d in calls),
+            Counter({"": 4}),
+        )
+        self.assertEqual((len(calls), 0), (4, 0))
+
+        module_paths = list(Path("src/agent").glob("*.py")) + list(Path("src/config").glob("*.py"))
+        import_graph = {}
+        for path in module_paths:
+            module_name = ".".join(path.with_suffix("").parts)
+            imported = set()
+            for node in ast.parse(path.read_text(encoding="utf-8-sig")).body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names)
+            import_graph[module_name] = imported
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(import_graph.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_aggregate_projection"
+        graph_module = "src.agent.financial_graph_calculation"
+        for dependency in (
+            "src.agent.financial_answer_projection",
+            "src.agent.financial_numeric_surface",
+            "src.agent.financial_runtime_normalization",
+        ):
+            self.assertTrue(reaches(owner_module, dependency), dependency)
+            self.assertFalse(reaches(dependency, owner_module), dependency)
+        self.assertFalse(reaches(owner_module, graph_module))
+        self.assertTrue(reaches(graph_module, owner_module))
+
+        graph_imports = {
+            alias.name
+            for node in trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        retired_graph_imports = {
+                "AggregateArithmeticComponentSyncInput",
+                "AggregateProjectionRowSurfaceSyncInput",
+                "aggregate_lookup_primary_slots",
+                "aggregate_projection_rendered_value",
+                "synchronize_aggregate_arithmetic_components",
+                "synchronize_aggregate_projection_row_surface",
+        }
+        self.assertTrue(retired_graph_imports.isdisjoint(graph_imports))
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set(range(sync_definition.lineno, sync_definition.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == owner_path.as_posix()
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_arithmetic_surface_sync_caller_pins_args_adoption_order_and_stop(self) -> None:
+        shared = {"preserve": True}
+        state = {
+            "query": "",
+            "calc_subtasks": [],
+            "subtask_results": [],
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [],
+            "plan_loop_count": 0,
+            "answer": "",
+            "nested": shared,
+        }
+        before = deepcopy(state)
+        synced_row = {"task_id": "synced", "answer": "42", "operation_family": "lookup", "nested": shared}
+        synced_rows = [synced_row]
+        synced_projection = {
+            "calculation_operands": [],
+            "calculation_plan": {},
+            "calculation_result": {
+                "subtask_results": synced_rows,
+                "answer_slots": {},
+            },
+            "evidence_items": [],
+            "nested": shared,
+        }
+        events = []
+        captured = []
+        agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+        agent.llm = None
+        original_ratio_sync = agent._sync_ratio_result_displays_in_ordered_results
+
+        def ratio_sync(rows):
+            events.append(("ratio-sync", rows))
+            return original_ratio_sync(rows)
+
+        def sync_owner(rows, projection, answer):
+            events.append(("target", rows, projection, answer))
+            captured.append((rows, projection, answer))
+            return synced_rows, synced_projection
+
+        with (
+            patch.object(agent, "_sync_ratio_result_displays_in_ordered_results", side_effect=ratio_sync),
+            patch.object(
+                financial_graph_calculation,
+                "sync_aggregate_arithmetic_subtask_surfaces",
+                side_effect=sync_owner,
+            ),
+        ):
+            result = agent._aggregate_calculation_subtasks(state)
+        self.assertEqual(len(captured), 1)
+        rows_arg, projection_arg, answer_arg = captured[0]
+        self.assertEqual(rows_arg, [])
+        self.assertEqual(answer_arg, "")
+        self.assertEqual(projection_arg["calculation_result"]["subtask_results"], [])
+        target_index = next(index for index, event in enumerate(events) if event[0] == "target")
+        downstream_indexes = [
+            index
+            for index, event in enumerate(events)
+            if event[0] == "ratio-sync" and event[1] is synced_rows
+        ]
+        self.assertEqual(len(downstream_indexes), 1)
+        self.assertLess(target_index, downstream_indexes[0])
+        self.assertIs(result["subtask_results"], synced_rows)
+        self.assertEqual(result["structured_result"]["subtask_results"], synced_rows)
+        self.assertEqual(state, before)
+        self.assertIs(state["nested"], shared)
+
+        failure_events = []
+        failing_agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+        failing_agent.llm = None
+        original_failure_ratio_sync = failing_agent._sync_ratio_result_displays_in_ordered_results
+
+        def failure_ratio_sync(rows):
+            failure_events.append(("ratio-sync", rows))
+            return original_failure_ratio_sync(rows)
+
+        def fail_sync(rows, projection, answer):
+            failure_events.append(("target", rows, projection, answer))
+            raise RuntimeError("aggregate surface sync failed")
+
+        with (
+            patch.object(failing_agent, "_sync_ratio_result_displays_in_ordered_results", side_effect=failure_ratio_sync),
+            patch.object(
+                financial_graph_calculation,
+                "sync_aggregate_arithmetic_subtask_surfaces",
+                side_effect=fail_sync,
+            ),
+            self.assertRaisesRegex(RuntimeError, "aggregate surface sync failed"),
+        ):
+            failing_agent._aggregate_calculation_subtasks(state)
+        self.assertEqual(failure_events[-1][0], "target")
+        self.assertEqual(sum(event[0] == "target" for event in failure_events), 1)
         self.assertEqual(state, before)
         self.assertIs(state["nested"], shared)
 
