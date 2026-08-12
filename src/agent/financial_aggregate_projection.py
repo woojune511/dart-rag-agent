@@ -30,9 +30,11 @@ from src.agent.financial_dependency_projection import (
 )
 from src.agent.financial_numeric_surface import (
     answer_covers_numeric_answer,
+    evidence_text_for_numeric_support,
     evidence_supports_numeric_candidates,
     evidence_numeric_display_candidates,
     extract_numeric_surface_candidates,
+    numeric_evidence_relevance_score,
     numeric_surface_candidates_equivalent,
     numeric_surface_slot_components,
     promote_table_numeric_support_evidence,
@@ -40,7 +42,11 @@ from src.agent.financial_numeric_surface import (
 )
 from src.agent.financial_operand_resolution import ratio_context_has_metric_surface
 from src.agent.financial_row_surfaces import _operand_text_match, _strip_leading_period_qualifiers
-from src.agent.financial_runtime_normalization import _clean_source_row_ids, _normalise_spaces
+from src.agent.financial_runtime_normalization import (
+    _clean_source_row_ids,
+    _normalise_operand_value,
+    _normalise_spaces,
+)
 from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
 from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.agent.financial_text_surface import (
@@ -475,6 +481,320 @@ def append_operand_evidence_for_final_answer(
                 },
             }
         )
+    return updated
+
+
+def append_final_answer_surface_operands_from_evidence(
+    projection: Dict[str, Any],
+    evidence_items: List[Dict[str, Any]],
+    *,
+    final_answer: str,
+) -> Dict[str, Any]:
+    answer_candidates = [
+        dict(candidate)
+        for candidate in extract_numeric_surface_candidates(final_answer)
+        if str(candidate.get("kind") or "") != "percent"
+    ]
+    if not answer_candidates or not evidence_items:
+        return projection
+
+    updated = dict(projection or {})
+    operands = [dict(row or {}) for row in list(updated.get("calculation_operands") or [])]
+
+    def _operand_text(row: Dict[str, Any]) -> str:
+        return _normalise_spaces(
+            " ".join(
+                str(value or "")
+                for value in (
+                    row.get("label"),
+                    row.get("period"),
+                    row.get("raw_value"),
+                    row.get("raw_unit"),
+                    row.get("rendered_value"),
+                    row.get("source_quote"),
+                )
+            )
+        )
+
+    def _operand_supports(candidate: Dict[str, Any]) -> bool:
+        for operand in operands:
+            for operand_candidate in extract_numeric_surface_candidates(_operand_text(operand)):
+                if numeric_surface_candidates_equivalent(candidate, operand_candidate):
+                    return True
+        return False
+
+    calculation_result = dict(updated.get("calculation_result") or {})
+    current_period = _normalise_spaces(str(calculation_result.get("current_period") or ""))
+    prior_period = _normalise_spaces(str(calculation_result.get("prior_period") or ""))
+    existing_period_roles: Dict[str, str] = {}
+    label_hint = ""
+    concept_hint = ""
+    for operand in operands:
+        period = _normalise_spaces(str(operand.get("period") or ""))
+        role = _normalise_spaces(str(operand.get("matched_operand_role") or operand.get("role") or ""))
+        if period and role:
+            existing_period_roles.setdefault(period, role)
+        if not label_hint:
+            label_hint = _normalise_spaces(str(operand.get("label") or ""))
+        if not concept_hint:
+            concept_hint = _normalise_spaces(str(operand.get("concept") or ""))
+
+    def _collect_period_roles(value: Any) -> None:
+        if isinstance(value, dict):
+            current = _normalise_spaces(str(value.get("current_period") or ""))
+            prior = _normalise_spaces(str(value.get("prior_period") or ""))
+            if current:
+                existing_period_roles.setdefault(current, "current_period")
+            if prior:
+                existing_period_roles.setdefault(prior, "prior_period")
+            for nested in value.values():
+                if isinstance(nested, (dict, list)):
+                    _collect_period_roles(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                if isinstance(nested, (dict, list)):
+                    _collect_period_roles(nested)
+
+    _collect_period_roles(calculation_result)
+
+    def _period_near_answer_candidate(candidate: Dict[str, Any]) -> str:
+        span = candidate.get("span")
+        if not isinstance(span, (list, tuple)) or len(span) != 2:
+            return ""
+        try:
+            start = max(0, int(span[0]) - 80)
+            end = min(len(final_answer), int(span[1]) + 30)
+            candidate_start = int(span[0]) - start
+        except (TypeError, ValueError):
+            return ""
+        matches = list(re.finditer(r"20\d{2}", final_answer[start:end]))
+        if not matches:
+            return ""
+        before = [match.group(0) for match in matches if match.start() <= candidate_start]
+        return before[-1] if before else matches[0].group(0)
+
+    def _role_for_period(period: str) -> str:
+        if period in existing_period_roles:
+            return existing_period_roles[period]
+        if current_period and period == current_period:
+            return "current_period"
+        if prior_period and period == prior_period:
+            return "prior_period"
+        if any(role == "current_period" for role in existing_period_roles.values()):
+            existing_current_periods = {
+                period_value
+                for period_value, role in existing_period_roles.items()
+                if role == "current_period"
+            }
+            if period and period not in existing_current_periods:
+                return "prior_period"
+        return "answer_numeric_surface"
+
+    def _best_evidence_for_candidate(candidate: Dict[str, Any]) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        best: tuple[int, Dict[str, Any], Dict[str, Any]] | None = None
+        period_hint = _period_near_answer_candidate(candidate)
+        for evidence in list(evidence_items or []):
+            item = dict(evidence or {})
+            text = evidence_text_for_numeric_support(item)
+            if not text:
+                continue
+            for evidence_candidate in extract_numeric_surface_candidates(text):
+                if not numeric_surface_candidates_equivalent(candidate, evidence_candidate):
+                    continue
+                metadata = dict(item.get("metadata") or {})
+                score = 0
+                if str(item.get("evidence_id") or "").startswith("operand::"):
+                    score += 3
+                if metadata.get("supports_answer_numeric_surface"):
+                    score += 2
+                if str(item.get("evidence_id") or "").startswith("recon::"):
+                    score += 1
+                score += numeric_evidence_relevance_score(
+                    item,
+                    answer_text=final_answer,
+                    answer_candidate=candidate,
+                    label_hints=(label_hint, concept_hint),
+                    period_hint=period_hint,
+                )
+                if best is None or score > best[0]:
+                    best = (score, item, dict(evidence_candidate))
+        if best is None:
+            return {}, {}
+        return best[1], best[2]
+
+    def _slot_numeric_abs(row: Dict[str, Any]) -> Optional[float]:
+        value = coerce_slot_numeric(row.get("normalized_value"))
+        if value is None:
+            raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
+            raw_unit = _normalise_spaces(str(row.get("raw_unit") or ""))
+            value, _unit = _normalise_operand_value(raw_value, raw_unit)
+        if value is None:
+            return None
+        return abs(float(value))
+
+    def _with_abs_normalized_value(row: Dict[str, Any]) -> Dict[str, Any]:
+        updated_row = dict(row)
+        value = _slot_numeric_abs(updated_row)
+        if value is not None:
+            updated_row["normalized_value"] = value
+        return updated_row
+
+    def _sync_growth_result_from_answer_surface() -> bool:
+        current_rows = [
+            dict(row)
+            for row in operands
+            if _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+            == "current_period"
+        ]
+        prior_rows = [
+            dict(row)
+            for row in operands
+            if _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+            == "prior_period"
+        ]
+        if not current_rows or not prior_rows:
+            return False
+        current_row = current_rows[0]
+        prior_row = prior_rows[0]
+        current_value = _slot_numeric_abs(current_row)
+        prior_value = _slot_numeric_abs(prior_row)
+        if current_value is None or prior_value in (None, 0):
+            return False
+        result_value = ((current_value - float(prior_value)) / float(prior_value)) * 100.0
+        percent_candidates = [
+            dict(candidate)
+            for candidate in extract_numeric_surface_candidates(final_answer)
+            if str(candidate.get("kind") or "") == "percent"
+        ]
+        matched_percent: Dict[str, Any] = {}
+        for candidate in percent_candidates:
+            candidate_value = coerce_slot_numeric(
+                candidate.get("normalized_value") if candidate.get("normalized_value") is not None else candidate.get("value")
+            )
+            if candidate_value is None:
+                continue
+            tolerance = max(abs(result_value), abs(float(candidate_value)), 1.0) * 1e-3
+            if abs(result_value - float(candidate_value)) <= tolerance:
+                matched_percent = candidate
+                break
+        if not matched_percent:
+            return False
+        display_value = _normalise_spaces(str(matched_percent.get("value_text") or matched_percent.get("text") or ""))
+        if not display_value:
+            display_value = f"{result_value:.2f}%"
+        source_row_ids = _clean_source_row_ids(
+            [
+                current_row.get("source_row_id"),
+                current_row.get("source_row_ids"),
+                prior_row.get("source_row_id"),
+                prior_row.get("source_row_ids"),
+            ]
+        )
+        current_slot = build_operand_value_slot(
+            _with_abs_normalized_value(current_row),
+            default_role="current_period",
+            preserve_source_display=True,
+        )
+        prior_slot = build_operand_value_slot(
+            _with_abs_normalized_value(prior_row),
+            default_role="prior_period",
+            preserve_source_display=True,
+        )
+        calculation_result = dict(updated.get("calculation_result") or {})
+        calculation_result.update(
+            {
+                "status": "ok",
+                "operation_family": "growth_rate",
+                "result_value": result_value,
+                "result_unit": "%",
+                "rendered_value": display_value,
+                "formatted_result": final_answer,
+                "current_value": current_value,
+                "prior_value": float(prior_value),
+                "current_period": _normalise_spaces(str(current_row.get("period") or current_period or "")),
+                "prior_period": _normalise_spaces(str(prior_row.get("period") or prior_period or "")),
+                "source_row_ids": source_row_ids,
+                "source_evidence_ids": source_row_ids,
+                "answer_slots": {
+                    "metric_label": label_hint,
+                    "operation_family": "growth_rate",
+                    "source_row_ids": source_row_ids,
+                    "primary_value": {
+                        "status": "ok",
+                        "role": "primary_value",
+                        "label": label_hint,
+                        "concept": concept_hint,
+                        "period": "",
+                        "raw_value": display_value,
+                        "raw_unit": "%",
+                        "normalized_value": result_value,
+                        "normalized_unit": "PERCENT",
+                        "rendered_value": display_value,
+                        "source_row_id": source_row_ids[0] if source_row_ids else "",
+                        "source_row_ids": source_row_ids,
+                        "source_anchor": "",
+                    },
+                    "components_by_role": {
+                        "current_period": [current_slot],
+                        "prior_period": [prior_slot],
+                    },
+                    "components_by_group": {
+                        "current": [current_slot],
+                        "prior": [prior_slot],
+                    },
+                },
+                "derived_metrics": {
+                    **dict(calculation_result.get("derived_metrics") or {}),
+                    "operation_family": "growth_rate",
+                    "formula_result_value": result_value,
+                    "final_answer_surface_trace_sync": True,
+                },
+            }
+        )
+        updated["calculation_result"] = calculation_result
+        calculation_plan = dict(updated.get("calculation_plan") or {})
+        calculation_plan.update({"status": "ok", "operation": "growth_rate", "result_unit": "%"})
+        updated["calculation_plan"] = calculation_plan
+        return True
+
+    appended = False
+    for candidate in answer_candidates:
+        if _operand_supports(candidate):
+            continue
+        evidence, evidence_candidate = _best_evidence_for_candidate(candidate)
+        if not evidence or not evidence_candidate:
+            continue
+        slot_components = numeric_surface_slot_components(candidate) or numeric_surface_slot_components(evidence_candidate)
+        if not slot_components:
+            continue
+        metadata = dict(evidence.get("metadata") or {})
+        evidence_id = _normalise_spaces(str(evidence.get("evidence_id") or ""))
+        period = _period_near_answer_candidate(candidate)
+        role = _normalise_spaces(str(metadata.get("operand_role") or "")) or _role_for_period(period)
+        operand_id = role
+        if any(_normalise_spaces(str(row.get("operand_id") or "")) == operand_id for row in operands):
+            operand_id = f"answer_surface_{len(operands) + 1:03d}"
+        row = {
+            "status": "ok",
+            "role": role,
+            "matched_operand_role": role,
+            "operand_id": operand_id,
+            "label": label_hint,
+            "concept": concept_hint,
+            "period": period,
+            **slot_components,
+            "source_row_id": evidence_id,
+            "source_row_ids": [evidence_id] if evidence_id else [],
+            "source_anchor": _normalise_spaces(str(evidence.get("source_anchor") or "")),
+            "source_quote": _normalise_spaces(str(evidence.get("quote_span") or evidence.get("claim") or "")),
+            "projection_backfilled_from_final_evidence": True,
+        }
+        operands.append(row)
+        appended = True
+
+    synced_growth_result = _sync_growth_result_from_answer_surface()
+    if appended or synced_growth_result:
+        updated["calculation_operands"] = operands
     return updated
 
 

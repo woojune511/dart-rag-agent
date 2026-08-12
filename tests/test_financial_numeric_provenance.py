@@ -4,6 +4,7 @@ from copy import deepcopy
 from unittest.mock import Mock, patch
 
 import src.agent.financial_numeric_surface as financial_numeric_surface
+import src.agent.financial_aggregate_projection as financial_aggregate_projection
 import src.agent.financial_graph_calculation as financial_graph_calculation
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
@@ -982,7 +983,7 @@ class FinancialNumericProvenanceTests(unittest.TestCase):
             },
         ]
 
-        updated = self.agent._append_final_answer_surface_operands_from_evidence(
+        updated = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence(
             projection,
             evidence_items,
             final_answer=final_answer,
@@ -994,7 +995,7 @@ class FinancialNumericProvenanceTests(unittest.TestCase):
         self.assertEqual(operands[0]["period"], "2023")
 
     def test_final_answer_surface_rejects_opposite_sign_evidence(self) -> None:
-        updated = self.agent._append_final_answer_surface_operands_from_evidence(
+        updated = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence(
             {"calculation_operands": [], "calculation_result": {"status": "ok"}},
             [
                 {

@@ -53,6 +53,7 @@ def _financial_agent_state_model() -> Any:
 
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_aggregate_projection import (
+    append_final_answer_surface_operands_from_evidence,
     append_operand_evidence_for_final_answer,
     filter_aggregate_evidence_for_final_answer,
 )
@@ -1160,7 +1161,7 @@ class FinancialAgent(
         )
         if retrieved_ratio_projection:
             runtime_calculation_trace = retrieved_ratio_projection
-        runtime_calculation_trace = self._append_final_answer_surface_operands_from_evidence(
+        runtime_calculation_trace = append_final_answer_surface_operands_from_evidence(
             runtime_calculation_trace,
             [
                 *list(final_for_evidence.get("evidence_items") or []),

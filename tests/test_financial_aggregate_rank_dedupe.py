@@ -8609,7 +8609,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             events.append(("append-surface", projection, items, final_answer))
             return appended_projection
 
-        agent._append_final_answer_surface_operands_from_evidence = Mock(side_effect=append_surface)
+        append_owner = Mock(side_effect=append_surface)
         before_evidence = deepcopy(aggregate_evidence_items)
         before_projection = deepcopy(aggregate_projection)
         before_selected = list(selected_claim_ids)
@@ -8621,6 +8621,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             financial_graph_calculation,
             "filter_aggregate_evidence_for_final_answer",
             filter_projection,
+        ), patch.object(
+            financial_graph_calculation,
+            "append_final_answer_surface_operands_from_evidence",
+            append_owner,
         ):
             result = financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
                 agent,
@@ -8641,7 +8645,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(filter_call.kwargs, {"final_answer": "answer 10", "selected_claim_ids": selected_claim_ids})
         self.assertIs(filter_call.kwargs["selected_claim_ids"], selected_claim_ids)
         provenance.assert_called_once()
-        append_call = agent._append_final_answer_surface_operands_from_evidence.call_args
+        append_call = append_owner.call_args
         self.assertIs(append_call.args[0], provenance_projection)
         self.assertIs(append_call.args[1], filtered_items)
         self.assertEqual(append_call.kwargs, {"final_answer": "answer 10"})
@@ -8654,13 +8658,17 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         later_append = Mock()
         failing_agent = Agent()
         failing_filter = Mock(side_effect=RuntimeError("filter failed"))
-        failing_agent._append_final_answer_surface_operands_from_evidence = later_append
         with (
             patch.object(financial_graph_calculation, "filter_aggregate_projection_provenance", later_provenance),
             patch.object(
                 financial_graph_calculation,
                 "filter_aggregate_evidence_for_final_answer",
                 failing_filter,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_final_answer_surface_operands_from_evidence",
+                later_append,
             ),
             self.assertRaisesRegex(RuntimeError, "filter failed"),
         ):
@@ -8677,7 +8685,6 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         failing_append = Mock()
         provenance_failure_agent = Agent()
         successful_filter = Mock(return_value=filtered_items)
-        provenance_failure_agent._append_final_answer_surface_operands_from_evidence = failing_append
         with (
             patch.object(
                 financial_graph_calculation,
@@ -8688,6 +8695,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 financial_graph_calculation,
                 "filter_aggregate_evidence_for_final_answer",
                 successful_filter,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_final_answer_surface_operands_from_evidence",
+                failing_append,
             ),
             self.assertRaisesRegex(RuntimeError, "provenance failed"),
         ):
@@ -10396,6 +10408,967 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertIs(evidence_items[0]["nested"], nested)
         self.assertIs(aggregate_row["nested"], nested)
         self.assertIs(aggregate_evidence[0]["nested"], nested)
+
+    def test_current_source_final_surface_projection_pins_identity_copy_and_existing_support(self) -> None:
+        owner = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence
+        nested = {"preserve": True}
+        projection = {
+            "calculation_operands": [
+                {
+                    "label": "metric",
+                    "raw_value": "10",
+                    "raw_unit": "KRW",
+                    "nested": nested,
+                }
+            ],
+            "calculation_result": {"status": "ok", "nested": nested},
+            "nested": nested,
+        }
+        before_projection = deepcopy(projection)
+
+        class EvidenceTruthBomb:
+            def __bool__(self):
+                raise AssertionError("evidence truthiness must stay lazy")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            return_value=[],
+        ) as extractor:
+            unchanged = owner(projection, EvidenceTruthBomb(), final_answer="blank answer")
+        self.assertIs(unchanged, projection)
+        extractor.assert_called_once_with("blank answer")
+
+        answer_candidate = {
+            "kind": "number",
+            "normalized_value": 10.0,
+            "value_text": "10",
+            "span": [7, 9],
+        }
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            return_value=[answer_candidate],
+        ):
+            no_evidence = owner(projection, [], final_answer="metric 10")
+        self.assertIs(no_evidence, projection)
+
+        extraction_events = []
+
+        def extract(text):
+            extraction_events.append(text)
+            if text == "metric 10":
+                return [dict(answer_candidate)]
+            if "metric" in text and "10" in text:
+                return [{"kind": "number", "normalized_value": 10.0}]
+            return []
+
+        evidence_support_bomb = Mock(side_effect=AssertionError("evidence scan must stay lazy"))
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=extract,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_candidates_equivalent",
+                side_effect=lambda left, right: left.get("normalized_value") == right.get("normalized_value"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_text_for_numeric_support",
+                evidence_support_bomb,
+            ),
+        ):
+            copied = owner(
+                projection,
+                [{"evidence_id": "unused", "nested": nested}],
+                final_answer="metric 10",
+            )
+
+        self.assertIsNot(copied, projection)
+        self.assertIs(copied["calculation_operands"], projection["calculation_operands"])
+        self.assertIs(copied["calculation_operands"][0], projection["calculation_operands"][0])
+        self.assertIs(copied["calculation_operands"][0]["nested"], nested)
+        self.assertIs(copied["nested"], nested)
+        self.assertEqual(copied, projection)
+        self.assertEqual(projection, before_projection)
+        self.assertIs(projection["nested"], nested)
+        evidence_support_bomb.assert_not_called()
+        self.assertEqual(extraction_events[0], "metric 10")
+
+        with patch.object(
+            financial_aggregate_projection,
+            "extract_numeric_surface_candidates",
+            side_effect=RuntimeError("surface extraction failed"),
+        ), self.assertRaisesRegex(RuntimeError, "surface extraction failed"):
+            owner(projection, [], final_answer="metric 10")
+        self.assertEqual(projection, before_projection)
+
+    def test_current_source_final_surface_projection_pins_evidence_rank_period_role_and_row_copy(self) -> None:
+        owner = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence
+        nested = {"preserve": True}
+        projection = {
+            "calculation_operands": [
+                {
+                    "status": "ok",
+                    "operand_id": "prior_period",
+                    "role": "current_period",
+                    "matched_operand_role": "current_period",
+                    "label": "target metric",
+                    "concept": "target_metric",
+                    "period": "2024",
+                    "raw_value": "999",
+                    "raw_unit": "KRW",
+                    "nested": nested,
+                }
+            ],
+            "calculation_result": {
+                "status": "ok",
+                "nested_periods": {"current_period": "2024", "prior_period": "2023"},
+            },
+            "nested": nested,
+        }
+        evidence_items = [
+            {
+                "evidence_id": "recon::first",
+                "source_anchor": "first anchor",
+                "claim": "2023 target metric 100 KRW",
+                "quote_span": "2023 target metric 100 KRW",
+                "metadata": {"supports_answer_numeric_surface": True, "nested": nested},
+                "nested": nested,
+            },
+            {
+                "evidence_id": "recon::second",
+                "source_anchor": "second anchor",
+                "claim": "2023 target metric 100 KRW",
+                "quote_span": "2023 target metric 100 KRW",
+                "metadata": {"supports_answer_numeric_surface": True},
+            },
+        ]
+        before_projection = deepcopy(projection)
+        before_evidence = deepcopy(evidence_items)
+        answer_candidate = {
+            "kind": "number",
+            "normalized_value": 100.0,
+            "value_text": "100",
+            "span": [19, 22],
+        }
+        evidence_candidate = {"kind": "number", "normalized_value": 100.0}
+        relevance_events = []
+
+        def extract(text):
+            if text == "In 2023 target metric 100":
+                return [dict(answer_candidate)]
+            if text == "2023 target metric 100 KRW":
+                return [dict(evidence_candidate)]
+            if "999" in text:
+                return [{"kind": "number", "normalized_value": 999.0}]
+            return []
+
+        def relevance(item, **kwargs):
+            relevance_events.append((item["evidence_id"], kwargs))
+            return 7
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=extract,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_candidates_equivalent",
+                side_effect=lambda left, right: left.get("normalized_value") == right.get("normalized_value"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_text_for_numeric_support",
+                side_effect=lambda item: item.get("quote_span", ""),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_evidence_relevance_score",
+                side_effect=relevance,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_slot_components",
+                side_effect=lambda candidate: {
+                    "raw_value": "100",
+                    "raw_unit": "KRW",
+                    "normalized_value": candidate["normalized_value"],
+                    "normalized_unit": "KRW",
+                    "rendered_value": "100 KRW",
+                },
+            ),
+        ):
+            updated = owner(
+                projection,
+                evidence_items,
+                final_answer="In 2023 target metric 100",
+            )
+
+        self.assertIsNot(updated, projection)
+        self.assertEqual(len(updated["calculation_operands"]), 2)
+        appended = updated["calculation_operands"][1]
+        self.assertEqual(appended["role"], "prior_period")
+        self.assertEqual(appended["matched_operand_role"], "prior_period")
+        self.assertEqual(appended["operand_id"], "answer_surface_002")
+        self.assertEqual(appended["period"], "2023")
+        self.assertEqual(appended["label"], "target metric")
+        self.assertEqual(appended["concept"], "target_metric")
+        self.assertEqual(appended["source_row_id"], "recon::first")
+        self.assertEqual(appended["source_row_ids"], ["recon::first"])
+        self.assertEqual(appended["source_anchor"], "first anchor")
+        self.assertEqual(appended["source_quote"], "2023 target metric 100 KRW")
+        self.assertTrue(appended["projection_backfilled_from_final_evidence"])
+        self.assertEqual([event[0] for event in relevance_events], ["recon::first", "recon::second"])
+        for _evidence_id, kwargs in relevance_events:
+            self.assertEqual(kwargs["answer_text"], "In 2023 target metric 100")
+            self.assertEqual(kwargs["period_hint"], "2023")
+            self.assertEqual(kwargs["label_hints"], ("target metric", "target_metric"))
+        self.assertEqual(projection, before_projection)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(projection["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+        self.assertIs(evidence_items[0]["metadata"]["nested"], nested)
+
+        bonus_evidence = [
+            {
+                "evidence_id": "recon::lower",
+                "claim": "2023 target metric 100 KRW",
+                "metadata": {},
+            },
+            {
+                "evidence_id": "operand::higher",
+                "claim": "2023 target metric 100 KRW from operand",
+                "metadata": {"supports_answer_numeric_surface": True},
+            },
+        ]
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=lambda text: [dict(answer_candidate)]
+                if text == "In 2023 target metric 100"
+                else [dict(evidence_candidate)]
+                if "100 KRW" in text
+                else [],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_candidates_equivalent",
+                side_effect=lambda left, right: left.get("normalized_value") == right.get("normalized_value"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_text_for_numeric_support",
+                side_effect=lambda item: item.get("quote_span") or item.get("claim") or "",
+            ),
+            patch.object(financial_aggregate_projection, "numeric_evidence_relevance_score", return_value=0),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_slot_components",
+                return_value={"raw_value": "100", "raw_unit": "KRW"},
+            ),
+        ):
+            bonus_selected = owner(
+                {"calculation_operands": []},
+                bonus_evidence,
+                final_answer="In 2023 target metric 100",
+            )
+        bonus_row = bonus_selected["calculation_operands"][0]
+        self.assertEqual(bonus_row["source_row_id"], "operand::higher")
+        self.assertEqual(bonus_row["source_quote"], "2023 target metric 100 KRW from operand")
+
+        malformed_candidate = {**answer_candidate, "span": ["bad", 4]}
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=lambda text: [dict(malformed_candidate)]
+                if text == "target metric 100"
+                else [dict(evidence_candidate)]
+                if "target metric 100" in text
+                else [],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_candidates_equivalent",
+                return_value=True,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_text_for_numeric_support",
+                side_effect=lambda item: item.get("quote_span", ""),
+            ),
+            patch.object(financial_aggregate_projection, "numeric_evidence_relevance_score", return_value=1),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_surface_slot_components",
+                return_value={"raw_value": "100", "raw_unit": "KRW"},
+            ),
+        ):
+            malformed = owner({}, evidence_items[:1], final_answer="target metric 100")
+        self.assertEqual(malformed["calculation_operands"][0]["period"], "")
+        self.assertEqual(
+            malformed["calculation_operands"][0]["matched_operand_role"],
+            "answer_numeric_surface",
+        )
+
+        second_text = Mock(side_effect=AssertionError("later evidence must stay untouched"))
+
+        class LaterEvidence(dict):
+            def get(self, key, default=None):
+                second_text()
+                return super().get(key, default)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=extract,
+            ),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "evidence_text_for_numeric_support",
+                side_effect=lambda item: item.get("quote_span", ""),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "numeric_evidence_relevance_score",
+                side_effect=RuntimeError("relevance failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "relevance failed"),
+        ):
+            owner(
+                {"calculation_operands": []},
+                [evidence_items[0], LaterEvidence({"quote_span": "later"})],
+                final_answer="In 2023 target metric 100",
+            )
+        second_text.assert_not_called()
+
+    def test_current_source_final_surface_projection_pins_growth_sync_tolerance_and_slots(self) -> None:
+        owner = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence
+        nested = {"preserve": True}
+        current_row = {
+            "status": "ok",
+            "role": "current_period",
+            "matched_operand_role": "current_period",
+            "period": "2024",
+            "raw_value": "-120",
+            "raw_unit": "KRW",
+            "normalized_value": None,
+            "source_row_id": "row-current",
+            "nested": nested,
+        }
+        prior_row = {
+            "status": "ok",
+            "role": "prior_period",
+            "matched_operand_role": "prior_period",
+            "period": "2023",
+            "raw_value": "-80",
+            "raw_unit": "KRW",
+            "normalized_value": None,
+            "source_row_ids": ["row-prior"],
+            "nested": nested,
+        }
+        projection = {
+            "calculation_operands": [current_row, prior_row],
+            "calculation_result": {
+                "status": "stale",
+                "derived_metrics": {"preserve": True},
+                "nested": nested,
+            },
+            "calculation_plan": {"status": "stale", "nested": nested},
+            "nested": nested,
+        }
+        evidence_items = [{"evidence_id": "ev", "nested": nested}]
+        before_projection = deepcopy(projection)
+        before_evidence = deepcopy(evidence_items)
+        build_events = []
+
+        def extractor_factory(percent_value):
+            def extract(text):
+                if text == "target 100; growth display":
+                    return [
+                        {"kind": "number", "normalized_value": 100.0},
+                        {
+                            "kind": "percent",
+                            "normalized_value": percent_value,
+                            "value_text": f"{percent_value}%",
+                        },
+                    ]
+                if "-120" in text or "-80" in text:
+                    return [{"kind": "number", "normalized_value": 100.0}]
+                return []
+
+            return extract
+
+        def normalize_operand(raw_value, raw_unit):
+            self.assertEqual(raw_unit, "KRW")
+            return float(raw_value), "KRW"
+
+        def build_slot(row, *, default_role, preserve_source_display):
+            build_events.append((row, default_role, preserve_source_display))
+            return {
+                "role": default_role,
+                "normalized_value": row["normalized_value"],
+                "raw_value": row["raw_value"],
+                "nested": row["nested"],
+            }
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=extractor_factory(50.049),
+            ),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", return_value=True),
+            patch.object(financial_aggregate_projection, "_normalise_operand_value", side_effect=normalize_operand),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_slot_numeric",
+                side_effect=lambda value: None if value is None else float(value),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "build_operand_value_slot",
+                side_effect=build_slot,
+            ),
+        ):
+            synced = owner(
+                projection,
+                evidence_items,
+                final_answer="target 100; growth display",
+            )
+
+        result = synced["calculation_result"]
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["operation_family"], "growth_rate")
+        self.assertAlmostEqual(result["result_value"], 50.0)
+        self.assertEqual(result["rendered_value"], "50.049%")
+        self.assertEqual(result["formatted_result"], "target 100; growth display")
+        self.assertEqual(result["current_value"], 120.0)
+        self.assertEqual(result["prior_value"], 80.0)
+        self.assertEqual(result["current_period"], "2024")
+        self.assertEqual(result["prior_period"], "2023")
+        self.assertEqual(result["source_row_ids"], ["row-current", "row-prior"])
+        self.assertTrue(result["derived_metrics"]["preserve"])
+        self.assertTrue(result["derived_metrics"]["final_answer_surface_trace_sync"])
+        self.assertEqual(synced["calculation_plan"]["operation"], "growth_rate")
+        self.assertEqual([event[1] for event in build_events], ["current_period", "prior_period"])
+        self.assertTrue(all(event[2] for event in build_events))
+        self.assertEqual([event[0]["normalized_value"] for event in build_events], [120.0, 80.0])
+        self.assertIs(build_events[0][0]["nested"], nested)
+        self.assertIs(result["answer_slots"]["components_by_role"]["current_period"][0]["nested"], nested)
+        self.assertEqual(projection, before_projection)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(projection["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=extractor_factory(50.051),
+            ),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", return_value=True),
+            patch.object(financial_aggregate_projection, "_normalise_operand_value", side_effect=normalize_operand),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_slot_numeric",
+                side_effect=lambda value: None if value is None else float(value),
+            ),
+        ):
+            outside = owner(projection, evidence_items, final_answer="target 100; growth display")
+        self.assertIsNot(outside, projection)
+        self.assertEqual(outside, projection)
+        self.assertEqual(outside["calculation_result"]["status"], "stale")
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "extract_numeric_surface_candidates",
+                side_effect=extractor_factory(50.0),
+            ),
+            patch.object(financial_aggregate_projection, "numeric_surface_candidates_equivalent", return_value=True),
+            patch.object(financial_aggregate_projection, "_normalise_operand_value", side_effect=normalize_operand),
+            patch.object(
+                financial_aggregate_projection,
+                "coerce_slot_numeric",
+                side_effect=lambda value: None if value is None else float(value),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "build_operand_value_slot",
+                side_effect=RuntimeError("slot build failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "slot build failed"),
+        ):
+            owner(projection, evidence_items, final_answer="target 100; growth display")
+        self.assertEqual(projection, before_projection)
+        self.assertEqual(evidence_items, before_evidence)
+
+    def test_current_source_final_surface_projection_pins_exact_binding_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        retired_target = "_" + "append_final_answer_surface_operands_from_evidence"
+        target = "append_final_answer_surface_operands_from_evidence"
+        graph_paths = {
+            "calculation": Path("src/agent/financial_graph_calculation.py"),
+            "graph": Path("src/agent/financial_graph.py"),
+            "owner": Path("src/agent/financial_aggregate_projection.py"),
+        }
+        trees = {
+            key: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for key, path in graph_paths.items()
+        }
+        definitions = [
+            (key, node)
+            for key, tree in trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == target
+        ]
+        self.assertEqual(len(definitions), 1)
+        self.assertEqual(definitions[0][0], "owner")
+        definition = definitions[0][1]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 312)
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Name)
+                and node.id == "self"
+                and isinstance(node.ctx, ast.Load)
+                for node in ast.walk(definition)
+            ),
+            0,
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.FunctionDef)
+                and node.name == retired_target
+                for tree in trees.values()
+                for node in ast.walk(tree)
+            )
+        )
+
+        calls = []
+        for module_name, tree in trees.items():
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            functions = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                func = node.func
+                call_name = (
+                    func.attr
+                    if isinstance(func, ast.Attribute)
+                    else func.id
+                    if isinstance(func, ast.Name)
+                    else ""
+                )
+                if call_name != target:
+                    continue
+                containers = [
+                    candidate
+                    for candidate in functions
+                    if candidate.lineno <= node.lineno <= candidate.end_lineno
+                ]
+                caller = min(containers, key=lambda item: item.end_lineno - item.lineno)
+                try_depth = 0
+                current = node
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                calls.append(
+                    (
+                        module_name,
+                        caller.name,
+                        isinstance(func, ast.Attribute) and ast.unparse(func.value),
+                        [ast.unparse(arg) for arg in node.args],
+                        [(keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords],
+                        try_depth,
+                    )
+                )
+        self.assertEqual(
+            sorted(calls),
+            sorted(
+                [
+                    (
+                        "calculation",
+                        "_filter_final_aggregate_evidence_and_projection",
+                        False,
+                        ["aggregate_projection", "filtered_evidence_items"],
+                        [("final_answer", "final_answer")],
+                        0,
+                    ),
+                    (
+                        "graph",
+                        "run",
+                        False,
+                        [
+                            "runtime_calculation_trace",
+                            "[*list(final_for_evidence.get('evidence_items') or []), *list(runtime_evidence or [])]",
+                        ],
+                        [("final_answer", "public_answer")],
+                        0,
+                    ),
+                ]
+            ),
+        )
+
+        selected_loads = Counter(
+            node.id
+            for node in ast.walk(definition)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        )
+        graph_loads = Counter(
+            node.id
+            for node in ast.walk(trees["calculation"])
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        )
+        self.assertEqual(selected_loads["evidence_text_for_numeric_support"], 1)
+        self.assertEqual(selected_loads["numeric_evidence_relevance_score"], 1)
+        self.assertEqual(graph_loads["evidence_text_for_numeric_support"], 0)
+        self.assertEqual(graph_loads["numeric_evidence_relevance_score"], 0)
+        self.assertGreater(graph_loads["_normalise_operand_value"], 0)
+        self.assertGreater(graph_loads["financial_answer_slots"], 0)
+        self.assertEqual(selected_loads["coerce_slot_numeric"], 2)
+        self.assertEqual(selected_loads["build_operand_value_slot"], 2)
+
+        agent_paths = list(Path("src/agent").glob("*.py"))
+        module_paths = {path.stem: path for path in agent_paths}
+        edges = {name: set() for name in module_paths}
+        for name, path in module_paths.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                imported = []
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
+                    imported = [node.module.rsplit(".", 1)[-1]]
+                elif isinstance(node, ast.Import):
+                    imported = [
+                        alias.name.rsplit(".", 1)[-1]
+                        for alias in node.names
+                        if alias.name.startswith("src.agent.")
+                    ]
+                edges[name].update(value for value in imported if value in module_paths)
+
+        def reaches(source, destination):
+            pending = [source]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == destination:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current] - seen)
+            return False
+
+        for dependency in (
+            "financial_numeric_surface",
+            "financial_answer_slots",
+            "financial_runtime_normalization",
+        ):
+            self.assertTrue(reaches("financial_aggregate_projection", dependency))
+            self.assertFalse(reaches(dependency, "financial_aggregate_projection"))
+        self.assertFalse(reaches("financial_aggregate_projection", "financial_graph"))
+        self.assertFalse(reaches("financial_aggregate_projection", "financial_graph_calculation"))
+
+        baseline = json.loads(
+            Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if str(record.get("path") or "").endswith("financial_graph_calculation.py")
+            and any(4862 <= int(line) <= 5174 for line in record.get("first_lines") or [])
+        ]
+        self.assertEqual(selected_records, [])
+        self.assertEqual(313 - 1, 312)
+
+        retired_test_ref_modules = {
+            path.stem
+            for path in Path("tests").glob("test_*.py")
+            if retired_target in path.read_text(encoding="utf-8-sig")
+        }
+        self.assertEqual(retired_test_ref_modules, set())
+        current_test_ref_modules = {
+            path.stem
+            for path in Path("tests").glob("test_*.py")
+            if target in path.read_text(encoding="utf-8-sig")
+        }
+        self.assertEqual(
+            current_test_ref_modules,
+            {
+                "test_financial_aggregate_rank_dedupe",
+                "test_financial_numeric_provenance",
+                "test_subtask_loop",
+            },
+        )
+
+    def test_current_source_final_surface_filter_caller_pins_args_adoption_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        aggregate_evidence = [
+            {"evidence_id": "ev-keep", "nested": nested},
+            {"evidence_id": "operand::new", "nested": nested},
+        ]
+        aggregate_projection = {"calculation_operands": [], "nested": nested}
+        selected_claim_ids = ["drop", "ev-keep"]
+        before_evidence = deepcopy(aggregate_evidence)
+        before_projection = deepcopy(aggregate_projection)
+        before_selected = list(selected_claim_ids)
+        filtered = [aggregate_evidence[0], aggregate_evidence[1]]
+        provenance_projection = {"calculation_operands": [], "provenance": True, "nested": nested}
+        appended_projection = {"calculation_operands": [{"role": "prior"}], "nested": nested}
+        events = []
+
+        class ProjectionOutcome:
+            def __init__(self, projection):
+                self.aggregate_projection = projection
+
+        def filter_evidence(items, *, final_answer, selected_claim_ids):
+            events.append(("filter", items, final_answer, selected_claim_ids))
+            return filtered
+
+        def filter_projection(request):
+            events.append(("provenance", request.aggregate_projection, request.kept_evidence_ids))
+            return ProjectionOutcome(provenance_projection)
+
+        def append_surface(projection, items, *, final_answer):
+            events.append(("append", projection, items, final_answer))
+            return appended_projection
+
+        agent = Mock()
+        append_owner = Mock(side_effect=append_surface)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_evidence_for_final_answer",
+                side_effect=filter_evidence,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_projection_provenance",
+                side_effect=filter_projection,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_final_answer_surface_operands_from_evidence",
+                append_owner,
+            ),
+        ):
+            result = financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
+                agent,
+                aggregate_evidence,
+                aggregate_projection,
+                final_answer="final 100",
+                selected_claim_ids=selected_claim_ids,
+            )
+
+        returned_evidence, returned_projection, returned_claims, returned_ids = result
+        self.assertIs(returned_evidence, filtered)
+        self.assertIs(returned_projection, appended_projection)
+        self.assertEqual(returned_claims, ["ev-keep", "operand::new"])
+        self.assertEqual(returned_ids, ["ev-keep", "operand::new"])
+        self.assertEqual([event[0] for event in events], ["filter", "provenance", "append"])
+        self.assertIs(events[0][1], aggregate_evidence)
+        self.assertIs(events[0][3], selected_claim_ids)
+        self.assertIs(events[1][1], aggregate_projection)
+        self.assertIs(events[2][1], provenance_projection)
+        self.assertIs(events[2][2], filtered)
+        self.assertEqual(events[2][3], "final 100")
+        self.assertEqual(aggregate_evidence, before_evidence)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertEqual(selected_claim_ids, before_selected)
+        self.assertIs(aggregate_evidence[0]["nested"], nested)
+        self.assertIs(aggregate_projection["nested"], nested)
+
+        failure_events = []
+        failing_agent = Mock()
+
+        def fail_append(projection, items, *, final_answer):
+            failure_events.append(("append", projection, items, final_answer))
+            raise RuntimeError("surface append failed")
+
+        failing_append_owner = Mock(side_effect=fail_append)
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_evidence_for_final_answer",
+                return_value=filtered,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_projection_provenance",
+                return_value=ProjectionOutcome(provenance_projection),
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "append_final_answer_surface_operands_from_evidence",
+                failing_append_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "surface append failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
+                failing_agent,
+                aggregate_evidence,
+                aggregate_projection,
+                final_answer="final 100",
+                selected_claim_ids=selected_claim_ids,
+            )
+        self.assertEqual(failure_events, [("append", provenance_projection, filtered, "final 100")])
+        self.assertEqual(aggregate_evidence, before_evidence)
+        self.assertEqual(aggregate_projection, before_projection)
+
+    def test_current_source_final_surface_run_caller_pins_constructed_evidence_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        final_evidence = {"evidence_id": "final", "nested": nested}
+        runtime_evidence_row = {"evidence_id": "runtime", "nested": nested}
+        final_state = {
+            "answer": " public 100 ",
+            "citations": [],
+            "evidence_items": [final_evidence],
+            "structured_result": {},
+            "tasks": [],
+            "artifacts": [],
+            "nested": nested,
+        }
+        before_final = deepcopy(final_state)
+        initial_trace = {"calculation_operands": [], "trace": "initial", "nested": nested}
+        repaired_trace = {"calculation_operands": [], "trace": "repaired", "nested": nested}
+        structured_trace = {"calculation_operands": [], "trace": "structured", "nested": nested}
+        ratio_trace = {"calculation_operands": [], "trace": "ratio", "nested": nested}
+        appended_trace = {"calculation_operands": [{"raw_value": "100"}], "trace": "appended"}
+
+        class FakeGraph:
+            def __init__(self, state):
+                self.state = state
+
+            def invoke(self, initial):
+                self.initial = initial
+                return self.state
+
+        def configure(events):
+            agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+            agent.graph = FakeGraph(final_state)
+            agent.vsm = object()
+            agent._project_runtime_calculation_trace = Mock(return_value=initial_trace)
+            agent._repair_public_runtime_calculation_trace = Mock(
+                side_effect=[initial_trace, repaired_trace]
+            )
+            agent._late_runtime_numeric_answer = Mock(return_value="")
+
+            def with_public(state, answer):
+                return {**dict(state), "answer": answer, "compressed_answer": answer}
+
+            agent._with_public_answer = Mock(side_effect=with_public)
+            agent._runtime_evidence_from_retrieved_docs = Mock(return_value=[runtime_evidence_row])
+            agent._complete_aggregate_public_answer_projection = Mock(return_value=("", {}))
+            agent._structured_result_answer_for_missing_public_answer = Mock(return_value="")
+            agent._apply_stale_structured_numeric_public_answer_repair = Mock(
+                side_effect=lambda state, **kwargs: (
+                    kwargs["public_answer"],
+                    state,
+                    kwargs["runtime_calculation_trace"],
+                )
+            )
+            agent._structured_public_answer_trace_projection = Mock(return_value=structured_trace)
+            agent._retrieved_ratio_context_projection_for_public_answer = Mock(return_value=ratio_trace)
+            agent._project_debug_traces = Mock(
+                side_effect=lambda _final: events.append("debug") or {}
+            )
+            agent._augment_citations_from_runtime_evidence = Mock(
+                side_effect=lambda citations, evidence: events.append("citations") or []
+            )
+            agent._project_agent_answer = Mock(
+                side_effect=lambda _final, **kwargs: events.append("agent-answer")
+                or {
+                    "answer": kwargs["public_answer"],
+                    "resolved_calculation_trace": kwargs["runtime_calculation_trace"],
+                }
+            )
+            agent._project_review_trace = Mock(return_value={})
+            agent._project_debug_bundle = Mock(return_value={})
+            return agent
+
+        success_events = []
+
+        def append_surface(trace, evidence, *, final_answer):
+            success_events.append(("append", trace, evidence, final_answer))
+            return appended_trace
+
+        agent = configure(success_events)
+        with (
+            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
+            patch.object(
+                financial_graph,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=append_surface,
+            ),
+        ):
+            result = financial_graph.FinancialAgent.run(agent, "query")
+
+        self.assertIs(result["resolved_calculation_trace"], appended_trace)
+        self.assertEqual([event if isinstance(event, str) else event[0] for event in success_events], [
+            "append",
+            "debug",
+            "citations",
+            "agent-answer",
+        ])
+        append_event = success_events[0]
+        self.assertIs(append_event[1], ratio_trace)
+        self.assertEqual(append_event[3], "public 100")
+        constructed_evidence = append_event[2]
+        self.assertEqual(constructed_evidence, [final_evidence, runtime_evidence_row])
+        self.assertIsNot(constructed_evidence, final_state["evidence_items"])
+        self.assertIs(constructed_evidence[0], final_evidence)
+        self.assertIs(constructed_evidence[1], runtime_evidence_row)
+        self.assertIs(agent._project_agent_answer.call_args.kwargs["runtime_calculation_trace"], appended_trace)
+        self.assertEqual(final_state, before_final)
+        self.assertIs(final_state["nested"], nested)
+        self.assertIs(final_evidence["nested"], nested)
+        self.assertIs(runtime_evidence_row["nested"], nested)
+
+        failure_events = []
+
+        def fail_append(trace, evidence, *, final_answer):
+            failure_events.append(("append", trace, evidence, final_answer))
+            raise RuntimeError("run surface append failed")
+
+        failing_agent = configure(failure_events)
+        with (
+            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
+            patch.object(
+                financial_graph,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=fail_append,
+            ),
+            self.assertRaisesRegex(RuntimeError, "run surface append failed"),
+        ):
+            financial_graph.FinancialAgent.run(failing_agent, "query")
+        self.assertEqual(len(failure_events), 1)
+        self.assertIs(failure_events[0][1], ratio_trace)
+        self.assertEqual(failure_events[0][2], [final_evidence, runtime_evidence_row])
+        failing_agent._project_debug_traces.assert_not_called()
+        failing_agent._augment_citations_from_runtime_evidence.assert_not_called()
+        failing_agent._project_agent_answer.assert_not_called()
+        self.assertEqual(final_state, before_final)
+        self.assertIs(final_evidence["nested"], nested)
+        self.assertIs(runtime_evidence_row["nested"], nested)
 
 
 if __name__ == "__main__":
