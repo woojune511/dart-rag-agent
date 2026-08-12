@@ -5054,8 +5054,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             )
             or ["missing value"],
         ), patch.object(
-            agent,
-            "_build_retry_queries",
+            graph_reconciliation,
+            "build_retry_queries",
             side_effect=lambda received_state, missing: reflection_events.append(
                 ("queries", received_state, missing)
             )
@@ -5095,8 +5095,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             "_infer_missing_info",
             side_effect=AssertionError("missing-info projection must stop"),
         ), patch.object(
-            agent,
-            "_build_retry_queries",
+            graph_reconciliation,
+            "build_retry_queries",
             side_effect=AssertionError("query projection must stop"),
         ):
             with self.assertRaisesRegex(RuntimeError, "reflection preference failed"):

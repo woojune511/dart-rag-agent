@@ -276,6 +276,7 @@ from src.agent.financial_runtime_trace import (
     overlay_calculation_operands_from_slots,
 )
 from src.agent.financial_reflection_projection import (
+    finalize_retry_queries,
     reflection_action_from_plan as _reflection_action_from_plan,
     reflection_report_from_action as _reflection_report_from_action,
     reflection_synthesis_source_ids_from_task_outputs,
@@ -14576,7 +14577,7 @@ class FinancialAgentCalculationMixin:
         ]
         if not missing_info:
             missing_info = self._infer_missing_info(state, operands)
-        retry_queries = self._finalize_retry_queries(state, reflection_plan, missing_info)
+        retry_queries = finalize_retry_queries(state, reflection_plan, missing_info)
         retry_strategy = _normalise_spaces(
             str(reflection_plan.get("retry_strategy") or state.get("retry_strategy") or "retry_retrieval")
         ).lower()

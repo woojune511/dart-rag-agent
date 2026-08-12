@@ -58,7 +58,6 @@ from src.agent.financial_retrieval_hints import (
     _active_preferred_sections,
     _active_preferred_statement_types,
     _preferred_calc_sections,
-    _section_hint_alias,
     _supplement_section_terms_for_query,
 )
 from src.agent.financial_surface_contracts import _operand_needles
@@ -75,6 +74,7 @@ from src.agent.financial_task_artifacts import (
     reconciliation_result_artifact_update as _reconciliation_result_artifact_update,
 )
 from src.agent.financial_reflection_projection import (
+    build_retry_queries,
     build_reflection_request,
     normalise_reflection_plan_record,
 )
@@ -1460,33 +1460,6 @@ class FinancialAgentReconciliationMixin:
 
         return list(dict.fromkeys(item for item in inferred if item))
 
-    def _build_retry_queries(self, state: FinancialAgentState, missing_info: List[str]) -> List[str]:
-        companies = [str(company).strip() for company in (state.get("companies") or []) if str(company).strip()]
-        if not companies:
-            for doc, _score in (state.get("seed_retrieved_docs") or []):
-                company = str((doc.metadata or {}).get("company") or "").strip()
-                if company:
-                    companies.append(company)
-                    break
-        years = [str(int(year)) for year in (state.get("years") or [])]
-        query = state["query"]
-        topic = state.get("topic") or query
-        intent = state.get("intent") or state.get("query_type", "qa")
-        preferred_sections = _preferred_calc_sections(query, topic, intent)
-
-        queries: List[str] = []
-        for item in missing_info:
-            parts: List[str] = []
-            if companies:
-                parts.extend(companies)
-            if years:
-                parts.extend(years)
-            parts.append(item)
-            if preferred_sections:
-                parts.extend(preferred_sections[:2])
-            queries.append(_normalise_spaces(" ".join(parts)))
-        return list(dict.fromkeys(query_text for query_text in queries if query_text))
-
     def _heuristic_reflection_query_plan(
         self,
         state: FinancialAgentState,
@@ -1507,7 +1480,7 @@ class FinancialAgentReconciliationMixin:
         ]
         if not missing_info:
             missing_info = self._infer_missing_info(state, operands)
-        subqueries = self._build_retry_queries(state, missing_info)
+        subqueries = build_retry_queries(state, missing_info)
         preferred_sections = _preferred_calc_sections(
             state["query"],
             state.get("topic") or state["query"],
@@ -1522,88 +1495,6 @@ class FinancialAgentReconciliationMixin:
             "preferred_sections": preferred_sections,
             "explanation": explanation or "heuristic retry query plan",
         }
-
-    def _finalize_retry_queries(
-        self,
-        state: FinancialAgentState,
-        reflection_plan: Dict[str, Any],
-        missing_info: List[str],
-    ) -> List[str]:
-        base_queries = [
-            _normalise_spaces(str(item))
-            for item in (reflection_plan.get("subqueries") or [])
-            if _normalise_spaces(str(item))
-        ]
-        if not base_queries:
-            base_queries = self._build_retry_queries(state, missing_info)
-
-        retry_objective = str(reflection_plan.get("retry_objective") or "")
-        if retry_objective in {
-            "find_missing_values",
-            "resolve_binding",
-            "find_direct_row",
-        }:
-            for item in missing_info[:2]:
-                normalized = _normalise_spaces(str(item))
-                if normalized:
-                    base_queries.append(normalized)
-
-        companies = [str(company).strip() for company in (state.get("companies") or []) if str(company).strip()]
-        report_company_hint = ""
-        for doc, _score in (state.get("seed_retrieved_docs") or []):
-            company = str((doc.metadata or {}).get("company") or "").strip()
-            if company:
-                report_company_hint = company
-                break
-        if not report_company_hint:
-            for doc, _score in (state.get("retrieved_docs") or []):
-                company = str((doc.metadata or {}).get("company") or "").strip()
-                if company:
-                    report_company_hint = company
-                    break
-
-        global_preferred_sections = _preferred_calc_sections(
-            state["query"],
-            state.get("topic") or state["query"],
-            state.get("intent") or state.get("query_type", "qa"),
-        )
-        preferred_sections = [
-            _section_hint_alias(section)
-            for section in (
-                global_preferred_sections
-                + list(reflection_plan.get("preferred_sections") or [])
-            )
-            if _section_hint_alias(section)
-        ]
-        preferred_sections = list(dict.fromkeys(preferred_sections))
-
-        if preferred_sections and retry_objective in {
-            "find_direct_row",
-            "resolve_binding",
-        }:
-            for item in missing_info[:2]:
-                normalized = _normalise_spaces(str(item))
-                if not normalized:
-                    continue
-                for hint in preferred_sections[:2]:
-                    base_queries.append(_normalise_spaces(f"{normalized} {hint}"))
-
-        finalized: List[str] = []
-        for query_text in base_queries:
-            normalized_query = _normalise_spaces(query_text)
-            for raw_section in (reflection_plan.get("preferred_sections") or []):
-                alias = _section_hint_alias(str(raw_section))
-                raw_section_text = _normalise_spaces(str(raw_section))
-                if raw_section_text and alias:
-                    normalized_query = normalized_query.replace(raw_section_text, alias)
-            parts: List[str] = []
-            lowered = normalized_query.lower()
-            if report_company_hint and report_company_hint.lower() not in lowered:
-                parts.append(report_company_hint)
-            parts.append(normalized_query)
-            finalized.append(_normalise_spaces(" ".join(parts)))
-
-        return list(dict.fromkeys(item for item in finalized if item))
 
     def _plan_reflection_retry(self, state: FinancialAgentState) -> Dict[str, Any]:
         runtime_trace = _resolve_runtime_calculation_trace(

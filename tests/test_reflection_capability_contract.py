@@ -1436,6 +1436,1115 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
         self.assertEqual(state, state_before)
         self.assertIs(state["nested"], nested_state)
 
+    def test_current_source_retry_query_builder_pins_branches_access_and_exceptions(
+        self,
+    ) -> None:
+        access_events = []
+        nested = {"keep": True}
+
+        class RecordingState(dict):
+            def get(self, key, default=None):
+                access_events.append(("get", key))
+                return super().get(key, default)
+
+            def __getitem__(self, key):
+                access_events.append(("getitem", key))
+                return super().__getitem__(key)
+
+        class IterationBomb:
+            def __iter__(self):
+                raise AssertionError("seed documents must stay lazy")
+
+        company_string_calls = []
+
+        class CompanySurface:
+            def __str__(self):
+                company_string_calls.append("company")
+                return " ACME "
+
+        company_surface = CompanySurface()
+        state = RecordingState(
+            {
+                "companies": [company_surface, ""],
+                "seed_retrieved_docs": IterationBomb(),
+                "years": [2024, "2023"],
+                "query": "query",
+                "topic": "topic",
+                "intent": "intent",
+                "nested": nested,
+            }
+        )
+        companies = state["companies"]
+        years = state["years"]
+        missing_info = ["metric", "metric"]
+        preferred_calls = []
+
+        def preferred(query, topic, intent):
+            preferred_calls.append((query, topic, intent))
+            return ["Section A", "Section B", "Section C"]
+
+        access_events.clear()
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            side_effect=preferred,
+        ):
+            result = financial_reflection_projection.build_retry_queries(
+                state,
+                missing_info,
+            )
+
+        self.assertEqual(
+            result,
+            ["ACME 2024 2023 metric Section A Section B"],
+        )
+        self.assertEqual(company_string_calls, ["company", "company"])
+        self.assertIsNot(result, missing_info)
+        self.assertEqual(preferred_calls, [("query", "topic", "intent")])
+        self.assertEqual(
+            access_events,
+            [
+                ("get", "companies"),
+                ("get", "years"),
+                ("getitem", "query"),
+                ("get", "topic"),
+                ("get", "intent"),
+            ],
+        )
+        self.assertIs(state["companies"], companies)
+        self.assertIs(state["years"], years)
+        self.assertIs(state["nested"], nested)
+        self.assertEqual(missing_info, ["metric", "metric"])
+
+        fallback_events = []
+
+        class MetadataBomb:
+            @property
+            def metadata(self):
+                raise AssertionError("scan must stop after the first company")
+
+        class FallbackState(dict):
+            def get(self, key, default=None):
+                fallback_events.append(("get", key))
+                return super().get(key, default)
+
+            def __getitem__(self, key):
+                fallback_events.append(("getitem", key))
+                return super().__getitem__(key)
+
+        empty_doc = SimpleNamespace(metadata={})
+        company_doc = SimpleNamespace(metadata={"company": " Seed Co "})
+        fallback_state = FallbackState(
+            {
+                "companies": [],
+                "seed_retrieved_docs": [
+                    (empty_doc, 0.1),
+                    (company_doc, 0.2),
+                    (MetadataBomb(), 0.3),
+                ],
+                "years": [],
+                "query": "query",
+                "query_type": "qa",
+                "nested": nested,
+            }
+        )
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            return_value=[],
+        ):
+            fallback = financial_reflection_projection.build_retry_queries(
+                fallback_state,
+                ["missing value"],
+            )
+        self.assertEqual(fallback, ["Seed Co missing value"])
+        self.assertEqual(
+            fallback_events,
+            [
+                ("get", "companies"),
+                ("get", "seed_retrieved_docs"),
+                ("get", "years"),
+                ("getitem", "query"),
+                ("get", "topic"),
+                ("get", "intent"),
+                ("get", "query_type"),
+            ],
+        )
+        self.assertIs(fallback_state["nested"], nested)
+
+        class YearBomb:
+            def __int__(self):
+                raise RuntimeError("year conversion failed")
+
+        exception_events = []
+
+        class ExceptionState(dict):
+            def get(self, key, default=None):
+                exception_events.append(("get", key))
+                return super().get(key, default)
+
+            def __getitem__(self, key):
+                exception_events.append(("getitem", key))
+                return super().__getitem__(key)
+
+        exception_state = ExceptionState(
+            {
+                "companies": ["ACME"],
+                "years": [YearBomb()],
+                "query": "must stay unread",
+            }
+        )
+        preferred_owner = Mock()
+        normalizer_owner = Mock()
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            preferred_owner,
+        ), patch.object(
+            financial_reflection_projection,
+            "_normalise_spaces",
+            normalizer_owner,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "year conversion failed"):
+                financial_reflection_projection.build_retry_queries(
+                    exception_state,
+                    ["missing"],
+                )
+        self.assertEqual(exception_events, [("get", "companies"), ("get", "years")])
+        preferred_owner.assert_not_called()
+        normalizer_owner.assert_not_called()
+
+        missing_query_preferred = Mock()
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            missing_query_preferred,
+        ):
+            with self.assertRaises(KeyError):
+                financial_reflection_projection.build_retry_queries(
+                    {
+                        "companies": [],
+                        "seed_retrieved_docs": [],
+                        "years": [],
+                    },
+                    ["missing"],
+                )
+        missing_query_preferred.assert_not_called()
+
+        class MetadataFailureDoc:
+            @property
+            def metadata(self):
+                raise RuntimeError("seed metadata failed")
+
+        metadata_preferred = Mock()
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            metadata_preferred,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "seed metadata failed"):
+                financial_reflection_projection.build_retry_queries(
+                    {
+                        "companies": [],
+                        "seed_retrieved_docs": [(MetadataFailureDoc(), 0.1)],
+                        "years": [],
+                        "query": "query",
+                    },
+                    ["missing"],
+                )
+        metadata_preferred.assert_not_called()
+
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            return_value=[],
+        ), patch.object(
+            financial_reflection_projection,
+            "_normalise_spaces",
+            side_effect=RuntimeError("query normalization failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "query normalization failed"):
+                financial_reflection_projection.build_retry_queries(
+                    {
+                        "companies": [],
+                        "seed_retrieved_docs": [],
+                        "years": [],
+                        "query": "query",
+                    },
+                    ["missing"],
+                )
+
+    def test_current_source_retry_query_finalizer_pins_plan_objective_and_company_order(
+        self,
+    ) -> None:
+        nested_state = {"state": True}
+        nested_plan = {"plan": True}
+
+        class IterationBomb:
+            def __iter__(self):
+                raise AssertionError("retrieved documents must stay lazy")
+
+        seed_doc = SimpleNamespace(metadata={"company": "SeedCo"})
+        state_access = []
+        company_string_calls = []
+
+        class RecordingState(dict):
+            def get(self, key, default=None):
+                state_access.append(("get", key))
+                return super().get(key, default)
+
+            def __getitem__(self, key):
+                state_access.append(("getitem", key))
+                return super().__getitem__(key)
+
+        class CompanySurface:
+            def __str__(self):
+                company_string_calls.append("company")
+                return "unused"
+
+        state = RecordingState({
+            "companies": [CompanySurface()],
+            "seed_retrieved_docs": [(seed_doc, 0.9)],
+            "retrieved_docs": IterationBomb(),
+            "query": "query",
+            "topic": "topic",
+            "intent": "intent",
+            "nested": nested_state,
+        })
+        reflection_plan = {
+            "subqueries": [" Raw Section metric ", "SeedCo existing"],
+            "retry_objective": "resolve_binding",
+            "preferred_sections": ["Raw Section"],
+            "nested": nested_plan,
+        }
+        missing_info = [" missing one ", "missing two", "missing three"]
+        state_before = {
+            "companies": list(state["companies"]),
+            "seed_retrieved_docs": list(state["seed_retrieved_docs"]),
+            "query": state["query"],
+            "topic": state["topic"],
+            "intent": state["intent"],
+        }
+        plan_before = deepcopy(reflection_plan)
+        missing_before = list(missing_info)
+        preferred_calls = []
+        alias_calls = []
+        normalizer_calls = []
+        real_normalizer = financial_reflection_projection._normalise_spaces
+        state_access.clear()
+
+        def preferred(query, topic, intent):
+            preferred_calls.append((query, topic, intent))
+            return ["Global", "Raw Section"]
+
+        def alias(section):
+            alias_calls.append(section)
+            return {"Global": "G", "Raw Section": "R"}.get(section, "")
+
+        def normalize(value):
+            normalizer_calls.append(value)
+            return real_normalizer(value)
+
+        builder_owner = Mock(
+            side_effect=AssertionError("builder must stay lazy for planner queries")
+        )
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            side_effect=preferred,
+        ), patch.object(
+            financial_reflection_projection,
+            "_section_hint_alias",
+            side_effect=alias,
+        ), patch.object(
+            financial_reflection_projection,
+            "_normalise_spaces",
+            side_effect=normalize,
+        ), patch.object(
+            financial_reflection_projection,
+            "build_retry_queries",
+            builder_owner,
+        ):
+            result = financial_reflection_projection.finalize_retry_queries(
+                state,
+                reflection_plan,
+                missing_info,
+            )
+
+        self.assertEqual(
+            result,
+            [
+                "SeedCo R metric",
+                "SeedCo existing",
+                "SeedCo missing one",
+                "SeedCo missing two",
+                "SeedCo missing one G",
+                "SeedCo missing one R",
+                "SeedCo missing two G",
+                "SeedCo missing two R",
+            ],
+        )
+        builder_owner.assert_not_called()
+        self.assertEqual(company_string_calls, ["company", "company"])
+        self.assertEqual(
+            state_access,
+            [
+                ("get", "companies"),
+                ("get", "seed_retrieved_docs"),
+                ("getitem", "query"),
+                ("get", "topic"),
+                ("get", "intent"),
+            ],
+        )
+        self.assertEqual(preferred_calls, [("query", "topic", "intent")])
+        self.assertEqual(
+            normalizer_calls[:4],
+            [
+                " Raw Section metric ",
+                " Raw Section metric ",
+                "SeedCo existing",
+                "SeedCo existing",
+            ],
+        )
+        self.assertEqual(len(normalizer_calls), 36)
+        self.assertEqual(
+            alias_calls[:6],
+            [
+                "Global",
+                "Global",
+                "Raw Section",
+                "Raw Section",
+                "Raw Section",
+                "Raw Section",
+            ],
+        )
+        self.assertEqual(len(alias_calls), 14)
+        self.assertEqual(state["companies"], state_before["companies"])
+        self.assertEqual(state["seed_retrieved_docs"], state_before["seed_retrieved_docs"])
+        self.assertEqual(state["query"], state_before["query"])
+        self.assertEqual(state["topic"], state_before["topic"])
+        self.assertEqual(state["intent"], state_before["intent"])
+        self.assertIs(state["nested"], nested_state)
+        self.assertEqual(reflection_plan, plan_before)
+        self.assertIs(reflection_plan["nested"], nested_plan)
+        self.assertEqual(missing_info, missing_before)
+
+    def test_current_source_retry_query_finalizer_pins_fallback_laziness_and_exceptions(
+        self,
+    ) -> None:
+        nested_state = {"state": True}
+        nested_plan = {"plan": True}
+        retrieved_doc = SimpleNamespace(metadata={"company": "RetrievedCo"})
+        state = {
+            "companies": [],
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [(retrieved_doc, 0.4)],
+            "query": "query",
+            "nested": nested_state,
+        }
+        reflection_plan = {
+            "subqueries": ["", "   "],
+            "retry_objective": "generic_retry",
+            "preferred_sections": [],
+            "nested": nested_plan,
+        }
+        missing_info = ["missing"]
+        base_queries = [" base ", "base"]
+        builder_calls = []
+
+        def builder(actual_state, actual_missing_info):
+            builder_calls.append((actual_state, actual_missing_info))
+            return base_queries
+
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            return_value=[],
+        ), patch.object(
+            financial_reflection_projection,
+            "_section_hint_alias",
+            side_effect=AssertionError("section alias must stay lazy"),
+        ), patch.object(
+            financial_reflection_projection,
+            "build_retry_queries",
+            side_effect=builder,
+        ):
+            result = financial_reflection_projection.finalize_retry_queries(
+                state,
+                reflection_plan,
+                missing_info,
+            )
+
+        self.assertEqual(result, ["RetrievedCo base"])
+        self.assertIsNot(result, base_queries)
+        self.assertEqual(len(builder_calls), 1)
+        self.assertIs(builder_calls[0][0], state)
+        self.assertIs(builder_calls[0][1], missing_info)
+        self.assertEqual(base_queries, [" base ", "base"])
+        self.assertIs(state["nested"], nested_state)
+        self.assertIs(reflection_plan["nested"], nested_plan)
+        self.assertEqual(reflection_plan["subqueries"], ["", "   "])
+
+        normalize_builder = Mock()
+        normalize_sections = Mock()
+        with patch.object(
+            financial_reflection_projection,
+            "_normalise_spaces",
+            side_effect=RuntimeError("subquery normalization failed"),
+        ), patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            normalize_sections,
+        ), patch.object(
+            financial_reflection_projection,
+            "build_retry_queries",
+            normalize_builder,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "subquery normalization failed"):
+                financial_reflection_projection.finalize_retry_queries(
+                    state,
+                    {"subqueries": ["boom"]},
+                    missing_info,
+                )
+        normalize_builder.assert_not_called()
+        normalize_sections.assert_not_called()
+
+        class DownstreamState(dict):
+            def get(self, key, default=None):
+                raise AssertionError(f"state access after builder failure: {key}")
+
+        downstream_state = DownstreamState()
+        failing_builder = Mock(side_effect=RuntimeError("builder failed"))
+        downstream_sections = Mock()
+        with patch.object(
+            financial_reflection_projection,
+            "_preferred_calc_sections",
+            downstream_sections,
+        ), patch.object(
+            financial_reflection_projection,
+            "build_retry_queries",
+            failing_builder,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "builder failed"):
+                financial_reflection_projection.finalize_retry_queries(
+                    downstream_state,
+                    {"subqueries": []},
+                    missing_info,
+                )
+        failing_builder.assert_called_once()
+        self.assertIs(failing_builder.call_args.args[0], downstream_state)
+        self.assertIs(failing_builder.call_args.args[1], missing_info)
+        downstream_sections.assert_not_called()
+
+    def test_current_source_retry_query_bindings_pin_exact_move_boundary(self) -> None:
+        reconciliation_path = Path("src/agent/financial_graph_reconciliation.py")
+        calculation_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_reflection_projection.py")
+        reconciliation_text = reconciliation_path.read_text(encoding="utf-8-sig")
+        calculation_text = calculation_path.read_text(encoding="utf-8-sig")
+        owner_text = owner_path.read_text(encoding="utf-8-sig")
+        reconciliation_tree = ast.parse(reconciliation_text)
+        calculation_tree = ast.parse(calculation_text)
+        owner_tree = ast.parse(owner_text)
+        private_builder = "_" + "build_retry_queries"
+        private_finalizer = "_" + "finalize_retry_queries"
+        public_builder = private_builder[1:]
+        public_finalizer = private_finalizer[1:]
+        target_names = {
+            private_builder,
+            private_finalizer,
+            public_builder,
+            public_finalizer,
+        }
+        reconciliation_class = next(
+            node
+            for node in reconciliation_tree.body
+            if isinstance(node, ast.ClassDef)
+            and node.name == "FinancialAgentReconciliationMixin"
+        )
+        reconciliation_definitions = {
+            node.name: node
+            for node in reconciliation_class.body
+            if isinstance(node, ast.FunctionDef) and node.name in target_names
+        }
+        self.assertEqual(reconciliation_definitions, {})
+        owner_selected_definitions = {
+            node.name: node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name in target_names
+        }
+        self.assertEqual(
+            set(owner_selected_definitions),
+            {public_builder, public_finalizer},
+        )
+        self.assertEqual(
+            {
+                name: node.end_lineno - node.lineno + 1
+                for name, node in owner_selected_definitions.items()
+            },
+            {public_builder: 26, public_finalizer: 80},
+        )
+        self.assertNotIn(private_builder, reconciliation_text)
+        self.assertNotIn(private_finalizer, reconciliation_text)
+        self.assertNotIn(private_builder, calculation_text)
+        self.assertNotIn(private_finalizer, calculation_text)
+        self.assertNotIn(private_builder, owner_text)
+        self.assertNotIn(private_finalizer, owner_text)
+
+        def collect_calls(tree, module_label):
+            parent = {
+                child: node
+                for node in ast.walk(tree)
+                for child in ast.iter_child_nodes(node)
+            }
+
+            def enclosing_function(node):
+                current = parent.get(node)
+                while current is not None and not isinstance(current, ast.FunctionDef):
+                    current = parent.get(current)
+                return current.name if isinstance(current, ast.FunctionDef) else ""
+
+            calls = []
+            non_calls = []
+            for node in ast.walk(tree):
+                target = ""
+                receiver = ""
+                if isinstance(node, ast.Name) and node.id in target_names:
+                    target = node.id
+                elif isinstance(node, ast.Attribute) and node.attr in target_names:
+                    target = node.attr
+                    receiver = ast.unparse(node.value)
+                else:
+                    continue
+                parent_node = parent.get(node)
+                if not (isinstance(parent_node, ast.Call) and parent_node.func is node):
+                    non_calls.append((target, receiver, type(parent_node).__name__))
+                    continue
+                try_depth = 0
+                current = parent.get(parent_node)
+                while current is not None:
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                    current = parent.get(current)
+                calls.append(
+                    (
+                        module_label,
+                        target,
+                        enclosing_function(parent_node),
+                        receiver,
+                        tuple(ast.unparse(arg) for arg in parent_node.args),
+                        tuple(
+                            (keyword.arg, ast.unparse(keyword.value))
+                            for keyword in parent_node.keywords
+                        ),
+                        try_depth,
+                    )
+                )
+            return calls, non_calls
+
+        reconciliation_calls, reconciliation_non_calls = collect_calls(
+            reconciliation_tree,
+            "reconciliation",
+        )
+        calculation_calls, calculation_non_calls = collect_calls(
+            calculation_tree,
+            "calculation",
+        )
+        owner_calls, owner_non_calls = collect_calls(owner_tree, "owner")
+        self.assertEqual(reconciliation_non_calls, [])
+        self.assertEqual(calculation_non_calls, [])
+        self.assertEqual(owner_non_calls, [])
+        self.assertCountEqual(
+            [*reconciliation_calls, *calculation_calls, *owner_calls],
+            [
+                (
+                    "reconciliation",
+                    public_builder,
+                    "_heuristic_reflection_query_plan",
+                    "",
+                    ("state", "missing_info"),
+                    (),
+                    0,
+                ),
+                (
+                    "owner",
+                    public_builder,
+                    public_finalizer,
+                    "",
+                    ("state", "missing_info"),
+                    (),
+                    0,
+                ),
+                (
+                    "calculation",
+                    public_finalizer,
+                    "_prepare_reflection_retry",
+                    "",
+                    ("state", "reflection_plan", "missing_info"),
+                    (),
+                    0,
+                ),
+            ],
+        )
+
+        self.assertEqual(26 + 81, 107)
+        self.assertEqual(26 + 80, 106)
+        self.assertEqual(len(reconciliation_calls) + len(calculation_calls), 2)
+        self.assertEqual(len(owner_calls), 1)
+        self.assertEqual((len(reconciliation_calls) + len(calculation_calls), len(owner_calls)), (2, 1))
+
+        owner_definitions = [
+            node for node in owner_tree.body if isinstance(node, ast.FunctionDef)
+        ]
+        self.assertEqual(
+            len([node for node in owner_definitions if not node.name.startswith("_")]),
+            8,
+        )
+        self.assertEqual(
+            len([node for node in owner_definitions if node.name.startswith("_")]),
+            2,
+        )
+        selected_nodes = list(owner_selected_definitions.values())
+
+        def load_count(nodes, name):
+            return sum(
+                isinstance(child, ast.Name)
+                and isinstance(child.ctx, ast.Load)
+                and child.id == name
+                for node in nodes
+                for child in ast.walk(node)
+            )
+
+        all_reconciliation_loads = {
+            name: sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == name
+                for node in ast.walk(reconciliation_tree)
+            )
+            for name in {"_preferred_calc_sections", "_section_hint_alias"}
+        }
+        selected_loads = {
+            name: load_count(selected_nodes, name)
+            for name in {"_preferred_calc_sections", "_section_hint_alias"}
+        }
+        self.assertEqual(
+            all_reconciliation_loads,
+            {"_preferred_calc_sections": 2, "_section_hint_alias": 0},
+        )
+        self.assertEqual(
+            selected_loads,
+            {"_preferred_calc_sections": 2, "_section_hint_alias": 3},
+        )
+        module_graph = {}
+        for path in Path("src/agent").glob("*.py"):
+            module_name = f"src.agent.{path.stem}"
+            module_graph[module_name] = set()
+            module_tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(module_tree):
+                if (
+                    isinstance(node, ast.ImportFrom)
+                    and node.module
+                    and node.module.startswith("src.agent.")
+                ):
+                    module_graph[module_name].add(node.module)
+                elif isinstance(node, ast.Import):
+                    module_graph[module_name].update(
+                        alias.name
+                        for alias in node.names
+                        if alias.name.startswith("src.agent.")
+                    )
+
+        def reaches(graph, start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(graph.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_reflection_projection"
+        retrieval_module = "src.agent.financial_retrieval_hints"
+        reconciliation_module = "src.agent.financial_graph_reconciliation"
+        calculation_module = "src.agent.financial_graph_calculation"
+        self.assertFalse(reaches(module_graph, retrieval_module, owner_module))
+        self.assertFalse(reaches(module_graph, owner_module, reconciliation_module))
+        self.assertFalse(reaches(module_graph, owner_module, calculation_module))
+        simulated_graph = {key: set(value) for key, value in module_graph.items()}
+        simulated_graph[owner_module].add(retrieval_module)
+        self.assertFalse(reaches(simulated_graph, retrieval_module, owner_module))
+        self.assertFalse(reaches(simulated_graph, owner_module, reconciliation_module))
+        self.assertFalse(reaches(simulated_graph, owner_module, calculation_module))
+
+        owner_retrieval_bindings = {
+            alias.asname or alias.name
+            for node in owner_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_retrieval_hints"
+            for alias in node.names
+        }
+        self.assertTrue(
+            {"_preferred_calc_sections", "_section_hint_alias"}.issubset(
+                owner_retrieval_bindings
+            )
+        )
+
+        reconciliation_owner_bindings = {
+            alias.asname or alias.name
+            for node in reconciliation_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_reflection_projection"
+            for alias in node.names
+        }
+        calculation_owner_bindings = {
+            alias.asname or alias.name
+            for node in calculation_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_reflection_projection"
+            for alias in node.names
+        }
+        self.assertIn(public_builder, reconciliation_owner_bindings)
+        self.assertNotIn(public_finalizer, reconciliation_owner_bindings)
+        self.assertIn(public_finalizer, calculation_owner_bindings)
+        self.assertNotIn(public_builder, calculation_owner_bindings)
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set()
+        for node in selected_nodes:
+            selected_lines.update(range(node.lineno, node.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path")
+                == "src/agent/financial_reflection_projection.py"
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_retry_query_heuristic_caller_pins_args_adoption_and_stop(
+        self,
+    ) -> None:
+        events = []
+        nested_state = {"state": True}
+        operand = {"operand_id": "a"}
+        state = {"missing_info": [], "query": "query", "nested": nested_state}
+        operands = [operand]
+        inferred = ["missing value"]
+        queries = ["retry query"]
+        sections = ["section"]
+
+        def dependency(actual_state):
+            events.append("dependency")
+            self.assertIs(actual_state, state)
+            return {"all_resolved": False}
+
+        def infer(actual_state, actual_operands):
+            events.append("infer")
+            self.assertIs(actual_state, state)
+            self.assertIs(actual_operands, operands)
+            return inferred
+
+        def builder(actual_state, actual_missing):
+            events.append("builder")
+            self.assertIs(actual_state, state)
+            self.assertIs(actual_missing, inferred)
+            return queries
+
+        def preferred(query, topic, intent):
+            events.append("sections")
+            self.assertEqual((query, topic, intent), ("query", "query", "qa"))
+            return sections
+
+        agent = SimpleNamespace(
+            _dependency_binding_resolution_state=dependency,
+            _infer_missing_info=infer,
+        )
+        with patch.object(
+            financial_graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            side_effect=lambda actual_state: events.append("preference") or False,
+        ), patch.object(
+            financial_graph_reconciliation,
+            "_preferred_calc_sections",
+            side_effect=preferred,
+        ), patch.object(
+            financial_graph_reconciliation,
+            "build_retry_queries",
+            side_effect=builder,
+        ):
+            result = FinancialAgentReconciliationMixin._heuristic_reflection_query_plan(
+                agent,
+                state,
+                operands,
+                retry_objective="resolve_binding",
+                explanation="because",
+            )
+
+        self.assertEqual(
+            events,
+            ["dependency", "preference", "infer", "builder", "sections"],
+        )
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["retry_strategy"], "retry_retrieval")
+        self.assertIs(result["missing_info"], inferred)
+        self.assertIs(result["subqueries"], queries)
+        self.assertIs(result["preferred_sections"], sections)
+        self.assertEqual(result["retry_objective"], "resolve_binding")
+        self.assertEqual(result["explanation"], "because")
+        self.assertIs(state["nested"], nested_state)
+        self.assertIs(operands[0], operand)
+
+        downstream_sections = Mock()
+        failing_builder = Mock(side_effect=RuntimeError("builder failed"))
+        failing_agent = SimpleNamespace(
+            _dependency_binding_resolution_state=Mock(return_value={"all_resolved": False}),
+            _infer_missing_info=Mock(return_value=inferred),
+        )
+        with patch.object(
+            financial_graph_reconciliation,
+            "task_prefers_sibling_output_synthesis",
+            return_value=False,
+        ), patch.object(
+            financial_graph_reconciliation,
+            "_preferred_calc_sections",
+            downstream_sections,
+        ), patch.object(
+            financial_graph_reconciliation,
+            "build_retry_queries",
+            failing_builder,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "builder failed"):
+                FinancialAgentReconciliationMixin._heuristic_reflection_query_plan(
+                    failing_agent,
+                    state,
+                    operands,
+                )
+        failing_builder.assert_called_once()
+        self.assertIs(failing_builder.call_args.args[0], state)
+        self.assertIs(failing_builder.call_args.args[1], inferred)
+        downstream_sections.assert_not_called()
+        self.assertIs(state["nested"], nested_state)
+        self.assertIs(operands[0], operand)
+
+    def test_current_source_retry_query_preparation_caller_pins_args_adoption_and_stop(
+        self,
+    ) -> None:
+        events = []
+        nested_state = {"state": True}
+        nested_plan = {"plan": True}
+        task_row = {"task_id": "task_existing"}
+        artifact_row = {"artifact_id": "artifact_existing"}
+        state = {
+            "reflection_count": 1,
+            "reflection_plan": {
+                "missing_info": [" missing value "],
+                "retry_strategy": "retry_retrieval",
+                "explanation": "retry because missing",
+                "nested": nested_plan,
+            },
+            "reflection_request": {"request": True},
+            "active_subtask": {"task_id": "task_target", "metric_family": "ratio"},
+            "tasks": [task_row],
+            "artifacts": [artifact_row],
+            "nested": nested_state,
+        }
+        state_before = deepcopy(state)
+        runtime_trace = {
+            "calculation_operands": [],
+            "calculation_plan": {"status": "incomplete"},
+            "calculation_result": {"status": "failed"},
+        }
+        queries = ["retry query"]
+        action = {"action_type": "retry_retrieval", "retry_queries": queries}
+        report = {"outcome": "retry_prepared"}
+        artifact_tasks = [{"task_id": "reflection_task"}]
+        artifact_artifacts = [{"artifact_id": "reflection_artifact"}]
+        finalize_calls = []
+
+        def resolve(actual_state, *, allow_legacy_top_level):
+            events.append("resolve")
+            self.assertIsNot(actual_state, state)
+            self.assertIs(actual_state["nested"], nested_state)
+            self.assertFalse(allow_legacy_top_level)
+            return runtime_trace
+
+        def finalize(actual_state, actual_plan, actual_missing):
+            events.append("finalize")
+            finalize_calls.append((actual_state, actual_plan, actual_missing))
+            self.assertIs(actual_state, state)
+            self.assertIsNot(actual_plan, state["reflection_plan"])
+            self.assertIs(actual_plan["nested"], nested_plan)
+            self.assertEqual(actual_missing, ["missing value"])
+            return queries
+
+        def project_action(actual_plan, *, retry_queries, retry_strategy):
+            events.append("action")
+            self.assertIs(actual_plan, finalize_calls[0][1])
+            self.assertIs(retry_queries, queries)
+            self.assertEqual(retry_strategy, "retry_retrieval")
+            return action
+
+        def project_report(actual_state, *, reflection_action, reflection_request):
+            events.append("report")
+            self.assertIs(actual_state, state)
+            self.assertIs(reflection_action, action)
+            self.assertEqual(reflection_request, state["reflection_request"])
+            self.assertIsNot(reflection_request, state["reflection_request"])
+            return report
+
+        def next_id(*, tasks, artifacts, target_task_id, current_count):
+            events.append("next_id")
+            self.assertIsNot(tasks, state["tasks"])
+            self.assertIs(tasks[0], task_row)
+            self.assertIsNot(artifacts, state["artifacts"])
+            self.assertIs(artifacts[0], artifact_row)
+            self.assertEqual((target_task_id, current_count), ("task_target", 1))
+            return "reflection_task"
+
+        def artifact_update(**kwargs):
+            events.append("artifact")
+            self.assertEqual(kwargs["reflection_task_id"], "reflection_task")
+            self.assertEqual(kwargs["target_task_id"], "task_target")
+            self.assertIs(kwargs["reflection_report"], report)
+            self.assertIs(kwargs["reflection_action"], action)
+            self.assertIs(kwargs["reflection_plan"], finalize_calls[0][1])
+            return {"tasks": artifact_tasks, "artifacts": artifact_artifacts}
+
+        def clear_debug():
+            events.append("clear")
+            return {"calculation_debug_trace": {}}
+
+        def trace_update(
+            actual_state,
+            *,
+            calculation_operands,
+            calculation_plan,
+            calculation_result,
+        ):
+            events.append("trace")
+            self.assertIs(actual_state, state)
+            self.assertEqual(calculation_operands, [])
+            self.assertEqual(calculation_plan, {})
+            self.assertEqual(calculation_result, {})
+            return {"resolved_calculation_trace": {}}
+
+        agent = SimpleNamespace(
+            _infer_missing_info=Mock(side_effect=AssertionError("inference ran")),
+        )
+        with patch.object(
+            financial_graph_calculation,
+            "_resolve_runtime_calculation_trace",
+            side_effect=resolve,
+        ), patch.object(
+            financial_graph_calculation,
+            "_reflection_action_from_plan",
+            side_effect=project_action,
+        ), patch.object(
+            financial_graph_calculation,
+            "_reflection_report_from_action",
+            side_effect=project_report,
+        ), patch.object(
+            financial_graph_calculation,
+            "next_reflection_task_id",
+            side_effect=next_id,
+        ), patch.object(
+            financial_graph_calculation,
+            "_build_reflection_report_artifact_update",
+            side_effect=artifact_update,
+        ), patch.object(
+            financial_graph_calculation,
+            "_clear_calculation_debug_state",
+            side_effect=clear_debug,
+        ), patch.object(
+            financial_graph_calculation,
+            "_runtime_trace_state_update",
+            side_effect=trace_update,
+        ), patch.object(
+            financial_graph_calculation,
+            "reflection_synthesis_source_ids_from_task_outputs",
+            side_effect=AssertionError("synthesis lookup must stay lazy"),
+        ), patch.object(
+            financial_graph_calculation,
+            "finalize_retry_queries",
+            side_effect=finalize,
+        ):
+            update = (
+                financial_graph_calculation.FinancialAgentCalculationMixin._prepare_reflection_retry(
+                    agent,
+                    state,
+                )
+            )
+
+        self.assertEqual(
+            events,
+            ["resolve", "finalize", "action", "report", "next_id", "artifact", "clear", "trace"],
+        )
+        self.assertEqual(len(finalize_calls), 1)
+        self.assertIs(finalize_calls[0][0], state)
+        self.assertIsNot(finalize_calls[0][1], state["reflection_plan"])
+        self.assertIs(finalize_calls[0][1]["nested"], nested_plan)
+        self.assertIsNot(finalize_calls[0][2], state["reflection_plan"]["missing_info"])
+        self.assertEqual(finalize_calls[0][2], ["missing value"])
+        self.assertEqual(update["retry_queries"], queries)
+        self.assertIsNot(update["retry_queries"], queries)
+        self.assertIs(update["reflection_action"], action)
+        self.assertIs(update["reflection_report"], report)
+        self.assertIs(update["tasks"][0], artifact_tasks[0])
+        self.assertIs(update["artifacts"][0], artifact_artifacts[0])
+        self.assertEqual(update["retry_reason"], "retry because missing")
+        self.assertEqual(state, state_before)
+        self.assertIs(state["nested"], nested_state)
+        self.assertIs(state["reflection_plan"]["nested"], nested_plan)
+        self.assertIs(state["tasks"][0], task_row)
+        self.assertIs(state["artifacts"][0], artifact_row)
+
+        downstream_action = Mock()
+        failing_finalize = Mock(side_effect=RuntimeError("finalize failed"))
+        failing_agent = SimpleNamespace(
+            _infer_missing_info=Mock(side_effect=AssertionError("inference ran")),
+        )
+        with patch.object(
+            financial_graph_calculation,
+            "_resolve_runtime_calculation_trace",
+            return_value=runtime_trace,
+        ), patch.object(
+            financial_graph_calculation,
+            "_reflection_action_from_plan",
+            downstream_action,
+        ), patch.object(
+            financial_graph_calculation,
+            "finalize_retry_queries",
+            failing_finalize,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "finalize failed"):
+                financial_graph_calculation.FinancialAgentCalculationMixin._prepare_reflection_retry(
+                    failing_agent,
+                    state,
+                )
+        failing_finalize.assert_called_once()
+        self.assertIs(failing_finalize.call_args.args[0], state)
+        self.assertIsNot(failing_finalize.call_args.args[1], state["reflection_plan"])
+        self.assertIs(failing_finalize.call_args.args[1]["nested"], nested_plan)
+        self.assertEqual(failing_finalize.call_args.args[2], ["missing value"])
+        downstream_action.assert_not_called()
+        self.assertEqual(state, state_before)
+        self.assertIs(state["nested"], nested_state)
+        self.assertIs(state["reflection_plan"]["nested"], nested_plan)
+        self.assertIs(state["tasks"][0], task_row)
+        self.assertIs(state["artifacts"][0], artifact_row)
+
     def test_reflection_report_records_retry_handoff(self) -> None:
         action = reflection_action_from_plan(
             {
