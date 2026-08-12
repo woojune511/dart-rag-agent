@@ -85,6 +85,7 @@ from src.agent.financial_aggregate_projection import (
     compose_lookup_list_numeric_answer,
     dedupe_aggregate_subtask_results,
     dependency_source_slot_match_score,
+    ensure_complete_growth_numeric_answer,
     filter_aggregate_evidence_for_final_answer,
     filter_aggregate_projection_provenance,
     growth_slot_display_value,
@@ -111,6 +112,7 @@ from src.agent.financial_aggregate_projection import (
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
     subtask_numeric_answers_conflict,
     subtask_row_has_direct_source_refs,
+    strip_untraced_numeric_material_from_growth_narrative_sentence,
     synchronize_aggregate_arithmetic_components,
     synchronize_aggregate_projection_row_surface,
     synchronize_nested_aggregate_subtask_rows,
@@ -2897,54 +2899,6 @@ class FinancialAgentCalculationMixin:
             ).candidate
         return best_candidate
 
-    def _ensure_complete_growth_numeric_answer(
-        self,
-        answer: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> str:
-        answer_text = _normalise_spaces(str(answer or ""))
-        for row in reversed(ordered_results):
-            if self._aggregate_result_operation_family(row) != "growth_rate":
-                continue
-            if growth_row_has_conflicting_periods(row):
-                continue
-            complete_answer = compose_complete_growth_numeric_answer(
-                row,
-                ordered_results,
-                evidence_items=evidence_items,
-            )
-            if not complete_answer:
-                continue
-            required_values = growth_required_display_values(row, ordered_results, evidence_items)
-            if (
-                required_values
-                and all(value in answer_text for value in required_values)
-                and not growth_answer_has_untraced_numeric_sentence(
-                    answer_text,
-                    complete_answer,
-                    required_values,
-                )
-            ):
-                return answer_text
-            extra_sentences: List[str] = []
-            for sentence in _split_narrative_sentences(answer_text):
-                cleaned = _normalise_spaces(sentence)
-                if not cleaned or cleaned in complete_answer:
-                    continue
-                if any(value and value in cleaned for value in required_values):
-                    continue
-                if growth_sentence_has_untraced_material_numeric(
-                    cleaned,
-                    complete_answer,
-                    required_values,
-                    evidence_items,
-                ):
-                    continue
-                extra_sentences.append(cleaned)
-            return _normalise_spaces(" ".join([complete_answer, *extra_sentences]))
-        return answer_text
-
     def _final_growth_answer_without_untraced_numeric_sentences(
         self,
         *,
@@ -3006,7 +2960,7 @@ class FinancialAgentCalculationMixin:
                 kept_sentences.append(cleaned)
                 continue
             if any(value and value in cleaned for value in required_values):
-                cleaned = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                cleaned = strip_untraced_numeric_material_from_growth_narrative_sentence(
                     cleaned,
                     ordered_results,
                     evidence_items=evidence_items,
@@ -3020,7 +2974,7 @@ class FinancialAgentCalculationMixin:
 
         if not removed_numeric_sentence:
             return answer_text
-        candidate_answer = self._ensure_complete_growth_numeric_answer(
+        candidate_answer = ensure_complete_growth_numeric_answer(
             _normalise_spaces(" ".join(kept_sentences)),
             ordered_results,
             evidence_items=evidence_items,
@@ -3157,115 +3111,6 @@ class FinancialAgentCalculationMixin:
             return False
         return True
 
-    def _strip_untraced_numeric_material_from_growth_narrative_sentence(
-        self,
-        sentence: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]] = None,
-    ) -> str:
-        cleaned = _normalise_spaces(str(sentence or ""))
-        if not cleaned:
-            return ""
-
-        complete_answers: List[str] = []
-        required_values: List[str] = []
-        for row in ordered_results or []:
-            if self._aggregate_result_operation_family(row) != "growth_rate":
-                continue
-            if growth_row_has_conflicting_periods(row):
-                continue
-            complete_answer = compose_complete_growth_numeric_answer(
-                row,
-                ordered_results,
-                evidence_items=evidence_items,
-            )
-            if complete_answer:
-                complete_answers.append(complete_answer)
-            required_values.extend(
-                growth_required_display_values(
-                    row,
-                    ordered_results,
-                    evidence_items=evidence_items,
-                )
-            )
-        if not complete_answers and not required_values:
-            return ""
-
-        has_untraced_numeric = any(
-            growth_sentence_has_untraced_material_numeric(
-                cleaned,
-                complete_answer,
-                required_values,
-                evidence_items,
-            )
-            for complete_answer in complete_answers
-        )
-        if not has_untraced_numeric:
-            return cleaned
-
-        allowed_surface = _normalise_spaces(" ".join([*complete_answers, *required_values]))
-        sanitized = cleaned
-
-        def _remove_unallowed_token(match: re.Match[str]) -> str:
-            token = _normalise_spaces(match.group(0))
-            return token if token and token in allowed_surface else " "
-
-        percent_pattern = str(CALCULATION_NARRATIVE_POLICY.get("percent_display_pattern") or "")
-        if percent_pattern:
-            sanitized = re.sub(percent_pattern, _remove_unallowed_token, sanitized)
-
-        unit_terms = sorted(
-            {
-                _normalise_spaces(str(unit))
-                for unit in (CALCULATION_RENDER_POLICY.get("krw_display_units") or ())
-                if _normalise_spaces(str(unit))
-            },
-            key=len,
-            reverse=True,
-        )
-        if unit_terms:
-            joined_units = "|".join(re.escape(unit) for unit in unit_terms)
-            sanitized = re.sub(
-                rf"\d[\d,]*(?:\.\d+)?\s*(?:{joined_units})",
-                _remove_unallowed_token,
-                sanitized,
-            )
-
-        sanitized = re.sub(r"\s+([,.;:!?。])", r"\1", sanitized)
-        sanitized = re.sub(r"([,;:])\s*([,;:])+", r"\1", sanitized)
-        sanitized = re.sub(r"[(（]\s*[)）]", " ", sanitized)
-        sanitized = _normalise_spaces(sanitized)
-        if not sanitized or sanitized == cleaned:
-            return ""
-        if any(
-            growth_sentence_has_untraced_material_numeric(
-                sanitized,
-                complete_answer,
-                required_values,
-                evidence_items,
-            )
-            for complete_answer in complete_answers
-        ):
-            return ""
-        narrative_markers = tuple(
-            str(item)
-            for item in (CALCULATION_NARRATIVE_POLICY.get("growth_narrative_markers") or ())
-        )
-        if not any(marker and marker in sanitized for marker in narrative_markers):
-            return ""
-        narrative_terms = [
-            term
-            for term in narrative_context_terms(sanitized)
-            if len(term) >= 3
-        ]
-        if len(narrative_terms) < 2:
-            return ""
-        if _narrative_sentence_looks_table_noisy(sanitized):
-            return ""
-        if _narrative_sentence_looks_abbreviated_fragment(sanitized, narrative_markers):
-            return ""
-        return sanitized
-
     def _preferred_conflicting_growth_narrative_answer(
         self,
         *,
@@ -3359,7 +3204,7 @@ class FinancialAgentCalculationMixin:
                 or _driver_group_already_covered(candidate_sentence)
             ):
                 continue
-            cleaned = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+            cleaned = strip_untraced_numeric_material_from_growth_narrative_sentence(
                 candidate_sentence,
                 ordered_results,
                 evidence_items=evidence_items,
@@ -3432,7 +3277,7 @@ class FinancialAgentCalculationMixin:
                 sanitized_sentence
                 for sentence in (_split_narrative_sentences(conflicting_answer) or [conflicting_answer])
                 for sanitized_sentence in [
-                    self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                    strip_untraced_numeric_material_from_growth_narrative_sentence(
                         sentence,
                         ordered_results,
                         evidence_items=evidence_items,
@@ -3445,7 +3290,7 @@ class FinancialAgentCalculationMixin:
                 )
             ]
             if conflicting_parts:
-                combined_answer = self._ensure_complete_growth_numeric_answer(
+                combined_answer = ensure_complete_growth_numeric_answer(
                     _normalise_spaces(" ".join([numeric_text, *conflicting_parts])),
                     ordered_results,
                     evidence_items=evidence_items,
@@ -3469,7 +3314,7 @@ class FinancialAgentCalculationMixin:
                         ],
                     }
 
-        candidate_answer = self._ensure_complete_growth_numeric_answer(
+        candidate_answer = ensure_complete_growth_numeric_answer(
             current_answer,
             ordered_results,
             evidence_items=evidence_items,
@@ -3565,7 +3410,7 @@ class FinancialAgentCalculationMixin:
                     candidate_sentence
                 ):
                     continue
-                sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                sanitized_sentence = strip_untraced_numeric_material_from_growth_narrative_sentence(
                     candidate_sentence,
                     ordered_results,
                     evidence_items=evidence_items,
@@ -3579,7 +3424,7 @@ class FinancialAgentCalculationMixin:
                 if len(row_narrative_parts) >= max_driver_sentences:
                     break
             if row_narrative_parts:
-                row_combined_answer = self._ensure_complete_growth_numeric_answer(
+                row_combined_answer = ensure_complete_growth_numeric_answer(
                     _normalise_spaces(" ".join([numeric_text, *row_narrative_parts])),
                     ordered_results,
                     evidence_items=evidence_items,
@@ -3606,7 +3451,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             evidence_items,
         ):
-            composed_answer = self._ensure_complete_growth_numeric_answer(
+            composed_answer = ensure_complete_growth_numeric_answer(
                 composed_answer,
                 ordered_results,
                 evidence_items=evidence_items,
@@ -3646,7 +3491,7 @@ class FinancialAgentCalculationMixin:
                 candidate_sentence
             ):
                 continue
-            sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+            sanitized_sentence = strip_untraced_numeric_material_from_growth_narrative_sentence(
                 candidate_sentence,
                 ordered_results,
                 evidence_items=evidence_items,
@@ -3703,7 +3548,7 @@ class FinancialAgentCalculationMixin:
                         candidate_sentence
                     ):
                         continue
-                    sanitized_sentence = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                    sanitized_sentence = strip_untraced_numeric_material_from_growth_narrative_sentence(
                         candidate_sentence,
                         ordered_results,
                         evidence_items=evidence_items,
@@ -3725,7 +3570,7 @@ class FinancialAgentCalculationMixin:
 
         if narrative_parts:
             raw_combined_answer = _normalise_spaces(" ".join([numeric_text, *narrative_parts]))
-            combined_answer = self._ensure_complete_growth_numeric_answer(
+            combined_answer = ensure_complete_growth_numeric_answer(
                 raw_combined_answer,
                 ordered_results,
                 evidence_items=evidence_items,
@@ -3762,7 +3607,7 @@ class FinancialAgentCalculationMixin:
                     ordered_results,
                     evidence_items,
                 ):
-                    clean_numeric = self._ensure_complete_growth_numeric_answer(
+                    clean_numeric = ensure_complete_growth_numeric_answer(
                         numeric_text,
                         ordered_results,
                         evidence_items=evidence_items,
@@ -3774,7 +3619,7 @@ class FinancialAgentCalculationMixin:
                 }
 
         if growth_answer_has_untraced_numeric_material(numeric_text, ordered_results, evidence_items):
-            clean_numeric = self._ensure_complete_growth_numeric_answer(
+            clean_numeric = ensure_complete_growth_numeric_answer(
                 numeric_text,
                 ordered_results,
                 evidence_items=evidence_items,
@@ -4129,7 +3974,7 @@ class FinancialAgentCalculationMixin:
                 and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
-            final_answer = self._ensure_complete_growth_numeric_answer(
+            final_answer = ensure_complete_growth_numeric_answer(
                 final_answer,
                 ordered_results,
                 evidence_items=aggregate_evidence_items,
@@ -4590,7 +4435,7 @@ class FinancialAgentCalculationMixin:
                 and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
-            numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
+            numeric_preserved_answer = ensure_complete_growth_numeric_answer(
                 final_answer,
                 ordered_results,
                 evidence_items=aggregate_evidence_items,
@@ -4654,7 +4499,7 @@ class FinancialAgentCalculationMixin:
                     if not row_answer or row_answer in final_answer:
                         continue
                     for sentence in _split_narrative_sentences(row_answer) or [row_answer]:
-                        cleaned = self._strip_untraced_numeric_material_from_growth_narrative_sentence(
+                        cleaned = strip_untraced_numeric_material_from_growth_narrative_sentence(
                             sentence,
                             ordered_results,
                             evidence_items=aggregate_evidence_items,
@@ -14493,7 +14338,7 @@ class FinancialAgentCalculationMixin:
                 and answer_reuses_numeric_narrative_summary_text(final_answer, ordered_results)
             )
         ):
-            final_answer = self._ensure_complete_growth_numeric_answer(
+            final_answer = ensure_complete_growth_numeric_answer(
                 final_answer,
                 ordered_results,
                 evidence_items=aggregate_evidence_items,
@@ -14893,7 +14738,7 @@ class FinancialAgentCalculationMixin:
                 )
             )
         ):
-            numeric_preserved_answer = self._ensure_complete_growth_numeric_answer(
+            numeric_preserved_answer = ensure_complete_growth_numeric_answer(
                 final_answer,
                 ordered_results,
                 evidence_items=aggregate_evidence_items,

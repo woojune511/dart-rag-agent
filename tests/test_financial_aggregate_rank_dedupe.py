@@ -4661,7 +4661,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         initial_agent = InitialAgent()
         initial_agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
         numeric_reuse_owner = Mock(return_value=True)
-        initial_agent._ensure_complete_growth_numeric_answer = Mock(
+        numeric_completion_owner = Mock(
             side_effect=AssertionError("numeric completion accessed")
         )
         include_owner = Mock(side_effect=RuntimeError("stop after numeric reuse"))
@@ -4683,6 +4683,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 numeric_reuse_owner,
             ),
             patch.object(financial_graph_calculation, "include_narrative_context_if_needed", include_owner),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                numeric_completion_owner,
+            ),
             self.assertRaisesRegex(RuntimeError, "stop after numeric reuse"),
         ):
             financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
@@ -4704,7 +4709,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             )
         numeric_reuse_owner.assert_called_once_with("answer 120 and 90", ordered_results)
         self.assertIs(numeric_reuse_owner.call_args.args[1], ordered_results)
-        initial_agent._ensure_complete_growth_numeric_answer.assert_not_called()
+        numeric_completion_owner.assert_not_called()
 
         include_owner = Mock()
         numeric_reuse_failure = Mock(side_effect=RuntimeError("numeric reuse failed"))
@@ -4726,6 +4731,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 numeric_reuse_failure,
             ),
             patch.object(financial_graph_calculation, "include_narrative_context_if_needed", include_owner),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                numeric_completion_owner,
+            ),
             self.assertRaisesRegex(RuntimeError, "numeric reuse failed"),
         ):
             financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
@@ -5414,10 +5424,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(
             Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls["growth"]),
             Counter({
-                "_ensure_complete_growth_numeric_answer": 1,
+                "ensure_complete_growth_numeric_answer": 1,
                 "_final_growth_answer_without_untraced_numeric_sentences": 1,
                 "_enforce_source_stated_growth_answer_contract": 1,
-                "_strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
                 "growth_answer_has_untraced_numeric_material": 1,
                 "narrative_summary_conflicts_with_growth_trace": 1,
                 "growth_narrative_numeric_incompatible_with_trace": 1,
@@ -5519,22 +5529,17 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         before_results = deepcopy(ordered_results)
         before_evidence = deepcopy(evidence_items)
 
-        class GrowthAgent:
-            pass
-
-        agent = GrowthAgent()
-        agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
         compose_owner = Mock(return_value="complete 10 200 100")
         required_owner = Mock(return_value=["10", "200", "100"])
         untraced_owner = Mock(return_value=False)
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", untraced_owner),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", required_owner),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_answer_has_untraced_numeric_sentence", untraced_owner),
         ):
-            answer = financial_graph_calculation.FinancialAgentCalculationMixin._ensure_complete_growth_numeric_answer(
-                agent,
+            answer = financial_aggregate_projection.ensure_complete_growth_numeric_answer(
                 "complete 10 200 100",
                 ordered_results,
                 evidence_items=evidence_items,
@@ -5551,19 +5556,22 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         downstream_owner = Mock()
         failing_required_owner = Mock(side_effect=RuntimeError("required failed"))
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_required_display_values", failing_required_owner),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", downstream_owner),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", failing_required_owner),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_answer_has_untraced_numeric_sentence", downstream_owner),
             self.assertRaisesRegex(RuntimeError, "required failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._ensure_complete_growth_numeric_answer(
-                agent,
+            financial_aggregate_projection.ensure_complete_growth_numeric_answer(
                 "answer",
                 ordered_results,
                 evidence_items=evidence_items,
             )
         downstream_owner.assert_not_called()
+
+        class GrowthAgent:
+            pass
 
         refresh_agent = GrowthAgent()
         refresh_agent._supported_aggregate_subtask_answer = Mock(return_value="value 10")
@@ -6459,16 +6467,16 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(noncall_refs, [])
         self.assertEqual(try_depths, [0] * 9)
         self.assertTrue(all(receiver == "" for _module, _stack, receiver, _args, _kwargs in calls))
-        self.assertEqual(Counter(module for module, *_rest in calls), Counter({"graph": 6, "owner": 3}))
+        self.assertEqual(Counter(module for module, *_rest in calls), Counter({"graph": 4, "owner": 5}))
         self.assertEqual(
             Counter(stack[-1] for _module, stack, _receiver, _args, _kwargs in calls),
             Counter(
                 {
                     "_preferred_complete_numeric_answer": 1,
-                    "_ensure_complete_growth_numeric_answer": 1,
+                    "ensure_complete_growth_numeric_answer": 1,
                     "_final_growth_answer_without_untraced_numeric_sentences": 1,
                     "_enforce_source_stated_growth_answer_contract": 1,
-                    "_strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
+                    "strip_untraced_numeric_material_from_growth_narrative_sentence": 1,
                     "growth_answer_has_untraced_numeric_material": 1,
                     "narrative_summary_conflicts_with_growth_trace": 1,
                     "growth_narrative_numeric_incompatible_with_trace": 1,
@@ -6597,11 +6605,6 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             )
         preferred._compact_ratio_answer.assert_not_called()
 
-        class CompleteAgent:
-            pass
-
-        complete = CompleteAgent()
-        complete._aggregate_result_operation_family = Mock(return_value="growth_rate")
         events = []
 
         def compose(row_arg, results_arg, *, evidence_items):
@@ -6619,13 +6622,13 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             return False
 
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", compose_owner),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_required_display_values", side_effect=required),
-            patch.object(financial_graph_calculation, "growth_answer_has_untraced_numeric_sentence", side_effect=untraced),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", compose_owner),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", side_effect=required),
+            patch.object(financial_aggregate_projection, "growth_answer_has_untraced_numeric_sentence", side_effect=untraced),
         ):
-            answer = financial_graph_calculation.FinancialAgentCalculationMixin._ensure_complete_growth_numeric_answer(
-                complete,
+            answer = financial_aggregate_projection.ensure_complete_growth_numeric_answer(
                 "existing 10",
                 ordered_results,
                 evidence_items=evidence_items,
@@ -6639,13 +6642,13 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         required_owner = Mock()
         failing_compose = Mock(side_effect=RuntimeError("owner failed"))
         with (
-            patch.object(financial_graph_calculation, "compose_complete_growth_numeric_answer", failing_compose),
-            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
-            patch.object(financial_graph_calculation, "growth_required_display_values", required_owner),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", failing_compose),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", required_owner),
             self.assertRaisesRegex(RuntimeError, "owner failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._ensure_complete_growth_numeric_answer(
-                complete,
+            financial_aggregate_projection.ensure_complete_growth_numeric_answer(
                 "answer",
                 ordered_results,
                 evidence_items=evidence_items,
@@ -7386,9 +7389,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         candidate_agent._growth_narrative_sentence_candidates = Mock(
             return_value=[(3, "candidate narrative", ["claim-1"])]
         )
-        candidate_agent._strip_untraced_numeric_material_from_growth_narrative_sentence = Mock(
-            return_value="clean explanatory narrative"
-        )
+        candidate_strip_owner = Mock(return_value="clean explanatory narrative")
         candidate_untraced = Mock(return_value=False)
         with (
             patch.object(financial_graph_calculation, "answer_covers_narrative_context", return_value=False),
@@ -7397,6 +7398,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 financial_graph_calculation,
                 "growth_answer_has_untraced_numeric_material",
                 candidate_untraced,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                candidate_strip_owner,
             ),
         ):
             candidate = financial_graph_calculation.FinancialAgentCalculationMixin._uncovered_supported_growth_narrative_candidate(
@@ -7421,6 +7427,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 financial_graph_calculation,
                 "growth_answer_has_untraced_numeric_material",
                 failing_candidate_untraced,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                candidate_strip_owner,
             ),
             self.assertRaisesRegex(RuntimeError, "candidate failed"),
         ):
@@ -8945,6 +8956,1446 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(narrative_docs, before_docs)
         self.assertEqual(state, before_state)
         self.assertIs(narrative_docs[0]["nested"], nested)
+
+    def test_current_source_growth_numeric_completion_pins_precedence_laziness_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        earlier = {"task_id": "earlier", "family": "growth_rate", "nested": nested}
+        empty = {"task_id": "empty", "family": "growth_rate", "nested": nested}
+        conflict = {"task_id": "conflict", "family": "growth_rate", "nested": nested}
+        other = {"task_id": "other", "family": "lookup", "nested": nested}
+        ordered_results = [earlier, empty, conflict, other]
+        evidence_items = [{"evidence_id": "ev-growth", "nested": nested}]
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        def operation_family(row):
+            events.append(("family", row["task_id"]))
+            return row["family"]
+
+        family_owner = Mock(side_effect=operation_family)
+
+        def conflicting(row):
+            events.append(("conflict", row["task_id"]))
+            return row is conflict
+
+        def compose(row, rows, *, evidence_items=None):
+            events.append(("compose", row["task_id"], rows, evidence_items))
+            if row is empty:
+                return ""
+            return "complete 10% 200 100"
+
+        def required(row, rows, evidence):
+            events.append(("required", row["task_id"], rows, evidence))
+            return ["10%", "200", "100"]
+
+        split_owner = Mock(
+            return_value=[
+                "complete 10% 200 100",
+                "required 200 should be skipped",
+                "untraced 99% should be skipped",
+                " stable explanatory context ",
+                "",
+            ]
+        )
+
+        def sentence_untraced(sentence, complete_answer, required_values, evidence):
+            events.append(("sentence-untraced", sentence, complete_answer, required_values, evidence))
+            return "99%" in sentence
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_owner),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", side_effect=conflicting),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", side_effect=compose),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", side_effect=required),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", split_owner),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_sentence_has_untraced_material_numeric",
+                side_effect=sentence_untraced,
+            ),
+        ):
+            answer = financial_aggregate_projection.ensure_complete_growth_numeric_answer(
+                " stale 99% answer ",
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+
+        self.assertEqual(answer, "complete 10% 200 100 stable explanatory context")
+        self.assertEqual(
+            [(event[0], event[1]) for event in events if event[0] in {"family", "conflict", "compose", "required"}],
+            [
+                ("family", "other"),
+                ("family", "conflict"),
+                ("conflict", "conflict"),
+                ("family", "empty"),
+                ("conflict", "empty"),
+                ("compose", "empty"),
+                ("family", "earlier"),
+                ("conflict", "earlier"),
+                ("compose", "earlier"),
+                ("required", "earlier"),
+            ],
+        )
+        compose_call = next(event for event in events if event[:2] == ("compose", "earlier"))
+        self.assertIs(compose_call[2], ordered_results)
+        self.assertIs(compose_call[3], evidence_items)
+        required_call = next(event for event in events if event[:2] == ("required", "earlier"))
+        self.assertIs(required_call[2], ordered_results)
+        self.assertIs(required_call[3], evidence_items)
+        split_owner.assert_called_once_with("stale 99% answer")
+        self.assertEqual(
+            [event[1] for event in events if event[0] == "sentence-untraced"],
+            ["untraced 99% should be skipped", "stable explanatory context"],
+        )
+
+        already_complete_row = {"task_id": "complete", "family": "growth_rate"}
+        complete_split = Mock(side_effect=AssertionError("sentence splitter accessed"))
+        complete_untraced = Mock(return_value=False)
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "compose_complete_growth_numeric_answer",
+                return_value="complete 10% 200 100",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_required_display_values",
+                return_value=["10%", "200", "100"],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_answer_has_untraced_numeric_sentence",
+                complete_untraced,
+            ),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", complete_split),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.ensure_complete_growth_numeric_answer(
+                    " complete 10% 200 100 ",
+                    [already_complete_row],
+                    evidence_items=evidence_items,
+                ),
+                "complete 10% 200 100",
+            )
+        complete_untraced.assert_called_once_with(
+            "complete 10% 200 100",
+            "complete 10% 200 100",
+            ["10%", "200", "100"],
+        )
+        complete_split.assert_not_called()
+
+        downstream = Mock()
+        failing_required = Mock(side_effect=RuntimeError("required values failed"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "compose_complete_growth_numeric_answer",
+                return_value="complete",
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_required_display_values",
+                failing_required,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_answer_has_untraced_numeric_sentence",
+                downstream,
+            ),
+            patch.object(financial_aggregate_projection, "_split_narrative_sentences", downstream),
+            self.assertRaisesRegex(RuntimeError, "required values failed"),
+        ):
+            financial_aggregate_projection.ensure_complete_growth_numeric_answer(
+                "answer",
+                [earlier],
+                evidence_items=evidence_items,
+            )
+        downstream.assert_not_called()
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(earlier["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+    def test_current_source_growth_sentence_sanitizer_pins_policy_gates_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        row = {"task_id": "growth", "family": "growth_rate", "nested": nested}
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev-growth", "nested": nested}]
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+
+        family_bomb = Mock(side_effect=AssertionError("operation family accessed"))
+        with patch.object(financial_aggregate_projection, "aggregate_result_operation_family", family_bomb):
+            self.assertEqual(
+                financial_aggregate_projection.strip_untraced_numeric_material_from_growth_narrative_sentence(
+                "   ",
+                ordered_results,
+                evidence_items=evidence_items,
+                ),
+                "",
+            )
+        family_bomb.assert_not_called()
+
+        untraced_bomb = Mock(side_effect=AssertionError("untraced predicate accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(financial_aggregate_projection, "compose_complete_growth_numeric_answer", return_value=""),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=[]),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_sentence_has_untraced_material_numeric",
+                untraced_bomb,
+            ),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.strip_untraced_numeric_material_from_growth_narrative_sentence(
+                    "clean narrative",
+                    ordered_results,
+                    evidence_items=evidence_items,
+                ),
+                "",
+            )
+        untraced_bomb.assert_not_called()
+
+        class NoPolicyAccess:
+            def get(self, _key, _default=None):
+                raise AssertionError("policy accessed")
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "compose_complete_growth_numeric_answer",
+                return_value="growth 10%",
+            ),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_sentence_has_untraced_material_numeric",
+                return_value=False,
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", NoPolicyAccess()),
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.strip_untraced_numeric_material_from_growth_narrative_sentence(
+                    " clean narrative ",
+                    ordered_results,
+                    evidence_items=evidence_items,
+                ),
+                "clean narrative",
+            )
+
+        sentence = "because demand improved 99% and revenue 1,000 KRW"
+        narrative_policy = {
+            "percent_display_pattern": r"\d+(?:\.\d+)?%",
+            "growth_narrative_markers": ("because",),
+        }
+        render_policy = {"krw_display_units": ("KRW",)}
+        terms_owner = Mock(return_value=["because", "demand", "improved"])
+        noise_owner = Mock(return_value=False)
+        fragment_owner = Mock(return_value=False)
+        untraced_owner = Mock(side_effect=[True, False])
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "compose_complete_growth_numeric_answer",
+                return_value="growth 10%",
+            ),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_sentence_has_untraced_material_numeric",
+                untraced_owner,
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", narrative_policy),
+            patch.object(financial_aggregate_projection, "CALCULATION_RENDER_POLICY", render_policy),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", terms_owner),
+            patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", noise_owner),
+            patch.object(
+                financial_aggregate_projection,
+                "narrative_sentence_looks_abbreviated_fragment",
+                fragment_owner,
+            ),
+        ):
+            sanitized = financial_aggregate_projection.strip_untraced_numeric_material_from_growth_narrative_sentence(
+                sentence,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(sanitized, "because demand improved and revenue")
+        self.assertEqual(untraced_owner.call_count, 2)
+        for call in untraced_owner.call_args_list:
+            self.assertIs(call.args[2], untraced_owner.call_args_list[0].args[2])
+            self.assertIs(call.args[3], evidence_items)
+        terms_owner.assert_called_once_with("because demand improved and revenue")
+        noise_owner.assert_called_once_with("because demand improved and revenue")
+        fragment_owner.assert_called_once_with("because demand improved and revenue", ("because",))
+
+        def gated_result(*, second_untraced=False, markers=("because",), terms=None, noisy=False, fragment=False):
+            local_terms = Mock(return_value=terms if terms is not None else ["because", "demand"])
+            local_noise = Mock(return_value=noisy)
+            local_fragment = Mock(return_value=fragment)
+            with (
+                patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+                patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+                patch.object(
+                    financial_aggregate_projection,
+                    "compose_complete_growth_numeric_answer",
+                    return_value="growth 10%",
+                ),
+                patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
+                patch.object(
+                    financial_aggregate_projection,
+                    "growth_sentence_has_untraced_material_numeric",
+                    side_effect=[True, second_untraced],
+                ),
+                patch.object(
+                    financial_aggregate_projection,
+                    "CALCULATION_NARRATIVE_POLICY",
+                    {"percent_display_pattern": r"\d+(?:\.\d+)?%", "growth_narrative_markers": markers},
+                ),
+                patch.object(financial_aggregate_projection, "CALCULATION_RENDER_POLICY", render_policy),
+                patch.object(financial_aggregate_projection, "narrative_context_terms", local_terms),
+                patch.object(financial_aggregate_projection, "narrative_sentence_looks_table_noisy", local_noise),
+                patch.object(
+                    financial_aggregate_projection,
+                    "narrative_sentence_looks_abbreviated_fragment",
+                    local_fragment,
+                ),
+            ):
+                result = financial_aggregate_projection.strip_untraced_numeric_material_from_growth_narrative_sentence(
+                    sentence,
+                    ordered_results,
+                    evidence_items=evidence_items,
+                )
+            return result, local_terms, local_noise, local_fragment
+
+        result, terms, noise, fragment = gated_result(second_untraced=True)
+        self.assertEqual(result, "")
+        terms.assert_not_called()
+        noise.assert_not_called()
+        fragment.assert_not_called()
+
+        result, terms, noise, fragment = gated_result(markers=("absent",))
+        self.assertEqual(result, "")
+        terms.assert_not_called()
+        noise.assert_not_called()
+        fragment.assert_not_called()
+
+        result, terms, noise, fragment = gated_result(terms=["because"])
+        self.assertEqual(result, "")
+        terms.assert_called_once()
+        noise.assert_not_called()
+        fragment.assert_not_called()
+
+        result, _terms, noise, fragment = gated_result(noisy=True)
+        self.assertEqual(result, "")
+        noise.assert_called_once()
+        fragment.assert_not_called()
+
+        result, _terms, noise, fragment = gated_result(fragment=True)
+        self.assertEqual(result, "")
+        noise.assert_called_once()
+        fragment.assert_called_once()
+
+        class PolicyBomb:
+            def get(self, _key, _default=None):
+                raise RuntimeError("narrative policy failed")
+
+        downstream_terms = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_aggregate_projection,
+                "compose_complete_growth_numeric_answer",
+                return_value="growth 10%",
+            ),
+            patch.object(financial_aggregate_projection, "growth_required_display_values", return_value=["10%"]),
+            patch.object(
+                financial_aggregate_projection,
+                "growth_sentence_has_untraced_material_numeric",
+                return_value=True,
+            ),
+            patch.object(financial_aggregate_projection, "CALCULATION_NARRATIVE_POLICY", PolicyBomb()),
+            patch.object(financial_aggregate_projection, "narrative_context_terms", downstream_terms),
+            self.assertRaisesRegex(RuntimeError, "narrative policy failed"),
+        ):
+            financial_aggregate_projection.strip_untraced_numeric_material_from_growth_narrative_sentence(
+                sentence,
+                ordered_results,
+                evidence_items=evidence_items,
+            )
+        downstream_terms.assert_not_called()
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+    def test_current_source_growth_numeric_cleanup_bindings_pin_calls_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8-sig"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
+        private_names = {
+            "completion": "_ensure_complete_" + "growth_numeric_answer",
+            "sanitizer": "_strip_untraced_numeric_material_from_" + "growth_narrative_sentence",
+        }
+        public_names = {
+            "completion": "ensure_complete_growth_numeric_answer",
+            "sanitizer": "strip_untraced_numeric_material_from_growth_narrative_sentence",
+        }
+        all_target_names = set(private_names.values()) | set(public_names.values())
+
+        def parent_map(tree):
+            parents = {}
+            for parent in ast.walk(tree):
+                for child in ast.iter_child_nodes(parent):
+                    parents[child] = parent
+            return parents
+
+        trees = {"graph": graph_tree, "owner": owner_tree}
+        parents_by_module = {module: parent_map(tree) for module, tree in trees.items()}
+        definitions = {}
+        calls = {"completion": [], "sanitizer": []}
+        noncall_refs = []
+
+        def key_for_name(name):
+            for key in private_names:
+                if name in {private_names[key], public_names[key]}:
+                    return key
+            return None
+
+        for module_name, tree in trees.items():
+            parents = parents_by_module[module_name]
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef) and node.name in all_target_names:
+                    definitions[(module_name, node.name)] = node
+                if isinstance(node, ast.Call):
+                    receiver = ""
+                    target_name = ""
+                    if isinstance(node.func, ast.Attribute):
+                        target_name = node.func.attr
+                        receiver = ast.unparse(node.func.value)
+                    elif isinstance(node.func, ast.Name):
+                        target_name = node.func.id
+                    key = key_for_name(target_name)
+                    if key is None:
+                        continue
+                    caller = "<module>"
+                    try_depth = 0
+                    current = node
+                    while current in parents:
+                        current = parents[current]
+                        if isinstance(current, ast.Try):
+                            try_depth += 1
+                        if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                            caller = current.name
+                            break
+                    calls[key].append(
+                        {
+                            "module": module_name,
+                            "caller": caller,
+                            "receiver": receiver,
+                            "args": tuple(ast.unparse(arg) for arg in node.args),
+                            "kwargs": tuple(keyword.arg for keyword in node.keywords),
+                            "try_depth": try_depth,
+                            "line": node.lineno,
+                        }
+                    )
+                if isinstance(node, ast.Attribute) and node.attr in all_target_names:
+                    parent = parents.get(node)
+                    if not (isinstance(parent, ast.Call) and parent.func is node):
+                        noncall_refs.append((module_name, node.attr, node.lineno))
+                if isinstance(node, ast.Name) and node.id in all_target_names:
+                    parent = parents.get(node)
+                    if not (isinstance(parent, ast.Call) and parent.func is node):
+                        noncall_refs.append((module_name, node.id, node.lineno))
+
+        self.assertEqual(
+            {
+                (module, name): node.end_lineno - node.lineno + 1
+                for (module, name), node in definitions.items()
+            },
+            {
+                ("owner", public_names["completion"]): 46,
+                ("owner", public_names["sanitizer"]): 107,
+            },
+        )
+        self.assertEqual({key: len(value) for key, value in calls.items()}, {"completion": 12, "sanitizer": 7})
+        self.assertEqual(noncall_refs, [])
+        self.assertTrue(
+            all(
+                entry["module"] == "graph"
+                and entry["receiver"] == ""
+                and len(entry["args"]) == 2
+                and entry["kwargs"] == ("evidence_items",)
+                and entry["try_depth"] == 0
+                for entries in calls.values()
+                for entry in entries
+            )
+        )
+        self.assertEqual(
+            Counter(entry["caller"] for entry in calls["completion"]),
+            Counter(
+                {
+                    "_final_growth_answer_without_untraced_numeric_sentences": 1,
+                    "_refresh_numeric_answer_preserving_narrative_context": 7,
+                    "_apply_initial_aggregate_answer_composition": 1,
+                    "_apply_final_narrative_repair_pipeline": 1,
+                    "_aggregate_calculation_subtasks": 2,
+                }
+            ),
+        )
+        self.assertEqual(
+            Counter(entry["caller"] for entry in calls["sanitizer"]),
+            Counter(
+                {
+                    "_final_growth_answer_without_untraced_numeric_sentences": 1,
+                    "_uncovered_supported_growth_narrative_candidate": 1,
+                    "_refresh_numeric_answer_preserving_narrative_context": 4,
+                    "_apply_final_narrative_repair_pipeline": 1,
+                }
+            ),
+        )
+        self.assertEqual(
+            (sum(len(entries) for entries in calls.values()), 0),
+            (19, 0),
+        )
+        module_paths = list(Path("src/agent").glob("*.py")) + list(Path("src/config").glob("*.py"))
+        import_graph = {}
+        for path in module_paths:
+            module_name = ".".join(path.with_suffix("").parts)
+            imported = set()
+            for node in ast.parse(path.read_text(encoding="utf-8-sig")).body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names)
+            import_graph[module_name] = imported
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(import_graph.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_aggregate_projection"
+        graph_module = "src.agent.financial_graph_calculation"
+        self.assertIn(owner_module, import_graph[graph_module])
+        self.assertFalse(reaches(owner_module, graph_module))
+        self.assertFalse(reaches(owner_module, "src.agent.financial_graph"))
+        for dependency in (
+            "src.agent.financial_answer_projection",
+            "src.agent.financial_text_surface",
+            "src.agent.financial_runtime_normalization",
+        ):
+            self.assertIn(dependency, import_graph[owner_module])
+            self.assertFalse(reaches(dependency, owner_module), dependency)
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set()
+        for name in public_names.values():
+            node = definitions[("owner", name)]
+            selected_lines.update(range(node.lineno, node.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_aggregate_projection.py"
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+        referenced_test_modules = set()
+        for path in Path("tests").glob("test_*.py"):
+            text = path.read_text(encoding="utf-8-sig")
+            if any(name in text for name in private_names.values()):
+                referenced_test_modules.add(path.stem)
+        self.assertEqual(
+            referenced_test_modules,
+            set(),
+        )
+
+    def test_current_source_growth_refresh_caller_pins_cleanup_args_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        row = {"task_id": "narrative", "answer": "bad 99% explanation", "nested": nested}
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev-growth", "nested": nested}]
+        before_results = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        events = []
+
+        class Agent:
+            pass
+
+        agent = Agent()
+        agent._preferred_conflicting_growth_narrative_answer = Mock(
+            return_value={
+                "answer": "bad 99% explanation",
+                "selected_claim_ids": ["claim-growth"],
+                "operation_family": "growth_rate",
+            }
+        )
+
+        def sanitize(sentence, rows, *, evidence_items=None):
+            events.append(("sanitize", sentence, rows, evidence_items))
+            return "clean explanation"
+
+        def complete(answer, rows, *, evidence_items=None):
+            events.append(("complete", answer, rows, evidence_items))
+            return "complete 10% clean explanation"
+
+        strip_owner = Mock(side_effect=sanitize)
+        complete_owner = Mock(side_effect=complete)
+        agent._answer_satisfies_growth_narrative_intent = Mock(
+            side_effect=lambda **kwargs: events.append(("intent", kwargs)) or True
+        )
+
+        def final_untraced(answer, rows, evidence):
+            events.append(("final-untraced", answer, rows, evidence))
+            return False
+
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "growth_narrative_numeric_incompatible_with_trace",
+                return_value=False,
+            ),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["bad 99% explanation"]),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                side_effect=final_untraced,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "CALCULATION_NARRATIVE_POLICY",
+                {
+                    "growth_narrative_markers": ("explanation",),
+                    "growth_impact_markers": (),
+                    "explanatory_markers": (),
+                    "percent_display_pattern": r"\d+(?:\.\d+)?%",
+                },
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                strip_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                complete_owner,
+            ),
+        ):
+            refreshed = financial_graph_calculation.FinancialAgentCalculationMixin._refresh_numeric_answer_preserving_narrative_context(
+                agent,
+                query="growth query",
+                current_answer="old answer",
+                numeric_answer="complete 10%",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+
+        self.assertEqual(
+            refreshed,
+            {"answer": "complete 10% clean explanation", "selected_claim_ids": ["claim-growth"]},
+        )
+        self.assertEqual([event[0] for event in events], ["sanitize", "complete", "final-untraced", "intent"])
+        sanitize_event, complete_event, untraced_event, intent_event = events
+        self.assertEqual(sanitize_event[1], "bad 99% explanation")
+        self.assertIs(sanitize_event[2], ordered_results)
+        self.assertIs(sanitize_event[3], evidence_items)
+        self.assertEqual(complete_event[1], "complete 10% clean explanation")
+        self.assertIs(complete_event[2], ordered_results)
+        self.assertIs(complete_event[3], evidence_items)
+        self.assertEqual(untraced_event[1], "complete 10% clean explanation")
+        self.assertIs(untraced_event[2], ordered_results)
+        self.assertIs(untraced_event[3], evidence_items)
+        self.assertIs(intent_event[1]["ordered_results"], ordered_results)
+        self.assertIs(intent_event[1]["evidence_items"], evidence_items)
+
+        completion_after_failure = Mock()
+        downstream_after_failure = Mock()
+        failing_strip_agent = Agent()
+        failing_strip_agent._preferred_conflicting_growth_narrative_answer = (
+            agent._preferred_conflicting_growth_narrative_answer
+        )
+        failing_strip_agent._answer_satisfies_growth_narrative_intent = downstream_after_failure
+        failing_strip_owner = Mock(side_effect=RuntimeError("sanitize failed"))
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "growth_narrative_numeric_incompatible_with_trace",
+                return_value=False,
+            ),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["bad 99% explanation"]),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                downstream_after_failure,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"growth_narrative_markers": ("explanation",), "growth_impact_markers": (), "explanatory_markers": ()},
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                failing_strip_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                completion_after_failure,
+            ),
+            self.assertRaisesRegex(RuntimeError, "sanitize failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._refresh_numeric_answer_preserving_narrative_context(
+                failing_strip_agent,
+                query="growth query",
+                current_answer="old answer",
+                numeric_answer="complete 10%",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        completion_after_failure.assert_not_called()
+        downstream_after_failure.assert_not_called()
+
+        failing_complete_agent = Agent()
+        failing_complete_agent._preferred_conflicting_growth_narrative_answer = (
+            agent._preferred_conflicting_growth_narrative_answer
+        )
+        failing_complete_strip = Mock(return_value="clean explanation")
+        failing_complete_owner = Mock(side_effect=RuntimeError("completion failed"))
+        failing_complete_agent._answer_satisfies_growth_narrative_intent = downstream_after_failure
+        downstream_after_failure.reset_mock()
+        with (
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "growth_narrative_numeric_incompatible_with_trace",
+                return_value=False,
+            ),
+            patch.object(financial_graph_calculation, "_split_narrative_sentences", return_value=["bad 99% explanation"]),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                downstream_after_failure,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"growth_narrative_markers": ("explanation",), "growth_impact_markers": (), "explanatory_markers": ()},
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                failing_complete_strip,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                failing_complete_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "completion failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._refresh_numeric_answer_preserving_narrative_context(
+                failing_complete_agent,
+                query="growth query",
+                current_answer="old answer",
+                numeric_answer="complete 10%",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        downstream_after_failure.assert_not_called()
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+
+    def test_current_source_growth_final_pipeline_pins_cleanup_order_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        row = {"task_id": "growth", "answer": "row 99% context", "nested": nested}
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev-growth", "nested": nested}]
+        narrative_docs = [{"page_content": "context", "nested": nested}]
+        state = {"query": "growth query", "nested": nested}
+        projection = {
+            "calculation_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {"operation": "growth_rate"},
+        }
+        mutable_state = financial_graph_calculation._AggregateMutableState(
+            financial_graph_calculation._AggregateSynthesisState(
+                ordered_results,
+                projection,
+                "base answer",
+                ["claim-base"],
+            ),
+            evidence_items,
+        )
+        before_rows = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+        before_docs = deepcopy(narrative_docs)
+        before_state = deepcopy(state)
+
+        class Agent:
+            pass
+
+        def configured_agent(events, completion_owner, sanitizer_owner):
+            agent = Agent()
+            agent._preserve_policy_required_realized_context = Mock(
+                side_effect=lambda answer, **_kwargs: answer
+            )
+
+            def replace_owner(current, *, candidate_answer, **kwargs):
+                events.append(("replace", candidate_answer, kwargs))
+                updated = current.synthesis_state.with_updates(final_answer=candidate_answer)
+                return current.with_synthesis_state(updated), candidate_answer != current.final_answer
+
+            agent._replace_mutable_aggregate_answer = Mock(side_effect=replace_owner)
+            agent._append_retrieved_narrative_evidence_for_final_answer = Mock(
+                side_effect=lambda current, **_kwargs: (current, [])
+            )
+            agent._apply_period_context_realignment_to_aggregate = Mock(
+                side_effect=lambda **kwargs: kwargs["aggregate_state"]
+            )
+            agent._answer_satisfies_growth_narrative_intent = Mock(return_value=True)
+            agent._compose_growth_narrative_answer = Mock(
+                side_effect=AssertionError("growth composition accessed")
+            )
+            agent._enforce_source_stated_growth_answer_contract = Mock(
+                side_effect=lambda answer, _rows, **_kwargs: answer
+            )
+            agent._unresolved_structured_numeric_gap = Mock(return_value=False)
+            agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
+            agent._prune_nonfocus_numeric_narrative_sentences = Mock(
+                side_effect=lambda answer, **_kwargs: events.append(("prune", answer)) or answer
+            )
+            agent._promote_and_align_aggregate_results = Mock(
+                side_effect=lambda rows, _state, answer, **_kwargs: events.append(("promote", answer))
+                or (rows, False, False, False)
+            )
+            return agent
+
+        def common_context_patches():
+            return (
+                patch.object(
+                    financial_graph_calculation,
+                    "append_operand_evidence_for_final_answer",
+                    side_effect=lambda current, **_kwargs: current,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "preserve_retrieved_narrative_source_surface",
+                    side_effect=lambda answer, _items: answer,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_polish_korean_particle_pairs",
+                    side_effect=lambda answer: answer,
+                ),
+            )
+
+        events = []
+
+        def complete(answer, rows, *, evidence_items=None):
+            events.append(("complete", answer, rows, evidence_items))
+            return "completed answer"
+
+        completion_owner = Mock(side_effect=complete)
+        sanitizer_owner = Mock(side_effect=AssertionError("sanitizer accessed"))
+        agent = configured_agent(events, completion_owner, sanitizer_owner)
+        shared_patches = common_context_patches()
+        with (
+            shared_patches[0],
+            shared_patches[1],
+            shared_patches[2],
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(financial_graph_calculation, "ensure_complete_growth_numeric_answer", completion_owner),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                sanitizer_owner,
+            ),
+        ):
+            completed_state = financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=narrative_docs,
+                has_narrative_summary=True,
+                has_growth_rate_result=True,
+                deterministic_feedback="",
+            )
+
+        self.assertEqual(completed_state.final_answer, "completed answer")
+        completion_owner.assert_called_once_with(
+            "base answer",
+            ordered_results,
+            evidence_items=evidence_items,
+        )
+        self.assertIs(completion_owner.call_args.args[1], ordered_results)
+        self.assertIs(completion_owner.call_args.kwargs["evidence_items"], evidence_items)
+        event_names = [event[0] for event in events]
+        self.assertLess(event_names.index("complete"), event_names.index("prune"))
+        self.assertLess(event_names.index("prune"), event_names.index("promote"))
+        completion_index = event_names.index("complete")
+        self.assertEqual(events[completion_index + 1][0:2], ("replace", "completed answer"))
+        self.assertTrue(events[completion_index + 1][2]["refresh_operand_evidence"])
+        sanitizer_owner.assert_not_called()
+
+        failed_events = []
+        failed_prune = Mock()
+        failed_promote = Mock()
+        failing_completion = Mock(side_effect=RuntimeError("pipeline completion failed"))
+        unused_sanitizer = Mock()
+        failing_agent = configured_agent(failed_events, failing_completion, unused_sanitizer)
+        failing_agent._prune_nonfocus_numeric_narrative_sentences = failed_prune
+        failing_agent._promote_and_align_aggregate_results = failed_promote
+        shared_patches = common_context_patches()
+        with (
+            shared_patches[0],
+            shared_patches[1],
+            shared_patches[2],
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(financial_graph_calculation, "ensure_complete_growth_numeric_answer", failing_completion),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                unused_sanitizer,
+            ),
+            self.assertRaisesRegex(RuntimeError, "pipeline completion failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                failing_agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=narrative_docs,
+                has_narrative_summary=True,
+                has_growth_rate_result=True,
+                deterministic_feedback="",
+            )
+        failed_prune.assert_not_called()
+        failed_promote.assert_not_called()
+
+        sanitizer_events = []
+
+        def sanitize(sentence, rows, *, evidence_items=None):
+            sanitizer_events.append(("sanitize", sentence, rows, evidence_items))
+            return "clean narrative context"
+
+        unused_completion = Mock()
+        pipeline_sanitizer = Mock(side_effect=sanitize)
+        sanitizer_agent = configured_agent(sanitizer_events, unused_completion, pipeline_sanitizer)
+        shared_patches = common_context_patches()
+        with (
+            shared_patches[0],
+            shared_patches[1],
+            shared_patches[2],
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=True),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "_split_narrative_sentences",
+                return_value=["row 99% context"],
+            ),
+            patch.object(financial_graph_calculation, "ensure_complete_growth_numeric_answer", unused_completion),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                pipeline_sanitizer,
+            ),
+        ):
+            sanitized_state = financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                sanitizer_agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=narrative_docs,
+                has_narrative_summary=True,
+                has_growth_rate_result=False,
+                deterministic_feedback="",
+            )
+        self.assertEqual(sanitized_state.final_answer, "base answer clean narrative context")
+        sanitizer_call = pipeline_sanitizer.call_args
+        self.assertEqual(sanitizer_call.args[0], "row 99% context")
+        self.assertIs(sanitizer_call.args[1], ordered_results)
+        self.assertIs(sanitizer_call.kwargs["evidence_items"], evidence_items)
+        sanitizer_names = [event[0] for event in sanitizer_events]
+        self.assertLess(sanitizer_names.index("promote"), sanitizer_names.index("sanitize"))
+        sanitize_index = sanitizer_names.index("sanitize")
+        self.assertEqual(
+            sanitizer_events[sanitize_index + 1][0:2],
+            ("replace", "base answer clean narrative context"),
+        )
+
+        failing_sanitizer_owner = Mock(side_effect=RuntimeError("pipeline sanitizer failed"))
+        failing_sanitizer_completion = Mock()
+        failing_sanitizer_agent = configured_agent(
+            [],
+            failing_sanitizer_completion,
+            failing_sanitizer_owner,
+        )
+        shared_patches = common_context_patches()
+        with (
+            shared_patches[0],
+            shared_patches[1],
+            shared_patches[2],
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=True),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "_split_narrative_sentences",
+                return_value=["row 99% context"],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                failing_sanitizer_completion,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                failing_sanitizer_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "pipeline sanitizer failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_final_narrative_repair_pipeline(
+                failing_sanitizer_agent,
+                state,
+                mutable_state=mutable_state,
+                narrative_docs=narrative_docs,
+                has_narrative_summary=True,
+                has_growth_rate_result=False,
+                deterministic_feedback="",
+            )
+
+        self.assertEqual(ordered_results, before_rows)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertEqual(narrative_docs, before_docs)
+        self.assertEqual(state, before_state)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+        self.assertIs(narrative_docs[0]["nested"], nested)
+
+    def test_current_source_growth_remaining_callers_pin_cleanup_args_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        row = {"task_id": "growth", "nested": nested}
+        ordered_results = [row]
+        evidence_items = [{"evidence_id": "ev-growth", "nested": nested}]
+        before_rows = deepcopy(ordered_results)
+        before_evidence = deepcopy(evidence_items)
+
+        class Agent:
+            pass
+
+        final_events = []
+        final_agent = Agent()
+        final_agent._aggregate_result_operation_family = Mock(return_value="growth_rate")
+
+        def final_sanitize(sentence, rows, *, evidence_items=None):
+            final_events.append(("sanitize", sentence, rows, evidence_items))
+            return ""
+
+        def final_complete(answer, rows, *, evidence_items=None):
+            final_events.append(("complete", answer, rows, evidence_items))
+            return "completed final answer"
+
+        final_strip_owner = Mock(side_effect=final_sanitize)
+        final_complete_owner = Mock(side_effect=final_complete)
+        final_agent._answer_covers_numeric_projection = Mock(return_value=False)
+        final_agent._answer_satisfies_growth_narrative_intent = Mock(return_value=True)
+
+        def numeric_candidates(text):
+            if "complete 10%" in text:
+                return [{"value": 10.0}]
+            if "99%" in text:
+                return [{"value": 99.0}]
+            if "77%" in text:
+                return [{"value": 77.0}]
+            return []
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "_split_narrative_sentences",
+                return_value=["required 99%", "unsupported 77%", "context sentence"],
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "compose_complete_growth_numeric_answer",
+                return_value="complete 10%",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_required_display_values",
+                return_value=["required"],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "extract_numeric_surface_candidates",
+                side_effect=numeric_candidates,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "numeric_surface_candidates_equivalent",
+                side_effect=lambda left, right: left["value"] == right["value"],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                final_strip_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                final_complete_owner,
+            ),
+        ):
+            final_answer = financial_graph_calculation.FinancialAgentCalculationMixin._final_growth_answer_without_untraced_numeric_sentences(
+                final_agent,
+                query="growth query",
+                answer="required 99%. unsupported 77%. context sentence",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+
+        self.assertEqual(final_answer, "completed final answer")
+        self.assertEqual([event[0] for event in final_events], ["sanitize", "complete"])
+        sanitize_event, complete_event = final_events
+        self.assertEqual(sanitize_event[1], "required 99%")
+        self.assertIs(sanitize_event[2], ordered_results)
+        self.assertIs(sanitize_event[3], evidence_items)
+        self.assertEqual(complete_event[1], "context sentence")
+        self.assertIs(complete_event[2], ordered_results)
+        self.assertIs(complete_event[3], evidence_items)
+        final_agent._answer_satisfies_growth_narrative_intent.assert_called_once()
+        self.assertEqual(
+            final_agent._answer_satisfies_growth_narrative_intent.call_args.kwargs["answer"],
+            "completed final answer",
+        )
+
+        completion_after_strip_failure = Mock()
+        final_strip_failure = Mock(side_effect=RuntimeError("final strip failed"))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "_split_narrative_sentences",
+                return_value=["required 99%", "unsupported 77%", "context sentence"],
+            ),
+            patch.object(financial_graph_calculation, "growth_row_has_conflicting_periods", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "compose_complete_growth_numeric_answer",
+                return_value="complete 10%",
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "growth_required_display_values",
+                return_value=["required"],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "extract_numeric_surface_candidates",
+                side_effect=numeric_candidates,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "numeric_surface_candidates_equivalent",
+                side_effect=lambda left, right: left["value"] == right["value"],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                final_strip_failure,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                completion_after_strip_failure,
+            ),
+            self.assertRaisesRegex(RuntimeError, "final strip failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._final_growth_answer_without_untraced_numeric_sentences(
+                final_agent,
+                query="growth query",
+                answer="required 99%. unsupported 77%. context sentence",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        completion_after_strip_failure.assert_not_called()
+
+        candidate_agent = Agent()
+        candidate_agent._narrative_driver_groups = Mock(return_value=[])
+        candidate_agent._growth_narrative_sentence_candidates = Mock(
+            return_value=[(4, "candidate 99% explanation", ["claim-growth"])]
+        )
+
+        def candidate_sanitize(sentence, rows, *, evidence_items=None):
+            self.assertEqual(sentence, "candidate 99% explanation")
+            self.assertIs(rows, ordered_results)
+            self.assertIs(evidence_items, evidence_items_owner)
+            return "clean candidate explanation"
+
+        evidence_items_owner = evidence_items
+        candidate_strip_owner = Mock(side_effect=candidate_sanitize)
+        with (
+            patch.object(financial_graph_calculation, "answer_covers_narrative_context", return_value=False),
+            patch.object(financial_graph_calculation, "sentence_has_growth_explanatory_signal", return_value=True),
+            patch.object(
+                financial_graph_calculation,
+                "growth_answer_has_untraced_numeric_material",
+                return_value=False,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "strip_untraced_numeric_material_from_growth_narrative_sentence",
+                candidate_strip_owner,
+            ),
+        ):
+            candidate = financial_graph_calculation.FinancialAgentCalculationMixin._uncovered_supported_growth_narrative_candidate(
+                candidate_agent,
+                query="growth query",
+                answer="base answer",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+            )
+        self.assertEqual(
+            candidate,
+            {"sentence": "clean candidate explanation", "selected_claim_ids": ["claim-growth"]},
+        )
+        candidate_strip_owner.assert_called_once()
+
+        initial_events = []
+        initial_agent = Agent()
+        initial_agent._answer_matches_supported_aggregate_subtask = Mock(return_value=False)
+
+        def initial_complete(answer, rows, *, evidence_items=None):
+            initial_events.append(("complete", answer, rows, evidence_items))
+            return "initial completed answer"
+
+        initial_completion_owner = Mock(side_effect=initial_complete)
+        include_owner = Mock(
+            side_effect=lambda answer, **kwargs: initial_events.append(("include", answer, kwargs))
+            or (_ for _ in ()).throw(RuntimeError("stop after initial completion"))
+        )
+        initial_state = {"query": "growth query", "report_scope": {}, "nested": nested}
+        before_initial_state = deepcopy(initial_state)
+        with (
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "coerce_sign_aware_subtraction_answer",
+                side_effect=lambda answer, **_kwargs: answer,
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "compose_slot_based_difference_answer",
+                return_value="",
+            ),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(financial_graph_calculation, "include_narrative_context_if_needed", include_owner),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                initial_completion_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "stop after initial completion"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._apply_initial_aggregate_answer_composition(
+                initial_agent,
+                initial_state,
+                ordered_results=ordered_results,
+                preliminary_projection={"calculation_result": {}},
+                aggregate_evidence_items=evidence_items,
+                narrative_docs=[],
+                narrative_context="context",
+                final_answer="initial answer",
+                supported_aggregate_answer="",
+                complete_numeric_answer="",
+                has_narrative_summary=True,
+                has_growth_rate_result=True,
+                numeric_answer_locked=False,
+                planner_feedback="",
+                deterministic_feedback="",
+            )
+        self.assertEqual([event[0] for event in initial_events], ["complete", "include"])
+        self.assertEqual(initial_events[0][1], "initial answer")
+        self.assertIs(initial_events[0][2], ordered_results)
+        self.assertIs(initial_events[0][3], evidence_items)
+        self.assertEqual(initial_events[1][1], "initial completed answer")
+        self.assertEqual(initial_events[1][2], {"query": "growth query", "narrative_context": "context"})
+
+        aggregate_row = {"task_id": "aggregate", "nested": nested}
+        aggregate_rows = [aggregate_row]
+        aggregate_evidence = [{"evidence_id": "ev-aggregate", "nested": nested}]
+        aggregate_state_input = {
+            "query": "growth query",
+            "report_scope": {},
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [],
+            "plan_loop_count": 0,
+            "nested": nested,
+        }
+        before_aggregate_rows = deepcopy(aggregate_rows)
+        before_aggregate_evidence = deepcopy(aggregate_evidence)
+        before_aggregate_state = deepcopy(aggregate_state_input)
+        prepared = financial_graph_calculation._PreparedAggregateState(
+            aggregate_rows,
+            "aggregate answer",
+            "",
+            "",
+            True,
+            False,
+            False,
+        )
+        evidence_state = financial_graph_calculation._AggregateEvidenceState(
+            aggregate_rows,
+            aggregate_evidence,
+            "aggregate answer",
+            "aggregate answer",
+            "",
+            "",
+        )
+        composition_state = financial_graph_calculation.AggregateCompositionState(
+            "aggregate answer",
+            [],
+            None,
+            False,
+            "",
+            "",
+        )
+        feedback_state = financial_graph_calculation._AggregateFeedbackState(
+            "aggregate answer",
+            "",
+            "",
+            [],
+            {},
+            False,
+            "",
+        )
+        aggregate_projection = {
+            "calculation_result": {},
+            "calculation_operands": [],
+            "calculation_plan": {},
+        }
+        aggregate_completion = Mock(side_effect=RuntimeError("aggregate completion stop"))
+        aggregate_downstream = Mock()
+        with (
+            patch.object(self.agent, "_prepare_initial_aggregate_state", return_value=prepared),
+            patch.object(self.agent, "_infer_planner_feedback_from_answer_slots", return_value=""),
+            patch.object(self.agent, "_collect_initial_aggregate_evidence_state", return_value=evidence_state),
+            patch.object(self.agent, "_rebuild_aggregate_projection", return_value=aggregate_projection),
+            patch.object(self.agent, "_runtime_evidence_rows_with_context_docs", return_value=[]),
+            patch.object(
+                self.agent,
+                "_apply_period_context_realignment_to_aggregate",
+                side_effect=lambda **kwargs: kwargs["aggregate_state"],
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "_aggregate_period_context_evidence_items",
+                return_value=aggregate_evidence,
+            ),
+            patch.object(financial_graph_calculation, "narrative_context_sentence_from_evidence", return_value=""),
+            patch.object(
+                self.agent,
+                "_apply_initial_aggregate_answer_composition",
+                return_value=(composition_state, ""),
+            ),
+            patch.object(
+                self.agent,
+                "_preserve_source_visible_query_terms",
+                side_effect=lambda answer, **_kwargs: answer,
+            ),
+            patch.object(
+                self.agent,
+                "_preserve_policy_required_context_in_narrative_results",
+                side_effect=lambda rows, **_kwargs: rows,
+            ),
+            patch.object(self.agent, "_resolve_aggregate_feedback_state", return_value=feedback_state),
+            patch.object(financial_graph_calculation, "_aggregate_selected_claim_ids", return_value=[]),
+            patch.object(
+                self.agent,
+                "_align_lookup_results_with_dependency_projection",
+                side_effect=lambda rows, _state, _projection: rows,
+            ),
+            patch.object(
+                financial_graph_calculation.calculation_rendering,
+                "compose_slot_based_difference_answer",
+                return_value="",
+            ),
+            patch.object(
+                self.agent,
+                "_prune_irrelevant_growth_narrative_sentences",
+                side_effect=lambda **kwargs: kwargs["answer"],
+            ),
+            patch.object(self.agent, "_answer_matches_supported_aggregate_subtask", return_value=False),
+            patch.object(financial_graph_calculation, "query_requests_explanatory_context", return_value=False),
+            patch.object(
+                financial_graph_calculation,
+                "ensure_complete_growth_numeric_answer",
+                aggregate_completion,
+            ),
+            patch.object(self.agent, "_promote_and_align_aggregate_results", aggregate_downstream),
+            self.assertRaisesRegex(RuntimeError, "aggregate completion stop"),
+        ):
+            self.agent._aggregate_calculation_subtasks(aggregate_state_input)
+        aggregate_completion.assert_called_once_with(
+            "aggregate answer",
+            aggregate_rows,
+            evidence_items=aggregate_evidence,
+        )
+        self.assertIs(aggregate_completion.call_args.args[1], aggregate_rows)
+        self.assertIs(aggregate_completion.call_args.kwargs["evidence_items"], aggregate_evidence)
+        aggregate_downstream.assert_not_called()
+
+        self.assertEqual(ordered_results, before_rows)
+        self.assertEqual(evidence_items, before_evidence)
+        self.assertEqual(initial_state, before_initial_state)
+        self.assertEqual(aggregate_rows, before_aggregate_rows)
+        self.assertEqual(aggregate_evidence, before_aggregate_evidence)
+        self.assertEqual(aggregate_state_input, before_aggregate_state)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence_items[0]["nested"], nested)
+        self.assertIs(aggregate_row["nested"], nested)
+        self.assertIs(aggregate_evidence[0]["nested"], nested)
 
 
 if __name__ == "__main__":

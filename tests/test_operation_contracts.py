@@ -8503,7 +8503,7 @@ class OperationContractTests(unittest.TestCase):
             },
         }
 
-        answer = agent._ensure_complete_growth_numeric_answer(
+        answer = financial_aggregate_projection.ensure_complete_growth_numeric_answer(
             (
                 "2023년 서비스 매출액은 3,589,060,852천원이며, 2022년 2,546,648,516천원 대비 "
                 "41.4% 성장했습니다. 2023년 서비스 매출액은 2조 5,466억원이며, "

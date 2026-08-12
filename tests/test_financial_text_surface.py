@@ -565,7 +565,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 {
                     ("_preferred_complete_numeric_answer", ("str(query or '')",)): 1,
                     ("_label_overlap_score", ("normalized_label",)): 1,
-                    ("_strip_untraced_numeric_material_from_growth_narrative_sentence", ("sanitized",)): 1,
+                    ("strip_untraced_numeric_material_from_growth_narrative_sentence", ("sanitized",)): 1,
                     ("_content_terms", ("text",)): 2,
                     ("_dependency_source_text_match_score", ("left",)): 1,
                     ("_dependency_source_text_match_score", ("right",)): 1,
