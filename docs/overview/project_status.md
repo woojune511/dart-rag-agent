@@ -15,11 +15,11 @@ Last updated: 2026-08-12
 | --- | --- |
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
-| What is the architecture state? | Phase 3 OPEN; bounded dependency reconciliation preparation ownership is closed, four named debt groups remain |
-| What just changed? | Two public sibling-surface/resolved-reconciliation projections moved to `financial_dependency_projection.py` in `5a0c3e0` |
-| What passed? | Focused 6/6, dependency owner 75/75, affected eight-module semantic set 823/823, import-side-effect 19/19, semantic/import union 842/842, runtime audit 217, full unittest 1,704/1,704 |
+| What is the architecture state? | Phase 3 OPEN; bounded task-artifact read projection ownership is closed, four named debt groups remain |
+| What just changed? | Two public runtime-evidence/task-artifact row projections moved to `financial_task_artifacts.py` in `8d627a6` |
+| What passed? | Focused 6/6, task-artifact owner 15/15, affected ten-module semantic set 832/832, import-side-effect 19/19, semantic/import union 851/851, runtime audit 217, full unittest 1,710/1,710 |
 | Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest calculation changes |
-| What is next? | One characterize-first 64-line prepared runtime-evidence/task-artifact row projection pair into `financial_task_artifacts.py`; graph callers, conflict selection, state/evidence mutation, and ledger sequencing remain hard stops |
+| What is next? | One characterize-first 168-line final-answer evidence projection pair into `financial_aggregate_projection.py`; composition, mutable evidence/state, artifact/ledger mutation, and final sequencing remain hard stops |
 
 ## Product Boundary
 
@@ -50,25 +50,24 @@ or an unconfigured `FinancialAgent` invocation.
   benchmark, promotion, portfolio-review, and persisted cache-index code.
 - Tracked benchmark output remains limited to compact history-linked summaries
   and diagnostics. Full bundles, stores, caches, and heartbeat logs are local-only.
-- The latest owner batch moved bounded dependency reconciliation preparation. In
-  `5a0c3e0`, exactly four source/test files changed. The 48 + 28 = 76
-  reconciliation definition-span lines became two public dependency functions
-  spanning 47 + 27 = 74 lines. All five selected calls remain graph-external;
+- The latest owner batch moved bounded task-artifact read projection. In
+  `8d627a6`, exactly five source/test files changed. The 21 + 43 = 64 calculation
+  definition-span lines became two public task-artifact functions spanning 20 +
+  42 = 62 lines. All four selected calls remain graph-external;
   retired selected private source/test refs are zero and no wrapper or alias
-  remains. Source is `+93/-85`, net `+8`; tests are `+1,228/-28`, net `+1,200`;
-  the whole commit is `+1,321/-113`, net `+1,208`. Reconciliation moved from
-  2,211 to 2,137 physical lines and dependency projection from 3,335 to 3,417.
+  remains. Source is `+74/-70`, net `+4`; tests are `+911/-8`, net `+903`;
+  the whole commit is `+985/-78`, net `+907`. Calculation moved from 15,419 to
+  15,355 physical lines and task artifacts from 1,392 to 1,460.
   The committed source diff SHA-256 is
-  `c9e931e818cfc7661ccb05bc162078a4db83120aab44f6dd9331dac51fa7a501`.
-  Dependency-state lookup, candidate/cell/evidence construction, LLM reranking,
-  artifact/ledger mutation, retry selection, mutable state/evidence, and final
-  sequencing remain graph-owned. This is ownership relocation, not a behavior
-  claim.
-- Current physical sizes are: calculation graph 15,419 lines, graph helpers 6,299,
+  `07ffa0657a4e7762442aa3d79d88dd06084a0c0319c0eb7fce8185902061018e`.
+  Operand extraction/evidence selection, ratio conflict/arithmetic, artifact and
+  ledger mutation, mutable state/evidence, and final sequencing remain
+  graph-owned. This is ownership relocation, not a behavior claim.
+- Current physical sizes are: calculation graph 15,355 lines, graph helpers 6,299,
   planning 2,356, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 491, text surface 411, operand resolution 3,461,
   dependency projection 3,417, reconciliation 2,137, aggregate projection 2,530,
-  task artifacts 1,392, and reflection projection 260.
+  task artifacts 1,460, and reflection projection 260.
 
 Exact behavior, laziness, identity, exception, and caller-placement contracts are
 kept in [agent_runtime_contract.md](../architecture/agent_runtime_contract.md).
@@ -88,7 +87,7 @@ Commit-level diffs and validation are kept in
 | Calculation rendering | `financial_graph_calculation_rendering.py`, including ratio unit/query/result projection and scalar/time-series display helpers |
 | Answer and numeric surfaces | `financial_answer_slots.py`, `financial_answer_projection.py`, `financial_numeric_surface.py`, and `financial_text_surface.py`, including period/material, ratio-readiness, narrative validation, numeric/scale predicates, and shared sentence/token surfaces |
 | Aggregate projection | `financial_aggregate_projection.py`, including selectors, dependency-source preparation, source/coherence preparation, result/nested ranks, stable dedupe, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering and trace inspection, result support/reuse predicates, and prepared growth/ratio material inspection |
-| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact candidate/evidence-reference projection but not ledger mutation orchestration |
+| Composition, trace, artifacts | `financial_aggregate_state.py`, `financial_runtime_trace.py`, and `financial_task_artifacts.py`; the task-artifact owner includes bounded reconciliation artifact refs, runtime-evidence merge, and ratio result-row projection but not ledger mutation orchestration |
 | Reflection projection | `financial_reflection_projection.py`; deterministic action/report, synthesis-source, request/plan normalization, strict summaries, and bounded request construction are owner-held |
 | Optional systems | `src.experimental.mas` and explicitly configured cache/eval/review paths |
 
@@ -111,20 +110,23 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, new focused 6 / 6; dependency owner 75 / 75 |
-| Latest semantic regression set | PASS, affected eight-module set 823 / 823; semantic/import union 842 / 842 |
+| Latest focused owner checkpoint | PASS, new focused 6 / 6; task-artifact owner 15 / 15 |
+| Latest semantic regression set | PASS, affected ten-module set 832 / 832; semantic/import union 851 / 851 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 217 reviewed literals |
-| Full unittest discovery | PASS, 1,704 / 1,704 |
+| Full unittest discovery | PASS, 1,710 / 1,710 |
 | Benchmark refresh after latest calculation changes | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
-The semantic set is `tests.test_financial_dependency_projection`,
-`tests.test_financial_task_artifacts`, `tests.test_reconciliation_plan`,
-`tests.test_structured_operand_extraction`, `tests.test_subtask_loop`,
-`tests.test_financial_agent_run_projection`, `tests.test_operation_contracts`,
-and `tests.test_aggregate_subtask_projection`. `tests.test_import_side_effects`
-passed separately at 19 / 19 and together with the semantic set as an 842-test
+The semantic set is `tests.test_financial_task_artifacts`,
+`tests.test_financial_aggregate_rank_dedupe`,
+`tests.test_financial_ratio_presentation`, `tests.test_financial_ratio_readiness`,
+`tests.test_structured_operand_extraction`,
+`tests.test_financial_dependency_projection`,
+`tests.test_aggregate_subtask_projection`, `tests.test_subtask_loop`,
+`tests.test_operation_contracts`, and
+`tests.test_financial_agent_run_projection`. `tests.test_import_side_effects`
+passed separately at 19 / 19 and together with the semantic set as an 851-test
 union.
 
 Recorded structural and plain-retrieval numbers are historical evidence, not a
@@ -156,74 +158,80 @@ may split or close only after caller, test, and stop-line characterization.
 
 ## Next Work
 
-The sole selected architecture batch is one characterize-first prepared runtime-
-evidence/task-artifact row projection move into the existing
-`financial_task_artifacts.py` owner. Publish
-`_evidence_items_with_runtime(...)` as `evidence_items_with_runtime(...)` and
-`_ratio_result_rows_from_task_artifacts(...)` as
-`ratio_result_rows_from_task_artifacts(...)`. Delete both mixin bodies and
+The sole selected architecture batch is one characterize-first final-answer
+evidence projection move into the existing `financial_aggregate_projection.py`
+owner. Publish `_filter_aggregate_evidence_for_final_answer(...)` as
+`filter_aggregate_evidence_for_final_answer(...)` and
+`_append_operand_evidence_for_final_answer(...)` as
+`append_operand_evidence_for_final_answer(...)`. Delete both mixin bodies and
 retarget every caller directly; do not add a wrapper, alias, callback, result
 carrier, reason, or compatibility attribute.
 
-The current calculation definition spans are 21 + 43 = 64 lines at lines
-524-544 and 10517-10559. Removing only `self` yields projected owner spans 20 +
-42 = 62. The four current loads are all direct calls at Try depth zero with no
-non-call binding: runtime-evidence merging is called twice by
-`_extract_calculation_operands(...)`; ratio artifact-row projection is called
-once by `_preferred_ratio_artifact_row_for_conflicting_recalculation(...)` and
-once by `_append_ratio_result_from_retrieved_context(...)`. Final selected
-distribution is four graph-external and zero owner-local calls.
+The current calculation definition spans are 66 + 102 = 168 lines at lines
+5017-5082 and 5084-5185. Removing only `self` yields projected owner spans 65 +
+101 = 166. The seven current loads are all direct calls at Try depth zero with
+no non-call binding. Filtering is called once by
+`_filter_final_aggregate_evidence_and_projection(...)` and twice by
+`FinancialAgent._runtime_evidence_from_retrieved_docs(...)`; operand-evidence
+append is called once by that graph method, once by
+`_replace_mutable_aggregate_answer(...)`, and twice by
+`_apply_final_narrative_repair_pipeline(...)`. Final selected distribution is
+seven graph-external and zero owner-local calls.
 
-The task-artifact owner already has `Any`/`Dict`/`List`, `ArtifactKind`,
-`_normalise_spaces(...)`, and the `TYPE_CHECKING` `FinancialAgentState`; the move
-adds no module dependency. The graph already imports the owner, the owner does
-not import the calculation graph, and the import DAG therefore remains
-unchanged. All selected graph imports remain live after deletion. The spans hit
-no runtime-domain baseline record, so the reviewed count remains 217. Current
-candidate-private references are six source definition/call refs plus five
-ratio-row test refs; migration must reduce all retired refs to zero.
+The aggregate owner already has `re`, `Any`/`Dict`/`List`,
+`extract_numeric_surface_candidates(...)`,
+`numeric_surface_candidates_equivalent(...)`, and `_normalise_spaces(...)`. Add
+only `evidence_supports_numeric_candidates(...)`,
+`promote_table_numeric_support_evidence(...)`, and
+`text_supports_numeric_candidates(...)` on its existing numeric-surface import
+edge. Calculation already imports the aggregate owner, the main graph already
+reaches it through the calculation mixin, and adding the main graph's direct
+public-function import creates no cycle; the owner has no reverse path to either
+graph module. All other touched graph imports remain live after deletion;
+calculation's now-dead
+`evidence_supports_numeric_candidates(...)` and
+`promote_table_numeric_support_evidence(...)` imports must be removed with the
+old bodies. The spans hit no runtime-domain baseline record, so the reviewed
+count remains 217.
 
-Runtime-evidence merging copies only the top-level input list, retains existing
-item identity, scans `state.runtime_evidence` in stable order, ignores non-
-dictionaries, suppresses duplicate nonblank evidence ids, and appends fresh shallow
-copies while preserving nested identity. Ratio artifact-row projection
-normalizes the task id, scans copied artifact records in stable order, admits
-only the matching calculation-result kind with a nonempty result payload,
-preserves the formatted-result/rendered-value/summary fallback and task/status/
-source-reference defaults, and returns fresh row dictionaries. Neither function
-mutates caller inputs or catches mapping, iteration, truthiness, string,
-normalization, or copy exceptions.
+Evidence filtering preserves stable evidence order, selected/operand numeric-
+support precedence, retrieved-narrative and recon gates, percent support,
+table-numeric promotion, quote/raw-row consistency, fresh shallow copies, and
+the current all-filtered fallback. Operand-evidence append preserves stable
+operand order, numeric equivalence and literal-surface support, derived-percent
+roles, source-anchor and duplicate-id gates, generated evidence schema, fresh
+top-level copies, and nested identity. Neither function mutates caller inputs or
+catches mapping, iteration, truthiness, string, regex, normalization, numeric-
+surface, or copy exceptions.
 
-Before source movement, add exactly six CURRENT-SOURCE methods in the task-
-artifact owner suite: direct runtime-evidence and direct ratio artifact-row
-matrices; one exact definition/span/four-call/argument/Try-depth/distribution/
-import-DAG/baseline method; one executable `_extract_calculation_operands(...)`
-matrix covering both lookup and ratio placements; one executable preferred-ratio-
-artifact caller matrix; and one executable retrieved-ratio append caller matrix.
-Pin stable order, blank/nonblank id behavior, kind/task/result gates, answer and
-status fallback order, fresh top-level copies and nested identities, exact
-argument identity, caller adoption, laziness, no mutation, and exception
-propagation/downstream stop. Then move, retarget, delete, migrate the five
-existing graph-private ratio-row test refs, require retired refs zero, and run
-focused six, the task-artifact owner, the affected ten-module semantic set,
-import-side-effect, union, runtime-audit, full-discovery, pycompile/fresh-import,
-DAG, parity, and diff-check gates sequentially. At the current inventory the
-semantic set is 826 tests and its import union is 845; exactly six new methods
-project 832 semantic, 851 union, and 1,710 full tests.
+Before source movement, add exactly six CURRENT-SOURCE methods in the aggregate
+owner suite: direct filter and direct append matrices; one exact definition/
+span/seven-call/argument/Try-depth/distribution/import-DAG/baseline method; one
+executable graph runtime-evidence caller matrix covering both functions; one
+executable final filter/provenance caller matrix; and one combined mutable-answer
+and final-narrative append caller matrix. Pin branch/access order, stable order,
+selected and prefix gates, percent/numeric equivalence, fallback behavior,
+generated schema, fresh top-level copies and nested identities, exact argument
+identity, caller adoption, laziness, no mutation, and exception propagation/
+downstream stop. Then move, retarget, delete, migrate all existing graph-private
+test refs, require retired refs zero, and run focused six, the aggregate owner,
+the affected eight-module semantic set, import-side-effect, union, runtime-audit,
+full-discovery, pycompile/fresh-import, DAG, parity, and diff-check gates
+sequentially. At the current inventory the semantic set is 761 tests and its
+import union is 780; exactly six new methods project 767 semantic, 786 union, and
+1,716 full tests.
 
-Keep all three graph callers and both surrounding graph pipelines. In
-particular, retain operand extraction gates and evidence selection, ratio
-conflict selection, retrieved-ratio arithmetic and answer projection, mutable
-state/evidence, artifact creation/update, task/artifact ledger mutation,
-promotion, sync/rebuild, and final sequencing. Do not absorb the adjacent
-`_preferred_ratio_artifact_row_for_conflicting_recalculation(...)`: doing so
-would add task-artifacts -> aggregate-projection while the existing aggregate-
-projection -> runtime-trace -> task-artifacts path creates a cycle. Do not expand
-into structured-cell helpers, reflection planning, slot/gap callbacks, compact-
-ratio state/trace, ontology compatibility, prepared carriers, answer refresh, or
-evidence mutation. No behavior, accuracy, ranking, performance, total-code or
-executed-path reduction, benchmark, schedule, or Phase 3 completion claim
-follows.
+Keep all four caller methods and both graph modules' surrounding orchestration.
+In particular, retain retrieved-doc/evidence preparation, selected-claim and
+projection provenance updates, answer choice/composition/refresh, mutable
+state/evidence, artifact/ledger mutation, promotion, sync/rebuild, and final
+sequencing. Do not expand into `_slot_metric_keys(...)` or
+`_iter_answer_slots(...)`: the former is passed as a bound callback and its
+deletion changes the dynamic mixin surface. Do not expand into structured-cell
+helpers, ratio conflict selection, reflection planning, compact-ratio state/
+trace, ontology compatibility, prepared carriers, or evidence mutation. No
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark, schedule, or Phase 3 completion claim follows.
 
 Priority is owned by this section. The durable plan records debt and stop lines,
 not a competing queue.

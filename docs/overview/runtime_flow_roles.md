@@ -289,7 +289,7 @@ State-free owner topology:
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, and result support/reuse predicates |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
-| `financial_task_artifacts.py` | task/artifact projection and prepared artifact/ref enrichment |
+| `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_graph_calculation_rendering.py` | calculation answer rendering plus ratio result-unit, absolute-query, and result projection policy |
 
 Graph adapter에 남는 역할은 다음 범주로 읽으면 된다.
@@ -421,11 +421,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   함수로 배치된다. 다섯 call은 모두 graph-external이며 dependency-state lookup,
   candidate/cell/evidence construction, LLM reranking, artifact/ledger mutation,
   mutable state/evidence와 final sequencing은 graph에 남는다.
-- 다음 선택은 `financial_task_artifacts.py`로 가는 64-line prepared runtime-
-  evidence/task-artifact row projection 두 함수다. public 2개, external 4/local
-  0 call, characterize-first gate와 operand/evidence selection, ratio conflict와
-  arithmetic, artifact/ledger mutation, mutable state/evidence 및 final-sequencing
-  hard stop은
+- 완료된 prepared runtime-evidence/task-artifact row projection도
+  `financial_task_artifacts.py`의 public evidence merge와 ratio result-row 함수로
+  배치된다. 네 call은 모두 graph-external이며 operand/evidence selection, ratio
+  conflict/arithmetic, artifact/ledger mutation, mutable state/evidence와 final
+  sequencing은 graph에 남는다.
+- 다음 선택은 `financial_aggregate_projection.py`로 가는 168-line final-answer
+  evidence filter/operand-append 두 함수다. public 2개, external 7/local 0 call,
+  characterize-first gate와 retrieved evidence preparation, provenance, answer
+  composition/refresh, artifact/ledger mutation, mutable state/evidence 및 final-
+  sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

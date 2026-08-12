@@ -2854,26 +2854,61 @@ candidate/cell and evidence construction, ontology completion, LLM reranking,
 retry selection, artifact and ledger mutation, mutable state/evidence,
 promotion, sync/rebuild, and final sequencing remain graph-owned.
 
-The selected prepared runtime-evidence/task-artifact row boundary retains its
-current behavior until characterized and moved. Graph-private
-`_evidence_items_with_runtime(evidence_items, state)` retains input-item identity,
-scans runtime evidence in order, skips non-dictionaries and duplicate nonblank ids,
-and appends shallow copies with nested identity preserved. Graph-private
-`_ratio_result_rows_from_task_artifacts(state, task)` normalizes the task id,
-scans artifact records in order, admits only matching calculation-result
-artifacts with a nonempty result payload, preserves answer/status/source fallback
-order, and returns fresh row dictionaries. Neither catches mapping, iteration,
-truthiness, string, normalization, or copy exceptions or mutates inputs.
+`financial_task_artifacts.py` now owns prepared runtime-evidence merge and ratio
+task-artifact row projection. Public
+`evidence_items_with_runtime(evidence_items, state)` keeps the supplied evidence
+items and their identities in order, collects existing nonblank ids, then scans
+`runtime_evidence` in order. It skips non-dictionaries and duplicate nonblank ids
+and appends fresh top-level copies while preserving nested identities. Public
+`ratio_result_rows_from_task_artifacts(state, task)` normalizes the task id,
+scans copied artifact records in order, admits only matching calculation-result
+artifacts with a nonempty result payload, preserves formatted/rendered/summary,
+result/artifact status, metric label, and result/evidence-ref fallback order, and
+returns fresh row and calculation-result dictionaries. Neither catches mapping,
+iteration, truthiness, string, normalization, or copy exceptions or mutates
+inputs.
 
-Their selected movement to `financial_task_artifacts.py` is exactly the 64-line,
-four-call, external-four/local-zero batch specified in
-[Project Status Next Work](../overview/project_status.md#next-work). Both operand-
-extraction placements, preferred ratio-artifact conflict selection, retrieved-
-ratio arithmetic/projection, mutable state/evidence, artifact/ledger mutation,
-promotion, sync/rebuild, and final sequencing remain graph-owned. The adjacent
-preferred selector also remains graph-owned because moving it would require a
-task-artifact -> aggregate-projection import against the existing aggregate-
-projection -> runtime-trace -> task-artifact path.
+Commit `8d627a6` moved the former 21 + 43 = 64 definition-span lines to public
+20 + 42 = 62 owner lines. All four direct calls remain graph-external and at Try
+depth zero. Source is `+74/-70`, tests are `+911/-8`, and the whole commit is
+`+985/-78`; the source diff SHA-256 is
+`07ffa0657a4e7762442aa3d79d88dd06084a0c0319c0eb7fce8185902061018e`.
+Focused 6/6, task-artifact owner 15/15, affected semantic 832/832, import 19/19,
+union 851/851, audit 217, and full discovery 1,710/1,710 passed. Benchmark refresh
+was **NOT RUN**, remote CI is unverified, and the move proves no behavior,
+accuracy, ranking, performance, total-code, executed-path, benchmark, schedule,
+ledger, or Phase 3 completion. Both operand-extraction placements, preferred
+ratio-artifact conflict selection, retrieved-ratio arithmetic/projection, mutable
+state/evidence, artifact/ledger mutation, promotion, sync/rebuild, and final
+sequencing remain graph-owned. The adjacent preferred selector remains excluded
+because moving it would require a task-artifact -> aggregate-projection import
+against the existing aggregate-projection -> runtime-trace -> task-artifact path.
+
+The selected final-answer evidence boundary retains its current behavior until
+characterized and moved. Graph-private
+`_filter_aggregate_evidence_for_final_answer(evidence_items, *, final_answer,
+selected_claim_ids)` extracts answer numeric candidates, preserves stable
+evidence order and selected/operand numeric-support precedence, applies table-
+numeric promotion, retrieved-narrative and reconciliation gates, percent support,
+and quote/raw-row consistency, and returns fresh top-level copies or the current
+all-filtered fallback. Graph-private
+`_append_operand_evidence_for_final_answer(evidence_items, *, operands,
+final_answer)` copies the evidence list, scans operands in order, preserves
+numeric-equivalence and literal-surface support, derived-percent role, source-
+anchor and duplicate-id gates, and appends the exact generated operand-evidence
+schema with fresh top-level containers and nested identity preserved. Neither
+mutates caller inputs or catches mapping, iteration, truthiness, string, regex,
+normalization, numeric-surface, or copy exceptions.
+
+Their selected movement to `financial_aggregate_projection.py` is exactly the
+168-line, seven-call, external-seven/local-zero batch specified in
+[Project Status Next Work](../overview/project_status.md#next-work). Retrieved-
+doc/evidence preparation, selected-claim and projection-provenance updates,
+answer choice/composition/refresh, mutable state/evidence, artifact/ledger
+mutation, promotion, sync/rebuild, and final sequencing remain graph-owned. The
+adjacent answer-slot iteration family remains excluded because
+`_slot_metric_keys(...)` is passed as a bound callback and its deletion would
+change the dynamic mixin surface.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

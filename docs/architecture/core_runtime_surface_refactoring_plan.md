@@ -246,47 +246,48 @@ preparation, narrative row-focus selection, and aggregate growth display/materia
 projection, result support/reuse predicates, prepared growth/ratio material
 inspection, prepared growth-numeric rendering, and growth trace inspection are
 also owner-resident. Dependency input matching, sibling-output synthesis
-preference, and task-output binding projection are owner-resident as well.
+preference, task-output binding projection, prepared runtime-evidence merge, and
+ratio task-artifact row projection are owner-resident as well.
 Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `5a0c3e0` commit is an ownership relocation only. Exactly four
-source/test files changed. Two reconciliation definition spans totaling 76 lines
-became two public dependency projections totaling 74 lines. Five selected calls
-finish graph-external and none finish owner-local; retired selected private
-source/test refs are zero. Source is `+93/-85`, net `+8`: reconciliation moved
-from 2,211 to 2,137 physical lines and dependency projection from 3,335 to 3,417.
-Tests are `+1,228/-28`, net `+1,200`, and the whole commit is `+1,321/-113`, net
-`+1,208`. Six new unittest methods moved full discovery from 1,698 to 1,704.
-Final gates passed focused 6/6, dependency owner 75/75, affected semantic
-823/823, import 19/19, semantic/import union 842/842, audit 217, full discovery
-1,704/1,704, pycompile/fresh import, DAG/body/caller parity, and diff check.
-Benchmark refresh was **NOT RUN** and remote CI is unverified. This establishes
-neither behavior, accuracy, ranking, performance, total-code, executed-path,
-ledger, benchmark, nor Phase 3 completion.
+The completed `8d627a6` commit is an ownership relocation only. Exactly five
+source/test files changed. Two calculation definition spans totaling 64 lines
+became two public task-artifact projections totaling 62 lines. Four selected
+calls finish graph-external and none finish owner-local; retired selected private
+source/test refs are zero. Source is `+74/-70`, net `+4`: calculation moved from
+15,419 to 15,355 physical lines and task artifacts from 1,392 to 1,460. Tests are
+`+911/-8`, net `+903`, and the whole commit is `+985/-78`, net `+907`. Six new
+unittest methods moved full discovery from 1,704 to 1,710. Final gates passed
+focused 6/6, task-artifact owner 15/15, affected semantic 832/832, import 19/19,
+semantic/import union 851/851, audit 217, full discovery 1,710/1,710,
+pycompile/fresh import, DAG/body/caller parity, and diff check. Benchmark refresh
+was **NOT RUN** and remote CI is unverified. This establishes neither behavior,
+accuracy, ranking, performance, total-code, executed-path, ledger, benchmark, nor
+Phase 3 completion.
 
-The selected follow-on is the 64-line prepared runtime-evidence/task-artifact row
-projection pair. Public `evidence_items_with_runtime(...)` and
-`ratio_result_rows_from_task_artifacts(...)` move to the existing
-`financial_task_artifacts.py` owner. Four current calls finish graph-external and
-zero finish owner-local; projected owner function spans total 62. The owner needs
-no new dependency and the selected spans move no runtime-domain baseline record.
-Exact APIs, six-method characterization, call distribution, and rejected
-expansions live only in
+The selected follow-on is the 168-line final-answer evidence projection pair.
+Public `filter_aggregate_evidence_for_final_answer(...)` and
+`append_operand_evidence_for_final_answer(...)` move to the existing
+`financial_aggregate_projection.py` owner. Seven current calls finish graph-
+external and zero finish owner-local; projected owner function spans total 166.
+The owner adds three numeric-surface symbols on an existing import edge and the
+selected spans move no runtime-domain baseline record. Exact APIs, six-method
+characterization, call distribution, and rejected expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-The three callers, operand extraction/evidence selection, ratio conflict
-selection and arithmetic, artifact and ledger mutation, mutable state/evidence,
-promotion, sync/rebuild, and final sequencing stay in the graph. The adjacent
-preferred-ratio selector remains excluded because importing aggregate projection
-from the task-artifact owner would close the existing aggregate -> runtime-trace
--> task-artifact cycle. The structured-cell family remains excluded by its
-natural owner's graph-helper reverse-cycle boundary; reflection heuristic/model
-planning, slot/gap callback/ledger expansion, compact-ratio state/trace, ontology
-compatibility, carriers, answer refresh, and evidence mutation remain excluded.
+All four callers, retrieved-doc/evidence preparation, selected-claim and
+provenance projection, answer composition/refresh, artifact and ledger mutation,
+mutable state/evidence, promotion, sync/rebuild, and final sequencing stay in the
+graph. The adjacent `_slot_metric_keys(...)` and `_iter_answer_slots(...)` family
+remains excluded because the former is passed as a bound callback and deleting
+its mixin attribute would change the dynamic runtime surface. Structured-cell
+helpers, ratio conflict selection, reflection planning, compact-ratio
+state/trace, ontology compatibility, carriers, and evidence mutation remain
+excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

@@ -2307,6 +2307,58 @@ task-artifact reverse path. Exact APIs, cycle-safe dependencies, the six-method
 characterization gate, and rejected expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Task-artifact read projection owner milestone
+
+- `8d627a6` moves the former calculation-graph runtime-evidence merge and ratio
+  task-artifact row projections into `financial_task_artifacts.py` as public
+  `evidence_items_with_runtime(...)` and
+  `ratio_result_rows_from_task_artifacts(...)`. The former definition spans were
+  21 + 43 = 64 lines; the public owner spans are 20 + 42 = 62. All four selected
+  calls remain graph-external, retired selected private source/test refs are zero,
+  and no compatibility wrapper or alias remains.
+- The import DAG remains acyclic. The owner needed no new module dependency,
+  does not import the calculation graph, and the selected spans move no runtime-
+  domain baseline record; the reviewed count remains 217.
+- Exactly five source/test files changed. Source is `+74/-70`, net `+4`:
+  calculation moved from 15,419 to 15,355 physical lines and task artifacts from
+  1,392 to 1,460. Tests are `+911/-8`, net `+903`; the whole commit is
+  `+985/-78`, net `+907`.
+- The committed source-only diff SHA-256 is
+  `07ffa0657a4e7762442aa3d79d88dd06084a0c0319c0eb7fce8185902061018e`.
+  Literal body parity passed 2/2 after only `self` removal. All three retained
+  executable callers remained exact after selected target normalization; public
+  import identity, fresh import, DAG checks, and retired mixin-attribute absence
+  passed.
+- Exactly six new unittest methods moved full discovery from 1,704 to 1,710.
+  Final validation passed focused 6/6, task-artifact owner 15/15, affected ten-
+  module semantic 832/832, import-side-effects 19/19, semantic/import union
+  851/851, runtime audit 217, full discovery 1,710/1,710, pycompile/fresh-import
+  binding checks, DAG/body/caller parity, and `git diff --check`. Benchmark refresh
+  was **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only ownership of deterministic read projection over
+already prepared evidence, state, task, and artifact records. Operand extraction
+and evidence selection, ratio conflict/arithmetic, artifact creation/update and
+ledger mutation, mutable state/evidence, promotion, sync/rebuild, and final
+sequencing remain graph-owned. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is the 168-line final-answer evidence
+projection pair in `financial_graph_calculation.py`. Public
+`filter_aggregate_evidence_for_final_answer(...)` and
+`append_operand_evidence_for_final_answer(...)` are projected at 65 + 101 = 166
+owner lines in `financial_aggregate_projection.py`. Seven selected calls finish
+graph-external and none finish owner-local. Retrieved-doc/evidence preparation,
+selected-claim and provenance projection, answer composition/refresh, artifact/
+ledger mutation, mutable state/evidence, promotion, sync/rebuild, and final
+sequencing remain hard stops. The adjacent answer-slot iteration family is
+excluded because `_slot_metric_keys(...)` is passed as a bound callback. Exact
+APIs, cycle-safe dependencies, the six-method characterization gate, and rejected
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.
