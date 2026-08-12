@@ -467,10 +467,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   owner-private 4개로 옮겼다. 26개 call은 external 19/local 7이며 collection,
   structured-pair extraction, LLM rerank, evidence/state/artifact/retry는 graph에
   남는다.
-- 다음 선택은 reflection retry-query builder/finalizer 107줄을 기존 reflection
-  owner의 public 2개로 옮기는 한 batch다. 세 call은 external 2/local 1이며
+- 완료된 reflection retry-query batch는 builder/finalizer 107줄을 기존
+  reflection owner의 public 2개로 옮겼다. 세 call은 external 2/local 1이며
   heuristic dependency resolution, prompt/LLM planning, action/report/artifact,
-  state/routing/promotion hard stop은
+  state/routing/promotion은 graph에 남는다.
+- 다음 선택은 planning mixin의 aggregate calculation projection, structured
+  public-answer projection, subtask upsert/rank 156줄을 기존 aggregate owner의
+  public 3개와 owner-private 1개로 옮기는 한 batch다. 여섯 call은 external
+  4/local 2다. nested traversal/promotion 확장은 aggregate가 dependency를 통해
+  planning에 도달하는 현재 DAG의 reverse cycle을 만들므로 제외하며 mutable
+  state, filtering, recovery/alignment/synchronization, artifact/ledger와 final
+  sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

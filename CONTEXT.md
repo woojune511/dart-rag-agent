@@ -6,7 +6,7 @@
 > [agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), 완료된 변경은
 > [implementation_history.md](docs/history/implementation_history.md)를 따른다.
 
-Last updated: 2026-08-12
+Last updated: 2026-08-13
 
 ## 현재 범위
 
@@ -21,11 +21,11 @@ Last updated: 2026-08-12
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | clean local `bb0a982` on `codex/finalize-five-minute-review`; 이후 변경은 `git log`로 확인 |
+| Source checkpoint | clean local `b74535e` on `codex/finalize-five-minute-review`; 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; caller-facing run projection은 `financial_agent_run_projection.py`, prepared structured-reconciliation candidate projection은 `financial_reconciliation_candidates.py`에 귀속 |
-| Phase 3 | OPEN; structured-reconciliation candidate-projection milestone까지 완료됐지만 single-calculation-path와 ledger ownership 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; caller-facing run projection은 `financial_agent_run_projection.py`, prepared structured-reconciliation candidate projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
+| Phase 3 | OPEN; reflection retry-query projection milestone까지 완료됐지만 single-calculation-path와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -50,7 +50,7 @@ Last updated: 2026-08-12
 
 이 목록은 총 작업량이나 정해진 slice 수를 의미하지 않는다. 완료된 owner 이동은
 behavior·accuracy·performance 개선이나 Phase 3 완료를 뜻하지 않는다.
-선택된 reflection retry-query projection 작업과 hard stop은
+선택된 aggregate subtask projection/upsert 작업과 hard stop은
 [Next Work](docs/overview/project_status.md#next-work)만 따른다.
 
 ## 구현 원칙

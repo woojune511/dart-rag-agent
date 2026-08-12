@@ -3159,8 +3159,8 @@ Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
 no behavior, accuracy, ranking, performance, total-code, executed-path, ledger,
 or Phase 3 completion.
 
-The next reflection retry-query projection boundary must preserve the current
-private implementation until its characterize-first gate passes. Public
+The completed reflection retry-query projection boundary is owned by
+`financial_reflection_projection.py`. Public
 `build_retry_queries(state, missing_info)` reads explicit companies first and,
 only when absent, the first company-bearing seed document. It eagerly converts
 every supplied year with `int`, requires `state["query"]`, applies topic and
@@ -3184,26 +3184,84 @@ returns a fresh stable deduplicated list. Caller mappings/lists and nested value
 remain unchanged; access, truthiness, iteration, metadata, string, helper, and
 normalizer exceptions are not newly caught.
 
-The current 26-line builder and 81-line finalizer project to 26 and 80 owner
-lines. The builder remains graph-external from
-`_heuristic_reflection_query_plan(...)` and becomes owner-local from the
-finalizer; the finalizer remains graph-external from
+The former 26-line builder and 81-line finalizer became 26 and 80 owner lines.
+The builder remains graph-external from `_heuristic_reflection_query_plan(...)`
+and is owner-local from the finalizer; the finalizer remains graph-external from
 `_prepare_reflection_retry(...)`. Both calls stay outside a `try`, preserve exact
 state/list identity and arguments, adopt the returned list at the current point,
 and allow an owner exception to stop downstream planner-section or action/
-report/artifact work. The three calls therefore finish external two/local one.
+report/artifact work. The three calls finish external two/local one.
 
-The owner adds only `_preferred_calc_sections` and `_section_hint_alias` through
+The owner added only `_preferred_calc_sections` and `_section_hint_alias` through
 the existing one-way retrieval-hints dependency; no dependency reaches reflection
 projection or either graph mixin, so the DAG remains acyclic. No selected span
-moves a reviewed runtime-domain record and the count remains 217. The exact
-six-method CURRENT-SOURCE gate, affected validation set, dead-import rule, and
-hard stops are maintained in
-[Project Status Next Work](../overview/project_status.md#next-work).
+moved a reviewed runtime-domain record and the count remains 217. The completed
+`b74535e` source is `+118/-112`, tests are `+1,113/-4`, and the whole commit is
+`+1,231/-116`. Its source diff SHA-256 is
+`728603f15ce24c0915444755442bc6cf3be4a2bbd26c6f41adffedcb08ccdbb1`.
+Focused 6/6, reflection owner 24/24, affected semantic 758/758, import 19/19,
+union 777/777, runtime audit 217, and full discovery 1,764/1,764 passed.
 `_select_retry_strategy_for_reconciliation(...)`, heuristic missing/dependency
 resolution, `_plan_reflection_retry(...)`, prompt/model invocation,
 `_prepare_reflection_retry(...)`, action/report/artifact construction, state
 clearing, routing/promotion, and final sequencing remain graph-owned.
+
+The next aggregate subtask projection/upsert boundary must preserve its current
+private planning-mixin implementation until its characterize-first gate passes.
+Public `build_aggregate_calculation_projection(ordered_results, final_answer)`
+scans rows in order, uses owner-local `aggregate_result_operation_family(...)`,
+and replaces a conflicting growth row only by fresh row/result/answer-slot
+copies that clear calculation operands and source references while retaining the
+current material-gap feedback. It then delegates to the runtime-trace aggregate
+builder, scans copied runtime-evidence rows in stable order, deduplicates by
+nonblank evidence ID or the normalized source-anchor/quote/raw-row/claim surface,
+and returns only calculation operands, plan, result, and evidence items.
+
+Public `structured_subtask_projection_for_public_answer(state, trace)` copies
+the prepared structured result, requires a normalized public answer equal to the
+structured answer and at least one subtask row, and compares the current rendered
+surface before choosing the preferred complete aggregate answer. It delegates to
+the distinct runtime-trace private aggregate builder, returns empty unless the
+projected result retains subtask rows, and otherwise attaches the existing
+`structured_result_subtasks` metadata. Both public projections preserve current
+mapping/list access order, shallow-copy/nested-identity behavior, helper
+laziness, input immutability, and uncaught exception propagation.
+
+Public `upsert_subtask_result(existing, current)` returns a fresh list, preserves
+input order, matches only a nonblank current task ID, and keeps an existing row
+only when owner-private `_subtask_upsert_quality_rank(...)` is strictly greater.
+A tie adopts `current`; every matching duplicate is replaced under the same
+rule; a missing task is appended. The rank tuple remains status, material,
+structured-payload, cleaned-source-count, answer-digit-count, and answer-length
+in that exact order, with current fallbacks, truthiness, normalization, and
+exception scopes.
+
+The selected graph definitions span 69 + 36 + 23 + 28 = 156 lines and project
+to owner spans 68 + 35 + 22 + 27 = 152. Four graph call sites remain external:
+one build call in `_rebuild_aggregate_projection(...)`, one structured-public
+call in `_structured_public_answer_trace_projection(...)`, and two upsert calls
+in `_advance_calculation_subtask(...)` and
+`_prepare_initial_aggregate_state(...)`. The two rank calls become owner-local.
+All six calls stay outside a `try`, preserve exact arguments and list/mapping
+identity, adopt the returned value at the current point, and allow an owner
+exception to stop downstream filtering, ratio repair, state clearing, sorting,
+recovery, or aggregation work.
+
+The aggregate owner already has the selected bodies' answer-projection,
+normalization, runtime-trace, and operation-family dependencies or an existing
+one-way edge to them. Runtime trace and graph state do not import aggregate, and
+the main graph plus calculation graph already do. Planning need not import
+aggregate after this exact move, so the DAG stays acyclic. No selected span moves
+a reviewed runtime-domain record and the count remains 217. The exact seven-
+method CURRENT-SOURCE gate, selected-private-ref rule, affected validation set,
+dead-import rule, and hard stops are maintained in
+[Project Status Next Work](../overview/project_status.md#next-work).
+Nested-row traversal, operation/specificity scoring, nested promotion, state
+capture, projection filtering, recovery/alignment/synchronization, artifact/
+ledger mutation, and final sequencing remain graph-owned. Co-moving the nested
+promotion cluster is forbidden in this batch because it would require planning
+to import aggregate while aggregate already reaches planning through dependency
+projection.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

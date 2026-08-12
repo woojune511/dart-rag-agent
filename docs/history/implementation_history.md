@@ -2745,6 +2745,62 @@ validation counts, DAG, and rejected state/callback/carrier/cycle expansions are
 maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Reflection retry-query projection owner milestone
+
+- `b74535e` moves `_build_retry_queries(...)` and
+  `_finalize_retry_queries(...)` out of the reconciliation and calculation graph
+  mixins into public `build_retry_queries(...)` and
+  `finalize_retry_queries(...)` in `financial_reflection_projection.py`. The
+  former 26 + 81 = 107 definition-span lines become 26 + 80 = 106 owner lines.
+- Three selected calls finish as two graph-external and one owner-local builder
+  call from the finalizer. Retired selected private refs are zero; no wrapper,
+  compatibility alias, callback, reason, flag, carrier, or output field remains.
+- Literal body parity passed after only standalone `self` removal and the
+  finalizer's owner-local builder rebind. Complete caller parity passed for
+  `_heuristic_reflection_query_plan(...)` and `_prepare_reflection_retry(...)`.
+  Public import identity, removed mixin-attribute absence, pycompile/fresh
+  import, DAG, and diff check passed. None of the selected spans moved a runtime-
+  domain baseline record; the reviewed count remains 217.
+- Exactly five source/test files changed. Source is `+118/-112`, net `+6`:
+  calculation moved from 14,715 to 14,716 physical lines, reconciliation from
+  1,776 to 1,667, and reflection projection from 260 to 374. Tests are
+  `+1,113/-4`, net `+1,109`; the whole commit is `+1,231/-116`, net `+1,115`.
+  Exactly six new unittest methods moved full discovery from 1,758 to 1,764.
+- The committed source-only diff SHA-256 is
+  `728603f15ce24c0915444755442bc6cf3be4a2bbd26c6f41adffedcb08ccdbb1`.
+  Final validation passed focused 6/6, reflection owner 24/24, affected eight-
+  module semantic 758/758, import-side-effects 19/19, semantic/import union
+  777/777, runtime audit 217, full discovery 1,764/1,764, pycompile/fresh import,
+  DAG/body/caller parity, and `git diff --check`. Benchmark refresh was **NOT
+  RUN**, and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only ownership of deterministic retry-query projection
+over already prepared state, plan, missing-info, company, year, and section
+values. Heuristic dependency/calc-family resolution, missing-info inference,
+prompt/model planning, action/report/artifact construction, state clearing,
+retrieval routing, retry eligibility/budget/promotion, and final sequencing
+remain graph-owned. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 156-line
+aggregate subtask projection/upsert batch from `financial_graph_planning.py`
+into the existing `financial_aggregate_projection.py` owner. Public
+`build_aggregate_calculation_projection(...)`,
+`structured_subtask_projection_for_public_answer(...)`, and
+`upsert_subtask_result(...)` plus owner-private
+`_subtask_upsert_quality_rank(...)` project to 152 owner lines. Six selected
+calls finish as four graph-external and two owner-local. The distinct runtime-
+trace private `_build_aggregate_calculation_projection(...)` remains live and is
+not part of the retired-ref rule. Nested traversal/specificity/promotion is a hard
+stop because co-moving it would require planning to import aggregate while
+aggregate already reaches planning through dependency projection. Mutable state,
+filtering, recovery/alignment/synchronization, artifact/ledger mutation, and
+final sequencing also remain graph-owned. Exact APIs, the seven-method CURRENT-
+SOURCE gate, projected validation counts, DAG, and rejected state/callback/
+carrier/cycle expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

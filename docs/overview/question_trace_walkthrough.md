@@ -357,7 +357,7 @@ validation 결과를 먼저 봐야 한다.
 | [financial_graph.py](../../src/agent/financial_graph.py) | facade, graph wiring, output projection |
 | [financial_graph_state.py](../../src/agent/financial_graph_state.py) | lightweight graph state contract |
 | [financial_graph_models.py](../../src/agent/financial_graph_models.py) | Pydantic structured-output schema and compatibility exports |
-| [financial_graph_planning.py](../../src/agent/financial_graph_planning.py) | routing, entity extraction, semantic numeric tasks, reflection planning |
+| [financial_graph_planning.py](../../src/agent/financial_graph_planning.py) | routing, entity extraction, semantic numeric tasks, reflection planning, graph-owned subtask capture/promotion |
 | [financial_retrieval_pipeline.py](../../src/agent/financial_retrieval_pipeline.py) | retrieval query/filter/search/rerank/selection/trace owner |
 | [financial_graph_evidence.py](../../src/agent/financial_graph_evidence.py) | expansion, numeric extraction, evidence/compress/validate |
 | [financial_graph_reconciliation.py](../../src/agent/financial_graph_reconciliation.py) | retrieved candidates와 required operands 매칭 |
@@ -366,11 +366,12 @@ validation 결과를 먼저 봐야 한다.
 | [financial_graph_helpers.py](../../src/agent/financial_graph_helpers.py) | shared runtime projection, trace, normalization, matching helpers |
 | [financial_answer_projection.py](../../src/agent/financial_answer_projection.py) | aggregate/narrative answer candidate 선택 |
 | [financial_answer_slots.py](../../src/agent/financial_answer_slots.py) | answer slot payload construction |
+| [financial_aggregate_projection.py](../../src/agent/financial_aggregate_projection.py) | state-free aggregate selection, ranking, dedupe, evidence/answer surface projection; selected subtask projection/upsert move remains characterize-first |
 | [financial_operand_resolution.py](../../src/agent/financial_operand_resolution.py) | state-free operand matching, selection, merge owner |
 | [financial_dependency_projection.py](../../src/agent/financial_dependency_projection.py) | dependency projection 및 precedence-decision primitive owner |
 | [financial_calculation_execution.py](../../src/agent/financial_calculation_execution.py) | plan validation and typed execution outcome owner |
 | [financial_graph_calculation_rendering.py](../../src/agent/financial_graph_calculation_rendering.py) | calculation answer rendering helpers |
-| [financial_reflection_projection.py](../../src/agent/financial_reflection_projection.py) | reflection/task-artifact projection helpers |
+| [financial_reflection_projection.py](../../src/agent/financial_reflection_projection.py) | reflection retry-query, request, action/report, and task-artifact projection helpers |
 | [financial_text_surface.py](../../src/agent/financial_text_surface.py) | text/narrative surface helpers |
 | [financial_numeric_surface.py](../../src/agent/financial_numeric_surface.py) | numeric display surface extraction/equivalence |
 

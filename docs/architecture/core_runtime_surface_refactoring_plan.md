@@ -381,15 +381,35 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 Candidate collection/selection, structured-pair and operand extraction
 orchestration, LLM reranking, evidence construction, retry, artifact/state,
-ledger, and final sequencing remain excluded. The selected follow-on is now one
-characterize-first 107-line reflection retry-query projection batch into the
-existing `financial_reflection_projection.py` owner. Public
-`build_retry_queries(...)` and `finalize_retry_queries(...)` project to 106 owner
-lines; three calls finish as two graph-external and one owner-local. Heuristic
-dependency/calc-family resolution, prompt/LLM planning, action/report/artifact
-projection, mutable state, routing/promotion, and final sequencing stay in their
-current graph owners. Exact APIs, the six-method characterization gate, call
-distribution, DAG, and stop lines live only in
+ledger, and final sequencing remain excluded.
+
+The completed `b74535e` follow-on is another ownership relocation only. It moved
+the former 107 reflection retry-query definition-span lines to two public
+functions totaling 106 lines in the existing reflection owner. Three calls
+finish as two graph-external and one owner-local; retired selected private refs
+are zero. Source is `+118/-112`, tests are `+1,113/-4`, and the whole commit is
+`+1,231/-116`. Reconciliation moved from 1,776 to 1,667 physical lines,
+reflection projection from 260 to 374, and six new unittest methods moved full
+discovery from 1,758 to 1,764. Final gates passed focused 6/6, reflection owner
+24/24, affected semantic 758/758, import 19/19, semantic/import union 777/777,
+audit 217, full discovery 1,764/1,764, pycompile/fresh import, DAG/body/caller
+parity, and diff check. Its source diff SHA-256 is
+`728603f15ce24c0915444755442bc6cf3be4a2bbd26c6f41adffedcb08ccdbb1`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
+
+Heuristic dependency/calc-family resolution, prompt/LLM planning, action/report/
+artifact projection, mutable state, routing/promotion, and final sequencing
+remain excluded. The selected follow-on is now one characterize-first 156-line
+aggregate subtask projection/upsert batch into the existing
+`financial_aggregate_projection.py` owner. Three public plus one owner-private
+function project to 152 owner lines; six calls finish as four graph-external and
+two owner-local. This exact cut does not require planning to import aggregate.
+The tempting nested-row/specificity/promotion expansion is rejected because
+aggregate already reaches planning through dependency projection and the reverse
+planning import would create a cycle. Mutable state clearing, projection
+filtering, recovery/alignment/synchronization, artifact/ledger mutation, and
+final sequencing stay graph-owned. Exact APIs, the seven-method characterization
+gate, call distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
