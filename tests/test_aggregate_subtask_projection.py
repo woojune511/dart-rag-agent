@@ -8516,9 +8516,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
-                agent,
-                "_build_deterministic_operation_plan",
-                wraps=agent._build_deterministic_operation_plan,
+                financial_graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_runtime_deterministic_operation_plan,
             ) as raw_plan_builder,
             patch.object(
                 agent,
@@ -9418,7 +9418,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             },
         ]
 
-        plan = agent._build_deterministic_ontology_plan(state, operands)
+        plan = financial_calculation_execution.build_deterministic_ontology_plan(
+            state["active_subtask"],
+            operands,
+            metric_key="concept_ratio",
+        )
 
         self.assertIsNotNone(plan)
         self.assertEqual(plan["ordered_operand_ids"], ["num", "den"])
@@ -9639,9 +9643,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
-                agent,
-                "_build_deterministic_operation_plan",
-                wraps=agent._build_deterministic_operation_plan,
+                financial_graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_runtime_deterministic_operation_plan,
             ) as raw_plan_builder,
             patch.object(
                 financial_graph_calculation,
@@ -11309,9 +11313,9 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 wraps=financial_graph_calculation.resolve_deterministic_operation_plan,
             ) as resolve_plan,
             patch.object(
-                financial_graph_calculation,
+                financial_calculation_execution,
                 "build_deterministic_operation_plan",
-                wraps=financial_graph_calculation.build_deterministic_operation_plan,
+                wraps=financial_calculation_execution.build_deterministic_operation_plan,
             ) as build_operation_plan,
             patch.object(
                 agent,

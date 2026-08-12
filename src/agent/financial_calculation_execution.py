@@ -10,6 +10,7 @@ from src.agent.financial_operand_resolution import (
     _operand_row_matches_requirement,
     _ratio_operand_rows_collapse_to_same_slot,
 )
+from src.agent.financial_operation_policies import _should_coerce_percent_point_unit
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
@@ -18,6 +19,7 @@ from src.agent.financial_runtime_normalization import (
 from src.agent.financial_runtime_trace import _runtime_trace_state_update
 from src.agent.financial_scope_policies import _extract_period_sort_key
 from src.agent.financial_task_artifacts import calculation_result_artifact_update as _calculation_result_artifact_update
+from src.config import get_financial_ontology
 
 
 CalculationExecutionStatus = Literal[
@@ -328,6 +330,241 @@ def build_deterministic_operation_plan(
         "result_unit": "%",
         "operation_text": f"({ordered_labels[0]} - {ordered_labels[1]}) / {ordered_labels[1]} * 100",
         "explanation": f"{metric_display or 'growth rate'} is computed as ((A - B) / B) * 100.",
+        "missing_info": [],
+    }
+
+
+def build_runtime_deterministic_operation_plan(
+    state: Mapping[str, Any],
+    operands: List[Dict[str, Any]],
+    *,
+    active_subtask: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    resolved_active_subtask = dict(
+        active_subtask
+        if active_subtask is not None
+        else state.get("active_subtask") or {}
+    )
+    operation_family = str(resolved_active_subtask.get("operation_family") or "").strip().lower()
+    required_operands = [
+        dict(item)
+        for item in (resolved_active_subtask.get("required_operands") or [])
+        if bool(item.get("required", True))
+    ]
+    metric_label = str(
+        resolved_active_subtask.get("metric_label")
+        or resolved_active_subtask.get("task_id")
+        or ""
+    ).strip()
+    plan = build_deterministic_operation_plan(
+        operation_family=operation_family,
+        required_operands=required_operands,
+        operands=operands,
+        metric_label=metric_label,
+        difference_result_unit="",
+    )
+    if operation_family == "difference" and plan and _should_coerce_percent_point_unit(
+        str(resolved_active_subtask.get("query") or state["query"]),
+        operands,
+        plan,
+    ):
+        plan = {**plan, "result_unit": "%p"}
+    return plan
+
+
+def build_deterministic_ontology_plan(
+    active_subtask: Dict[str, Any], operands: List[Dict[str, Any]], *, metric_key: str
+) -> Optional[Dict[str, Any]]:
+    ontology = get_financial_ontology()
+    metric_info = ontology.metric_family(metric_key) or {}
+    formula_family = str(metric_info.get("formula_family") or "").strip().lower()
+    if not formula_family:
+        formula_family = str(active_subtask.get("operation_family") or "").strip().lower()
+    if formula_family not in {"ratio", "sum"}:
+        return None
+
+    required_operands = [
+        dict(item)
+        for item in (active_subtask.get("required_operands") or [])
+        if bool(item.get("required", True))
+    ]
+    if not required_operands:
+        return None
+
+    matched_rows: List[tuple[Dict[str, Any], Dict[str, Any]]] = []
+    missing_labels: List[str] = []
+
+    def _operand_row_preference_score(row: Dict[str, Any], operand: Dict[str, Any]) -> tuple[int, int, int, int, int]:
+        required_role = _normalise_spaces(str(operand.get("role") or "")).lower()
+        matched_role = _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")).lower()
+        role_score = 0
+        if required_role and matched_role:
+            if matched_role == required_role:
+                role_score = 3
+            elif required_role.startswith(("numerator", "denominator")) and matched_role.startswith(
+                "numerator" if required_role.startswith("numerator") else "denominator"
+            ):
+                role_score = 2
+        required_scope = _normalise_spaces(str(operand.get("consolidation_scope") or "")).lower()
+        row_scope = _normalise_spaces(str(row.get("consolidation_scope") or "")).lower()
+        scope_score = 0
+        if required_scope and row_scope == required_scope:
+            scope_score = 2
+        elif row_scope == "consolidated":
+            scope_score = 1
+        statement_type = _normalise_spaces(str(row.get("statement_type") or "")).lower()
+        statement_score = 2 if statement_type == "income_statement" else 0
+        stage = _normalise_spaces(str(row.get("aggregation_stage") or "")).lower()
+        value_role = _normalise_spaces(str(row.get("value_role") or "")).lower()
+        aggregate_score = int(value_role == "aggregate") + int(stage in {"direct", "final", "subtotal"})
+        source_score = len(_clean_source_row_ids([row.get("source_row_id"), row.get("source_row_ids")]))
+        return role_score, scope_score, statement_score, aggregate_score, source_score
+
+    for operand in required_operands:
+        candidate_rows = [row for row in operands if _operand_row_matches_requirement(row, operand)]
+        required_role = str(operand.get("role") or "").strip()
+        role_matched_rows = [
+            row
+            for row in candidate_rows
+            if required_role
+            and str(row.get("matched_operand_role") or "").strip()
+            and (
+                str(row.get("matched_operand_role") or "").strip() == required_role
+                or (
+                    required_role.startswith(("numerator", "denominator"))
+                    and str(row.get("matched_operand_role") or "").strip().startswith(
+                        "numerator" if required_role.startswith("numerator") else "denominator"
+                    )
+                )
+            )
+        ]
+        candidate_pool = role_matched_rows or candidate_rows
+        matched_row = max(
+            candidate_pool,
+            key=lambda row: _operand_row_preference_score(row, operand),
+            default=None,
+        )
+        if matched_row is None:
+            missing_labels.append(str(operand.get("label") or "").strip() or "required_operand")
+            continue
+        matched_rows.append((operand, matched_row))
+
+    if missing_labels:
+        return None
+
+    if formula_family == "ratio":
+        numerator_pairs = [
+            (operand, row)
+            for operand, row in matched_rows
+            if str(operand.get("role") or "").strip().startswith("numerator")
+        ]
+        denominator_pairs = [
+            (operand, row)
+            for operand, row in matched_rows
+            if str(operand.get("role") or "").strip().startswith("denominator")
+        ]
+        if not numerator_pairs or not denominator_pairs:
+            return None
+        ordered_pairs = numerator_pairs + denominator_pairs
+    else:
+        numerator_pairs = []
+        denominator_pairs = []
+        ordered_pairs = matched_rows
+
+    variable_bindings: List[Dict[str, str]] = []
+    ordered_operand_ids: List[str] = []
+    numerator_vars: List[str] = []
+    denominator_vars: List[str] = []
+    additive_vars: List[str] = []
+
+    for index, (operand, row) in enumerate(ordered_pairs):
+        variable = chr(ord("A") + index)
+        operand_id = str(row.get("operand_id") or "").strip()
+        if not operand_id:
+            return None
+        variable_bindings.append({"variable": variable, "operand_id": operand_id})
+        ordered_operand_ids.append(operand_id)
+        role = str(operand.get("role") or "").strip()
+        if formula_family == "ratio":
+            if role.startswith("numerator"):
+                numerator_vars.append(variable)
+            elif role.startswith("denominator"):
+                denominator_vars.append(variable)
+        elif formula_family == "sum":
+            additive_vars.append(variable)
+
+    metric_display = (
+        str(metric_info.get("display_name") or "").strip()
+        or str(active_subtask.get("metric_label") or "").strip()
+        or metric_key
+    )
+
+    if formula_family == "ratio":
+        if not numerator_vars or not denominator_vars:
+            return None
+        numerator_expr = " + ".join(numerator_vars)
+        denominator_expr = " + ".join(denominator_vars)
+        denominator_operation_text = " + ".join(
+            str(operand.get("label") or "").strip()
+            for operand, _row in denominator_pairs
+        )
+        denominator_aggregation = _normalise_spaces(
+            str(
+                active_subtask.get("denominator_aggregation")
+                or metric_info.get("denominator_aggregation")
+                or ""
+            )
+        ).lower()
+        if denominator_aggregation == "average" and len(denominator_vars) > 1:
+            denominator_expr = f"(({denominator_expr}) / {len(denominator_vars)})"
+            denominator_operation_text = f"average({denominator_operation_text})"
+        result_unit = str(active_subtask.get("result_unit") or metric_info.get("result_unit") or "").strip()
+        if not result_unit:
+            result_unit = "%"
+        if result_unit.upper() == "PERCENT":
+            result_unit = "%"
+        elif result_unit.upper() == "PERCENT_POINT":
+            result_unit = "%p"
+        percent_result = result_unit in {"%", "퍼센트"} or result_unit.upper() == "PERCENT"
+        if result_unit == "%p":
+            percent_result = True
+        formula = f"(({numerator_expr}) / ({denominator_expr}))"
+        operation_suffix = ""
+        if percent_result:
+            formula = f"{formula} * 100"
+            operation_suffix = " * 100"
+
+        numerator_labels = [str(operand.get("label") or "").strip() for operand, _row in numerator_pairs]
+
+        return {
+            "status": "ok",
+            "mode": "single_value",
+            "operation": "ratio",
+            "ordered_operand_ids": ordered_operand_ids,
+            "variable_bindings": variable_bindings,
+            "formula": formula,
+            "pairwise_formula": "",
+            "result_unit": result_unit,
+            "operation_text": f"({' + '.join(numerator_labels)}) / ({denominator_operation_text}){operation_suffix}",
+            "explanation": f"{metric_display}의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.",
+            "missing_info": [],
+        }
+
+    if not additive_vars:
+        return None
+    additive_labels = [str(operand.get("label") or "").strip() for operand, _row in ordered_pairs]
+    result_unit = str(metric_info.get("result_unit") or "").strip()
+    return {
+        "status": "ok",
+        "mode": "single_value",
+        "operation": "add",
+        "ordered_operand_ids": ordered_operand_ids,
+        "variable_bindings": variable_bindings,
+        "formula": " + ".join(additive_vars),
+        "pairwise_formula": "",
+        "result_unit": result_unit,
+        "operation_text": " + ".join(additive_labels),
+        "explanation": f"{metric_display}에 필요한 concept operand를 합산합니다.",
         "missing_info": [],
     }
 

@@ -8212,9 +8212,9 @@ class SubtaskLoopTests(unittest.TestCase):
         )
         with (
             patch.object(
-                self.agent,
-                "_build_deterministic_operation_plan",
-                wraps=self.agent._build_deterministic_operation_plan,
+                financial_graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_runtime_deterministic_operation_plan,
             ) as failed_raw_plan_builder,
             patch.object(
                 self.agent,
@@ -8260,9 +8260,9 @@ class SubtaskLoopTests(unittest.TestCase):
         stage_events.clear()
         with (
             patch.object(
-                self.agent,
-                "_build_deterministic_operation_plan",
-                wraps=self.agent._build_deterministic_operation_plan,
+                financial_graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                wraps=financial_graph_calculation.build_runtime_deterministic_operation_plan,
             ) as time_series_raw_builder,
             patch.object(
                 self.agent,

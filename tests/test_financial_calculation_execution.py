@@ -3,9 +3,10 @@ import unittest
 from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import src.agent.financial_graph_calculation as graph_calculation
+import src.agent.financial_calculation_execution as calculation_execution
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
     DeterministicOperationPlanDecision,
@@ -916,7 +917,7 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         ]
         original_inputs = deepcopy((state, operands))
 
-        plan = agent._build_deterministic_operation_plan(state, operands)
+        plan = calculation_execution.build_runtime_deterministic_operation_plan(state, operands)
 
         self.assertEqual(
             (plan["ordered_operand_ids"], plan["formula"], plan["result_unit"]),
@@ -1855,6 +1856,1095 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
         )
 
         self.assertEqual(rates, [None])
+
+    def test_current_source_runtime_plan_adapter_pins_task_fallback_copy_and_laziness(self) -> None:
+        target = calculation_execution.build_runtime_deterministic_operation_plan
+        shared = {"nested": True}
+        operands = [{"operand_id": "op", "nested": shared}]
+        explicit_task = {
+            "operation_family": " SUM ",
+            "required_operands": [
+                {"label": "kept", "required": True, "nested": shared},
+                {"label": "dropped", "required": False},
+            ],
+            "metric_label": "",
+            "task_id": " task-fallback ",
+            "nested": shared,
+        }
+        explicit_before = deepcopy(explicit_task)
+        operands_before = deepcopy(operands)
+
+        class StateBomb(Mapping):
+            def __getitem__(self, key):
+                raise RuntimeError(f"state item accessed: {key}")
+
+            def __iter__(self):
+                raise RuntimeError("state iterated")
+
+            def __len__(self):
+                raise RuntimeError("state sized")
+
+            def get(self, key, default=None):
+                raise RuntimeError(f"state get accessed: {key}")
+
+        base_plan = {"status": "ok", "nested": shared}
+        with (
+            patch.object(
+                calculation_execution,
+                "build_deterministic_operation_plan",
+                return_value=base_plan,
+            ) as base_owner,
+            patch.object(
+                calculation_execution,
+                "_should_coerce_percent_point_unit",
+                side_effect=RuntimeError("percent policy must stay lazy"),
+            ) as percent_policy,
+        ):
+            result = target(
+                StateBomb(),
+                operands,
+                active_subtask=explicit_task,
+            )
+
+        self.assertIs(result, base_plan)
+        base_owner.assert_called_once()
+        kwargs = base_owner.call_args.kwargs
+        self.assertEqual(
+            kwargs,
+            {
+                "operation_family": "sum",
+                "required_operands": [
+                    {"label": "kept", "required": True, "nested": shared}
+                ],
+                "operands": operands,
+                "metric_label": "task-fallback",
+                "difference_result_unit": "",
+            },
+        )
+        self.assertIs(kwargs["operands"], operands)
+        self.assertIsNot(kwargs["required_operands"][0], explicit_task["required_operands"][0])
+        self.assertIs(kwargs["required_operands"][0]["nested"], shared)
+        percent_policy.assert_not_called()
+        self.assertEqual(explicit_task, explicit_before)
+        self.assertEqual(operands, operands_before)
+        self.assertIs(explicit_task["nested"], shared)
+        self.assertIs(operands[0]["nested"], shared)
+
+        state_task = {
+            "operation_family": " growth_rate ",
+            "required_operands": [{"label": "current"}],
+            "metric_label": " metric ",
+        }
+        state = {"query": "state query", "active_subtask": state_task}
+        state_before = deepcopy(state)
+        fallback_plan = {"status": "ok"}
+        with (
+            patch.object(
+                calculation_execution,
+                "build_deterministic_operation_plan",
+                return_value=fallback_plan,
+            ) as fallback_owner,
+            patch.object(
+                calculation_execution,
+                "_should_coerce_percent_point_unit",
+            ) as fallback_policy,
+        ):
+            fallback = target(state, operands)
+        self.assertIs(fallback, fallback_plan)
+        self.assertEqual(fallback_owner.call_args.kwargs["operation_family"], "growth_rate")
+        self.assertEqual(fallback_owner.call_args.kwargs["metric_label"], "metric")
+        self.assertIsNot(
+            fallback_owner.call_args.kwargs["required_operands"][0],
+            state_task["required_operands"][0],
+        )
+        fallback_policy.assert_not_called()
+        self.assertEqual(state, state_before)
+
+        later_policy = Mock()
+        with (
+            patch.object(
+                calculation_execution,
+                "build_deterministic_operation_plan",
+                side_effect=RuntimeError("base plan failed"),
+            ),
+            patch.object(
+                calculation_execution,
+                "_should_coerce_percent_point_unit",
+                later_policy,
+            ),
+            self.assertRaisesRegex(RuntimeError, "base plan failed"),
+        ):
+            target(state, operands)
+        later_policy.assert_not_called()
+
+    def test_current_source_runtime_plan_adapter_pins_difference_query_and_exception_order(self) -> None:
+        target = calculation_execution.build_runtime_deterministic_operation_plan
+        shared = {"nested": True}
+        operands = [{"operand_id": "current", "nested": shared}]
+        plan = {"status": "ok", "result_unit": "%", "nested": shared}
+        task = {
+            "operation_family": " Difference ",
+            "query": " task query ",
+            "required_operands": [],
+        }
+        state_events = []
+
+        class RecordingState(dict):
+            def __getitem__(self, key):
+                state_events.append(("item", key))
+                return super().__getitem__(key)
+
+        state = RecordingState(query="state query", active_subtask=task)
+        state_before = deepcopy(dict(state))
+        events = []
+
+        def base_owner(**kwargs):
+            events.append("base")
+            self.assertEqual(kwargs["operation_family"], "difference")
+            self.assertIs(kwargs["operands"], operands)
+            return plan
+
+        def percent_owner(query, owner_operands, owner_plan):
+            events.append("percent")
+            self.assertEqual(query, " task query ")
+            self.assertIs(owner_operands, operands)
+            self.assertIs(owner_plan, plan)
+            return True
+
+        with (
+            patch.object(
+                calculation_execution,
+                "build_deterministic_operation_plan",
+                side_effect=base_owner,
+            ),
+            patch.object(
+                calculation_execution,
+                "_should_coerce_percent_point_unit",
+                side_effect=percent_owner,
+            ),
+        ):
+            changed = target(state, operands)
+
+        self.assertEqual(events, ["base", "percent"])
+        self.assertEqual(state_events, [])
+        self.assertIsNot(changed, plan)
+        self.assertEqual(changed["result_unit"], "%p")
+        self.assertIs(changed["nested"], shared)
+        self.assertEqual(plan["result_unit"], "%")
+        self.assertEqual(dict(state), state_before)
+        self.assertIs(operands[0]["nested"], shared)
+
+        task_without_query = {**task, "query": ""}
+        fallback_state = RecordingState(query="fallback query", active_subtask=task_without_query)
+        state_events.clear()
+        with (
+            patch.object(
+                calculation_execution,
+                "build_deterministic_operation_plan",
+                return_value=plan,
+            ),
+            patch.object(
+                calculation_execution,
+                "_should_coerce_percent_point_unit",
+                return_value=False,
+            ) as policy,
+        ):
+            unchanged = target(fallback_state, operands)
+        self.assertIs(unchanged, plan)
+        self.assertEqual(state_events, [("item", "query")])
+        policy.assert_called_once_with("fallback query", operands, plan)
+
+        for returned_plan in ({}, None):
+            with (
+                patch.object(
+                    calculation_execution,
+                    "build_deterministic_operation_plan",
+                    return_value=returned_plan,
+                ),
+                patch.object(
+                    calculation_execution,
+                    "_should_coerce_percent_point_unit",
+                    side_effect=RuntimeError("policy must stay lazy"),
+                ) as lazy_policy,
+            ):
+                result = target(fallback_state, operands)
+            self.assertIs(result, returned_plan)
+            lazy_policy.assert_not_called()
+
+        downstream = Mock()
+        with (
+            patch.object(
+                calculation_execution,
+                "build_deterministic_operation_plan",
+                return_value=plan,
+            ),
+            patch.object(
+                calculation_execution,
+                "_should_coerce_percent_point_unit",
+                side_effect=RuntimeError("percent policy failed"),
+            ),
+            patch("builtins.dict", wraps=dict) as dict_owner,
+            self.assertRaisesRegex(RuntimeError, "percent policy failed"),
+        ):
+            target(fallback_state, operands)
+        downstream.assert_not_called()
+        self.assertGreaterEqual(dict_owner.call_count, 1)
+
+    def test_current_source_runtime_plan_adapter_pins_static_binding_dag_and_dead_import(self) -> None:
+        from src.ops.audit_runtime_domain_terms import collect_runtime_domain_term_occurrences
+
+        graph_path = Path(graph_calculation.__file__)
+        owner_path = Path("src/agent/financial_calculation_execution.py")
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8"))
+        private_name = "_build_deterministic_operation_plan"
+        public_name = "build_runtime_deterministic_operation_plan"
+        definition = next(
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == public_name
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 36)
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["state", "operands"],
+        )
+        self.assertEqual(
+            [argument.arg for argument in definition.args.kwonlyargs],
+            ["active_subtask"],
+        )
+        self.assertEqual(
+            [
+                node
+                for node in ast.walk(graph_tree)
+                if isinstance(node, ast.FunctionDef) and node.name == private_name
+            ],
+            [],
+        )
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.stack = []
+                self.try_depth = 0
+                self.calls = []
+
+            def visit_FunctionDef(self, node):
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = (
+                    node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else ""
+                )
+                if name in {private_name, public_name}:
+                    self.calls.append(
+                        (
+                            self.stack[-1],
+                            name,
+                            ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "",
+                            [ast.unparse(argument) for argument in node.args],
+                            [(keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        visitor = BindingVisitor()
+        visitor.visit(graph_tree)
+        self.assertEqual(
+            visitor.calls,
+            [
+                (
+                    "_recalculate_row_from_source_slots",
+                    public_name,
+                    "",
+                    ["state", "updated_operands"],
+                    [("active_subtask", "active_subtask")],
+                    0,
+                ),
+                (
+                    "_realign_period_comparison_results_from_table_label_context",
+                    public_name,
+                    "",
+                    ["plan_state", "planning_operands"],
+                    [],
+                    0,
+                ),
+                (
+                    "_plan_formula_calculation_from_operation_decision",
+                    public_name,
+                    "",
+                    ["state", "operands"],
+                    [],
+                    0,
+                ),
+            ],
+        )
+
+        graph_imports = {
+            alias.name
+            for node in graph_tree.body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        self.assertNotIn("build_deterministic_operation_plan", graph_imports)
+        self.assertIn(public_name, graph_imports)
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == "build_deterministic_operation_plan"
+                for node in ast.walk(graph_tree)
+            ),
+            0,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == "_should_coerce_percent_point_unit"
+                for node in ast.walk(graph_tree)
+            ),
+            1,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == "build_deterministic_operation_plan"
+                for node in ast.walk(definition)
+            ),
+            1,
+        )
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == "_should_coerce_percent_point_unit"
+                for node in ast.walk(definition)
+            ),
+            1,
+        )
+        owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_defs),
+                sum(node.name.startswith("_") for node in owner_defs),
+            ),
+            (13, 0),
+        )
+
+        modules = {
+            f"src.agent.{path.stem}": path
+            for path in Path("src/agent").glob("*.py")
+        }
+        imports = {name: set() for name in modules}
+        for module_name, path in modules.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module in modules:
+                    imports[module_name].add(node.module)
+
+        def reaches(source, target):
+            pending = [source]
+            visited = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in visited:
+                    continue
+                visited.add(current)
+                pending.extend(imports.get(current, set()) - visited)
+            return False
+
+        owner_module = "src.agent.financial_calculation_execution"
+        policy_module = "src.agent.financial_operation_policies"
+        self.assertFalse(reaches(policy_module, owner_module))
+        self.assertEqual(
+            [
+                row
+                for row in collect_runtime_domain_term_occurrences()
+                if row.get("symbol", "").endswith(private_name)
+            ],
+            [],
+        )
+
+    def test_current_source_runtime_plan_adapter_callers_pin_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = None
+        shared = {"nested": True}
+
+        row = {
+            "task_id": "task_sum",
+            "operation_family": "sum",
+            "calculation_operands": [{"operand_id": "op", "nested": shared}],
+            "calculation_plan": {},
+        }
+        state = {
+            "query": "sum query",
+            "calc_subtasks": [{"task_id": "task_sum", "operation_family": "sum"}],
+            "evidence_items": [],
+            "runtime_evidence": [],
+            "nested": shared,
+        }
+        state_before = deepcopy(state)
+        row_before = deepcopy(row)
+        events = []
+        marker_plan = {"status": "ok", "marker": "source-slot"}
+
+        def source_slot_target(owner_state, owner_operands, *, active_subtask=None):
+            events.append("source-target")
+            self.assertIs(owner_state, state)
+            self.assertEqual(owner_operands, row["calculation_operands"])
+            self.assertIs(owner_operands[0]["nested"], shared)
+            self.assertEqual(active_subtask["task_id"], "task_sum")
+            return marker_plan
+
+        def stop_rebuild(_plan, *, raw_deterministic_plan, **_kwargs):
+            events.append("source-rebuild")
+            self.assertIs(raw_deterministic_plan, marker_plan)
+            raise RuntimeError("source rebuild stop")
+
+        with (
+            patch.object(
+                graph_calculation,
+                "build_dependency_lookup_slots_by_task",
+                return_value={},
+            ),
+            patch.object(
+                graph_calculation,
+                "collect_table_label_evidence_candidates",
+                return_value=[],
+            ),
+            patch.object(
+                graph_calculation,
+                "refresh_dependency_operands_from_lookup_slots",
+                side_effect=lambda operands, **_kwargs: (operands, True),
+            ),
+            patch.object(
+                graph_calculation,
+                "classify_dependency_recalculation_plan",
+                return_value="rebuild",
+            ),
+            patch.object(
+                graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                side_effect=source_slot_target,
+            ),
+            patch.object(
+                graph_calculation,
+                "rebuild_dependency_calculation_plan",
+                side_effect=stop_rebuild,
+            ),
+            self.assertRaisesRegex(RuntimeError, "source rebuild stop"),
+        ):
+            agent._align_lookup_results_with_dependency_projection([row], state, {})
+        self.assertEqual(events, ["source-target", "source-rebuild"])
+        self.assertEqual(state, state_before)
+        self.assertEqual(row, row_before)
+        self.assertIs(state["nested"], shared)
+        self.assertIs(row["calculation_operands"][0]["nested"], shared)
+
+        period_row = {
+            "task_id": "task_period",
+            "operation_family": "difference",
+            "status": "partial",
+        }
+        period_state = {
+            "query": "period query",
+            "calc_subtasks": [
+                {
+                    "task_id": "task_period",
+                    "operation_family": "difference",
+                    "required_operands": [{"label": "metric", "required": True}],
+                }
+            ],
+            "nested": shared,
+        }
+        planning_operands = [{"operand_id": "period", "nested": shared}]
+        period_events = []
+        period_plan = {"status": "ok", "marker": "period"}
+
+        def period_target(plan_state, owner_operands):
+            period_events.append("period-target")
+            self.assertEqual(plan_state["active_subtask"]["task_id"], "task_period")
+            self.assertIs(owner_operands[0]["nested"], shared)
+            return period_plan
+
+        def stop_resolution(*, plan, **_kwargs):
+            period_events.append("period-resolve")
+            self.assertIs(plan, period_plan)
+            raise RuntimeError("period resolve stop")
+
+        with (
+            patch.object(
+                agent,
+                "_build_period_comparison_operands_from_table_label_context",
+                return_value=planning_operands,
+            ),
+            patch.object(graph_calculation, "_missing_required_operands", return_value=[]),
+            patch.object(
+                graph_calculation,
+                "_resolve_runtime_calculation_trace",
+                return_value={"calculation_operands": planning_operands},
+            ),
+            patch.object(
+                graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                side_effect=period_target,
+            ),
+            patch.object(
+                graph_calculation,
+                "resolve_deterministic_operation_plan",
+                side_effect=stop_resolution,
+            ),
+            self.assertRaisesRegex(RuntimeError, "period resolve stop"),
+        ):
+            agent._realign_period_comparison_results_from_table_label_context(
+                [period_row],
+                period_state,
+                [{"evidence_id": "ev"}],
+            )
+        self.assertEqual(period_events, ["period-target", "period-resolve"])
+        self.assertIs(planning_operands[0]["nested"], shared)
+
+        formula_state = {
+            "query": "formula query",
+            "active_subtask": {"operation_family": "sum"},
+            "nested": shared,
+        }
+        formula_operands = [{"operand_id": "formula", "nested": shared}]
+        formula_events = []
+        formula_plan = {"status": "ok", "marker": "formula"}
+
+        def formula_target(owner_state, owner_operands):
+            formula_events.append("formula-target")
+            self.assertIs(owner_state, formula_state)
+            self.assertIsNot(owner_operands, formula_operands)
+            self.assertIs(owner_operands[0], formula_operands[0])
+            return formula_plan
+
+        def stop_formula_resolution(*, plan, **_kwargs):
+            formula_events.append("formula-resolve")
+            self.assertIs(plan, formula_plan)
+            raise RuntimeError("formula resolve stop")
+
+        ontology = Mock()
+        ontology.metric_family.return_value = None
+        with (
+            patch.object(
+                graph_calculation,
+                "_resolve_runtime_calculation_trace",
+                return_value={"calculation_operands": formula_operands},
+            ),
+            patch.object(agent, "_calc_query", return_value="formula query"),
+            patch.object(agent, "_calc_metric_family", return_value=""),
+            patch.object(agent, "_build_deterministic_lookup_plan", return_value=None),
+            patch.object(graph_calculation, "get_financial_ontology", return_value=ontology),
+            patch.object(
+                graph_calculation,
+                "build_runtime_deterministic_operation_plan",
+                side_effect=formula_target,
+            ),
+            patch.object(
+                graph_calculation,
+                "resolve_deterministic_operation_plan",
+                side_effect=stop_formula_resolution,
+            ),
+            self.assertRaisesRegex(RuntimeError, "formula resolve stop"),
+        ):
+            agent._plan_formula_calculation_from_operation_decision(formula_state)
+        self.assertEqual(formula_events, ["formula-target", "formula-resolve"])
+        self.assertIs(formula_operands[0]["nested"], shared)
+
+    def test_current_source_ontology_plan_pins_gates_preference_and_stable_ties(self) -> None:
+        target = calculation_execution.build_deterministic_ontology_plan
+        shared = {"nested": True}
+        required = [
+            {
+                "label": "numerator",
+                "concept": "num",
+                "role": "numerator_1",
+                "consolidation_scope": "consolidated",
+                "nested": shared,
+            },
+            {
+                "label": "denominator",
+                "concept": "den",
+                "role": "denominator_1",
+                "nested": shared,
+            },
+        ]
+        weak = {
+            "operand_id": "weak",
+            "concept": "num",
+            "matched_operand_role": "numerator_1",
+            "source_row_ids": ["weak"],
+        }
+        winner = {
+            "operand_id": "winner",
+            "concept": "num",
+            "matched_operand_role": "numerator_1",
+            "consolidation_scope": "consolidated",
+            "statement_type": "income_statement",
+            "aggregation_stage": "direct",
+            "value_role": "aggregate",
+            "source_row_ids": ["winner-a", "winner-b"],
+            "nested": shared,
+        }
+        later_tie = {**winner, "operand_id": "later-tie"}
+        denominator = {
+            "operand_id": "denominator",
+            "concept": "den",
+            "matched_operand_role": "denominator_1",
+            "consolidation_scope": "consolidated",
+            "source_row_id": "den-source",
+        }
+        operands = [weak, winner, later_tie, denominator]
+        state = {
+            "query": "ratio query",
+            "active_subtask": {
+                "operation_family": "ignored",
+                "required_operands": required,
+                "metric_label": "active label",
+            },
+            "nested": shared,
+        }
+        inputs_before = deepcopy((state, operands))
+        ontology = Mock()
+        ontology.metric_family.return_value = {
+            "formula_family": " Ratio ",
+            "display_name": "Ontology Ratio",
+            "result_unit": "PERCENT",
+        }
+
+        def matches(row, operand):
+            return row.get("concept") == operand.get("concept")
+
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+            patch.object(
+                calculation_execution,
+                "_operand_row_matches_requirement",
+                side_effect=matches,
+            ) as matcher,
+        ):
+            plan = target(state["active_subtask"], operands, metric_key="ratio_metric")
+
+        ontology.metric_family.assert_called_once_with("ratio_metric")
+        self.assertEqual(matcher.call_count, len(required) * len(operands))
+        self.assertEqual(plan["ordered_operand_ids"], ["winner", "denominator"])
+        self.assertEqual(plan["variable_bindings"], [
+            {"variable": "A", "operand_id": "winner"},
+            {"variable": "B", "operand_id": "denominator"},
+        ])
+        self.assertEqual(plan["formula"], "((A) / (B)) * 100")
+        self.assertEqual(plan["result_unit"], "%")
+        self.assertEqual(plan["explanation"], "Ontology Ratio의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.")
+        self.assertEqual((state, operands), inputs_before)
+        self.assertIs(state["nested"], shared)
+        self.assertIs(operands[1]["nested"], shared)
+
+        unsupported = Mock()
+        unsupported.metric_family.return_value = {"formula_family": "difference"}
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=unsupported),
+            patch.object(
+                calculation_execution,
+                "_operand_row_matches_requirement",
+                side_effect=RuntimeError("matcher must stay lazy"),
+            ) as lazy_matcher,
+        ):
+            self.assertIsNone(target(state["active_subtask"], operands, metric_key="ratio_metric"))
+        lazy_matcher.assert_not_called()
+
+        no_required_state = {"active_subtask": {"operation_family": "ratio"}}
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+            patch.object(
+                calculation_execution,
+                "_operand_row_matches_requirement",
+                side_effect=RuntimeError("matcher must stay lazy"),
+            ) as lazy_matcher,
+        ):
+            self.assertIsNone(
+                target(no_required_state["active_subtask"], operands, metric_key="ratio_metric")
+            )
+        lazy_matcher.assert_not_called()
+
+    def test_current_source_ontology_plan_pins_ratio_average_units_and_formula_surfaces(self) -> None:
+        target = calculation_execution.build_deterministic_ontology_plan
+        required = [
+            {"label": "numerator", "concept": "num", "role": "numerator_1"},
+            {"label": "denominator one", "concept": "den1", "role": "denominator_1"},
+            {"label": "denominator two", "concept": "den2", "role": "denominator_2"},
+        ]
+        operands = [
+            {"operand_id": "num", "concept": "num", "matched_operand_role": "numerator_1"},
+            {"operand_id": "den1", "concept": "den1", "matched_operand_role": "denominator_1"},
+            {"operand_id": "den2", "concept": "den2", "matched_operand_role": "denominator_2"},
+        ]
+        ontology = Mock()
+        ontology.metric_family.return_value = {
+            "formula_family": "ratio",
+            "display_name": "Average Ratio",
+            "denominator_aggregation": "average",
+            "result_unit": "PERCENT",
+        }
+
+        def matches(row, operand):
+            return row.get("concept") == operand.get("concept")
+
+        state = {
+            "query": "ratio query",
+            "active_subtask": {"required_operands": required},
+        }
+        before = deepcopy((state, operands))
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+            patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+        ):
+            plan = target(state["active_subtask"], operands, metric_key="ratio_metric")
+        self.assertEqual(plan["ordered_operand_ids"], ["num", "den1", "den2"])
+        self.assertEqual(plan["formula"], "((A) / (((B + C) / 2))) * 100")
+        self.assertEqual(
+            plan["operation_text"],
+            "(numerator) / (average(denominator one + denominator two)) * 100",
+        )
+        self.assertEqual(plan["result_unit"], "%")
+        self.assertEqual((state, operands), before)
+
+        for requested_unit, expected_unit, expected_suffix in (
+            ("PERCENT_POINT", "%p", True),
+            ("퍼센트", "퍼센트", True),
+            ("COUNT", "COUNT", False),
+            ("", "%", True),
+        ):
+            task = {
+                "required_operands": required,
+                "denominator_aggregation": "average",
+                "result_unit": requested_unit,
+            }
+            with (
+                patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+                patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+            ):
+                result = target(task, operands, metric_key="ratio_metric")
+            self.assertEqual(result["result_unit"], expected_unit)
+            self.assertEqual(result["formula"].endswith(" * 100"), expected_suffix)
+            self.assertEqual(result["operation_text"].endswith(" * 100"), expected_suffix)
+
+        missing_denominator = required[:1]
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+            patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+        ):
+            self.assertIsNone(
+                target(
+                    {"required_operands": missing_denominator},
+                    operands,
+                    metric_key="ratio_metric",
+                )
+            )
+
+    def test_current_source_ontology_plan_pins_sum_fallback_missing_ids_and_exceptions(self) -> None:
+        target = calculation_execution.build_deterministic_ontology_plan
+        shared = {"nested": True}
+        required = [
+            {"label": "first", "concept": "one", "required": True, "nested": shared},
+            {"label": "ignored", "concept": "ignored", "required": False},
+            {"label": "second", "concept": "two", "required": True},
+        ]
+        operands = [
+            {"operand_id": "one", "concept": "one", "nested": shared},
+            {"operand_id": "two", "concept": "two"},
+        ]
+        state = {
+            "active_subtask": {
+                "operation_family": " SUM ",
+                "metric_label": "Active Sum",
+                "required_operands": required,
+            },
+            "nested": shared,
+        }
+        before = deepcopy((state, operands))
+        ontology = Mock()
+        ontology.metric_family.return_value = {"formula_family": "", "result_unit": "KRW"}
+
+        def matches(row, operand):
+            return row.get("concept") == operand.get("concept")
+
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+            patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+        ):
+            plan = target(state["active_subtask"], operands, metric_key="sum_metric")
+        self.assertEqual(plan["operation"], "add")
+        self.assertEqual(plan["ordered_operand_ids"], ["one", "two"])
+        self.assertEqual(plan["formula"], "A + B")
+        self.assertEqual(plan["operation_text"], "first + second")
+        self.assertEqual(plan["result_unit"], "KRW")
+        self.assertEqual(plan["explanation"], "Active Sum에 필요한 concept operand를 합산합니다.")
+        self.assertEqual((state, operands), before)
+        self.assertIs(state["nested"], shared)
+        self.assertIs(operands[0]["nested"], shared)
+
+        for changed_operands in (
+            operands[:1],
+            [{**operands[0], "operand_id": ""}, operands[1]],
+        ):
+            with (
+                patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+                patch.object(calculation_execution, "_operand_row_matches_requirement", side_effect=matches),
+            ):
+                self.assertIsNone(
+                    target(state["active_subtask"], changed_operands, metric_key="sum_metric")
+                )
+
+        later_matcher = Mock()
+        with (
+            patch.object(
+                calculation_execution,
+                "get_financial_ontology",
+                side_effect=RuntimeError("ontology failed"),
+            ),
+            patch.object(calculation_execution, "_operand_row_matches_requirement", later_matcher),
+            self.assertRaisesRegex(RuntimeError, "ontology failed"),
+        ):
+            target(state["active_subtask"], operands, metric_key="sum_metric")
+        later_matcher.assert_not_called()
+
+        with (
+            patch.object(calculation_execution, "get_financial_ontology", return_value=ontology),
+            patch.object(
+                calculation_execution,
+                "_operand_row_matches_requirement",
+                side_effect=RuntimeError("matcher failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "matcher failed"),
+        ):
+            target(state["active_subtask"], operands, metric_key="sum_metric")
+
+    def test_current_source_ontology_plan_pins_static_binding_dag_and_baseline(self) -> None:
+        import json
+
+        graph_path = Path(graph_calculation.__file__)
+        owner_path = Path("src/agent/financial_calculation_execution.py")
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8"))
+        private_name = "_build_deterministic_ontology_plan"
+        public_name = "build_deterministic_ontology_plan"
+        definition = next(
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == public_name
+        )
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 195)
+        self.assertEqual(
+            [argument.arg for argument in definition.args.args],
+            ["active_subtask", "operands"],
+        )
+        self.assertEqual(
+            [argument.arg for argument in definition.args.kwonlyargs],
+            ["metric_key"],
+        )
+        self.assertEqual(
+            [
+                node
+                for node in ast.walk(graph_tree)
+                if isinstance(node, ast.FunctionDef) and node.name == private_name
+            ],
+            [],
+        )
+
+        parents = {
+            child: parent
+            for parent in ast.walk(graph_tree)
+            for child in ast.iter_child_nodes(parent)
+        }
+        calls = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == public_name
+        ]
+        self.assertEqual(len(calls), 1)
+        call = calls[0]
+        self.assertEqual(
+            [ast.unparse(arg) for arg in call.args],
+            ["dict(state.get('active_subtask') or {})", "operands"],
+        )
+        self.assertEqual(
+            [(keyword.arg, ast.unparse(keyword.value)) for keyword in call.keywords],
+            [("metric_key", "self._calc_metric_family(state)")],
+        )
+        parent = parents[call]
+        while not (isinstance(parent, ast.FunctionDef) and parent.name == "_plan_formula_calculation_from_operation_decision"):
+            self.assertNotIsInstance(parent, ast.Try)
+            parent = parents[parent]
+
+        owner_defs = [node for node in owner_tree.body if isinstance(node, ast.FunctionDef)]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_defs),
+                sum(node.name.startswith("_") for node in owner_defs),
+            ),
+            (13, 0),
+        )
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        selected_texts = {
+            "퍼센트",
+            "의 role에 따라 분자와 분모를 결정해 비율을 계산합니다.",
+            "에 필요한 concept operand를 합산합니다.",
+        }
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == owner_path.as_posix()
+            and record.get("text") in selected_texts
+        ]
+        self.assertEqual({record["text"] for record in selected_records}, selected_texts)
+        self.assertTrue(all(record["category"] == "runtime_literal" for record in selected_records))
+        self.assertTrue(all(record["count"] == 1 for record in selected_records))
+        self.assertEqual(len(baseline["records"]), 217)
+
+        modules = {
+            f"src.agent.{path.stem}": path
+            for path in Path("src/agent").glob("*.py")
+        }
+        imports = {name: set() for name in modules}
+        for module_name, path in modules.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module in modules:
+                    imports[module_name].add(node.module)
+
+        def reaches(source, target):
+            pending = [source]
+            visited = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in visited:
+                    continue
+                visited.add(current)
+                pending.extend(imports.get(current, set()) - visited)
+            return False
+
+        owner_module = "src.agent.financial_calculation_execution"
+        operand_module = "src.agent.financial_operand_resolution"
+        self.assertIn(operand_module, imports[owner_module])
+        self.assertFalse(reaches(operand_module, owner_module))
+
+    def test_current_source_ontology_plan_caller_pins_dynamic_dispatch_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = None
+        shared = {"nested": True}
+        task = {
+            "operation_family": "ratio",
+            "metric_family": "ratio_metric",
+            "required_operands": [
+                {"label": "num", "role": "numerator_1", "nested": shared},
+                {"label": "den", "role": "denominator_1"},
+            ],
+            "nested": shared,
+        }
+        state = {"query": "ratio query", "active_subtask": task, "nested": shared}
+        operands = [{"operand_id": "num", "nested": shared}, {"operand_id": "den"}]
+        state_before = deepcopy(state)
+        operands_before = deepcopy(operands)
+        events = []
+        marker_plan = {"status": "ok", "marker": "ontology"}
+        ontology = Mock()
+        ontology.metric_family.return_value = None
+
+        def metric_owner(owner_state):
+            events.append("metric")
+            self.assertIs(owner_state, state)
+            return "ratio_metric"
+
+        def ontology_owner(owner_active_subtask, owner_operands, *, metric_key):
+            events.append("ontology-owner")
+            self.assertIsNot(owner_active_subtask, task)
+            self.assertEqual(owner_active_subtask, task)
+            self.assertIs(owner_active_subtask["nested"], shared)
+            self.assertIsNot(owner_operands, operands)
+            self.assertIs(owner_operands[0], operands[0])
+            self.assertEqual(metric_key, "ratio_metric")
+            return marker_plan
+
+        def stop_guard(*, plan, **_kwargs):
+            events.append("guard")
+            self.assertIs(plan, marker_plan)
+            raise RuntimeError("ontology guard stop")
+
+        decision = DeterministicOperationPlanDecision(
+            status="not_applicable",
+            raw_plan={},
+            selected_plan={},
+        )
+        with (
+            patch.object(
+                graph_calculation,
+                "_resolve_runtime_calculation_trace",
+                return_value={"calculation_operands": operands},
+            ),
+            patch.object(agent, "_calc_query", return_value="ratio query"),
+            patch.object(agent, "_calc_metric_family", side_effect=metric_owner),
+            patch.object(agent, "_build_deterministic_lookup_plan", return_value=None),
+            patch.object(graph_calculation, "_missing_required_operands", return_value=[]),
+            patch.object(graph_calculation, "get_financial_ontology", return_value=ontology),
+            patch.object(
+                graph_calculation,
+                "build_deterministic_ontology_plan",
+                side_effect=ontology_owner,
+            ),
+            patch.object(graph_calculation, "guard_operation_plan", side_effect=stop_guard),
+            self.assertRaisesRegex(RuntimeError, "ontology guard stop"),
+        ):
+            agent._plan_formula_calculation_from_operation_decision(state, decision)
+
+        self.assertEqual(events, ["metric", "metric", "ontology-owner", "guard"])
+        self.assertEqual(state, state_before)
+        self.assertEqual(operands, operands_before)
+        self.assertIs(state["nested"], shared)
+        self.assertIs(state["active_subtask"]["nested"], shared)
+        self.assertIs(operands[0]["nested"], shared)
+
+        later_guard = Mock()
+        with (
+            patch.object(
+                graph_calculation,
+                "_resolve_runtime_calculation_trace",
+                return_value={"calculation_operands": operands},
+            ),
+            patch.object(agent, "_calc_query", return_value="ratio query"),
+            patch.object(agent, "_calc_metric_family", side_effect=RuntimeError("metric failed")),
+            patch.object(agent, "_build_deterministic_lookup_plan", return_value=None),
+            patch.object(graph_calculation, "_missing_required_operands", return_value=[]),
+            patch.object(graph_calculation, "get_financial_ontology", return_value=ontology),
+            patch.object(graph_calculation, "guard_operation_plan", later_guard),
+            self.assertRaisesRegex(RuntimeError, "metric failed"),
+        ):
+            agent._plan_formula_calculation_from_operation_decision(state, decision)
+        later_guard.assert_not_called()
 
 
 if __name__ == "__main__":
