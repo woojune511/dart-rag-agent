@@ -76,8 +76,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             node
             for node in ast.walk(target)
             if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and node.func.attr == "_recover_duplicate_growth_prior_operand"
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "recover_duplicate_growth_prior_operand"
         )
         conflict_call = next(
             node
@@ -199,7 +199,11 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     "align_growth_operand_units_when_raw_scale_matches",
                     side_effect=owner_effect,
                 ) as owner,
-                patch.object(agent, "_recover_duplicate_growth_prior_operand", side_effect=duplicate) as duplicate_mock,
+                patch.object(
+                    graph_calculation,
+                    "recover_duplicate_growth_prior_operand",
+                    side_effect=duplicate,
+                ) as duplicate_mock,
                 patch.object(
                     graph_calculation,
                     "growth_operand_periods_conflict",
@@ -332,10 +336,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
             node
             for node in ast.walk(target)
             if isinstance(node, ast.Call)
-            and isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
-            and node.func.value.id == "self"
-            and node.func.attr == "_recover_duplicate_growth_prior_operand"
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "recover_duplicate_growth_prior_operand"
         )
         adoption_assignments = [
             node
@@ -462,7 +464,11 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                 patch.object(graph_calculation, "guard_operation_plan", return_value={}),
                 patch.object(graph_calculation, "repair_operand_normalization_from_rendered_unit", side_effect=lambda row: row),
                 patch.object(graph_calculation, "align_growth_operand_units_when_raw_scale_matches", side_effect=lambda rows: rows),
-                patch.object(agent, "_recover_duplicate_growth_prior_operand", side_effect=duplicate) as duplicate_mock,
+                patch.object(
+                    graph_calculation,
+                    "recover_duplicate_growth_prior_operand",
+                    side_effect=duplicate,
+                ) as duplicate_mock,
                 patch.object(
                     graph_calculation,
                     "growth_operand_periods_conflict",
@@ -795,8 +801,8 @@ class FinancialCalculationExecutionTests(unittest.TestCase):
                     side_effect=lambda rows: rows,
                 ),
                 patch.object(
-                    agent,
-                    "_recover_duplicate_growth_prior_operand",
+                    graph_calculation,
+                    "recover_duplicate_growth_prior_operand",
                     side_effect=lambda rows, _evidence: rows,
                 ),
                 patch.object(

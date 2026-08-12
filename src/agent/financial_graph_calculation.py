@@ -91,6 +91,7 @@ from src.agent.financial_aggregate_projection import (
     growth_answer_has_untraced_numeric_material,
     growth_narrative_numeric_incompatible_with_trace,
     row_is_narrative_summary,
+    recover_duplicate_growth_prior_operand,
     recover_growth_prior_material_from_evidence,
     safe_partial_answer_for_numeric_gap,
     growth_required_display_values,
@@ -8740,60 +8741,6 @@ class FinancialAgentCalculationMixin:
             )
         return context_items
 
-    def _recover_duplicate_growth_prior_operand(
-        self,
-        ordered_operands: List[Dict[str, Any]],
-        evidence_items: Optional[List[Dict[str, Any]]],
-    ) -> List[Dict[str, Any]]:
-        if len(ordered_operands) != 2:
-            return ordered_operands
-        current_row = next(
-            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "current_period"),
-            None,
-        )
-        prior_row = next(
-            (dict(row) for row in ordered_operands if str(row.get("matched_operand_role") or "").strip() == "prior_period"),
-            None,
-        )
-        if not current_row or not prior_row:
-            return ordered_operands
-        if not growth_slots_share_material(current_row, prior_row, []):
-            return ordered_operands
-
-        recovered = recover_growth_prior_material_from_evidence(
-            current_slot=current_row,
-            prior_slot=prior_row,
-            evidence_items=evidence_items,
-        )
-        display = _normalise_spaces(str(recovered.get("display") or ""))
-        raw_value = _normalise_spaces(str(recovered.get("raw_value") or ""))
-        if not display or not raw_value:
-            return ordered_operands
-
-        raw_unit = _normalise_spaces(str(prior_row.get("raw_unit") or current_row.get("raw_unit") or ""))
-        normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-        if normalized_value is None:
-            return ordered_operands
-
-        updated_prior = {
-            **prior_row,
-            "period": recovered.get("period") or prior_row.get("period") or "",
-            "raw_value": raw_value,
-            "raw_unit": raw_unit,
-            "normalized_value": normalized_value,
-            "normalized_unit": normalized_unit or prior_row.get("normalized_unit") or "",
-            "rendered_value": display,
-            "source_quote": recovered.get("source_quote") or prior_row.get("source_quote") or "",
-            "prior_recovery_source": "evidence_period_display",
-        }
-        updated_rows = []
-        for row in ordered_operands:
-            if str(row.get("operand_id") or "") == str(updated_prior.get("operand_id") or ""):
-                updated_rows.append(updated_prior)
-            else:
-                updated_rows.append(row)
-        return updated_rows
-
     def _late_runtime_numeric_answer(
         self,
         state: FinancialAgentState,
@@ -11572,7 +11519,7 @@ class FinancialAgentCalculationMixin:
                         ordered_operands = [operands[operand_id] for operand_id in ordered_ids]
 
         if operation_family == "growth_rate":
-            recovered_operands = self._recover_duplicate_growth_prior_operand(
+            recovered_operands = recover_duplicate_growth_prior_operand(
                 ordered_operands,
                 list(candidate_input.evidence_items),
             )

@@ -3454,7 +3454,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     "growth_required_display_values": 1,
                     "compose_complete_growth_numeric_answer": 1,
                     "_compose_growth_narrative_answer": 1,
-                    "_recover_duplicate_growth_prior_operand": 1,
+                    "recover_duplicate_growth_prior_operand": 1,
                 }
             ),
         )
@@ -3465,7 +3465,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                     "growth_required_display_values": 1,
                     "compose_complete_growth_numeric_answer": 1,
                     "_compose_growth_narrative_answer": 1,
-                    "_recover_duplicate_growth_prior_operand": 1,
+                    "recover_duplicate_growth_prior_operand": 1,
                 }
             ),
         )
@@ -3911,11 +3911,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             }
         )
         with (
-            patch.object(financial_graph_calculation, "growth_slots_share_material", share_owner),
-            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recover_owner),
-            patch.object(financial_graph_calculation, "_normalise_operand_value", return_value=(80.0, "USD")),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", share_owner),
+            patch.object(financial_aggregate_projection, "recover_growth_prior_material_from_evidence", recover_owner),
+            patch.object(financial_aggregate_projection, "_normalise_operand_value", return_value=(80.0, "USD")),
         ):
-            updated = self.agent._recover_duplicate_growth_prior_operand(
+            updated = financial_aggregate_projection.recover_duplicate_growth_prior_operand(
                 ordered_operands,
                 evidence_items,
             )
@@ -3940,10 +3940,10 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         recovery_owner = Mock()
         with (
-            patch.object(financial_graph_calculation, "growth_slots_share_material", return_value=False),
-            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recovery_owner),
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=False),
+            patch.object(financial_aggregate_projection, "recover_growth_prior_material_from_evidence", recovery_owner),
         ):
-            unchanged = self.agent._recover_duplicate_growth_prior_operand(
+            unchanged = financial_aggregate_projection.recover_duplicate_growth_prior_operand(
                 ordered_operands,
                 evidence_items,
             )
@@ -3954,15 +3954,15 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         normalizer = Mock()
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_slots_share_material",
                 side_effect=RuntimeError("share failed"),
             ),
-            patch.object(financial_graph_calculation, "recover_growth_prior_material_from_evidence", recovery_owner),
-            patch.object(financial_graph_calculation, "_normalise_operand_value", normalizer),
+            patch.object(financial_aggregate_projection, "recover_growth_prior_material_from_evidence", recovery_owner),
+            patch.object(financial_aggregate_projection, "_normalise_operand_value", normalizer),
             self.assertRaisesRegex(RuntimeError, "share failed"),
         ):
-            self.agent._recover_duplicate_growth_prior_operand(ordered_operands, evidence_items)
+            financial_aggregate_projection.recover_duplicate_growth_prior_operand(ordered_operands, evidence_items)
         recovery_owner.assert_not_called()
         normalizer.assert_not_called()
         self.assertEqual(ordered_operands, before_operands)
@@ -11753,7 +11753,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (72, 11),
+            (73, 11),
         )
         self.assertEqual(len(calls), 3)
         self.assertEqual(noncall_refs, [])
@@ -12601,7 +12601,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (72, 11),
+            (73, 11),
         )
         self.assertEqual(len(calls), 4)
         self.assertEqual(noncall_refs, [])
@@ -12789,6 +12789,603 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(sum(event[0] == "target" for event in failure_events), 1)
         self.assertEqual(state, before)
         self.assertIs(state["nested"], shared)
+
+
+    def test_current_source_duplicate_growth_prior_recovery_pins_gates_copies_and_identity(self) -> None:
+        shared = {"preserve": True}
+        evidence_items = [{"evidence_id": "ev-1", "nested": shared}]
+
+        def invoke(rows, *, share=True, recovered=None, normalized=(80.0, "USD")):
+            share_owner = Mock(return_value=share)
+            recovery_owner = Mock(
+                return_value=recovered
+                or {
+                    "display": "80 USD",
+                    "raw_value": "80",
+                    "period": "2022",
+                    "source_quote": "prior source",
+                }
+            )
+            operand_normalizer = Mock(return_value=normalized)
+            with (
+                patch.object(financial_aggregate_projection, "growth_slots_share_material", share_owner),
+                patch.object(
+                    financial_aggregate_projection,
+                    "recover_growth_prior_material_from_evidence",
+                    recovery_owner,
+                ),
+                patch.object(financial_aggregate_projection, "_normalise_operand_value", operand_normalizer),
+            ):
+                result = financial_aggregate_projection.recover_duplicate_growth_prior_operand(rows, evidence_items)
+            return result, share_owner, recovery_owner, operand_normalizer
+
+        single = [{"operand_id": "only", "nested": shared}]
+        result, share_owner, recovery_owner, operand_normalizer = invoke(single)
+        self.assertIs(result, single)
+        share_owner.assert_not_called()
+        recovery_owner.assert_not_called()
+        operand_normalizer.assert_not_called()
+
+        missing_role = [
+            {"operand_id": "current", "matched_operand_role": "current_period", "nested": shared},
+            {"operand_id": "other", "matched_operand_role": "other", "nested": shared},
+        ]
+        before_missing = deepcopy(missing_role)
+        result, share_owner, recovery_owner, operand_normalizer = invoke(missing_role)
+        self.assertIs(result, missing_role)
+        share_owner.assert_not_called()
+        recovery_owner.assert_not_called()
+        operand_normalizer.assert_not_called()
+        self.assertEqual(missing_role, before_missing)
+
+        current = {
+            "operand_id": "current",
+            "matched_operand_role": "current_period",
+            "raw_unit": "USD",
+            "nested": shared,
+        }
+        prior = {
+            "operand_id": "prior",
+            "matched_operand_role": "prior_period",
+            "raw_unit": "USD",
+            "normalized_unit": "USD",
+            "nested": shared,
+        }
+        ordered = [current, prior]
+        before = deepcopy(ordered)
+        result, share_owner, recovery_owner, operand_normalizer = invoke(ordered, share=False)
+        self.assertIs(result, ordered)
+        share_current, share_prior, share_results = share_owner.call_args.args
+        self.assertIsNot(share_current, current)
+        self.assertIsNot(share_prior, prior)
+        self.assertIs(share_current["nested"], shared)
+        self.assertIs(share_prior["nested"], shared)
+        self.assertEqual(share_results, [])
+        recovery_owner.assert_not_called()
+        operand_normalizer.assert_not_called()
+
+        for recovered in (
+            {"display": "", "raw_value": "80"},
+            {"display": "80 USD", "raw_value": ""},
+        ):
+            with self.subTest(recovered=recovered):
+                result, _share_owner, recovery_owner, operand_normalizer = invoke(
+                    ordered,
+                    recovered=recovered,
+                )
+                self.assertIs(result, ordered)
+                recovery_owner.assert_called_once()
+                operand_normalizer.assert_not_called()
+
+        result, _share_owner, _recovery_owner, operand_normalizer = invoke(
+            ordered,
+            normalized=(None, "USD"),
+        )
+        self.assertIs(result, ordered)
+        operand_normalizer.assert_called_once_with("80", "USD")
+
+        result, share_owner, recovery_owner, operand_normalizer = invoke(ordered)
+        self.assertIsNot(result, ordered)
+        self.assertEqual(len(result), 2)
+        self.assertIs(result[0], current)
+        self.assertIsNot(result[1], prior)
+        self.assertIs(result[1]["nested"], shared)
+        self.assertEqual(result[1]["raw_value"], "80")
+        self.assertEqual(result[1]["rendered_value"], "80 USD")
+        self.assertEqual(result[1]["prior_recovery_source"], "evidence_period_display")
+        self.assertIs(recovery_owner.call_args.kwargs["current_slot"], share_owner.call_args.args[0])
+        self.assertIs(recovery_owner.call_args.kwargs["prior_slot"], share_owner.call_args.args[1])
+        self.assertIs(recovery_owner.call_args.kwargs["evidence_items"], evidence_items)
+        operand_normalizer.assert_called_once_with("80", "USD")
+        self.assertEqual(ordered, before)
+        self.assertIs(ordered[0]["nested"], shared)
+        self.assertIs(ordered[1]["nested"], shared)
+        self.assertIs(evidence_items[0]["nested"], shared)
+
+    def test_current_source_duplicate_growth_prior_recovery_pins_precedence_and_exceptions(self) -> None:
+        shared = {"preserve": True}
+        evidence_items = [{"evidence_id": "ev-1", "nested": shared}]
+
+        def rows(*, prior_unit="PRIOR", current_unit="CURRENT"):
+            return [
+                {
+                    "operand_id": "current",
+                    "matched_operand_role": "current_period",
+                    "raw_unit": current_unit,
+                    "nested": shared,
+                },
+                {
+                    "operand_id": "prior",
+                    "matched_operand_role": "prior_period",
+                    "period": "prior-period",
+                    "raw_unit": prior_unit,
+                    "normalized_unit": "PRIOR-NORMALIZED",
+                    "source_quote": "prior quote",
+                    "nested": shared,
+                },
+            ]
+
+        ordered = rows()
+        before = deepcopy(ordered)
+        events = []
+
+        def normalize_spaces(value):
+            events.append(("spaces", value))
+            return str(value).strip()
+
+        with (
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "recover_growth_prior_material_from_evidence",
+                return_value={
+                    "display": " 80 PRIOR ",
+                    "raw_value": " 80 ",
+                    "period": "recovered-period",
+                    "source_quote": "recovered quote",
+                },
+            ),
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalize_spaces),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_operand_value",
+                side_effect=lambda value, unit: events.append(("operand", value, unit)) or (80.0, "NORMALIZED"),
+            ),
+        ):
+            result = financial_aggregate_projection.recover_duplicate_growth_prior_operand(ordered, evidence_items)
+        self.assertEqual(
+            events,
+            [("spaces", " 80 PRIOR "), ("spaces", " 80 "), ("spaces", "PRIOR"), ("operand", "80", "PRIOR")],
+        )
+        self.assertEqual(
+            {key: result[1][key] for key in ("period", "raw_unit", "normalized_unit", "source_quote")},
+            {
+                "period": "recovered-period",
+                "raw_unit": "PRIOR",
+                "normalized_unit": "NORMALIZED",
+                "source_quote": "recovered quote",
+            },
+        )
+        self.assertEqual(ordered, before)
+
+        fallback_rows = rows(prior_unit="", current_unit="CURRENT")
+        with (
+            patch.object(financial_aggregate_projection, "growth_slots_share_material", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "recover_growth_prior_material_from_evidence",
+                return_value={"display": "70 CURRENT", "raw_value": "70", "period": "", "source_quote": ""},
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_operand_value",
+                return_value=(70.0, ""),
+            ) as operand_normalizer,
+        ):
+            fallback = financial_aggregate_projection.recover_duplicate_growth_prior_operand(
+                fallback_rows,
+                evidence_items,
+            )
+        operand_normalizer.assert_called_once_with("70", "CURRENT")
+        self.assertEqual(fallback[1]["period"], "prior-period")
+        self.assertEqual(fallback[1]["raw_unit"], "CURRENT")
+        self.assertEqual(fallback[1]["normalized_unit"], "PRIOR-NORMALIZED")
+        self.assertEqual(fallback[1]["source_quote"], "prior quote")
+
+        dependency_cases = (
+            ("share failed", "growth_slots_share_material"),
+            ("recovery failed", "recover_growth_prior_material_from_evidence"),
+            ("spaces failed", "_normalise_spaces"),
+            ("operand failed", "_normalise_operand_value"),
+        )
+        for message, failing_name in dependency_cases:
+            with self.subTest(failing_name=failing_name):
+                share_owner = Mock(return_value=True)
+                recovery_owner = Mock(return_value={"display": "80", "raw_value": "80"})
+                spaces_owner = Mock(side_effect=lambda value: str(value).strip())
+                operand_owner = Mock(return_value=(80.0, "USD"))
+                owners = {
+                    "growth_slots_share_material": share_owner,
+                    "recover_growth_prior_material_from_evidence": recovery_owner,
+                    "_normalise_spaces": spaces_owner,
+                    "_normalise_operand_value": operand_owner,
+                }
+                owners[failing_name].side_effect = RuntimeError(message)
+                case_rows = rows()
+                case_before = deepcopy(case_rows)
+                with (
+                    patch.object(financial_aggregate_projection, "growth_slots_share_material", share_owner),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "recover_growth_prior_material_from_evidence",
+                        recovery_owner,
+                    ),
+                    patch.object(financial_aggregate_projection, "_normalise_spaces", spaces_owner),
+                    patch.object(financial_aggregate_projection, "_normalise_operand_value", operand_owner),
+                    self.assertRaisesRegex(RuntimeError, message),
+                ):
+                    financial_aggregate_projection.recover_duplicate_growth_prior_operand(
+                        case_rows,
+                        evidence_items,
+                    )
+                self.assertEqual(case_rows, case_before)
+                if failing_name == "growth_slots_share_material":
+                    recovery_owner.assert_not_called()
+                    spaces_owner.assert_not_called()
+                    operand_owner.assert_not_called()
+                elif failing_name == "recover_growth_prior_material_from_evidence":
+                    spaces_owner.assert_not_called()
+                    operand_owner.assert_not_called()
+                elif failing_name == "_normalise_spaces":
+                    operand_owner.assert_not_called()
+
+    def test_current_source_duplicate_growth_prior_recovery_pins_static_binding_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8"))
+        public_name = "recover_duplicate_growth_prior_operand"
+        private_name = "_" + public_name
+
+        graph_definitions = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == private_name
+        ]
+        self.assertEqual(graph_definitions, [])
+        owner_definitions = [
+            node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == public_name
+        ]
+        self.assertEqual(len(owner_definitions), 1)
+        owner_definition = owner_definitions[0]
+        self.assertEqual(owner_definition.end_lineno - owner_definition.lineno + 1, 52)
+
+        calls = []
+        noncall_refs = []
+        try_depths = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.parents = []
+                self.call_depth = 0
+
+            def visit(self, node):
+                self.parents.append(node)
+                super().visit(node)
+                self.parents.pop()
+
+            def visit_Call(self, node):
+                target_name = ""
+                receiver = ""
+                if isinstance(node.func, ast.Name):
+                    target_name = node.func.id
+                elif isinstance(node.func, ast.Attribute):
+                    target_name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                if target_name in {private_name, public_name}:
+                    stack = tuple(
+                        parent.name
+                        for parent in self.parents
+                        if isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    )
+                    calls.append(
+                        (
+                            stack,
+                            receiver,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((item.arg, ast.unparse(item.value)) for item in node.keywords),
+                        )
+                    )
+                    try_depths.append(sum(isinstance(parent, ast.Try) for parent in self.parents))
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in {private_name, public_name} and self.call_depth == 0:
+                    noncall_refs.append((node.attr, node.lineno))
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if node.id in {private_name, public_name} and self.call_depth == 0:
+                    noncall_refs.append((node.id, node.lineno))
+
+        BindingVisitor().visit(graph_tree)
+        BindingVisitor().visit(owner_tree)
+        self.assertEqual(
+            calls,
+            [
+                (
+                    ("_prepare_calculation_candidate",),
+                    "",
+                    ("ordered_operands", "list(candidate_input.evidence_items)"),
+                    (),
+                )
+            ],
+        )
+        self.assertEqual(try_depths, [0])
+        self.assertEqual(noncall_refs, [])
+        self.assertEqual((1, 0), (len(calls), 0))
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        graph_owner_imports = {
+            alias.name
+            for node in graph_tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_aggregate_projection"
+            for alias in node.names
+        }
+        self.assertIn("growth_slots_share_material", graph_owner_imports)
+        self.assertIn("recover_growth_prior_material_from_evidence", graph_owner_imports)
+        self.assertIn(public_name, graph_owner_imports)
+        self.assertNotIn("src.agent.financial_graph_calculation", imported_modules(owner_tree))
+
+        module_paths = list(Path("src/agent").glob("*.py")) + list(Path("src/config").glob("*.py"))
+        adjacency = {}
+        for path in module_paths:
+            module_name = ".".join(path.with_suffix("").parts)
+            adjacency[module_name] = imported_modules(ast.parse(path.read_text(encoding="utf-8-sig")))
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                if current == target:
+                    return True
+                pending.extend(adjacency.get(current, ()))
+            return False
+
+        self.assertFalse(
+            reaches("src.agent.financial_aggregate_projection", "src.agent.financial_graph_calculation")
+        )
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set(range(owner_definition.lineno, owner_definition.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == owner_path.as_posix()
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_duplicate_growth_prior_caller_pins_args_adoption_order_and_stop(self) -> None:
+        shared = {"preserve": True}
+        evidence_item = {"evidence_id": "ev-1", "nested": shared}
+
+        def candidate_input(*, operation_family="growth_rate"):
+            return financial_graph_calculation._CalculationCandidateInput(
+                calculation_operands=(
+                    {
+                        "operand_id": "current",
+                        "matched_operand_role": "current_period",
+                        "matched_operand_concept": "revenue",
+                        "period": "2024",
+                        "raw_value": "20",
+                        "raw_unit": "KRW",
+                        "normalized_value": 20.0,
+                        "normalized_unit": "KRW",
+                        "nested": shared,
+                    },
+                    {
+                        "operand_id": "prior",
+                        "matched_operand_role": "prior_period",
+                        "matched_operand_concept": "revenue",
+                        "period": "2023",
+                        "raw_value": "10",
+                        "raw_unit": "KRW",
+                        "normalized_value": 10.0,
+                        "normalized_unit": "KRW",
+                        "nested": shared,
+                    },
+                ),
+                calculation_plan={
+                    "mode": "scalar",
+                    "operation": operation_family,
+                    "ordered_operand_ids": ["current", "prior"],
+                    "variable_bindings": [
+                        {"variable": "A", "operand_id": "current"},
+                        {"variable": "B", "operand_id": "prior"},
+                    ],
+                    "formula": "(A - B) / B * 100",
+                    "pairwise_formula": "",
+                    "result_unit": "PERCENT",
+                },
+                active_subtask={"operation_family": operation_family, "required_operands": []},
+                query="growth",
+                evidence_items=(evidence_item,),
+                runtime_evidence=(),
+            )
+
+        def execution_outcome(**kwargs):
+            ordered = tuple(kwargs["operands_by_id"][item] for item in kwargs["ordered_operand_ids"])
+            return financial_graph_calculation.CalculationExecutionOutcome(
+                status="ok",
+                reason="",
+                result_value=100.0,
+                normalized_unit="PERCENT",
+                source_normalized_unit="PERCENT",
+                ordered_operands=ordered,
+                selected_evidence_ids=(),
+            )
+
+        def invoke(*, operation_family="growth_rate", recovery_error=None):
+            agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            events = []
+            recovery_calls = []
+
+            def align(rows):
+                events.append(("align", rows))
+                prior = dict(rows[1])
+                prior["aligned"] = True
+                return [rows[0], prior]
+
+            def recover(rows, evidence):
+                events.append(("recover", rows, evidence))
+                recovery_calls.append((rows, evidence))
+                if recovery_error:
+                    raise RuntimeError(recovery_error)
+                prior = dict(rows[1])
+                prior["recovered"] = True
+                return [rows[0], prior]
+
+            def conflict(rows):
+                events.append(("conflict", rows))
+                return False
+
+            def sign(rows, **_kwargs):
+                events.append(("sign", rows))
+                return rows
+
+            def magnitude(row, _evidence):
+                events.append(("magnitude", row))
+                return row
+
+            def execute(**kwargs):
+                events.append(("execute", kwargs["operands_by_id"]))
+                return execution_outcome(**kwargs)
+
+            prepared_input = candidate_input(operation_family=operation_family)
+            before_operands = deepcopy(prepared_input.calculation_operands)
+            before_evidence = deepcopy(prepared_input.evidence_items)
+            with (
+                patch.object(agent, "_coerce_operand_row_from_evidence", side_effect=lambda row, _evidence: row),
+                patch.object(
+                    financial_graph_calculation,
+                    "repair_krw_operand_units_from_table_metadata",
+                    side_effect=lambda rows, _evidence: rows,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "repair_krw_normalized_values_from_raw_units",
+                    side_effect=lambda rows: rows,
+                ),
+                patch.object(financial_graph_calculation, "guard_operation_plan", return_value={}),
+                patch.object(
+                    financial_graph_calculation,
+                    "repair_operand_normalization_from_rendered_unit",
+                    side_effect=lambda row: row,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "align_growth_operand_units_when_raw_scale_matches",
+                    side_effect=align,
+                ) as align_owner,
+                patch.object(
+                    financial_graph_calculation,
+                    "recover_duplicate_growth_prior_operand",
+                    side_effect=recover,
+                ) as recovery_owner,
+                patch.object(
+                    financial_graph_calculation,
+                    "growth_operand_periods_conflict",
+                    side_effect=conflict,
+                ) as conflict_owner,
+                patch.object(financial_graph_calculation, "apply_operation_sign_policy", side_effect=sign) as sign_owner,
+                patch.object(
+                    financial_graph_calculation,
+                    "coerce_lookup_magnitude_record",
+                    side_effect=magnitude,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "execute_prepared_calculation_plan",
+                    side_effect=execute,
+                ) as executor,
+            ):
+                if recovery_error:
+                    with self.assertRaisesRegex(RuntimeError, recovery_error):
+                        agent._prepare_calculation_candidate(prepared_input)
+                    result = None
+                else:
+                    result = agent._prepare_calculation_candidate(prepared_input)
+            self.assertEqual(prepared_input.calculation_operands, before_operands)
+            self.assertEqual(prepared_input.evidence_items, before_evidence)
+            self.assertIs(prepared_input.calculation_operands[0]["nested"], shared)
+            self.assertIs(prepared_input.evidence_items[0], evidence_item)
+            return result, events, recovery_calls, align_owner, recovery_owner, conflict_owner, sign_owner, executor
+
+        result, events, recovery_calls, align_owner, recovery_owner, conflict_owner, sign_owner, executor = invoke()
+        self.assertEqual(result.status, "ok")
+        self.assertTrue(result.calculation_operands[1]["recovered"])
+        self.assertTrue(recovery_calls[0][0][1]["aligned"])
+        self.assertEqual(recovery_calls[0][1], [evidence_item])
+        self.assertIs(recovery_calls[0][1][0], evidence_item)
+        self.assertEqual(
+            [event[0] for event in events],
+            ["align", "recover", "conflict", "sign", "magnitude", "magnitude", "execute"],
+        )
+        self.assertTrue(next(event[1] for event in events if event[0] == "conflict")[1]["recovered"])
+        self.assertTrue(next(event[1] for event in events if event[0] == "sign")[1]["recovered"])
+        self.assertTrue(next(event[1] for event in events if event[0] == "execute")["prior"]["recovered"])
+        align_owner.assert_called_once()
+        recovery_owner.assert_called_once()
+        conflict_owner.assert_called_once()
+        sign_owner.assert_called_once()
+        executor.assert_called_once()
+
+        gated, gated_events, _calls, align_owner, recovery_owner, conflict_owner, sign_owner, executor = invoke(
+            operation_family="difference"
+        )
+        self.assertEqual(gated.status, "ok")
+        self.assertEqual([event[0] for event in gated_events], ["sign", "magnitude", "magnitude", "execute"])
+        align_owner.assert_not_called()
+        recovery_owner.assert_not_called()
+        conflict_owner.assert_not_called()
+        sign_owner.assert_called_once()
+        executor.assert_called_once()
+
+        stopped, stop_events, _calls, align_owner, recovery_owner, conflict_owner, sign_owner, executor = invoke(
+            recovery_error="duplicate recovery failed"
+        )
+        self.assertIsNone(stopped)
+        self.assertEqual([event[0] for event in stop_events], ["align", "recover"])
+        align_owner.assert_called_once()
+        recovery_owner.assert_called_once()
+        conflict_owner.assert_not_called()
+        sign_owner.assert_not_called()
+        executor.assert_not_called()
 
 
 if __name__ == "__main__":
