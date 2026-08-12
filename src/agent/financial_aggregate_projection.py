@@ -20,6 +20,7 @@ from src.agent.financial_answer_projection import (
     growth_row_has_conflicting_periods,
     growth_sentence_has_untraced_material_numeric,
     material_gap_feedback_for_subtask_result,
+    nested_subtask_rows,
     subtask_row_has_material,
 )
 from src.agent.financial_dependency_projection import (
@@ -2784,6 +2785,71 @@ def nested_aggregate_result_rank(row: Dict[str, Any]) -> tuple[int, int, int, in
         digit_count,
         len(answer_text),
     )
+
+
+def promote_stronger_nested_aggregate_results(
+    ordered_results: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    by_task_id = {
+        _normalise_spaces(str(row.get("task_id") or "")): dict(row)
+        for row in ordered_results
+        if _normalise_spaces(str(row.get("task_id") or ""))
+    }
+    source_slot_by_task_id = aggregate_source_slot_by_task_id(list(by_task_id.values()))
+    replacements: Dict[str, Dict[str, Any]] = {}
+    for row in ordered_results:
+        if aggregate_result_operation_family(row) != "aggregate_subtasks":
+            continue
+        calculation_result = dict(row.get("calculation_result") or {})
+        for nested_row in nested_subtask_rows(calculation_result):
+            nested_task_id = _normalise_spaces(str(nested_row.get("task_id") or ""))
+            if not nested_task_id:
+                continue
+            if aggregate_result_operation_family(nested_row) == "aggregate_subtasks":
+                continue
+            if material_gap_feedback_for_subtask_result(dict(nested_row)):
+                continue
+            current_row = replacements.get(nested_task_id) or by_task_id.get(nested_task_id)
+            if not current_row:
+                continue
+            current_status = _normalise_spaces(
+                str(current_row.get("status") or (current_row.get("calculation_result") or {}).get("status") or "")
+            ).lower()
+            if (
+                current_status == "ok"
+                and not material_gap_feedback_for_subtask_result(current_row)
+                and subtask_row_has_direct_source_refs(current_row)
+                and aggregate_result_operation_family(current_row) == aggregate_result_operation_family(nested_row)
+                and subtask_numeric_answers_conflict(nested_row, current_row)
+                and growth_operand_sign_consistency_rank(nested_row)
+                <= growth_operand_sign_consistency_rank(current_row)
+            ):
+                continue
+            if nested_aggregate_result_rank(nested_row) <= nested_aggregate_result_rank(current_row):
+                continue
+            if aggregate_result_dependency_coherence_ranks(
+                nested_row,
+                source_slot_by_task_id,
+            )[0] < aggregate_result_dependency_coherence_ranks(
+                current_row,
+                source_slot_by_task_id,
+            )[0]:
+                continue
+            promoted = {
+                **dict(current_row),
+                **dict(nested_row),
+                "promoted_from_nested_aggregate": True,
+            }
+            for key in ("runtime_evidence", "artifact_ids", "selected_claim_ids", "source_evidence_ids"):
+                if not promoted.get(key) and current_row.get(key):
+                    promoted[key] = current_row.get(key)
+            replacements[nested_task_id] = promoted
+    if not replacements:
+        return ordered_results
+    return [
+        dict(replacements.get(_normalise_spaces(str(row.get("task_id") or ""))) or row)
+        for row in ordered_results
+    ]
 
 
 def dedupe_aggregate_subtask_results(

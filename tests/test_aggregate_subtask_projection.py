@@ -1543,8 +1543,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                     side_effect=lambda rows, _state: rows,
                 ),
                 patch.object(
-                    agent,
-                    "_promote_stronger_nested_aggregate_results",
+                    financial_graph_calculation,
+                    "promote_stronger_nested_aggregate_results",
                     side_effect=lambda rows: rows,
                 ),
                 patch.object(
@@ -2388,32 +2388,32 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         promotion_source_slots = {"task_growth": {"normalized_value": 1.0}}
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=promotion_source_slots,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_subtask_rows",
                 return_value=[dict(nested_row)],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 side_effect=[(2, 1), (1, 1)],
             ) as promotion_rank_owner,
         ):
-            promoted = agent._promote_stronger_nested_aggregate_results(
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 promotion_results
             )
         self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
@@ -2437,33 +2437,33 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=promotion_source_slots,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_subtask_rows",
                 return_value=[dict(nested_row)],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 side_effect=RuntimeError("promotion coherence failed"),
             ) as stopped_promotion_rank,
         ):
             with self.assertRaisesRegex(RuntimeError, "promotion coherence failed"):
-                agent._promote_stronger_nested_aggregate_results(promotion_results)
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results(promotion_results)
         self.assertEqual(len(stopped_promotion_rank.call_args_list), 1)
 
     def test_aggregate_dependency_wrapper_callers_preserve_all_args_adoption_and_stop(self) -> None:
@@ -3517,17 +3517,17 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         nested_results = [nested_result]
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=source_slots,
             ) as nested_map_owner,
             patch.object(
-                agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 return_value="lookup",
             ),
         ):
-            unpromoted = agent._promote_stronger_nested_aggregate_results(
+            unpromoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 nested_results
             )
         prepared_nested_rows = nested_map_owner.call_args.args[0]
@@ -3539,18 +3539,18 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         operation_owner = Mock(return_value="lookup")
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 side_effect=RuntimeError("nested source map failed"),
             ),
             patch.object(
-                agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 operation_owner,
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "nested source map failed"):
-                agent._promote_stronger_nested_aggregate_results(nested_results)
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results(nested_results)
         operation_owner.assert_not_called()
 
         operand = {"operand_id": "operand_a", "nested": nested}
@@ -12611,7 +12611,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_defs),
                 sum(name.startswith("_") for name in owner_defs),
             ),
-            (70, 11),
+            (71, 11),
         )
         self.assertEqual(sum(retired_spans.values()), 156)
         self.assertEqual(sum(expected_owner_spans.values()), 153)

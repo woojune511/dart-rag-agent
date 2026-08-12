@@ -1013,8 +1013,8 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                     ("graph", "_infer_planner_feedback_from_answer_slots", "row"): 2,
                     ("aggregate", "_aggregate_result_rank", "row"): 1,
                     ("aggregate", "nested_aggregate_result_rank", "row"): 1,
-                    ("graph", "_promote_stronger_nested_aggregate_results", "dict(nested_row)"): 1,
-                    ("graph", "_promote_stronger_nested_aggregate_results", "current_row"): 1,
+                    ("aggregate", "promote_stronger_nested_aggregate_results", "dict(nested_row)"): 1,
+                    ("aggregate", "promote_stronger_nested_aggregate_results", "current_row"): 1,
                     ("graph", "_resolve_aggregate_feedback_state", "row"): 1,
                     ("aggregate", "build_aggregate_calculation_projection", "dict(row)"): 1,
                 }
@@ -1716,6 +1716,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         paths = {
             "planning": Path("src/agent/financial_graph_planning.py"),
             "calculation": Path("src/agent/financial_graph_calculation.py"),
+            "aggregate": Path("src/agent/financial_aggregate_projection.py"),
             "owner": Path("src/agent/financial_answer_projection.py"),
         }
         trees = {
@@ -1794,7 +1795,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             calls,
             [
                 ("owner", "promote_nested_subtask_result_if_more_specific", "nested_subtask_rows", "", ("calculation_result",), (), 0),
-                ("calculation", "_promote_stronger_nested_aggregate_results", "nested_subtask_rows", "", ("calculation_result",), (), 0),
+                ("aggregate", "promote_stronger_nested_aggregate_results", "nested_subtask_rows", "", ("calculation_result",), (), 0),
                 ("owner", "_subtask_row_specificity_score", "_subtask_row_operation_family", "", ("row",), (), 0),
                 ("owner", "promote_nested_subtask_result_if_more_specific", "_subtask_row_operation_family", "", ("best_row",), (), 0),
                 ("owner", "promote_nested_subtask_result_if_more_specific", "_subtask_row_specificity_score", "", ("row",), (("active_subtask", "active_subtask"),), 0),
@@ -1882,9 +1883,17 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             and node.module == "src.agent.financial_answer_projection"
             for alias in node.names
         }
+        aggregate_imports = {
+            alias.name
+            for node in ast.walk(trees["aggregate"])
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_answer_projection"
+            for alias in node.names
+        }
         self.assertIn("promote_nested_subtask_result_if_more_specific", planning_imports)
         self.assertNotIn("subtask_row_has_material", planning_imports)
-        self.assertIn("nested_subtask_rows", calculation_imports)
+        self.assertNotIn("nested_subtask_rows", calculation_imports)
+        self.assertIn("nested_subtask_rows", aggregate_imports)
 
         baseline = json.loads(
             Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
@@ -2029,14 +2038,14 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             return (2, 1) if row is nested else (1, 1)
 
         with (
-            patch.object(financial_graph_calculation, "aggregate_source_slot_by_task_id", return_value={}) as source_owner,
-            patch.object(self.calculation_agent, "_aggregate_result_operation_family", side_effect=operation_owner),
-            patch.object(financial_graph_calculation, "nested_subtask_rows", side_effect=nested_owner),
-            patch.object(financial_graph_calculation, "material_gap_feedback_for_subtask_result", return_value="") as gap_owner,
-            patch.object(financial_graph_calculation, "nested_aggregate_result_rank", side_effect=rank_owner),
-            patch.object(financial_graph_calculation, "aggregate_result_dependency_coherence_ranks", return_value=(1, 0)) as coherence_owner,
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}) as source_owner,
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_owner),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", side_effect=nested_owner),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value="") as gap_owner,
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", side_effect=rank_owner),
+            patch.object(financial_aggregate_projection, "aggregate_result_dependency_coherence_ranks", return_value=(1, 0)) as coherence_owner,
         ):
-            promoted = self.calculation_agent._promote_stronger_nested_aggregate_results(ordered_results)
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(ordered_results)
         source_rows = source_owner.call_args.args[0]
         self.assertEqual(source_rows, ordered_results)
         self.assertIsNot(source_rows[0], current)
@@ -2055,17 +2064,17 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
 
         later_rank = Mock()
         with (
-            patch.object(financial_graph_calculation, "aggregate_source_slot_by_task_id", return_value={}),
-            patch.object(self.calculation_agent, "_aggregate_result_operation_family", side_effect=operation_owner),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_owner),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_subtask_rows",
                 side_effect=RuntimeError("aggregate nesting failed"),
             ),
-            patch.object(financial_graph_calculation, "nested_aggregate_result_rank", later_rank),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", later_rank),
         ):
             with self.assertRaisesRegex(RuntimeError, "aggregate nesting failed"):
-                self.calculation_agent._promote_stronger_nested_aggregate_results(ordered_results)
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results(ordered_results)
         later_rank.assert_not_called()
         self.assertEqual(ordered_results, before)
         self.assertIs(ordered_results[0], current)

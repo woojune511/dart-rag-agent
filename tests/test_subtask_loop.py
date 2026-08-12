@@ -445,7 +445,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([stale_prior, narrative])
+        promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([stale_prior, narrative])
 
         self.assertEqual(promoted[0]["calculation_result"]["rendered_value"], "(1,847,775) units")
         self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
@@ -5017,7 +5017,6 @@ class SubtaskLoopTests(unittest.TestCase):
         patched_owners = {
             "_capture_current_subtask_result": Mock(return_value={}),
             "_recover_lookup_results_from_sibling_table_evidence": Mock(side_effect=preserve_rows),
-            "_promote_stronger_nested_aggregate_results": Mock(side_effect=preserve_rows),
             "_align_lookup_result_units_from_peer_source_slots": Mock(side_effect=preserve_rows),
             "_append_ratio_result_from_retrieved_context": Mock(side_effect=preserve_rows),
             "_append_ratio_result_from_task_outputs": Mock(side_effect=preserve_rows),
@@ -5032,6 +5031,11 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         with (
             patch.multiple(self.agent, **patched_owners),
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                side_effect=preserve_rows,
+            ),
             patch.object(financial_graph_calculation, "upsert_subtask_result", return_value=[row]),
             patch.object(
                 financial_graph_calculation,
@@ -9106,7 +9110,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([weak_current, aggregate_row])
+        promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([weak_current, aggregate_row])
 
         self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
         self.assertEqual(
@@ -9215,10 +9219,10 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        source_ref_owner = financial_graph_calculation.subtask_row_has_direct_source_refs
-        family_owner = self.agent._aggregate_result_operation_family
-        conflict_owner = financial_graph_calculation.subtask_numeric_answers_conflict
-        sign_rank_owner = financial_graph_calculation.growth_operand_sign_consistency_rank
+        source_ref_owner = financial_aggregate_projection.subtask_row_has_direct_source_refs
+        family_owner = financial_aggregate_projection.aggregate_result_operation_family
+        conflict_owner = financial_aggregate_projection.subtask_numeric_answers_conflict
+        sign_rank_owner = financial_aggregate_projection.growth_operand_sign_consistency_rank
         owner_events = []
         source_ref_seen = False
 
@@ -9244,31 +9248,31 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_row_has_direct_source_refs",
                 side_effect=invoke_source_ref,
             ),
             patch.object(
-                self.agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=invoke_family,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 side_effect=invoke_conflict,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
                 side_effect=invoke_sign_rank,
             ),
         ):
-            promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
 
         self.assertEqual(
             [event[0] for event in owner_events],
-            ["source_ref", "family", "family", "conflict", "rank", "rank"],
+            ["source_ref", "family", "family", "conflict", "rank", "family", "rank", "family"],
         )
         current_owner_row = owner_events[0][1]
         nested_owner_row = owner_events[2][1]
@@ -9278,7 +9282,11 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIs(owner_events[3][1], nested_owner_row)
         self.assertIs(owner_events[3][2], current_owner_row)
         self.assertIs(owner_events[4][1], nested_owner_row)
-        self.assertIs(owner_events[5][1], current_owner_row)
+        self.assertIs(owner_events[5][1], nested_owner_row)
+        self.assertEqual(owner_events[5][2], "growth_rate")
+        self.assertIs(owner_events[6][1], current_owner_row)
+        self.assertIs(owner_events[7][1], current_owner_row)
+        self.assertEqual(owner_events[7][2], "growth_rate")
         self.assertIsNot(current_owner_row, current_growth)
         self.assertIsNot(nested_owner_row, conflicting_nested_growth)
         self.assertEqual(current_owner_row, current_growth)
@@ -9290,30 +9298,30 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_row_has_direct_source_refs",
                 return_value=False,
             ) as no_direct_ref,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
             ) as gated_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
             ) as gated_rank,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 return_value=(1, 1),
             ),
         ):
-            promoted_without_direct_ref = self.agent._promote_stronger_nested_aggregate_results(
+            promoted_without_direct_ref = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 [current_growth, aggregate_row]
             )
         no_direct_ref.assert_called_once()
@@ -9338,35 +9346,35 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_row_has_direct_source_refs",
                 side_effect=enable_family_gate,
             ),
             patch.object(
-                self.agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=mismatch_after_source_ref,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
             ) as family_gated_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
             ) as family_gated_rank,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 return_value=(1, 1),
             ),
         ):
-            promoted_with_family_mismatch = self.agent._promote_stronger_nested_aggregate_results(
+            promoted_with_family_mismatch = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 [current_growth, aggregate_row]
             )
         self.assertEqual(len(post_source_families), 2)
@@ -9376,26 +9384,26 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 return_value=False,
             ) as no_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
             ) as conflict_gated_rank,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=[2, 1],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 return_value=(1, 1),
             ),
         ):
-            promoted_without_conflict = self.agent._promote_stronger_nested_aggregate_results(
+            promoted_without_conflict = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 [current_growth, aggregate_row]
             )
         no_conflict.assert_called_once()
@@ -9404,21 +9412,21 @@ class SubtaskLoopTests(unittest.TestCase):
 
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "subtask_numeric_answers_conflict",
                 side_effect=RuntimeError("conflict owner failed"),
             ) as failing_conflict,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "growth_operand_sign_consistency_rank",
             ) as stopped_rank,
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
             ) as later_nested_rank,
         ):
             with self.assertRaisesRegex(RuntimeError, "conflict owner failed"):
-                self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
         failing_conflict.assert_called_once()
         stopped_rank.assert_not_called()
         later_nested_rank.assert_not_called()
@@ -9520,7 +9528,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        promoted = self.agent._promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
+        promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results([current_growth, aggregate_row])
 
         self.assertFalse(promoted[0].get("promoted_from_nested_aggregate"))
         self.assertIn("41.4%", promoted[0]["answer"])
@@ -18336,20 +18344,16 @@ class SubtaskLoopTests(unittest.TestCase):
             return sign_rank_owner(row)
 
         with patch.object(
-            financial_graph_calculation,
-            "growth_operand_sign_consistency_rank",
-            side_effect=tracked_sign_rank,
-        ) as graph_sign_rank_spy, patch.object(
             financial_aggregate_projection,
             "growth_operand_sign_consistency_rank",
             side_effect=tracked_sign_rank,
         ) as owner_sign_rank_spy:
-            promoted = self.agent._promote_stronger_nested_aggregate_results(
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 [sign_mixed_growth, aggregate_summary]
             )
 
         self.assertEqual(
-            graph_sign_rank_spy.call_count + owner_sign_rank_spy.call_count,
+            owner_sign_rank_spy.call_count,
             6,
         )
         self.assertEqual(

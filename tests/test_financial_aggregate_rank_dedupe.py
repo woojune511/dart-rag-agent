@@ -640,7 +640,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ],
         )
         self.assertEqual([entry["module"] for entry in calls["result"]], ["owner"])
-        self.assertEqual({entry["module"] for entry in calls["nested"]}, {"graph"})
+        self.assertEqual({entry["module"] for entry in calls["nested"]}, {"owner"})
         self.assertEqual({entry["module"] for entry in calls["dedupe"]}, {"graph"})
         self.assertEqual(
             Counter(
@@ -649,8 +649,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             Counter(
                 {
-                    ("_promote_stronger_nested_aggregate_results", ("nested_row",)): 1,
-                    ("_promote_stronger_nested_aggregate_results", ("current_row",)): 1,
+                    ("promote_stronger_nested_aggregate_results", ("nested_row",)): 1,
+                    ("promote_stronger_nested_aggregate_results", ("current_row",)): 1,
                 }
             ),
         )
@@ -809,38 +809,38 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=operation_family,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=source_slots,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_subtask_rows",
                 return_value=[nested_row],
                 create=True,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=nested_rank,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 side_effect=coherence,
             ),
         ):
-            promoted = self.agent._promote_stronger_nested_aggregate_results(
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 ordered_results
             )
 
@@ -863,38 +863,38 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         coherence_owner = Mock()
         with (
             patch.object(
-                self.agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=operation_family,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=source_slots,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_subtask_rows",
                 return_value=[nested_row],
                 create=True,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=[(1,) * 8, (1,) * 8],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 coherence_owner,
             ),
         ):
-            unchanged = self.agent._promote_stronger_nested_aggregate_results(
+            unchanged = financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                 ordered_results
             )
         self.assertIs(unchanged, ordered_results)
@@ -908,39 +908,39 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
 
         with (
             patch.object(
-                self.agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 side_effect=operation_family,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_source_slot_by_task_id",
                 return_value=source_slots,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_subtask_rows",
                 return_value=[nested_row],
                 create=True,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 return_value="",
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "nested_aggregate_result_rank",
                 side_effect=failing_rank,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "aggregate_result_dependency_coherence_ranks",
                 coherence_owner,
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "nested rank failed"):
-                self.agent._promote_stronger_nested_aggregate_results(
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results(
                     ordered_results
                 )
         self.assertEqual(rank_calls, [nested_row])
@@ -11417,6 +11417,706 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(final_state, before_final)
         self.assertIs(final_evidence["nested"], nested)
         self.assertIs(runtime_evidence_row["nested"], nested)
+
+    def test_current_source_nested_result_promotion_pins_gates_copies_and_carry_forward(self) -> None:
+        shared = {"preserve": True}
+        runtime_evidence = [{"evidence_id": "ev-current", "nested": shared}]
+        artifact_ids = ["artifact-current"]
+        selected_claim_ids = ["claim-current"]
+        source_evidence_ids = ["source-current"]
+        current = {
+            "task_id": " child ",
+            "status": "partial",
+            "answer": "old 10",
+            "operation_family": "lookup",
+            "runtime_evidence": runtime_evidence,
+            "artifact_ids": artifact_ids,
+            "selected_claim_ids": selected_claim_ids,
+            "source_evidence_ids": source_evidence_ids,
+            "nested": shared,
+        }
+        candidate = {
+            "task_id": "child",
+            "status": "ok",
+            "answer": "new 20",
+            "operation_family": "lookup",
+            "runtime_evidence": [],
+            "nested": shared,
+        }
+        skipped_blank = {"task_id": " ", "operation_family": "lookup"}
+        skipped_aggregate = {"task_id": "child", "operation_family": "aggregate_subtasks"}
+        skipped_gap = {"task_id": "child", "operation_family": "lookup", "gap": True}
+        skipped_missing = {"task_id": "missing", "operation_family": "lookup"}
+        calculation_result = {"subtask_results": [candidate], "nested": shared}
+        aggregate = {
+            "task_id": "aggregate",
+            "operation_family": "aggregate_subtasks",
+            "calculation_result": calculation_result,
+            "nested": shared,
+        }
+        ordered_results = [current, aggregate]
+        before = deepcopy(ordered_results)
+        source_slots = {"child": {"normalized_value": 10}}
+        events = []
+
+        def operation_family(row):
+            events.append(("operation", row.get("task_id")))
+            return row.get("operation_family", "")
+
+        def source_slot_owner(rows):
+            events.append(("source-slots", rows))
+            self.assertEqual(rows, ordered_results)
+            self.assertIsNot(rows, ordered_results)
+            self.assertIsNot(rows[0], current)
+            self.assertIs(rows[0]["nested"], shared)
+            return source_slots
+
+        def nested_owner(prepared_result):
+            events.append(("nested", prepared_result))
+            self.assertEqual(prepared_result, calculation_result)
+            self.assertIsNot(prepared_result, calculation_result)
+            self.assertIs(prepared_result["subtask_results"], calculation_result["subtask_results"])
+            self.assertIs(prepared_result["nested"], shared)
+            return [skipped_blank, skipped_aggregate, skipped_gap, skipped_missing, candidate]
+
+        def gap_owner(row):
+            events.append(("gap", row))
+            return "gap" if row.get("gap") else ""
+
+        def rank_owner(row):
+            events.append(("rank", row.get("answer")))
+            return (2,) * 8 if row.get("answer") == "new 20" else (1,) * 8
+
+        def coherence_owner(row, slots):
+            events.append(("coherence", row.get("answer"), slots))
+            return 2, 1
+
+        forbidden_direct = Mock(side_effect=AssertionError("direct-source protection accessed"))
+        forbidden_conflict = Mock(side_effect=AssertionError("numeric-conflict protection accessed"))
+        forbidden_sign = Mock(side_effect=AssertionError("sign protection accessed"))
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", side_effect=source_slot_owner),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", side_effect=nested_owner),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", side_effect=gap_owner),
+            patch.object(financial_aggregate_projection, "subtask_row_has_direct_source_refs", forbidden_direct),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", forbidden_conflict),
+            patch.object(financial_aggregate_projection, "growth_operand_sign_consistency_rank", forbidden_sign),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", side_effect=rank_owner),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_dependency_coherence_ranks",
+                side_effect=coherence_owner,
+            ),
+        ):
+            promoted = financial_aggregate_projection.promote_stronger_nested_aggregate_results(ordered_results)
+
+        self.assertIsNot(promoted, ordered_results)
+        self.assertEqual(promoted[0]["answer"], "new 20")
+        self.assertTrue(promoted[0]["promoted_from_nested_aggregate"])
+        self.assertIs(promoted[0]["runtime_evidence"], runtime_evidence)
+        self.assertIs(promoted[0]["artifact_ids"], artifact_ids)
+        self.assertIs(promoted[0]["selected_claim_ids"], selected_claim_ids)
+        self.assertIs(promoted[0]["source_evidence_ids"], source_evidence_ids)
+        self.assertIs(promoted[0]["nested"], shared)
+        self.assertEqual(promoted[1], aggregate)
+        self.assertIsNot(promoted[1], aggregate)
+        self.assertEqual([event[0] for event in events].count("rank"), 2)
+        self.assertEqual([event[0] for event in events].count("coherence"), 2)
+        self.assertLess(
+            next(index for index, event in enumerate(events) if event[0] == "source-slots"),
+            next(index for index, event in enumerate(events) if event[0] == "nested"),
+        )
+        forbidden_direct.assert_not_called()
+        forbidden_conflict.assert_not_called()
+        forbidden_sign.assert_not_called()
+        self.assertEqual(ordered_results, before)
+        self.assertIs(ordered_results[0], current)
+        self.assertIs(ordered_results[1], aggregate)
+        self.assertIs(current["nested"], shared)
+
+    def test_current_source_nested_result_promotion_pins_protection_rank_coherence_and_chaining(self) -> None:
+        class StatusFallbackBomb(dict):
+            def get(self, key, default=None):
+                if key == "status":
+                    raise AssertionError("calculation-result status fallback accessed")
+                return super().get(key, default)
+
+            def __deepcopy__(self, _memo):
+                return self
+
+        current = {
+            "task_id": "child",
+            "status": "ok",
+            "answer": "current",
+            "operation_family": "growth_rate",
+            "runtime_evidence": [{"evidence_id": "keep"}],
+            "calculation_result": StatusFallbackBomb(),
+        }
+        candidate = {
+            "task_id": "child",
+            "status": "ok",
+            "answer": "candidate",
+            "operation_family": "growth_rate",
+        }
+        aggregate = {
+            "task_id": "aggregate",
+            "operation_family": "aggregate_subtasks",
+            "calculation_result": {},
+        }
+        rows = [current, aggregate]
+
+        def operation_family(row):
+            return row.get("operation_family", "")
+
+        rank_owner = Mock()
+        coherence_owner = Mock()
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", return_value=[candidate]),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_aggregate_projection, "subtask_row_has_direct_source_refs", return_value=True),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_operand_sign_consistency_rank", side_effect=[1, 2]),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", rank_owner),
+            patch.object(financial_aggregate_projection, "aggregate_result_dependency_coherence_ranks", coherence_owner),
+        ):
+            protected = financial_aggregate_projection.promote_stronger_nested_aggregate_results(rows)
+        self.assertIs(protected, rows)
+        rank_owner.assert_not_called()
+        coherence_owner.assert_not_called()
+
+        fallback_current = {
+            **current,
+            "status": "",
+            "calculation_result": {"status": "ok"},
+        }
+        fallback_rows = [fallback_current, aggregate]
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", return_value=[candidate]),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_aggregate_projection, "subtask_row_has_direct_source_refs", return_value=True),
+            patch.object(financial_aggregate_projection, "subtask_numeric_answers_conflict", return_value=True),
+            patch.object(financial_aggregate_projection, "growth_operand_sign_consistency_rank", side_effect=[1, 2]),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", rank_owner),
+        ):
+            fallback_protected = financial_aggregate_projection.promote_stronger_nested_aggregate_results(fallback_rows)
+        self.assertIs(fallback_protected, fallback_rows)
+        rank_owner.assert_not_called()
+
+        partial_current = {**current, "status": "partial"}
+        partial_rows = [partial_current, aggregate]
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", return_value=[candidate]),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", side_effect=[(2,), (2,)]),
+            patch.object(financial_aggregate_projection, "aggregate_result_dependency_coherence_ranks", coherence_owner),
+        ):
+            equal_rank = financial_aggregate_projection.promote_stronger_nested_aggregate_results(partial_rows)
+        self.assertIs(equal_rank, partial_rows)
+        coherence_owner.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", return_value=[candidate]),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", side_effect=[(3,), (1,)]),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_dependency_coherence_ranks",
+                side_effect=[(0, 9), (1, 0)],
+            ),
+        ):
+            incoherent = financial_aggregate_projection.promote_stronger_nested_aggregate_results(partial_rows)
+        self.assertIs(incoherent, partial_rows)
+
+        first = {**candidate, "answer": "first"}
+        second = {**candidate, "answer": "second"}
+        equal_later = {**candidate, "answer": "equal-later"}
+
+        def chained_rank(row):
+            return ({"current": 1, "first": 2, "second": 3, "equal-later": 3}.get(row.get("answer"), 0),)
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", return_value=[first, second, equal_later]),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_aggregate_projection, "subtask_row_has_direct_source_refs", return_value=False),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", side_effect=chained_rank),
+            patch.object(financial_aggregate_projection, "aggregate_result_dependency_coherence_ranks", return_value=(1, 1)),
+        ):
+            chained = financial_aggregate_projection.promote_stronger_nested_aggregate_results(rows)
+        self.assertEqual(chained[0]["answer"], "second")
+        self.assertIs(chained[0]["runtime_evidence"], current["runtime_evidence"])
+
+        before_partial = deepcopy(partial_rows)
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "aggregate_source_slot_by_task_id", return_value={}),
+            patch.object(financial_aggregate_projection, "nested_subtask_rows", return_value=[candidate]),
+            patch.object(financial_aggregate_projection, "material_gap_feedback_for_subtask_result", return_value=""),
+            patch.object(financial_aggregate_projection, "nested_aggregate_result_rank", side_effect=[(3,), (1,)]),
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_dependency_coherence_ranks",
+                side_effect=RuntimeError("coherence failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "coherence failed"):
+                financial_aggregate_projection.promote_stronger_nested_aggregate_results(partial_rows)
+        self.assertEqual(partial_rows, before_partial)
+
+    def test_current_source_nested_result_promotion_pins_static_binding_dag_and_baseline(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        trees = {
+            "graph": ast.parse(graph_path.read_text(encoding="utf-8-sig")),
+            "owner": ast.parse(owner_path.read_text(encoding="utf-8-sig")),
+        }
+        private_name = "_" + "promote_stronger_nested_aggregate_results"
+        public_name = "promote_stronger_nested_aggregate_results"
+        definitions = {}
+        calls = []
+        noncall_refs = []
+
+        class Visitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.stack = []
+                self.try_depth = 0
+                self.call_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in {private_name, public_name}:
+                    definitions[(self.module_name, node.name)] = node
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = node.func.attr if isinstance(node.func, ast.Attribute) else node.func.id if isinstance(node.func, ast.Name) else ""
+                receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else ""
+                if name in {private_name, public_name}:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.stack[-1],
+                            name,
+                            receiver,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((item.arg, ast.unparse(item.value)) for item in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in {private_name, public_name} and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if node.id in {private_name, public_name} and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.id, node.lineno))
+
+        for module_name, tree in trees.items():
+            Visitor(module_name).visit(tree)
+
+        self.assertEqual(set(definitions), {("owner", public_name)})
+        definition = definitions[("owner", public_name)]
+        self.assertEqual(definition.end_lineno - definition.lineno + 1, 63)
+        owner_functions = [
+            node.name
+            for node in trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in owner_functions),
+                sum(name.startswith("_") for name in owner_functions),
+            ),
+            (71, 11),
+        )
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(noncall_refs, [])
+        self.assertEqual(
+            Counter((caller, args) for _module, caller, _name, _receiver, args, _kwargs, _depth in calls),
+            Counter(
+                {
+                    ("_promote_and_align_aggregate_results", ("ordered_results",)): 1,
+                    ("_sync_projection_subtask_results_with_nested_promotions", ("projection_subtask_results",)): 1,
+                    ("_prepare_initial_aggregate_state", ("ordered_results",)): 1,
+                }
+            ),
+        )
+        self.assertTrue(all(name == public_name for _m, _c, name, _r, _a, _k, _d in calls))
+        self.assertTrue(all(receiver == "" for _m, _c, _n, receiver, _a, _k, _d in calls))
+        self.assertTrue(all(not kwargs and depth == 0 for _m, _c, _n, _r, _a, kwargs, depth in calls))
+        self.assertEqual(
+            (
+                sum(module == "graph" for module, *_rest in calls),
+                sum(module == "owner" for module, *_rest in calls),
+            ),
+            (3, 0),
+        )
+
+        module_paths = list(Path("src/agent").glob("*.py")) + list(Path("src/config").glob("*.py"))
+        import_graph = {}
+        for path in module_paths:
+            module_name = ".".join(path.with_suffix("").parts)
+            imported = set()
+            for node in ast.parse(path.read_text(encoding="utf-8-sig")).body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names)
+            import_graph[module_name] = imported
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(import_graph.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_aggregate_projection"
+        answer_owner = "src.agent.financial_answer_projection"
+        graph_module = "src.agent.financial_graph_calculation"
+        self.assertIn(answer_owner, import_graph[owner_module])
+        self.assertFalse(reaches(answer_owner, owner_module))
+        self.assertFalse(reaches(owner_module, graph_module))
+        self.assertTrue(reaches(graph_module, owner_module))
+
+        graph_imports = {
+            alias.name
+            for node in trees["graph"].body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        self.assertIn(public_name, graph_imports)
+        self.assertTrue(
+            {
+                "growth_operand_sign_consistency_rank",
+                "nested_aggregate_result_rank",
+                "nested_subtask_rows",
+                "subtask_row_has_direct_source_refs",
+            }.isdisjoint(graph_imports)
+        )
+        owner_imports = {
+            alias.name
+            for node in trees["owner"].body
+            if isinstance(node, ast.ImportFrom)
+            for alias in node.names
+        }
+        self.assertIn("nested_subtask_rows", owner_imports)
+
+        baseline = json.loads(
+            (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set(range(definition.lineno, definition.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == owner_path.as_posix()
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_promote_and_align_caller_pins_args_adoption_and_stop(self) -> None:
+        shared = {"preserve": True}
+        ordered_results = [{"task_id": "one", "nested": shared}]
+        before = deepcopy(ordered_results)
+        state = {"query": "q", "nested": shared}
+        projection = {"projection": True}
+        aligned_results = [{"task_id": "one", "answer": "aligned", "nested": shared}]
+        agent = Mock()
+        agent._rebuild_aggregate_projection.return_value = projection
+        agent._align_lookup_results_with_dependency_projection.return_value = aligned_results
+        promotion_owner = Mock(return_value=ordered_results)
+        with patch.object(
+            financial_graph_calculation,
+            "promote_stronger_nested_aggregate_results",
+            promotion_owner,
+        ):
+            result = financial_graph_calculation.FinancialAgentCalculationMixin._promote_and_align_aggregate_results(
+                agent,
+                ordered_results,
+                state,
+                "final",
+                align_without_promotion=False,
+            )
+        self.assertEqual(result, (ordered_results, False, False, False))
+        promotion_owner.assert_called_once_with(ordered_results)
+        self.assertIs(promotion_owner.call_args.args[0], ordered_results)
+        agent._rebuild_aggregate_projection.assert_not_called()
+        agent._align_lookup_results_with_dependency_projection.assert_not_called()
+
+        promoted_results = [{"task_id": "one", "answer": "promoted", "nested": shared}]
+        agent.reset_mock()
+        agent._rebuild_aggregate_projection.return_value = projection
+        agent._align_lookup_results_with_dependency_projection.return_value = aligned_results
+        promotion_owner = Mock(return_value=promoted_results)
+        with patch.object(
+            financial_graph_calculation,
+            "promote_stronger_nested_aggregate_results",
+            promotion_owner,
+        ):
+            result = financial_graph_calculation.FinancialAgentCalculationMixin._promote_and_align_aggregate_results(
+                agent,
+                ordered_results,
+                state,
+                "final",
+                align_without_promotion=False,
+            )
+        self.assertEqual(result, (aligned_results, True, True, True))
+        agent._rebuild_aggregate_projection.assert_called_once_with(promoted_results, "final")
+        agent._align_lookup_results_with_dependency_projection.assert_called_once_with(
+            promoted_results,
+            state,
+            projection,
+        )
+        self.assertIs(agent._align_lookup_results_with_dependency_projection.call_args.args[0], promoted_results)
+        self.assertIs(agent._align_lookup_results_with_dependency_projection.call_args.args[1], state)
+
+        agent.reset_mock()
+        promotion_owner = Mock(side_effect=RuntimeError("promotion failed"))
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                promotion_owner,
+            ),
+            self.assertRaisesRegex(RuntimeError, "promotion failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._promote_and_align_aggregate_results(
+                agent,
+                ordered_results,
+                state,
+                "final",
+                align_without_promotion=True,
+            )
+        agent._rebuild_aggregate_projection.assert_not_called()
+        agent._align_lookup_results_with_dependency_projection.assert_not_called()
+        self.assertEqual(ordered_results, before)
+        self.assertIs(ordered_results[0]["nested"], shared)
+
+    def test_current_source_projection_nested_promotion_caller_pins_args_adoption_and_stop(self) -> None:
+        shared = {"preserve": True}
+        existing_evidence = [{"evidence_id": "existing", "nested": shared}]
+        ordered_results = [
+            {
+                "task_id": "child",
+                "answer": "existing",
+                "runtime_evidence": existing_evidence,
+                "nested": shared,
+            }
+        ]
+        projection_row = {"task_id": "child", "answer": "projection", "nested": shared}
+        aggregate_projection = {
+            "calculation_result": {"subtask_results": [projection_row]},
+            "nested": shared,
+        }
+        state = {"query": "q", "nested": shared}
+        before_results = deepcopy(ordered_results)
+        before_projection = deepcopy(aggregate_projection)
+        promoted_results = [{"task_id": "child", "answer": "promoted", "nested": shared}]
+        first_projection = {"projection": "first"}
+        aligned_results = [{"task_id": "child", "answer": "aligned", "nested": shared}]
+        synced_rows = [{"task_id": "child", "answer": "synced", "runtime_evidence": existing_evidence}]
+        final_projection = {"projection": "final"}
+        events = []
+        agent = Mock()
+
+        def promote_owner(rows):
+            events.append(("promote", rows))
+            self.assertEqual(rows, [projection_row])
+            self.assertIsNot(rows[0], projection_row)
+            self.assertIs(rows[0]["nested"], shared)
+            return promoted_results
+
+        def rebuild_owner(rows, answer):
+            events.append(("rebuild", rows, answer))
+            return first_projection if rows is promoted_results else final_projection
+
+        def align_owner(rows, prepared_state, projection):
+            events.append(("align", rows, prepared_state, projection))
+            return aligned_results
+
+        agent._rebuild_aggregate_projection.side_effect = rebuild_owner
+        agent._align_lookup_results_with_dependency_projection.side_effect = align_owner
+
+        sync_inputs = []
+
+        def sync_owner(sync_input):
+            sync_inputs.append(sync_input)
+            return financial_aggregate_projection.AggregateNestedSubtaskSynchronizationResult(synced_rows)
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                side_effect=promote_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "synchronize_nested_aggregate_subtask_rows",
+                side_effect=sync_owner,
+            ),
+        ):
+            result = financial_graph_calculation.FinancialAgentCalculationMixin._sync_projection_subtask_results_with_nested_promotions(
+                agent,
+                ordered_results,
+                state,
+                aggregate_projection,
+                "final",
+            )
+        self.assertIs(result[0], synced_rows)
+        self.assertIs(result[1], final_projection)
+        self.assertEqual([event[0] for event in events], ["promote", "rebuild", "align", "rebuild"])
+        self.assertIs(events[1][1], promoted_results)
+        self.assertIs(events[2][1], promoted_results)
+        self.assertIs(events[2][2], state)
+        self.assertIs(events[2][3], first_projection)
+        self.assertEqual(sync_inputs[0].ordered_results[0]["answer"], "aligned")
+        self.assertIs(sync_inputs[0].ordered_results[0]["runtime_evidence"], existing_evidence)
+        self.assertEqual(ordered_results, before_results)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertIs(ordered_results[0]["nested"], shared)
+        self.assertIs(aggregate_projection["nested"], shared)
+
+        agent = Mock()
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                side_effect=RuntimeError("projection promotion failed"),
+            ),
+            patch.object(financial_graph_calculation, "synchronize_nested_aggregate_subtask_rows") as later_sync,
+            self.assertRaisesRegex(RuntimeError, "projection promotion failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._sync_projection_subtask_results_with_nested_promotions(
+                agent,
+                ordered_results,
+                state,
+                aggregate_projection,
+                "final",
+            )
+        agent._rebuild_aggregate_projection.assert_not_called()
+        agent._align_lookup_results_with_dependency_projection.assert_not_called()
+        later_sync.assert_not_called()
+
+    def test_current_source_prepare_initial_aggregate_caller_pins_promotion_order_adoption_and_stop(self) -> None:
+        shared = {"preserve": True}
+        state = {
+            "query": "query",
+            "answer": "state answer",
+            "subtask_results": [],
+            "calc_subtasks": [{"task_id": "child"}],
+            "nested": shared,
+        }
+        before = deepcopy(state)
+        current = {"task_id": "child", "answer": "current", "nested": shared}
+        upserted = [current]
+        recovered = [{"task_id": "child", "answer": "recovered", "nested": shared}]
+        promoted = [{"task_id": "child", "answer": "promoted", "nested": shared}]
+        aligned = [{"task_id": "child", "answer": "aligned", "nested": shared}]
+        context_rows = [{"task_id": "child", "answer": "context", "nested": shared}]
+        output_rows = [{"task_id": "child", "answer": "output", "nested": shared}]
+        synced = [{"task_id": "child", "answer": "synced", "nested": shared}]
+        projection = {"projection": True}
+        events = []
+        agent = Mock()
+        agent._capture_current_subtask_result.return_value = current
+        agent._recover_lookup_results_from_sibling_table_evidence.side_effect = (
+            lambda rows, prepared_state: events.append(("recover", rows, prepared_state)) or recovered
+        )
+        agent._align_lookup_result_units_from_peer_source_slots.side_effect = (
+            lambda rows: events.append(("unit-align", rows)) or aligned
+        )
+        agent._append_ratio_result_from_retrieved_context.return_value = context_rows
+        agent._append_ratio_result_from_task_outputs.return_value = output_rows
+        agent._sync_ratio_result_displays_in_ordered_results.return_value = synced
+        agent._aggregate_result_operation_family.return_value = "lookup"
+        agent._preferred_aggregate_fallback_answer.return_value = "fallback"
+        agent._rebuild_aggregate_projection.return_value = projection
+        agent._align_lookup_results_with_dependency_projection.return_value = synced
+        agent._supported_aggregate_subtask_answer.return_value = ""
+        agent._preferred_complete_numeric_answer.return_value = ""
+
+        with (
+            patch.object(financial_graph_calculation, "upsert_subtask_result", return_value=upserted) as upsert_owner,
+            patch.object(financial_graph_calculation, "dedupe_aggregate_subtask_results", side_effect=lambda rows: rows),
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                side_effect=lambda rows: events.append(("promote", rows)) or promoted,
+            ),
+            patch.object(financial_graph_calculation, "row_is_narrative_summary", return_value=False),
+            patch.object(financial_graph_calculation, "compose_lookup_list_numeric_answer", return_value=""),
+        ):
+            prepared = financial_graph_calculation.FinancialAgentCalculationMixin._prepare_initial_aggregate_state(
+                agent,
+                state,
+            )
+        upsert_owner.assert_called_once_with([], current)
+        self.assertEqual([event[0] for event in events], ["recover", "promote", "unit-align"])
+        self.assertIs(events[0][2], state)
+        self.assertIs(events[1][1], recovered)
+        self.assertIs(events[2][1], promoted)
+        self.assertIs(prepared.ordered_results, synced)
+        self.assertEqual(prepared.fallback_answer, "fallback")
+        self.assertFalse(prepared.has_growth_rate_result)
+        self.assertFalse(prepared.numeric_answer_locked)
+        self.assertEqual(state, before)
+        self.assertIs(state["nested"], shared)
+
+        failing_agent = Mock()
+        failing_agent._capture_current_subtask_result.return_value = current
+        failing_agent._recover_lookup_results_from_sibling_table_evidence.return_value = recovered
+        with (
+            patch.object(financial_graph_calculation, "upsert_subtask_result", return_value=upserted),
+            patch.object(financial_graph_calculation, "dedupe_aggregate_subtask_results", side_effect=lambda rows: rows),
+            patch.object(
+                financial_graph_calculation,
+                "promote_stronger_nested_aggregate_results",
+                side_effect=RuntimeError("initial promotion failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "initial promotion failed"),
+        ):
+            financial_graph_calculation.FinancialAgentCalculationMixin._prepare_initial_aggregate_state(
+                failing_agent,
+                state,
+            )
+        failing_agent._align_lookup_result_units_from_peer_source_slots.assert_not_called()
+        failing_agent._append_ratio_result_from_retrieved_context.assert_not_called()
+        self.assertEqual(state, before)
+        self.assertIs(state["nested"], shared)
 
 
 if __name__ == "__main__":

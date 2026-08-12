@@ -31,7 +31,6 @@ from src.agent.financial_answer_projection import (
     growth_sentence_has_untraced_material_numeric,
     growth_uses_source_stated_result,
     material_gap_feedback_for_subtask_result,
-    nested_subtask_rows,
     query_requests_explanatory_context,
     sentence_has_growth_explanatory_signal,
 )
@@ -98,23 +97,21 @@ from src.agent.financial_aggregate_projection import (
     row_is_narrative_summary,
     recover_growth_prior_material_from_evidence,
     safe_partial_answer_for_numeric_gap,
-    growth_operand_sign_consistency_rank,
     growth_required_display_values,
     has_strong_growth_trace_for_answer_refresh,
     narrative_row_focus_context,
     narrative_row_focus_sentence,
     narrative_summary_conflicts_with_growth_trace,
-    nested_aggregate_result_rank,
     package_aggregate_answer_candidate,
     package_refreshed_aggregate_answer_candidate,
     project_runtime_ratio_absolute_magnitude,
+    promote_stronger_nested_aggregate_results,
     ratio_rebuild_component_seeds,
     retrieved_ratio_projection_conflicts_with_existing_complete_result,
     select_aggregate_projection_answer_sentence,
     select_aggregate_projection_row_for_task,
     select_aggregate_stale_repair_provenance as _select_aggregate_stale_repair_provenance,
     subtask_numeric_answers_conflict,
-    subtask_row_has_direct_source_refs,
     strip_untraced_numeric_material_from_growth_narrative_sentence,
     synchronize_aggregate_arithmetic_components,
     synchronize_aggregate_projection_row_surface,
@@ -4523,7 +4520,7 @@ class FinancialAgentCalculationMixin:
         *,
         align_without_promotion: bool,
     ) -> tuple[List[Dict[str, Any]], bool, bool, bool]:
-        promoted_results = self._promote_stronger_nested_aggregate_results(ordered_results)
+        promoted_results = promote_stronger_nested_aggregate_results(ordered_results)
         if not align_without_promotion and promoted_results is ordered_results:
             return promoted_results, False, False, False
         projection = self._rebuild_aggregate_projection(promoted_results, final_answer)
@@ -6241,71 +6238,6 @@ class FinancialAgentCalculationMixin:
             rebuilt_result,
         )
 
-    def _promote_stronger_nested_aggregate_results(
-        self,
-        ordered_results: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        by_task_id = {
-            _normalise_spaces(str(row.get("task_id") or "")): dict(row)
-            for row in ordered_results
-            if _normalise_spaces(str(row.get("task_id") or ""))
-        }
-        source_slot_by_task_id = aggregate_source_slot_by_task_id(list(by_task_id.values()))
-        replacements: Dict[str, Dict[str, Any]] = {}
-        for row in ordered_results:
-            if self._aggregate_result_operation_family(row) != "aggregate_subtasks":
-                continue
-            calculation_result = dict(row.get("calculation_result") or {})
-            for nested_row in nested_subtask_rows(calculation_result):
-                nested_task_id = _normalise_spaces(str(nested_row.get("task_id") or ""))
-                if not nested_task_id:
-                    continue
-                if self._aggregate_result_operation_family(nested_row) == "aggregate_subtasks":
-                    continue
-                if material_gap_feedback_for_subtask_result(dict(nested_row)):
-                    continue
-                current_row = replacements.get(nested_task_id) or by_task_id.get(nested_task_id)
-                if not current_row:
-                    continue
-                current_status = _normalise_spaces(
-                    str(current_row.get("status") or (current_row.get("calculation_result") or {}).get("status") or "")
-                ).lower()
-                if (
-                    current_status == "ok"
-                    and not material_gap_feedback_for_subtask_result(current_row)
-                    and subtask_row_has_direct_source_refs(current_row)
-                    and self._aggregate_result_operation_family(current_row) == self._aggregate_result_operation_family(nested_row)
-                    and subtask_numeric_answers_conflict(nested_row, current_row)
-                    and growth_operand_sign_consistency_rank(nested_row)
-                    <= growth_operand_sign_consistency_rank(current_row)
-                ):
-                    continue
-                if nested_aggregate_result_rank(nested_row) <= nested_aggregate_result_rank(current_row):
-                    continue
-                if aggregate_result_dependency_coherence_ranks(
-                    nested_row,
-                    source_slot_by_task_id,
-                )[0] < aggregate_result_dependency_coherence_ranks(
-                    current_row,
-                    source_slot_by_task_id,
-                )[0]:
-                    continue
-                promoted = {
-                    **dict(current_row),
-                    **dict(nested_row),
-                    "promoted_from_nested_aggregate": True,
-                }
-                for key in ("runtime_evidence", "artifact_ids", "selected_claim_ids", "source_evidence_ids"):
-                    if not promoted.get(key) and current_row.get(key):
-                        promoted[key] = current_row.get(key)
-                replacements[nested_task_id] = promoted
-        if not replacements:
-            return ordered_results
-        return [
-            dict(replacements.get(_normalise_spaces(str(row.get("task_id") or ""))) or row)
-            for row in ordered_results
-        ]
-
     def _sync_projection_subtask_results_with_nested_promotions(
         self,
         ordered_results: List[Dict[str, Any]],
@@ -6320,7 +6252,7 @@ class FinancialAgentCalculationMixin:
         ]
         if not projection_subtask_results:
             return ordered_results, aggregate_projection
-        promoted_results = self._promote_stronger_nested_aggregate_results(projection_subtask_results)
+        promoted_results = promote_stronger_nested_aggregate_results(projection_subtask_results)
         promoted_projection = self._rebuild_aggregate_projection(promoted_results, final_answer)
         aligned_results = self._align_lookup_results_with_dependency_projection(
             promoted_results,
@@ -12583,7 +12515,7 @@ class FinancialAgentCalculationMixin:
         )
         ordered_results = dedupe_aggregate_subtask_results(ordered_results)
         ordered_results = self._recover_lookup_results_from_sibling_table_evidence(ordered_results, state)
-        ordered_results = self._promote_stronger_nested_aggregate_results(ordered_results)
+        ordered_results = promote_stronger_nested_aggregate_results(ordered_results)
         ordered_results = self._align_lookup_result_units_from_peer_source_slots(ordered_results)
         ordered_results = dedupe_aggregate_subtask_results(ordered_results)
         ordered_results = self._append_ratio_result_from_retrieved_context(
