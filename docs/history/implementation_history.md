@@ -2926,6 +2926,60 @@ counts, dead-import list, DAG, and rejected cycle/callback/state expansions are
 maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Aggregate result replacement/surface synchronization owner milestone
+
+- `8e840b8` moves `_promote_stronger_nested_aggregate_results(...)` out of
+  `FinancialAgentCalculationMixin` as public
+  `promote_stronger_nested_aggregate_results(...)` in
+  `financial_aggregate_projection.py`. The former 64-line definition becomes
+  63 owner lines. Its three callers remain graph-external, and all owner helper
+  dependencies are direct local names. Source is `+70/-72`, tests are
+  `+824/-111`, and the whole commit is `+894/-183`. Six new unittest methods
+  moved discovery from 1,777 to 1,783.
+- `b5d97ee` moves `_sync_aggregate_arithmetic_subtask_surfaces(...)` out of the
+  same mixin as public `sync_aggregate_arithmetic_subtask_surfaces(...)` in the
+  aggregate owner. The former 124-line definition becomes 123 owner lines. Its
+  sole `_aggregate_calculation_subtasks(...)` caller retains exact positional
+  arguments and adopts both returned values at the same point. Source is
+  `+127/-132`, tests are `+747/-75`, and the whole commit is `+874/-207`. Six
+  new unittest methods moved discovery from 1,783 to 1,789.
+- Literal body parity passed for both seams after only `self` removal and
+  owner-local name rebinding. Complete caller parity passed for all four callers.
+  The arithmetic move also removes the six graph imports used only by the old
+  body. Public import identity, removed mixin attributes, pycompile/fresh import,
+  DAG, runtime audit, and diff check passed; retired private refs are zero.
+- Across `6ed195e..b5d97ee`, source is `+197/-204`, net `-7`; tests are
+  `+1,569/-184`, net `+1,385`; and the whole range is `+1,766/-388`, net
+  `+1,378`. Calculation moved from 14,719 to 14,521 physical lines and aggregate
+  projection from 3,350 to 3,541. The selected old spans total 188 lines, the
+  two public owner spans total 186, and all four calls remain graph-external.
+  The range source diff SHA-256 is
+  `ee76d6ffa2c0e1f14e8dec7630a6f11e5f39ad4323e1ed5a23f07e6d0fbda1f8`.
+- Final validation passed focused 12/12, aggregate owner 76/76, affected
+  seven-module semantic 798/798, import-side-effects 19/19, runtime audit 217,
+  full discovery 1,789/1,789, pycompile/fresh import, DAG/body/caller parity,
+  and `git diff --check`. Benchmark refresh was **NOT RUN**, and no remote CI
+  run is claimed or verified for this local branch.
+
+This milestone changes only deterministic prepared-row ownership. Dependency
+alignment, projection rebuild, candidate/state/evidence orchestration,
+artifact/ledger mutation, and final sequencing remain graph-owned. It proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first 53-line
+duplicate growth-prior operand recovery seam from calculation into the existing
+aggregate owner. Public `recover_duplicate_growth_prior_operand(...)` projects
+to 52 owner lines and retains one graph-external call in
+`_prepare_calculation_candidate(...)`. The owner already holds normalization
+and growth material/evidence recovery dependencies, so no new edge or cycle is
+introduced. Candidate preparation, direct evidence selection, unit/period
+alignment, execution, state/evidence, rebuild, artifact/ledger mutation, and
+final sequencing remain hard stops. Exact API, four-method CURRENT-SOURCE gate,
+projected validation counts, DAG, and rejected cycle/callback/state expansions
+are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

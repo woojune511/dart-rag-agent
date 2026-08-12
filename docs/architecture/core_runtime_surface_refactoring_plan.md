@@ -416,24 +416,25 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
 Heuristic dependency/calc-family resolution, prompt/LLM planning, action/report/
 artifact projection, mutable state, routing/promotion, and final sequencing
-remain excluded. The nested subtask selection/promotion batch is now complete.
-Commit `a8ad25f` moved the former 128 definition-span lines to two public plus
-two owner-private answer-projection functions totaling 126 lines. Six calls
-finish as two graph-external and four owner-local; source is `+138/-135`, tests
-are `+673/-23`, and full discovery is 1,777/1,777. Task/state capture, broader
-dependency-coherence replacement, projection alignment/rebuild, mutable
-state/evidence, artifact/ledger mutation, and final sequencing remain excluded.
+remain excluded. The nested subtask selection/promotion batch and its two-seam
+aggregate-result follow-on are now complete. Commits `8e840b8` and `b5d97ee`
+moved the former 64 + 124 definition-span lines into two public aggregate-owner
+functions totaling 186 lines. Four calls remain graph-external. Across the
+range, source is `+197/-204`, tests are `+1,569/-184`, and full discovery is
+1,789/1,789. Task/state capture, dependency alignment, projection rebuild,
+mutable state/evidence, artifact/ledger mutation, and final sequencing remain
+excluded.
 
-The selected follow-on is two sequential characterize-first aggregate-result
-seams into `financial_aggregate_projection.py`: 64 lines of nested-result
-replacement followed by 124 lines of arithmetic subtask-surface sync. They
-project to two public functions totaling 186 owner lines, and four calls remain
-graph-external. The owner already holds all dependencies except one symbol on an
-existing answer-projection edge; no new edge or reverse cycle is introduced.
-Only these prepared-row transforms supersede the prior broad synchronization
-stop. State-bearing alignment, rebuild, orchestration, artifact/ledger mutation,
-and final sequencing stay graph-owned. Exact APIs, the two six-method
-characterization gates, call distribution, DAG, and stop lines live only in
+The selected follow-on is one characterize-first 53-line duplicate growth-prior
+operand recovery transform into `financial_aggregate_projection.py`. It
+projects to one 52-line public function and retains one graph-external call in
+calculation candidate preparation. All dependencies are already owner-local or
+already imported on one-way edges, so it adds no module edge or reverse cycle.
+Only this prepared two-operand recovery transform narrows the remaining operand
+repair boundary. Candidate preparation, direct evidence selection, unit/period
+alignment, execution, state/evidence orchestration, rebuild, artifact/ledger
+mutation, and final sequencing stay graph-owned. Exact API, four-method
+characterization gate, call distribution, DAG, and stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

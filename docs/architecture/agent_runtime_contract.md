@@ -3306,8 +3306,8 @@ artifact/ledger mutation, and final sequencing remain in their current graph
 owners. This move establishes no behavior, accuracy, performance, total-code,
 executed-path, benchmark, schedule, or Phase 3 completion claim.
 
-The selected next aggregate-result boundary is two sequential state-free moves
-into `financial_aggregate_projection.py`. Public
+The completed aggregate-result boundary is two sequential state-free moves into
+`financial_aggregate_projection.py`. Public
 `promote_stronger_nested_aggregate_results(ordered_results)` preserves the
 former 64-line graph contract after `self` removal: stable task-ID mapping,
 source-slot preparation, nested traversal, exclusion order, direct-source/
@@ -3328,20 +3328,47 @@ input immutability, access laziness, and uncaught exceptions. Its sole graph
 caller retains exact positional arguments and adopts both returned values at the
 current point.
 
-The two old spans total 188 lines and project to public spans 63 + 123 = 186.
-The selected call distribution remains four graph-external and zero owner-local.
+The two old spans total 188 lines and now occupy public spans 63 + 123 = 186.
+The selected call distribution is four graph-external and zero owner-local.
 Aggregate projection already owns every dependency except
 `nested_subtask_rows(...)` on its existing answer-projection edge, and neither
 answer projection nor numeric/normalization dependencies reach aggregate. The
 owner does not reach calculation, while calculation already imports it, so the
 move is acyclic. No selected span contains a reviewed runtime-domain record.
-The two exact six-method CURRENT-SOURCE gates, affected validation set,
-dead-import list, retired-ref rule, and hard stops are maintained only in
-[Project Status Next Work](../overview/project_status.md#next-work).
+Retired private definitions and refs are zero. Across `6ed195e..b5d97ee`, source
+is `+197/-204`, tests are `+1,569/-184`, and the whole range is
+`+1,766/-388`. Focused 12/12, aggregate owner 76/76, affected semantic
+798/798, import 19/19, audit 217, and full discovery 1,789/1,789 passed. The
+range source diff SHA-256 is
+`ee76d6ffa2c0e1f14e8dec7630a6f11e5f39ad4323e1ed5a23f07e6d0fbda1f8`.
 
 Only these two prepared-row transforms supersede the earlier broad
 synchronization stop. Dependency alignment, projection rebuild, state/evidence
 orchestration, artifact/ledger mutation, and final sequencing remain graph-owned.
+
+The selected next prepared-growth boundary is public
+`recover_duplicate_growth_prior_operand(ordered_operands, evidence_items)` in
+`financial_aggregate_projection.py`. It must preserve the former 53-line graph
+contract after `self` removal: exact two-operand gating; stable current/prior
+role lookup; fresh role-row copies; material-sharing and evidence-recovery
+ordering; display/raw-value, unit fallback, and normalization gates; period,
+rendered display, source quote, and recovery-source projection; replacement by
+operand ID without reordering; unchanged-list identity; changed-prior shallow
+copy and nested aliases; input/evidence immutability; access laziness; and
+uncaught exceptions. The projected owner span is 52 lines. Its sole graph caller
+in `_prepare_calculation_candidate(...)` retains exact positional arguments and
+adopts the returned operands after growth unit alignment and before the existing
+growth-period conflict check.
+
+The aggregate owner already owns every selected dependency on existing one-way
+edges and has no route back to calculation. The move therefore adds no module
+edge or cycle and moves no reviewed runtime-domain record. Candidate input/
+carrier construction, direct evidence selection, duplicate-prior caller
+adoption, unit and period alignment, calculation execution, state/evidence,
+projection rebuild, artifact/ledger mutation, and final sequencing remain
+graph-owned. The exact four-method CURRENT-SOURCE gate, affected validation set,
+retired-ref rule, and hard stops are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

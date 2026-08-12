@@ -397,7 +397,7 @@ Aggregate/narrative row의 state-free answer policy owner다.
 - 완료된 prepared material-inspection cluster도 같은 owner의 public growth-
   required display, strong-trace, lookup-slot, retrieved-ratio-conflict 함수와
   owner-private ratio-value helper로 배치된다. 17 call은 graph external 16개와
-  owner-local 1개이며 growth composition, arithmetic sync, ratio artifact/state,
+  owner-local 1개이며 growth composition, ratio artifact/state,
   final sequencing은 graph에 남는다.
 - 완료된 prepared growth-numeric renderer도 같은 owner의 public
   `compose_complete_growth_numeric_answer(...)`로 배치된다. 아홉 call은 모두
@@ -484,11 +484,16 @@ Aggregate/narrative row의 state-free answer policy owner다.
   scoring과 bounded selected-result promotion 128줄을 answer-projection owner의
   public 2개와 owner-private 2개, 실제 126줄로 옮겼다. 여섯 call은 external
   2/local 4이며 state/task capture와 broader replacement는 그대로 남는다.
-- 다음 선택은 calculation mixin의 nested-result replacement 64줄과 arithmetic
-  subtask-surface sync 124줄을 순차적으로 aggregate owner의 public 2개, 예상
-  186줄로 옮기는 batch다. 네 call은 external 4/local 0이다. aggregate owner는
-  필요한 dependency를 이미 보유하고 calculation reverse path가 없어 acyclic하다.
-  dependency alignment, projection rebuild, mutable state/evidence,
+- 완료된 aggregate-result batch는 nested-result replacement 64줄과 arithmetic
+  subtask-surface sync 124줄을 aggregate owner의 public 2개, 실제 186줄로
+  옮겼다. 네 call은 external 4/local 0이며 broader alignment/rebuild와 caller
+  orchestration은 그대로 남는다.
+- 다음 선택은 calculation mixin의 duplicate growth-prior operand recovery
+  53줄을 aggregate owner의 public 1개, 예상 52줄로 옮기는 batch다. 한 call은
+  external 1/local 0이다. aggregate owner는 normalization과 growth material/
+  evidence recovery dependency를 이미 보유하고 calculation reverse path가 없어
+  acyclic하다. Candidate preparation과 unit/period alignment, calculation
+  execution, projection rebuild, mutable state/evidence,
   artifact/ledger와 final sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
