@@ -2635,6 +2635,61 @@ Exact APIs, the six-method characterize-first gate, projected validation counts,
 and rejected state/callback/carrier/cycle expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Prepared public-answer state-projection ownership
+
+- `a88b215` moves structured-result missing-answer selection, complete aggregate
+  public-answer projection, answer-state copying, and prepared public projection-
+  state assembly into the existing `financial_agent_run_projection.py` owner.
+  The former 21 + 30 + 17 + 6 = 74 definition-span lines become four public
+  functions totaling 20 + 29 + 16 + 6 = 71 owner lines.
+- Thirteen selected direct calls finish as 12 graph-external and one owner-local.
+  Together with the prior run-projection milestone, the owner now exposes public
+  ten plus owner-private two across 24 selected calls split external 21/local
+  three. Retired selected private source/test refs are zero; no wrapper,
+  compatibility alias, callback, reason, flag, carrier, or output field remains.
+- Literal body parity passed for all four moved functions after only `self` and
+  selected-name normalization. Complete caller parity passed for stale structured
+  public-answer repair, structured public-answer trace projection, public runtime-
+  trace repair, and `FinancialAgent.run()`. Public import identity, removed
+  mixin-attribute absence, pycompile/fresh import, DAG, and diff check passed.
+  None of the selected spans moved a runtime-domain baseline record; the reviewed
+  count remains 217.
+- Exactly four source/test files changed. Source is `+105/-93`, net `+12`: main
+  graph moved from 1,011 to 936 physical lines and the run owner from 215 to 302.
+  Tests are `+1,269/-8`, net `+1,261`; the whole commit is `+1,374/-101`, net
+  `+1,273`. Run-projection tests moved from 65 to 71 methods, and exactly six new
+  unittest methods moved full discovery from 1,744 to 1,750.
+- The committed source-only diff SHA-256 is
+  `45e12114a8bfb2f7513cbde887b7fe4a8a7b5ed65c2300af902939b6dc38fc45`.
+  Final validation passed focused 6/6, run-projection owner 71/71, affected
+  eight-module semantic 521/521, import-side-effects 19/19, semantic/import union
+  540/540, runtime audit 217, and full discovery 1,750/1,750. Benchmark refresh
+  was **NOT RUN**, and no remote CI run is claimed or verified for this local
+  branch.
+
+This milestone changes only ownership of deterministic selection and projection
+over already prepared answer, trace, evidence, and state values. Dynamic
+structured/stale answer repair, trace resolution/rebuild, runtime-evidence
+selection, graph execution, compatibility assembly, retrieval/provenance
+construction, mutable state/evidence, artifact/ledger mutation, and final
+sequencing remain graph/existing-owner responsibilities. The commit proves no
+behavior, accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is two sequential characterize-
+first seams totaling 293 current definition-span lines in
+`financial_graph_reconciliation.py`. Prepared candidate statement/unit/period/
+score/identity/row projection moves first; reconciliation-match and candidate-ID
+projection follows into a new `financial_reconciliation_candidates.py` owner.
+The projected surface is 285 lines across seven public and four owner-private
+functions. Twenty-six current calls finish as 19 reconciliation-external and
+seven owner-local. Structured-pair and operand extraction orchestration,
+candidate selection, LLM reranking, evidence construction, artifact/retry/state
+mutation, and final sequencing remain hard stops. Exact APIs, the eight-method
+characterize-first gate, projected validation counts, import/DAG boundary, and
+rejected state/callback/carrier/cycle expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

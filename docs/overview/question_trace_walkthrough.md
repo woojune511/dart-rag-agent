@@ -96,7 +96,7 @@ citations, `structured_result`, `resolved_calculation_trace` 같은 public field
 | LangGraph node/edge wiring | `_build_graph()` |
 | phase별 LLM 선택 | `_build_llm_routes()`, `_llm_for_phase()` |
 | graph 실행 | `run()` |
-| caller-facing output 조립 | `run()` plus `financial_agent_run_projection.project_agent_answer()`, `project_review_trace()`, `project_debug_bundle()` |
+| caller-facing output 조립 | `run()` plus `financial_agent_run_projection.project_agent_answer()`, `project_review_trace()`, `project_debug_bundle()`, `complete_aggregate_public_answer_projection()`, `public_projection_state()` |
 | runtime evidence/citation fallback | `_runtime_evidence_from_retrieved_docs()` plus `financial_agent_run_projection.enrich_runtime_evidence_metadata()`, `augment_citations_from_runtime_evidence()` |
 | final answer projection repair | `run()` plus helper modules |
 

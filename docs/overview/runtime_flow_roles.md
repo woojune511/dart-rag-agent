@@ -289,7 +289,7 @@ State-free owner topology:
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
-| `financial_agent_run_projection.py` | caller-facing evidence metadata/citation and agent-answer/review/debug bundle projection over already prepared values; graph execution, answer repair, evidence selection, trace/ledger work remain outside |
+| `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_graph_calculation_rendering.py` | calculation answer rendering plus ratio result-unit, absolute-query, and result projection policy |
 
@@ -452,16 +452,18 @@ Aggregate/narrative row의 state-free answer policy owner다.
   배치한다. 15개 call은 external 12/local 3이며 lookup-record recovery,
   report-file/local-unit lookup, structured-cell selection, candidate extraction,
   mutable reconciliation state/artifact/retry와 final sequencing은 기존 owner에 남는다.
-- 완료된 caller-facing run projection은 준비된 evidence metadata/citation과
-  public agent-answer/review/debug bundle을 public 6개와 owner-private 2개로
-  배치한다. 11개 call은 external 9/local 2이며 runtime-evidence 선택/fallback,
-  structured/stale answer repair, trace resolution/rebuild, graph execution,
-  compatibility assembly, mutable state/evidence, artifact/ledger와 final sequencing은
-  graph에 남는다.
-- 다음 선택은 prepared public-answer state projection의 74-line 한 seam이다.
-  public 4개와 13개 call의 exact boundary, external 12/local 1 distribution,
-  dynamic repair caller hard stop은 [Project Status의 Next Work](project_status.md#next-work)만
-  기준으로 삼는다.
+- 완료된 caller-facing run projection은 준비된 evidence metadata/citation,
+  public agent-answer/review/debug bundle, structured missing-answer 선택,
+  aggregate completion과 prepared public-answer state projection을 public 10개와
+  owner-private 2개로 배치한다. 선택된 24개 call은 external 21/local 3이며
+  runtime-evidence 선택/fallback, dynamic structured/stale answer repair, trace
+  resolution/rebuild, graph execution, compatibility assembly, mutable state/evidence,
+  artifact/ledger와 final sequencing은 graph에 남는다.
+- 다음 선택은 reconciliation의 prepared candidate metadata/unit/period/score/
+  identity/row/ID projection 293줄을 새 state-free owner로 옮기는 두 seam이다.
+  public 7개와 owner-private 4개, 26개 call의 external 19/local 7 distribution,
+  LLM rerank·evidence/state·artifact/retry hard stop은
+  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 

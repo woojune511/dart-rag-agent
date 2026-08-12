@@ -342,12 +342,37 @@ Runtime-evidence fallback/selection, structured and stale public-answer repair,
 trace resolution/rebuild, graph execution, compatibility assembly, retrieval/
 provenance construction, mutable state/evidence, artifact/ledger work,
 collapsed-ratio and prepared-candidate carriers, bound callbacks, ontology
-compatibility, and final sequencing remain excluded. The selected follow-on is
-now the 74-line prepared public-answer state-projection seam from
-`financial_graph.py` into the existing run-projection owner. Four public
-functions project to 71 owner lines; 13 calls finish as 12 graph-external and
-one owner-local. Exact APIs, the six-method characterization gate, call
-distribution, and dynamic-repair stop lines live only in
+compatibility, and final sequencing remain excluded.
+
+The completed `a88b215` follow-on is another ownership relocation only. It moved
+the former 74 prepared public-answer selection/state-projection definition-span
+lines to four public functions totaling 71 lines in the existing run-projection
+owner. Thirteen calls finish as 12 graph-external and one owner-local; the
+cumulative owner surface is public ten plus owner-private two with 24 calls
+split external 21/local three. Retired selected private refs are zero. Source is
+`+105/-93`, tests are `+1,269/-8`, and the whole commit is `+1,374/-101`.
+Main graph moved from 1,011 to 936 physical lines, the run owner from 215 to 302,
+and six new unittest methods moved full discovery from 1,744 to 1,750. Final
+gates passed focused 6/6, run-projection owner 71/71, affected semantic 521/521,
+import 19/19, semantic/import union 540/540, audit 217, full discovery
+1,750/1,750, pycompile/fresh import, DAG/body/caller parity, and diff check. Its
+source diff SHA-256 is
+`45e12114a8bfb2f7513cbde887b7fe4a8a7b5ed65c2300af902939b6dc38fc45`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
+
+Dynamic structured/stale answer repair, trace rebuild, runtime-evidence
+selection, graph execution, compatibility assembly, mutable state/evidence,
+artifact/ledger work, callbacks, carriers, and final sequencing remain excluded.
+The selected follow-on is now two sequential characterize-first seams totaling
+293 state-free structured-reconciliation candidate-projection lines from
+`financial_graph_reconciliation.py` into a new
+`financial_reconciliation_candidates.py` owner. Seven public and four owner-
+private functions project to 285 owner lines; 26 calls finish as 19
+reconciliation-external and seven owner-local. The graph mixin keeps candidate
+collection/selection orchestration, structured-pair extraction, LLM reranking,
+evidence construction, retry, artifact, mutable-state, and final sequencing.
+Exact APIs, the eight-method characterization gate, call distribution, DAG, and
+stop lines live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

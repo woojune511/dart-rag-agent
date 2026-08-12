@@ -3064,8 +3064,8 @@ responsibilities. Benchmark refresh was **NOT RUN**, remote CI is unverified,
 and the move proves no behavior, accuracy, ranking, performance, total-code,
 executed-path, benchmark, schedule, ledger, or Phase 3 completion.
 
-The next prepared public-answer state boundary retains current behavior until
-its seam is characterized. Public
+The completed prepared public-answer state boundary retains the characterized
+behavior. Public
 `structured_result_answer_for_missing_public_answer(public_answer,
 structured_result)` normalizes the public answer, reads the structured subtask
 answer, rejects blank/equal/nonnumeric structured answers, then requires the
@@ -3091,13 +3091,68 @@ stable concatenation of copied list surfaces from final and runtime evidence.
 Both leave caller mappings and lists unchanged; mapping, iteration, copy, and
 truthiness exceptions propagate.
 
-The selected movement is the exact 74-line, four-public-function, 13-call batch
-specified in [Project Status Next Work](../overview/project_status.md#next-work).
-It projects to 71 owner lines and finishes as 12 graph-external plus one owner-
-local call. Dynamic complete-numeric, structured-subtask, collapsed-ratio,
-period-repair, retrieved-ratio, runtime-evidence selection, graph execution,
+The `a88b215` movement is the exact 74-line, four-public-function, 13-call batch.
+It became 71 owner lines and finishes as 12 graph-external plus one owner-local
+call. Dynamic complete-numeric, structured-subtask, collapsed-ratio, period-
+repair, retrieved-ratio, runtime-evidence selection, graph execution,
 compatibility assembly, mutable state/evidence, artifact/ledger mutation, and
-final sequencing remain graph/existing-owner responsibilities.
+final sequencing remain graph/existing-owner responsibilities. Focused 6/6,
+run-owner 71/71, affected semantic 521/521, import 19/19, union 540/540, runtime
+audit 217, and full discovery 1,750/1,750 passed. Benchmark refresh was **NOT
+RUN**, remote CI is unverified, and the move proves no behavior, accuracy,
+ranking, performance, total-code, executed-path, ledger, or Phase 3 completion.
+
+The next structured-reconciliation candidate-projection boundary must preserve
+the current private implementation until its characterize-first gate passes.
+The selected state-free owner receives already prepared candidate, metadata,
+structured-cell, operand, constraint, and ID mappings. It may normalize, score,
+copy, and project those values, but it must not read or mutate
+`FinancialAgentState`, retrieve evidence, call an LLM, update artifacts, or plan
+a retry.
+
+Candidate statement projection first prefers normalized explicit
+`statement_type`, then constructs the current ordered section/title/heading/
+table/source surface and returns the first configured statement type whose
+configured marker occurs. Candidate unit projection preserves percent-family
+handling, label/header/metadata surface assembly, ambiguous-KRW-unit policy,
+local-unit inference, note-statement gating, and raw-unit fallback. All mapping,
+truthiness, stringification, normalization, policy, and helper exceptions retain
+their current propagation and access order.
+
+Period projection preserves effective operand focus, structured-cell period
+resolution, configured period-presence matching, ordered report-year coercion
+with `TypeError`/`ValueError` soft skips only, target-year handling, and the
+current current/prior/period-hint fallback. Candidate/cell scoring preserves the
+sum of the two existing helper scores and returns that score with the resolved
+period. Structured-cell identity preserves value-ID precedence, row/column
+fallback, and ordered header/value fallback without mutating the cell.
+
+Operand-row projection shallow-copies candidate metadata, derives raw value and
+unit with selected-cell precedence, applies candidate-unit handling before
+normalization, applies lookup magnitude coercion, returns `None` only when the
+normalized value is unavailable, then builds the current fresh row with stable
+field names and operand/candidate metadata. Statement type is currently resolved
+twice on the successful path and that access count remains part of the literal
+contract. Effective-unit projection is the same unit helper over a copied
+metadata view. Nested candidate, cell, operand, alias, and header values retain
+their identities and caller inputs remain unchanged.
+
+Reconciliation-match selection filters by normalized label, prefers the first
+exact role when a role is present, otherwise returns the first label match, and
+returns a fresh empty mapping when none exists. Candidate-ID expansion preserves
+input order, blank skipping, `recon::` alternate generation, `::raw_row`
+variants, first-seen dedupe, and candidate-map membership gating. Candidate
+lookup strips the requested ID, returns `None` for absence, shallow-copies the
+selected candidate, and changes `evidence_row` to `table_row` only when copied
+metadata has a nonblank `row_text`; nested metadata identity remains unchanged.
+
+The exact selected boundary is the 293-line, 11-function, 26-call sequence in
+[Project Status Next Work](../overview/project_status.md#next-work). It projects
+to seven public and four owner-private functions totaling 285 owner lines, with
+19 reconciliation-external and seven owner-local calls. Structured-pair and
+operand extraction orchestration, candidate collection/selection, LLM rerank,
+evidence-item construction, artifact/retry/state mutation, and final sequencing
+remain in `financial_graph_reconciliation.py`.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
