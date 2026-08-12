@@ -5733,7 +5733,6 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             side_effect=structured_owner
         )
         public_state_mock = Mock(side_effect=public_state)
-        agent._repair_collapsed_ratio_trace_from_evidence = Mock(side_effect=collapsed)
         with (
             patch.object(financial_graph, "with_public_answer", structured_with_mock),
             patch.object(
@@ -5742,6 +5741,11 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
                 structured_projection_mock,
             ),
             patch.object(financial_graph, "public_projection_state", public_state_mock),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                side_effect=collapsed,
+            ),
         ):
             projected = agent._structured_public_answer_trace_projection(
                 final,
@@ -5778,19 +5782,23 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             )
             or structured_state
         )
-        agent._repair_collapsed_ratio_trace_from_evidence = Mock(
-            side_effect=lambda state, current_trace: events.append(
-                ("collapsed", state, current_trace)
-            )
-            or collapsed_trace
-        )
         agent._repair_period_comparison_trace_from_evidence = Mock(
             side_effect=lambda state, current_trace: events.append(
                 ("period", state, current_trace)
             )
             or period_trace
         )
-        with patch.object(financial_graph, "public_projection_state", public_state_mock):
+        with (
+            patch.object(financial_graph, "public_projection_state", public_state_mock),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                side_effect=lambda state, current_trace: events.append(
+                    ("collapsed", state, current_trace)
+                )
+                or collapsed_trace,
+            ),
+        ):
             repaired = agent._repair_public_runtime_calculation_trace(
                 final,
                 trace,
@@ -5809,13 +5817,21 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
         self.assertIs(events[2][2], collapsed_trace)
 
         downstream = Mock(side_effect=AssertionError("repair should stay lazy"))
-        agent._repair_collapsed_ratio_trace_from_evidence = downstream
-        agent._repair_period_comparison_trace_from_evidence = downstream
         with (
             patch.object(
                 financial_graph,
                 "public_projection_state",
                 side_effect=RuntimeError("public state failed"),
+            ),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                downstream,
+            ),
+            patch.object(
+                agent,
+                "_repair_period_comparison_trace_from_evidence",
+                downstream,
             ),
             self.assertRaisesRegex(RuntimeError, "public state failed"),
         ):

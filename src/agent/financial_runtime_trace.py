@@ -5,14 +5,20 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional
 
+from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_answer_projection import _preferred_complete_aggregate_subtask_answer
-from src.agent.financial_graph_state import RuntimeCalculationTrace
+from src.agent.financial_graph_state import FinancialAgentState, RuntimeCalculationTrace
 from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
+from src.agent.financial_numeric_surface import (
+    extract_numeric_surface_candidates,
+    numeric_candidates_with_spans_from_surface,
+)
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _format_korean_won_compact,
     _normalise_spaces,
 )
+from src.agent.financial_text_surface import narrative_context_terms
 from src.agent.financial_task_artifacts import (
     _find_task_record_in_list,
     _latest_artifact_value_for_task_records,
@@ -23,6 +29,7 @@ from src.config.report_scoped_cache import (
     classify_report_cache_consumer_candidate,
     report_cache_key_id,
 )
+from src.config.retrieval_policy import STRUCTURED_CELL_AFFINITY_POLICY
 from src.schema.runtime_enums import ArtifactKind
 
 
@@ -61,6 +68,317 @@ def overlay_calculation_operands_from_slots(
             )
         updated_operands.append(row)
     return updated_operands
+
+
+def repair_collapsed_ratio_trace_from_evidence(
+    state: FinancialAgentState,
+    trace: Dict[str, Any],
+) -> Dict[str, Any]:
+    calculation_plan = dict((trace or {}).get("calculation_plan") or {})
+    calculation_result = dict((trace or {}).get("calculation_result") or {})
+    answer_slots = dict(calculation_result.get("answer_slots") or {})
+    operation_family = _normalise_spaces(
+        str(
+            answer_slots.get("operation_family")
+            or calculation_result.get("operation_family")
+            or calculation_plan.get("operation")
+            or ""
+        )
+    ).lower()
+    if operation_family != "ratio":
+        return trace
+    if _normalise_spaces(str(calculation_result.get("status") or "")).lower() != "ok":
+        return trace
+    components_by_group = dict(answer_slots.get("components_by_group") or {})
+    numerator_slots = [
+        dict(item)
+        for item in list(components_by_group.get("numerator") or [])
+        if isinstance(item, dict)
+    ]
+    denominator_slots = [
+        dict(item)
+        for item in list(components_by_group.get("denominator") or [])
+        if isinstance(item, dict)
+    ]
+    if not numerator_slots or not denominator_slots:
+        return trace
+
+    def _slot_identity(slot: Dict[str, Any]) -> tuple[str, str]:
+        source_ids = "|".join(_clean_source_row_ids([slot.get("source_row_id"), slot.get("source_row_ids")]))
+        try:
+            normalized = f"{float(slot.get('normalized_value')):.6f}"
+        except (TypeError, ValueError):
+            normalized = _normalise_spaces(str(slot.get("normalized_value") or slot.get("raw_value") or ""))
+        return source_ids, normalized
+
+    numerator_identity = _slot_identity(numerator_slots[0])
+    denominator_identity = _slot_identity(denominator_slots[0])
+    if not all(numerator_identity) or numerator_identity != denominator_identity:
+        return trace
+
+    evidence_rows = [
+        dict(item)
+        for item in [
+            *list(state.get("evidence_items") or []),
+            *list(state.get("runtime_evidence") or []),
+        ]
+        if isinstance(item, dict)
+    ]
+    for index, item in enumerate(list(state.get("seed_retrieved_docs") or []) + list(state.get("retrieved_docs") or [])):
+        doc = item[0] if isinstance(item, (tuple, list)) and item else item
+        if isinstance(doc, dict):
+            page_content = _normalise_spaces(
+                str(doc.get("page_content") or doc.get("content") or doc.get("text") or "")
+            )
+            metadata = dict(doc.get("metadata") or {})
+        else:
+            page_content = _normalise_spaces(
+                str(getattr(doc, "page_content", None) or getattr(doc, "content", None) or "")
+            )
+            metadata = dict(getattr(doc, "metadata", {}) or {})
+        if not page_content:
+            continue
+        evidence_rows.append(
+            {
+                "evidence_id": f"retrieved::{index + 1:03d}",
+                "claim": page_content,
+                "quote_span": page_content,
+                "source_anchor": metadata.get("source_anchor")
+                or metadata.get("section_path")
+                or metadata.get("section")
+                or "",
+                "metadata": metadata,
+            }
+        )
+    if not evidence_rows:
+        return trace
+    aggregate_tokens = tuple(
+        _normalise_spaces(str(item))
+        for item in (STRUCTURED_CELL_AFFINITY_POLICY.get("aggregate_tokens") or ())
+        if _normalise_spaces(str(item))
+    )
+
+    def _label_terms(slot: Dict[str, Any]) -> List[str]:
+        text = _normalise_spaces(str(slot.get("label") or ""))
+        if not text:
+            text = _normalise_spaces(str(slot.get("concept") or ""))
+        terms = [
+            term
+            for term in narrative_context_terms(text)
+            if len(term) >= 2
+        ]
+        return list(dict.fromkeys(terms))
+
+    def _candidate_for_slot(slot: Dict[str, Any], role_group: str) -> Dict[str, Any]:
+        terms = _label_terms(slot)
+        if not terms:
+            return {}
+        preferred_anchor = _normalise_spaces(str(slot.get("source_anchor") or ""))
+
+        def _anchor_compatible(evidence: Dict[str, Any]) -> bool:
+            if not preferred_anchor:
+                return False
+            metadata = dict(evidence.get("metadata") or {})
+            candidate_anchor = _normalise_spaces(
+                str(
+                    evidence.get("source_anchor")
+                    or metadata.get("source_anchor")
+                    or metadata.get("section_path")
+                    or metadata.get("section")
+                    or ""
+                )
+            )
+            if not candidate_anchor:
+                return False
+            return preferred_anchor in candidate_anchor or candidate_anchor in preferred_anchor
+
+        ranked: List[tuple[int, int, int, int, Dict[str, Any]]] = []
+        for evidence in evidence_rows:
+            metadata = dict(evidence.get("metadata") or {})
+            surface = _normalise_spaces(
+                " ".join(
+                    str(evidence.get(key) or "")
+                    for key in ("claim", "quote_span", "raw_row_text", "source_context")
+                    if str(evidence.get(key) or "").strip()
+                )
+            )
+            if not surface:
+                continue
+            matched_terms = [term for term in terms if term in surface]
+            if not matched_terms:
+                continue
+            if role_group == "numerator" and len(terms) > 1 and len(matched_terms) < len(terms):
+                continue
+            candidates = [
+                candidate
+                for candidate in [
+                    *extract_numeric_surface_candidates(surface),
+                    *numeric_candidates_with_spans_from_surface(surface, metadata),
+                ]
+                if candidate.get("normalized_value") is not None or candidate.get("value") is not None
+            ]
+            expected_unit = _normalise_spaces(str(slot.get("normalized_unit") or "")).upper()
+            if expected_unit:
+                candidates = [
+                    candidate
+                    for candidate in candidates
+                    if _normalise_spaces(str(candidate.get("normalized_unit") or "")).upper() == expected_unit
+                ]
+            if not candidates:
+                continue
+            aggregate_score = (
+                1
+                if role_group == "denominator"
+                and any(token and token in surface for token in aggregate_tokens)
+                else 0
+            )
+            label_score = len(matched_terms)
+            evidence_id = str(evidence.get("evidence_id") or "")
+            if evidence_id.startswith("retrieved::"):
+                source_score = 0
+            elif evidence_id.startswith("operand::"):
+                source_score = 2
+            else:
+                source_score = 3
+            provenance_score = 4 if _anchor_compatible(evidence) else -3 if preferred_anchor else 0
+            for candidate in candidates:
+                span_start = -1
+                span = candidate.get("span")
+                if isinstance(span, (list, tuple)) and span:
+                    try:
+                        span_start = int(span[0])
+                    except (TypeError, ValueError):
+                        span_start = -1
+                anchor_positions = [
+                    surface.find(term)
+                    for term in matched_terms
+                    if term and surface.find(term) >= 0
+                ]
+                if role_group == "denominator":
+                    aggregate_anchor_positions = [
+                        surface.find(token)
+                        for token in aggregate_tokens
+                        if token and surface.find(token) >= 0
+                    ]
+                    if aggregate_anchor_positions:
+                        anchor_positions = aggregate_anchor_positions
+                distance_score = 0
+                if span_start >= 0 and anchor_positions:
+                    distance_score = -min(abs(span_start - position) for position in anchor_positions)
+                span_score = 1 if span_start >= 0 else 0
+                ranked.append(
+                    (
+                        label_score + aggregate_score + source_score + provenance_score,
+                        span_score,
+                        distance_score,
+                        provenance_score,
+                        {
+                            "candidate": dict(candidate),
+                            "evidence": evidence,
+                        },
+                    )
+                )
+        if not ranked:
+            return {}
+        ranked.sort(key=lambda item: (item[0], item[1], item[2], item[3]), reverse=True)
+        return ranked[0][4]
+
+    numerator_match = _candidate_for_slot(numerator_slots[0], "numerator")
+    denominator_match = _candidate_for_slot(denominator_slots[0], "denominator")
+    if not numerator_match or not denominator_match:
+        return trace
+    numerator_candidate = dict(numerator_match.get("candidate") or {})
+    denominator_candidate = dict(denominator_match.get("candidate") or {})
+    try:
+        numerator_value = float(numerator_candidate.get("normalized_value", numerator_candidate.get("value")))
+        denominator_value = float(denominator_candidate.get("normalized_value", denominator_candidate.get("value")))
+    except (TypeError, ValueError):
+        return trace
+    if denominator_value == 0 or numerator_value == denominator_value:
+        return trace
+    result_value = (numerator_value / denominator_value) * 100.0
+    rendered_value = calculation_rendering.format_ratio_percent_result(result_value)
+
+    def _updated_slot(slot: Dict[str, Any], match: Dict[str, Any], normalized_value: float) -> Dict[str, Any]:
+        candidate = dict(match.get("candidate") or {})
+        evidence = dict(match.get("evidence") or {})
+        raw_value = _normalise_spaces(str(candidate.get("value_text") or candidate.get("raw_value") or ""))
+        if not raw_value and candidate.get("value") is not None:
+            display_step = candidate.get("display_step")
+            try:
+                if display_step:
+                    raw_value = f"{float(candidate.get('value')) / float(display_step):,.0f}"
+                else:
+                    raw_value = f"{float(candidate.get('value')):g}"
+            except (TypeError, ValueError):
+                raw_value = _normalise_spaces(str(candidate.get("value") or ""))
+        raw_unit = _normalise_spaces(str(candidate.get("unit_text") or candidate.get("unit") or slot.get("raw_unit") or ""))
+        rendered = _normalise_spaces(f"{raw_value}{raw_unit}") if raw_unit else raw_value
+        source_ids = _clean_source_row_ids([evidence.get("evidence_id"), evidence.get("source_row_id"), evidence.get("source_row_ids")])
+        return {
+            **dict(slot),
+            "raw_value": raw_value or slot.get("raw_value"),
+            "raw_unit": raw_unit or slot.get("raw_unit"),
+            "normalized_value": normalized_value,
+            "normalized_unit": candidate.get("normalized_unit") or slot.get("normalized_unit"),
+            "rendered_value": rendered or slot.get("rendered_value"),
+            "source_row_id": source_ids[0] if source_ids else slot.get("source_row_id"),
+            "source_row_ids": source_ids or slot.get("source_row_ids"),
+            "source_anchor": evidence.get("source_anchor") or slot.get("source_anchor"),
+        }
+
+    updated_numerator = _updated_slot(numerator_slots[0], numerator_match, numerator_value)
+    updated_denominator = _updated_slot(denominator_slots[0], denominator_match, denominator_value)
+    updated_components_by_group = dict(components_by_group)
+    updated_components_by_group["numerator"] = [updated_numerator, *numerator_slots[1:]]
+    updated_components_by_group["denominator"] = [updated_denominator, *denominator_slots[1:]]
+    updated_components_by_role = dict(answer_slots.get("components_by_role") or {})
+    numerator_role = str(updated_numerator.get("role") or "numerator_1")
+    denominator_role = str(updated_denominator.get("role") or "denominator_1")
+    updated_components_by_role[numerator_role] = [updated_numerator]
+    updated_components_by_role[denominator_role] = [updated_denominator]
+    source_row_ids = _clean_source_row_ids([
+        updated_numerator.get("source_row_id"),
+        updated_numerator.get("source_row_ids"),
+        updated_denominator.get("source_row_id"),
+        updated_denominator.get("source_row_ids"),
+    ])
+    updated_slots = {
+        **answer_slots,
+        "components_by_group": updated_components_by_group,
+        "components_by_role": updated_components_by_role,
+        "source_row_ids": source_row_ids,
+        "primary_value": {
+            **dict(answer_slots.get("primary_value") or {}),
+            "normalized_value": result_value,
+            "normalized_unit": "PERCENT",
+            "raw_unit": "%",
+            "rendered_value": rendered_value,
+            "source_row_id": source_row_ids[0] if source_row_ids else "",
+            "source_row_ids": source_row_ids,
+        },
+    }
+    updated_result = {
+        **calculation_result,
+        "result_value": result_value,
+        "result_unit": "%",
+        "rendered_value": rendered_value,
+        "formatted_result": "",
+        "source_row_ids": source_row_ids,
+        "answer_slots": updated_slots,
+        "stale_result_repaired_from_evidence": True,
+    }
+    role_updates = {
+        numerator_role: updated_numerator,
+        denominator_role: updated_denominator,
+    }
+    updated_trace = dict(trace or {})
+    updated_trace["calculation_operands"] = overlay_calculation_operands_from_slots(
+        trace,
+        role_updates,
+    )
+    updated_trace["calculation_result"] = updated_result
+    return updated_trace
 
 
 def _attach_runtime_projection_metadata(

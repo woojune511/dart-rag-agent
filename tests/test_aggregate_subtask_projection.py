@@ -107,6 +107,56 @@ def _repaired_growth_result() -> dict:
     }
 
 
+def _collapsed_ratio_trace_fixture() -> dict:
+    nested = {"preserve": True}
+    return {
+        "calculation_operands": [
+            {"matched_operand_role": "numerator_1", "raw_value": "old", "nested": nested},
+            {"matched_operand_role": "denominator_1", "raw_value": "old", "nested": nested},
+        ],
+        "calculation_plan": {"operation": "ratio", "nested": nested},
+        "calculation_result": {
+            "status": "ok",
+            "operation_family": "ratio",
+            "formatted_result": "stale",
+            "answer_slots": {
+                "operation_family": "ratio",
+                "components_by_group": {
+                    "numerator": [
+                        {
+                            "role": "numerator_1",
+                            "label": "alpha beta",
+                            "normalized_value": 1.0,
+                            "normalized_unit": "KRW",
+                            "raw_unit": "KRW",
+                            "source_row_id": "same",
+                            "source_anchor": "anchor-main",
+                            "nested": nested,
+                        }
+                    ],
+                    "denominator": [
+                        {
+                            "role": "denominator_1",
+                            "label": "total",
+                            "normalized_value": 1.0,
+                            "normalized_unit": "KRW",
+                            "raw_unit": "KRW",
+                            "source_row_id": "same",
+                            "source_anchor": "anchor-total",
+                            "nested": nested,
+                        }
+                    ],
+                },
+                "components_by_role": {"keep": [{"nested": nested}]},
+                "primary_value": {"rendered_value": "stale", "nested": nested},
+                "nested": nested,
+            },
+            "nested": nested,
+        },
+        "nested": nested,
+    }
+
+
 class AggregateSubtaskProjectionTests(unittest.TestCase):
     def test_current_source_narrative_summary_predicate_precedence_access_and_exceptions(self) -> None:
         nested = {"preserve": True}
@@ -12053,6 +12103,1324 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             )
         )
 
+    def test_current_source_collapsed_ratio_early_gates_identity_laziness_and_soft_fallbacks(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+
+        class StateBomb(dict):
+            def get(self, key, default=None):
+                raise AssertionError(f"state should stay lazy: {key}")
+
+        class StringBomb:
+            def __str__(self) -> str:
+                raise AssertionError("status should stay lazy")
+
+        extractor = Mock(side_effect=AssertionError("numeric extraction should stay lazy"))
+        overlay = Mock(side_effect=AssertionError("operand overlay should stay lazy"))
+        with (
+            patch.object(financial_runtime_trace, "extract_numeric_surface_candidates", extractor),
+            patch.object(financial_runtime_trace, "overlay_calculation_operands_from_slots", overlay),
+        ):
+            non_ratio = _collapsed_ratio_trace_fixture()
+            non_ratio["calculation_result"]["answer_slots"]["operation_family"] = "difference"
+            status_value = StringBomb()
+            non_ratio["calculation_result"]["status"] = status_value
+            frozen_non_ratio_plan = deepcopy(non_ratio["calculation_plan"])
+            frozen_non_ratio_slots = deepcopy(non_ratio["calculation_result"]["answer_slots"])
+            frozen_non_ratio_operands = deepcopy(non_ratio["calculation_operands"])
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), non_ratio),
+                non_ratio,
+            )
+            self.assertEqual(non_ratio["calculation_plan"], frozen_non_ratio_plan)
+            self.assertEqual(non_ratio["calculation_result"]["answer_slots"], frozen_non_ratio_slots)
+            self.assertEqual(non_ratio["calculation_operands"], frozen_non_ratio_operands)
+            self.assertIs(non_ratio["calculation_result"]["status"], status_value)
+
+            failed = _collapsed_ratio_trace_fixture()
+            failed["calculation_result"]["status"] = "failed"
+            failed["calculation_result"]["answer_slots"]["components_by_group"] = StringBomb()
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), failed),
+                failed,
+            )
+
+            missing_component = _collapsed_ratio_trace_fixture()
+            missing_component["calculation_result"]["answer_slots"]["components_by_group"][
+                "denominator"
+            ] = []
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), missing_component),
+                missing_component,
+            )
+
+            missing_identity = _collapsed_ratio_trace_fixture()
+            numerator = missing_identity["calculation_result"]["answer_slots"][
+                "components_by_group"
+            ]["numerator"][0]
+            numerator["source_row_id"] = ""
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), missing_identity),
+                missing_identity,
+            )
+
+            unequal_identity = _collapsed_ratio_trace_fixture()
+            unequal_identity["calculation_result"]["answer_slots"]["components_by_group"][
+                "denominator"
+            ][0]["normalized_value"] = 2.0
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), unequal_identity),
+                unequal_identity,
+            )
+
+        class RecordingState(dict):
+            def __init__(self):
+                super().__init__()
+                self.accesses = []
+
+            def get(self, key, default=None):
+                self.accesses.append(key)
+                return super().get(key, default)
+
+        raw_fallback = _collapsed_ratio_trace_fixture()
+        raw_components = raw_fallback["calculation_result"]["answer_slots"][
+            "components_by_group"
+        ]
+        for role in ("numerator", "denominator"):
+            raw_components[role][0]["normalized_value"] = None
+            raw_components[role][0]["raw_value"] = " 7 "
+        recording_state = RecordingState()
+        self.assertIs(
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(recording_state, raw_fallback),
+            raw_fallback,
+        )
+        self.assertEqual(
+            recording_state.accesses,
+            ["evidence_items", "runtime_evidence", "seed_retrieved_docs", "retrieved_docs"],
+        )
+
+        unequal_raw = _collapsed_ratio_trace_fixture()
+        unequal_components = unequal_raw["calculation_result"]["answer_slots"][
+            "components_by_group"
+        ]
+        for role, value in (("numerator", "7"), ("denominator", "8")):
+            unequal_components[role][0]["normalized_value"] = None
+            unequal_components[role][0]["raw_value"] = value
+        self.assertIs(
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), unequal_raw),
+            unequal_raw,
+        )
+
+        class FloatBomb:
+            def __float__(self) -> float:
+                raise RuntimeError("identity float failed")
+
+        float_bomb = _collapsed_ratio_trace_fixture()
+        float_bomb["calculation_result"]["answer_slots"]["components_by_group"][
+            "numerator"
+        ][0]["normalized_value"] = FloatBomb()
+        with self.assertRaisesRegex(RuntimeError, "identity float failed"):
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), float_bomb)
+
+        clean_bomb = _collapsed_ratio_trace_fixture()
+        with patch.object(
+            financial_runtime_trace,
+            "_clean_source_row_ids",
+            side_effect=RuntimeError("source identity failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "source identity failed"):
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), clean_bomb)
+
+        status_bomb = _collapsed_ratio_trace_fixture()
+        with patch.object(
+            financial_runtime_trace,
+            "_normalise_spaces",
+            side_effect=("ratio", RuntimeError("status normalization failed")),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "status normalization failed"):
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(StateBomb(), status_bomb)
+
+        extractor.assert_not_called()
+        overlay.assert_not_called()
+
+    def test_current_source_collapsed_ratio_evidence_and_context_doc_collection_copy_access(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        trace = _collapsed_ratio_trace_fixture()
+        nested = trace["nested"]
+        state_metadata = {"source_anchor": "anchor-main", "nested": nested}
+        runtime_metadata = {"source_anchor": "anchor-total", "nested": nested}
+        evidence_item = {
+            "evidence_id": "ev-state",
+            "claim": "alpha beta 10",
+            "source_anchor": "anchor-main",
+            "metadata": state_metadata,
+            "nested": nested,
+        }
+        runtime_item = {
+            "evidence_id": "ev-runtime",
+            "claim": "total 20",
+            "source_anchor": "anchor-total",
+            "metadata": runtime_metadata,
+            "nested": nested,
+        }
+        doc_events = []
+
+        class RecordingDoc(dict):
+            def get(self, key, default=None):
+                doc_events.append(f"dict:{key}")
+                if key in {"content", "text"}:
+                    raise AssertionError(f"{key} should stay lazy")
+                return super().get(key, default)
+
+        seed_metadata = {"section_path": "anchor-main / table", "nested": nested}
+        seed_doc = RecordingDoc(
+            page_content="alpha beta 30",
+            metadata=seed_metadata,
+            nested=nested,
+        )
+
+        class ObjectDoc:
+            def __init__(self):
+                self._metadata = {"section": "anchor-total", "nested": nested}
+
+            @property
+            def page_content(self):
+                doc_events.append("object:page_content")
+                return "total 40"
+
+            @property
+            def content(self):
+                raise AssertionError("object content should stay lazy")
+
+            @property
+            def text(self):
+                raise AssertionError("object text should stay lazy")
+
+            @property
+            def metadata(self):
+                doc_events.append("object:metadata")
+                return self._metadata
+
+        object_doc = ObjectDoc()
+        state = {
+            "evidence_items": [evidence_item, "skip"],
+            "runtime_evidence": [runtime_item],
+            "seed_retrieved_docs": [(seed_doc, 0.9)],
+            "retrieved_docs": [object_doc],
+            "nested": nested,
+        }
+        frozen_trace = deepcopy(trace)
+        frozen_evidence_item = deepcopy(evidence_item)
+        frozen_runtime_item = deepcopy(runtime_item)
+        frozen_seed_doc = deepcopy(dict(seed_doc))
+        frozen_object_metadata = deepcopy(object_doc._metadata)
+        metadata_calls = []
+
+        def terms(label):
+            return ["alpha", "beta"] if "alpha" in label else ["total"]
+
+        def spans(surface, metadata):
+            metadata_calls.append((surface, metadata))
+            return []
+
+        with (
+            patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+            patch.object(financial_runtime_trace, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                side_effect=spans,
+            ),
+            patch.object(financial_runtime_trace, "overlay_calculation_operands_from_slots") as stopped_overlay,
+        ):
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace),
+                trace,
+            )
+        stopped_overlay.assert_not_called()
+        self.assertEqual(
+            [surface for surface, _ in metadata_calls],
+            [
+                "alpha beta 10",
+                "alpha beta 30 alpha beta 30",
+                "total 20",
+                "total 40 total 40",
+            ],
+        )
+        metadata_by_surface = {surface: metadata for surface, metadata in metadata_calls}
+        self.assertIsNot(metadata_by_surface["alpha beta 10"], state_metadata)
+        self.assertIs(metadata_by_surface["alpha beta 10"]["nested"], nested)
+        self.assertIsNot(metadata_by_surface["total 20"], runtime_metadata)
+        self.assertIs(metadata_by_surface["total 20"]["nested"], nested)
+        self.assertIsNot(metadata_by_surface["alpha beta 30 alpha beta 30"], seed_metadata)
+        self.assertIs(metadata_by_surface["alpha beta 30 alpha beta 30"]["nested"], nested)
+        self.assertEqual(
+            doc_events,
+            ["dict:page_content", "dict:metadata", "object:page_content", "object:metadata"],
+        )
+        self.assertEqual(trace, frozen_trace)
+        self.assertEqual(evidence_item, frozen_evidence_item)
+        self.assertEqual(runtime_item, frozen_runtime_item)
+        self.assertEqual(dict(seed_doc), frozen_seed_doc)
+        self.assertEqual(object_doc._metadata, frozen_object_metadata)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(state["evidence_items"][0], evidence_item)
+        self.assertIs(state["runtime_evidence"][0], runtime_item)
+        self.assertIs(state["seed_retrieved_docs"][0][0], seed_doc)
+        self.assertIs(state["retrieved_docs"][0], object_doc)
+
+        doc_trace = _collapsed_ratio_trace_fixture()
+        doc_trace["calculation_result"]["answer_slots"]["components_by_group"][
+            "numerator"
+        ][0]["source_anchor"] = "anchor-main"
+        doc_trace["calculation_result"]["answer_slots"]["components_by_group"][
+            "denominator"
+        ][0]["source_anchor"] = "anchor-total"
+        blank_doc = {"page_content": "", "metadata": {"nested": nested}}
+        doc_state = {
+            "seed_retrieved_docs": [(seed_doc, 0.9), blank_doc],
+            "retrieved_docs": [object_doc],
+        }
+        captured_roles = []
+
+        def candidates(surface):
+            if "alpha" in surface:
+                return [
+                    {
+                        "normalized_value": 30.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "30",
+                        "unit_text": "KRW",
+                        "span": (11, 13),
+                    }
+                ]
+            if "total" in surface:
+                return [
+                    {
+                        "normalized_value": 40.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "40",
+                        "unit_text": "KRW",
+                        "span": (6, 8),
+                    }
+                ]
+            return []
+
+        def overlay(original_trace, role_updates):
+            self.assertIs(original_trace, doc_trace)
+            captured_roles.append(role_updates)
+            return []
+
+        with (
+            patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+            patch.object(
+                financial_runtime_trace,
+                "extract_numeric_surface_candidates",
+                side_effect=candidates,
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                return_value=[],
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "overlay_calculation_operands_from_slots",
+                side_effect=overlay,
+            ),
+            patch.object(
+                financial_runtime_trace.calculation_rendering,
+                "format_ratio_percent_result",
+                return_value="75.00%",
+            ),
+        ):
+            doc_result = financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(doc_state, doc_trace)
+        self.assertEqual(doc_result["calculation_result"]["result_value"], 75.0)
+        self.assertEqual(len(captured_roles), 1)
+        self.assertEqual(
+            [
+                captured_roles[0][role]["source_row_id"]
+                for role in ("numerator_1", "denominator_1")
+            ],
+            ["retrieved::001", "retrieved::003"],
+        )
+        self.assertEqual(
+            [
+                captured_roles[0][role]["source_anchor"]
+                for role in ("numerator_1", "denominator_1")
+            ],
+            ["anchor-main / table", "anchor-total"],
+        )
+
+        class BlankMetadataBomb(dict):
+            def get(self, key, default=None):
+                if key == "metadata":
+                    raise RuntimeError("blank metadata failed")
+                return super().get(key, default)
+
+        with self.assertRaisesRegex(RuntimeError, "blank metadata failed"):
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(
+                {"seed_retrieved_docs": [BlankMetadataBomb(page_content="")]},
+                _collapsed_ratio_trace_fixture(),
+            )
+
+    def test_current_source_collapsed_ratio_ranking_anchor_unit_and_stable_tie(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        trace = _collapsed_ratio_trace_fixture()
+        nested = trace["nested"]
+        evidence_items = [
+            {
+                "evidence_id": "ev-partial",
+                "claim": "alpha 99",
+                "source_anchor": "anchor-main",
+                "metadata": {"source_anchor": "anchor-main", "nested": nested},
+            },
+            {
+                "evidence_id": "ev-anchor-first",
+                "claim": "alpha beta 12",
+                "source_anchor": "section / anchor-main / table",
+                "metadata": {"nested": nested},
+            },
+            {
+                "evidence_id": "ev-anchor-second",
+                "claim": "alpha beta 14",
+                "source_anchor": "section / anchor-main / table",
+                "metadata": {"nested": nested},
+            },
+            {
+                "evidence_id": "ev-total",
+                "claim": "total 20",
+                "source_anchor": "anchor-total",
+                "metadata": {"nested": nested},
+            },
+            {
+                "evidence_id": "ev-aggregate",
+                "claim": "aggregate total 40",
+                "source_anchor": "anchor-total / table",
+                "metadata": {"nested": nested},
+            },
+        ]
+        state = {"evidence_items": evidence_items, "nested": nested}
+        frozen_trace = deepcopy(trace)
+        frozen_state = deepcopy(state)
+        extracted_surfaces = []
+        span_surfaces = []
+        captured_roles = []
+
+        def terms(label):
+            return ["alpha", "beta"] if "alpha" in label else ["total"]
+
+        def candidates(surface):
+            extracted_surfaces.append(surface)
+            if surface == "alpha beta 12":
+                return [
+                    {
+                        "normalized_value": 999.0,
+                        "normalized_unit": "USD",
+                        "value_text": "999",
+                        "unit_text": "USD",
+                        "span": (11, 13),
+                    },
+                    {
+                        "normalized_value": 12.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "12",
+                        "unit_text": "KRW",
+                        "span": (11, 13),
+                    },
+                ]
+            if surface == "alpha beta 14":
+                return [
+                    {
+                        "normalized_value": 14.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "14",
+                        "unit_text": "KRW",
+                        "span": (11, 13),
+                    }
+                ]
+            if surface == "total 20":
+                return [
+                    {
+                        "normalized_value": 20.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "20",
+                        "unit_text": "KRW",
+                        "span": (6, 8),
+                    }
+                ]
+            if surface == "aggregate total 40":
+                return [
+                    {
+                        "normalized_value": 40.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "40",
+                        "unit_text": "KRW",
+                        "span": (16, 18),
+                    }
+                ]
+            return []
+
+        def candidates_with_spans(surface, metadata):
+            span_surfaces.append((surface, metadata))
+            if surface == "alpha beta 12":
+                return [
+                    {
+                        "normalized_value": 13.0,
+                        "normalized_unit": "KRW",
+                        "value_text": "13",
+                        "unit_text": "KRW",
+                        "span": (11, 13),
+                    }
+                ]
+            return []
+
+        def overlay(original_trace, role_updates):
+            self.assertIs(original_trace, trace)
+            captured_roles.append(role_updates)
+            return [{"overlay": True, "nested": nested}]
+
+        policy = {"aggregate_tokens": [" aggregate ", "", "aggregate"]}
+        with (
+            patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", policy),
+            patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+            patch.object(
+                financial_runtime_trace,
+                "extract_numeric_surface_candidates",
+                side_effect=candidates,
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                side_effect=candidates_with_spans,
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "overlay_calculation_operands_from_slots",
+                side_effect=overlay,
+            ),
+            patch.object(
+                financial_runtime_trace.calculation_rendering,
+                "format_ratio_percent_result",
+                return_value="30.00%",
+            ) as renderer,
+        ):
+            result = financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace)
+
+        self.assertNotIn("alpha 99", extracted_surfaces)
+        self.assertEqual(
+            extracted_surfaces,
+            ["alpha beta 12", "alpha beta 14", "total 20", "aggregate total 40"],
+        )
+        self.assertEqual([surface for surface, _ in span_surfaces], extracted_surfaces)
+        self.assertEqual(len(captured_roles), 1)
+        roles = captured_roles[0]
+        self.assertEqual(roles["numerator_1"]["normalized_value"], 12.0)
+        self.assertEqual(roles["numerator_1"]["source_row_id"], "ev-anchor-first")
+        self.assertEqual(roles["numerator_1"]["normalized_unit"], "KRW")
+        self.assertEqual(roles["denominator_1"]["normalized_value"], 40.0)
+        self.assertEqual(roles["denominator_1"]["source_row_id"], "ev-aggregate")
+        self.assertEqual(result["calculation_result"]["result_value"], 30.0)
+        self.assertEqual(result["calculation_result"]["rendered_value"], "30.00%")
+        renderer.assert_called_once_with(30.0)
+        self.assertEqual(trace, frozen_trace)
+        self.assertEqual(state, frozen_state)
+        self.assertIs(state["evidence_items"][0], evidence_items[0])
+        self.assertIs(state["nested"], nested)
+
+        class PolicyBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError("aggregate policy failed")
+
+        stopped_terms = Mock(side_effect=AssertionError("terms should stay lazy"))
+        with (
+            patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", PolicyBomb()),
+            patch.object(financial_runtime_trace, "narrative_context_terms", stopped_terms),
+            self.assertRaisesRegex(RuntimeError, "aggregate policy failed"),
+        ):
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace)
+        stopped_terms.assert_not_called()
+
+        with (
+            patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": []}),
+            patch.object(
+                financial_runtime_trace,
+                "narrative_context_terms",
+                side_effect=RuntimeError("label terms failed"),
+            ),
+            patch.object(financial_runtime_trace, "extract_numeric_surface_candidates") as stopped_extract,
+            self.assertRaisesRegex(RuntimeError, "label terms failed"),
+        ):
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace)
+        stopped_extract.assert_not_called()
+
+    def test_current_source_collapsed_ratio_result_slot_overlay_and_exception_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        trace = _collapsed_ratio_trace_fixture()
+        nested = trace["nested"]
+        numerator_slots = trace["calculation_result"]["answer_slots"]["components_by_group"][
+            "numerator"
+        ]
+        denominator_slots = trace["calculation_result"]["answer_slots"]["components_by_group"][
+            "denominator"
+        ]
+        extra_numerator = {
+            "role": "numerator_2",
+            "label": "extra",
+            "normalized_value": 2.0,
+            "source_row_id": "extra",
+            "nested": nested,
+        }
+        numerator_slots.extend([extra_numerator, "skip"])
+        denominator_slots[0].pop("role")
+        state = {
+            "evidence_items": [
+                {
+                    "evidence_id": "ev-n",
+                    "claim": "alpha beta 25",
+                    "source_row_id": "row-n1",
+                    "source_row_ids": ["row-n2", "row-n2"],
+                    "source_anchor": "anchor-main",
+                    "metadata": {"nested": nested},
+                },
+                {
+                    "evidence_id": "ev-d",
+                    "claim": "total 100",
+                    "source_row_id": "row-d1",
+                    "source_row_ids": ["row-d2"],
+                    "source_anchor": "anchor-total",
+                    "metadata": {"nested": nested},
+                },
+            ],
+            "nested": nested,
+        }
+        frozen_trace = deepcopy(trace)
+        frozen_state = deepcopy(state)
+
+        class SoftValue:
+            def __float__(self) -> float:
+                raise TypeError("display conversion is soft")
+
+            def __str__(self) -> str:
+                return "100"
+
+        soft_value = SoftValue()
+
+        def terms(label):
+            return ["alpha", "beta"] if "alpha" in label else ["total"]
+
+        def happy_candidates(surface):
+            if "alpha" in surface:
+                return [
+                    {
+                        "normalized_value": 25.0,
+                        "normalized_unit": "KRW",
+                        "value": 2500.0,
+                        "display_step": 100.0,
+                        "unit_text": " KRW ",
+                        "span": (11, 13),
+                    }
+                ]
+            return [
+                {
+                    "normalized_value": 100.0,
+                    "normalized_unit": "KRW",
+                    "value": soft_value,
+                    "span": (6, 9),
+                }
+            ]
+
+        overlay_result = []
+        overlay_calls = []
+
+        def overlay(original_trace, role_updates):
+            overlay_calls.append((original_trace, role_updates))
+            return overlay_result
+
+        with (
+            patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": []}),
+            patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+            patch.object(
+                financial_runtime_trace,
+                "extract_numeric_surface_candidates",
+                side_effect=happy_candidates,
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                return_value=[],
+            ),
+            patch.object(
+                financial_runtime_trace.calculation_rendering,
+                "format_ratio_percent_result",
+                return_value="25.00%",
+            ) as renderer,
+            patch.object(
+                financial_runtime_trace,
+                "overlay_calculation_operands_from_slots",
+                side_effect=overlay,
+            ),
+        ):
+            result = financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace)
+
+        self.assertIsNot(result, trace)
+        self.assertIs(result["calculation_operands"], overlay_result)
+        self.assertIs(result["calculation_plan"], trace["calculation_plan"])
+        self.assertIs(result["nested"], nested)
+        self.assertEqual(len(overlay_calls), 1)
+        self.assertIs(overlay_calls[0][0], trace)
+        roles = overlay_calls[0][1]
+        self.assertEqual(list(roles), ["numerator_1", "denominator_1"])
+        self.assertEqual(roles["numerator_1"]["raw_value"], "25")
+        self.assertEqual(roles["numerator_1"]["raw_unit"], "KRW")
+        self.assertEqual(roles["numerator_1"]["rendered_value"], "25KRW")
+        self.assertEqual(
+            roles["numerator_1"]["source_row_ids"],
+            ["ev-n", "row-n1", "row-n2"],
+        )
+        self.assertEqual(roles["denominator_1"]["raw_value"], "100")
+        self.assertEqual(roles["denominator_1"]["raw_unit"], "KRW")
+        self.assertEqual(roles["denominator_1"]["rendered_value"], "100KRW")
+        self.assertEqual(
+            roles["denominator_1"]["source_row_ids"],
+            ["ev-d", "row-d1", "row-d2"],
+        )
+        calculation_result = result["calculation_result"]
+        self.assertIsNot(calculation_result, trace["calculation_result"])
+        self.assertEqual(calculation_result["result_value"], 25.0)
+        self.assertEqual(calculation_result["result_unit"], "%")
+        self.assertEqual(calculation_result["rendered_value"], "25.00%")
+        self.assertEqual(calculation_result["formatted_result"], "")
+        self.assertTrue(calculation_result["stale_result_repaired_from_evidence"])
+        self.assertEqual(
+            calculation_result["source_row_ids"],
+            ["ev-n", "row-n1", "row-n2", "ev-d", "row-d1", "row-d2"],
+        )
+        updated_slots = calculation_result["answer_slots"]
+        self.assertIsNot(updated_slots, trace["calculation_result"]["answer_slots"])
+        self.assertEqual(updated_slots["primary_value"]["normalized_value"], 25.0)
+        self.assertEqual(updated_slots["primary_value"]["normalized_unit"], "PERCENT")
+        self.assertEqual(updated_slots["primary_value"]["rendered_value"], "25.00%")
+        self.assertIs(updated_slots["primary_value"]["nested"], nested)
+        self.assertEqual(
+            list(updated_slots["components_by_role"]),
+            ["keep", "numerator_1", "denominator_1"],
+        )
+        copied_extra = updated_slots["components_by_group"]["numerator"][1]
+        self.assertIsNot(copied_extra, extra_numerator)
+        self.assertIs(copied_extra["nested"], nested)
+        self.assertEqual(len(updated_slots["components_by_group"]["numerator"]), 2)
+        renderer.assert_called_once_with(25.0)
+        self.assertEqual(trace, frozen_trace)
+        self.assertEqual(state, frozen_state)
+        self.assertIs(trace["nested"], nested)
+        self.assertIs(state["nested"], nested)
+
+        def run_terminal_candidate(numerator_value, denominator_value):
+            terminal_trace = _collapsed_ratio_trace_fixture()
+            terminal_state = {
+                "evidence_items": [
+                    {"evidence_id": "ev-n", "claim": "alpha beta 1"},
+                    {"evidence_id": "ev-d", "claim": "total 2"},
+                ]
+            }
+
+            def terminal_candidates(surface):
+                value = numerator_value if "alpha" in surface else denominator_value
+                return [
+                    {
+                        "normalized_value": value,
+                        "normalized_unit": "KRW",
+                        "value_text": str(value),
+                        "span": (len(surface) - 1, len(surface)),
+                    }
+                ]
+
+            terminal_renderer = Mock(side_effect=AssertionError("render should stay lazy"))
+            terminal_overlay = Mock(side_effect=AssertionError("overlay should stay lazy"))
+            with (
+                patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": []}),
+                patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+                patch.object(
+                    financial_runtime_trace,
+                    "extract_numeric_surface_candidates",
+                    side_effect=terminal_candidates,
+                ),
+                patch.object(
+                    financial_runtime_trace,
+                    "numeric_candidates_with_spans_from_surface",
+                    return_value=[],
+                ),
+                patch.object(
+                    financial_runtime_trace.calculation_rendering,
+                    "format_ratio_percent_result",
+                    terminal_renderer,
+                ),
+                patch.object(
+                    financial_runtime_trace,
+                    "overlay_calculation_operands_from_slots",
+                    terminal_overlay,
+                ),
+            ):
+                returned = financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(
+                    terminal_state,
+                    terminal_trace,
+                )
+            self.assertIs(returned, terminal_trace)
+            terminal_renderer.assert_not_called()
+            terminal_overlay.assert_not_called()
+
+        run_terminal_candidate("not-a-number", 2.0)
+        run_terminal_candidate(2.0, 0.0)
+        run_terminal_candidate(2.0, 2.0)
+
+        with (
+            patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": []}),
+            patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+            patch.object(
+                financial_runtime_trace,
+                "extract_numeric_surface_candidates",
+                side_effect=happy_candidates,
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                return_value=[],
+            ),
+            patch.object(
+                financial_runtime_trace.calculation_rendering,
+                "format_ratio_percent_result",
+                side_effect=RuntimeError("ratio rendering failed"),
+            ),
+            patch.object(financial_runtime_trace, "overlay_calculation_operands_from_slots") as stopped_overlay,
+            self.assertRaisesRegex(RuntimeError, "ratio rendering failed"),
+        ):
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace)
+        stopped_overlay.assert_not_called()
+
+        with (
+            patch.object(financial_runtime_trace, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": []}),
+            patch.object(financial_runtime_trace, "narrative_context_terms", side_effect=terms),
+            patch.object(
+                financial_runtime_trace,
+                "extract_numeric_surface_candidates",
+                side_effect=happy_candidates,
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "numeric_candidates_with_spans_from_surface",
+                return_value=[],
+            ),
+            patch.object(
+                financial_runtime_trace.calculation_rendering,
+                "format_ratio_percent_result",
+                return_value="25.00%",
+            ),
+            patch.object(
+                financial_runtime_trace,
+                "overlay_calculation_operands_from_slots",
+                side_effect=RuntimeError("operand overlay failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "operand overlay failed"),
+        ):
+            financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(state, trace)
+        self.assertEqual(trace, frozen_trace)
+        self.assertEqual(state, frozen_state)
+
+    def test_current_source_collapsed_ratio_static_binding_dag_and_move_boundary(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        calculation_path = repo_root / "src" / "agent" / "financial_graph_calculation.py"
+        graph_path = repo_root / "src" / "agent" / "financial_graph.py"
+        owner_path = repo_root / "src" / "agent" / "financial_runtime_trace.py"
+        public_name = "repair_collapsed_ratio_trace_from_evidence"
+        private_name = "_" + public_name
+
+        def parse(path):
+            return ast.parse(path.read_text(encoding="utf-8-sig"))
+
+        calculation_tree = parse(calculation_path)
+        graph_tree = parse(graph_path)
+        owner_tree = parse(owner_path)
+        calculation_class = next(
+            node
+            for node in calculation_tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "FinancialAgentCalculationMixin"
+        )
+        private_defs = [
+            node
+            for node in calculation_class.body
+            if isinstance(node, ast.FunctionDef) and node.name == private_name
+        ]
+        self.assertEqual(private_defs, [])
+        owner_defs = [
+            node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == public_name
+        ]
+        self.assertEqual(len(owner_defs), 1)
+        owner_def = owner_defs[0]
+        self.assertEqual(owner_def.end_lineno - owner_def.lineno + 1, 309)
+        self.assertEqual(
+            sum(
+                isinstance(node, ast.Name)
+                and node.id == "self"
+                and isinstance(node.ctx, ast.Load)
+                for node in ast.walk(owner_def)
+            ),
+            0,
+        )
+        owner_functions = [
+            node for node in owner_tree.body if isinstance(node, ast.FunctionDef)
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in owner_functions),
+                sum(node.name.startswith("_") for node in owner_functions),
+            ),
+            (3, 28),
+        )
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, relative_path):
+                self.relative_path = relative_path
+                self.function_stack = []
+                self.try_depth = 0
+                self.calls = []
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                selector = None
+                receiver = None
+                if isinstance(node.func, ast.Attribute):
+                    selector = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    selector = node.func.id
+                if selector in {private_name, public_name}:
+                    self.calls.append(
+                        {
+                            "path": self.relative_path,
+                            "function": self.function_stack[-1] if self.function_stack else "",
+                            "selector": selector,
+                            "receiver": receiver,
+                            "args": [ast.unparse(arg) for arg in node.args],
+                            "kwargs": [(item.arg, ast.unparse(item.value)) for item in node.keywords],
+                            "try_depth": self.try_depth,
+                        }
+                    )
+                self.generic_visit(node)
+
+        calls = []
+        for path in sorted((repo_root / "src" / "agent").glob("*.py")):
+            visitor = BindingVisitor(path.relative_to(repo_root).as_posix())
+            visitor.visit(parse(path))
+            calls.extend(visitor.calls)
+        self.assertEqual(
+            calls,
+            [
+                {
+                    "path": "src/agent/financial_graph.py",
+                    "function": "_structured_public_answer_trace_projection",
+                    "selector": public_name,
+                    "receiver": None,
+                    "args": [
+                        "public_projection_state(final, public_answer=public_answer, "
+                        "runtime_calculation_trace=structured_public_projection, "
+                        "runtime_evidence=runtime_evidence)",
+                        "structured_public_projection",
+                    ],
+                    "kwargs": [],
+                    "try_depth": 0,
+                },
+                {
+                    "path": "src/agent/financial_graph.py",
+                    "function": "_repair_public_runtime_calculation_trace",
+                    "selector": public_name,
+                    "receiver": None,
+                    "args": ["projection_state", "runtime_calculation_trace"],
+                    "kwargs": [],
+                    "try_depth": 0,
+                },
+            ],
+        )
+        self.assertEqual(sum(call["selector"] == private_name for call in calls), 0)
+        self.assertEqual(sum(call["selector"] == public_name for call in calls), 2)
+
+        def imported_modules(path):
+            imports = set()
+            for node in ast.walk(parse(path)):
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    if node.module == "src.agent":
+                        imports.update(f"src.agent.{item.name}" for item in node.names)
+                    elif node.module.startswith(("src.agent.", "src.config.")):
+                        imports.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imports.update(
+                        item.name
+                        for item in node.names
+                        if item.name.startswith(("src.agent.", "src.config."))
+                    )
+            return imports
+
+        module_edges = {}
+        for package in ("agent", "config"):
+            for path in sorted((repo_root / "src" / package).glob("*.py")):
+                module_edges[f"src.{package}.{path.stem}"] = imported_modules(path)
+
+        def dependency_path(source, target):
+            pending = [(source, [source])]
+            visited = set()
+            while pending:
+                current, route = pending.pop()
+                if current == target:
+                    return route
+                if current in visited:
+                    continue
+                visited.add(current)
+                for dependency in module_edges.get(current, set()):
+                    if dependency not in visited:
+                        pending.append((dependency, [*route, dependency]))
+            return None
+
+        destination = "src.agent.financial_runtime_trace"
+        forbidden_targets = {
+            destination,
+            "src.agent.financial_graph",
+            "src.agent.financial_graph_calculation",
+        }
+        new_dependencies = {
+            "src.agent.financial_graph_calculation_rendering",
+            "src.agent.financial_numeric_surface",
+            "src.agent.financial_text_surface",
+            "src.config.retrieval_policy",
+        }
+        for dependency in new_dependencies:
+            for target in forbidden_targets:
+                self.assertIsNone(dependency_path(dependency, target), (dependency, target))
+            self.assertIn(dependency, module_edges[destination])
+        self.assertIsNone(dependency_path(destination, "src.agent.financial_graph"))
+        self.assertIsNone(
+            dependency_path(destination, "src.agent.financial_graph_calculation")
+        )
+
+        dependency_names = {
+            "numeric_candidates_with_spans_from_surface": (0, 1),
+            "overlay_calculation_operands_from_slots": (1, 1),
+            "extract_numeric_surface_candidates": (11, 1),
+            "narrative_context_terms": (8, 1),
+            "STRUCTURED_CELL_AFFINITY_POLICY": (3, 1),
+            "calculation_rendering": (22, 1),
+        }
+        for name, expected in dependency_names.items():
+            calculation_loads = sum(
+                isinstance(node, ast.Name)
+                and node.id == name
+                and isinstance(node.ctx, ast.Load)
+                for node in ast.walk(calculation_tree)
+            )
+            owner_loads = sum(
+                isinstance(node, ast.Name)
+                and node.id == name
+                and isinstance(node.ctx, ast.Load)
+                for node in ast.walk(owner_def)
+            )
+            self.assertEqual((calculation_loads, owner_loads), expected, name)
+
+        korean_literals = [
+            node.value
+            for node in ast.walk(owner_def)
+            if isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and any("\uac00" <= char <= "\ud7a3" for char in node.value)
+        ]
+        self.assertEqual(korean_literals, [])
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        candidate_string_literals = [
+            node.value
+            for node in ast.walk(owner_def)
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        ]
+        selected_baseline_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_runtime_trace.py"
+            and any(str(record.get("text") or "") in literal for literal in candidate_string_literals)
+        ]
+        self.assertEqual(selected_baseline_records, [])
+
+        current_test_names = {
+            "test_current_source_collapsed_ratio_early_gates_identity_laziness_and_soft_fallbacks",
+            "test_current_source_collapsed_ratio_evidence_and_context_doc_collection_copy_access",
+            "test_current_source_collapsed_ratio_ranking_anchor_unit_and_stable_tie",
+            "test_current_source_collapsed_ratio_result_slot_overlay_and_exception_contract",
+            "test_current_source_collapsed_ratio_static_binding_dag_and_move_boundary",
+            "test_current_source_collapsed_ratio_two_callers_pin_args_adoption_order_and_stop",
+        }
+
+        def legacy_private_refs(path):
+            class LegacyVisitor(ast.NodeVisitor):
+                def __init__(self):
+                    self.count = 0
+
+                def visit_FunctionDef(self, node):
+                    if node.name in current_test_names:
+                        return
+                    self.generic_visit(node)
+
+                def visit_Attribute(self, node):
+                    if node.attr == private_name:
+                        self.count += 1
+                    self.generic_visit(node)
+
+                def visit_Constant(self, node):
+                    if node.value == private_name:
+                        self.count += 1
+
+            visitor = LegacyVisitor()
+            visitor.visit(parse(path))
+            return visitor.count
+
+        self.assertEqual(
+            {
+                path.name: legacy_private_refs(path)
+                for path in (
+                    repo_root / "tests" / "test_financial_agent_run_projection.py",
+                    repo_root / "tests" / "test_aggregate_subtask_projection.py",
+                    repo_root / "tests" / "test_subtask_loop.py",
+                )
+            },
+            {
+                "test_financial_agent_run_projection.py": 0,
+                "test_aggregate_subtask_projection.py": 0,
+                "test_subtask_loop.py": 0,
+            },
+        )
+
+    def test_current_source_collapsed_ratio_two_callers_pin_args_adoption_order_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        final = {"answer": "old", "nested": nested}
+        structured_result = {"subtask_results": [{"task_id": "task"}], "nested": nested}
+        runtime_trace = {"calculation_result": {"status": "ok"}, "nested": nested}
+        runtime_evidence = [{"evidence_id": "ev-1", "nested": nested}]
+        frozen_final = deepcopy(final)
+        frozen_structured = deepcopy(structured_result)
+        frozen_trace = deepcopy(runtime_trace)
+        frozen_evidence = deepcopy(runtime_evidence)
+        base_state = {"answer": "public", "base": True, "nested": nested}
+        structured_projection = {"projection": True, "nested": nested}
+        structured_public_state = {"state": "structured", "nested": nested}
+        runtime_public_state = {"state": "runtime", "nested": nested}
+        structured_repaired = {"trace": "structured-repaired", "nested": nested}
+        collapsed_repaired = {"trace": "collapsed-repaired", "nested": nested}
+        period_repaired = {"trace": "period-repaired", "nested": nested}
+        events = []
+
+        def with_answer(value, answer):
+            events.append(("with", value, answer))
+            self.assertIs(value, final)
+            self.assertEqual(answer, "public")
+            return base_state
+
+        def structured_owner(projection_state, trace):
+            events.append(("structured", projection_state, trace))
+            self.assertIsNot(projection_state, base_state)
+            self.assertEqual(projection_state["answer"], "public")
+            self.assertIs(projection_state["structured_result"], structured_result)
+            self.assertIs(projection_state["resolved_calculation_trace"], runtime_trace)
+            self.assertIs(projection_state["nested"], nested)
+            self.assertIs(trace, runtime_trace)
+            return structured_projection
+
+        def public_state(value, *, public_answer, runtime_calculation_trace, runtime_evidence):
+            events.append(
+                (
+                    "public",
+                    value,
+                    public_answer,
+                    runtime_calculation_trace,
+                    runtime_evidence,
+                )
+            )
+            self.assertIs(value, final)
+            self.assertEqual(public_answer, "public")
+            self.assertIs(runtime_evidence, runtime_evidence_list)
+            if runtime_calculation_trace is structured_projection:
+                return structured_public_state
+            self.assertIs(runtime_calculation_trace, runtime_trace)
+            return runtime_public_state
+
+        collapsed_calls = []
+
+        def collapsed(state, trace):
+            events.append(("collapsed", state, trace))
+            collapsed_calls.append((state, trace))
+            if trace is structured_projection:
+                self.assertIs(state, structured_public_state)
+                return structured_repaired
+            self.assertIs(state, runtime_public_state)
+            self.assertIs(trace, runtime_trace)
+            return collapsed_repaired
+
+        def period(state, trace):
+            events.append(("period", state, trace))
+            self.assertIs(state, runtime_public_state)
+            self.assertIs(trace, collapsed_repaired)
+            return period_repaired
+
+        runtime_evidence_list = runtime_evidence
+        with (
+            patch.object(financial_graph, "with_public_answer", side_effect=with_answer),
+            patch.object(
+                financial_graph,
+                "structured_subtask_projection_for_public_answer",
+                side_effect=structured_owner,
+            ),
+            patch.object(financial_graph, "public_projection_state", side_effect=public_state),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                side_effect=collapsed,
+            ),
+            patch.object(agent, "_repair_period_comparison_trace_from_evidence", side_effect=period),
+        ):
+            structured_result_trace = agent._structured_public_answer_trace_projection(
+                final,
+                public_answer="public",
+                structured_result=structured_result,
+                runtime_calculation_trace=runtime_trace,
+                runtime_evidence=runtime_evidence,
+            )
+            runtime_result_trace = agent._repair_public_runtime_calculation_trace(
+                final,
+                runtime_trace,
+                public_answer="public",
+                runtime_evidence=runtime_evidence,
+            )
+        self.assertIs(structured_result_trace, structured_repaired)
+        self.assertIs(runtime_result_trace, period_repaired)
+        self.assertEqual(
+            [event[0] for event in events],
+            ["with", "structured", "public", "collapsed", "public", "collapsed", "period"],
+        )
+        self.assertEqual(
+            collapsed_calls,
+            [
+                (structured_public_state, structured_projection),
+                (runtime_public_state, runtime_trace),
+            ],
+        )
+
+        with (
+            patch.object(financial_graph, "with_public_answer", return_value=base_state),
+            patch.object(
+                financial_graph,
+                "structured_subtask_projection_for_public_answer",
+                return_value={},
+            ),
+            patch.object(financial_graph, "public_projection_state") as stopped_public,
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+            ) as stopped_collapsed,
+        ):
+            self.assertEqual(
+                agent._structured_public_answer_trace_projection(
+                    final,
+                    public_answer="public",
+                    structured_result=structured_result,
+                    runtime_calculation_trace=runtime_trace,
+                    runtime_evidence=runtime_evidence,
+                ),
+                {},
+            )
+        stopped_public.assert_not_called()
+        stopped_collapsed.assert_not_called()
+
+        with (
+            patch.object(financial_graph, "with_public_answer", return_value=base_state),
+            patch.object(
+                financial_graph,
+                "structured_subtask_projection_for_public_answer",
+                return_value=structured_projection,
+            ),
+            patch.object(financial_graph, "public_projection_state", return_value=structured_public_state),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                side_effect=RuntimeError("structured collapsed failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "structured collapsed failed"):
+                agent._structured_public_answer_trace_projection(
+                    final,
+                    public_answer="public",
+                    structured_result=structured_result,
+                    runtime_calculation_trace=runtime_trace,
+                    runtime_evidence=runtime_evidence,
+                )
+
+        with (
+            patch.object(financial_graph, "public_projection_state", return_value=runtime_public_state),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                side_effect=RuntimeError("runtime collapsed failed"),
+            ),
+            patch.object(agent, "_repair_period_comparison_trace_from_evidence") as stopped_period,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "runtime collapsed failed"):
+                agent._repair_public_runtime_calculation_trace(
+                    final,
+                    runtime_trace,
+                    public_answer="public",
+                    runtime_evidence=runtime_evidence,
+                )
+        stopped_period.assert_not_called()
+
+        with (
+            patch.object(financial_graph, "public_projection_state", return_value=runtime_public_state),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                return_value=collapsed_repaired,
+            ),
+            patch.object(
+                agent,
+                "_repair_period_comparison_trace_from_evidence",
+                side_effect=RuntimeError("period repair failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period repair failed"):
+                agent._repair_public_runtime_calculation_trace(
+                    final,
+                    runtime_trace,
+                    public_answer="public",
+                    runtime_evidence=runtime_evidence,
+                )
+
+        self.assertEqual(final, frozen_final)
+        self.assertEqual(structured_result, frozen_structured)
+        self.assertEqual(runtime_trace, frozen_trace)
+        self.assertEqual(runtime_evidence, frozen_evidence)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(structured_result["nested"], nested)
+        self.assertIs(runtime_trace["nested"], nested)
+        self.assertIs(runtime_evidence[0]["nested"], nested)
+
     def test_current_source_aggregate_calculation_projection_pins_copy_dedupe_and_exceptions(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
         nested = {"preserve": "nested"}
@@ -12961,7 +14329,11 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 side_effect=owner,
             ),
             patch.object(financial_graph, "public_projection_state", side_effect=public_projection),
-            patch.object(agent, "_repair_collapsed_ratio_trace_from_evidence", side_effect=repair),
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+                side_effect=repair,
+            ),
         ):
             result = agent._structured_public_answer_trace_projection(
                 final,
@@ -12977,7 +14349,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             patch.object(financial_graph, "with_public_answer", return_value=base_state),
             patch.object(financial_graph, "structured_subtask_projection_for_public_answer", return_value={}),
             patch.object(financial_graph, "public_projection_state") as stopped_public,
-            patch.object(agent, "_repair_collapsed_ratio_trace_from_evidence") as stopped_repair,
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+            ) as stopped_repair,
         ):
             self.assertEqual(
                 agent._structured_public_answer_trace_projection(
@@ -13000,7 +14375,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 side_effect=RuntimeError("structured failed"),
             ),
             patch.object(financial_graph, "public_projection_state") as stopped_public,
-            patch.object(agent, "_repair_collapsed_ratio_trace_from_evidence") as stopped_repair,
+            patch.object(
+                financial_graph,
+                "repair_collapsed_ratio_trace_from_evidence",
+            ) as stopped_repair,
         ):
             with self.assertRaisesRegex(RuntimeError, "structured failed"):
                 agent._structured_public_answer_trace_projection(

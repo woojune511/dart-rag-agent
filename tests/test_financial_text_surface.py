@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from src.agent import (
     financial_aggregate_projection,
     financial_graph_calculation,
+    financial_runtime_trace,
     financial_text_surface,
 )
 
@@ -477,6 +478,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         module_trees = {
             "aggregate": ast.parse(inspect.getsource(financial_aggregate_projection)),
             "graph": ast.parse(inspect.getsource(financial_graph_calculation)),
+            "trace": ast.parse(inspect.getsource(financial_runtime_trace)),
             "owner": ast.parse(inspect.getsource(financial_text_surface)),
         }
         targets = {
@@ -1686,6 +1688,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         module_trees = {
             "aggregate": ast.parse(inspect.getsource(financial_aggregate_projection)),
             "graph": ast.parse(inspect.getsource(financial_graph_calculation)),
+            "trace": ast.parse(inspect.getsource(financial_runtime_trace)),
             "owner": ast.parse(inspect.getsource(financial_text_surface)),
         }
         seam_b_targets = {
@@ -2772,6 +2775,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
         module_sources = {
             "aggregate": inspect.getsource(financial_aggregate_projection),
             "graph": inspect.getsource(financial_graph_calculation),
+            "trace": inspect.getsource(financial_runtime_trace),
             "owner": inspect.getsource(financial_text_surface),
             "numeric": inspect.getsource(financial_numeric_surface),
         }
@@ -2848,7 +2852,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                         try_depths[key].append(self.try_depth)
                 self.generic_visit(node)
 
-        for module_name in ("aggregate", "graph", "owner"):
+        for module_name in ("aggregate", "graph", "trace", "owner"):
             BindingVisitor(module_name).visit(module_trees[module_name])
 
         self.assertEqual(

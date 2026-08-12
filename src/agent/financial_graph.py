@@ -75,6 +75,7 @@ from src.agent.financial_runtime_trace import (
     _build_aggregate_calculation_projection,
     _resolve_runtime_calculation_trace,
     _structured_result_subtask_rows_and_answer,
+    repair_collapsed_ratio_trace_from_evidence,
 )
 from src.agent.financial_task_artifacts import project_task_artifact_trace as _project_task_artifact_trace
 
@@ -186,7 +187,7 @@ class FinancialAgent(
         )
         if not structured_public_projection:
             return {}
-        return self._repair_collapsed_ratio_trace_from_evidence(
+        return repair_collapsed_ratio_trace_from_evidence(
             public_projection_state(
                 final,
                 public_answer=public_answer,
@@ -724,7 +725,7 @@ class FinancialAgent(
             runtime_calculation_trace=runtime_calculation_trace,
             runtime_evidence=runtime_evidence,
         )
-        repaired = self._repair_collapsed_ratio_trace_from_evidence(
+        repaired = repair_collapsed_ratio_trace_from_evidence(
             projection_state,
             runtime_calculation_trace,
         )

@@ -27,6 +27,7 @@ from src.agent import financial_graph_calculation
 from src.agent import financial_text_surface
 from src.agent import financial_lookup_recovery
 from src.agent import financial_operand_resolution
+from src.agent import financial_runtime_trace
 from src.agent.financial_aggregate_state import _AggregateSynthesisState
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_graph_models import (
@@ -6729,29 +6730,38 @@ class SubtaskLoopTests(unittest.TestCase):
         overlay_owner = Mock(side_effect=(empty_overlay, RuntimeError("overlay owner failed")))
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_runtime_trace,
                 "extract_numeric_surface_candidates",
                 side_effect=candidates,
             ) as extractor,
             patch.object(
-                financial_graph_calculation,
+                financial_runtime_trace,
                 "numeric_candidates_with_spans_from_surface",
                 return_value=[],
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_runtime_trace,
                 "overlay_calculation_operands_from_slots",
                 overlay_owner,
             ),
         ):
             non_ratio = {"calculation_result": {"answer_slots": {"operation_family": "difference"}}}
-            self.assertIs(self.agent._repair_collapsed_ratio_trace_from_evidence({}, non_ratio), non_ratio)
+            self.assertIs(
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence({}, non_ratio),
+                non_ratio,
+            )
             overlay_owner.assert_not_called()
             extractor.assert_not_called()
 
-            updated = self.agent._repair_collapsed_ratio_trace_from_evidence(state, trace)
+            updated = financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(
+                state,
+                trace,
+            )
             with self.assertRaisesRegex(RuntimeError, "overlay owner failed"):
-                self.agent._repair_collapsed_ratio_trace_from_evidence(state, trace)
+                financial_runtime_trace.repair_collapsed_ratio_trace_from_evidence(
+                    state,
+                    trace,
+                )
 
         self.assertEqual(len(overlay_owner.call_args_list), 2)
         first_args, second_args = [item.args for item in overlay_owner.call_args_list]
