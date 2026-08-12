@@ -552,6 +552,55 @@ def filter_aggregate_evidence_for_final_answer(
     return filtered or list(evidence_items or [])
 
 
+def filter_final_aggregate_evidence_and_projection(
+    aggregate_evidence_items: List[Dict[str, Any]],
+    aggregate_projection: Dict[str, Any],
+    *,
+    final_answer: str,
+    selected_claim_ids: List[str],
+) -> tuple[List[Dict[str, Any]], Dict[str, Any], List[str], List[str]]:
+    filtered_evidence_items = filter_aggregate_evidence_for_final_answer(
+        aggregate_evidence_items,
+        final_answer=final_answer,
+        selected_claim_ids=selected_claim_ids,
+    )
+    kept_evidence_ids = [
+        str(item.get("evidence_id") or "").strip()
+        for item in filtered_evidence_items
+        if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
+    ]
+    if kept_evidence_ids:
+        kept_evidence_id_set = set(kept_evidence_ids)
+        selected_claim_ids = list(
+            dict.fromkeys(
+                [
+                    *[
+                        claim_id
+                        for claim_id in selected_claim_ids
+                        if claim_id in kept_evidence_id_set
+                    ],
+                    *[
+                        evidence_id
+                        for evidence_id in kept_evidence_ids
+                        if evidence_id.startswith("operand::")
+                    ],
+                ]
+            )
+        )
+    aggregate_projection = filter_aggregate_projection_provenance(
+        AggregateProjectionProvenanceFilterInput(
+            aggregate_projection=aggregate_projection,
+            kept_evidence_ids=kept_evidence_ids,
+        )
+    ).aggregate_projection
+    aggregate_projection = append_final_answer_surface_operands_from_evidence(
+        aggregate_projection,
+        filtered_evidence_items,
+        final_answer=final_answer,
+    )
+    return filtered_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids
+
+
 def append_operand_evidence_for_final_answer(
     evidence_items: List[Dict[str, Any]],
     *,

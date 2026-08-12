@@ -1719,8 +1719,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 or (_ for _ in ()).throw(RuntimeError("append failed")),
             ) as append_owner,
             patch.object(
-                agent,
-                "_filter_final_aggregate_evidence_and_projection",
+                financial_graph_calculation,
+                "filter_final_aggregate_evidence_and_projection",
                 downstream_filter,
             ),
         ):
@@ -8216,7 +8216,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             "artifacts": [],
         }
         filter_windows = []
-        original_final_filter = agent._filter_final_aggregate_evidence_and_projection
+        original_final_filter = financial_aggregate_projection.filter_final_aggregate_evidence_and_projection
 
         def _record_final_filter(*args, **kwargs):
             output = original_final_filter(*args, **kwargs)
@@ -8230,8 +8230,8 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         with (
             patch.object(agent, "_capture_current_subtask_result", return_value=outer_row),
             patch.object(
-                agent,
-                "_filter_final_aggregate_evidence_and_projection",
+                financial_graph_calculation,
+                "filter_final_aggregate_evidence_and_projection",
                 side_effect=_record_final_filter,
             ),
             patch.object(
@@ -12611,7 +12611,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_defs),
                 sum(name.startswith("_") for name in owner_defs),
             ),
-            (73, 11),
+            (74, 11),
         )
         self.assertEqual(sum(retired_spans.values()), 156)
         self.assertEqual(sum(expected_owner_spans.values()), 153)

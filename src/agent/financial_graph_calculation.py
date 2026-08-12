@@ -70,7 +70,6 @@ from src.agent.financial_aggregate_projection import (
     aggregate_source_slot_by_task_id,
     aggregate_source_task_ids as _aggregate_source_task_ids,
     aggregate_synthesis_prompt_rows,
-    append_final_answer_surface_operands_from_evidence,
     append_operand_evidence_for_final_answer,
     append_uncovered_lookup_numeric_items,
     apply_aggregate_answer_candidate,
@@ -84,7 +83,7 @@ from src.agent.financial_aggregate_projection import (
     dedupe_aggregate_subtask_results,
     dependency_source_slot_match_score,
     ensure_complete_growth_numeric_answer,
-    filter_aggregate_evidence_for_final_answer,
+    filter_final_aggregate_evidence_and_projection,
     filter_aggregate_projection_provenance,
     growth_slot_display_value,
     growth_slots_share_material,
@@ -4680,55 +4679,6 @@ class FinancialAgentCalculationMixin:
             "formatted_result": final_answer,
         }
         return aggregate_projection, final_answer
-
-    def _filter_final_aggregate_evidence_and_projection(
-        self,
-        aggregate_evidence_items: List[Dict[str, Any]],
-        aggregate_projection: Dict[str, Any],
-        *,
-        final_answer: str,
-        selected_claim_ids: List[str],
-    ) -> tuple[List[Dict[str, Any]], Dict[str, Any], List[str], List[str]]:
-        filtered_evidence_items = filter_aggregate_evidence_for_final_answer(
-            aggregate_evidence_items,
-            final_answer=final_answer,
-            selected_claim_ids=selected_claim_ids,
-        )
-        kept_evidence_ids = [
-            str(item.get("evidence_id") or "").strip()
-            for item in filtered_evidence_items
-            if isinstance(item, dict) and str(item.get("evidence_id") or "").strip()
-        ]
-        if kept_evidence_ids:
-            kept_evidence_id_set = set(kept_evidence_ids)
-            selected_claim_ids = list(
-                dict.fromkeys(
-                    [
-                        *[
-                            claim_id
-                            for claim_id in selected_claim_ids
-                            if claim_id in kept_evidence_id_set
-                        ],
-                        *[
-                            evidence_id
-                            for evidence_id in kept_evidence_ids
-                            if evidence_id.startswith("operand::")
-                        ],
-                    ]
-                )
-            )
-        aggregate_projection = filter_aggregate_projection_provenance(
-            AggregateProjectionProvenanceFilterInput(
-                aggregate_projection=aggregate_projection,
-                kept_evidence_ids=kept_evidence_ids,
-            )
-        ).aggregate_projection
-        aggregate_projection = append_final_answer_surface_operands_from_evidence(
-            aggregate_projection,
-            filtered_evidence_items,
-            final_answer=final_answer,
-        )
-        return filtered_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids
 
     def _append_retrieved_narrative_evidence_for_final_answer(
         self,
@@ -13954,7 +13904,7 @@ class FinancialAgentCalculationMixin:
             _sync_aggregate_locals()
         stale_repair_evidence_items = list(aggregate_evidence_items)
         aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
-            self._filter_final_aggregate_evidence_and_projection(
+            filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence_items,
                 aggregate_projection,
                 final_answer=final_answer,
@@ -13984,7 +13934,7 @@ class FinancialAgentCalculationMixin:
         _sync_aggregate_locals()
         if aggregate_state is not aggregate_state_before_stale_repair:
             aggregate_evidence_items, aggregate_projection, selected_claim_ids, kept_evidence_ids = (
-                self._filter_final_aggregate_evidence_and_projection(
+                filter_final_aggregate_evidence_and_projection(
                     stale_repair_evidence_items,
                     aggregate_projection,
                     final_answer=final_answer,

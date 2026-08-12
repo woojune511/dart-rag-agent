@@ -7469,7 +7469,7 @@ class SubtaskLoopTests(unittest.TestCase):
         ]
 
         provenance_events = []
-        provenance_filter = financial_graph_calculation.filter_aggregate_projection_provenance
+        provenance_filter = financial_aggregate_projection.filter_aggregate_projection_provenance
         surface_append = financial_aggregate_projection.append_final_answer_surface_operands_from_evidence
 
         def _record_provenance(*args, **kwargs):
@@ -7481,16 +7481,16 @@ class SubtaskLoopTests(unittest.TestCase):
             return surface_append(*args, **kwargs)
 
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "filter_aggregate_projection_provenance",
             side_effect=_record_provenance,
         ) as provenance_filter_spy, patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "append_final_answer_surface_operands_from_evidence",
             side_effect=_record_surface,
         ):
             _filtered, updated_projection, _selected, _kept = (
-                self.agent._filter_final_aggregate_evidence_and_projection(
+                financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
                     evidence_items,
                     projection,
                     final_answer=(

@@ -8237,7 +8237,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             Counter(stack[-1] for _module, stack, *_rest in calls["filter"]),
             Counter(
                 {
-                    "_filter_final_aggregate_evidence_and_projection": 1,
+                    "filter_final_aggregate_evidence_and_projection": 1,
                     "_runtime_evidence_from_retrieved_docs": 2,
                 }
             ),
@@ -8254,7 +8254,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         )
         self.assertEqual(
             Counter(module for module, *_rest in calls["filter"]),
-            Counter({"calculation": 1, "graph": 2}),
+            Counter({"owner": 1, "graph": 2}),
         )
         self.assertEqual(
             Counter(module for module, *_rest in calls["append"]),
@@ -8617,20 +8617,19 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         before_projection = deepcopy(aggregate_projection)
         before_selected = list(selected_claim_ids)
         with patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "filter_aggregate_projection_provenance",
             side_effect=provenance_owner,
         ) as provenance, patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "filter_aggregate_evidence_for_final_answer",
             filter_projection,
         ), patch.object(
-            financial_graph_calculation,
+            financial_aggregate_projection,
             "append_final_answer_surface_operands_from_evidence",
             append_owner,
         ):
-            result = financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
-                agent,
+            result = financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence_items,
                 aggregate_projection,
                 final_answer="answer 10",
@@ -8662,21 +8661,20 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         failing_agent = Agent()
         failing_filter = Mock(side_effect=RuntimeError("filter failed"))
         with (
-            patch.object(financial_graph_calculation, "filter_aggregate_projection_provenance", later_provenance),
+            patch.object(financial_aggregate_projection, "filter_aggregate_projection_provenance", later_provenance),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_evidence_for_final_answer",
                 failing_filter,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "append_final_answer_surface_operands_from_evidence",
                 later_append,
             ),
             self.assertRaisesRegex(RuntimeError, "filter failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
-                failing_agent,
+            financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence_items,
                 aggregate_projection,
                 final_answer="answer 10",
@@ -8690,24 +8688,23 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         successful_filter = Mock(return_value=filtered_items)
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_projection_provenance",
                 side_effect=RuntimeError("provenance failed"),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_evidence_for_final_answer",
                 successful_filter,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "append_final_answer_surface_operands_from_evidence",
                 failing_append,
             ),
             self.assertRaisesRegex(RuntimeError, "provenance failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
-                provenance_failure_agent,
+            financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence_items,
                 aggregate_projection,
                 final_answer="answer 10",
@@ -11007,8 +11004,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             sorted(
                 [
                     (
-                        "calculation",
-                        "_filter_final_aggregate_evidence_and_projection",
+                        "owner",
+                        "filter_final_aggregate_evidence_and_projection",
                         False,
                         ["aggregate_projection", "filtered_evidence_items"],
                         [("final_answer", "final_answer")],
@@ -11158,23 +11155,22 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         append_owner = Mock(side_effect=append_surface)
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_evidence_for_final_answer",
                 side_effect=filter_evidence,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_projection_provenance",
                 side_effect=filter_projection,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "append_final_answer_surface_operands_from_evidence",
                 append_owner,
             ),
         ):
-            result = financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
-                agent,
+            result = financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence,
                 aggregate_projection,
                 final_answer="final 100",
@@ -11209,24 +11205,23 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         failing_append_owner = Mock(side_effect=fail_append)
         with (
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_evidence_for_final_answer",
                 return_value=filtered,
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "filter_aggregate_projection_provenance",
                 return_value=ProjectionOutcome(provenance_projection),
             ),
             patch.object(
-                financial_graph_calculation,
+                financial_aggregate_projection,
                 "append_final_answer_surface_operands_from_evidence",
                 failing_append_owner,
             ),
             self.assertRaisesRegex(RuntimeError, "surface append failed"),
         ):
-            financial_graph_calculation.FinancialAgentCalculationMixin._filter_final_aggregate_evidence_and_projection(
-                failing_agent,
+            financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
                 aggregate_evidence,
                 aggregate_projection,
                 final_answer="final 100",
@@ -11753,7 +11748,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (73, 11),
+            (74, 11),
         )
         self.assertEqual(len(calls), 3)
         self.assertEqual(noncall_refs, [])
@@ -12601,7 +12596,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_functions),
                 sum(name.startswith("_") for name in owner_functions),
             ),
-            (73, 11),
+            (74, 11),
         )
         self.assertEqual(len(calls), 4)
         self.assertEqual(noncall_refs, [])
@@ -13386,6 +13381,616 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         conflict_owner.assert_not_called()
         sign_owner.assert_not_called()
         executor.assert_not_called()
+
+
+    def test_current_source_final_evidence_projection_pins_gates_order_and_identity(self) -> None:
+        from types import SimpleNamespace
+
+        shared = {"preserve": True}
+        aggregate_evidence = [{"evidence_id": "input", "nested": shared}]
+        aggregate_projection = {"calculation_result": {"status": "ok"}, "nested": shared}
+        selected_claim_ids = ["drop", "keep", "keep", "operand::stale"]
+        filtered = [
+            "skip",
+            {"evidence_id": " keep ", "nested": shared},
+            {"evidence_id": ""},
+            {"evidence_id": "operand::two"},
+            {"evidence_id": "keep"},
+            {"evidence_id": "operand::two"},
+        ]
+        provenance_projection = {"provenance": True, "nested": shared}
+        appended_projection = {"appended": True, "nested": shared}
+        before_evidence = deepcopy(aggregate_evidence)
+        before_projection = deepcopy(aggregate_projection)
+        before_selected = list(selected_claim_ids)
+        events = []
+
+        def filter_owner(items, *, final_answer, selected_claim_ids):
+            events.append(("filter", items, final_answer, selected_claim_ids))
+            return filtered
+
+        def provenance_owner(value):
+            events.append(("provenance", value))
+            self.assertIs(value.aggregate_projection, aggregate_projection)
+            self.assertEqual(
+                value.kept_evidence_ids,
+                ["keep", "operand::two", "keep", "operand::two"],
+            )
+            return SimpleNamespace(aggregate_projection=provenance_projection)
+
+        def append_owner(projection, items, *, final_answer):
+            events.append(("append", projection, items, final_answer))
+            return appended_projection
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "filter_aggregate_evidence_for_final_answer",
+                side_effect=filter_owner,
+            ) as evidence_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "filter_aggregate_projection_provenance",
+                side_effect=provenance_owner,
+            ) as provenance,
+            patch.object(
+                financial_aggregate_projection,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=append_owner,
+            ) as append,
+        ):
+            result = financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
+                aggregate_evidence,
+                aggregate_projection,
+                final_answer="answer 100",
+                selected_claim_ids=selected_claim_ids,
+            )
+
+        returned_evidence, returned_projection, returned_claims, kept_ids = result
+        self.assertIs(returned_evidence, filtered)
+        self.assertIs(returned_projection, appended_projection)
+        self.assertEqual(returned_claims, ["keep", "operand::two"])
+        self.assertEqual(kept_ids, ["keep", "operand::two", "keep", "operand::two"])
+        self.assertEqual([event[0] for event in events], ["filter", "provenance", "append"])
+        filter_call = evidence_owner.call_args
+        self.assertIs(filter_call.args[0], aggregate_evidence)
+        self.assertEqual(filter_call.kwargs["final_answer"], "answer 100")
+        self.assertIs(filter_call.kwargs["selected_claim_ids"], selected_claim_ids)
+        provenance.assert_called_once()
+        append_call = append.call_args
+        self.assertIs(append_call.args[0], provenance_projection)
+        self.assertIs(append_call.args[1], filtered)
+        self.assertEqual(append_call.kwargs, {"final_answer": "answer 100"})
+        self.assertEqual(aggregate_evidence, before_evidence)
+        self.assertEqual(aggregate_projection, before_projection)
+        self.assertEqual(selected_claim_ids, before_selected)
+        self.assertIs(aggregate_evidence[0]["nested"], shared)
+        self.assertIs(filtered[1]["nested"], shared)
+
+        class SelectedClaims(list):
+            def __iter__(self):
+                raise AssertionError("selected claims iterated without kept evidence")
+
+        empty_selected = SelectedClaims(["untouched"])
+        empty_projection = {"empty": True, "nested": shared}
+        empty_appended = {"empty_appended": True, "nested": shared}
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "filter_aggregate_evidence_for_final_answer",
+                return_value=[],
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "filter_aggregate_projection_provenance",
+                return_value=SimpleNamespace(aggregate_projection=empty_projection),
+            ) as empty_provenance,
+            patch.object(
+                financial_aggregate_projection,
+                "append_final_answer_surface_operands_from_evidence",
+                return_value=empty_appended,
+            ) as empty_append,
+        ):
+            empty_result = financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
+                aggregate_evidence,
+                aggregate_projection,
+                final_answer="answer 100",
+                selected_claim_ids=empty_selected,
+            )
+        self.assertEqual(empty_result[0], [])
+        self.assertIs(empty_result[1], empty_appended)
+        self.assertIs(empty_result[2], empty_selected)
+        self.assertEqual(empty_result[3], [])
+        self.assertEqual(empty_provenance.call_args.args[0].kept_evidence_ids, [])
+        self.assertIs(empty_append.call_args.args[0], empty_projection)
+
+    def test_current_source_final_evidence_projection_pins_access_laziness_and_exceptions(self) -> None:
+        from types import SimpleNamespace
+
+        events = []
+
+        class EvidenceId:
+            def __bool__(self):
+                events.append("id-bool")
+                return True
+
+            def __str__(self):
+                events.append("id-str")
+                return " evidence "
+
+        class LoggedRow(dict):
+            def get(self, key, default=None):
+                events.append(("get", key))
+                return super().get(key, default)
+
+        class NonDict:
+            def get(self, *_args):
+                raise AssertionError("non-dict evidence inspected")
+
+        filtered = [NonDict(), LoggedRow(evidence_id=EvidenceId())]
+        projection = {"projection": True}
+
+        def provenance_owner(value):
+            events.append(("provenance", tuple(value.kept_evidence_ids)))
+            return SimpleNamespace(aggregate_projection=projection)
+
+        def append_owner(owner_projection, items, *, final_answer):
+            events.append(("append", owner_projection, items, final_answer))
+            return owner_projection
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "filter_aggregate_evidence_for_final_answer",
+                side_effect=lambda *_args, **_kwargs: events.append("filter") or filtered,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "filter_aggregate_projection_provenance",
+                side_effect=provenance_owner,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=append_owner,
+            ),
+        ):
+            result = financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
+                [],
+                projection,
+                final_answer="answer",
+                selected_claim_ids=["evidence"],
+            )
+        self.assertEqual(result[2], ["evidence"])
+        self.assertEqual(result[3], ["evidence"])
+        self.assertEqual(
+            events,
+            [
+                "filter",
+                ("get", "evidence_id"),
+                "id-bool",
+                "id-str",
+                ("get", "evidence_id"),
+                "id-bool",
+                "id-str",
+                ("provenance", ("evidence",)),
+                ("append", projection, filtered, "answer"),
+            ],
+        )
+
+        class SelectedIterationBomb(list):
+            def __iter__(self):
+                raise RuntimeError("selected iteration failed")
+
+        class IdBoolBomb:
+            def __bool__(self):
+                raise RuntimeError("id bool failed")
+
+        exception_cases = (
+            ("filter failed", "filter"),
+            ("id bool failed", "id"),
+            ("selected iteration failed", "selected"),
+            ("provenance failed", "provenance"),
+            ("append failed", "append"),
+        )
+        for message, failure_stage in exception_cases:
+            with self.subTest(failure_stage=failure_stage):
+                evidence_owner = Mock(return_value=[{"evidence_id": "keep"}])
+                selected = ["keep"]
+                provenance = Mock(return_value=SimpleNamespace(aggregate_projection=projection))
+                append = Mock(return_value=projection)
+                if failure_stage == "filter":
+                    evidence_owner.side_effect = RuntimeError(message)
+                elif failure_stage == "id":
+                    evidence_owner.return_value = [{"evidence_id": IdBoolBomb()}]
+                elif failure_stage == "selected":
+                    selected = SelectedIterationBomb(["keep"])
+                elif failure_stage == "provenance":
+                    provenance.side_effect = RuntimeError(message)
+                else:
+                    append.side_effect = RuntimeError(message)
+                with (
+                    patch.object(
+                        financial_aggregate_projection,
+                        "filter_aggregate_evidence_for_final_answer",
+                        evidence_owner,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "filter_aggregate_projection_provenance",
+                        provenance,
+                    ),
+                    patch.object(
+                        financial_aggregate_projection,
+                        "append_final_answer_surface_operands_from_evidence",
+                        append,
+                    ),
+                    self.assertRaisesRegex(RuntimeError, message),
+                ):
+                    financial_aggregate_projection.filter_final_aggregate_evidence_and_projection(
+                        [],
+                        projection,
+                        final_answer="answer",
+                        selected_claim_ids=selected,
+                    )
+                if failure_stage in {"filter", "id", "selected"}:
+                    provenance.assert_not_called()
+                    append.assert_not_called()
+                elif failure_stage == "provenance":
+                    append.assert_not_called()
+
+    def test_current_source_final_evidence_projection_pins_static_binding_distribution_and_dag(self) -> None:
+        import json
+        from pathlib import Path
+
+        graph_path = Path("src/agent/financial_graph_calculation.py")
+        owner_path = Path("src/agent/financial_aggregate_projection.py")
+        trees = {
+            "graph": ast.parse(graph_path.read_text(encoding="utf-8-sig")),
+            "owner": ast.parse(owner_path.read_text(encoding="utf-8-sig")),
+        }
+        public_name = "filter_final_aggregate_evidence_and_projection"
+        private_name = "_" + public_name
+        selected_names = {private_name, public_name}
+        definitions = {
+            (module_name, node.name): node
+            for module_name, tree in trees.items()
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in selected_names
+        }
+        self.assertEqual(set(definitions), {("owner", public_name)})
+        owner_definition = definitions[("owner", public_name)]
+        self.assertEqual(owner_definition.end_lineno - owner_definition.lineno + 1, 47)
+        self.assertEqual(len(owner_definition.args.args), 2)
+        self.assertEqual(
+            [arg.arg for arg in owner_definition.args.args],
+            ["aggregate_evidence_items", "aggregate_projection"],
+        )
+        self.assertEqual(
+            [arg.arg for arg in owner_definition.args.kwonlyargs],
+            ["final_answer", "selected_claim_ids"],
+        )
+
+        calls = []
+        noncall_refs = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.call_depth = 0
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = None
+                receiver = ""
+                if isinstance(node.func, ast.Attribute) and node.func.attr in selected_names:
+                    name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name) and node.func.id in selected_names:
+                    name = node.func.id
+                if name is not None:
+                    calls.append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "<module>",
+                            name,
+                            receiver,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.call_depth += 1
+                self.generic_visit(node)
+                self.call_depth -= 1
+
+            def visit_Attribute(self, node):
+                if node.attr in selected_names and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.attr, node.lineno))
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if node.id in selected_names and self.call_depth == 0:
+                    noncall_refs.append((self.module_name, node.id, node.lineno))
+
+        for module_name, tree in trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            calls,
+            [
+                (
+                    "graph",
+                    "_aggregate_calculation_subtasks",
+                    public_name,
+                    "",
+                    ("aggregate_evidence_items", "aggregate_projection"),
+                    (("final_answer", "final_answer"), ("selected_claim_ids", "selected_claim_ids")),
+                    0,
+                ),
+                (
+                    "graph",
+                    "_aggregate_calculation_subtasks",
+                    public_name,
+                    "",
+                    ("stale_repair_evidence_items", "aggregate_projection"),
+                    (("final_answer", "final_answer"), ("selected_claim_ids", "selected_claim_ids")),
+                    0,
+                ),
+            ],
+        )
+        self.assertEqual(noncall_refs, [])
+        self.assertEqual((len(calls), 0), (2, 0))
+
+        owner_functions = [
+            node.name
+            for node in trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in owner_functions),
+                sum(name.startswith("_") for name in owner_functions),
+            ),
+            (74, 11),
+        )
+        owner_symbols = {
+            node.name
+            for node in trees["owner"].body
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        self.assertTrue(
+            {
+                "AggregateProjectionProvenanceFilterInput",
+                "filter_aggregate_evidence_for_final_answer",
+                "filter_aggregate_projection_provenance",
+                "append_final_answer_surface_operands_from_evidence",
+            }.issubset(owner_symbols)
+        )
+
+        module_paths = list(Path("src/agent").glob("*.py")) + list(Path("src/config").glob("*.py"))
+        import_graph = {}
+        for path in module_paths:
+            module_name = ".".join(path.with_suffix("").parts)
+            imported = set()
+            for node in ast.parse(path.read_text(encoding="utf-8-sig")).body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported.add(node.module)
+                elif isinstance(node, ast.Import):
+                    imported.update(alias.name for alias in node.names)
+            import_graph[module_name] = imported
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(import_graph.get(current, ()))
+            return False
+
+        graph_module = "src.agent.financial_graph_calculation"
+        owner_module = "src.agent.financial_aggregate_projection"
+        self.assertTrue(reaches(graph_module, owner_module))
+        self.assertFalse(reaches(owner_module, graph_module))
+
+        baseline = json.loads(
+            Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_lines = set(range(owner_definition.lineno, owner_definition.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == owner_path.as_posix()
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_final_evidence_projection_caller_pins_two_pass_adoption_order_and_stop(self) -> None:
+        shared = {"preserve": True}
+        input_item = {"evidence_id": "original", "nested": shared}
+        state = {
+            "query": "",
+            "calc_subtasks": [],
+            "subtask_results": [],
+            "seed_retrieved_docs": [],
+            "retrieved_docs": [],
+            "plan_loop_count": 0,
+            "answer": "",
+            "evidence_items": [input_item],
+            "selected_claim_ids": ["original"],
+            "nested": shared,
+        }
+        before = deepcopy(state)
+        first_evidence_item = {"evidence_id": "first", "nested": shared}
+        second_evidence_item = {"evidence_id": "second", "nested": shared}
+        first_evidence = [first_evidence_item]
+        second_evidence = [second_evidence_item]
+        first_claims = ["claim-first"]
+        second_claims = ["claim-second"]
+        events = []
+        target_calls = []
+        stale_inputs = []
+        first_projection = None
+        runtime_projection = None
+        second_projection = None
+
+        agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+        agent.llm = None
+
+        def target(items, projection, *, final_answer, selected_claim_ids):
+            nonlocal first_projection, second_projection
+            target_calls.append((items, projection, final_answer, selected_claim_ids))
+            call_number = len(target_calls)
+            events.append(f"target-{call_number}")
+            if call_number == 1:
+                first_projection = {**projection, "surface_stage": "first"}
+                return first_evidence, first_projection, first_claims, ["first"]
+            self.assertIs(projection, runtime_projection)
+            self.assertIs(selected_claim_ids, first_claims)
+            second_projection = {**projection, "surface_stage": "second"}
+            return second_evidence, second_projection, second_claims, ["second"]
+
+        def runtime_ratio(state_arg, projection, rows, answer):
+            nonlocal runtime_projection
+            events.append("runtime-ratio")
+            self.assertIs(state_arg, state)
+            self.assertIs(projection, first_projection)
+            self.assertEqual(rows, [])
+            runtime_projection = {**projection, "surface_stage": "runtime"}
+            return runtime_projection, answer
+
+        def stale_repair(*, state, aggregate_state, evidence_items, prefer_compact_ratio_answer=False):
+            events.append("stale-repair")
+            stale_inputs.append(evidence_items)
+            self.assertTrue(prefer_compact_ratio_answer)
+            self.assertIs(aggregate_state.aggregate_projection, runtime_projection)
+            return aggregate_state.with_updates(final_answer=aggregate_state.final_answer)
+
+        def complete_projection(**kwargs):
+            events.append("complete")
+            self.assertIs(kwargs["evidence_items"], second_evidence)
+            return ""
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "filter_final_aggregate_evidence_and_projection",
+                side_effect=target,
+            ),
+            patch.object(agent, "_apply_runtime_ratio_projection_for_collapsed_rows", side_effect=runtime_ratio),
+            patch.object(agent, "_apply_stale_projection_repair_to_aggregate_state", side_effect=stale_repair),
+            patch.object(agent, "_complete_numeric_projection_replacement_answer", side_effect=complete_projection),
+        ):
+            result = agent._aggregate_calculation_subtasks(state)
+
+        self.assertEqual(len(target_calls), 2)
+        first_items, original_projection, first_answer, original_claims = target_calls[0]
+        second_items, captured_runtime_projection, second_answer, captured_first_claims = target_calls[1]
+        self.assertIsNot(first_items, second_items)
+        self.assertIs(first_items[0], second_items[0])
+        self.assertIs(stale_inputs[0], second_items)
+        self.assertIs(captured_runtime_projection, runtime_projection)
+        self.assertIs(captured_first_claims, first_claims)
+        self.assertEqual((first_answer, second_answer), ("", ""))
+        self.assertEqual(original_claims, [])
+        self.assertNotIn("surface_stage", original_projection)
+        self.assertLess(events.index("target-1"), events.index("runtime-ratio"))
+        self.assertLess(events.index("runtime-ratio"), events.index("stale-repair"))
+        self.assertLess(events.index("stale-repair"), events.index("target-2"))
+        self.assertLess(events.index("target-2"), events.index("complete"))
+        self.assertIs(result["evidence_items"], second_evidence)
+        self.assertIs(result["selected_claim_ids"], second_claims)
+        self.assertEqual(state, before)
+        self.assertIs(state["nested"], shared)
+        self.assertIs(state["evidence_items"][0]["nested"], shared)
+
+        def run_failure(*, fail_on_call):
+            failure_events = []
+            failure_agent = financial_graph.FinancialAgent.__new__(financial_graph.FinancialAgent)
+            failure_agent.llm = None
+            failure_count = 0
+
+            def failure_target(items, projection, *, final_answer, selected_claim_ids):
+                nonlocal failure_count
+                failure_count += 1
+                failure_events.append(f"target-{failure_count}")
+                if failure_count == fail_on_call:
+                    raise RuntimeError(f"target {fail_on_call} failed")
+                return first_evidence, {**projection, "surface_stage": "first"}, first_claims, ["first"]
+
+            ratio = Mock(
+                side_effect=lambda _state, projection, _rows, answer: (
+                    failure_events.append("runtime-ratio") or {**projection, "surface_stage": "runtime"},
+                    answer,
+                )
+            )
+
+            def failure_stale(*, state, aggregate_state, evidence_items, prefer_compact_ratio_answer=False):
+                failure_events.append("stale-repair")
+                return aggregate_state.with_updates(final_answer=aggregate_state.final_answer)
+
+            complete = Mock(side_effect=lambda **_kwargs: failure_events.append("complete") or "")
+            with (
+                patch.object(
+                    financial_graph_calculation,
+                    "filter_final_aggregate_evidence_and_projection",
+                    side_effect=failure_target,
+                ),
+                patch.object(
+                    failure_agent,
+                    "_apply_runtime_ratio_projection_for_collapsed_rows",
+                    ratio,
+                ),
+                patch.object(
+                    failure_agent,
+                    "_apply_stale_projection_repair_to_aggregate_state",
+                    side_effect=failure_stale,
+                ),
+                patch.object(
+                    failure_agent,
+                    "_complete_numeric_projection_replacement_answer",
+                    complete,
+                ),
+                self.assertRaisesRegex(RuntimeError, f"target {fail_on_call} failed"),
+            ):
+                failure_agent._aggregate_calculation_subtasks(state)
+            complete.assert_not_called()
+            self.assertEqual(state, before)
+            self.assertIs(state["nested"], shared)
+            return failure_events, ratio
+
+        first_failure_events, first_failure_ratio = run_failure(fail_on_call=1)
+        self.assertEqual(first_failure_events, ["target-1"])
+        first_failure_ratio.assert_not_called()
+
+        second_failure_events, second_failure_ratio = run_failure(fail_on_call=2)
+        self.assertEqual(
+            second_failure_events,
+            ["target-1", "runtime-ratio", "stale-repair", "target-2"],
+        )
+        second_failure_ratio.assert_called_once()
 
 
 if __name__ == "__main__":
