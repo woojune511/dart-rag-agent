@@ -288,8 +288,11 @@ from src.agent.financial_row_surfaces import (
     _operand_text_match,
     _surface_match_variants,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text
-from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
+from src.agent.financial_lookup_recovery import (
+    coerce_operand_value_from_direct_structured_evidence,
+    coerce_lookup_magnitude_record,
+    lookup_row_from_direct_structured_evidence,
+)
 from src.agent.financial_numeric_surface import (
     answer_covers_numeric_answer,
     answer_has_numeric_material_outside_reference,
@@ -1420,88 +1423,6 @@ class FinancialAgentCalculationMixin:
             semantic_label=semantic_label,
         )
 
-    def _lookup_row_from_direct_structured_evidence(
-        self,
-        operand: Dict[str, Any],
-        evidence_item: Dict[str, Any],
-        *,
-        index: int,
-    ) -> Dict[str, Any]:
-        metadata = dict(evidence_item.get("metadata") or {})
-        cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
-        if not cells:
-            return {}
-        selected_cell = _select_structured_cell(
-            [{**cell, "_report_year": metadata.get("year")} for cell in cells],
-            operand=operand,
-            query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
-            period_focus=_operand_period_focus(operand, "current"),
-        )
-        metadata_value_role = _normalise_spaces(str(metadata.get("value_role") or "")).lower()
-        metadata_aggregation_stage = _normalise_spaces(str(metadata.get("aggregation_stage") or "")).lower()
-        if (
-            metadata_value_role == "aggregate"
-            or metadata_aggregation_stage in {"direct", "final", "subtotal"}
-            or _operand_prefers_aggregate_value_role(operand)
-        ):
-            aggregate_cells = [
-                cell
-                for cell in cells
-                if _normalise_spaces(str(cell.get("value_role") or "")).lower() == "aggregate"
-                or _normalise_spaces(str(cell.get("aggregation_stage") or "")).lower() in {"direct", "final", "subtotal"}
-                or _normalise_spaces(str(cell.get("aggregate_label") or ""))
-            ]
-            aggregate_selected_cell = _select_aggregate_structured_cell(
-                [{**cell, "_report_year": metadata.get("year")} for cell in aggregate_cells],
-                operand=operand,
-                query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
-                period_focus=_operand_period_focus(operand, "current"),
-            )
-            if aggregate_selected_cell:
-                selected_cell = aggregate_selected_cell
-        if not selected_cell:
-            return {}
-        raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
-        raw_unit = _normalise_spaces(str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or ""))
-        normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-        if normalized_value is None:
-            return {}
-        evidence_id = str(evidence_item.get("evidence_id") or "").strip()
-        row = {
-            "operand_id": f"direct_lookup_{index:03d}",
-            "evidence_id": evidence_id,
-            "source_row_id": evidence_id,
-            "source_row_ids": [evidence_id] if evidence_id else [],
-            "source_anchor": _normalise_spaces(str(evidence_item.get("source_anchor") or "")),
-            "label": _normalise_spaces(str(operand.get("label") or metadata.get("row_label") or "")),
-            "raw_value": raw_value,
-            "raw_unit": raw_unit,
-            "normalized_value": normalized_value,
-            "normalized_unit": normalized_unit,
-            "period": _normalise_spaces(str(metadata.get("year") or "")),
-            "matched_operand_label": _normalise_spaces(str(operand.get("label") or "")),
-            "matched_operand_concept": _normalise_spaces(str(operand.get("concept") or "")),
-            "matched_operand_role": _normalise_spaces(str(operand.get("role") or "")),
-            "statement_type": metadata.get("statement_type"),
-            "consolidation_scope": metadata.get("consolidation_scope"),
-            "table_source_id": metadata.get("table_source_id"),
-            "value_role": _normalise_spaces(str(selected_cell.get("value_role") or metadata.get("value_role") or "")),
-            "aggregation_stage": _normalise_spaces(
-                str(selected_cell.get("aggregation_stage") or metadata.get("aggregation_stage") or "")
-            ),
-            "aggregate_label": _normalise_spaces(
-                str(selected_cell.get("aggregate_label") or metadata.get("aggregate_label") or "")
-            ),
-        }
-        return coerce_lookup_magnitude_record(
-            row,
-            evidence_item,
-            concept=str(operand.get("concept") or ""),
-            statement_type=str(metadata.get("statement_type") or ""),
-            row_label=str(metadata.get("row_label") or operand.get("label") or ""),
-            semantic_label=str(metadata.get("semantic_label") or metadata.get("row_label") or ""),
-        )
-
     def _best_direct_lookup_slot_from_evidence_pool(
         self,
         operand: Dict[str, Any],
@@ -1707,14 +1628,14 @@ class FinancialAgentCalculationMixin:
             should_consider_structured = score > best_score
             candidate_row: Dict[str, Any] = {}
             if score == best_score and best_slot:
-                candidate_row = self._lookup_row_from_direct_structured_evidence(
+                candidate_row = lookup_row_from_direct_structured_evidence(
                     operand,
                     evidence,
                     index=1,
                 )
                 should_consider_structured = _candidate_preferred_on_tie(candidate_row, best_slot)
             elif score > 0 and best_slot:
-                candidate_row = self._lookup_row_from_direct_structured_evidence(
+                candidate_row = lookup_row_from_direct_structured_evidence(
                     operand,
                     evidence,
                     index=1,
@@ -1722,7 +1643,7 @@ class FinancialAgentCalculationMixin:
                 if _aggregate_candidate_preferred_in_same_table(candidate_row, best_slot):
                     should_consider_structured = True
             if should_consider_structured:
-                row = candidate_row or self._lookup_row_from_direct_structured_evidence(
+                row = candidate_row or lookup_row_from_direct_structured_evidence(
                     operand,
                     evidence,
                     index=1,
@@ -7087,7 +7008,7 @@ class FinancialAgentCalculationMixin:
             if updated.get("table_source_id") is None:
                 updated["table_source_id"] = metadata.get("table_source_id")
             updated = coerce_operand_period_from_evidence_surface(updated, evidence_item)
-            updated = self._coerce_operand_value_from_direct_structured_evidence(updated, evidence_item)
+            updated = coerce_operand_value_from_direct_structured_evidence(updated, evidence_item)
         updated = coerce_lookup_magnitude_record(updated, evidence_item)
         if updated.get("structured_evidence_cell_realigned"):
             return updated
@@ -7098,146 +7019,6 @@ class FinancialAgentCalculationMixin:
         ):
             return updated
         return self._refine_operand_precision_from_evidence_table(updated, evidence_item)
-
-    def _coerce_operand_value_from_direct_structured_evidence(
-        self,
-        row: Dict[str, Any],
-        evidence_item: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        if not row or not evidence_item:
-            return row
-        metadata = dict(evidence_item.get("metadata") or {})
-        cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
-        if not cells:
-            return row
-
-        row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
-        semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or row_label))
-        operand_spec = {
-            "label": _normalise_spaces(str(row.get("matched_operand_label") or row.get("label") or "")),
-            "concept": _normalise_spaces(str(row.get("matched_operand_concept") or row.get("concept") or "")),
-            "role": _normalise_spaces(str(row.get("matched_operand_role") or row.get("role") or "")),
-            "period": _normalise_spaces(str(row.get("period") or "")),
-            "period_hint": _normalise_spaces(str(row.get("period") or "")),
-            "aliases": [
-                item
-                for item in (
-                    row.get("matched_operand_label"),
-                    row.get("label"),
-                    row.get("concept"),
-                )
-                if _normalise_spaces(str(item or ""))
-            ],
-        }
-        authoritative_surface = _normalise_spaces(
-            " ".join(
-                str(value or "")
-                for value in (
-                    row_label,
-                    semantic_label,
-                    metadata.get("aggregate_label"),
-                )
-            )
-        )
-        if authoritative_surface and not (
-            _operand_text_match(authoritative_surface, operand_spec)
-            or _text_has_positive_surface(authoritative_surface, operand_spec)
-        ):
-            return row
-
-        query_years: List[int] = []
-        for raw_year in (operand_spec.get("period"), metadata.get("year")):
-            try:
-                if raw_year not in (None, ""):
-                    year = int(raw_year)
-                    if year not in query_years:
-                        query_years.append(year)
-            except (TypeError, ValueError):
-                continue
-
-        enriched_cells = [
-            {
-                **cell,
-                "_report_year": metadata.get("year"),
-                "_sibling_cells": [dict(item) for item in cells],
-            }
-            for cell in cells
-        ]
-        value_role = _normalise_spaces(str(row.get("value_role") or metadata.get("value_role") or "")).lower()
-        aggregation_stage = _normalise_spaces(
-            str(row.get("aggregation_stage") or metadata.get("aggregation_stage") or "")
-        ).lower()
-        current_raw_value = _normalise_spaces(str(row.get("raw_value") or ""))
-        current_value = row.get("normalized_value")
-        prefers_aggregate_cell = bool(
-            value_role == "aggregate"
-            or aggregation_stage in {"direct", "final", "subtotal"}
-            or _operand_prefers_aggregate_value_role(row)
-        )
-        period_specific_cell_selection_required = bool(
-            operand_spec.get("period")
-            and len(enriched_cells) > 1
-            and any(
-                re.search(
-                    r"(?:19|20)\d{2}|current|prior",
-                    _structured_cell_period_text(
-                        cell,
-                        query_years,
-                        _operand_period_focus(operand_spec, "unknown"),
-                    ),
-                    flags=re.IGNORECASE,
-                )
-                for cell in enriched_cells
-            )
-        )
-        if (
-            current_raw_value
-            and current_value is not None
-            and not prefers_aggregate_cell
-            and not period_specific_cell_selection_required
-        ):
-            current_compact = re.sub(r"[\s,()]", "", current_raw_value)
-            for cell in enriched_cells:
-                cell_value = _normalise_spaces(str(cell.get("value_text") or ""))
-                if current_compact and current_compact == re.sub(r"[\s,()]", "", cell_value):
-                    return row
-        selected_cell: Optional[Dict[str, Any]] = None
-        if prefers_aggregate_cell:
-            selected_cell = _select_aggregate_structured_cell(
-                enriched_cells,
-                operand=operand_spec,
-                query_years=query_years,
-                period_focus=_operand_period_focus(operand_spec, "unknown"),
-            )
-        if not selected_cell:
-            selected_cell = _select_structured_cell(
-                enriched_cells,
-                operand=operand_spec,
-                query_years=query_years,
-                period_focus=_operand_period_focus(operand_spec, "unknown"),
-            )
-        if not selected_cell:
-            return row
-
-        raw_value = _normalise_spaces(str(selected_cell.get("value_text") or ""))
-        raw_unit = _normalise_spaces(str(selected_cell.get("unit_hint") or metadata.get("unit_hint") or row.get("raw_unit") or ""))
-        normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
-        if normalized_value is None:
-            return row
-        try:
-            if current_value is not None and abs(float(current_value) - float(normalized_value)) <= 1e-6:
-                return row
-        except (TypeError, ValueError):
-            pass
-
-        updated = dict(row)
-        updated["raw_value"] = raw_value
-        updated["raw_unit"] = raw_unit
-        updated["normalized_value"] = normalized_value
-        updated["normalized_unit"] = normalized_unit
-        updated["rendered_value"] = _normalise_spaces(f"{raw_value}{raw_unit}") if raw_unit else raw_value
-        updated["structured_evidence_cell_realigned"] = True
-        return updated
 
     def _operand_precision_surface(self, evidence_item: Optional[Dict[str, Any]]) -> str:
         return _normalise_spaces(
@@ -8060,7 +7841,7 @@ class FinancialAgentCalculationMixin:
                     )
                     if not table_has_period_columns:
                         continue
-                    row = self._lookup_row_from_direct_structured_evidence(
+                    row = lookup_row_from_direct_structured_evidence(
                         operand,
                         evidence,
                         index=operand_index,

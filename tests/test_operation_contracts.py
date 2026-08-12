@@ -23,6 +23,7 @@ from src.agent import (
     financial_calculation_execution,
     financial_dependency_projection,
     financial_graph_calculation,
+    financial_lookup_recovery,
     financial_reconciliation_candidates,
     financial_task_artifacts,
 )
@@ -819,7 +820,7 @@ class OperationContractTests(unittest.TestCase):
             for index, operand in enumerate(direct_operands, start=1)
         ]
         events = []
-        row_builder = agent._lookup_row_from_direct_structured_evidence
+        row_builder = financial_lookup_recovery.lookup_row_from_direct_structured_evidence
         scorer = financial_graph_calculation.score_direct_structured_lookup_evidence
 
         def _record_row(operand, evidence, *, index):
@@ -831,8 +832,8 @@ class OperationContractTests(unittest.TestCase):
             return scorer(score_input)
 
         with patch.object(
-            agent,
-            "_lookup_row_from_direct_structured_evidence",
+            financial_graph_calculation,
+            "lookup_row_from_direct_structured_evidence",
             side_effect=_record_row,
         ), patch.object(
             financial_graph_calculation,
@@ -1006,8 +1007,8 @@ class OperationContractTests(unittest.TestCase):
                 side_effect=RuntimeError("period owner failed"),
             ),
             patch.object(
-                agent,
-                "_coerce_operand_value_from_direct_structured_evidence",
+                financial_graph_calculation,
+                "coerce_operand_value_from_direct_structured_evidence",
             ) as later_direct_value,
             patch.object(
                 financial_graph_calculation,
@@ -4911,7 +4912,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_direct_lookup_row_uses_aggregate_cell_when_operand_policy_prefers_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        row = agent._lookup_row_from_direct_structured_evidence(
+        row = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
             {
                 "label": "매출액",
                 "concept": "revenue",
@@ -4956,7 +4957,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_direct_lookup_row_uses_aggregate_cell_when_evidence_row_is_aggregate(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        row = agent._lookup_row_from_direct_structured_evidence(
+        row = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
             {
                 "label": "selected borrowing",
                 "concept": "selected_borrowing",

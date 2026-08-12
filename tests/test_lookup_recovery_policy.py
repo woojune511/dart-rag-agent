@@ -1,3 +1,4 @@
+import ast
 import json
 import sys
 import unittest
@@ -11,7 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
 
-from src.agent import financial_aggregate_projection, financial_graph_calculation
+from src.agent import financial_aggregate_projection, financial_graph_calculation, financial_lookup_recovery
 from src.agent.financial_graph import FinancialAgent
 
 
@@ -1014,6 +1015,1225 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             ["operand::dep_current", "operand::dep_prior"],
         )
         self.assertTrue(filtered[1]["metadata"]["supports_derived_percent"])
+
+    def test_current_source_direct_lookup_row_pins_ordinary_selection_gates_and_copy_contract(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"token": "nested"}
+        operand = {
+            "label": " Metric ",
+            "concept": " Revenue ",
+            "role": " current_period ",
+            "period": "2023",
+        }
+        evidence = {
+            "evidence_id": " ev_direct ",
+            "source_anchor": " anchor ",
+            "metadata": {
+                "year": "2023",
+                "row_label": " Row label ",
+                "semantic_label": " Semantic label ",
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "table_source_id": "table::1",
+                "unit_hint": "million",
+                "structured_cells": [
+                    {
+                        "value_text": "1,234",
+                        "unit_hint": "million",
+                        "value_role": "detail",
+                        "nested": nested,
+                    }
+                ],
+            },
+        }
+        frozen = json.loads(json.dumps(evidence))
+        events = []
+        adopted = {"adopted": True}
+
+        def period_focus(candidate, default):
+            self.assertIs(candidate, operand)
+            events.append(("period", default))
+            return default
+
+        def ordinary_selector(cells, *, operand, query_years, period_focus):
+            self.assertIs(operand, globals_operand)
+            self.assertEqual(query_years, [2023])
+            self.assertEqual(period_focus, "current")
+            self.assertIsNot(cells, evidence["metadata"]["structured_cells"])
+            self.assertIsNot(cells[0], evidence["metadata"]["structured_cells"][0])
+            self.assertIs(cells[0]["nested"], nested)
+            self.assertEqual(cells[0]["_report_year"], "2023")
+            events.append(("ordinary", cells[0]["value_text"]))
+            return cells[0]
+
+        def normalize(raw_value, raw_unit):
+            events.append(("normalize", raw_value, raw_unit))
+            return 1234.0, "KRW"
+
+        def magnitude(row, evidence_item, **kwargs):
+            self.assertIs(evidence_item, evidence)
+            self.assertEqual(
+                row,
+                {
+                    "operand_id": "direct_lookup_007",
+                    "evidence_id": "ev_direct",
+                    "source_row_id": "ev_direct",
+                    "source_row_ids": ["ev_direct"],
+                    "source_anchor": "anchor",
+                    "label": "Metric",
+                    "raw_value": "1,234",
+                    "raw_unit": "million",
+                    "normalized_value": 1234.0,
+                    "normalized_unit": "KRW",
+                    "period": "2023",
+                    "matched_operand_label": "Metric",
+                    "matched_operand_concept": "Revenue",
+                    "matched_operand_role": "current_period",
+                    "statement_type": "income_statement",
+                    "consolidation_scope": "consolidated",
+                    "table_source_id": "table::1",
+                    "value_role": "detail",
+                    "aggregation_stage": "",
+                    "aggregate_label": "",
+                },
+            )
+            self.assertEqual(
+                kwargs,
+                {
+                    "concept": " Revenue ",
+                    "statement_type": "income_statement",
+                    "row_label": " Row label ",
+                    "semantic_label": " Semantic label ",
+                },
+            )
+            events.append(("magnitude", row["operand_id"]))
+            return adopted
+
+        globals_operand = operand
+        with (
+            patch.object(financial_lookup_recovery, "_operand_period_focus", side_effect=period_focus),
+            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary_selector),
+            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell") as aggregate_selector,
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize),
+            patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record", side_effect=magnitude),
+        ):
+            result = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                operand,
+                evidence,
+                index=7,
+            )
+
+        self.assertIs(result, adopted)
+        self.assertEqual(
+            events,
+            [
+                ("period", "current"),
+                ("ordinary", "1,234"),
+                ("normalize", "1,234", "million"),
+                ("magnitude", "direct_lookup_007"),
+            ],
+        )
+        aggregate_selector.assert_not_called()
+        self.assertEqual(evidence, frozen)
+        self.assertIs(evidence["metadata"]["structured_cells"][0]["nested"], nested)
+
+        with patch.object(
+            financial_lookup_recovery,
+            "_select_structured_cell",
+            side_effect=AssertionError("empty cells must stop before selection"),
+        ):
+            self.assertEqual(
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                    operand,
+                    {"metadata": {"structured_cells": []}},
+                    index=1,
+                ),
+                {},
+            )
+
+        with (
+            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value={}),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                side_effect=AssertionError("no selected cell must stop before normalization"),
+            ),
+        ):
+            self.assertEqual(
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(operand, evidence, index=1),
+                {},
+            )
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                return_value={"value_text": "bad", "unit_hint": "million"},
+            ),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", return_value=(None, "KRW")),
+            patch.object(
+                financial_lookup_recovery,
+                "coerce_lookup_magnitude_record",
+                side_effect=AssertionError("invalid normalized value must stop before magnitude coercion"),
+            ),
+        ):
+            self.assertEqual(
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(operand, evidence, index=1),
+                {},
+            )
+
+    def test_current_source_direct_lookup_row_pins_aggregate_selection_and_exceptions(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"alias": True}
+        operand = {"label": "metric", "concept": "revenue", "role": "current_period"}
+        detail = {"value_text": "10", "unit_hint": "million", "nested": nested}
+        aggregate = {
+            "value_text": "20",
+            "unit_hint": "",
+            "value_role": "aggregate",
+            "aggregation_stage": "final",
+            "aggregate_label": "total",
+            "nested": nested,
+        }
+        evidence = {
+            "evidence_id": "ev_aggregate",
+            "metadata": {
+                "year": 2023,
+                "value_role": "aggregate",
+                "unit_hint": "billion",
+                "row_label": "metric",
+                "structured_cells": [detail, aggregate],
+            },
+        }
+        frozen = json.loads(json.dumps(evidence))
+        events = []
+        adopted = {"selected": "aggregate"}
+
+        def ordinary(cells, **_kwargs):
+            events.append("ordinary")
+            return cells[0]
+
+        def aggregate_selector(cells, *, operand, query_years, period_focus):
+            self.assertIs(operand, globals_operand)
+            self.assertEqual(query_years, [2023])
+            self.assertEqual(period_focus, "current")
+            self.assertEqual(len(cells), 1)
+            self.assertEqual(cells[0]["value_text"], "20")
+            self.assertIs(cells[0]["nested"], nested)
+            events.append("aggregate")
+            return cells[0]
+
+        def normalize(value, unit):
+            self.assertEqual((value, unit), ("20", "billion"))
+            events.append("normalize")
+            return 20_000_000_000.0, "KRW"
+
+        def magnitude(row, evidence_item, **_kwargs):
+            self.assertIs(evidence_item, evidence)
+            self.assertEqual(row["raw_value"], "20")
+            self.assertEqual(row["raw_unit"], "billion")
+            self.assertEqual(row["value_role"], "aggregate")
+            self.assertEqual(row["aggregation_stage"], "final")
+            self.assertEqual(row["aggregate_label"], "total")
+            events.append("magnitude")
+            return adopted
+
+        globals_operand = operand
+        with (
+            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary),
+            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", side_effect=aggregate_selector),
+            patch.object(
+                financial_lookup_recovery,
+                "operand_prefers_aggregate_value_role",
+                side_effect=AssertionError("metadata aggregate role must short-circuit operand preference"),
+            ),
+            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize),
+            patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record", side_effect=magnitude),
+        ):
+            result = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                operand,
+                evidence,
+                index=2,
+            )
+
+        self.assertIs(result, adopted)
+        self.assertEqual(events, ["ordinary", "aggregate", "normalize", "magnitude"])
+        self.assertEqual(evidence, frozen)
+        self.assertIs(evidence["metadata"]["structured_cells"][1]["nested"], nested)
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                side_effect=RuntimeError("ordinary selection failed"),
+            ),
+            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell") as later,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ordinary selection failed"):
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(operand, evidence, index=1)
+            later.assert_not_called()
+
+        with (
+            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value=detail),
+            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", return_value=aggregate),
+            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=True),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record") as later,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(operand, evidence, index=1)
+            later.assert_not_called()
+
+        with (
+            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value=detail),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", return_value=(10.0, "KRW")),
+            patch.object(
+                financial_lookup_recovery,
+                "coerce_lookup_magnitude_record",
+                side_effect=RuntimeError("magnitude failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "magnitude failed"):
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(operand, evidence, index=1)
+
+    def test_current_source_direct_lookup_row_static_binding_dag_and_baseline(self) -> None:
+        graph_path = PROJECT_ROOT / "src" / "agent" / "financial_graph_calculation.py"
+        owner_path = PROJECT_ROOT / "src" / "agent" / "financial_lookup_recovery.py"
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8"))
+        public_target = "lookup_row_from_direct_structured_evidence"
+        target = f"_{public_target}"
+
+        graph_defs = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == target
+        ]
+        self.assertEqual(graph_defs, [])
+        owner_defs = [
+            node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == public_target
+        ]
+        self.assertEqual(len(owner_defs), 1)
+        self.assertEqual(owner_defs[0].end_lineno - owner_defs[0].lineno + 1, 80)
+        self.assertEqual(
+            [argument.arg for argument in owner_defs[0].args.args],
+            ["operand", "evidence_item"],
+        )
+        self.assertEqual([argument.arg for argument in owner_defs[0].args.kwonlyargs], ["index"])
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == "self"
+                for node in ast.walk(owner_defs[0])
+            )
+        )
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.stack = []
+                self.try_depth = 0
+                self.calls = []
+
+            def visit_FunctionDef(self, node):
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = node.func.attr if isinstance(node.func, ast.Attribute) else (
+                    node.func.id if isinstance(node.func, ast.Name) else ""
+                )
+                if name in {target, public_target}:
+                    receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "Name"
+                    self.calls.append(
+                        (
+                            self.stack[-1],
+                            receiver,
+                            len(node.args),
+                            [keyword.arg for keyword in node.keywords],
+                            self.try_depth,
+                            ast.unparse(node.keywords[0].value),
+                        )
+                    )
+                self.generic_visit(node)
+
+        visitor = BindingVisitor()
+        visitor.visit(graph_tree)
+        self.assertEqual(
+            visitor.calls,
+            [
+                ("_best_direct_lookup_slot_from_evidence_pool", "Name", 2, ["index"], 0, "1"),
+                ("_best_direct_lookup_slot_from_evidence_pool", "Name", 2, ["index"], 0, "1"),
+                ("_best_direct_lookup_slot_from_evidence_pool", "Name", 2, ["index"], 0, "1"),
+                ("_period_table_direct_operand_rows", "Name", 2, ["index"], 0, "operand_index"),
+            ],
+        )
+
+        public = []
+        private = []
+        for node in owner_tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                (private if node.name.startswith("_") else public).append(node.name)
+        self.assertEqual((len(public), len(private)), (11, 7))
+
+        modules = {
+            path.stem: path
+            for path in (PROJECT_ROOT / "src" / "agent").glob("*.py")
+        }
+        edges = {name: set() for name in modules}
+        for module_name, path in modules.items():
+            module_tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(module_tree):
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
+                    dependency = node.module.rsplit(".", 1)[-1]
+                    if dependency in modules:
+                        edges[module_name].add(dependency)
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith("src.agent."):
+                            dependency = alias.name.rsplit(".", 1)[-1]
+                            if dependency in modules:
+                                edges[module_name].add(dependency)
+
+        def reaches(start, destination):
+            pending = list(edges.get(start, set()))
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == destination:
+                    return True
+                if current not in seen:
+                    seen.add(current)
+                    pending.extend(edges.get(current, set()))
+            return False
+
+        for dependency in (
+            "financial_graph_helpers",
+            "financial_operand_resolution",
+            "financial_runtime_normalization",
+        ):
+            self.assertFalse(reaches(dependency, "financial_lookup_recovery"))
+            self.assertFalse(reaches(dependency, "financial_graph_calculation"))
+            self.assertFalse(reaches(dependency, "financial_graph"))
+        self.assertFalse(reaches("financial_lookup_recovery", "financial_graph_calculation"))
+        self.assertFalse(reaches("financial_lookup_recovery", "financial_graph"))
+
+        baseline = json.loads(
+            (PROJECT_ROOT / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record["path"] == "src/agent/financial_lookup_recovery.py"
+            and any(owner_defs[0].lineno <= line <= owner_defs[0].end_lineno for line in record.get("first_lines") or [])
+        ]
+        self.assertEqual(selected_records, [])
+
+    def test_current_source_direct_lookup_row_callers_pin_args_adoption_and_exception_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        operand = {"label": "metric", "role": "current_period"}
+        evidence = {
+            "evidence_id": "ev_pool",
+            "metadata": {"structured_cells": [{"value_text": "10"}]},
+        }
+        row = {
+            "raw_value": "1234",
+            "raw_unit": "million",
+            "normalized_value": 1234.0,
+            "normalized_unit": "KRW",
+            "source_row_id": "ev_pool",
+        }
+        adopted = {**row, "status": "ok", "role": "current_period"}
+        events = []
+
+        class Score:
+            score = 10.0
+
+        def row_builder(actual_operand, actual_evidence, *, index):
+            self.assertIs(actual_operand, operand)
+            self.assertIsNot(actual_evidence, evidence)
+            self.assertIs(actual_evidence["metadata"], evidence["metadata"])
+            self.assertEqual(index, 1)
+            events.append("pool-row")
+            return row
+
+        def build_slot(actual_row, *, default_role, preserve_source_display):
+            self.assertIs(actual_row, row)
+            self.assertEqual(default_role, "current_period")
+            self.assertTrue(preserve_source_display)
+            events.append("pool-adopt")
+            return adopted
+
+        agent._lookup_value_from_table_label_metadata = lambda *_args: {}
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "lookup_row_from_direct_structured_evidence",
+                side_effect=row_builder,
+            ),
+            patch.object(financial_graph_calculation, "score_direct_structured_lookup_evidence", return_value=Score()),
+            patch.object(financial_graph_calculation.financial_answer_slots, "build_operand_value_slot", side_effect=build_slot),
+            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", return_value=[]),
+        ):
+            selected, score = agent._best_direct_lookup_slot_from_evidence_pool(operand, [evidence])
+
+        self.assertIs(selected, adopted)
+        self.assertEqual(score, 10.0)
+        self.assertEqual(events, ["pool-row", "pool-adopt"])
+
+        required_operands = [
+            {"label": "current", "role": "current_period"},
+            {"label": "prior", "role": "prior_period"},
+        ]
+        evidence_items = [
+            {
+                "evidence_id": "ev_table",
+                "source_anchor": "anchor",
+                "metadata": {
+                    "table_source_id": "table::1",
+                    "period_labels": "2023 2022",
+                    "structured_cells": [{"value_text": "10"}],
+                },
+            }
+        ]
+        period_rows = []
+        merged_lists = []
+        events.clear()
+
+        def period_row_builder(actual_operand, actual_evidence, *, index):
+            self.assertIs(actual_operand, required_operands[index - 1])
+            self.assertIsNot(actual_evidence, evidence_items[0])
+            self.assertIs(actual_evidence["metadata"], evidence_items[0]["metadata"])
+            events.append(("period-row", index))
+            built = {
+                "raw_value": str(index),
+                "raw_unit": "million",
+                "normalized_value": float(index),
+                "normalized_unit": "KRW",
+                "matched_operand_role": actual_operand["role"],
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+            }
+            period_rows.append(built)
+            return built
+
+        def merge_rows(rows, existing, *, required_operands):
+            self.assertEqual(existing, [])
+            self.assertIs(required_operands, globals_required)
+            self.assertEqual(rows, period_rows)
+            merged_lists.append(rows)
+            events.append("merge")
+            return rows
+
+        globals_required = required_operands
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "lookup_row_from_direct_structured_evidence",
+                side_effect=period_row_builder,
+            ),
+            patch.object(financial_graph_calculation, "score_direct_structured_lookup_evidence", return_value=Score()),
+            patch.object(financial_graph_calculation, "_missing_required_operands", return_value=False),
+            patch.object(financial_graph_calculation, "_ratio_operand_rows_collapse_to_same_slot", return_value=False),
+            patch.object(financial_graph_calculation, "merge_operand_rows", side_effect=merge_rows),
+            patch.object(
+                financial_graph_calculation,
+                "_filter_operand_rows_by_required_surface_contract",
+                side_effect=lambda rows, *_args, **_kwargs: rows,
+            ),
+            patch.object(financial_graph_calculation, "_scoped_surface_affinity_priority", return_value=0.0),
+        ):
+            built = agent._build_complete_ratio_operands_from_coherent_context(
+                evidence_items,
+                required_operands=required_operands,
+                query="query",
+                topic="topic",
+                report_scope={},
+            )
+
+        self.assertIs(built, merged_lists[0])
+        self.assertEqual(built, period_rows)
+        self.assertTrue(all(actual is expected for actual, expected in zip(built, period_rows)))
+        self.assertEqual(events, [("period-row", 1), ("period-row", 2), "merge"])
+
+        downstream = []
+
+        def fail_row(*_args, **_kwargs):
+            raise RuntimeError("row owner failed")
+
+        agent._lookup_value_from_table_label_metadata = lambda *_args: downstream.append("table") or {}
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "lookup_row_from_direct_structured_evidence",
+                side_effect=fail_row,
+            ),
+            patch.object(financial_graph_calculation, "score_direct_structured_lookup_evidence", return_value=Score()),
+            patch.object(
+                financial_graph_calculation.financial_answer_slots,
+                "build_operand_value_slot",
+                side_effect=lambda *_args, **_kwargs: downstream.append("slot"),
+            ),
+            patch.object(financial_graph_calculation, "extract_numeric_surface_candidates", return_value=[]),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row owner failed"):
+                agent._best_direct_lookup_slot_from_evidence_pool(operand, [evidence])
+        self.assertEqual(downstream, [])
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "lookup_row_from_direct_structured_evidence",
+                side_effect=fail_row,
+            ),
+            patch.object(financial_graph_calculation, "score_direct_structured_lookup_evidence", return_value=Score()),
+            patch.object(
+                financial_graph_calculation,
+                "merge_operand_rows",
+                side_effect=lambda *_args, **_kwargs: downstream.append("merge"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row owner failed"):
+                agent._build_complete_ratio_operands_from_coherent_context(
+                    evidence_items,
+                    required_operands=required_operands,
+                    query="query",
+                    topic="topic",
+                    report_scope={},
+                )
+        self.assertEqual(downstream, [])
+
+    def test_current_source_direct_structured_value_pins_early_gates_surface_and_year_fallback(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"token": "nested"}
+        row = {
+            "label": "metric",
+            "matched_operand_label": "metric",
+            "matched_operand_concept": "revenue",
+            "matched_operand_role": "current_period",
+            "period": "not-a-year",
+            "raw_value": "",
+            "normalized_value": None,
+            "nested": nested,
+        }
+        evidence = {
+            "metadata": {
+                "year": "also-not-a-year",
+                "row_label": "metric",
+                "semantic_label": "metric semantic",
+                "structured_cells": [
+                    {"value_text": "10", "unit_hint": "million", "nested": nested}
+                ],
+            }
+        }
+        row_frozen = json.loads(json.dumps(row))
+        evidence_frozen = json.loads(json.dumps(evidence))
+
+        empty_row = {}
+        self.assertIs(
+            financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(empty_row, evidence),
+            empty_row,
+        )
+        self.assertIs(
+            financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(row, None),
+            row,
+        )
+
+        with patch.object(
+            financial_lookup_recovery,
+            "_select_structured_cell",
+            side_effect=AssertionError("missing cells must stop before selection"),
+        ):
+            no_cells_evidence = {"metadata": {"structured_cells": []}}
+            self.assertIs(
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                    row,
+                    no_cells_evidence,
+                ),
+                row,
+            )
+
+        mismatch_events = []
+
+        def operand_match(surface, operand_spec):
+            mismatch_events.append(("operand", surface, operand_spec["label"]))
+            return False
+
+        def positive_match(surface, operand_spec):
+            mismatch_events.append(("positive", surface, operand_spec["concept"]))
+            return False
+
+        mismatch_evidence = {
+            "metadata": {
+                "row_label": "other row",
+                "semantic_label": "other semantic",
+                "structured_cells": [{"value_text": "20"}],
+            }
+        }
+        with (
+            patch.object(financial_lookup_recovery, "_operand_text_match", side_effect=operand_match),
+            patch.object(financial_lookup_recovery, "_text_has_positive_surface", side_effect=positive_match),
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                side_effect=AssertionError("surface mismatch must stop before cell selection"),
+            ),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                    row,
+                    mismatch_evidence,
+                ),
+                row,
+            )
+        self.assertEqual(
+            mismatch_events,
+            [
+                ("operand", "other row other semantic", "metric"),
+                ("positive", "other row other semantic", "revenue"),
+            ],
+        )
+
+        selection_events = []
+
+        def select(cells, *, operand, query_years, period_focus):
+            self.assertEqual(query_years, [])
+            self.assertEqual(period_focus, "unknown")
+            self.assertEqual(operand["period"], "not-a-year")
+            self.assertIsNot(cells[0], evidence["metadata"]["structured_cells"][0])
+            self.assertIs(cells[0]["nested"], nested)
+            self.assertIsNot(cells[0]["_sibling_cells"], evidence["metadata"]["structured_cells"])
+            self.assertIsNot(cells[0]["_sibling_cells"][0], evidence["metadata"]["structured_cells"][0])
+            self.assertIs(cells[0]["_sibling_cells"][0]["nested"], nested)
+            selection_events.append("select")
+            return {}
+
+        with (
+            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(
+                financial_lookup_recovery,
+                "_text_has_positive_surface",
+                side_effect=AssertionError("positive fallback must be lazy after operand match"),
+            ),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(financial_lookup_recovery, "_structured_cell_period_text", return_value=""),
+            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="unknown"),
+            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=select),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(row, evidence),
+                row,
+            )
+        self.assertEqual(selection_events, ["select"])
+        self.assertEqual(row, row_frozen)
+        self.assertEqual(evidence, evidence_frozen)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence["metadata"]["structured_cells"][0]["nested"], nested)
+
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "_operand_text_match",
+                side_effect=RuntimeError("surface match failed"),
+            ),
+            patch.object(financial_lookup_recovery, "_text_has_positive_surface") as later,
+            patch.object(financial_lookup_recovery, "_select_structured_cell") as selector,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface match failed"):
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(row, evidence)
+            later.assert_not_called()
+            selector.assert_not_called()
+
+    def test_current_source_direct_structured_value_pins_selection_tolerance_copy_and_exceptions(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"alias": True}
+        row = {
+            "label": "metric",
+            "matched_operand_label": "metric",
+            "matched_operand_concept": "revenue",
+            "matched_operand_role": "current_period",
+            "period": "",
+            "raw_value": "1,000",
+            "raw_unit": "million",
+            "normalized_value": 1000.0,
+            "normalized_unit": "KRW",
+            "nested": nested,
+        }
+        one_cell_evidence = {
+            "metadata": {
+                "row_label": "metric",
+                "structured_cells": [{"value_text": "1,000", "unit_hint": "million"}],
+            }
+        }
+        with (
+            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                side_effect=AssertionError("equal current value must stop before selection"),
+            ),
+        ):
+            self.assertIs(
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                    row,
+                    one_cell_evidence,
+                ),
+                row,
+            )
+
+        period_row = {**row, "period": "2023"}
+        period_evidence = {
+            "metadata": {
+                "year": "2023",
+                "row_label": "metric",
+                "unit_hint": "million",
+                "structured_cells": [
+                    {"value_text": "1,000.0000005", "unit_hint": "million"},
+                    {"value_text": "900", "unit_hint": "million"},
+                ],
+            }
+        }
+        period_frozen = json.loads(json.dumps(period_evidence))
+        selection_events = []
+
+        def period_text(cell, query_years, period_focus):
+            self.assertEqual(query_years, [2023])
+            self.assertEqual(period_focus, "unknown")
+            selection_events.append(("period", cell["value_text"]))
+            return "2023"
+
+        def ordinary(cells, *, operand, query_years, period_focus):
+            self.assertEqual(query_years, [2023])
+            self.assertEqual(period_focus, "unknown")
+            self.assertEqual(operand["period"], "2023")
+            selection_events.append(("select", len(cells)))
+            return cells[0]
+
+        with (
+            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="unknown"),
+            patch.object(financial_lookup_recovery, "_structured_cell_period_text", side_effect=period_text),
+            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                return_value=(1000.0000005, "KRW"),
+            ),
+        ):
+            within_tolerance = financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                period_row,
+                period_evidence,
+            )
+        self.assertIs(within_tolerance, period_row)
+        self.assertEqual(selection_events, [("period", "1,000.0000005"), ("select", 2)])
+        self.assertEqual(period_evidence, period_frozen)
+
+        aggregate_row = {
+            **period_row,
+            "period": "",
+            "value_role": "aggregate",
+        }
+        aggregate_evidence = {
+            "metadata": {
+                "row_label": "metric",
+                "unit_hint": "million",
+                "structured_cells": [
+                    {"value_text": "100", "unit_hint": "million", "nested": nested},
+                    {
+                        "value_text": "2,000",
+                        "unit_hint": "million",
+                        "value_role": "aggregate",
+                        "nested": nested,
+                    },
+                ],
+            }
+        }
+        row_frozen = json.loads(json.dumps(aggregate_row))
+        evidence_frozen = json.loads(json.dumps(aggregate_evidence))
+
+        def aggregate_selector(cells, *, operand, query_years, period_focus):
+            self.assertEqual(query_years, [])
+            self.assertEqual(period_focus, "unknown")
+            self.assertEqual(operand["label"], "metric")
+            self.assertIs(cells[1]["nested"], nested)
+            return cells[1]
+
+        with (
+            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(
+                financial_lookup_recovery,
+                "operand_prefers_aggregate_value_role",
+                side_effect=AssertionError("row aggregate role must short-circuit operand preference"),
+            ),
+            patch.object(financial_lookup_recovery, "_operand_period_focus", return_value="unknown"),
+            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", side_effect=aggregate_selector),
+            patch.object(
+                financial_lookup_recovery,
+                "_select_structured_cell",
+                side_effect=AssertionError("successful aggregate selection must suppress ordinary selection"),
+            ),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", return_value=(2000.0, "KRW")),
+        ):
+            updated = financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                aggregate_row,
+                aggregate_evidence,
+            )
+
+        self.assertIsNot(updated, aggregate_row)
+        self.assertEqual(
+            {key: updated[key] for key in (
+                "raw_value",
+                "raw_unit",
+                "normalized_value",
+                "normalized_unit",
+                "rendered_value",
+                "structured_evidence_cell_realigned",
+            )},
+            {
+                "raw_value": "2,000",
+                "raw_unit": "million",
+                "normalized_value": 2000.0,
+                "normalized_unit": "KRW",
+                "rendered_value": "2,000million",
+                "structured_evidence_cell_realigned": True,
+            },
+        )
+        self.assertIs(updated["nested"], nested)
+        self.assertEqual(aggregate_row, row_frozen)
+        self.assertEqual(aggregate_evidence, evidence_frozen)
+        self.assertIs(aggregate_row["nested"], nested)
+
+        with (
+            patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
+            patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
+            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value={"value_text": "bad"}),
+            patch.object(
+                financial_lookup_recovery,
+                "_normalise_operand_value",
+                side_effect=RuntimeError("value normalization failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "value normalization failed"):
+                financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(
+                    {**row, "raw_value": "", "normalized_value": None},
+                    one_cell_evidence,
+                )
+
+    def test_current_source_direct_structured_value_static_binding_dag_and_baseline(self) -> None:
+        graph_path = PROJECT_ROOT / "src" / "agent" / "financial_graph_calculation.py"
+        owner_path = PROJECT_ROOT / "src" / "agent" / "financial_lookup_recovery.py"
+        graph_tree = ast.parse(graph_path.read_text(encoding="utf-8"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8"))
+        public_target = "coerce_operand_value_from_direct_structured_evidence"
+        target = f"_{public_target}"
+
+        graph_defs = [
+            node
+            for node in ast.walk(graph_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == target
+        ]
+        self.assertEqual(graph_defs, [])
+        owner_defs = [
+            node
+            for node in ast.walk(owner_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == public_target
+        ]
+        self.assertEqual(len(owner_defs), 1)
+        self.assertEqual(owner_defs[0].end_lineno - owner_defs[0].lineno + 1, 138)
+        self.assertEqual(
+            [argument.arg for argument in owner_defs[0].args.args],
+            ["row", "evidence_item"],
+        )
+        self.assertFalse(
+            any(
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == "self"
+                for node in ast.walk(owner_defs[0])
+            )
+        )
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self):
+                self.stack = []
+                self.try_depth = 0
+                self.calls = []
+
+            def visit_FunctionDef(self, node):
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                name = node.func.attr if isinstance(node.func, ast.Attribute) else (
+                    node.func.id if isinstance(node.func, ast.Name) else ""
+                )
+                if name in {target, public_target}:
+                    receiver = ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "Name"
+                    self.calls.append(
+                        (
+                            self.stack[-1],
+                            receiver,
+                            len(node.args),
+                            [keyword.arg for keyword in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        visitor = BindingVisitor()
+        visitor.visit(graph_tree)
+        self.assertEqual(
+            visitor.calls,
+            [("_coerce_operand_row_from_evidence", "Name", 2, [], 0)],
+        )
+
+        public = []
+        private = []
+        for node in owner_tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                (private if node.name.startswith("_") else public).append(node.name)
+        self.assertEqual((len(public), len(private)), (11, 7))
+
+        modules = {
+            path.stem: path
+            for path in (PROJECT_ROOT / "src" / "agent").glob("*.py")
+        }
+        edges = {name: set() for name in modules}
+        for module_name, path in modules.items():
+            module_tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(module_tree):
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent."):
+                    dependency = node.module.rsplit(".", 1)[-1]
+                    if dependency in modules:
+                        edges[module_name].add(dependency)
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if alias.name.startswith("src.agent."):
+                            dependency = alias.name.rsplit(".", 1)[-1]
+                            if dependency in modules:
+                                edges[module_name].add(dependency)
+
+        def reaches(start, destination):
+            pending = list(edges.get(start, set()))
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == destination:
+                    return True
+                if current not in seen:
+                    seen.add(current)
+                    pending.extend(edges.get(current, set()))
+            return False
+
+        for dependency in (
+            "financial_graph_helpers",
+            "financial_structured_cells",
+            "financial_row_surfaces",
+            "financial_surface_contracts",
+            "financial_operand_resolution",
+        ):
+            self.assertFalse(reaches(dependency, "financial_lookup_recovery"))
+            self.assertFalse(reaches(dependency, "financial_graph_calculation"))
+            self.assertFalse(reaches(dependency, "financial_graph"))
+        self.assertFalse(reaches("financial_lookup_recovery", "financial_graph_calculation"))
+        self.assertFalse(reaches("financial_lookup_recovery", "financial_graph"))
+
+        baseline = json.loads(
+            (PROJECT_ROOT / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_records = [
+            record
+            for record in baseline["records"]
+            if record["path"] == "src/agent/financial_lookup_recovery.py"
+            and any(owner_defs[0].lineno <= line <= owner_defs[0].end_lineno for line in record.get("first_lines") or [])
+        ]
+        self.assertEqual(selected_records, [])
+
+    def test_current_source_direct_structured_value_caller_pins_order_adoption_and_exception_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"alias": True}
+        row = {
+            "raw_value": "10",
+            "raw_unit": "million",
+            "normalized_value": 10.0,
+            "normalized_unit": "KRW",
+            "statement_type": "income_statement",
+            "consolidation_scope": "consolidated",
+            "table_source_id": "table::1",
+            "nested": nested,
+        }
+        evidence = {
+            "metadata": {
+                "statement_type": "income_statement",
+                "consolidation_scope": "consolidated",
+                "table_source_id": "table::1",
+            }
+        }
+        row_frozen = json.loads(json.dumps(row))
+        evidence_frozen = json.loads(json.dumps(evidence))
+        period_row = {**row, "period_coerced": True}
+        direct_row = {**period_row, "structured_evidence_cell_realigned": True}
+        magnitude_row = {**direct_row, "magnitude": True}
+        events = []
+
+        def dependency_gate(actual_row):
+            self.assertIsNot(actual_row, row)
+            self.assertIs(actual_row["nested"], nested)
+            events.append("dependency")
+            return False
+
+        def period_owner(actual_row, actual_evidence):
+            self.assertIsNot(actual_row, row)
+            self.assertIs(actual_evidence, evidence)
+            events.append("period")
+            return period_row
+
+        def direct_owner(actual_row, actual_evidence):
+            self.assertIs(actual_row, period_row)
+            self.assertIs(actual_evidence, evidence)
+            events.append("direct")
+            return direct_row
+
+        def magnitude_owner(actual_row, actual_evidence):
+            self.assertIs(actual_row, direct_row)
+            self.assertIs(actual_evidence, evidence)
+            events.append("magnitude")
+            return magnitude_row
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_value_from_direct_structured_evidence",
+                side_effect=direct_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "dependency_task_output_has_consistent_krw_unit",
+                side_effect=dependency_gate,
+            ),
+            patch.object(financial_graph_calculation, "coerce_operand_unit_from_evidence", return_value="million"),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_period_from_evidence_surface",
+                side_effect=period_owner,
+            ),
+            patch.object(financial_graph_calculation, "coerce_lookup_magnitude_record", side_effect=magnitude_owner),
+            patch.object(
+                agent,
+                "_refine_operand_precision_from_evidence_table",
+                side_effect=AssertionError("structured realignment must stop before precision refinement"),
+            ),
+        ):
+            result = agent._coerce_operand_row_from_evidence(row, evidence)
+
+        self.assertIs(result, magnitude_row)
+        self.assertEqual(events, ["dependency", "period", "direct", "magnitude"])
+        self.assertEqual(row, row_frozen)
+        self.assertEqual(evidence, evidence_frozen)
+        self.assertIs(row["nested"], nested)
+
+        precision_input = {**period_row, "structured_evidence_cell_realigned": False}
+        precision_output = {**precision_input, "precision": True}
+        events.clear()
+
+        def unchanged_direct(actual_row, actual_evidence):
+            self.assertIs(actual_row, period_row)
+            self.assertIs(actual_evidence, evidence)
+            events.append("direct")
+            return precision_input
+
+        def unchanged_magnitude(actual_row, actual_evidence):
+            self.assertIs(actual_row, precision_input)
+            self.assertIs(actual_evidence, evidence)
+            events.append("magnitude")
+            return actual_row
+
+        def precision_owner(actual_row, actual_evidence):
+            self.assertIs(actual_row, precision_input)
+            self.assertIs(actual_evidence, evidence)
+            events.append("precision")
+            return precision_output
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_value_from_direct_structured_evidence",
+                side_effect=unchanged_direct,
+            ),
+            patch.object(financial_graph_calculation, "dependency_task_output_has_consistent_krw_unit", return_value=False),
+            patch.object(financial_graph_calculation, "coerce_operand_unit_from_evidence", return_value="million"),
+            patch.object(financial_graph_calculation, "coerce_operand_period_from_evidence_surface", return_value=period_row),
+            patch.object(financial_graph_calculation, "coerce_lookup_magnitude_record", side_effect=unchanged_magnitude),
+            patch.object(agent, "_refine_operand_precision_from_evidence_table", side_effect=precision_owner),
+        ):
+            result = agent._coerce_operand_row_from_evidence(row, evidence)
+        self.assertIs(result, precision_output)
+        self.assertEqual(events, ["direct", "magnitude", "precision"])
+
+        downstream = []
+
+        def fail_direct(actual_row, actual_evidence):
+            self.assertIs(actual_row, period_row)
+            self.assertIs(actual_evidence, evidence)
+            raise RuntimeError("direct value owner failed")
+
+        with (
+            patch.object(
+                financial_graph_calculation,
+                "coerce_operand_value_from_direct_structured_evidence",
+                side_effect=fail_direct,
+            ),
+            patch.object(financial_graph_calculation, "dependency_task_output_has_consistent_krw_unit", return_value=False),
+            patch.object(financial_graph_calculation, "coerce_operand_unit_from_evidence", return_value="million"),
+            patch.object(financial_graph_calculation, "coerce_operand_period_from_evidence_surface", return_value=period_row),
+            patch.object(
+                financial_graph_calculation,
+                "coerce_lookup_magnitude_record",
+                side_effect=lambda *_args, **_kwargs: downstream.append("magnitude"),
+            ),
+            patch.object(
+                agent,
+                "_refine_operand_precision_from_evidence_table",
+                side_effect=lambda *_args, **_kwargs: downstream.append("precision"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "direct value owner failed"):
+                agent._coerce_operand_row_from_evidence(row, evidence)
+        self.assertEqual(downstream, [])
+        self.assertEqual(row, row_frozen)
+        self.assertEqual(evidence, evidence_frozen)
 
 if __name__ == "__main__":
     unittest.main()
