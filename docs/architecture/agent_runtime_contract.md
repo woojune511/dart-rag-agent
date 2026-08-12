@@ -2982,27 +2982,27 @@ Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
 no behavior, accuracy, ranking, performance, total-code, executed-path,
 benchmark, schedule, ledger, or Phase 3 completion.
 
-The next selected operand-owner boundary retains current behavior until each seam
-is characterized. Existing public `lookup_hints_for_concept_key(concept_key)`
+The completed operand-owner boundary preserves the characterized behavior.
+Public `lookup_hints_for_concept_key(concept_key)`
 normalizes the concept key, reads the financial ontology, returns a copied direct
 concept hint map when present, otherwise scans non-group concept specs for the
 first normalized concept match, and returns a copied hint map or empty mapping.
-Existing public `coerce_lookup_magnitude_value(...)` returns unchanged for null,
+Public `coerce_lookup_magnitude_value(...)` returns unchanged for null,
 non-KRW, or nonnegative values; otherwise it requires ontology opt-in, one of the
 current statement types, compatible magnitude surface tokens, and a current
 parenthesis/minus source marker before returning the absolute value. It catches
 no mapping, ontology, normalization, iteration, string, or truthiness exception.
-After movement, the hint helper is owner-local to magnitude coercion while three
+The hint helper is owner-local to magnitude coercion while three
 graph-helper hint calls remain external; lookup-record and one reconciliation
 magnitude call remain external and same-block repair becomes owner-local.
 
-Public `candidate_row_block_signature(candidate)` will preserve the current
+Public `candidate_row_block_signature(candidate)` preserves the former
 graph-helper contract: copy metadata, require row-context text, softly reject an
 invalid integer row index, normalize nonblank lines, validate bounds, find the
 nearest preceding contiguous pipe-header block, and return the table-source/
 header-position/header-text signature or empty string. Public
-`repair_note_operand_units_from_same_block(operand_rows, candidate_map)` will
-preserve the reconciliation contract: return the original list for fewer than
+`repair_note_operand_units_from_same_block(operand_rows, candidate_map)`
+preserves the reconciliation contract: return the original list for fewer than
 two rows; otherwise shallow-copy rows, group only configured note rows by the
 signature, inherit a unit only when exactly one resolved unit exists, normalize
 and ontology-coerce ambiguous rows, retain rows whose normalized value is null,
@@ -3011,12 +3011,51 @@ integer conversion catches only `TypeError`/`ValueError`; other mapping,
 iteration, truthiness, string, normalization, ontology, policy, and coercion
 exceptions propagate.
 
-The combined selected movement is exactly the 135-line, 15-call, public-four,
-external-twelve/local-three batch specified in
-[Project Status Next Work](../overview/project_status.md#next-work). It adds no
-module edge. Lookup-record recovery, report-file/local-unit lookup, structured-
-cell selection, operand-row construction, candidate extraction, LLM reranking,
-reconciliation state/artifact/retry work, mutable evidence, ledger mutation, and
+Commit `5bd9e6f` moved the former 135 definition-span lines to four public
+134-line owner functions. Fifteen calls finish as 12 external and three owner-
+local. Source is `+156/-154`, tests are `+867/-13`, and the whole commit is
+`+1,023/-167`; its source diff SHA-256 is
+`b7bcf68a9cd79ab91f6e30978e434d9b5b504f06a85b4e582c20b0497bbecf21`.
+Focused 8/8, operand owner 69/69, affected semantic 813/813, import 19/19,
+union 832/832, audit 217, and full discovery 1,736/1,736 passed. Lookup-record
+recovery, report-file/local-unit lookup, structured-cell selection, operand-row
+construction, candidate extraction, LLM reranking, reconciliation state/
+artifact/retry work, mutable evidence, ledger mutation, and final sequencing
+remain graph/existing-owner responsibilities. Benchmark refresh was **NOT RUN**,
+remote CI is unverified, and the move proves no behavior, accuracy, ranking,
+performance, total-code, executed-path, benchmark, schedule, ledger, or Phase 3
+completion.
+
+The next selected caller-facing run-projection boundary retains current behavior
+until each seam is characterized. Owner-private
+`_runtime_evidence_defaults(final)` preserves report-scope company/year
+precedence and first-list fallback. Owner-private
+`_compact_runtime_evidence_metadata(metadata)` shallow-copies metadata, always
+drops table-object/value-record payloads, drops row-record payloads only above
+20,000 characters, drops other fields above 4,000 characters, and records sorted
+unique removed field names. Public `enrich_runtime_evidence_metadata(final,
+evidence_items)` shallow-copies evidence rows and metadata in stable order,
+fills absent company/year, derives a blank source anchor from metadata in the
+current precedence order, owner-locally compacts metadata, preserves nested
+aliases, and leaves inputs unchanged.
+
+Public `project_debug_traces(final)`, `project_agent_answer(...)`,
+`project_review_trace(...)`, and `project_debug_bundle(...)` retain their exact
+literal output keys, indexed versus defaulted field access, and supplied object
+identities. Public `augment_citations_from_runtime_evidence(citations,
+runtime_evidence)` copies nonblank citations, normalized-case deduplicates them,
+scans copied evidence/metadata in stable order, resolves the anchor through the
+current fallback chain, adds company/year brackets only to unbracketed anchors,
+and leaves inputs unchanged. These projections catch no mapping, iteration,
+truthiness, string, copy, or normalization exceptions.
+
+The combined selected movement is exactly the 189-line, 11-call, public-six/
+owner-private-two, external-nine/local-two batch specified in
+[Project Status Next Work](../overview/project_status.md#next-work). It adds a
+cycle-free run-projection owner but no new output field. Runtime-evidence
+fallback and selection, structured/stale answer repair, trace resolution and
+rebuild, task-artifact projection, graph execution, compatibility assembly,
+retrieval/provenance construction, mutable state/evidence, ledger mutation, and
 final sequencing remain graph/existing-owner responsibilities.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter

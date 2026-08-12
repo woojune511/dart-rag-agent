@@ -303,26 +303,37 @@ SHA-256 is
 `6b45dd51cfe790304227f99242525c54a7ddb2c0a65dafe940cb7e42069b8020`.
 Benchmark refresh was **NOT RUN** and remote CI is unverified.
 
-Both callers and their evidence filtering/provenance adoption, public-answer and
-runtime-evidence preparation, debug/citation projection, mutable state/evidence,
-artifact and ledger mutation, promotion, sync/rebuild, and final sequencing stay
-in the graph. The selected follow-on is now the 135-line, two-seam operand
-magnitude and same-block unit-resolution batch into
-`financial_operand_resolution.py`: existing public lookup hints and magnitude
-coercion move first, then row-block signature and note-unit repair. Four public
-owner functions total a projected 134 lines; 15 current calls finish as 12
-external and three owner-local. The move creates no module edge because lookup
-recovery, graph helpers, and reconciliation already import the operand owner.
-Exact APIs, the eight-method characterization gate, call distribution, and
-rejected expansions live only in
+The completed `5bd9e6f` follow-on is another ownership relocation only. It moved
+16 + 32 + 29 + 58 = 135 lookup/magnitude and same-block note-unit definition-
+span lines to four public 134-line functions in `financial_operand_resolution`.
+Fifteen calls finish as 12 external and three owner-local; retired selected
+private refs are zero. Source is `+156/-154`, tests are `+867/-13`, and the whole
+commit is `+1,023/-167`. Graph helpers moved from 6,299 to 6,269 physical lines,
+reconciliation from 2,137 to 2,079, lookup recovery from 609 to 557, and operand
+resolution from 3,461 to 3,603. Eight new unittest methods moved full discovery
+from 1,728 to 1,736. Final gates passed focused 8/8, operand owner 69/69,
+affected semantic 813/813, import 19/19, semantic/import union 832/832, audit
+217, full discovery 1,736/1,736, pycompile/fresh import, DAG/body/caller parity,
+and diff check. Its source diff SHA-256 is
+`b7bcf68a9cd79ab91f6e30978e434d9b5b504f06a85b4e582c20b0497bbecf21`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified.
+
+Lookup-record recovery, report-file/local-unit lookup, structured-cell
+selection, candidate extraction, LLM reranking, mutable reconciliation state/
+evidence, artifact/ledger mutation, and final sequencing remain in their prior
+owners. The selected follow-on is now the 189-line, two-seam caller-facing run-
+projection batch from `financial_graph.py` into a new
+`financial_agent_run_projection.py`. Six public and two owner-private functions
+total a projected 184 lines; 11 current calls finish as nine graph-external and
+two owner-local. Exact APIs, the eight-method characterization gate, call
+distribution, and rejected expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 
-Report-file/local-unit lookup, structured-cell selection, candidate extraction,
-LLM reranking, reconciliation state/artifact/retry work, collapsed-ratio repair,
-prepared-candidate and compact-ratio state/trace carriers, dynamic dispatch,
-general structured-cell helper expansion, bound callbacks, ontology
-compatibility, retrieval/provenance construction, and evidence mutation remain
-excluded.
+Runtime-evidence fallback/selection, structured and stale public-answer repair,
+trace resolution/rebuild, graph execution, compatibility assembly, retrieval/
+provenance construction, mutable state/evidence, artifact/ledger work,
+collapsed-ratio and prepared-candidate carriers, bound callbacks, ontology
+compatibility, and final sequencing remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

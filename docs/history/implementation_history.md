@@ -2526,6 +2526,61 @@ four-method characterize-first gates, projected validation counts, and rejected
 state/carrier/cycle expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Operand lookup magnitude and same-block note-unit owner milestone
+
+- `5bd9e6f` moves existing public `lookup_hints_for_concept_key(...)` and
+  `coerce_lookup_magnitude_value(...)` from lookup recovery, graph-private
+  `_candidate_row_block_signature(...)`, and reconciliation-private
+  `_repair_note_operand_units_from_same_block(...)` into
+  `financial_operand_resolution.py` as four public functions. The former
+  definition spans were 16 + 32 + 29 + 58 = 135 lines and the public owner spans
+  are 16 + 32 + 29 + 57 = 134.
+- Fifteen selected direct calls finish as 12 external and three owner-local:
+  hints 3/1, magnitude coercion 2/1, row-block signature 6/1, and note-unit repair
+  1/0. Retired selected private source/test refs are zero; no wrapper,
+  compatibility alias, callback, flag, reason, or carrier remains.
+- Literal body parity passed for all four functions after only name/`self`
+  normalization. Complete retained caller parity passed for graph-helper logical/
+  family signatures, structured reconciliation extraction, operand-row
+  construction, and lookup-record coercion. Public import identity, removed
+  mixin attribute absence, pycompile/fresh import, DAG, and diff check passed.
+  None of the selected spans moved a runtime-domain baseline record; the reviewed
+  count remains 217.
+- Exactly seven source/test files changed. Source is `+156/-154`, net `+2`:
+  graph helpers moved from 6,299 to 6,269 physical lines, reconciliation from
+  2,137 to 2,079, lookup recovery from 609 to 557, and operand resolution from
+  3,461 to 3,603. Tests are `+867/-13`, net `+854`; the whole commit is
+  `+1,023/-167`, net `+856`. Exactly eight new unittest methods moved full
+  discovery from 1,728 to 1,736.
+- The committed source-only diff SHA-256 is
+  `b7bcf68a9cd79ab91f6e30978e434d9b5b504f06a85b4e582c20b0497bbecf21`.
+  Final validation passed focused 8/8, operand owner 69/69, affected eight-module
+  semantic 813/813, import-side-effects 19/19, semantic/import union 832/832,
+  runtime audit 217, and full discovery 1,736/1,736. Benchmark refresh was
+  **NOT RUN**, and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only ownership of deterministic lookup/magnitude and
+same-block unit resolution. Lookup-record recovery, report-file/local-unit lookup,
+structured-cell selection, candidate extraction, LLM reranking, mutable
+reconciliation state/evidence, artifact/ledger mutation, and final sequencing
+remain in their prior owners. The commit proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is two characterize-first seams
+totaling 189 current definition-span lines in `financial_graph.py`. Prepared
+evidence defaults/metadata compaction/enrichment move first; literal agent-answer,
+review/debug bundle, and citation projection follow into a new
+`financial_agent_run_projection.py`. The projected owner surface is 184 lines
+across six public and two owner-private functions. Eleven current calls finish as
+nine graph-external and two owner-local. Runtime-evidence fallback/selection,
+structured/stale answer repair, trace resolution/rebuild, graph execution,
+compatibility assembly, mutable state/evidence, artifact/ledger mutation, and
+final sequencing remain hard stops. Exact APIs, the eight-method characterize-
+first gates, projected validation counts, and rejected state/carrier/cycle
+expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

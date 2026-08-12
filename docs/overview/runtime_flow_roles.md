@@ -87,8 +87,8 @@ output projection을 담당한다.
   review material을 묶는다.
 - `_project_debug_bundle()`: calculation debug trace, LLM usage, phase usage,
   embedding usage를 묶는다.
-- `_project_debug_traces()`: retrieval/calculation/debug trace를 caller-facing
-  bundle로 모은다.
+- `_project_debug_traces()`: calculation debug trace를 caller-facing bundle로
+  모은다.
 - `_augment_citations_from_runtime_evidence()`: runtime evidence에서 citation을
   보강한다.
 - `_runtime_evidence_from_retrieved_docs()`: retrieved docs를 runtime evidence
@@ -289,6 +289,7 @@ State-free owner topology:
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
+| planned `financial_agent_run_projection.py` | caller-facing evidence metadata/citation and agent-answer/review/debug bundle projection over already prepared values; graph execution, answer repair, evidence selection, trace/ledger work remain outside |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
 | `financial_graph_calculation_rendering.py` | calculation answer rendering plus ratio result-unit, absolute-query, and result projection policy |
 
@@ -307,8 +308,8 @@ aggregate selector, slot-material/period policy, aggregate source/coherence prep
 material-gap, result/nested rank, dedupe, narrative-answer validation, bounded aggregate
 row/gap/lookup-answer policy, narrative term/variant/context sentence presentation,
 prepared-document snippet projection and retrieved-source preservation,
-prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
-table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
+  prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency,
+  lookup magnitude와 same-block/table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
 projection, aggregate result support/reuse predicate와 prepared growth-numeric
 rendering, dependency input matching/binding/synthesis policy, final-answer
 evidence filtering/operand append/surface-operand projection이 포함된다. Graph는
@@ -446,13 +447,18 @@ Aggregate/narrative row의 state-free answer policy owner다.
   filtering/provenance adoption, public-answer/runtime-evidence preparation,
   retrieval/provenance construction, evidence-list mutation, mutable state,
   artifact/ledger mutation과 final sequencing은 graph에 남는다.
-- 다음 선택은 operand owner로 가는 135-line 두 seam이다. 기존 public ontology
-  lookup/magnitude coercion과 graph-helper row-block signature/reconciliation
-  same-block note-unit repair를 public 4개로 공동 배치한다. 15개 call은 최종
-  external 12/local 3이다. lookup-record recovery, report-file/local-unit lookup,
-  structured-cell selection, candidate extraction, LLM reranking, mutable
-  reconciliation state/artifact/retry와 final sequencing hard stop은
-  [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
+- 완료된 operand magnitude/unit batch는 public ontology lookup/magnitude coercion과
+  row-block signature/same-block note-unit repair를 operand owner의 public 4개로
+  배치한다. 15개 call은 external 12/local 3이며 lookup-record recovery,
+  report-file/local-unit lookup, structured-cell selection, candidate extraction,
+  mutable reconciliation state/artifact/retry와 final sequencing은 기존 owner에 남는다.
+- 다음 선택은 caller-facing run projection의 189-line 두 seam이다. 준비된
+  evidence metadata/citation과 public agent-answer/review/debug bundle만 public 6개와
+  owner-private 2개로 배치하며, 11개 call은 external 9/local 2다. runtime-evidence
+  선택/fallback, structured/stale answer repair, trace resolution/rebuild, graph
+  execution, compatibility assembly, mutable state/evidence, artifact/ledger와 final
+  sequencing hard stop은 [Project Status의 Next Work](project_status.md#next-work)만
+  기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
 
