@@ -8457,7 +8457,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             events.append(("enrich", value, items))
             return enriched
 
-        agent._enrich_runtime_evidence_metadata = Mock(side_effect=enrich_owner)
+        enrich_projection = Mock(side_effect=enrich_owner)
 
         def normalize(value):
             events.append(("normalize", value))
@@ -8473,6 +8473,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(financial_graph, "append_operand_evidence_for_final_answer", append_projection),
             patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", filter_projection),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", enrich_projection),
         ):
             result = financial_graph.FinancialAgent._runtime_evidence_from_retrieved_docs(agent, final)
 
@@ -8493,7 +8494,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(filter_call.kwargs["final_answer"], "answer 10")
         self.assertEqual(filter_call.kwargs["selected_claim_ids"], [" selected ", ""])
         self.assertIsNot(filter_call.kwargs["selected_claim_ids"], final["selected_claim_ids"])
-        enrich_call = agent._enrich_runtime_evidence_metadata.call_args
+        enrich_call = enrich_projection.call_args
         self.assertIs(enrich_call.args[0], final)
         self.assertEqual(enrich_call.args[1], filtered_rows[:8])
         self.assertIsNot(enrich_call.args[1], filtered_rows)
@@ -8520,7 +8521,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         second_filtered = [{"evidence_id": "retrieved::kept"}]
         fallback_filter = Mock(side_effect=[[], second_filtered])
         fallback_enriched = [{"evidence_id": "fallback-enriched"}]
-        fallback_agent._enrich_runtime_evidence_metadata = Mock(return_value=fallback_enriched)
+        fallback_projection = Mock(return_value=fallback_enriched)
         with (
             patch.object(financial_graph, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
             patch.object(
@@ -8530,6 +8531,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(financial_graph, "append_operand_evidence_for_final_answer", fallback_append),
             patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", fallback_filter),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", fallback_projection),
         ):
             fallback_result = financial_graph.FinancialAgent._runtime_evidence_from_retrieved_docs(
                 fallback_agent,
@@ -8546,7 +8548,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(generated[0]["claim"], "retrieved 20")
         self.assertIs(generated[0]["metadata"]["nested"], retrieved_nested)
         self.assertEqual(second_filter.kwargs, {"final_answer": "answer 20", "selected_claim_ids": []})
-        fallback_agent._enrich_runtime_evidence_metadata.assert_called_once_with(fallback_final, second_filtered)
+        fallback_projection.assert_called_once_with(fallback_final, second_filtered)
         self.assertEqual(fallback_final, before_fallback)
         self.assertIs(fallback_final["seed_retrieved_docs"][0][0]["metadata"]["nested"], retrieved_nested)
 
@@ -8554,7 +8556,6 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         stopped_enrich = Mock()
         failing_agent = Agent()
         failing_agent._project_runtime_calculation_trace = Mock(return_value={"calculation_operands": [operand]})
-        failing_agent._enrich_runtime_evidence_metadata = stopped_enrich
         failing_append = Mock(side_effect=RuntimeError("append failed"))
         with (
             patch.object(financial_graph, "_normalise_spaces", return_value="answer 10"),
@@ -8565,6 +8566,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             ),
             patch.object(financial_graph, "append_operand_evidence_for_final_answer", failing_append),
             patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", stopped_filter),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", stopped_enrich),
             self.assertRaisesRegex(RuntimeError, "append failed"),
         ):
             financial_graph.FinancialAgent._runtime_evidence_from_retrieved_docs(failing_agent, final)
@@ -11112,6 +11114,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertEqual(
             current_test_ref_modules,
             {
+                "test_financial_agent_run_projection",
                 "test_financial_aggregate_rank_dedupe",
                 "test_financial_numeric_provenance",
                 "test_subtask_loop",
@@ -11286,22 +11289,23 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             )
             agent._structured_public_answer_trace_projection = Mock(return_value=structured_trace)
             agent._retrieved_ratio_context_projection_for_public_answer = Mock(return_value=ratio_trace)
-            agent._project_debug_traces = Mock(
+            projections = {}
+            projections["debug"] = Mock(
                 side_effect=lambda _final: events.append("debug") or {}
             )
-            agent._augment_citations_from_runtime_evidence = Mock(
+            projections["citations"] = Mock(
                 side_effect=lambda citations, evidence: events.append("citations") or []
             )
-            agent._project_agent_answer = Mock(
+            projections["agent"] = Mock(
                 side_effect=lambda _final, **kwargs: events.append("agent-answer")
                 or {
                     "answer": kwargs["public_answer"],
                     "resolved_calculation_trace": kwargs["runtime_calculation_trace"],
                 }
             )
-            agent._project_review_trace = Mock(return_value={})
-            agent._project_debug_bundle = Mock(return_value={})
-            return agent
+            projections["review"] = Mock(return_value={})
+            projections["bundle"] = Mock(return_value={})
+            return agent, projections
 
         success_events = []
 
@@ -11309,7 +11313,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             success_events.append(("append", trace, evidence, final_answer))
             return appended_trace
 
-        agent = configure(success_events)
+        agent, projections = configure(success_events)
         with (
             patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
@@ -11318,6 +11322,15 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "append_final_answer_surface_operands_from_evidence",
                 side_effect=append_surface,
             ),
+            patch.object(financial_graph, "project_debug_traces", projections["debug"]),
+            patch.object(
+                financial_graph,
+                "augment_citations_from_runtime_evidence",
+                projections["citations"],
+            ),
+            patch.object(financial_graph, "project_agent_answer", projections["agent"]),
+            patch.object(financial_graph, "project_review_trace", projections["review"]),
+            patch.object(financial_graph, "project_debug_bundle", projections["bundle"]),
         ):
             result = financial_graph.FinancialAgent.run(agent, "query")
 
@@ -11336,7 +11349,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         self.assertIsNot(constructed_evidence, final_state["evidence_items"])
         self.assertIs(constructed_evidence[0], final_evidence)
         self.assertIs(constructed_evidence[1], runtime_evidence_row)
-        self.assertIs(agent._project_agent_answer.call_args.kwargs["runtime_calculation_trace"], appended_trace)
+        self.assertIs(projections["agent"].call_args.kwargs["runtime_calculation_trace"], appended_trace)
         self.assertEqual(final_state, before_final)
         self.assertIs(final_state["nested"], nested)
         self.assertIs(final_evidence["nested"], nested)
@@ -11348,7 +11361,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             failure_events.append(("append", trace, evidence, final_answer))
             raise RuntimeError("run surface append failed")
 
-        failing_agent = configure(failure_events)
+        failing_agent, failing_projections = configure(failure_events)
         with (
             patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
             patch.object(financial_graph, "_project_task_artifact_trace", return_value={}),
@@ -11357,15 +11370,24 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 "append_final_answer_surface_operands_from_evidence",
                 side_effect=fail_append,
             ),
+            patch.object(financial_graph, "project_debug_traces", failing_projections["debug"]),
+            patch.object(
+                financial_graph,
+                "augment_citations_from_runtime_evidence",
+                failing_projections["citations"],
+            ),
+            patch.object(financial_graph, "project_agent_answer", failing_projections["agent"]),
+            patch.object(financial_graph, "project_review_trace", failing_projections["review"]),
+            patch.object(financial_graph, "project_debug_bundle", failing_projections["bundle"]),
             self.assertRaisesRegex(RuntimeError, "run surface append failed"),
         ):
             financial_graph.FinancialAgent.run(failing_agent, "query")
         self.assertEqual(len(failure_events), 1)
         self.assertIs(failure_events[0][1], ratio_trace)
         self.assertEqual(failure_events[0][2], [final_evidence, runtime_evidence_row])
-        failing_agent._project_debug_traces.assert_not_called()
-        failing_agent._augment_citations_from_runtime_evidence.assert_not_called()
-        failing_agent._project_agent_answer.assert_not_called()
+        failing_projections["debug"].assert_not_called()
+        failing_projections["citations"].assert_not_called()
+        failing_projections["agent"].assert_not_called()
         self.assertEqual(final_state, before_final)
         self.assertIs(final_evidence["nested"], nested)
         self.assertIs(runtime_evidence_row["nested"], nested)

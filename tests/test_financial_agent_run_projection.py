@@ -1,9 +1,14 @@
+import ast
+import inspect
+import json
 import unittest
 from copy import deepcopy
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import src.agent.financial_graph as financial_graph
+import src.agent.financial_agent_run_projection as financial_agent_run_projection
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
@@ -2931,6 +2936,1664 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             ["task_without_artifacts", "final_source_task_without_artifacts"],
         )
         self.assertEqual(trace["integrity_issues"][1]["task_id"], "task_source")
+
+    def test_current_source_run_projection_seam_a_defaults_and_metadata_compaction_contract(self) -> None:
+        nested = {"preserve": True}
+
+        class IterationBomb:
+            def __iter__(self):
+                raise AssertionError("fallback list should stay lazy")
+
+            def __deepcopy__(self, _memo):
+                return self
+
+        scoped_final = {
+            "report_scope": {"company": "  Scope Co  ", "year": 0, "nested": nested},
+            "companies": IterationBomb(),
+            "years": IterationBomb(),
+        }
+        before_scoped = deepcopy(scoped_final)
+
+        scoped = financial_agent_run_projection._runtime_evidence_defaults(scoped_final)
+
+        self.assertEqual(scoped, {"company": "Scope Co", "year": 0})
+        self.assertEqual(scoped_final, before_scoped)
+        self.assertIs(scoped_final["report_scope"]["nested"], nested)
+
+        fallback_final = {
+            "report_scope": {"company": "   ", "year": ""},
+            "companies": ["", "  Fallback Co  ", "Later Co"],
+            "years": [2024, 2023],
+        }
+        self.assertEqual(
+            financial_agent_run_projection._runtime_evidence_defaults(fallback_final),
+            {"company": "Fallback Co", "year": 2024},
+        )
+        self.assertEqual(
+            financial_agent_run_projection._runtime_evidence_defaults({}),
+            {"company": "", "year": None},
+        )
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("company coercion failed")
+
+        with self.assertRaisesRegex(RuntimeError, "company coercion failed"):
+            financial_agent_run_projection._runtime_evidence_defaults(
+                {
+                    "report_scope": {"company": StringBomb()},
+                    "years": [2024],
+                },
+            )
+
+        class MappingCopyBomb:
+            def keys(self):
+                raise RuntimeError("mapping copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("mapping values should not be read after keys fail")
+
+        with self.assertRaisesRegex(RuntimeError, "mapping copy failed"):
+            financial_agent_run_projection._runtime_evidence_defaults(
+                {"report_scope": MappingCopyBomb()},
+            )
+
+        metadata = {
+            "nested": nested,
+            "boundary": "x" * 4_000,
+            "too_long": "x" * 4_001,
+            "table_object_json": "{}",
+            "table_value_records_json": "[]",
+            "table_row_records_json": "r" * 20_000,
+            "blank": None,
+        }
+        before_metadata = deepcopy(metadata)
+
+        compacted = financial_agent_run_projection._compact_runtime_evidence_metadata(metadata)
+
+        self.assertIsNot(compacted, metadata)
+        self.assertIs(compacted["nested"], nested)
+        self.assertEqual(compacted["boundary"], "x" * 4_000)
+        self.assertEqual(compacted["table_row_records_json"], "r" * 20_000)
+        self.assertIsNone(compacted["blank"])
+        self.assertEqual(
+            compacted["metadata_compacted_fields"],
+            ["table_object_json", "table_value_records_json", "too_long"],
+        )
+        self.assertNotIn("too_long", compacted)
+        self.assertNotIn("table_object_json", compacted)
+        self.assertNotIn("table_value_records_json", compacted)
+        self.assertEqual(metadata, before_metadata)
+        self.assertIs(metadata["nested"], nested)
+
+        oversized_rows = {
+            "table_row_records_json": "r" * 20_001,
+            "kept": "value",
+        }
+        oversized_result = financial_agent_run_projection._compact_runtime_evidence_metadata(oversized_rows)
+        self.assertEqual(
+            oversized_result,
+            {
+                "kept": "value",
+                "metadata_compacted_fields": ["table_row_records_json"],
+            },
+        )
+        self.assertEqual(oversized_rows["table_row_records_json"], "r" * 20_001)
+
+        class MetadataStringBomb:
+            def __str__(self):
+                raise RuntimeError("metadata coercion failed")
+
+        exploding_metadata = {
+            "table_object_json": MetadataStringBomb(),
+            "later": "untouched",
+        }
+        with self.assertRaisesRegex(RuntimeError, "metadata coercion failed"):
+            financial_agent_run_projection._compact_runtime_evidence_metadata(exploding_metadata)
+        self.assertEqual(set(exploding_metadata), {"table_object_json", "later"})
+
+        class TruthBomb:
+            def __bool__(self):
+                raise RuntimeError("metadata truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata truth failed"):
+            financial_agent_run_projection._compact_runtime_evidence_metadata(TruthBomb())
+
+    def test_current_source_run_projection_seam_a_enrichment_contract(self) -> None:
+        nested = {"preserve": True}
+        events = []
+
+        class Agent:
+            pass
+
+        agent = Agent()
+        defaults = {"company": "Default Co", "year": 2024}
+        agent._runtime_evidence_defaults = Mock(
+            side_effect=lambda final: events.append(("defaults", final)) or defaults
+        )
+        compacted_rows = []
+
+        def compact(metadata):
+            events.append(("compact", metadata))
+            result = {**metadata, "compacted": len(compacted_rows) + 1}
+            compacted_rows.append(result)
+            return result
+
+        agent._compact_runtime_evidence_metadata = Mock(side_effect=compact)
+        evidence_items = [
+            {
+                "evidence_id": "one",
+                "source_anchor": " explicit anchor ",
+                "metadata": {
+                    "company": "Existing Co",
+                    "year": 2023,
+                    "section_path": "ignored path",
+                    "nested": nested,
+                },
+                "nested": nested,
+            },
+            {
+                "evidence_id": "two",
+                "metadata": {"section_path": "  path / two  ", "nested": nested},
+                "nested": nested,
+            },
+            {
+                "evidence_id": "three",
+                "metadata": {
+                    "source_anchor": "",
+                    "section_title": "  title three  ",
+                    "nested": nested,
+                },
+                "nested": nested,
+            },
+            {
+                "evidence_id": "four",
+                "metadata": {"section": "  section four  ", "nested": nested},
+                "nested": nested,
+            },
+            {
+                "evidence_id": "five",
+                "metadata": {
+                    "company": " ",
+                    "year": 0,
+                    "source_anchor": "  metadata source  ",
+                    "section_path": "ignored path",
+                    "nested": nested,
+                },
+                "nested": nested,
+            },
+            {
+                "evidence_id": "six",
+                "metadata": {"section": "", "nested": nested},
+                "nested": nested,
+            },
+        ]
+        before_items = deepcopy(evidence_items)
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_runtime_evidence_defaults",
+                agent._runtime_evidence_defaults,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_compact_runtime_evidence_metadata",
+                agent._compact_runtime_evidence_metadata,
+            ),
+            patch.object(financial_agent_run_projection, "_normalise_spaces", side_effect=normalize),
+        ):
+            enriched = financial_agent_run_projection.enrich_runtime_evidence_metadata(
+                {"report_scope": {"company": "Default Co", "year": 2024}},
+                evidence_items,
+            )
+
+        self.assertEqual([event[0] for event in events], [
+            "defaults",
+            "compact",
+            "normalize",
+            "compact",
+            "normalize",
+            "compact",
+            "normalize",
+            "compact",
+            "normalize",
+            "compact",
+            "compact",
+        ])
+        self.assertEqual(
+            [row["evidence_id"] for row in enriched],
+            ["one", "two", "three", "four", "five", "six"],
+        )
+        self.assertIsNot(enriched, evidence_items)
+        for original, projected in zip(evidence_items, enriched):
+            self.assertIsNot(projected, original)
+            self.assertIs(projected["nested"], original["nested"])
+            self.assertIsNot(projected["metadata"], original["metadata"])
+            self.assertIs(projected["metadata"]["nested"], nested)
+        self.assertEqual(enriched[0]["source_anchor"], " explicit anchor ")
+        self.assertEqual(enriched[0]["metadata"]["company"], "Existing Co")
+        self.assertEqual(enriched[0]["metadata"]["year"], 2023)
+        self.assertEqual(enriched[1]["source_anchor"], "path / two")
+        self.assertEqual(enriched[1]["metadata"]["company"], "Default Co")
+        self.assertEqual(enriched[1]["metadata"]["year"], 2024)
+        self.assertEqual(enriched[2]["source_anchor"], "title three")
+        self.assertEqual(enriched[3]["source_anchor"], "section four")
+        self.assertEqual(enriched[4]["source_anchor"], "metadata source")
+        self.assertEqual(enriched[4]["metadata"]["company"], " ")
+        self.assertEqual(enriched[4]["metadata"]["year"], 2024)
+        self.assertNotIn("source_anchor", enriched[5])
+        self.assertEqual(evidence_items, before_items)
+        self.assertTrue(all(row["metadata"]["nested"] is nested for row in evidence_items))
+        self.assertTrue(all(result is row["metadata"] for result, row in zip(compacted_rows, enriched)))
+
+        empty_agent = Agent()
+        empty_agent._runtime_evidence_defaults = Mock(return_value={"company": "", "year": None})
+        empty_agent._compact_runtime_evidence_metadata = Mock()
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_runtime_evidence_defaults",
+                empty_agent._runtime_evidence_defaults,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_compact_runtime_evidence_metadata",
+                empty_agent._compact_runtime_evidence_metadata,
+            ),
+        ):
+            self.assertEqual(
+                financial_agent_run_projection.enrich_runtime_evidence_metadata({}, []),
+                [],
+            )
+        empty_agent._runtime_evidence_defaults.assert_called_once_with({})
+        empty_agent._compact_runtime_evidence_metadata.assert_not_called()
+
+        class EvidenceIterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise AssertionError("evidence iteration should be stopped")
+
+        failing_defaults_agent = Agent()
+        failing_defaults_agent._runtime_evidence_defaults = Mock(
+            side_effect=RuntimeError("defaults failed")
+        )
+        failing_defaults_agent._compact_runtime_evidence_metadata = Mock()
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_runtime_evidence_defaults",
+                failing_defaults_agent._runtime_evidence_defaults,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_compact_runtime_evidence_metadata",
+                failing_defaults_agent._compact_runtime_evidence_metadata,
+            ),
+            self.assertRaisesRegex(RuntimeError, "defaults failed"),
+        ):
+            financial_agent_run_projection.enrich_runtime_evidence_metadata(
+                {},
+                EvidenceIterationBomb(),
+            )
+        failing_defaults_agent._compact_runtime_evidence_metadata.assert_not_called()
+
+        iteration_agent = Agent()
+        iteration_agent._runtime_evidence_defaults = Mock(return_value=defaults)
+        iteration_agent._compact_runtime_evidence_metadata = Mock()
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_runtime_evidence_defaults",
+                iteration_agent._runtime_evidence_defaults,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_compact_runtime_evidence_metadata",
+                iteration_agent._compact_runtime_evidence_metadata,
+            ),
+            self.assertRaisesRegex(AssertionError, "evidence iteration should be stopped"),
+        ):
+            financial_agent_run_projection.enrich_runtime_evidence_metadata(
+                {},
+                EvidenceIterationBomb(),
+            )
+        iteration_agent._compact_runtime_evidence_metadata.assert_not_called()
+
+        failing_compact_agent = Agent()
+        failing_compact_agent._runtime_evidence_defaults = Mock(return_value=defaults)
+        failing_compact_agent._compact_runtime_evidence_metadata = Mock(
+            side_effect=RuntimeError("compact failed")
+        )
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_runtime_evidence_defaults",
+                failing_compact_agent._runtime_evidence_defaults,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_compact_runtime_evidence_metadata",
+                failing_compact_agent._compact_runtime_evidence_metadata,
+            ),
+            patch.object(financial_agent_run_projection, "_normalise_spaces", return_value="anchor"),
+            self.assertRaisesRegex(RuntimeError, "compact failed"),
+        ):
+            financial_agent_run_projection.enrich_runtime_evidence_metadata(
+                {},
+                [{"metadata": {"section": "anchor"}}, {"metadata": {"section": "later"}}],
+            )
+        self.assertEqual(failing_compact_agent._compact_runtime_evidence_metadata.call_count, 1)
+
+        normalization_agent = Agent()
+        normalization_agent._runtime_evidence_defaults = Mock(return_value=defaults)
+        normalization_agent._compact_runtime_evidence_metadata = Mock()
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_runtime_evidence_defaults",
+                normalization_agent._runtime_evidence_defaults,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_compact_runtime_evidence_metadata",
+                normalization_agent._compact_runtime_evidence_metadata,
+            ),
+            patch.object(
+                financial_agent_run_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "normalization failed"),
+        ):
+            financial_agent_run_projection.enrich_runtime_evidence_metadata(
+                {},
+                [{"metadata": {"source_anchor": "anchor"}}],
+            )
+        normalization_agent._compact_runtime_evidence_metadata.assert_not_called()
+
+    def test_current_source_run_projection_seam_a_static_binding_dag_and_baseline_contract(self) -> None:
+        module_trees = {
+            "graph": ast.parse(inspect.getsource(financial_graph)),
+            "owner": ast.parse(inspect.getsource(financial_agent_run_projection)),
+        }
+        target_names = {
+            "_runtime_evidence_defaults",
+            "_compact_runtime_evidence_metadata",
+            "enrich_runtime_evidence_metadata",
+        }
+        retired_enrich_name = "_" + "enrich_runtime_evidence_metadata"
+        definitions = {
+            (module_name, node.name): node
+            for module_name, module_tree in module_trees.items()
+            for node in ast.walk(module_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in target_names | {retired_enrich_name}
+        }
+        self.assertEqual(
+            set(definitions),
+            {
+                ("owner", "_runtime_evidence_defaults"),
+                ("owner", "_compact_runtime_evidence_metadata"),
+                ("owner", "enrich_runtime_evidence_metadata"),
+            },
+        )
+        self.assertEqual(
+            {name: node.end_lineno - node.lineno + 1 for (_, name), node in definitions.items()},
+            {
+                "_runtime_evidence_defaults": 11,
+                "_compact_runtime_evidence_metadata": 25,
+                "enrich_runtime_evidence_metadata": 25,
+            },
+        )
+        self.assertTrue(Path("src/agent/financial_agent_run_projection.py").exists())
+
+        calls = {name: [] for name in target_names}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Attribute):
+                    name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    name = node.func.id
+                    receiver = ""
+                else:
+                    name = ""
+                    receiver = ""
+                if name in target_names:
+                    calls[name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "<module>",
+                            receiver,
+                            [ast.unparse(arg) for arg in node.args],
+                            [(keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, module_tree in module_trees.items():
+            BindingVisitor(module_name).visit(module_tree)
+        self.assertEqual(
+            calls["_runtime_evidence_defaults"],
+            [("owner", "enrich_runtime_evidence_metadata", "", ["final"], [], 0)],
+        )
+        self.assertEqual(
+            calls["_compact_runtime_evidence_metadata"],
+            [("owner", "enrich_runtime_evidence_metadata", "", ["metadata"], [], 0)],
+        )
+        self.assertEqual(
+            calls["enrich_runtime_evidence_metadata"],
+            [
+                ("graph", "_runtime_evidence_from_retrieved_docs", "", ["final", "filtered"], [], 0),
+                (
+                    "graph",
+                    "_runtime_evidence_from_retrieved_docs",
+                    "",
+                    ["final", "selected_existing"],
+                    [],
+                    0,
+                ),
+                ("graph", "_runtime_evidence_from_retrieved_docs", "", ["final", "existing"], [], 0),
+                ("graph", "_runtime_evidence_from_retrieved_docs", "", ["final", "filtered"], [], 0),
+            ],
+        )
+        self.assertEqual(sum(len(rows) for rows in calls.values()), 6)
+        self.assertEqual(len(calls["enrich_runtime_evidence_metadata"]), 4)
+        self.assertEqual(
+            len(calls["_runtime_evidence_defaults"]) + len(calls["_compact_runtime_evidence_metadata"]),
+            2,
+        )
+
+        project_root = Path(__file__).resolve().parents[1]
+        agent_module_trees = {}
+        for path in (project_root / "src" / "agent").glob("*.py"):
+            agent_module_trees[f"src.agent.{path.stem}"] = ast.parse(path.read_text(encoding="utf-8-sig"))
+        edges = {name: set() for name in agent_module_trees}
+        for module_name, module_tree in agent_module_trees.items():
+            for node in ast.walk(module_tree):
+                imported = None
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    imported = node.module
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_agent_run_projection"
+        graph_module = "src.agent.financial_graph"
+        self.assertIn(owner_module, agent_module_trees)
+        self.assertIn(owner_module, edges[graph_module])
+        self.assertFalse(reachable(owner_module, graph_module))
+        self.assertFalse(reachable("src.agent.financial_graph_state", owner_module))
+        self.assertFalse(reachable("src.agent.financial_runtime_normalization", owner_module))
+
+        from src.ops.audit_runtime_domain_terms import (
+            collect_runtime_domain_term_occurrences,
+            collect_runtime_domain_terms,
+        )
+
+        baseline = json.loads(
+            (project_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 217)
+        occurrences = collect_runtime_domain_term_occurrences(project_root)
+        selected_ranges = [(node.lineno, node.end_lineno) for node in definitions.values()]
+        self.assertEqual(
+            [
+                row
+                for row in occurrences
+                if row["path"] == "src/agent/financial_agent_run_projection.py"
+                and any(start <= row["line"] <= end for start, end in selected_ranges)
+            ],
+            [],
+        )
+
+    def test_current_source_run_projection_seam_a_runtime_evidence_caller_contract(self) -> None:
+        nested = {"preserve": True}
+        events = []
+
+        class Agent:
+            pass
+
+        agent = Agent()
+        trace = {"calculation_operands": [{"operand_id": "one", "nested": nested}]}
+        agent._project_runtime_calculation_trace = Mock(
+            side_effect=lambda final: events.append(("project", final)) or trace
+        )
+        enriched_numeric = [{"evidence_id": "numeric-enriched"}]
+
+        def enrich(final, rows):
+            events.append(("enrich", final, rows))
+            return enriched_numeric
+
+        enrich_projection = Mock(side_effect=enrich)
+        existing = {"evidence_id": "existing", "nested": nested}
+        numeric_final = {
+            "answer": " answer 10 ",
+            "evidence_items": [existing],
+            "selected_claim_ids": ["selected"],
+            "nested": nested,
+        }
+        before_numeric = deepcopy(numeric_final)
+        appended = [{"evidence_id": "appended", "nested": nested}]
+        filtered = [{"evidence_id": f"filtered-{index}", "nested": nested} for index in range(10)]
+
+        def append(items, *, operands, final_answer):
+            events.append(("append", items, operands, final_answer))
+            return appended
+
+        def filter_rows(items, *, final_answer, selected_claim_ids):
+            events.append(("filter", items, final_answer, selected_claim_ids))
+            return filtered
+
+        with (
+            patch.object(financial_graph, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(financial_graph, "extract_numeric_surface_candidates", return_value=[{"value": 10}]),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer", side_effect=append),
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", side_effect=filter_rows),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", enrich_projection),
+        ):
+            numeric_result = FinancialAgent._runtime_evidence_from_retrieved_docs(agent, numeric_final)
+
+        self.assertIs(numeric_result, enriched_numeric)
+        self.assertEqual([event[0] for event in events], ["project", "append", "filter", "enrich"])
+        append_event = events[1]
+        self.assertEqual(append_event[1], [existing])
+        self.assertIsNot(append_event[1], numeric_final["evidence_items"])
+        self.assertIsNot(append_event[1][0], existing)
+        self.assertIs(append_event[1][0]["nested"], nested)
+        self.assertEqual(append_event[2], trace["calculation_operands"])
+        self.assertIsNot(append_event[2], trace["calculation_operands"])
+        self.assertIs(append_event[2][0], trace["calculation_operands"][0])
+        self.assertEqual(append_event[3], "answer 10")
+        self.assertIs(events[2][1], appended)
+        self.assertEqual(events[2][3], ["selected"])
+        self.assertIs(events[3][1], numeric_final)
+        self.assertEqual(events[3][2], filtered[:8])
+        self.assertIsNot(events[3][2], filtered)
+        self.assertTrue(all(left is right for left, right in zip(events[3][2], filtered)))
+        self.assertEqual(numeric_final, before_numeric)
+        self.assertIs(numeric_final["nested"], nested)
+
+        selected_agent = Agent()
+        selected_enriched = [{"evidence_id": "selected-enriched"}]
+        selected_projection = Mock(return_value=selected_enriched)
+        selected_final = {
+            "answer": "narrative",
+            "evidence_items": [
+                {"evidence_id": "drop", "nested": nested},
+                {"evidence_id": "keep", "nested": nested},
+            ],
+            "kept_claim_ids": [" keep ", ""],
+        }
+        before_selected = deepcopy(selected_final)
+        with (
+            patch.object(financial_graph, "_normalise_spaces", return_value="narrative"),
+            patch.object(financial_graph, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer") as stopped_append,
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer") as stopped_filter,
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", selected_projection),
+        ):
+            selected_result = FinancialAgent._runtime_evidence_from_retrieved_docs(
+                selected_agent,
+                selected_final,
+            )
+        self.assertIs(selected_result, selected_enriched)
+        selected_rows = selected_projection.call_args.args[1]
+        self.assertEqual([row["evidence_id"] for row in selected_rows], ["keep"])
+        self.assertIsNot(selected_rows[0], selected_final["evidence_items"][1])
+        self.assertIs(selected_rows[0]["nested"], nested)
+        stopped_append.assert_not_called()
+        stopped_filter.assert_not_called()
+        self.assertEqual(selected_final, before_selected)
+
+        existing_agent = Agent()
+        existing_enriched = [{"evidence_id": "existing-enriched"}]
+        existing_projection = Mock(return_value=existing_enriched)
+        existing_final = {"answer": "narrative", "evidence_items": [existing]}
+        with (
+            patch.object(financial_graph, "_normalise_spaces", return_value="narrative"),
+            patch.object(financial_graph, "extract_numeric_surface_candidates", return_value=[]),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", existing_projection),
+        ):
+            existing_result = FinancialAgent._runtime_evidence_from_retrieved_docs(
+                existing_agent,
+                existing_final,
+            )
+        self.assertIs(existing_result, existing_enriched)
+        fallback_rows = existing_projection.call_args.args[1]
+        self.assertEqual(fallback_rows, [existing])
+        self.assertIsNot(fallback_rows[0], existing)
+        self.assertIs(fallback_rows[0]["nested"], nested)
+
+        retrieved_nested = {"retrieved": True}
+        retrieved_doc = {
+            "page_content": " retrieved 20 ",
+            "metadata": {"section_path": " path ", "nested": retrieved_nested},
+        }
+        retrieved_final = {
+            "answer": "answer 20",
+            "evidence_items": [],
+            "seed_retrieved_docs": [(retrieved_doc, 0.9)],
+            "retrieved_docs": [retrieved_doc],
+        }
+        before_retrieved = deepcopy(retrieved_final)
+        retrieved_agent = Agent()
+        retrieved_agent._project_runtime_calculation_trace = Mock(
+            return_value={"calculation_operands": []}
+        )
+        retrieved_enriched = [{"evidence_id": "retrieved-enriched"}]
+        retrieved_projection = Mock(return_value=retrieved_enriched)
+        retrieved_filtered = [{"evidence_id": "retrieved::kept"}]
+        retrieved_filter = Mock(side_effect=[[], retrieved_filtered])
+        with (
+            patch.object(financial_graph, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(financial_graph, "extract_numeric_surface_candidates", return_value=[{"value": 20}]),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer", return_value=[]),
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", retrieved_filter),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", retrieved_projection),
+        ):
+            retrieved_result = FinancialAgent._runtime_evidence_from_retrieved_docs(
+                retrieved_agent,
+                retrieved_final,
+            )
+        self.assertIs(retrieved_result, retrieved_enriched)
+        self.assertEqual(retrieved_filter.call_count, 2)
+        generated_rows = retrieved_filter.call_args_list[1].args[0]
+        self.assertEqual(len(generated_rows), 1)
+        self.assertEqual(generated_rows[0]["evidence_id"], "retrieved::001")
+        self.assertEqual(generated_rows[0]["claim"], "retrieved 20")
+        self.assertIs(generated_rows[0]["metadata"]["nested"], retrieved_nested)
+        retrieved_projection.assert_called_once_with(
+            retrieved_final,
+            retrieved_filtered,
+        )
+        self.assertEqual(retrieved_final, before_retrieved)
+
+        failing_agent = Agent()
+        failing_agent._project_runtime_calculation_trace = Mock(return_value=trace)
+        failing_projection = Mock(side_effect=RuntimeError("enrich failed"))
+        with (
+            patch.object(financial_graph, "_normalise_spaces", return_value="answer 10"),
+            patch.object(financial_graph, "extract_numeric_surface_candidates", return_value=[{"value": 10}]),
+            patch.object(financial_graph, "append_operand_evidence_for_final_answer", return_value=appended),
+            patch.object(financial_graph, "filter_aggregate_evidence_for_final_answer", return_value=filtered),
+            patch.object(financial_graph, "enrich_runtime_evidence_metadata", failing_projection),
+            self.assertRaisesRegex(RuntimeError, "enrich failed"),
+        ):
+            FinancialAgent._runtime_evidence_from_retrieved_docs(failing_agent, numeric_final)
+        self.assertEqual(numeric_final, before_numeric)
+
+    def test_current_source_run_projection_seam_b_agent_answer_and_debug_projection_contract(self) -> None:
+        nested = {"preserve": True}
+        calculation_debug = {"source": "trace", "nested": nested}
+        final_for_debug = {
+            financial_agent_run_projection.CALCULATION_DEBUG_TRACE_FIELD: calculation_debug
+        }
+        before_debug_final = deepcopy(final_for_debug)
+
+        debug_traces = financial_agent_run_projection.project_debug_traces(final_for_debug)
+
+        self.assertEqual(debug_traces, {"calculation": calculation_debug})
+        self.assertIsNot(debug_traces["calculation"], calculation_debug)
+        self.assertIs(debug_traces["calculation"]["nested"], nested)
+        self.assertEqual(final_for_debug, before_debug_final)
+        self.assertIs(
+            final_for_debug[financial_agent_run_projection.CALCULATION_DEBUG_TRACE_FIELD]["nested"],
+            nested,
+        )
+        self.assertEqual(
+            financial_agent_run_projection.project_debug_traces({}),
+            {"calculation": {}},
+        )
+
+        class DebugCopyBomb:
+            def keys(self):
+                raise RuntimeError("debug copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("debug mapping values should stay unread")
+
+        with self.assertRaisesRegex(RuntimeError, "debug copy failed"):
+            financial_agent_run_projection.project_debug_traces(
+                {financial_agent_run_projection.CALCULATION_DEBUG_TRACE_FIELD: DebugCopyBomb()},
+            )
+
+        access_events = []
+
+        class RecordingFinal(dict):
+            def __getitem__(self, key):
+                access_events.append(("item", key))
+                return dict.__getitem__(self, key)
+
+            def get(self, key, default=None):
+                access_events.append(("get", key, default))
+                return dict.get(self, key, default)
+
+        report_scope = {"company": "Scope", "nested": nested}
+        planned_metric_families = ["ratio"]
+        routing_scores = {"ratio": 0.9}
+        companies = ["Company"]
+        years = [2024]
+        final = RecordingFinal(
+            {
+                "query": "query",
+                "report_scope": report_scope,
+                "query_type": "comparison",
+                "intent": "explicit-intent",
+                "planner_mode": "retry",
+                "planner_feedback": "feedback",
+                "plan_loop_count": 2,
+                "target_metric_family": "ratio",
+                "target_metric_family_hint": "hint",
+                "planned_metric_families": planned_metric_families,
+                "format_preference": "brief",
+                "routing_source": "semantic",
+                "routing_confidence": 0.9,
+                "routing_scores": routing_scores,
+                "companies": companies,
+                "years": years,
+            }
+        )
+        before_final = deepcopy(dict(final))
+        access_events.clear()
+        citations = ["citation"]
+        structured_result = {"status": "ok", "nested": nested}
+        runtime_trace = {"calculation_result": structured_result, "nested": nested}
+
+        answer = financial_agent_run_projection.project_agent_answer(
+            final,
+            public_answer="public answer",
+            citations=citations,
+            structured_result=structured_result,
+            runtime_calculation_trace=runtime_trace,
+        )
+
+        self.assertEqual(
+            list(answer),
+            [
+                "query",
+                "report_scope",
+                "query_type",
+                "intent",
+                "planner_mode",
+                "planner_feedback",
+                "plan_loop_count",
+                "target_metric_family",
+                "target_metric_family_hint",
+                "planned_metric_families",
+                "format_preference",
+                "routing_source",
+                "routing_confidence",
+                "routing_scores",
+                "companies",
+                "years",
+                "answer",
+                "citations",
+                "resolved_calculation_trace",
+                "structured_result",
+            ],
+        )
+        self.assertEqual(
+            access_events,
+            [
+                ("item", "query"),
+                ("get", "report_scope", {}),
+                ("item", "query_type"),
+                ("item", "query_type"),
+                ("get", "intent", "comparison"),
+                ("get", "planner_mode", "initial"),
+                ("get", "planner_feedback", ""),
+                ("get", "plan_loop_count", 0),
+                ("get", "target_metric_family", ""),
+                ("get", "target_metric_family", ""),
+                ("get", "target_metric_family_hint", "ratio"),
+                ("get", "planned_metric_families", []),
+                ("get", "format_preference", ""),
+                ("get", "routing_source", ""),
+                ("get", "routing_confidence", 0.0),
+                ("get", "routing_scores", {}),
+                ("item", "companies"),
+                ("item", "years"),
+            ],
+        )
+        self.assertIs(answer["report_scope"], report_scope)
+        self.assertIs(answer["planned_metric_families"], planned_metric_families)
+        self.assertIs(answer["routing_scores"], routing_scores)
+        self.assertIs(answer["companies"], companies)
+        self.assertIs(answer["years"], years)
+        self.assertIs(answer["citations"], citations)
+        self.assertIs(answer["structured_result"], structured_result)
+        self.assertIs(answer["resolved_calculation_trace"], runtime_trace)
+        self.assertEqual(answer["intent"], "explicit-intent")
+        self.assertEqual(answer["target_metric_family_hint"], "hint")
+        self.assertEqual(dict(final), before_final)
+        self.assertIs(final["report_scope"]["nested"], nested)
+
+        fallback_answer = financial_agent_run_projection.project_agent_answer(
+            {
+                "query": "fallback query",
+                "query_type": "lookup",
+                "companies": [],
+                "years": [],
+            },
+            public_answer="",
+            citations=[],
+            structured_result={},
+            runtime_calculation_trace={},
+        )
+        self.assertEqual(
+            {key: fallback_answer[key] for key in (
+                "report_scope",
+                "intent",
+                "planner_mode",
+                "planner_feedback",
+                "plan_loop_count",
+                "target_metric_family",
+                "target_metric_family_hint",
+                "planned_metric_families",
+                "format_preference",
+                "routing_source",
+                "routing_confidence",
+                "routing_scores",
+            )},
+            {
+                "report_scope": {},
+                "intent": "lookup",
+                "planner_mode": "initial",
+                "planner_feedback": "",
+                "plan_loop_count": 0,
+                "target_metric_family": "",
+                "target_metric_family_hint": "",
+                "planned_metric_families": [],
+                "format_preference": "",
+                "routing_source": "",
+                "routing_confidence": 0.0,
+                "routing_scores": {},
+            },
+        )
+
+        class RequiredFieldBomb(dict):
+            def __getitem__(self, key):
+                if key == "query":
+                    raise RuntimeError("query access failed")
+                raise AssertionError("later indexed field should stay unread")
+
+            def get(self, *_args, **_kwargs):
+                raise AssertionError("fallback fields should stay unread")
+
+        with self.assertRaisesRegex(RuntimeError, "query access failed"):
+            financial_agent_run_projection.project_agent_answer(
+                RequiredFieldBomb(),
+                public_answer="",
+                citations=[],
+                structured_result={},
+                runtime_calculation_trace={},
+            )
+
+        llm_usage = {"tokens": 3, "nested": nested}
+        phase_usage = {"planner": {"tokens": 2}, "nested": nested}
+        embedding_usage = {"requests": 1, "nested": nested}
+        debug_bundle = financial_agent_run_projection.project_debug_bundle(
+            debug_traces=debug_traces,
+            llm_usage=llm_usage,
+            llm_usage_by_phase=phase_usage,
+            embedding_usage=embedding_usage,
+        )
+        self.assertEqual(
+            list(debug_bundle),
+            ["debug_traces", "llm_usage", "llm_usage_by_phase", "embedding_usage"],
+        )
+        self.assertIs(debug_bundle["debug_traces"], debug_traces)
+        self.assertIs(debug_bundle["llm_usage"], llm_usage)
+        self.assertIs(debug_bundle["llm_usage_by_phase"], phase_usage)
+        self.assertIs(debug_bundle["embedding_usage"], embedding_usage)
+
+    def test_current_source_run_projection_seam_b_review_trace_and_citation_contract(self) -> None:
+        nested = {"preserve": True}
+        review_keys = [
+            "seed_retrieved_docs",
+            "retrieved_docs",
+            "retrieval_debug_trace",
+            "retrieval_debug_trace_history",
+            "evidence_items",
+            "selected_claim_ids",
+            "draft_points",
+            "kept_claim_ids",
+            "dropped_claim_ids",
+            "unsupported_sentences",
+            "sentence_checks",
+            "numeric_debug_trace",
+            "numeric_debug_trace_history",
+            "planner_debug_trace",
+            "missing_info",
+            "reflection_count",
+            "retry_reason",
+            "retry_strategy",
+            "retry_queries",
+            "reconciliation_retry_count",
+            "reflection_plan",
+            "reflection_request",
+            "reflection_action",
+            "reflection_report",
+            "semantic_plan",
+            "calc_subtasks",
+            "retrieval_queries",
+            "active_subtask_index",
+            "active_subtask",
+            "subtask_results",
+            "subtask_debug_trace",
+            "subtask_loop_complete",
+            "reconciliation_result",
+            "tasks",
+            "artifacts",
+            "task_artifact_trace",
+        ]
+        final_values = {
+            key: {"field": key, "nested": nested}
+            for key in review_keys
+            if key
+            not in {
+                "evidence_items",
+                "task_artifact_trace",
+                "reflection_count",
+                "retry_reason",
+                "retry_strategy",
+                "reconciliation_retry_count",
+                "active_subtask_index",
+                "subtask_loop_complete",
+            }
+        }
+        final_values.update(
+            {
+                "reflection_count": 2,
+                "retry_reason": "reason",
+                "retry_strategy": "strategy",
+                "reconciliation_retry_count": 3,
+                "active_subtask_index": 4,
+                "subtask_loop_complete": ["truthy"],
+            }
+        )
+        review_access = []
+
+        class RecordingReviewFinal(dict):
+            def __getitem__(self, key):
+                review_access.append(("item", key))
+                return dict.__getitem__(self, key)
+
+            def get(self, key, default=None):
+                review_access.append(("get", key))
+                return dict.get(self, key, default)
+
+        final_values = RecordingReviewFinal(final_values)
+        before_review_final = deepcopy(dict(final_values))
+        review_access.clear()
+        runtime_evidence = [{"evidence_id": "runtime", "nested": nested}]
+        task_artifact_trace = {"integrity_status": "ok", "nested": nested}
+
+        review = financial_agent_run_projection.project_review_trace(
+            final_values,
+            runtime_evidence=runtime_evidence,
+            task_artifact_trace=task_artifact_trace,
+        )
+
+        self.assertEqual(list(review), review_keys)
+        for key, value in final_values.items():
+            if key == "subtask_loop_complete":
+                self.assertIs(review[key], True)
+            else:
+                self.assertIs(review[key], value)
+        self.assertIs(review["evidence_items"], runtime_evidence)
+        self.assertIs(review["task_artifact_trace"], task_artifact_trace)
+        self.assertEqual(
+            review_access,
+            [
+                ("get", "seed_retrieved_docs"),
+                ("item", "retrieved_docs"),
+                ("get", "retrieval_debug_trace"),
+                ("get", "retrieval_debug_trace_history"),
+                ("get", "selected_claim_ids"),
+                ("get", "draft_points"),
+                ("get", "kept_claim_ids"),
+                ("get", "dropped_claim_ids"),
+                ("get", "unsupported_sentences"),
+                ("get", "sentence_checks"),
+                ("get", "numeric_debug_trace"),
+                ("get", "numeric_debug_trace_history"),
+                ("get", "planner_debug_trace"),
+                ("get", "missing_info"),
+                ("get", "reflection_count"),
+                ("get", "retry_reason"),
+                ("get", "retry_strategy"),
+                ("get", "retry_queries"),
+                ("get", "reconciliation_retry_count"),
+                ("get", "reflection_plan"),
+                ("get", "reflection_request"),
+                ("get", "reflection_action"),
+                ("get", "reflection_report"),
+                ("get", "semantic_plan"),
+                ("get", "calc_subtasks"),
+                ("get", "retrieval_queries"),
+                ("get", "active_subtask_index"),
+                ("get", "active_subtask"),
+                ("get", "subtask_results"),
+                ("get", "subtask_debug_trace"),
+                ("get", "subtask_loop_complete"),
+                ("get", "reconciliation_result"),
+                ("get", "tasks"),
+                ("get", "artifacts"),
+            ],
+        )
+        self.assertEqual(dict(final_values), before_review_final)
+        self.assertIs(final_values["retrieved_docs"]["nested"], nested)
+
+        default_review = financial_agent_run_projection.project_review_trace(
+            {"retrieved_docs": []},
+            runtime_evidence=[],
+            task_artifact_trace={},
+        )
+        self.assertEqual(list(default_review), review_keys)
+        self.assertEqual(default_review["seed_retrieved_docs"], [])
+        self.assertEqual(default_review["retrieval_debug_trace"], {})
+        self.assertEqual(default_review["reflection_count"], 0)
+        self.assertEqual(default_review["retry_reason"], "")
+        self.assertEqual(default_review["retry_strategy"], "")
+        self.assertEqual(default_review["active_subtask_index"], 0)
+        self.assertIs(default_review["subtask_loop_complete"], False)
+
+        with self.assertRaises(KeyError):
+            financial_agent_run_projection.project_review_trace(
+                {},
+                runtime_evidence=[],
+                task_artifact_trace={},
+            )
+
+        class ReviewTruthBomb:
+            def __bool__(self):
+                raise RuntimeError("review truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "review truth failed"):
+            financial_agent_run_projection.project_review_trace(
+                {"retrieved_docs": [], "subtask_loop_complete": ReviewTruthBomb()},
+                runtime_evidence=[],
+                task_artifact_trace={},
+            )
+
+        evidence_nested = {"evidence": True}
+        citations = [" Original ", "", " CASE ", "original"]
+        evidence = [
+            {
+                "source_anchor": " Alpha ",
+                "metadata": {"company": " Co ", "year": 2024, "nested": evidence_nested},
+                "nested": evidence_nested,
+            },
+            {
+                "metadata": {
+                    "source_anchor": " [Existing] ",
+                    "section_path": "ignored",
+                    "company": "Ignored Co",
+                    "year": 2022,
+                    "nested": evidence_nested,
+                },
+                "nested": evidence_nested,
+            },
+            {
+                "metadata": {
+                    "section_path": " Path ",
+                    "section": "ignored",
+                    "company": "Co",
+                    "nested": evidence_nested,
+                },
+                "nested": evidence_nested,
+            },
+            {
+                "metadata": {"section": " Section ", "year": " 2023 ", "nested": evidence_nested},
+                "nested": evidence_nested,
+            },
+            {
+                "metadata": {"section_title": "Title is not a citation fallback", "nested": evidence_nested},
+                "nested": evidence_nested,
+            },
+            {
+                "source_anchor": " case ",
+                "metadata": {"nested": evidence_nested},
+                "nested": evidence_nested,
+            },
+        ]
+        before_citations = deepcopy(citations)
+        before_evidence = deepcopy(evidence)
+        normalize_events = []
+
+        def normalize(value):
+            normalize_events.append(value)
+            return " ".join(str(value).split())
+
+        with patch.object(financial_agent_run_projection, "_normalise_spaces", side_effect=normalize):
+            projected_citations = financial_agent_run_projection.augment_citations_from_runtime_evidence(
+                citations,
+                evidence,
+            )
+
+        self.assertEqual(
+            projected_citations,
+            [
+                "Original",
+                "CASE",
+                "original",
+                "[Co | 2024 | Alpha]",
+                "[Existing]",
+                "[Co | Path]",
+                "[2023 | Section]",
+            ],
+        )
+        self.assertEqual(citations, before_citations)
+        self.assertEqual(evidence, before_evidence)
+        self.assertTrue(all(row["nested"] is evidence_nested for row in evidence))
+        self.assertTrue(all(row["metadata"]["nested"] is evidence_nested for row in evidence))
+        self.assertIn("CASE", normalize_events)
+        self.assertIn("case", normalize_events)
+
+        class EvidenceIterationBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise AssertionError("evidence should stay lazy after citation failure")
+
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("citation normalization failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "citation normalization failed"),
+        ):
+            financial_agent_run_projection.augment_citations_from_runtime_evidence(
+                ["citation"],
+                EvidenceIterationBomb(),
+            )
+
+        class EvidenceCopyBomb:
+            def keys(self):
+                raise RuntimeError("evidence copy failed")
+
+            def __getitem__(self, _key):
+                raise AssertionError("evidence values should stay unread")
+
+        with (
+            patch.object(
+                financial_agent_run_projection,
+                "_normalise_spaces",
+                side_effect=lambda value: str(value).strip(),
+            ),
+            self.assertRaisesRegex(RuntimeError, "evidence copy failed"),
+        ):
+            financial_agent_run_projection.augment_citations_from_runtime_evidence(
+                [],
+                [EvidenceCopyBomb()],
+            )
+
+    def test_current_source_run_projection_seam_b_static_binding_dag_and_baseline_contract(self) -> None:
+        module_trees = {
+            "graph": ast.parse(inspect.getsource(financial_graph)),
+            "owner": ast.parse(inspect.getsource(financial_agent_run_projection)),
+        }
+        current_targets = {
+            "project_debug_traces": 2,
+            "project_agent_answer": 33,
+            "project_review_trace": 44,
+            "project_debug_bundle": 13,
+            "augment_citations_from_runtime_evidence": 31,
+        }
+        retired_targets = {f"_{name}" for name in current_targets}
+        definitions = {
+            (module_name, node.name): node
+            for module_name, module_tree in module_trees.items()
+            for node in ast.walk(module_tree)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name in set(current_targets) | retired_targets
+        }
+        self.assertEqual(
+            set(definitions),
+            {("owner", name) for name in current_targets},
+        )
+        self.assertEqual(
+            {
+                name: definitions[("owner", name)].end_lineno
+                - definitions[("owner", name)].lineno
+                + 1
+                for name in current_targets
+            },
+            current_targets,
+        )
+
+        calls = {name: [] for name in current_targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            def visit_Call(self, node):
+                if isinstance(node.func, ast.Attribute):
+                    name = node.func.attr
+                    receiver = ast.unparse(node.func.value)
+                elif isinstance(node.func, ast.Name):
+                    name = node.func.id
+                    receiver = ""
+                else:
+                    name = ""
+                    receiver = ""
+                if name in calls:
+                    calls[name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "<module>",
+                            receiver,
+                            [ast.unparse(arg) for arg in node.args],
+                            [(keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords],
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, module_tree in module_trees.items():
+            BindingVisitor(module_name).visit(module_tree)
+
+        self.assertEqual(
+            calls,
+            {
+                "project_debug_traces": [
+                    ("graph", "run", "", ["final"], [], 0),
+                ],
+                "project_agent_answer": [
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final"],
+                        [
+                            ("public_answer", "public_answer"),
+                            ("citations", "citations"),
+                            ("structured_result", "structured_result"),
+                            ("runtime_calculation_trace", "runtime_calculation_trace"),
+                        ],
+                        0,
+                    )
+                ],
+                "project_review_trace": [
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final"],
+                        [
+                            ("runtime_evidence", "runtime_evidence"),
+                            ("task_artifact_trace", "task_artifact_trace"),
+                        ],
+                        0,
+                    )
+                ],
+                "project_debug_bundle": [
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        [],
+                        [
+                            ("debug_traces", "debug_traces"),
+                            ("llm_usage", "llm_usage"),
+                            ("llm_usage_by_phase", "llm_usage_by_phase"),
+                            ("embedding_usage", "embedding_usage"),
+                        ],
+                        0,
+                    )
+                ],
+                "augment_citations_from_runtime_evidence": [
+                    (
+                        "graph",
+                        "run",
+                        "",
+                        ["final['citations']", "runtime_evidence"],
+                        [],
+                        0,
+                    )
+                ],
+            },
+        )
+        self.assertEqual(sum(len(rows) for rows in calls.values()), 5)
+
+        a_public_calls = []
+        a_local_calls = []
+        for module_name, module_tree in module_trees.items():
+            for node in ast.walk(module_tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                if isinstance(node.func, ast.Name) and node.func.id == "enrich_runtime_evidence_metadata":
+                    a_public_calls.append(module_name)
+                if isinstance(node.func, ast.Name) and node.func.id in {
+                    "_runtime_evidence_defaults",
+                    "_compact_runtime_evidence_metadata",
+                }:
+                    a_local_calls.append(module_name)
+        self.assertEqual(a_public_calls, ["graph"] * 4)
+        self.assertEqual(a_local_calls, ["owner"] * 2)
+        self.assertEqual(len(a_public_calls) + 5, 9)
+        self.assertEqual(len(a_local_calls), 2)
+
+        project_root = Path(__file__).resolve().parents[1]
+        agent_module_trees = {}
+        for path in (project_root / "src" / "agent").glob("*.py"):
+            agent_module_trees[f"src.agent.{path.stem}"] = ast.parse(
+                path.read_text(encoding="utf-8-sig")
+            )
+        edges = {name: set() for name in agent_module_trees}
+        for module_name, module_tree in agent_module_trees.items():
+            for node in ast.walk(module_tree):
+                if isinstance(node, ast.ImportFrom) and node.module in edges:
+                    edges[module_name].add(node.module)
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges.get(current, ()))
+            return False
+
+        owner_module = "src.agent.financial_agent_run_projection"
+        graph_module = "src.agent.financial_graph"
+        self.assertIn(owner_module, edges[graph_module])
+        self.assertFalse(reachable(owner_module, graph_module))
+        self.assertFalse(reachable("src.agent.financial_graph_state", owner_module))
+        self.assertFalse(reachable("src.agent.financial_runtime_normalization", owner_module))
+
+        from src.ops.audit_runtime_domain_terms import (
+            collect_runtime_domain_term_occurrences,
+            collect_runtime_domain_terms,
+        )
+
+        self.assertEqual(len(collect_runtime_domain_terms(project_root)), 217)
+        occurrences = collect_runtime_domain_term_occurrences(project_root)
+        selected_ranges = [
+            (node.lineno, node.end_lineno)
+            for (module_name, _), node in definitions.items()
+            if module_name == "owner"
+        ]
+        self.assertEqual(
+            [
+                row
+                for row in occurrences
+                if row["path"] == "src/agent/financial_agent_run_projection.py"
+                and any(start <= row["line"] <= end for start, end in selected_ranges)
+            ],
+            [],
+        )
+
+    def test_current_source_run_projection_seam_b_run_caller_contract(self) -> None:
+        nested = {"preserve": True}
+        runtime_evidence = [{"evidence_id": "runtime", "nested": nested}]
+        initial_trace = {"calculation_result": {"status": "initial"}, "nested": nested}
+        repaired_trace = {"calculation_result": {"status": "repaired"}, "nested": nested}
+        appended_trace = {"calculation_result": {"status": "appended"}, "nested": nested}
+        task_artifact_trace = {"integrity_status": "ok", "nested": nested}
+        debug_traces = {"calculation": {"source": "test"}, "nested": nested}
+        projected_citations = ["projected citation"]
+        agent_answer = {"agent_marker": "agent", "nested": nested}
+        review_trace = {"review_marker": "review", "nested": nested}
+        debug_bundle = {"debug_marker": "debug", "nested": nested}
+        llm_usage = {"tokens": 3, "nested": nested}
+        llm_usage_by_phase = {"planner": {"tokens": 2}, "nested": nested}
+        embedding_usage = {"requests": 1, "nested": nested}
+
+        class Usage:
+            def reset_current_thread(self):
+                return None
+
+            def snapshot_current_thread(self):
+                return llm_usage
+
+            def snapshot_current_thread_by_phase(self):
+                return llm_usage_by_phase
+
+        class Vsm:
+            def reset_current_thread_embedding_usage(self):
+                return None
+
+            def get_current_thread_embedding_usage_snapshot(self):
+                return embedding_usage
+
+        def configure(final, events, *, fail_review=False):
+            agent = FinancialAgent.__new__(FinancialAgent)
+            agent.graph = _FakeGraph(final)
+            agent.vsm = Vsm()
+            agent.llm_usage_callback = Usage()
+            agent._project_runtime_calculation_trace = Mock(return_value=initial_trace)
+            agent._repair_public_runtime_calculation_trace = Mock(
+                side_effect=[initial_trace, repaired_trace]
+            )
+            agent._public_projection_state = Mock(return_value={})
+            agent._late_runtime_numeric_answer = Mock(return_value="")
+            agent._with_public_answer = Mock(
+                side_effect=lambda state, answer: {**dict(state), "answer": answer}
+            )
+            agent._runtime_evidence_from_retrieved_docs = Mock(return_value=runtime_evidence)
+            agent._complete_aggregate_public_answer_projection = Mock(return_value=("", {}))
+            agent._structured_result_answer_for_missing_public_answer = Mock(return_value="")
+            agent._apply_stale_structured_numeric_public_answer_repair = Mock(
+                side_effect=lambda state, **kwargs: (
+                    kwargs["public_answer"],
+                    state,
+                    kwargs["runtime_calculation_trace"],
+                )
+            )
+            agent._structured_public_answer_trace_projection = Mock(return_value={})
+            agent._retrieved_ratio_context_projection_for_public_answer = Mock(return_value={})
+            projections = {}
+            projections["debug"] = Mock(
+                side_effect=lambda final_arg: events.append(("debug", final_arg)) or debug_traces
+            )
+            projections["citations"] = Mock(
+                side_effect=lambda citations_arg, evidence_arg: events.append(
+                    ("citations", citations_arg, evidence_arg)
+                )
+                or projected_citations
+            )
+            projections["agent"] = Mock(
+                side_effect=lambda final_arg, **kwargs: events.append(
+                    ("agent", final_arg, kwargs)
+                )
+                or agent_answer
+            )
+
+            def review(final_arg, **kwargs):
+                events.append(("review", final_arg, kwargs))
+                if fail_review:
+                    raise RuntimeError("review projection failed")
+                return review_trace
+
+            projections["review"] = Mock(side_effect=review)
+            projections["bundle"] = Mock(
+                side_effect=lambda **kwargs: events.append(("bundle", kwargs)) or debug_bundle
+            )
+            return agent, projections
+
+        final = self._base_final_state()
+        final["structured_result"] = {"status": "structured", "nested": nested}
+        final["evidence_items"] = [{"evidence_id": "final", "nested": nested}]
+        final["nested"] = nested
+        before_final = deepcopy(final)
+        events = []
+        agent, projections = configure(final, events)
+
+        def append_surface(trace, evidence, *, final_answer):
+            events.append(("append", trace, evidence, final_answer))
+            return appended_trace
+
+        def project_artifacts(tasks, artifacts):
+            events.append(("artifact", tasks, artifacts))
+            return task_artifact_trace
+
+        with (
+            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(
+                financial_graph,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=append_surface,
+            ),
+            patch.object(financial_graph, "_project_task_artifact_trace", side_effect=project_artifacts),
+            patch.object(financial_graph, "project_debug_traces", projections["debug"]),
+            patch.object(
+                financial_graph,
+                "augment_citations_from_runtime_evidence",
+                projections["citations"],
+            ),
+            patch.object(financial_graph, "project_agent_answer", projections["agent"]),
+            patch.object(financial_graph, "project_review_trace", projections["review"]),
+            patch.object(financial_graph, "project_debug_bundle", projections["bundle"]),
+        ):
+            result = FinancialAgent.run(agent, "query", report_scope={"company": "Scope"})
+
+        self.assertEqual(
+            [event[0] for event in events],
+            ["append", "debug", "citations", "artifact", "agent", "review", "bundle"],
+        )
+        self.assertIs(events[0][1], repaired_trace)
+        self.assertEqual(events[0][3], "25.4%")
+        projected_final = events[1][1]
+        self.assertIsNot(projected_final, final)
+        self.assertEqual(projected_final, final)
+        self.assertIs(projected_final["nested"], nested)
+        self.assertIs(events[2][1], final["citations"])
+        self.assertIs(events[2][2], runtime_evidence)
+        self.assertIs(events[3][1], final["tasks"])
+        self.assertIs(events[3][2], final["artifacts"])
+        self.assertIs(events[4][1], projected_final)
+        agent_kwargs = events[4][2]
+        self.assertEqual(agent_kwargs["public_answer"], "25.4%")
+        self.assertIs(agent_kwargs["citations"], projected_citations)
+        self.assertIsNot(agent_kwargs["structured_result"], final["structured_result"])
+        self.assertIs(agent_kwargs["structured_result"]["nested"], nested)
+        self.assertIs(agent_kwargs["runtime_calculation_trace"], appended_trace)
+        self.assertIs(events[5][1], projected_final)
+        self.assertIs(events[5][2]["runtime_evidence"], runtime_evidence)
+        self.assertIs(events[5][2]["task_artifact_trace"], task_artifact_trace)
+        self.assertIs(events[6][1]["debug_traces"], debug_traces)
+        self.assertIs(events[6][1]["llm_usage"], llm_usage)
+        self.assertIs(events[6][1]["llm_usage_by_phase"], llm_usage_by_phase)
+        self.assertIs(events[6][1]["embedding_usage"], embedding_usage)
+        self.assertIs(result["agent_answer"], agent_answer)
+        self.assertIs(result["review_trace"], review_trace)
+        self.assertIs(result["debug_bundle"], debug_bundle)
+        self.assertEqual(result["agent_marker"], "agent")
+        self.assertEqual(result["review_marker"], "review")
+        self.assertEqual(result["debug_marker"], "debug")
+        self.assertEqual(final, before_final)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(runtime_evidence[0]["nested"], nested)
+
+        failure_events = []
+        failing_agent, failing_projections = configure(final, failure_events, fail_review=True)
+        with (
+            patch.object(financial_graph, "_structured_result_subtask_rows_and_answer", return_value=([], "")),
+            patch.object(
+                financial_graph,
+                "append_final_answer_surface_operands_from_evidence",
+                side_effect=lambda trace, evidence, *, final_answer: failure_events.append(
+                    ("append", trace, evidence, final_answer)
+                )
+                or appended_trace,
+            ),
+            patch.object(
+                financial_graph,
+                "_project_task_artifact_trace",
+                side_effect=lambda tasks, artifacts: failure_events.append(
+                    ("artifact", tasks, artifacts)
+                )
+                or task_artifact_trace,
+            ),
+            patch.object(financial_graph, "project_debug_traces", failing_projections["debug"]),
+            patch.object(
+                financial_graph,
+                "augment_citations_from_runtime_evidence",
+                failing_projections["citations"],
+            ),
+            patch.object(financial_graph, "project_agent_answer", failing_projections["agent"]),
+            patch.object(financial_graph, "project_review_trace", failing_projections["review"]),
+            patch.object(financial_graph, "project_debug_bundle", failing_projections["bundle"]),
+            self.assertRaisesRegex(RuntimeError, "review projection failed"),
+        ):
+            FinancialAgent.run(failing_agent, "query")
+        self.assertEqual(
+            [event[0] for event in failure_events],
+            ["append", "debug", "citations", "artifact", "agent", "review"],
+        )
+        failing_projections["bundle"].assert_not_called()
+        self.assertIs(failure_events[2][1], final["citations"])
+        self.assertIs(failure_events[2][2], runtime_evidence)
+        self.assertIs(failure_events[5][2]["runtime_evidence"], runtime_evidence)
+        self.assertIs(failure_events[5][2]["task_artifact_trace"], task_artifact_trace)
+        self.assertEqual(final, before_final)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(runtime_evidence[0]["nested"], nested)
 
 
 if __name__ == "__main__":
