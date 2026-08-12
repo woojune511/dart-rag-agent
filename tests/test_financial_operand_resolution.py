@@ -6672,6 +6672,858 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         stopped_sign.assert_not_called()
         stopped_executor.assert_not_called()
 
+    def test_current_source_lookup_hints_preserves_precedence_copy_laziness_and_exceptions(self) -> None:
+        with patch.object(
+            operand_resolution,
+            "get_financial_ontology",
+            side_effect=AssertionError("blank concept must not load ontology"),
+        ):
+            self.assertEqual(operand_resolution.lookup_hints_for_concept_key("   "), {})
+
+        shared = {"nested": True}
+        direct_hints = {"mode": "direct", "shared": shared}
+
+        class DirectOntology:
+            def concept(self, key):
+                self_key_calls.append(key)
+                return {"lookup_hints": direct_hints}
+
+            def all_concept_specs(self):
+                raise AssertionError("direct concept must suppress fallback scan")
+
+        self_key_calls = []
+        with patch.object(operand_resolution, "get_financial_ontology", return_value=DirectOntology()):
+            direct = operand_resolution.lookup_hints_for_concept_key("  Metric  ")
+        self.assertEqual(self_key_calls, ["Metric"])
+        self.assertEqual(direct, direct_hints)
+        self.assertIsNot(direct, direct_hints)
+        self.assertIs(direct["shared"], shared)
+        direct["mode"] = "changed"
+        self.assertEqual(direct_hints["mode"], "direct")
+
+        group_hints = {"mode": "group"}
+        fallback_hints = {"mode": "fallback", "shared": shared}
+        specs = [
+            {"is_group": True, "concept": "Metric", "lookup_hints": group_hints},
+            {"concept": "Other", "lookup_hints": {"mode": "other"}},
+            {"concept": " Metric ", "lookup_hints": fallback_hints},
+            {"concept": "Metric", "lookup_hints": {"mode": "later"}},
+        ]
+
+        class FallbackOntology:
+            def concept(self, key):
+                fallback_concept_calls.append(key)
+                return None
+
+            def all_concept_specs(self):
+                fallback_events.append("scan")
+                return specs
+
+        fallback_concept_calls = []
+        fallback_events = []
+        with patch.object(operand_resolution, "get_financial_ontology", return_value=FallbackOntology()):
+            fallback = operand_resolution.lookup_hints_for_concept_key("Metric")
+            missing = operand_resolution.lookup_hints_for_concept_key("Missing")
+        self.assertEqual(fallback, fallback_hints)
+        self.assertIsNot(fallback, fallback_hints)
+        self.assertIs(fallback["shared"], shared)
+        self.assertEqual(missing, {})
+        self.assertEqual(fallback_concept_calls, ["Metric", "Missing"])
+        self.assertEqual(fallback_events, ["scan", "scan"])
+
+        with (
+            patch.object(
+                operand_resolution,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            patch.object(operand_resolution, "get_financial_ontology") as stopped_ontology,
+            self.assertRaisesRegex(RuntimeError, "normalization failed"),
+        ):
+            operand_resolution.lookup_hints_for_concept_key("Metric")
+        stopped_ontology.assert_not_called()
+
+        with (
+            patch.object(
+                operand_resolution,
+                "get_financial_ontology",
+                side_effect=RuntimeError("ontology failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "ontology failed"),
+        ):
+            operand_resolution.lookup_hints_for_concept_key("Metric")
+
+    def test_current_source_lookup_magnitude_preserves_gates_surfaces_and_exception_order(self) -> None:
+        def coerce(**overrides):
+            values = {
+                "normalized_value": -10.0,
+                "normalized_unit": "KRW",
+                "raw_value": "(10)",
+                "concept": "metric",
+                "statement_type": "notes",
+                "row_label": "profit metric",
+                "semantic_label": "",
+            }
+            values.update(overrides)
+            return operand_resolution.coerce_lookup_magnitude_value(**values)
+
+        with patch.object(
+            operand_resolution,
+            "lookup_hints_for_concept_key",
+            side_effect=AssertionError("early gate must stay lazy"),
+        ):
+            self.assertIsNone(coerce(normalized_value=None))
+            self.assertEqual(coerce(normalized_unit="krw"), -10.0)
+            self.assertEqual(coerce(normalized_unit="COUNT"), -10.0)
+            self.assertEqual(coerce(normalized_value=0.0), 0.0)
+            self.assertEqual(coerce(normalized_value=10.0), 10.0)
+
+        disabled = {"coerce_parenthesized_negative_to_positive_magnitude": False}
+        enabled = {
+            "coerce_parenthesized_negative_to_positive_magnitude": True,
+            "magnitude_surface_tokens": ["profit"],
+        }
+        with patch.object(operand_resolution, "lookup_hints_for_concept_key", return_value=disabled):
+            self.assertEqual(coerce(), -10.0)
+        with patch.object(operand_resolution, "lookup_hints_for_concept_key", return_value=enabled):
+            self.assertEqual(coerce(statement_type="balance_sheet"), -10.0)
+            self.assertEqual(coerce(row_label="other", semantic_label="surface"), -10.0)
+            self.assertEqual(coerce(raw_value="10"), -10.0)
+            self.assertEqual(coerce(), 10.0)
+            self.assertEqual(coerce(row_label="", semantic_label="", raw_value="-10"), 10.0)
+        self.assertEqual(
+            enabled,
+            {
+                "coerce_parenthesized_negative_to_positive_magnitude": True,
+                "magnitude_surface_tokens": ["profit"],
+            },
+        )
+
+        events = []
+
+        def hints(concept):
+            events.append(("hints", concept))
+            return enabled
+
+        def stopped_normalizer(value):
+            events.append(("normalize", value))
+            raise RuntimeError("statement normalization failed")
+
+        with (
+            patch.object(operand_resolution, "lookup_hints_for_concept_key", side_effect=hints),
+            patch.object(operand_resolution, "_normalise_spaces", side_effect=stopped_normalizer),
+            self.assertRaisesRegex(RuntimeError, "statement normalization failed"),
+        ):
+            coerce()
+        self.assertEqual(events, [("hints", "metric"), ("normalize", "notes")])
+
+        with (
+            patch.object(
+                operand_resolution,
+                "lookup_hints_for_concept_key",
+                side_effect=RuntimeError("hint lookup failed"),
+            ),
+            patch.object(operand_resolution, "_normalise_spaces") as stopped_spaces,
+            self.assertRaisesRegex(RuntimeError, "hint lookup failed"),
+        ):
+            coerce()
+        stopped_spaces.assert_not_called()
+
+    def test_current_source_lookup_magnitude_static_bindings_calls_and_acyclic_plan(self) -> None:
+        import ast
+        import inspect
+
+        from src.agent import financial_graph_helpers
+        from src.agent import financial_graph_reconciliation
+        from src.agent import financial_lookup_recovery
+
+        lookup_source = inspect.getsource(financial_lookup_recovery)
+        helper_source = inspect.getsource(financial_graph_helpers)
+        reconciliation_source = inspect.getsource(financial_graph_reconciliation)
+        owner_source = inspect.getsource(operand_resolution)
+        modules = {
+            "financial_lookup_recovery": ast.parse(lookup_source),
+            "financial_graph_helpers": ast.parse(helper_source),
+            "financial_graph_reconciliation": ast.parse(reconciliation_source),
+            "financial_operand_resolution": ast.parse(owner_source),
+        }
+        selected = {"lookup_hints_for_concept_key", "coerce_lookup_magnitude_value"}
+        definitions = {
+            module: {
+                node.name: node.end_lineno - node.lineno + 1
+                for node in ast.walk(tree)
+                if isinstance(node, ast.FunctionDef) and node.name in selected
+            }
+            for module, tree in modules.items()
+        }
+        self.assertEqual(
+            definitions,
+            {
+                "financial_lookup_recovery": {
+                },
+                "financial_graph_helpers": {},
+                "financial_graph_reconciliation": {},
+                "financial_operand_resolution": {
+                    "lookup_hints_for_concept_key": 16,
+                    "coerce_lookup_magnitude_value": 32,
+                },
+            },
+        )
+
+        call_rows = []
+        for module, tree in modules.items():
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if name not in selected:
+                    continue
+                current = node
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                    if isinstance(current, ast.FunctionDef):
+                        caller = current.name
+                        break
+                call_rows.append(
+                    (
+                        name,
+                        module,
+                        caller,
+                        type(node.func).__name__,
+                        len(node.args),
+                        tuple(keyword.arg for keyword in node.keywords),
+                        try_depth,
+                    )
+                )
+        self.assertEqual(
+            sorted(call_rows),
+            sorted(
+                [
+                    ("lookup_hints_for_concept_key", "financial_operand_resolution", "coerce_lookup_magnitude_value", "Name", 1, (), 0),
+                    ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_prefers_canonical_statement_rows", "Name", 1, (), 0),
+                    ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_canonical_statement_preferences", "Name", 1, (), 0),
+                    ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_query_surface_preferences", "Name", 1, (), 0),
+                    ("coerce_lookup_magnitude_value", "financial_lookup_recovery", "coerce_lookup_magnitude_record", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
+                    ("coerce_lookup_magnitude_value", "financial_graph_reconciliation", "_build_operand_row_from_candidate_cell", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
+                    ("coerce_lookup_magnitude_value", "financial_operand_resolution", "repair_note_operand_units_from_same_block", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
+                ]
+            ),
+        )
+
+        def imported_modules(tree):
+            return {
+                node.module
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module
+            }
+
+        owner_module = "src.agent.financial_operand_resolution"
+        self.assertIn(owner_module, imported_modules(modules["financial_lookup_recovery"]))
+        self.assertIn(owner_module, imported_modules(modules["financial_graph_helpers"]))
+        self.assertIn(owner_module, imported_modules(modules["financial_graph_reconciliation"]))
+        self.assertNotIn("src.agent.financial_lookup_recovery", imported_modules(modules["financial_operand_resolution"]))
+        self.assertNotIn("src.agent.financial_graph_helpers", imported_modules(modules["financial_operand_resolution"]))
+        self.assertNotIn("src.agent.financial_graph_reconciliation", imported_modules(modules["financial_operand_resolution"]))
+        owner_calls = [row for row in call_rows if row[1] == "financial_operand_resolution"]
+        self.assertEqual((len(call_rows), len(call_rows) - len(owner_calls), len(owner_calls)), (7, 5, 2))
+
+    def test_current_source_lookup_magnitude_callers_adopt_exact_results_and_stop_on_exception(self) -> None:
+        from src.agent import financial_graph_reconciliation
+        from src.agent import financial_lookup_recovery
+        from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
+
+        shared = {"preserve": True}
+        record = {
+            "normalized_value": -12.0,
+            "normalized_unit": "KRW",
+            "raw_value": "(12)",
+            "raw_unit": "억원",
+            "rendered_value": "(12)억원",
+            "concept": "metric",
+            "statement_type": "notes",
+            "row_label": "Row",
+            "label": "Label",
+            "matched_operand_label": "Matched",
+            "semantic_label": "Semantic",
+            "nested": shared,
+        }
+        evidence = {
+            "metadata": {
+                "row_label": "EvidenceRow",
+                "semantic_label": "EvidenceSemantic",
+                "table_value_labels_text": "TableLabels",
+            }
+        }
+        record_before = deepcopy(record)
+        evidence_before = deepcopy(evidence)
+        record_calls = []
+
+        def record_owner(**kwargs):
+            record_calls.append(kwargs)
+            return 12.0
+
+        with patch.object(
+            financial_lookup_recovery,
+            "coerce_lookup_magnitude_value",
+            side_effect=record_owner,
+        ):
+            updated = financial_lookup_recovery.coerce_lookup_magnitude_record(record, evidence)
+        self.assertEqual(
+            record_calls,
+            [
+                {
+                    "normalized_value": -12.0,
+                    "normalized_unit": "KRW",
+                    "raw_value": "(12)",
+                    "concept": "metric",
+                    "statement_type": "notes",
+                    "row_label": "Row Label Matched EvidenceRow",
+                    "semantic_label": "Semantic EvidenceSemantic TableLabels",
+                }
+            ],
+        )
+        self.assertIsNot(updated, record)
+        self.assertIs(updated["nested"], shared)
+        self.assertEqual(updated["normalized_value"], 12.0)
+        self.assertEqual(updated["rendered_value"], "12억원")
+        self.assertEqual(updated["source_rendered_value"], "(12)억원")
+        self.assertEqual(updated["value_coercion"], "lookup_magnitude_from_source_surface")
+        self.assertEqual(record, record_before)
+        self.assertEqual(evidence, evidence_before)
+
+        class RawUnitBomb:
+            def __str__(self):
+                raise AssertionError("post-owner raw unit work must stop")
+
+        stopped_record = {**record, "raw_unit": RawUnitBomb()}
+        with (
+            patch.object(
+                financial_lookup_recovery,
+                "coerce_lookup_magnitude_value",
+                side_effect=RuntimeError("record owner failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "record owner failed"),
+        ):
+            financial_lookup_recovery.coerce_lookup_magnitude_record(stopped_record, evidence)
+
+        agent = FinancialAgentReconciliationMixin()
+        candidate = {
+            "candidate_id": "candidate",
+            "source_anchor": "anchor",
+            "metadata": {
+                "row_label": "SourceRow",
+                "semantic_label": "SourceSemantic",
+                "statement_type": "notes",
+                "table_source_id": "table",
+            },
+        }
+        selected_cell = {"value_text": "(12)", "unit_hint": "억원"}
+        operand = {"label": "Metric", "concept": "metric", "role": "numerator"}
+        candidate_before = deepcopy(candidate)
+        selected_before = deepcopy(selected_cell)
+        operand_before = deepcopy(operand)
+        reconciliation_calls = []
+
+        def reconciliation_owner(**kwargs):
+            reconciliation_calls.append(kwargs)
+            return 12.0
+
+        with (
+            patch.object(agent, "_structured_candidate_unit_hint", return_value="억원"),
+            patch.object(financial_graph_reconciliation, "_normalise_operand_value", return_value=(-12.0, "KRW")),
+            patch.object(financial_graph_reconciliation, "_candidate_statement_type", return_value="notes") as statement,
+            patch.object(financial_graph_reconciliation, "coerce_lookup_magnitude_value", side_effect=reconciliation_owner),
+            patch.object(agent, "_resolved_period_text_for_operand", return_value="2023") as period,
+        ):
+            row = agent._build_operand_row_from_candidate_cell(
+                candidate=candidate,
+                selected_cell=selected_cell,
+                operand=operand,
+                index=2,
+                period_focus="current",
+                query_years=[2023],
+            )
+        self.assertEqual(
+            reconciliation_calls,
+            [
+                {
+                    "normalized_value": -12.0,
+                    "normalized_unit": "KRW",
+                    "raw_value": "(12)",
+                    "concept": "metric",
+                    "statement_type": "notes",
+                    "row_label": "SourceRow",
+                    "semantic_label": "SourceSemantic",
+                }
+            ],
+        )
+        self.assertEqual(row["operand_id"], "op_002")
+        self.assertEqual(row["normalized_value"], 12.0)
+        self.assertEqual(row["normalized_unit"], "KRW")
+        self.assertEqual(row["period"], "2023")
+        self.assertEqual(statement.call_count, 2)
+        period.assert_called_once()
+        self.assertEqual(candidate, candidate_before)
+        self.assertEqual(selected_cell, selected_before)
+        self.assertEqual(operand, operand_before)
+
+        with (
+            patch.object(agent, "_structured_candidate_unit_hint", return_value="억원"),
+            patch.object(financial_graph_reconciliation, "_normalise_operand_value", return_value=(-12.0, "KRW")),
+            patch.object(financial_graph_reconciliation, "_candidate_statement_type", return_value="notes"),
+            patch.object(
+                financial_graph_reconciliation,
+                "coerce_lookup_magnitude_value",
+                side_effect=RuntimeError("reconciliation owner failed"),
+            ),
+            patch.object(agent, "_resolved_period_text_for_operand") as stopped_period,
+            self.assertRaisesRegex(RuntimeError, "reconciliation owner failed"),
+        ):
+            agent._build_operand_row_from_candidate_cell(
+                candidate=candidate,
+                selected_cell=selected_cell,
+                operand=operand,
+                index=2,
+                period_focus="current",
+                query_years=[2023],
+            )
+        stopped_period.assert_not_called()
+
+    def test_current_source_row_block_signature_preserves_header_identity_and_soft_failures(self) -> None:
+        class RowIndexBomb:
+            def __int__(self):
+                raise AssertionError("row index must stay lazy without context")
+
+        self.assertEqual(
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_index": RowIndexBomb()}}
+            ),
+            "",
+        )
+        self.assertEqual(
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_context_text": "row", "row_index": "bad"}}
+            ),
+            "",
+        )
+        self.assertEqual(
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_context_text": "row", "row_index": 3}}
+            ),
+            "",
+        )
+        self.assertEqual(
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_context_text": "intro\nvalue", "row_index": 1}}
+            ),
+            "",
+        )
+
+        metadata = {
+            "row_context_text": " intro \n | Group | \n | Period | Value | \n Data row \n tail ",
+            "row_index": 3,
+            "table_source_id": "table_main",
+            "nested": {"preserve": True},
+        }
+        candidate = {"metadata": metadata}
+        before = deepcopy(candidate)
+        self.assertEqual(
+            operand_resolution.candidate_row_block_signature(candidate),
+            "table_main::1:| Group | || | Period | Value |",
+        )
+        self.assertEqual(candidate, before)
+
+        class ContextBomb:
+            def __str__(self):
+                raise RuntimeError("context failed")
+
+        with self.assertRaisesRegex(RuntimeError, "context failed"):
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_context_text": ContextBomb(), "row_index": 0}}
+            )
+
+        class RuntimeIndexBomb:
+            def __int__(self):
+                raise RuntimeError("index failed")
+
+        with self.assertRaisesRegex(RuntimeError, "index failed"):
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_context_text": "row", "row_index": RuntimeIndexBomb()}}
+            )
+
+        with (
+            patch.object(
+                operand_resolution,
+                "_normalise_spaces",
+                side_effect=RuntimeError("normalizer failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "normalizer failed"),
+        ):
+            operand_resolution.candidate_row_block_signature(
+                {"metadata": {"row_context_text": "row", "row_index": 0}}
+            )
+
+    def test_current_source_note_unit_repair_preserves_grouping_copy_order_and_exceptions(self) -> None:
+        from src.agent import financial_graph_reconciliation
+        one_row = [{"statement_type": "notes"}]
+
+        class PolicyBomb(dict):
+            def get(self, key, default=None):
+                raise AssertionError(f"policy touched: {key}")
+
+        with patch.object(operand_resolution, "RECONCILIATION_POLICY", PolicyBomb()):
+            self.assertIs(operand_resolution.repair_note_operand_units_from_same_block(one_row, {}), one_row)
+
+        shared = {"preserve": True}
+        rows = [
+            {"evidence_id": "non_note", "statement_type": "income_statement", "raw_unit": "", "nested": shared},
+            {"evidence_id": "a_resolved", "statement_type": "notes", "raw_unit": "억원", "raw_value": "100", "nested": shared},
+            {"evidence_id": "a_ambiguous", "statement_type": "notes", "raw_unit": "", "raw_value": "(10)", "matched_operand_concept": "metric", "matched_operand_label": "Metric", "nested": shared},
+            {"evidence_id": "a_null", "statement_type": "notes", "raw_unit": "", "raw_value": "null", "matched_operand_concept": "metric", "matched_operand_label": "Metric", "nested": shared},
+            {"evidence_id": "b_resolved_one", "statement_type": "notes", "raw_unit": "원", "raw_value": "1", "nested": shared},
+            {"evidence_id": "b_resolved_two", "statement_type": "notes", "raw_unit": "천원", "raw_value": "2", "nested": shared},
+            {"evidence_id": "b_ambiguous", "statement_type": "notes", "raw_unit": "", "raw_value": "3", "nested": shared},
+            {"evidence_id": "c_ambiguous", "statement_type": "notes", "raw_unit": "", "raw_value": "4", "nested": shared},
+        ]
+        candidate_map = {
+            "a_resolved": {"block": "A"},
+            "a_ambiguous": {"block": "A"},
+            "a_null": {"block": "A"},
+            "b_resolved_one": {"block": "B"},
+            "b_resolved_two": {"block": "B"},
+            "b_ambiguous": {"block": "B"},
+            "c_ambiguous": {"block": "C"},
+        }
+        rows_before = deepcopy(rows)
+        candidates_before = deepcopy(candidate_map)
+        signature_calls = []
+        normalizer_calls = []
+        coercion_calls = []
+
+        def signature(candidate):
+            signature_calls.append(candidate)
+            return candidate.get("block", "")
+
+        def normalizer(raw_value, inherited_unit):
+            normalizer_calls.append((raw_value, inherited_unit))
+            if raw_value == "null":
+                return None, "KRW"
+            return -10.0, "KRW"
+
+        def magnitude(**kwargs):
+            coercion_calls.append(kwargs)
+            return None if kwargs["normalized_value"] is None else abs(kwargs["normalized_value"])
+
+        policy = {"ambiguous_krw_units": [""], "note_statement_type": "notes"}
+        with (
+            patch.object(operand_resolution, "RECONCILIATION_POLICY", policy),
+            patch.object(operand_resolution, "candidate_row_block_signature", side_effect=signature),
+            patch.object(operand_resolution, "_normalise_operand_value", side_effect=normalizer),
+            patch.object(operand_resolution, "coerce_lookup_magnitude_value", side_effect=magnitude),
+        ):
+            repaired = operand_resolution.repair_note_operand_units_from_same_block(rows, candidate_map)
+        self.assertEqual([candidate.get("block") for candidate in signature_calls], ["A", "A", "A", "B", "B", "B", "C"])
+        self.assertEqual(normalizer_calls, [("(10)", "억원"), ("null", "억원")])
+        self.assertEqual(len(coercion_calls), 2)
+        self.assertEqual(
+            coercion_calls[0],
+            {
+                "normalized_value": -10.0,
+                "normalized_unit": "KRW",
+                "raw_value": "(10)",
+                "concept": "metric",
+                "statement_type": "notes",
+                "row_label": "Metric",
+                "semantic_label": "Metric",
+            },
+        )
+        self.assertEqual(repaired[2]["raw_unit"], "억원")
+        self.assertEqual(repaired[2]["normalized_value"], 10.0)
+        self.assertEqual(repaired[2]["normalized_unit"], "KRW")
+        self.assertEqual(repaired[3]["raw_unit"], "")
+        self.assertNotIn("normalized_value", repaired[3])
+        self.assertEqual(repaired[6]["raw_unit"], "")
+        self.assertEqual(repaired[7]["raw_unit"], "")
+        self.assertEqual([row["evidence_id"] for row in repaired], [row["evidence_id"] for row in rows])
+        for original, current in zip(rows, repaired):
+            self.assertIsNot(current, original)
+            self.assertIs(current["nested"], shared)
+        self.assertEqual(rows, rows_before)
+        self.assertEqual(candidate_map, candidates_before)
+
+        stopped_rows = [
+            {"evidence_id": "resolved", "statement_type": "notes", "raw_unit": "억원", "raw_value": "1"},
+            {"evidence_id": "ambiguous", "statement_type": "notes", "raw_unit": "", "raw_value": "2"},
+        ]
+        stopped_candidates = {"resolved": {"block": "A"}, "ambiguous": {"block": "A"}}
+        with (
+            patch.object(operand_resolution, "RECONCILIATION_POLICY", policy),
+            patch.object(
+                operand_resolution,
+                "candidate_row_block_signature",
+                side_effect=RuntimeError("signature failed"),
+            ),
+            patch.object(operand_resolution, "_normalise_operand_value") as stopped_normalizer,
+            patch.object(operand_resolution, "coerce_lookup_magnitude_value") as stopped_coercion,
+            self.assertRaisesRegex(RuntimeError, "signature failed"),
+        ):
+            operand_resolution.repair_note_operand_units_from_same_block(stopped_rows, stopped_candidates)
+        stopped_normalizer.assert_not_called()
+        stopped_coercion.assert_not_called()
+
+        with (
+            patch.object(operand_resolution, "RECONCILIATION_POLICY", policy),
+            patch.object(
+                operand_resolution,
+                "candidate_row_block_signature",
+                side_effect=lambda candidate: candidate["block"],
+            ),
+            patch.object(operand_resolution, "_normalise_operand_value", return_value=(-2.0, "KRW")),
+            patch.object(
+                operand_resolution,
+                "coerce_lookup_magnitude_value",
+                side_effect=RuntimeError("coercion failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "coercion failed"),
+        ):
+            operand_resolution.repair_note_operand_units_from_same_block(stopped_rows, stopped_candidates)
+
+    def test_current_source_note_unit_static_bindings_distribution_dag_and_baseline(self) -> None:
+        import ast
+        import inspect
+        import json
+        from pathlib import Path
+
+        from src.agent import financial_graph_helpers
+        from src.agent import financial_graph_reconciliation
+
+        modules = {
+            "src/agent/financial_graph_helpers.py": ast.parse(inspect.getsource(financial_graph_helpers)),
+            "src/agent/financial_graph_reconciliation.py": ast.parse(inspect.getsource(financial_graph_reconciliation)),
+            "src/agent/financial_operand_resolution.py": ast.parse(inspect.getsource(operand_resolution)),
+        }
+        selected = {"candidate_row_block_signature", "repair_note_operand_units_from_same_block"}
+        definitions = {
+            path: {
+                node.name: (node.lineno, node.end_lineno, node.end_lineno - node.lineno + 1, [argument.arg for argument in node.args.args])
+                for node in ast.walk(tree)
+                if isinstance(node, ast.FunctionDef) and node.name in selected
+            }
+            for path, tree in modules.items()
+        }
+        self.assertEqual(
+            definitions,
+            {
+                "src/agent/financial_graph_helpers.py": {},
+                "src/agent/financial_graph_reconciliation.py": {},
+                "src/agent/financial_operand_resolution.py": {
+                    "candidate_row_block_signature": (3516, 3544, 29, ["candidate"]),
+                    "repair_note_operand_units_from_same_block": (3547, 3603, 57, ["operand_rows", "candidate_map"]),
+                },
+            },
+        )
+
+        call_rows = []
+        selected_lines = {}
+        for path, tree in modules.items():
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for name, (start, end, _span, _args) in definitions[path].items():
+                selected_lines[path] = selected_lines.get(path, set()) | set(range(start, end + 1))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if name not in selected:
+                    continue
+                current = node
+                try_depth = 0
+                caller = ""
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                    if isinstance(current, ast.FunctionDef):
+                        caller = current.name
+                        break
+                call_rows.append((name, path, caller, type(node.func).__name__, len(node.args), len(node.keywords), try_depth))
+        signature_callers = sorted(row[2] for row in call_rows if row[0] == "candidate_row_block_signature")
+        self.assertEqual(
+            signature_callers,
+            sorted(
+                [
+                    "_candidate_direct_logical_signature",
+                    "_candidate_direct_family_signature",
+                    "repair_note_operand_units_from_same_block",
+                    "_extract_structured_operands_from_reconciliation",
+                    "_extract_structured_operands_from_reconciliation",
+                    "_extract_structured_operands_from_reconciliation",
+                    "_extract_structured_operands_from_reconciliation",
+                ]
+            ),
+        )
+        repair_calls = [row for row in call_rows if row[0] == "repair_note_operand_units_from_same_block"]
+        self.assertEqual(
+            repair_calls,
+            [
+                (
+                    "repair_note_operand_units_from_same_block",
+                    "src/agent/financial_graph_reconciliation.py",
+                    "_extract_structured_operands_from_reconciliation",
+                    "Name",
+                    2,
+                    0,
+                    0,
+                )
+            ],
+        )
+        signature_calls = [row for row in call_rows if row[0] == "candidate_row_block_signature"]
+        self.assertEqual((len(signature_calls), len(repair_calls)), (7, 1))
+        owner_path = "src/agent/financial_operand_resolution.py"
+        owner_local_calls = [row for row in call_rows if row[1] == owner_path]
+        self.assertEqual((len(call_rows) - len(owner_local_calls), len(owner_local_calls)), (7, 1))
+        self.assertEqual(len(call_rows), 8)
+        self.assertTrue(all(row[-1] == 0 for row in call_rows))
+
+        def import_modules(tree):
+            return {
+                node.module
+                for node in ast.walk(tree)
+                if isinstance(node, ast.ImportFrom) and node.module
+            }
+
+        owner_module = "src.agent.financial_operand_resolution"
+        self.assertIn(owner_module, import_modules(modules["src/agent/financial_graph_helpers.py"]))
+        self.assertIn(owner_module, import_modules(modules["src/agent/financial_graph_reconciliation.py"]))
+        self.assertNotIn("src.agent.financial_graph_helpers", import_modules(modules["src/agent/financial_operand_resolution.py"]))
+        self.assertNotIn("src.agent.financial_graph_reconciliation", import_modules(modules["src/agent/financial_operand_resolution.py"]))
+
+        baseline = json.loads(Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8"))
+        hits = [
+            record
+            for record in baseline["records"]
+            if record.get("path") in selected_lines
+            and selected_lines[record["path"]].intersection(record.get("first_lines") or [])
+        ]
+        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(hits, [])
+
+    def test_current_source_structured_operand_caller_adopts_note_unit_repair_and_propagates_failure(self) -> None:
+        from src.agent import financial_graph_reconciliation
+        from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
+
+        agent = FinancialAgentReconciliationMixin()
+        nested = {"preserve": True}
+        active_subtask = {
+            "operation_family": "lookup",
+            "required_operands": [{"label": "Metric", "required": True, "nested": nested}],
+            "constraints": {},
+            "preferred_statement_types": [],
+        }
+        state = {
+            "active_subtask": active_subtask,
+            "reconciliation_result": {"status": "ready", "matched_operands": []},
+            "report_scope": {},
+            "nested": {"state": True},
+        }
+        state_before = deepcopy(state)
+        events = []
+        final_rows = [{"operand_id": "repaired", "nested": nested}]
+        repair_args = []
+
+        def active_owner(subtask, received_state):
+            events.append("active")
+            self.assertIs(received_state, state)
+            self.assertIsNot(subtask, active_subtask)
+            self.assertEqual(subtask, active_subtask)
+            return active_subtask
+
+        def years_owner(received_state):
+            events.append("years")
+            self.assertIs(received_state, state)
+            return []
+
+        def candidate_owner(received_state):
+            events.append("candidates")
+            self.assertIs(received_state, state)
+            return []
+
+        def pair_owner(**kwargs):
+            events.append("pair")
+            self.assertEqual(kwargs["required_operands"][0]["label"], "Metric")
+            self.assertIs(kwargs["required_operands"][0]["nested"], nested)
+            return [], set()
+
+        def expand_owner(candidate_ids, candidate_map):
+            events.append("expand")
+            self.assertEqual(candidate_ids, [])
+            self.assertEqual(candidate_map, {})
+            return []
+
+        def repair_owner(rows, candidate_map):
+            events.append("repair")
+            repair_args.append((rows, candidate_map))
+            return final_rows
+
+        with (
+            patch.object(financial_graph_reconciliation, "active_subtask_with_sibling_lookup_surfaces", side_effect=active_owner),
+            patch.object(financial_graph_reconciliation, "_query_years_from_state", side_effect=years_owner),
+            patch.object(agent, "_build_reconciliation_candidates", side_effect=candidate_owner),
+            patch.object(agent, "_extract_structured_period_pair_rows", side_effect=pair_owner),
+            patch.object(agent, "_expand_structured_candidate_ids", side_effect=expand_owner),
+            patch.object(financial_graph_reconciliation, "repair_note_operand_units_from_same_block", side_effect=repair_owner),
+        ):
+            result = agent._extract_structured_operands_from_reconciliation(state)
+        self.assertIs(result, final_rows)
+        self.assertEqual(events, ["active", "years", "candidates", "pair", "expand", "repair"])
+        self.assertEqual(len(repair_args), 1)
+        self.assertEqual(repair_args[0], ([], {}))
+        self.assertEqual(state, state_before)
+
+        failure_events = []
+        with (
+            patch.object(financial_graph_reconciliation, "active_subtask_with_sibling_lookup_surfaces", return_value=active_subtask),
+            patch.object(financial_graph_reconciliation, "_query_years_from_state", return_value=[]),
+            patch.object(agent, "_build_reconciliation_candidates", return_value=[]),
+            patch.object(agent, "_extract_structured_period_pair_rows", return_value=([], set())),
+            patch.object(agent, "_expand_structured_candidate_ids", return_value=[]),
+            patch.object(
+                financial_graph_reconciliation,
+                "repair_note_operand_units_from_same_block",
+                side_effect=lambda _rows, _map: (
+                    failure_events.append("repair"),
+                    (_ for _ in ()).throw(RuntimeError("repair failed")),
+                )[1],
+            ),
+            self.assertRaisesRegex(RuntimeError, "repair failed"),
+        ):
+            agent._extract_structured_operands_from_reconciliation(state)
+        self.assertEqual(failure_events, ["repair"])
+        self.assertEqual(state, state_before)
+
 
 if __name__ == "__main__":
     unittest.main()

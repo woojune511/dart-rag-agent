@@ -20,7 +20,6 @@ from src.agent.financial_graph_helpers import (
     _candidate_is_descriptor_row,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
-    _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
     _candidate_satisfies_ratio_component_acceptance_contract,
     _deterministic_reconcile_task,
@@ -35,7 +34,10 @@ from src.agent.financial_graph_helpers import (
     _select_structured_cell,
 )
 from src.agent.financial_operand_resolution import (
+    candidate_row_block_signature,
+    coerce_lookup_magnitude_value,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
+    repair_note_operand_units_from_same_block,
 )
 from src.agent.financial_dependency_projection import (
     active_subtask_with_sibling_lookup_surfaces,
@@ -56,7 +58,6 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_structured_cells import _structured_cell_period_text
 from src.agent.financial_surface_contracts import _operand_needles
-from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
     _parse_unstructured_table_row_cells,
@@ -358,65 +359,6 @@ class FinancialAgentReconciliationMixin:
             operand=operand,
             selected_cell=selected_cell,
         )
-
-    def _repair_note_operand_units_from_same_block(
-        self,
-        operand_rows: List[Dict[str, Any]],
-        candidate_map: Dict[str, Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        if len(operand_rows) < 2:
-            return operand_rows
-
-        ambiguous_units = {str(item) for item in (RECONCILIATION_POLICY.get("ambiguous_krw_units") or ())}
-        note_statement_type = str(RECONCILIATION_POLICY.get("note_statement_type") or "")
-        rows = [dict(row) for row in operand_rows]
-        block_groups: Dict[str, List[Dict[str, Any]]] = {}
-
-        for row in rows:
-            if str(row.get("statement_type") or "").strip().lower() != note_statement_type:
-                continue
-            evidence_id = str(row.get("evidence_id") or "").strip()
-            candidate = candidate_map.get(evidence_id) or {}
-            block_key = _candidate_row_block_signature(candidate)
-            if not block_key:
-                continue
-            block_groups.setdefault(block_key, []).append(row)
-
-        for block_rows in block_groups.values():
-            resolved_units = list(
-                dict.fromkeys(
-                    str(row.get("raw_unit") or "").strip()
-                    for row in block_rows
-                    if str(row.get("raw_unit") or "").strip() not in ambiguous_units
-                )
-            )
-            if len(resolved_units) != 1:
-                continue
-            inherited_unit = resolved_units[0]
-            for row in block_rows:
-                current_unit = str(row.get("raw_unit") or "").strip()
-                if current_unit not in ambiguous_units:
-                    continue
-                normalized_value, normalized_unit = _normalise_operand_value(
-                    str(row.get("raw_value") or "").strip(),
-                    inherited_unit,
-                )
-                normalized_value = coerce_lookup_magnitude_value(
-                    normalized_value=normalized_value,
-                    normalized_unit=normalized_unit,
-                    raw_value=str(row.get("raw_value") or "").strip(),
-                    concept=str(row.get("matched_operand_concept") or ""),
-                    statement_type=str(row.get("statement_type") or ""),
-                    row_label=str(row.get("matched_operand_label") or ""),
-                    semantic_label=str(row.get("matched_operand_label") or ""),
-                )
-                if normalized_value is None:
-                    continue
-                row["raw_unit"] = inherited_unit
-                row["normalized_value"] = normalized_value
-                row["normalized_unit"] = normalized_unit
-
-        return rows
 
     def _expand_structured_candidate_ids(
         self,
@@ -1295,7 +1237,7 @@ class FinancialAgentReconciliationMixin:
                     )
                 }
                 same_block_keys = {
-                    _candidate_row_block_signature(candidate_map.get(str(row.get("evidence_id") or "").strip()) or {})
+                    candidate_row_block_signature(candidate_map.get(str(row.get("evidence_id") or "").strip()) or {})
                     for row in operand_rows
                     if str(row.get("table_source_id") or "").strip()
                     and (
@@ -1319,13 +1261,13 @@ class FinancialAgentReconciliationMixin:
                         table_source_id = str(current_metadata.get("table_source_id") or "").strip()
                         if table_source_id and table_source_id in same_table_ids:
                             if same_block_keys:
-                                candidate_block_key = _candidate_row_block_signature(current_candidate)
+                                candidate_block_key = candidate_row_block_signature(current_candidate)
                                 if candidate_block_key and candidate_block_key not in same_block_keys:
                                     continue
                             same_table_candidates.append(current_candidate)
                     same_table_candidates.sort(
                         key=lambda current: (
-                            6.0 if same_block_keys and _candidate_row_block_signature(current) in same_block_keys else 0.0
+                            6.0 if same_block_keys and candidate_row_block_signature(current) in same_block_keys else 0.0
                         ) + (
                             3.0
                             + _score_operand_candidate(
@@ -1391,7 +1333,7 @@ class FinancialAgentReconciliationMixin:
                                 report_scope=report_scope,
                             )
                         if not direct_accept and same_block_keys:
-                            candidate_block_key = _candidate_row_block_signature(current_candidate)
+                            candidate_block_key = candidate_row_block_signature(current_candidate)
                             value_role = str(current_metadata.get("value_role") or "").strip()
                             aggregation_stage = str(current_metadata.get("aggregation_stage") or "").strip()
                             direct_accept = (
@@ -1421,7 +1363,7 @@ class FinancialAgentReconciliationMixin:
             operand_rows.append(operand_row)
             next_index += 1
 
-        return self._repair_note_operand_units_from_same_block(operand_rows, candidate_map)
+        return repair_note_operand_units_from_same_block(operand_rows, candidate_map)
 
     def _reconcile_retrieved_evidence(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Match required operands to the best available evidence candidates."""

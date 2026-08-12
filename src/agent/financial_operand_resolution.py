@@ -44,7 +44,7 @@ from src.config.retrieval_policy import (
     KOREAN_PERIOD_PREFIX_RE_FRAGMENT,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
     OPERAND_CANDIDATE_SCORING_POLICY,
-    STRUCTURED_CELL_AFFINITY_POLICY,
+    RECONCILIATION_POLICY, STRUCTURED_CELL_AFFINITY_POLICY,
 )
 
 logger = logging.getLogger(__name__)
@@ -3459,3 +3459,145 @@ def collect_retrieved_operand_evidence_candidates(
         evidence_items=tuple(synthesized_items),
         evidence_bullets=tuple(synthesized_bullets),
     )
+
+
+def lookup_hints_for_concept_key(concept_key: str) -> Dict[str, Any]:
+    normalized_key = _normalise_spaces(str(concept_key or ""))
+    if not normalized_key:
+        return {}
+
+    ontology = get_financial_ontology()
+    concept = ontology.concept(str(concept_key or "").strip())
+    if concept:
+        return dict(concept.get("lookup_hints") or {})
+
+    for spec in list(getattr(ontology, "all_concept_specs", lambda: [])() or []):
+        if bool(spec.get("is_group")):
+            continue
+        if _normalise_spaces(str(spec.get("concept") or "")) == normalized_key:
+            return dict(spec.get("lookup_hints") or {})
+    return {}
+
+
+def coerce_lookup_magnitude_value(
+    *,
+    normalized_value: Optional[float],
+    normalized_unit: str,
+    raw_value: str,
+    concept: str,
+    statement_type: str,
+    row_label: str = "",
+    semantic_label: str = "",
+) -> Optional[float]:
+    if normalized_value is None or normalized_unit != "KRW" or normalized_value >= 0:
+        return normalized_value
+
+    lookup_hints = lookup_hints_for_concept_key(concept)
+    normalized_statement_type = _normalise_spaces(statement_type).lower()
+    if not bool(lookup_hints.get("coerce_parenthesized_negative_to_positive_magnitude")):
+        return normalized_value
+    if normalized_statement_type not in {"income_statement", "summary_financials", "notes"}:
+        return normalized_value
+
+    magnitude_surface_tokens = [
+        _normalise_spaces(str(token))
+        for token in (lookup_hints.get("magnitude_surface_tokens") or [])
+        if _normalise_spaces(str(token))
+    ]
+    surface = _normalise_spaces(" ".join(part for part in (row_label, semantic_label) if part))
+    if surface and magnitude_surface_tokens and not any(token in surface for token in magnitude_surface_tokens):
+        return normalized_value
+    raw_surface = str(raw_value or "")
+    if not any(marker in raw_surface for marker in ("(", ")", "△", "▲", "-")):
+        return normalized_value
+    return abs(normalized_value)
+
+
+def candidate_row_block_signature(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    row_context_text = str(metadata.get("row_context_text") or "").strip()
+    if not row_context_text:
+        return ""
+    try:
+        row_index = int(metadata.get("row_index"))
+    except (TypeError, ValueError):
+        return ""
+
+    rows = [_normalise_spaces(line) for line in row_context_text.splitlines() if _normalise_spaces(line)]
+    if row_index < 0 or row_index >= len(rows):
+        return ""
+
+    header_end: Optional[int] = None
+    for current_index in range(row_index - 1, -1, -1):
+        if rows[current_index].startswith("|"):
+            header_end = current_index
+            break
+    if header_end is None:
+        return ""
+
+    header_start = header_end
+    while header_start - 1 >= 0 and rows[header_start - 1].startswith("|"):
+        header_start -= 1
+
+    header_block = " || ".join(rows[header_start : header_end + 1])
+    table_source_id = str(metadata.get("table_source_id") or "").strip()
+    return f"{table_source_id}::{header_start}:{header_block}".strip(":")
+
+
+def repair_note_operand_units_from_same_block(
+    operand_rows: List[Dict[str, Any]],
+    candidate_map: Dict[str, Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    if len(operand_rows) < 2:
+        return operand_rows
+
+    ambiguous_units = {str(item) for item in (RECONCILIATION_POLICY.get("ambiguous_krw_units") or ())}
+    note_statement_type = str(RECONCILIATION_POLICY.get("note_statement_type") or "")
+    rows = [dict(row) for row in operand_rows]
+    block_groups: Dict[str, List[Dict[str, Any]]] = {}
+
+    for row in rows:
+        if str(row.get("statement_type") or "").strip().lower() != note_statement_type:
+            continue
+        evidence_id = str(row.get("evidence_id") or "").strip()
+        candidate = candidate_map.get(evidence_id) or {}
+        block_key = candidate_row_block_signature(candidate)
+        if not block_key:
+            continue
+        block_groups.setdefault(block_key, []).append(row)
+
+    for block_rows in block_groups.values():
+        resolved_units = list(
+            dict.fromkeys(
+                str(row.get("raw_unit") or "").strip()
+                for row in block_rows
+                if str(row.get("raw_unit") or "").strip() not in ambiguous_units
+            )
+        )
+        if len(resolved_units) != 1:
+            continue
+        inherited_unit = resolved_units[0]
+        for row in block_rows:
+            current_unit = str(row.get("raw_unit") or "").strip()
+            if current_unit not in ambiguous_units:
+                continue
+            normalized_value, normalized_unit = _normalise_operand_value(
+                str(row.get("raw_value") or "").strip(),
+                inherited_unit,
+            )
+            normalized_value = coerce_lookup_magnitude_value(
+                normalized_value=normalized_value,
+                normalized_unit=normalized_unit,
+                raw_value=str(row.get("raw_value") or "").strip(),
+                concept=str(row.get("matched_operand_concept") or ""),
+                statement_type=str(row.get("statement_type") or ""),
+                row_label=str(row.get("matched_operand_label") or ""),
+                semantic_label=str(row.get("matched_operand_label") or ""),
+            )
+            if normalized_value is None:
+                continue
+            row["raw_unit"] = inherited_unit
+            row["normalized_value"] = normalized_value
+            row["normalized_unit"] = normalized_unit
+
+    return rows

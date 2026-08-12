@@ -3,66 +3,14 @@
 import re
 from typing import Any, Callable, Dict, List, Optional
 
-from src.config import get_financial_ontology
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
     _evidence_item_for_operand_row,
+    coerce_lookup_magnitude_value,
     coerce_operand_unit_from_evidence,
     score_direct_structured_lookup_evidence,
 )
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
-
-
-def lookup_hints_for_concept_key(concept_key: str) -> Dict[str, Any]:
-    normalized_key = _normalise_spaces(str(concept_key or ""))
-    if not normalized_key:
-        return {}
-
-    ontology = get_financial_ontology()
-    concept = ontology.concept(str(concept_key or "").strip())
-    if concept:
-        return dict(concept.get("lookup_hints") or {})
-
-    for spec in list(getattr(ontology, "all_concept_specs", lambda: [])() or []):
-        if bool(spec.get("is_group")):
-            continue
-        if _normalise_spaces(str(spec.get("concept") or "")) == normalized_key:
-            return dict(spec.get("lookup_hints") or {})
-    return {}
-
-
-def coerce_lookup_magnitude_value(
-    *,
-    normalized_value: Optional[float],
-    normalized_unit: str,
-    raw_value: str,
-    concept: str,
-    statement_type: str,
-    row_label: str = "",
-    semantic_label: str = "",
-) -> Optional[float]:
-    if normalized_value is None or normalized_unit != "KRW" or normalized_value >= 0:
-        return normalized_value
-
-    lookup_hints = lookup_hints_for_concept_key(concept)
-    normalized_statement_type = _normalise_spaces(statement_type).lower()
-    if not bool(lookup_hints.get("coerce_parenthesized_negative_to_positive_magnitude")):
-        return normalized_value
-    if normalized_statement_type not in {"income_statement", "summary_financials", "notes"}:
-        return normalized_value
-
-    magnitude_surface_tokens = [
-        _normalise_spaces(str(token))
-        for token in (lookup_hints.get("magnitude_surface_tokens") or [])
-        if _normalise_spaces(str(token))
-    ]
-    surface = _normalise_spaces(" ".join(part for part in (row_label, semantic_label) if part))
-    if surface and magnitude_surface_tokens and not any(token in surface for token in magnitude_surface_tokens):
-        return normalized_value
-    raw_surface = str(raw_value or "")
-    if not any(marker in raw_surface for marker in ("(", ")", "△", "▲", "-")):
-        return normalized_value
-    return abs(normalized_value)
 
 
 def coerce_lookup_magnitude_record(

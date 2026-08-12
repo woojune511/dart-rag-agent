@@ -1391,8 +1391,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_expand_structured_candidate_ids",
             side_effect=expand_owner,
         ), patch.object(
-            agent,
-            "_repair_note_operand_units_from_same_block",
+            financial_graph_reconciliation,
+            "repair_note_operand_units_from_same_block",
             side_effect=repair_owner,
         ):
             extracted = agent._extract_structured_operands_from_reconciliation(
@@ -1465,8 +1465,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_expand_structured_candidate_ids",
             return_value=[],
         ), patch.object(
-            agent,
-            "_repair_note_operand_units_from_same_block",
+            financial_graph_reconciliation,
+            "repair_note_operand_units_from_same_block",
             return_value=[],
         ):
             self.assertEqual(
@@ -1507,8 +1507,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_expand_structured_candidate_ids",
             side_effect=AssertionError("expansion must stop"),
         ), patch.object(
-            agent,
-            "_repair_note_operand_units_from_same_block",
+            financial_graph_reconciliation,
+            "repair_note_operand_units_from_same_block",
             side_effect=AssertionError("repair must stop"),
         ):
             with self.assertRaisesRegex(RuntimeError, "per-operand failed"):
@@ -1548,8 +1548,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "_expand_structured_candidate_ids",
             side_effect=AssertionError("expansion must stop after general ids"),
         ), patch.object(
-            agent,
-            "_repair_note_operand_units_from_same_block",
+            financial_graph_reconciliation,
+            "repair_note_operand_units_from_same_block",
             side_effect=AssertionError("repair must stop after general ids"),
         ):
             with self.assertRaisesRegex(RuntimeError, "general ids failed"):

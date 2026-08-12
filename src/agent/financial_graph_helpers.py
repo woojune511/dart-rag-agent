@@ -94,9 +94,10 @@ from src.agent.financial_operation_policies import (
     _is_single_metric_period_comparison,
 )
 from src.agent.financial_operand_resolution import (
+    candidate_row_block_signature,
+    lookup_hints_for_concept_key,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
 )
-from src.agent.financial_lookup_recovery import lookup_hints_for_concept_key
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _REPORT_ROOT = _PROJECT_ROOT / "data" / "reports"
@@ -399,7 +400,7 @@ def _candidate_direct_logical_signature(
     selected_cell: Optional[Dict[str, Any]] = None,
 ) -> tuple[str, str, str, str]:
     metadata = dict(candidate.get("metadata") or {})
-    block_key = _candidate_row_block_signature(candidate)
+    block_key = candidate_row_block_signature(candidate)
     table_source_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
     row_label = _normalise_spaces(
         str(
@@ -427,7 +428,7 @@ def _candidate_direct_family_signature(
     selected_cell: Optional[Dict[str, Any]] = None,
 ) -> tuple[str, str, str, str]:
     metadata = dict(candidate.get("metadata") or {})
-    block_key = _candidate_row_block_signature(candidate)
+    block_key = candidate_row_block_signature(candidate)
     table_source_id = _normalise_spaces(str(metadata.get("table_source_id") or ""))
     row_label = _normalise_spaces(
         str(
@@ -4283,37 +4284,6 @@ def _build_table_row_reconciliation_candidates(
             )
         )
     return candidates
-
-
-def _candidate_row_block_signature(candidate: Dict[str, Any]) -> str:
-    metadata = dict(candidate.get("metadata") or {})
-    row_context_text = str(metadata.get("row_context_text") or "").strip()
-    if not row_context_text:
-        return ""
-    try:
-        row_index = int(metadata.get("row_index"))
-    except (TypeError, ValueError):
-        return ""
-
-    rows = [_normalise_spaces(line) for line in row_context_text.splitlines() if _normalise_spaces(line)]
-    if row_index < 0 or row_index >= len(rows):
-        return ""
-
-    header_end: Optional[int] = None
-    for current_index in range(row_index - 1, -1, -1):
-        if rows[current_index].startswith("|"):
-            header_end = current_index
-            break
-    if header_end is None:
-        return ""
-
-    header_start = header_end
-    while header_start - 1 >= 0 and rows[header_start - 1].startswith("|"):
-        header_start -= 1
-
-    header_block = " || ".join(rows[header_start : header_end + 1])
-    table_source_id = str(metadata.get("table_source_id") or "").strip()
-    return f"{table_source_id}::{header_start}:{header_block}".strip(":")
 
 
 @lru_cache(maxsize=64)

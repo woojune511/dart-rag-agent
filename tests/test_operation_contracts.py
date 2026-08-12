@@ -42,7 +42,6 @@ from src.agent.financial_graph_helpers import (
     _candidate_matches_operand,
     _candidate_matches_operand_target_year,
     _candidate_selected_cell_for_operand,
-    _candidate_row_block_signature,
     _candidate_satisfies_direct_acceptance_contract,
     _score_operand_candidate,
     _extract_generic_operand_labels,
@@ -59,7 +58,10 @@ from src.agent.financial_operand_resolution import (
     _operand_row_satisfies_required_surface_contract,
     table_label_metadata_lookup_score,
 )
-from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_value
+from src.agent.financial_operand_resolution import (
+    candidate_row_block_signature,
+    coerce_lookup_magnitude_value,
+)
 from src.agent.financial_row_surfaces import (
     _extract_numeric_value_after_operand_text,
     _parse_unstructured_table_row_cells,
@@ -5610,7 +5612,7 @@ class OperationContractTests(unittest.TestCase):
 
         self.assertFalse(_candidate_matches_operand(wrong_structured_value, operand))
 
-    def test_candidate_row_block_signature_tracks_local_subtable_header(self) -> None:
+    def test_row_block_signature_tracks_local_subtable_header(self) -> None:
         row_context_text = "\n".join(
             [
                 "| 주식결제형 주식기준보상 | 현금결제형 주식기준보상 | 양도제한조건부 주식",
@@ -5641,8 +5643,8 @@ class OperationContractTests(unittest.TestCase):
         }
 
         self.assertNotEqual(
-            _candidate_row_block_signature(reserve_candidate),
-            _candidate_row_block_signature(operating_expense_candidate),
+            candidate_row_block_signature(reserve_candidate),
+            candidate_row_block_signature(operating_expense_candidate),
         )
 
     def test_candidate_target_year_respects_prior_period_focus(self) -> None:
