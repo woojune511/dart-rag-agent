@@ -2359,6 +2359,61 @@ APIs, cycle-safe dependencies, the six-method characterization gate, and rejecte
 expansions are maintained only in
 [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Final-answer evidence projection owner milestone
+
+- `cde3d98` moves the former calculation-graph final-answer evidence filter and
+  operand-evidence append projections into `financial_aggregate_projection.py`
+  as public `filter_aggregate_evidence_for_final_answer(...)` and
+  `append_operand_evidence_for_final_answer(...)`. The former definition spans
+  were 66 + 102 = 168 lines; the public owner spans are 65 + 101 = 166. All
+  seven selected calls remain graph-external, retired selected private source/
+  test refs are zero, and no compatibility wrapper or alias remains.
+- The import DAG remains acyclic. The owner added three symbols on its existing
+  numeric-surface edge, does not import either graph module, and the selected
+  spans move no runtime-domain baseline record; the reviewed count remains 217.
+  The calculation graph removed the two numeric-support imports made dead by the
+  move while retaining its independently used text-support import.
+- Exactly seven source/test files changed. Source is `+186/-179`, net `+7`:
+  calculation moved from 15,355 to 15,185 physical lines, the main graph from
+  1,200 to 1,204, and aggregate projection from 2,530 to 2,703. Tests are
+  `+1,426/-34`, net `+1,392`; the whole commit is `+1,612/-213`, net `+1,399`.
+- The committed source-only diff SHA-256 is
+  `1e9aadbbef8bf83438337b2a68f753344f564a2c4a49c5192a61a7c2d02917b8`.
+  Literal body parity passed 2/2 after only `self` removal. All four retained
+  executable callers remained exact after selected target normalization; public
+  import identity, fresh import, DAG checks, and retired mixin-attribute absence
+  passed.
+- Exactly six new unittest methods moved full discovery from 1,710 to 1,716.
+  Final validation passed focused 6/6, aggregate owner 52/52, affected eight-
+  module semantic 767/767, import-side-effects 19/19, semantic/import union
+  786/786, runtime audit 217, full discovery 1,716/1,716, pycompile/fresh-import
+  binding checks, DAG/body/caller parity, and `git diff --check`. Benchmark
+  refresh was **NOT RUN**, and no remote CI run is claimed or verified for this
+  local branch.
+
+This milestone changes only ownership of deterministic filtering and projection
+over already prepared answer, evidence, operand, and claim-id surfaces.
+Retrieved-doc/evidence preparation, selected-claim/provenance projection, answer
+choice/composition/refresh, artifact/ledger mutation, mutable state/evidence,
+promotion, sync/rebuild, and final sequencing remain graph-owned. The commit
+proves no behavior, accuracy, ranking, performance, total-code or executed-path
+reduction, benchmark improvement, schedule, ledger completion, or Phase 3
+completion.
+
+At this handoff, the sole selected follow-on is the 155-line growth-answer
+numeric completion/sanitization pair in `financial_graph_calculation.py`. Public
+`ensure_complete_growth_numeric_answer(...)` and
+`strip_untraced_numeric_material_from_growth_narrative_sentence(...)` are
+projected at 46 + 107 = 153 owner lines in
+`financial_aggregate_projection.py`. Nineteen selected calls finish graph-
+external and none finish owner-local. The owner already has every dependency and
+the selected spans move no runtime-domain baseline record. Final-growth
+selection, answer refresh/composition, compact-ratio state/trace, artifact/
+ledger mutation, mutable state/evidence, promotion, sync/rebuild, and final
+sequencing remain hard stops. Exact APIs, cycle-safe dependencies, the six-
+method characterization gate, and rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

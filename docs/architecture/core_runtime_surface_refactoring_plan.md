@@ -211,7 +211,8 @@ material policy, aggregate source/coherence preparation, result/nested ranking,
 stable dedupe, narrative intent/surface/trace validation, bounded aggregate row/
 gap/lookup-answer policy, narrative term/variant/context presentation, prepared
 KRW raw-unit/growth alignment/period-conflict policy, dependency-task KRW
-consistency, and table-metadata KRW repair. Current
+consistency, table-metadata KRW repair, and final-answer evidence filtering/
+operand append projection. Current
 validation and benchmark
 status belong only in
 [project_status.md](../overview/project_status.md); commit-level diffs and claim
@@ -221,9 +222,9 @@ limits belong only in
 Phase 3 remains open for four durable debt groups:
 
 1. partially advanced: period/material/source/coherence/rank/dedupe, selected
-   narrative-validation policy, and bounded row/gap/lookup-answer surfaces are
-   owned, while promotion, sync/rebuild, mutable state/evidence, and final
-   sequencing remain graph-owned;
+   narrative-validation policy, bounded row/gap/lookup-answer surfaces, and
+   final-answer evidence projection are owned, while promotion, sync/rebuild,
+   mutable state/evidence, and final sequencing remain graph-owned;
 2. partially advanced: ratio presentation/readiness/scale, bounded operand-
    preparation, and unit/table-repair seams are owned; isolate remaining dependency
    and ratio/absolute seams that do not require graph-state lookup, broader evidence
@@ -247,47 +248,47 @@ projection, result support/reuse predicates, prepared growth/ratio material
 inspection, prepared growth-numeric rendering, and growth trace inspection are
 also owner-resident. Dependency input matching, sibling-output synthesis
 preference, task-output binding projection, prepared runtime-evidence merge, and
-ratio task-artifact row projection are owner-resident as well.
+ratio task-artifact row projection are owner-resident as well. Final-answer
+evidence filtering and operand-evidence append are also owner-resident.
 Retained external graph call placements remain,
 while broader evidence repair,
 dependency-source lookup/source mapping, answer composition/refresh,
 evidence construction, promotion, sync/rebuild, mutable state/evidence, ledger,
 callbacks, and final projection remain outside those owner batches.
 
-The completed `8d627a6` commit is an ownership relocation only. Exactly five
-source/test files changed. Two calculation definition spans totaling 64 lines
-became two public task-artifact projections totaling 62 lines. Four selected
-calls finish graph-external and none finish owner-local; retired selected private
-source/test refs are zero. Source is `+74/-70`, net `+4`: calculation moved from
-15,419 to 15,355 physical lines and task artifacts from 1,392 to 1,460. Tests are
-`+911/-8`, net `+903`, and the whole commit is `+985/-78`, net `+907`. Six new
-unittest methods moved full discovery from 1,704 to 1,710. Final gates passed
-focused 6/6, task-artifact owner 15/15, affected semantic 832/832, import 19/19,
-semantic/import union 851/851, audit 217, full discovery 1,710/1,710,
+The completed `cde3d98` commit is an ownership relocation only. Exactly seven
+source/test files changed. Two selected calculation definition spans totaling
+168 lines became two public aggregate projections totaling 166 lines. Seven
+selected calls finish graph-external and none finish owner-local; retired
+selected private source/test refs are zero. Source is `+186/-179`, net `+7`:
+calculation moved from 15,355 to 15,185 physical lines, the main graph from 1,200
+to 1,204, and aggregate projection from 2,530 to 2,703. Tests are `+1,426/-34`,
+net `+1,392`, and the whole commit is `+1,612/-213`, net `+1,399`. Six new
+unittest methods moved full discovery from 1,710 to 1,716. Final gates passed
+focused 6/6, aggregate owner 52/52, affected semantic 767/767, import 19/19,
+semantic/import union 786/786, audit 217, full discovery 1,716/1,716,
 pycompile/fresh import, DAG/body/caller parity, and diff check. Benchmark refresh
 was **NOT RUN** and remote CI is unverified. This establishes neither behavior,
-accuracy, ranking, performance, total-code, executed-path, ledger, benchmark, nor
-Phase 3 completion.
+accuracy, ranking, performance, total-code, executed-path, ledger, benchmark,
+nor Phase 3 completion.
 
-The selected follow-on is the 168-line final-answer evidence projection pair.
-Public `filter_aggregate_evidence_for_final_answer(...)` and
-`append_operand_evidence_for_final_answer(...)` move to the existing
-`financial_aggregate_projection.py` owner. Seven current calls finish graph-
-external and zero finish owner-local; projected owner function spans total 166.
-The owner adds three numeric-surface symbols on an existing import edge and the
-selected spans move no runtime-domain baseline record. Exact APIs, six-method
-characterization, call distribution, and rejected expansions live only in
-[project_status.md#next-work](../overview/project_status.md#next-work).
+The selected follow-on is the 155-line growth-answer numeric completion/
+sanitization pair. Public `ensure_complete_growth_numeric_answer(...)` and
+`strip_untraced_numeric_material_from_growth_narrative_sentence(...)` move to
+the existing `financial_aggregate_projection.py` owner. Nineteen current calls
+finish graph-external and zero finish owner-local; projected owner function spans
+total 153. The owner already has every dependency, so the move adds no module
+edge, and the selected spans move no runtime-domain baseline record. Exact APIs,
+six-method characterization, call distribution, and rejected expansions live
+only in [project_status.md#next-work](../overview/project_status.md#next-work).
 
-All four callers, retrieved-doc/evidence preparation, selected-claim and
-provenance projection, answer composition/refresh, artifact and ledger mutation,
-mutable state/evidence, promotion, sync/rebuild, and final sequencing stay in the
-graph. The adjacent `_slot_metric_keys(...)` and `_iter_answer_slots(...)` family
-remains excluded because the former is passed as a bound callback and deleting
-its mixin attribute would change the dynamic runtime surface. Structured-cell
-helpers, ratio conflict selection, reflection planning, compact-ratio
-state/trace, ontology compatibility, carriers, and evidence mutation remain
-excluded.
+All six callers and their answer selection/refresh, composition, mutable state/
+evidence, artifact and ledger mutation, promotion, sync/rebuild, and final
+sequencing stay in the graph. The direct parent final-growth helper remains
+excluded because it coordinates graph-private numeric-coverage and narrative-
+intent gates. Compact-ratio state/trace, dynamic focus-marker dispatch, general
+structured-cell helper expansion, bound answer-slot callbacks, ontology
+compatibility, carriers, and evidence construction/mutation remain excluded.
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.

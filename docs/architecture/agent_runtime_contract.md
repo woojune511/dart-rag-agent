@@ -2884,15 +2884,15 @@ sequencing remain graph-owned. The adjacent preferred selector remains excluded
 because moving it would require a task-artifact -> aggregate-projection import
 against the existing aggregate-projection -> runtime-trace -> task-artifact path.
 
-The selected final-answer evidence boundary retains its current behavior until
-characterized and moved. Graph-private
-`_filter_aggregate_evidence_for_final_answer(evidence_items, *, final_answer,
+`financial_aggregate_projection.py` now owns final-answer evidence filtering and
+operand-evidence append projection. Public
+`filter_aggregate_evidence_for_final_answer(evidence_items, *, final_answer,
 selected_claim_ids)` extracts answer numeric candidates, preserves stable
 evidence order and selected/operand numeric-support precedence, applies table-
 numeric promotion, retrieved-narrative and reconciliation gates, percent support,
 and quote/raw-row consistency, and returns fresh top-level copies or the current
-all-filtered fallback. Graph-private
-`_append_operand_evidence_for_final_answer(evidence_items, *, operands,
+all-filtered fallback. Public
+`append_operand_evidence_for_final_answer(evidence_items, *, operands,
 final_answer)` copies the evidence list, scans operands in order, preserves
 numeric-equivalence and literal-surface support, derived-percent role, source-
 anchor and duplicate-id gates, and appends the exact generated operand-evidence
@@ -2900,15 +2900,54 @@ schema with fresh top-level containers and nested identity preserved. Neither
 mutates caller inputs or catches mapping, iteration, truthiness, string, regex,
 normalization, numeric-surface, or copy exceptions.
 
+The seven public calls remain at their original positions and at Try depth zero:
+filtering is called once by
+`_filter_final_aggregate_evidence_and_projection(...)` and twice by
+`FinancialAgent._runtime_evidence_from_retrieved_docs(...)`; append is called
+once by that graph method, once by `_replace_mutable_aggregate_answer(...)`, and
+twice by `_apply_final_narrative_repair_pipeline(...)`. All seven calls are graph-
+external and none is owner-local. Retrieved-doc/evidence preparation, selected-
+claim and projection-provenance updates, answer choice/composition/refresh,
+mutable state/evidence, artifact/ledger mutation, promotion, sync/rebuild, and
+final sequencing remain graph-owned.
+
+Commit `cde3d98` moved the former 66 + 102 = 168 definition-span lines to public
+65 + 101 = 166 owner lines. Source is `+186/-179`, tests are `+1,426/-34`, and
+the whole commit is `+1,612/-213`; its source diff SHA-256 is
+`1e9aadbbef8bf83438337b2a68f753344f564a2c4a49c5192a61a7c2d02917b8`.
+Focused 6/6, aggregate owner 52/52, affected semantic 767/767, import 19/19,
+union 786/786, audit 217, and full discovery 1,716/1,716 passed. Benchmark
+refresh was **NOT RUN**, remote CI is unverified, and the move proves no
+behavior, accuracy, ranking, performance, total-code, executed-path, benchmark,
+schedule, ledger, or Phase 3 completion.
+
+The next selected growth-answer boundary retains its current behavior until
+characterized and moved. Graph-private
+`_ensure_complete_growth_numeric_answer(answer, ordered_results,
+evidence_items=None)` scans growth rows in reverse order, skips conflicting
+periods, adopts the prepared complete growth answer and required display values,
+preserves an already complete answer without untraced numeric material, and
+otherwise retains stable extra sentences only when they are not already in the
+complete answer, do not repeat required values, and are trace-safe. Graph-private
+`_strip_untraced_numeric_material_from_growth_narrative_sentence(sentence,
+ordered_results, evidence_items=None)` prepares complete growth surfaces and
+required values, removes only configured untraced percent/KRW tokens, normalizes
+punctuation, revalidates numeric trace support, and requires narrative markers,
+at least two narrative terms, and non-noisy/non-fragment text before returning a
+sanitized sentence. Neither mutates caller inputs or catches mapping, iteration,
+truthiness, string, regex, normalization, sentence, numeric-surface, or policy
+exceptions.
+
 Their selected movement to `financial_aggregate_projection.py` is exactly the
-168-line, seven-call, external-seven/local-zero batch specified in
-[Project Status Next Work](../overview/project_status.md#next-work). Retrieved-
-doc/evidence preparation, selected-claim and projection-provenance updates,
-answer choice/composition/refresh, mutable state/evidence, artifact/ledger
-mutation, promotion, sync/rebuild, and final sequencing remain graph-owned. The
-adjacent answer-slot iteration family remains excluded because
-`_slot_metric_keys(...)` is passed as a bound callback and its deletion would
-change the dynamic mixin surface.
+155-line, 19-call, external-19/local-zero batch specified in
+[Project Status Next Work](../overview/project_status.md#next-work). The owner
+already holds every dependency and gains no module edge. Final-growth selection,
+answer refresh, initial composition, final narrative repair, aggregate
+orchestration, mutable state/evidence, artifact/ledger mutation, promotion,
+sync/rebuild, and final sequencing remain graph-owned. Compact-ratio state/trace,
+dynamic focus-marker dispatch, general structured-cell helper expansion, bound
+callbacks, ontology compatibility, carriers, and evidence construction/mutation
+remain excluded.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

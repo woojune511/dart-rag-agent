@@ -286,7 +286,7 @@ State-free owner topology:
 | `financial_answer_projection.py` | aggregate-row growth-period conflict, material-gap, row-material, narrative intent/surface/trace validation, and final-answer projection policy |
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, and table-noise/fragment predicates |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, and result support/reuse predicates |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append projection |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay |
 | `financial_task_artifacts.py` | task/artifact projection, prepared artifact/ref enrichment, runtime-evidence merge, and ratio task-result row projection |
@@ -310,7 +310,8 @@ prepared-document snippet projection and retrieved-source preservation,
 prepared KRW raw-unit/growth alignment/period-conflict, dependency-task KRW consistency와
 table-metadata KRW repair, aggregate ratio seed/source scoring/selection/component
 projection, aggregate result support/reuse predicate와 prepared growth-numeric
-rendering, dependency input matching/binding/synthesis policy가 포함된다. Graph는
+rendering, dependency input matching/binding/synthesis policy, final-answer
+evidence filtering/operand append projection이 포함된다. Graph는
 query/evidence preparation, caller
 placement, answer composition/refresh, promotion,
 sync/rebuild, mutable state/evidence, ledger와 callback/final orchestration을 유지하고,
@@ -426,11 +427,17 @@ Aggregate/narrative row의 state-free answer policy owner다.
   배치된다. 네 call은 모두 graph-external이며 operand/evidence selection, ratio
   conflict/arithmetic, artifact/ledger mutation, mutable state/evidence와 final
   sequencing은 graph에 남는다.
-- 다음 선택은 `financial_aggregate_projection.py`로 가는 168-line final-answer
-  evidence filter/operand-append 두 함수다. public 2개, external 7/local 0 call,
-  characterize-first gate와 retrieved evidence preparation, provenance, answer
-  composition/refresh, artifact/ledger mutation, mutable state/evidence 및 final-
-  sequencing hard stop은
+- 완료된 final-answer evidence projection도 같은 aggregate owner의 public
+  `filter_aggregate_evidence_for_final_answer(...)`와
+  `append_operand_evidence_for_final_answer(...)`로 배치된다. 일곱 call은 모두
+  graph-external이며 retrieved evidence preparation, selected-claim/provenance,
+  answer composition/refresh, artifact/ledger mutation, mutable state/evidence와
+  final sequencing은 graph에 남는다.
+- 다음 선택은 같은 aggregate owner로 가는 155-line growth-answer numeric
+  completion/sanitization 두 함수다. public 2개, external 19/local 0 call,
+  characterize-first gate와 final-growth selection, answer refresh/composition,
+  compact-ratio state/trace, mutable state/evidence, artifact/ledger mutation 및
+  final-sequencing hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`
