@@ -6050,8 +6050,8 @@ class FinancialDependencyProjectionTests(unittest.TestCase):
             "_complete_required_operand_from_ontology",
             side_effect=AssertionError("empty projected operands must stay lazy"),
         ), patch.object(
-            agent,
-            "_expand_structured_candidate_ids",
+            graph_reconciliation,
+            "expand_structured_candidate_ids",
             side_effect=AssertionError("lookup operation must skip artifact expansion"),
         ):
             self.assertEqual(

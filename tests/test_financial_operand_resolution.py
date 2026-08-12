@@ -6835,16 +6835,19 @@ class FinancialOperandResolutionTests(unittest.TestCase):
 
         from src.agent import financial_graph_helpers
         from src.agent import financial_graph_reconciliation
+        from src.agent import financial_reconciliation_candidates
         from src.agent import financial_lookup_recovery
 
         lookup_source = inspect.getsource(financial_lookup_recovery)
         helper_source = inspect.getsource(financial_graph_helpers)
         reconciliation_source = inspect.getsource(financial_graph_reconciliation)
+        candidate_source = inspect.getsource(financial_reconciliation_candidates)
         owner_source = inspect.getsource(operand_resolution)
         modules = {
             "financial_lookup_recovery": ast.parse(lookup_source),
             "financial_graph_helpers": ast.parse(helper_source),
             "financial_graph_reconciliation": ast.parse(reconciliation_source),
+            "financial_reconciliation_candidates": ast.parse(candidate_source),
             "financial_operand_resolution": ast.parse(owner_source),
         }
         selected = {"lookup_hints_for_concept_key", "coerce_lookup_magnitude_value"}
@@ -6863,6 +6866,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                 },
                 "financial_graph_helpers": {},
                 "financial_graph_reconciliation": {},
+                "financial_reconciliation_candidates": {},
                 "financial_operand_resolution": {
                     "lookup_hints_for_concept_key": 16,
                     "coerce_lookup_magnitude_value": 32,
@@ -6918,7 +6922,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
                     ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_canonical_statement_preferences", "Name", 1, (), 0),
                     ("lookup_hints_for_concept_key", "financial_graph_helpers", "_lookup_query_surface_preferences", "Name", 1, (), 0),
                     ("coerce_lookup_magnitude_value", "financial_lookup_recovery", "coerce_lookup_magnitude_record", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
-                    ("coerce_lookup_magnitude_value", "financial_graph_reconciliation", "_build_operand_row_from_candidate_cell", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
+                    ("coerce_lookup_magnitude_value", "financial_reconciliation_candidates", "build_operand_row_from_candidate_cell", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
                     ("coerce_lookup_magnitude_value", "financial_operand_resolution", "repair_note_operand_units_from_same_block", "Name", 0, ("normalized_value", "normalized_unit", "raw_value", "concept", "statement_type", "row_label", "semantic_label"), 0),
                 ]
             ),
@@ -6935,6 +6939,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         self.assertIn(owner_module, imported_modules(modules["financial_lookup_recovery"]))
         self.assertIn(owner_module, imported_modules(modules["financial_graph_helpers"]))
         self.assertIn(owner_module, imported_modules(modules["financial_graph_reconciliation"]))
+        self.assertIn(owner_module, imported_modules(modules["financial_reconciliation_candidates"]))
         self.assertNotIn("src.agent.financial_lookup_recovery", imported_modules(modules["financial_operand_resolution"]))
         self.assertNotIn("src.agent.financial_graph_helpers", imported_modules(modules["financial_operand_resolution"]))
         self.assertNotIn("src.agent.financial_graph_reconciliation", imported_modules(modules["financial_operand_resolution"]))
@@ -6944,6 +6949,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
     def test_current_source_lookup_magnitude_callers_adopt_exact_results_and_stop_on_exception(self) -> None:
         from src.agent import financial_graph_reconciliation
         from src.agent import financial_lookup_recovery
+        from src.agent import financial_reconciliation_candidates
         from src.agent.financial_graph_reconciliation import FinancialAgentReconciliationMixin
 
         shared = {"preserve": True}
@@ -7043,13 +7049,13 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             return 12.0
 
         with (
-            patch.object(agent, "_structured_candidate_unit_hint", return_value="억원"),
-            patch.object(financial_graph_reconciliation, "_normalise_operand_value", return_value=(-12.0, "KRW")),
-            patch.object(financial_graph_reconciliation, "_candidate_statement_type", return_value="notes") as statement,
-            patch.object(financial_graph_reconciliation, "coerce_lookup_magnitude_value", side_effect=reconciliation_owner),
-            patch.object(agent, "_resolved_period_text_for_operand", return_value="2023") as period,
+            patch.object(financial_reconciliation_candidates, "_structured_candidate_unit_hint", return_value="억원"),
+            patch.object(financial_reconciliation_candidates, "_normalise_operand_value", return_value=(-12.0, "KRW")),
+            patch.object(financial_reconciliation_candidates, "_candidate_statement_type", return_value="notes") as statement,
+            patch.object(financial_reconciliation_candidates, "coerce_lookup_magnitude_value", side_effect=reconciliation_owner),
+            patch.object(financial_reconciliation_candidates, "_resolved_period_text_for_operand", return_value="2023") as period,
         ):
-            row = agent._build_operand_row_from_candidate_cell(
+            row = financial_reconciliation_candidates.build_operand_row_from_candidate_cell(
                 candidate=candidate,
                 selected_cell=selected_cell,
                 operand=operand,
@@ -7082,18 +7088,18 @@ class FinancialOperandResolutionTests(unittest.TestCase):
         self.assertEqual(operand, operand_before)
 
         with (
-            patch.object(agent, "_structured_candidate_unit_hint", return_value="억원"),
-            patch.object(financial_graph_reconciliation, "_normalise_operand_value", return_value=(-12.0, "KRW")),
-            patch.object(financial_graph_reconciliation, "_candidate_statement_type", return_value="notes"),
+            patch.object(financial_reconciliation_candidates, "_structured_candidate_unit_hint", return_value="억원"),
+            patch.object(financial_reconciliation_candidates, "_normalise_operand_value", return_value=(-12.0, "KRW")),
+            patch.object(financial_reconciliation_candidates, "_candidate_statement_type", return_value="notes"),
             patch.object(
-                financial_graph_reconciliation,
+                financial_reconciliation_candidates,
                 "coerce_lookup_magnitude_value",
                 side_effect=RuntimeError("reconciliation owner failed"),
             ),
-            patch.object(agent, "_resolved_period_text_for_operand") as stopped_period,
+            patch.object(financial_reconciliation_candidates, "_resolved_period_text_for_operand") as stopped_period,
             self.assertRaisesRegex(RuntimeError, "reconciliation owner failed"),
         ):
-            agent._build_operand_row_from_candidate_cell(
+            financial_reconciliation_candidates.build_operand_row_from_candidate_cell(
                 candidate=candidate,
                 selected_cell=selected_cell,
                 operand=operand,
@@ -7493,7 +7499,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(financial_graph_reconciliation, "_query_years_from_state", side_effect=years_owner),
             patch.object(agent, "_build_reconciliation_candidates", side_effect=candidate_owner),
             patch.object(agent, "_extract_structured_period_pair_rows", side_effect=pair_owner),
-            patch.object(agent, "_expand_structured_candidate_ids", side_effect=expand_owner),
+            patch.object(financial_graph_reconciliation, "expand_structured_candidate_ids", side_effect=expand_owner),
             patch.object(financial_graph_reconciliation, "repair_note_operand_units_from_same_block", side_effect=repair_owner),
         ):
             result = agent._extract_structured_operands_from_reconciliation(state)
@@ -7509,7 +7515,7 @@ class FinancialOperandResolutionTests(unittest.TestCase):
             patch.object(financial_graph_reconciliation, "_query_years_from_state", return_value=[]),
             patch.object(agent, "_build_reconciliation_candidates", return_value=[]),
             patch.object(agent, "_extract_structured_period_pair_rows", return_value=([], set())),
-            patch.object(agent, "_expand_structured_candidate_ids", return_value=[]),
+            patch.object(financial_graph_reconciliation, "expand_structured_candidate_ids", return_value=[]),
             patch.object(
                 financial_graph_reconciliation,
                 "repair_note_operand_units_from_same_block",

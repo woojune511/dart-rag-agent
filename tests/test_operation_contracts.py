@@ -23,6 +23,7 @@ from src.agent import (
     financial_calculation_execution,
     financial_dependency_projection,
     financial_graph_calculation,
+    financial_reconciliation_candidates,
     financial_task_artifacts,
 )
 from src.agent import financial_graph_evidence, financial_operand_resolution
@@ -2246,7 +2247,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_reconciliation_operand_row_infers_note_statement_type_for_magnitude_coercion(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        row = agent._build_operand_row_from_candidate_cell(
+        row = financial_reconciliation_candidates.build_operand_row_from_candidate_cell(
             candidate={
                 "candidate_id": "recon::gain",
                 "source_anchor": "[Example | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
@@ -2803,7 +2804,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_resolved_period_text_prefers_report_year_when_it_matches_target_year(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        period = agent._resolved_period_text_for_operand(
+        period = financial_reconciliation_candidates._resolved_period_text_for_operand(
             operand={"label": "2023 시설투자(CAPEX)", "role": "current_period", "period_hint": "2023"},
             cell={"column_headers": [], "_report_year": 2022},
             query_years=[2023, 2022],
@@ -2813,7 +2814,7 @@ class OperationContractTests(unittest.TestCase):
 
     def test_resolved_period_text_does_not_shift_report_year_for_prior_without_explicit_headers(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        period = agent._resolved_period_text_for_operand(
+        period = financial_reconciliation_candidates._resolved_period_text_for_operand(
             operand={"label": "2022 시설투자(CAPEX)", "role": "prior_period", "period_hint": "2022"},
             cell={"column_headers": [], "_report_year": 2023},
             query_years=[2023, 2022],

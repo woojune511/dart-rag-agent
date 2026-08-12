@@ -1387,8 +1387,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "reconciliation_artifact_candidate_ids",
             side_effect=all_candidates_owner,
         ), patch.object(
-            agent,
-            "_expand_structured_candidate_ids",
+            financial_graph_reconciliation,
+            "expand_structured_candidate_ids",
             side_effect=expand_owner,
         ), patch.object(
             financial_graph_reconciliation,
@@ -1461,8 +1461,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "reconciliation_artifact_candidate_ids",
             side_effect=AssertionError("general owner must stay lazy"),
         ), patch.object(
-            agent,
-            "_expand_structured_candidate_ids",
+            financial_graph_reconciliation,
+            "expand_structured_candidate_ids",
             return_value=[],
         ), patch.object(
             financial_graph_reconciliation,
@@ -1503,8 +1503,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "reconciliation_artifact_candidate_ids",
             side_effect=AssertionError("general owner must stop"),
         ), patch.object(
-            agent,
-            "_expand_structured_candidate_ids",
+            financial_graph_reconciliation,
+            "expand_structured_candidate_ids",
             side_effect=AssertionError("expansion must stop"),
         ), patch.object(
             financial_graph_reconciliation,
@@ -1544,8 +1544,8 @@ class FinancialTaskArtifactRefTests(unittest.TestCase):
             "reconciliation_artifact_candidate_ids",
             side_effect=RuntimeError("general ids failed"),
         ), patch.object(
-            agent,
-            "_expand_structured_candidate_ids",
+            financial_graph_reconciliation,
+            "expand_structured_candidate_ids",
             side_effect=AssertionError("expansion must stop after general ids"),
         ), patch.object(
             financial_graph_reconciliation,

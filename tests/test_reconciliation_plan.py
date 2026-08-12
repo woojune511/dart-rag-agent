@@ -12,6 +12,7 @@ for path in (PROJECT_ROOT, SRC_ROOT):
         sys.path.insert(0, path_text)
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent import financial_reconciliation_candidates
 from src.agent.financial_graph_helpers import (
     _build_table_row_reconciliation_candidates,
     _build_lookup_producer_task_from_binding,
@@ -979,8 +980,8 @@ class ReconciliationPlanTests(unittest.TestCase):
             "unit_hint": "",
         }
 
-        with patch("src.agent.financial_graph_reconciliation._resolve_candidate_local_unit_hint", return_value="억원"):
-            unit = agent._structured_candidate_unit_hint(
+        with patch("src.agent.financial_reconciliation_candidates._resolve_candidate_local_unit_hint", return_value="억원"):
+            unit = financial_reconciliation_candidates._structured_candidate_unit_hint(
                 raw_value="531,153",
                 raw_unit="",
                 candidate=candidate,
