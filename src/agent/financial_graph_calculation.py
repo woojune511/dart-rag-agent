@@ -81,6 +81,7 @@ from src.agent.financial_aggregate_projection import (
     answer_reuses_narrative_summary_text,
     answer_reuses_numeric_narrative_summary_text,
     best_dependency_source_for_seed,
+    build_aggregate_calculation_projection,
     component_slot_from_dependency_source,
     compose_complete_growth_numeric_answer,
     compose_lookup_list_numeric_answer,
@@ -118,6 +119,7 @@ from src.agent.financial_aggregate_projection import (
     synchronize_aggregate_projection_row_surface,
     synchronize_nested_aggregate_subtask_rows,
     sync_aggregate_projection_final_answer,
+    upsert_subtask_result,
 )
 from src.agent.financial_calculation_execution import (
     CalculationExecutionOutcome,
@@ -3800,7 +3802,7 @@ class FinancialAgentCalculationMixin:
             ordered_results,
             final_answer,
         )
-        projection = self._build_aggregate_calculation_projection(projection_rows, final_answer)
+        projection = build_aggregate_calculation_projection(projection_rows, final_answer)
         if kept_evidence_ids is not None:
             projection = filter_aggregate_projection_provenance(
                 AggregateProjectionProvenanceFilterInput(
@@ -12510,7 +12512,7 @@ class FinancialAgentCalculationMixin:
     def _advance_calculation_subtask(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Persist the finished subtask and move to the next one, if any."""
         current_result = self._capture_current_subtask_result(state)
-        subtask_results = self._upsert_subtask_result(
+        subtask_results = upsert_subtask_result(
             list(state.get("subtask_results") or []),
             current_result,
         )
@@ -12566,7 +12568,7 @@ class FinancialAgentCalculationMixin:
 
     def _prepare_initial_aggregate_state(self, state: FinancialAgentState) -> _PreparedAggregateState:
         current_result = self._capture_current_subtask_result(state)
-        subtask_results = self._upsert_subtask_result(
+        subtask_results = upsert_subtask_result(
             list(state.get("subtask_results") or []),
             current_result,
         )

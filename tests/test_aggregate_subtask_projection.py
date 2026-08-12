@@ -1,10 +1,12 @@
 import ast
 import inspect
+import json
 import math
 import unittest
 from collections import Counter
 from collections.abc import Mapping
 from copy import deepcopy
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
@@ -13,7 +15,9 @@ from src.agent import (
     financial_aggregate_projection,
     financial_answer_slots,
     financial_calculation_execution,
+    financial_graph,
     financial_graph_calculation,
+    financial_graph_planning,
     financial_operand_resolution,
     financial_runtime_trace,
 )
@@ -1526,7 +1530,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
         def run_prepare(compose_owner, prepared_constructor, events):
             with (
                 patch.object(agent, "_capture_current_subtask_result", return_value=row),
-                patch.object(agent, "_upsert_subtask_result", return_value=[row]),
+                patch.object(financial_graph_calculation, "upsert_subtask_result", return_value=[row]),
                 patch.object(
                     financial_graph_calculation,
                     "dedupe_aggregate_subtask_results",
@@ -7819,7 +7823,10 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 "source_row_ids": ["task_output:task_source", "ev_weak", "recon::denominator"],
             },
         ]
-        aggregate_projection = agent._build_aggregate_calculation_projection(ordered_results, "coverage ratio is 0.0035배.")
+        aggregate_projection = financial_aggregate_projection.build_aggregate_calculation_projection(
+            ordered_results,
+            "coverage ratio is 0.0035배.",
+        )
 
         aligned = agent._align_lookup_results_with_dependency_projection(
             ordered_results,
@@ -11858,7 +11865,7 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
             }
         ]
 
-        projection = agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             ordered_results,
             "Reported numerator is 1.2억원. Segment share is 83.81%.",
         )
@@ -12044,6 +12051,1082 @@ class AggregateSubtaskProjectionTests(unittest.TestCase):
                 evidence_items,
             )
         )
+
+    def test_current_source_aggregate_calculation_projection_pins_copy_dedupe_and_exceptions(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": "nested"}
+        id_evidence = {"evidence_id": "ev_1", "claim": "first", "nested": nested}
+        duplicate_id_evidence = {"evidence_id": "ev_1", "claim": "duplicate", "nested": nested}
+        surface_evidence = {
+            "source_anchor": " anchor ",
+            "quote_span": " quoted   value ",
+            "nested": nested,
+        }
+        duplicate_surface_evidence = {
+            "source_anchor": "anchor",
+            "quote_span": "quoted value",
+            "nested": nested,
+        }
+        blank_evidence = {"metadata": {"keep": True}, "nested": nested}
+        safe_row = {
+            "task_id": "safe",
+            "operation_family": "lookup",
+            "runtime_evidence": [
+                id_evidence,
+                duplicate_id_evidence,
+                surface_evidence,
+                duplicate_surface_evidence,
+                blank_evidence,
+            ],
+            "nested": nested,
+        }
+        conflicting_row = {
+            "task_id": "growth",
+            "operation_family": "growth_rate",
+            "calculation_operands": [{"operand_id": "old"}],
+            "source_row_ids": ["row_old"],
+            "source_evidence_ids": ["ev_old"],
+            "calculation_result": {
+                "status": "partial",
+                "answer_slots": {
+                    "primary_value": {"rendered_value": "10%"},
+                    "source_row_ids": ["row_old"],
+                },
+                "source_row_ids": ["row_old"],
+                "source_evidence_ids": ["ev_old"],
+                "nested": nested,
+            },
+            "runtime_evidence": [{"evidence_id": "ev_growth", "nested": nested}],
+            "nested": nested,
+        }
+        nonconflicting_growth = {
+            "task_id": "growth_ok",
+            "operation_family": "growth_rate",
+            "runtime_evidence": [],
+            "nested": nested,
+        }
+        ordered_results = [safe_row, conflicting_row, nonconflicting_growth]
+        frozen_results = deepcopy(ordered_results)
+        events = []
+        captured_projection_rows = []
+        aggregate_operands = [{"operand_id": "aggregate"}]
+        aggregate_plan = {"operation": "aggregate"}
+        aggregate_result = {"status": "ok"}
+
+        def operation_family(row):
+            events.append(("operation", row["task_id"]))
+            original = next(item for item in ordered_results if item["task_id"] == row["task_id"])
+            self.assertIsNot(row, original)
+            self.assertIs(row["nested"], nested)
+            return row["operation_family"]
+
+        def conflicts(row):
+            events.append(("conflict", row["task_id"]))
+            self.assertIsNot(row, next(item for item in ordered_results if item["task_id"] == row["task_id"]))
+            self.assertIs(row["nested"], nested)
+            return row["task_id"] == "growth"
+
+        def material_gap(row):
+            events.append(("gap", row["task_id"]))
+            self.assertEqual(row["source_row_ids"], ["row_old"])
+            self.assertIs(row["nested"], nested)
+            return "period conflict"
+
+        def runtime_builder(rows, answer):
+            events.append(("builder", answer))
+            self.assertEqual(answer, "final answer")
+            self.assertEqual([row["task_id"] for row in rows], ["safe", "growth", "growth_ok"])
+            self.assertIs(rows[0], safe_row)
+            self.assertIsNot(rows[1], conflicting_row)
+            self.assertIs(rows[1]["nested"], nested)
+            self.assertIs(rows[2], nonconflicting_growth)
+            captured_projection_rows.extend(rows)
+            return {
+                "calculation_operands": aggregate_operands,
+                "calculation_plan": aggregate_plan,
+                "calculation_result": aggregate_result,
+                "ignored": "not returned",
+            }
+
+        def normalise(value):
+            events.append(("normalise", str(value)))
+            return " ".join(str(value).split())
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", side_effect=operation_family),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", side_effect=conflicts) as conflict_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                side_effect=material_gap,
+            ) as gap_owner,
+            patch.object(
+                financial_aggregate_projection,
+                "_build_aggregate_calculation_projection",
+                side_effect=runtime_builder,
+            ) as builder_owner,
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalise) as normalise_owner,
+        ):
+            projection = financial_aggregate_projection.build_aggregate_calculation_projection(
+                ordered_results,
+                "final answer",
+            )
+
+        self.assertEqual(
+            events[:7],
+            [
+                ("operation", "safe"),
+                ("operation", "growth"),
+                ("conflict", "growth"),
+                ("gap", "growth"),
+                ("operation", "growth_ok"),
+                ("conflict", "growth_ok"),
+                ("builder", "final answer"),
+            ],
+        )
+        self.assertEqual(conflict_owner.call_count, 2)
+        gap_owner.assert_called_once()
+        builder_owner.assert_called_once()
+        self.assertEqual(normalise_owner.call_count, 3)
+        repaired = captured_projection_rows[1]
+        self.assertEqual(repaired["calculation_operands"], [])
+        self.assertEqual(repaired["source_row_ids"], [])
+        self.assertEqual(repaired["source_evidence_ids"], [])
+        self.assertEqual(repaired["material_gap_feedback"], "period conflict")
+        self.assertEqual(repaired["calculation_result"]["source_row_ids"], [])
+        self.assertEqual(repaired["calculation_result"]["source_evidence_ids"], [])
+        self.assertEqual(repaired["calculation_result"]["material_gap_feedback"], "period conflict")
+        self.assertEqual(repaired["calculation_result"]["answer_slots"]["source_row_ids"], [])
+        self.assertIs(
+            repaired["calculation_result"]["answer_slots"]["primary_value"],
+            conflicting_row["calculation_result"]["answer_slots"]["primary_value"],
+        )
+        self.assertEqual(set(projection), {"calculation_operands", "calculation_plan", "calculation_result", "evidence_items"})
+        self.assertIs(projection["calculation_operands"], aggregate_operands)
+        self.assertIs(projection["calculation_plan"], aggregate_plan)
+        self.assertIs(projection["calculation_result"], aggregate_result)
+        self.assertEqual(
+            [item.get("evidence_id") for item in projection["evidence_items"]],
+            ["ev_1", None, None, "ev_growth"],
+        )
+        expected_evidence = [id_evidence, surface_evidence, blank_evidence, conflicting_row["runtime_evidence"][0]]
+        for projected, original in zip(projection["evidence_items"], expected_evidence):
+            self.assertEqual(projected, original)
+            self.assertIsNot(projected, original)
+            self.assertIs(projected["nested"], nested)
+        self.assertEqual(ordered_results, frozen_results)
+        self.assertIs(ordered_results[0], safe_row)
+        self.assertIs(ordered_results[1], conflicting_row)
+        self.assertIs(ordered_results[2], nonconflicting_growth)
+
+        with (
+            patch.object(
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
+                side_effect=RuntimeError("operation failed"),
+            ),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods") as stopped_conflict,
+            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "operation failed"):
+                financial_aggregate_projection.build_aggregate_calculation_projection([safe_row], "answer")
+        stopped_conflict.assert_not_called()
+        stopped_builder.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="growth_rate"),
+            patch.object(financial_aggregate_projection, "growth_row_has_conflicting_periods", return_value=True),
+            patch.object(
+                financial_aggregate_projection,
+                "material_gap_feedback_for_subtask_result",
+                side_effect=RuntimeError("gap failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "gap failed"):
+                financial_aggregate_projection.build_aggregate_calculation_projection(
+                    [conflicting_row],
+                    "answer",
+                )
+        stopped_builder.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "aggregate_result_operation_family", return_value="lookup"),
+            patch.object(
+                financial_aggregate_projection,
+                "_build_aggregate_calculation_projection",
+                return_value={
+                    "calculation_operands": [],
+                    "calculation_plan": {},
+                    "calculation_result": {},
+                },
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=RuntimeError("surface failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface failed"):
+                financial_aggregate_projection.build_aggregate_calculation_projection(
+                    [{"task_id": "blank", "runtime_evidence": [{"quote_span": "value"}]}],
+                    "answer",
+                )
+
+    def test_current_source_structured_public_projection_pins_gates_adoption_and_exceptions(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        subtask_rows = [{"task_id": "task_a", "nested": nested}]
+        structured_result = {"subtask_results": subtask_rows, "nested": nested}
+        trace = {
+            "calculation_result": {
+                "formatted_result": "old answer",
+                "answer_slots": {"primary_value": {"rendered_value": "slot answer"}},
+            },
+            "nested": nested,
+        }
+        state = {
+            "structured_result": structured_result,
+            "answer": "  public   answer  ",
+            "compressed_answer": "compressed answer",
+            "nested": nested,
+        }
+        frozen_state = deepcopy(state)
+        frozen_trace = deepcopy(trace)
+        events = []
+        projected_result = {"subtask_results": [{"task_id": "projected"}], "nested": nested}
+        runtime_projection = {"calculation_result": projected_result, "nested": nested}
+        attached_projection = {"attached": True, "nested": nested}
+
+        def normalise(value):
+            events.append(("normalise", str(value)))
+            return " ".join(str(value).split())
+
+        def structured_rows(value):
+            events.append(("structured", value))
+            self.assertIsNot(value, structured_result)
+            self.assertIs(value["subtask_results"], subtask_rows)
+            self.assertIs(value["nested"], nested)
+            return subtask_rows, "public answer"
+
+        def preferred(rows, public_answer):
+            events.append(("preferred", rows, public_answer))
+            self.assertIs(rows, subtask_rows)
+            return "preferred answer"
+
+        def runtime_builder(rows, answer):
+            events.append(("builder", rows, answer))
+            self.assertIs(rows, subtask_rows)
+            self.assertEqual(answer, "preferred answer")
+            return runtime_projection
+
+        def attach(projection, *, source):
+            events.append(("attach", projection, source))
+            self.assertIs(projection, runtime_projection)
+            self.assertEqual(source, "structured_result_subtasks")
+            return attached_projection
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=normalise),
+            patch.object(
+                financial_aggregate_projection,
+                "_structured_result_subtask_rows_and_answer",
+                side_effect=structured_rows,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_preferred_complete_aggregate_subtask_answer",
+                side_effect=preferred,
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_build_aggregate_calculation_projection",
+                side_effect=runtime_builder,
+            ),
+            patch.object(financial_aggregate_projection, "_attach_runtime_projection_metadata", side_effect=attach),
+        ):
+            projection = financial_aggregate_projection.structured_subtask_projection_for_public_answer(
+                state,
+                trace,
+            )
+
+        self.assertIs(projection, attached_projection)
+        self.assertEqual([event[0] for event in events], ["normalise", "structured", "normalise", "preferred", "builder", "attach"])
+        self.assertEqual(state, frozen_state)
+        self.assertEqual(trace, frozen_trace)
+        self.assertIs(state["structured_result"], structured_result)
+        self.assertIs(trace["nested"], nested)
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", return_value=""),
+            patch.object(
+                financial_aggregate_projection,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=(subtask_rows, "public answer"),
+            ) as eager_rows,
+            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer") as stopped_preferred,
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace),
+                {},
+            )
+        eager_rows.assert_called_once()
+        self.assertIsNot(eager_rows.call_args.args[0], structured_result)
+        self.assertIs(eager_rows.call_args.args[0]["nested"], nested)
+        stopped_preferred.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(
+                financial_aggregate_projection,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=(subtask_rows, "different answer"),
+            ),
+            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer") as stopped_preferred,
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace),
+                {},
+            )
+        stopped_preferred.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(
+                financial_aggregate_projection,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=(subtask_rows, "public answer"),
+            ),
+            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer", return_value="public answer"),
+            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+        ):
+            same_trace = {"calculation_result": {"formatted_result": "public answer"}}
+            self.assertEqual(
+                financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, same_trace),
+                {},
+            )
+        stopped_builder.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(
+                financial_aggregate_projection,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=(subtask_rows, "public answer"),
+            ),
+            patch.object(
+                financial_aggregate_projection,
+                "_preferred_complete_aggregate_subtask_answer",
+                side_effect=RuntimeError("preferred failed"),
+            ),
+            patch.object(financial_aggregate_projection, "_build_aggregate_calculation_projection") as stopped_builder,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "preferred failed"):
+                financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace)
+        stopped_builder.assert_not_called()
+
+        with (
+            patch.object(financial_aggregate_projection, "_normalise_spaces", side_effect=lambda value: " ".join(str(value).split())),
+            patch.object(
+                financial_aggregate_projection,
+                "_structured_result_subtask_rows_and_answer",
+                return_value=(subtask_rows, "public answer"),
+            ),
+            patch.object(financial_aggregate_projection, "_preferred_complete_aggregate_subtask_answer", return_value=""),
+            patch.object(
+                financial_aggregate_projection,
+                "_build_aggregate_calculation_projection",
+                return_value={"calculation_result": {}},
+            ),
+            patch.object(financial_aggregate_projection, "_attach_runtime_projection_metadata") as stopped_attach,
+        ):
+            self.assertEqual(
+                financial_aggregate_projection.structured_subtask_projection_for_public_answer(state, trace),
+                {},
+            )
+        stopped_attach.assert_not_called()
+
+    def test_current_source_subtask_upsert_and_rank_pin_order_identity_and_exceptions(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        rank_row = {
+            "task_id": "rank",
+            "status": "ready",
+            "answer": "A1 22",
+            "source_row_ids": ["row_a"],
+            "selected_claim_ids": ["claim_a"],
+            "calculation_result": {
+                "status": "partial",
+                "answer_slots": {"primary_value": {"rendered_value": "A1 22"}},
+                "source_row_ids": ["row_b"],
+                "source_evidence_ids": ["ev_b"],
+            },
+            "nested": nested,
+        }
+        clean_calls = []
+
+        def clean_source_ids(values):
+            clean_calls.append(values)
+            self.assertIs(values[0], rank_row["source_row_ids"])
+            self.assertIs(values[1], rank_row["calculation_result"]["source_row_ids"])
+            self.assertIs(values[2], rank_row["selected_claim_ids"])
+            self.assertIs(values[3], rank_row["calculation_result"]["source_evidence_ids"])
+            return ["row_a", "row_b", "claim_a", "ev_b"]
+
+        with (
+            patch.object(financial_aggregate_projection, "subtask_row_has_material", return_value=True) as material_owner,
+            patch.object(financial_aggregate_projection, "_clean_source_row_ids", side_effect=clean_source_ids),
+            patch.object(
+                financial_aggregate_projection,
+                "_normalise_spaces",
+                side_effect=lambda value: " ".join(str(value).split()),
+            ),
+        ):
+            rank = financial_aggregate_projection._subtask_upsert_quality_rank(rank_row)
+        self.assertEqual(rank, (3, 1, 1, 4, 3, 5))
+        material_owner.assert_called_once_with(rank_row)
+        self.assertEqual(len(clean_calls), 1)
+
+        existing_high = {"task_id": "task", "variant": "high", "nested": nested}
+        other = {"task_id": "other", "variant": "other", "nested": nested}
+        existing_low = {"task_id": "task", "variant": "low", "nested": nested}
+        current = {"task_id": "task", "variant": "current", "nested": nested}
+        existing = [existing_high, other, existing_low]
+        frozen_existing = deepcopy(existing)
+        frozen_current = deepcopy(current)
+        rank_args = []
+
+        def rank_value(row):
+            rank_args.append(row)
+            values = {"high": 5, "low": 1, "current": 3}
+            return (values[row["variant"]], 0, 0, 0, 0, 0)
+
+        with patch.object(financial_aggregate_projection, "_subtask_upsert_quality_rank", side_effect=rank_value):
+            merged = financial_aggregate_projection.upsert_subtask_result(existing, current)
+
+        self.assertEqual(merged, [existing_high, other, current])
+        self.assertIs(merged[0], existing_high)
+        self.assertIs(merged[1], other)
+        self.assertIs(merged[2], current)
+        self.assertEqual([row["variant"] for row in rank_args], ["high", "current", "low", "current"])
+        self.assertIsNot(rank_args[0], existing_high)
+        self.assertIs(rank_args[0]["nested"], nested)
+        self.assertIs(rank_args[1], current)
+        self.assertIsNot(rank_args[2], existing_low)
+        self.assertIs(rank_args[3], current)
+        self.assertEqual(existing, frozen_existing)
+        self.assertEqual(current, frozen_current)
+
+        tie_existing = {"task_id": "tie", "variant": "tie", "nested": nested}
+        tie_current = {"task_id": "tie", "variant": "current", "nested": nested}
+        with patch.object(
+            financial_aggregate_projection,
+            "_subtask_upsert_quality_rank",
+            return_value=(2, 0, 0, 0, 0, 0),
+        ):
+            tie_result = financial_aggregate_projection.upsert_subtask_result(
+                [tie_existing],
+                tie_current,
+            )
+        self.assertEqual(tie_result, [tie_current])
+        self.assertIs(tie_result[0], tie_current)
+
+        blank_current = {"task_id": "", "nested": nested}
+        blank_result = financial_aggregate_projection.upsert_subtask_result([other], blank_current)
+        self.assertEqual(blank_result, [other, blank_current])
+        self.assertIs(blank_result[0], other)
+        self.assertIs(blank_result[1], blank_current)
+
+        empty_current_result = financial_aggregate_projection.upsert_subtask_result(existing, {})
+        self.assertEqual(empty_current_result, existing)
+        self.assertIsNot(empty_current_result, existing)
+        for projected, original in zip(empty_current_result, existing):
+            self.assertIs(projected, original)
+
+        with patch.object(
+            financial_aggregate_projection,
+            "_subtask_upsert_quality_rank",
+            side_effect=RuntimeError("rank failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "rank failed"):
+                financial_aggregate_projection.upsert_subtask_result([existing_high, other], current)
+        self.assertEqual(existing, frozen_existing)
+        self.assertEqual(current, frozen_current)
+
+    def test_current_source_aggregate_subtask_projection_bindings_pin_exact_move_boundary(self) -> None:
+        project_root = Path(__file__).resolve().parents[1]
+        planning_path = project_root / "src" / "agent" / "financial_graph_planning.py"
+        owner_path = project_root / "src" / "agent" / "financial_aggregate_projection.py"
+        runtime_trace_path = project_root / "src" / "agent" / "financial_runtime_trace.py"
+        selected_modules = {
+            "planning": planning_path,
+            "owner": owner_path,
+            "calculation": project_root / "src" / "agent" / "financial_graph_calculation.py",
+            "graph": project_root / "src" / "agent" / "financial_graph.py",
+        }
+        planning_tree = ast.parse(planning_path.read_text(encoding="utf-8-sig"))
+        owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
+        runtime_trace_tree = ast.parse(runtime_trace_path.read_text(encoding="utf-8-sig"))
+        planning_class = next(
+            node
+            for node in planning_tree.body
+            if isinstance(node, ast.ClassDef) and node.name == "FinancialAgentPlanningMixin"
+        )
+        retired_spans = {
+            f"_{name}": span
+            for name, span in {
+                "build_aggregate_calculation_projection": 69,
+                "structured_subtask_projection_for_public_answer": 36,
+                "upsert_subtask_result": 23,
+            }.items()
+        }
+        retired_spans["_subtask_upsert_quality_rank"] = 28
+        retired_defs = {
+            node.name: node
+            for node in planning_class.body
+            if isinstance(node, ast.FunctionDef) and node.name in retired_spans
+        }
+        self.assertEqual(retired_defs, {})
+        owner_defs = {
+            node.name: node
+            for node in owner_tree.body
+            if isinstance(node, ast.FunctionDef)
+        }
+        expected_owner_spans = {
+            "build_aggregate_calculation_projection": 68,
+            "structured_subtask_projection_for_public_answer": 35,
+            "upsert_subtask_result": 22,
+            "_subtask_upsert_quality_rank": 28,
+        }
+        self.assertEqual(
+            {
+                name: owner_defs[name].end_lineno - owner_defs[name].lineno + 1
+                for name in expected_owner_spans
+            },
+            expected_owner_spans,
+        )
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in owner_defs),
+                sum(name.startswith("_") for name in owner_defs),
+            ),
+            (70, 11),
+        )
+        self.assertEqual(sum(retired_spans.values()), 156)
+        self.assertEqual(sum(expected_owner_spans.values()), 153)
+
+        target_names = set(expected_owner_spans)
+        selected_calls = []
+        for module_name, path in selected_modules.items():
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            parents = {}
+            for node in ast.walk(tree):
+                for child in ast.iter_child_nodes(node):
+                    parents[child] = node
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                    continue
+                if node.func.id not in target_names:
+                    continue
+                current = node
+                caller = ""
+                try_depth = 0
+                while current in parents:
+                    current = parents[current]
+                    if isinstance(current, ast.Try):
+                        try_depth += 1
+                    if not caller and isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        caller = current.name
+                selected_calls.append(
+                    (
+                        module_name,
+                        caller,
+                        node.func.id,
+                        tuple(ast.unparse(arg) for arg in node.args),
+                        tuple((keyword.arg, ast.unparse(keyword.value)) for keyword in node.keywords),
+                        try_depth,
+                    )
+                )
+        self.assertCountEqual(
+            selected_calls,
+            [
+                (
+                    "calculation",
+                    "_rebuild_aggregate_projection",
+                    "build_aggregate_calculation_projection",
+                    ("projection_rows", "final_answer"),
+                    (),
+                    0,
+                ),
+                (
+                    "graph",
+                    "_structured_public_answer_trace_projection",
+                    "structured_subtask_projection_for_public_answer",
+                    ("projection_state", "runtime_calculation_trace"),
+                    (),
+                    0,
+                ),
+                (
+                    "calculation",
+                    "_advance_calculation_subtask",
+                    "upsert_subtask_result",
+                    ("list(state.get('subtask_results') or [])", "current_result"),
+                    (),
+                    0,
+                ),
+                (
+                    "calculation",
+                    "_prepare_initial_aggregate_state",
+                    "upsert_subtask_result",
+                    ("list(state.get('subtask_results') or [])", "current_result"),
+                    (),
+                    0,
+                ),
+                (
+                    "owner",
+                    "upsert_subtask_result",
+                    "_subtask_upsert_quality_rank",
+                    ("dict(row)",),
+                    (),
+                    0,
+                ),
+                (
+                    "owner",
+                    "upsert_subtask_result",
+                    "_subtask_upsert_quality_rank",
+                    ("current",),
+                    (),
+                    0,
+                ),
+            ],
+        )
+        self.assertEqual(
+            (4, 2),
+            (
+                sum(call[0] != "owner" for call in selected_calls),
+                sum(call[0] == "owner" for call in selected_calls),
+            ),
+        )
+
+        runtime_private_defs = [
+            node
+            for node in runtime_trace_tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_build_aggregate_calculation_projection"
+        ]
+        self.assertEqual(len(runtime_private_defs), 1)
+        all_private_build_calls = []
+        for path in (project_root / "src" / "agent").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                if isinstance(node.func, ast.Name) and node.func.id == "_build_aggregate_calculation_projection":
+                    all_private_build_calls.append((path.name, node.lineno))
+        self.assertEqual(len(all_private_build_calls), 6)
+
+        planning_loads = Counter(
+            node.id
+            for node in ast.walk(planning_tree)
+            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)
+        )
+        self.assertEqual(
+            {
+                name: planning_loads[name]
+                for name in (
+                    "_preferred_complete_aggregate_subtask_answer",
+                    "growth_row_has_conflicting_periods",
+                    "material_gap_feedback_for_subtask_result",
+                    "_attach_runtime_projection_metadata",
+                    "_build_aggregate_calculation_projection",
+                    "_structured_result_subtask_rows_and_answer",
+                )
+            },
+            {
+                "_preferred_complete_aggregate_subtask_answer": 0,
+                "growth_row_has_conflicting_periods": 0,
+                "material_gap_feedback_for_subtask_result": 0,
+                "_attach_runtime_projection_metadata": 0,
+                "_build_aggregate_calculation_projection": 0,
+                "_structured_result_subtask_rows_and_answer": 0,
+            },
+        )
+        self.assertGreater(planning_loads["_clean_source_row_ids"], 1)
+        self.assertGreater(planning_loads["subtask_row_has_material"], 1)
+
+        module_edges = {}
+        for path in (project_root / "src" / "agent").glob("*.py"):
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+            module_name = f"src.agent.{path.stem}"
+            edges = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("src.agent"):
+                    edges.add(node.module)
+                elif isinstance(node, ast.Import):
+                    edges.update(alias.name for alias in node.names if alias.name.startswith("src.agent"))
+            module_edges[module_name] = edges
+
+        def reaches(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(module_edges.get(current, ()))
+            return False
+
+        self.assertTrue(
+            reaches("src.agent.financial_aggregate_projection", "src.agent.financial_graph_planning")
+        )
+        self.assertFalse(
+            reaches("src.agent.financial_graph_planning", "src.agent.financial_aggregate_projection")
+        )
+        self.assertFalse(
+            reaches("src.agent.financial_runtime_trace", "src.agent.financial_aggregate_projection")
+        )
+        self.assertFalse(
+            reaches("src.agent.financial_graph_state", "src.agent.financial_aggregate_projection")
+        )
+        self.assertIn(
+            "src.agent.financial_aggregate_projection",
+            module_edges["src.agent.financial_graph_calculation"],
+        )
+        self.assertIn(
+            "src.agent.financial_aggregate_projection",
+            module_edges["src.agent.financial_graph"],
+        )
+
+        baseline = json.loads(
+            (project_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 217)
+        selected_baseline_records = [
+            record
+            for record in baseline["records"]
+            if record.get("path") == "src/agent/financial_graph_planning.py"
+            and any(
+                1815 <= int(line) <= 1920 or 2305 <= int(line) <= 2356
+                for line in (record.get("first_lines") or [])
+            )
+        ]
+        self.assertEqual(selected_baseline_records, [])
+
+    def test_current_source_rebuild_projection_caller_pins_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        row = {"task_id": "task", "nested": nested}
+        ordered_results = [row]
+        projection_rows = [{"task_id": "projected", "nested": nested}]
+        built_projection = {"calculation_result": {"status": "ok"}, "nested": nested}
+        filtered_projection = {"calculation_result": {"status": "filtered"}, "nested": nested}
+        frozen_results = deepcopy(ordered_results)
+        events = []
+
+        def rows_owner(rows, answer):
+            events.append(("rows", rows, answer))
+            self.assertIs(rows, ordered_results)
+            self.assertEqual(answer, "final answer")
+            return projection_rows
+
+        def build_owner(rows, answer):
+            events.append(("build", rows, answer))
+            self.assertIs(rows, projection_rows)
+            self.assertEqual(answer, "final answer")
+            return built_projection
+
+        with (
+            patch.object(agent, "_projection_rows_for_final_answer", side_effect=rows_owner),
+            patch.object(
+                financial_graph_calculation,
+                "build_aggregate_calculation_projection",
+                side_effect=build_owner,
+            ),
+            patch.object(financial_graph_calculation, "filter_aggregate_projection_provenance") as stopped_filter,
+        ):
+            result = agent._rebuild_aggregate_projection(ordered_results, "final answer")
+        self.assertIs(result, built_projection)
+        self.assertEqual([event[0] for event in events], ["rows", "build"])
+        stopped_filter.assert_not_called()
+
+        evidence_ids = ["ev_1"]
+
+        def filter_owner(payload):
+            events.append(("filter", payload))
+            self.assertIsInstance(payload, AggregateProjectionProvenanceFilterInput)
+            self.assertIs(payload.aggregate_projection, built_projection)
+            self.assertIs(payload.kept_evidence_ids, evidence_ids)
+            return SimpleNamespace(aggregate_projection=filtered_projection)
+
+        events.clear()
+        with (
+            patch.object(agent, "_projection_rows_for_final_answer", side_effect=rows_owner),
+            patch.object(
+                financial_graph_calculation,
+                "build_aggregate_calculation_projection",
+                side_effect=build_owner,
+            ),
+            patch.object(
+                financial_graph_calculation,
+                "filter_aggregate_projection_provenance",
+                side_effect=filter_owner,
+            ),
+        ):
+            result = agent._rebuild_aggregate_projection(
+                ordered_results,
+                "final answer",
+                kept_evidence_ids=evidence_ids,
+            )
+        self.assertIs(result, filtered_projection)
+        self.assertEqual([event[0] for event in events], ["rows", "build", "filter"])
+        self.assertEqual(ordered_results, frozen_results)
+        self.assertIs(ordered_results[0], row)
+
+        with (
+            patch.object(agent, "_projection_rows_for_final_answer", return_value=projection_rows),
+            patch.object(
+                financial_graph_calculation,
+                "build_aggregate_calculation_projection",
+                side_effect=RuntimeError("build failed"),
+            ),
+            patch.object(financial_graph_calculation, "filter_aggregate_projection_provenance") as stopped_filter,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "build failed"):
+                agent._rebuild_aggregate_projection(
+                    ordered_results,
+                    "final answer",
+                    kept_evidence_ids=evidence_ids,
+                )
+        stopped_filter.assert_not_called()
+        self.assertEqual(ordered_results, frozen_results)
+
+    def test_current_source_structured_public_caller_pins_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        final = {"answer": "old", "nested": nested}
+        structured_result = {"subtask_results": [{"task_id": "task"}], "nested": nested}
+        runtime_trace = {"calculation_result": {"status": "ok"}, "nested": nested}
+        runtime_evidence = [{"evidence_id": "ev_1", "nested": nested}]
+        frozen_final = deepcopy(final)
+        frozen_structured = deepcopy(structured_result)
+        frozen_trace = deepcopy(runtime_trace)
+        frozen_evidence = deepcopy(runtime_evidence)
+        base_state = {"answer": "public answer", "base": True, "nested": nested}
+        owner_projection = {"calculation_result": {"subtask_results": [{}]}, "nested": nested}
+        public_state = {"public": True, "nested": nested}
+        repaired_trace = {"repaired": True, "nested": nested}
+        events = []
+
+        def with_answer(value, answer):
+            events.append(("with", value, answer))
+            self.assertIs(value, final)
+            self.assertEqual(answer, "public answer")
+            return base_state
+
+        def owner(projection_state, trace):
+            events.append(("owner", projection_state, trace))
+            self.assertIsNot(projection_state, base_state)
+            self.assertEqual(projection_state["answer"], "public answer")
+            self.assertIs(projection_state["structured_result"], structured_result)
+            self.assertIs(projection_state["resolved_calculation_trace"], runtime_trace)
+            self.assertIs(projection_state["nested"], nested)
+            self.assertIs(trace, runtime_trace)
+            return owner_projection
+
+        def public_projection(value, *, public_answer, runtime_calculation_trace, runtime_evidence):
+            events.append(("public", value, public_answer, runtime_calculation_trace, runtime_evidence))
+            self.assertIs(value, final)
+            self.assertEqual(public_answer, "public answer")
+            self.assertIs(runtime_calculation_trace, owner_projection)
+            self.assertIs(runtime_evidence, runtime_evidence_list)
+            return public_state
+
+        def repair(value, projection):
+            events.append(("repair", value, projection))
+            self.assertIs(value, public_state)
+            self.assertIs(projection, owner_projection)
+            return repaired_trace
+
+        runtime_evidence_list = runtime_evidence
+        with (
+            patch.object(financial_graph, "with_public_answer", side_effect=with_answer),
+            patch.object(
+                financial_graph,
+                "structured_subtask_projection_for_public_answer",
+                side_effect=owner,
+            ),
+            patch.object(financial_graph, "public_projection_state", side_effect=public_projection),
+            patch.object(agent, "_repair_collapsed_ratio_trace_from_evidence", side_effect=repair),
+        ):
+            result = agent._structured_public_answer_trace_projection(
+                final,
+                public_answer="public answer",
+                structured_result=structured_result,
+                runtime_calculation_trace=runtime_trace,
+                runtime_evidence=runtime_evidence,
+            )
+        self.assertIs(result, repaired_trace)
+        self.assertEqual([event[0] for event in events], ["with", "owner", "public", "repair"])
+
+        with (
+            patch.object(financial_graph, "with_public_answer", return_value=base_state),
+            patch.object(financial_graph, "structured_subtask_projection_for_public_answer", return_value={}),
+            patch.object(financial_graph, "public_projection_state") as stopped_public,
+            patch.object(agent, "_repair_collapsed_ratio_trace_from_evidence") as stopped_repair,
+        ):
+            self.assertEqual(
+                agent._structured_public_answer_trace_projection(
+                    final,
+                    public_answer="public answer",
+                    structured_result=structured_result,
+                    runtime_calculation_trace=runtime_trace,
+                    runtime_evidence=runtime_evidence,
+                ),
+                {},
+            )
+        stopped_public.assert_not_called()
+        stopped_repair.assert_not_called()
+
+        with (
+            patch.object(financial_graph, "with_public_answer", return_value=base_state),
+            patch.object(
+                financial_graph,
+                "structured_subtask_projection_for_public_answer",
+                side_effect=RuntimeError("structured failed"),
+            ),
+            patch.object(financial_graph, "public_projection_state") as stopped_public,
+            patch.object(agent, "_repair_collapsed_ratio_trace_from_evidence") as stopped_repair,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "structured failed"):
+                agent._structured_public_answer_trace_projection(
+                    final,
+                    public_answer="public answer",
+                    structured_result=structured_result,
+                    runtime_calculation_trace=runtime_trace,
+                    runtime_evidence=runtime_evidence,
+                )
+        stopped_public.assert_not_called()
+        stopped_repair.assert_not_called()
+        self.assertEqual(final, frozen_final)
+        self.assertEqual(structured_result, frozen_structured)
+        self.assertEqual(runtime_trace, frozen_trace)
+        self.assertEqual(runtime_evidence, frozen_evidence)
+        self.assertIs(final["nested"], nested)
+        self.assertIs(structured_result["nested"], nested)
+        self.assertIs(runtime_trace["nested"], nested)
+        self.assertIs(runtime_evidence[0]["nested"], nested)
+
+    def test_current_source_subtask_upsert_callers_pin_args_adoption_and_stop(self) -> None:
+        agent = FinancialAgent.__new__(FinancialAgent)
+        nested = {"preserve": True}
+        existing_row = {"task_id": "task_old", "nested": nested}
+        current_row = {"task_id": "task_current", "nested": nested}
+        owner_rows = [existing_row, current_row]
+        advance_state = {
+            "subtask_results": [existing_row],
+            "calc_subtasks": [{"task_id": "task_current"}],
+            "active_subtask_index": 0,
+            "nested": nested,
+        }
+        frozen_advance = deepcopy(advance_state)
+        upsert_calls = []
+
+        def upsert(existing, current):
+            upsert_calls.append((existing, current))
+            self.assertIsNot(existing, advance_state["subtask_results"])
+            self.assertIs(existing[0], existing_row)
+            self.assertIs(current, current_row)
+            return owner_rows
+
+        with (
+            patch.object(agent, "_capture_current_subtask_result", return_value=current_row),
+            patch.object(financial_graph_calculation, "upsert_subtask_result", side_effect=upsert),
+        ):
+            advanced = agent._advance_calculation_subtask(advance_state)
+        self.assertIs(advanced["subtask_results"], owner_rows)
+        self.assertTrue(advanced["subtask_loop_complete"])
+        self.assertEqual(len(upsert_calls), 1)
+        self.assertEqual(advance_state, frozen_advance)
+        self.assertIs(advance_state["subtask_results"][0], existing_row)
+
+        class RecordingState(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.accesses = []
+
+            def get(self, key, default=None):
+                self.accesses.append(key)
+                return super().get(key, default)
+
+        stopped_state = RecordingState(advance_state)
+        with (
+            patch.object(agent, "_capture_current_subtask_result", return_value=current_row),
+            patch.object(
+                financial_graph_calculation,
+                "upsert_subtask_result",
+                side_effect=RuntimeError("upsert failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "upsert failed"):
+                agent._advance_calculation_subtask(stopped_state)
+        self.assertNotIn("calc_subtasks", stopped_state.accesses)
+
+        first = {"task_id": "task_first", "nested": nested}
+        second = {"task_id": "task_second", "nested": nested}
+        prepare_state = {
+            "subtask_results": [existing_row],
+            "calc_subtasks": [{"task_id": "task_first"}, {"task_id": "task_second"}],
+            "query": "query",
+            "nested": nested,
+        }
+        frozen_prepare = deepcopy(prepare_state)
+        dedupe_inputs = []
+
+        def prepare_upsert(existing, current):
+            self.assertIsNot(existing, prepare_state["subtask_results"])
+            self.assertIs(existing[0], existing_row)
+            self.assertIs(current, current_row)
+            return [second, first]
+
+        def stop_after_adoption(rows):
+            dedupe_inputs.append(rows)
+            self.assertEqual(rows, [first, second])
+            self.assertIs(rows[0], first)
+            self.assertIs(rows[1], second)
+            raise RuntimeError("dedupe reached")
+
+        with (
+            patch.object(agent, "_capture_current_subtask_result", return_value=current_row),
+            patch.object(financial_graph_calculation, "upsert_subtask_result", side_effect=prepare_upsert),
+            patch.object(
+                financial_graph_calculation,
+                "dedupe_aggregate_subtask_results",
+                side_effect=stop_after_adoption,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "dedupe reached"):
+                agent._prepare_initial_aggregate_state(prepare_state)
+        self.assertEqual(len(dedupe_inputs), 1)
+        self.assertEqual(prepare_state, frozen_prepare)
+        self.assertIs(prepare_state["subtask_results"][0], existing_row)
+
+        with (
+            patch.object(agent, "_capture_current_subtask_result", return_value=current_row),
+            patch.object(
+                financial_graph_calculation,
+                "upsert_subtask_result",
+                side_effect=RuntimeError("prepare upsert failed"),
+            ),
+            patch.object(financial_graph_calculation, "dedupe_aggregate_subtask_results") as stopped_dedupe,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "prepare upsert failed"):
+                agent._prepare_initial_aggregate_state(prepare_state)
+        stopped_dedupe.assert_not_called()
+        self.assertEqual(prepare_state, frozen_prepare)
 
 
 if __name__ == "__main__":

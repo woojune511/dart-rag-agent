@@ -5729,13 +5729,18 @@ class FinancialAgentRunProjectionTests(unittest.TestCase):
             return repaired_projection
 
         structured_with_mock = Mock(side_effect=structured_with)
-        agent._structured_subtask_projection_for_public_answer = Mock(
+        structured_projection_mock = Mock(
             side_effect=structured_owner
         )
         public_state_mock = Mock(side_effect=public_state)
         agent._repair_collapsed_ratio_trace_from_evidence = Mock(side_effect=collapsed)
         with (
             patch.object(financial_graph, "with_public_answer", structured_with_mock),
+            patch.object(
+                financial_graph,
+                "structured_subtask_projection_for_public_answer",
+                structured_projection_mock,
+            ),
             patch.object(financial_graph, "public_projection_state", public_state_mock),
         ):
             projected = agent._structured_public_answer_trace_projection(

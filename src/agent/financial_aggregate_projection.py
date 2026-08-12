@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, Mapping, Optional, Sequence
 
 from src.agent import financial_graph_calculation_rendering as calculation_rendering
 from src.agent.financial_answer_slots import (
@@ -15,6 +15,7 @@ from src.agent.financial_answer_slots import (
     source_task_display_compatible_with_slot,
 )
 from src.agent.financial_answer_projection import (
+    _preferred_complete_aggregate_subtask_answer,
     growth_answer_has_untraced_numeric_sentence,
     growth_row_has_conflicting_periods,
     growth_sentence_has_untraced_material_numeric,
@@ -47,7 +48,12 @@ from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
 )
-from src.agent.financial_runtime_trace import operand_row_has_material_numeric_payload
+from src.agent.financial_runtime_trace import (
+    _attach_runtime_projection_metadata,
+    _build_aggregate_calculation_projection,
+    _structured_result_subtask_rows_and_answer,
+    operand_row_has_material_numeric_payload,
+)
 from src.agent.financial_scope_policies import known_consolidation_scope_value
 from src.agent.financial_text_surface import (
     _tokenize_terms,
@@ -63,6 +69,9 @@ from src.config.retrieval_policy import (
     CALCULATION_SLOT_POLICY,
 )
 
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import FinancialAgentState
+
 
 AggregateStaleRepairTargetResolution = Literal[
     "unique_overlap",
@@ -70,6 +79,167 @@ AggregateStaleRepairTargetResolution = Literal[
     "ambiguous_target",
     "no_target",
 ]
+
+
+def build_aggregate_calculation_projection(
+    ordered_results: List[Dict[str, Any]],
+    final_answer: str,
+) -> Dict[str, Any]:
+    projection_rows: List[Dict[str, Any]] = []
+    for row in ordered_results:
+        is_conflicting_growth = (
+            aggregate_result_operation_family(dict(row)) == "growth_rate"
+            and growth_row_has_conflicting_periods(dict(row))
+        )
+        if not is_conflicting_growth:
+            projection_rows.append(row)
+            continue
+        material_gap = material_gap_feedback_for_subtask_result(dict(row))
+        row_copy = dict(row)
+        calculation_result = dict(row_copy.get("calculation_result") or {})
+        answer_slots = dict(calculation_result.get("answer_slots") or row_copy.get("answer_slots") or {})
+        answer_slots["source_row_ids"] = []
+        calculation_result.update(
+            {
+                "answer_slots": answer_slots,
+                "source_row_ids": [],
+                "source_evidence_ids": [],
+                "material_gap_feedback": material_gap,
+            }
+        )
+        row_copy.update(
+            {
+                "calculation_operands": [],
+                "calculation_result": calculation_result,
+                "source_row_ids": [],
+                "source_evidence_ids": [],
+                "material_gap_feedback": material_gap,
+            }
+        )
+        projection_rows.append(row_copy)
+
+    aggregate_projection = _build_aggregate_calculation_projection(projection_rows, final_answer)
+    aggregate_evidence: List[Dict[str, Any]] = []
+    seen_evidence_ids: set[str] = set()
+
+    for row in projection_rows:
+        for evidence in list(row.get("runtime_evidence") or []):
+            evidence_row = dict(evidence)
+            evidence_id = str(evidence_row.get("evidence_id") or "").strip()
+            dedupe_key = evidence_id or _normalise_spaces(
+                " ".join(
+                    part
+                    for part in [
+                        str(evidence_row.get("source_anchor") or "").strip(),
+                        str(evidence_row.get("quote_span") or "").strip(),
+                        str(evidence_row.get("raw_row_text") or "").strip(),
+                        str(evidence_row.get("claim") or "").strip(),
+                    ]
+                    if part
+                )
+            )
+            if dedupe_key and dedupe_key in seen_evidence_ids:
+                continue
+            if dedupe_key:
+                seen_evidence_ids.add(dedupe_key)
+            aggregate_evidence.append(evidence_row)
+    return {
+        "calculation_operands": aggregate_projection["calculation_operands"],
+        "calculation_plan": aggregate_projection["calculation_plan"],
+        "calculation_result": aggregate_projection["calculation_result"],
+        "evidence_items": aggregate_evidence,
+    }
+
+
+def structured_subtask_projection_for_public_answer(
+    state: FinancialAgentState,
+    trace: Dict[str, Any],
+) -> Dict[str, Any]:
+    structured_result = dict(state.get("structured_result") or {})
+    public_answer = _normalise_spaces(str(state.get("answer") or state.get("compressed_answer") or ""))
+    subtask_results, structured_answer = _structured_result_subtask_rows_and_answer(structured_result)
+    if not public_answer or public_answer != structured_answer:
+        return {}
+    if not subtask_results:
+        return {}
+    current_result = dict((trace or {}).get("calculation_result") or {})
+    current_primary = dict((current_result.get("answer_slots") or {}).get("primary_value") or {})
+    current_rendered = _normalise_spaces(
+        str(
+            current_result.get("formatted_result")
+            or current_result.get("rendered_value")
+            or current_primary.get("rendered_value")
+            or ""
+        )
+    )
+    projection_answer = _preferred_complete_aggregate_subtask_answer(
+        subtask_results,
+        public_answer,
+    ) or public_answer
+    if current_rendered and current_rendered == public_answer and projection_answer == public_answer:
+        return {}
+    projection = _build_aggregate_calculation_projection(subtask_results, projection_answer)
+    projection_result = dict(projection.get("calculation_result") or {})
+    if not projection_result.get("subtask_results"):
+        return {}
+    return _attach_runtime_projection_metadata(
+        projection,
+        source="structured_result_subtasks",
+    )
+
+
+def upsert_subtask_result(
+    existing: List[Dict[str, Any]],
+    current: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    if not current:
+        return list(existing or [])
+    current_task_id = str(current.get("task_id") or "").strip()
+    rows: List[Dict[str, Any]] = []
+    replaced = False
+    for row in existing or []:
+        row_task_id = str(row.get("task_id") or "").strip()
+        if current_task_id and row_task_id == current_task_id:
+            if _subtask_upsert_quality_rank(dict(row)) > _subtask_upsert_quality_rank(current):
+                rows.append(row)
+            else:
+                rows.append(current)
+            replaced = True
+        else:
+            rows.append(row)
+    if not replaced:
+        rows.append(current)
+    return rows
+
+
+def _subtask_upsert_quality_rank(row: Dict[str, Any]) -> tuple[int, int, int, int, int, int]:
+    calculation_result = dict(row.get("calculation_result") or {})
+    status = _normalise_spaces(str(row.get("status") or calculation_result.get("status") or "")).lower()
+    status_rank = {"ok": 4, "ready": 3, "partial": 2}.get(status, 0)
+    has_material = 1 if subtask_row_has_material(row) else 0
+    has_structured_payload = 1 if (
+        calculation_result.get("answer_slots")
+        or calculation_result.get("subtask_results")
+        or calculation_result.get("source_row_ids")
+        or calculation_result.get("formatted_result")
+        or calculation_result.get("rendered_value")
+    ) else 0
+    source_count = len(_clean_source_row_ids([
+        row.get("source_row_ids"),
+        calculation_result.get("source_row_ids"),
+        row.get("selected_claim_ids"),
+        calculation_result.get("source_evidence_ids"),
+    ]))
+    answer_text = _normalise_spaces(
+        str(
+            row.get("answer")
+            or calculation_result.get("formatted_result")
+            or calculation_result.get("rendered_value")
+            or ""
+        )
+    )
+    digit_count = len(re.findall(r"\d", answer_text))
+    return status_rank, has_material, has_structured_payload, source_count, digit_count, len(answer_text)
 
 
 def aggregate_synthesis_prompt_rows(

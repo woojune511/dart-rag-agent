@@ -992,7 +992,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                     ("graph", "_is_growth_supported_sentence", "row"): 1,
                     ("graph", "_compose_growth_narrative_answer", "row"): 1,
                     ("graph", "_answer_satisfies_growth_narrative_intent", "row"): 1,
-                    ("planning", "_build_aggregate_calculation_projection", "dict(row)"): 1,
+                    ("aggregate", "build_aggregate_calculation_projection", "dict(row)"): 1,
                 }
             ),
         )
@@ -1016,7 +1016,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                     ("graph", "_promote_stronger_nested_aggregate_results", "dict(nested_row)"): 1,
                     ("graph", "_promote_stronger_nested_aggregate_results", "current_row"): 1,
                     ("graph", "_resolve_aggregate_feedback_state", "row"): 1,
-                    ("planning", "_build_aggregate_calculation_projection", "dict(row)"): 1,
+                    ("aggregate", "build_aggregate_calculation_projection", "dict(row)"): 1,
                 }
             ),
         )
@@ -1034,7 +1034,7 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                         "_promote_nested_subtask_result_if_more_specific",
                         "{'answer': answer, 'status': status, 'metric_family': active_subtask.get('metric_family'), 'metric_label': active_subtask.get('metric_label'), 'operation_family': active_operation, 'calculation_result': calculation_result}",
                     ): 1,
-                    ("planning", "_subtask_upsert_quality_rank", "row"): 1,
+                    ("aggregate", "_subtask_upsert_quality_rank", "row"): 1,
                 }
             ),
         )
@@ -1043,8 +1043,17 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             (13, 15, 4),
         )
 
+        projection_growth = next(
+            entry
+            for entry in external_growth
+            if entry["caller"] == "build_aggregate_calculation_projection"
+        )
         graph_growth = [entry for entry in external_growth if entry["module"] == "graph"]
-        aggregate_growth = [entry for entry in external_growth if entry["module"] == "aggregate"]
+        aggregate_growth = [
+            entry
+            for entry in external_growth
+            if entry["module"] == "aggregate" and entry is not projection_growth
+        ]
         self.assertEqual((len(graph_growth), len(aggregate_growth)), (6, 6))
         for entry in [*graph_growth, *aggregate_growth]:
             statement = entry["statement"]
@@ -1060,12 +1069,9 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
                 )
             self.assertFalse(unary_not)
 
-        planning_growth = next(
-            entry for entry in external_growth if entry["module"] == "planning"
-        )
-        self.assertIsInstance(planning_growth["statement"], ast.Assign)
+        self.assertIsInstance(projection_growth["statement"], ast.Assign)
         self.assertEqual(
-            ast.unparse(planning_growth["statement"].targets[0]),
+            ast.unparse(projection_growth["statement"].targets[0]),
             "is_conflicting_growth",
         )
 
@@ -1094,7 +1100,9 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
             self.assertIsInstance(entry["statement"].value, ast.IfExp)
 
         nested_row_rank = next(
-            entry for entry in external_row if entry["module"] == "aggregate"
+            entry
+            for entry in external_row
+            if entry["caller"] == "nested_aggregate_result_rank"
         )
         self.assertEqual(ast.unparse(nested_row_rank["statement"].targets[0]), "material_rank")
         self.assertIsInstance(nested_row_rank["statement"].value, ast.IfExp)
@@ -1262,28 +1270,28 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         }
         with (
             patch.object(
-                self.planning_agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 return_value="growth_rate",
                 create=True,
             ),
             patch.object(
-                financial_graph_planning,
+                financial_aggregate_projection,
                 "growth_row_has_conflicting_periods",
                 side_effect=planning_growth_owner,
             ),
             patch.object(
-                financial_graph_planning,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 side_effect=planning_gap_owner,
             ),
             patch.object(
-                financial_graph_planning,
+                financial_aggregate_projection,
                 "_build_aggregate_calculation_projection",
                 return_value=built_projection,
             ) as builder,
         ):
-            projection = self.planning_agent._build_aggregate_calculation_projection(
+            projection = financial_aggregate_projection.build_aggregate_calculation_projection(
                 [planning_row],
                 "answer",
             )
@@ -1307,29 +1315,29 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         builder.reset_mock()
         with (
             patch.object(
-                self.planning_agent,
-                "_aggregate_result_operation_family",
+                financial_aggregate_projection,
+                "aggregate_result_operation_family",
                 return_value="growth_rate",
                 create=True,
             ),
             patch.object(
-                financial_graph_planning,
+                financial_aggregate_projection,
                 "growth_row_has_conflicting_periods",
                 side_effect=RuntimeError("planning growth failed"),
             ),
             patch.object(
-                financial_graph_planning,
+                financial_aggregate_projection,
                 "material_gap_feedback_for_subtask_result",
                 gap_after_growth,
             ),
             patch.object(
-                financial_graph_planning,
+                financial_aggregate_projection,
                 "_build_aggregate_calculation_projection",
                 builder,
             ),
         ):
             with self.assertRaisesRegex(RuntimeError, "planning growth failed"):
-                self.planning_agent._build_aggregate_calculation_projection(
+                financial_aggregate_projection.build_aggregate_calculation_projection(
                     [planning_row],
                     "answer",
                 )
@@ -1404,11 +1412,11 @@ class FinancialAnswerProjectionMaterialPolicyTests(unittest.TestCase):
         )
 
         with patch.object(
-            financial_graph_planning,
+            financial_aggregate_projection,
             "subtask_row_has_material",
             return_value=False,
         ) as upsert_owner:
-            upsert_rank = self.planning_agent._subtask_upsert_quality_rank(
+            upsert_rank = financial_aggregate_projection._subtask_upsert_quality_rank(
                 {"status": "ok", "answer": "10"}
             )
         self.assertEqual(upsert_rank[:2], (4, 0))

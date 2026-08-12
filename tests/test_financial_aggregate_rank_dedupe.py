@@ -719,8 +719,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 create=True,
             ),
             patch.object(
-                self.agent,
-                "_upsert_subtask_result",
+                financial_graph_calculation,
+                "upsert_subtask_result",
                 return_value=upserted_rows,
                 create=True,
             ),
@@ -753,8 +753,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 create=True,
             ),
             patch.object(
-                self.agent,
-                "_upsert_subtask_result",
+                financial_graph_calculation,
+                "upsert_subtask_result",
                 return_value=upserted_rows,
                 create=True,
             ),

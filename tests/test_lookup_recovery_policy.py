@@ -471,7 +471,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
     def test_aggregate_projection_skips_missing_placeholder_operands(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        projection = agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             [
                 {
                     "task_id": "task_missing",
@@ -536,7 +536,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
     def test_aggregate_projection_skips_short_unknown_numeric_operands(self) -> None:
         agent = FinancialAgent.__new__(FinancialAgent)
-        projection = agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             [
                 {
                     "task_id": "task_noise",

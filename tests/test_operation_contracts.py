@@ -11174,7 +11174,10 @@ class OperationContractTests(unittest.TestCase):
             lookup["calculation_result"]["answer_slots"]["components_by_role"]["numerator_1"][0]["raw_value"],
             "900",
         )
-        projection = agent._build_aggregate_calculation_projection(aligned, "900백만원")
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
+            aligned,
+            "900백만원",
+        )
         projected_subtask = projection["calculation_result"]["answer_slots"]["subtask_results"][0]
         self.assertEqual(projected_subtask["answer"], "900백만원")
         self.assertEqual(projected_subtask["rendered_value"], "900백만원")
@@ -11225,7 +11228,7 @@ class OperationContractTests(unittest.TestCase):
             },
         ]
 
-        projection = agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             ordered_results,
             "Segment grew 25%. Management described a policy response.",
         )

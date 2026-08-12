@@ -5016,7 +5016,6 @@ class SubtaskLoopTests(unittest.TestCase):
         later_composer = Mock(return_value="")
         patched_owners = {
             "_capture_current_subtask_result": Mock(return_value={}),
-            "_upsert_subtask_result": Mock(return_value=[row]),
             "_recover_lookup_results_from_sibling_table_evidence": Mock(side_effect=preserve_rows),
             "_promote_stronger_nested_aggregate_results": Mock(side_effect=preserve_rows),
             "_align_lookup_result_units_from_peer_source_slots": Mock(side_effect=preserve_rows),
@@ -5033,6 +5032,7 @@ class SubtaskLoopTests(unittest.TestCase):
         }
         with (
             patch.multiple(self.agent, **patched_owners),
+            patch.object(financial_graph_calculation, "upsert_subtask_result", return_value=[row]),
             patch.object(
                 financial_graph_calculation,
                 "compose_lookup_list_numeric_answer",
@@ -7899,7 +7899,7 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        trace = self.agent._structured_subtask_projection_for_public_answer(
+        trace = financial_aggregate_projection.structured_subtask_projection_for_public_answer(
             state,
             state["resolved_calculation_trace"],
         )
@@ -13862,7 +13862,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(fallback_update["answer"], state["answer"])
 
     def test_aggregate_subtasks_dedupes_nested_operand_mirrors(self) -> None:
-        projection = self.agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             [
                 {
                     "task_id": "task_1",
@@ -13913,7 +13913,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertEqual(projection["calculation_result"]["source_row_ids"], ["ev_001"])
 
     def test_aggregate_projection_drops_null_source_id_surfaces(self) -> None:
-        projection = self.agent._build_aggregate_calculation_projection(
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
             [
                 {
                     "task_id": "task_1",
@@ -22516,7 +22516,10 @@ class SubtaskLoopTests(unittest.TestCase):
             },
         }
 
-        projection = self.agent._build_aggregate_calculation_projection([row], "partial answer")
+        projection = financial_aggregate_projection.build_aggregate_calculation_projection(
+            [row],
+            "partial answer",
+        )
 
         self.assertEqual(projection["calculation_operands"], [])
         self.assertEqual(projection["calculation_result"]["source_row_ids"], [])

@@ -62,6 +62,7 @@ from src.agent.financial_aggregate_projection import (
     append_final_answer_surface_operands_from_evidence,
     append_operand_evidence_for_final_answer,
     filter_aggregate_evidence_for_final_answer,
+    structured_subtask_projection_for_public_answer,
 )
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
@@ -179,7 +180,7 @@ class FinancialAgent(
             "structured_result": structured_result,
             "resolved_calculation_trace": runtime_calculation_trace,
         }
-        structured_public_projection = self._structured_subtask_projection_for_public_answer(
+        structured_public_projection = structured_subtask_projection_for_public_answer(
             projection_state,
             runtime_calculation_trace,
         )
