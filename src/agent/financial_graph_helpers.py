@@ -46,6 +46,7 @@ from src.config.retrieval_policy import (
     OPERATION_FAMILY_QUERY_POLICIES,
     OPERAND_CANDIDATE_SCORING_POLICY,
     PERIOD_FOCUS_POLICY,
+    PLANNING_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
     STRUCTURED_CELL_PERIOD_SCORING_POLICY,
     TASK_CONSTRAINT_POLICY,
@@ -85,6 +86,7 @@ from src.agent.financial_scope_policies import (
     _desired_consolidation_scope,
     _extract_year_tokens,
     _metadata_period_match_strength,
+    _report_scope_source_receipts,
     _report_scope_source_reports,
 )
 from src.agent.financial_operation_policies import (
@@ -110,6 +112,294 @@ _UNIT_HINT_HTML_PATTERN = re.compile(r"\(\s*단위\s*:\s*([^)]+?)\s*\)")
 # ---------------------------------------------------------------------------
 # Semantic planning helpers
 # ---------------------------------------------------------------------------
+
+
+def _has_single_report_scope(report_scope: Dict[str, Any]) -> bool:
+    scope = dict(report_scope or {})
+    if str(scope.get("rcept_no") or "").strip():
+        return True
+    try:
+        return len(_report_scope_source_receipts(scope)) <= 1
+    except Exception:
+        return False
+
+
+def llm_plan_preserves_segment_sum_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
+    """Reject LLM overrides that destroy deterministic segment-sum structure."""
+    base_tasks = [dict(task) for task in (base_plan.get("tasks") or [])]
+    has_segment_sum = any(
+        str(task.get("operation_family") or "").strip().lower() == "sum"
+        and str((task.get("constraints") or {}).get("segment_scope") or "none").strip().lower() == "segment"
+        for task in base_tasks
+    )
+    if not has_segment_sum:
+        return True
+
+    llm_tasks = [dict(task) for task in (llm_plan.get("tasks") or [])]
+    for task in llm_tasks:
+        if str(task.get("operation_family") or "").strip().lower() != "sum":
+            continue
+        if str((task.get("constraints") or {}).get("segment_scope") or "none").strip().lower() != "segment":
+            continue
+        addend_roles = [
+            str(item.get("role") or "").strip()
+            for item in (task.get("required_operands") or [])
+            if str(item.get("role") or "").strip().startswith("addend_")
+        ]
+        if len(addend_roles) >= 2:
+            return True
+    return False
+
+
+def _task_concept_role_families(task: Dict[str, Any]) -> set[tuple[str, str]]:
+    rows: set[tuple[str, str]] = set()
+    for operand in list(task.get("required_operands") or []):
+        concept = _normalise_spaces(str(operand.get("concept") or ""))
+        role = _normalise_spaces(str(operand.get("role") or ""))
+        if role.startswith("numerator"):
+            role = "numerator"
+        elif role.startswith("denominator"):
+            role = "denominator"
+        if concept:
+            rows.add((concept, role))
+    return rows
+
+
+def llm_plan_preserves_analysis_shape(base_plan: Dict[str, Any], llm_plan: Dict[str, Any]) -> bool:
+    """Reject LLM overrides that erase deterministic ontology analysis hints."""
+    base_tasks = [
+        dict(task)
+        for task in (base_plan.get("tasks") or [])
+        if dict(task).get("analysis_hints")
+    ]
+    if not base_tasks:
+        return True
+
+    llm_tasks = [dict(task) for task in (llm_plan.get("tasks") or [])]
+    for base_task in base_tasks:
+        base_operation = _normalise_spaces(str(base_task.get("operation_family") or ""))
+        base_concepts = _task_concept_role_families(base_task)
+        if not base_operation or not base_concepts:
+            continue
+        if any(
+            _normalise_spaces(str(task.get("operation_family") or "")) == base_operation
+            and base_concepts.issubset(_task_concept_role_families(task))
+            for task in llm_tasks
+        ):
+            continue
+        return False
+    return True
+
+
+def _attach_segment_label_to_resolved_spec(spec: Dict[str, Any], segment_label: str) -> Dict[str, Any]:
+    updated = dict(spec)
+    base_name = str(updated.get("name") or "").strip() or str(PLANNING_POLICY.get("segment_default_metric_name") or "")
+    updated["name"] = f"{segment_label} {base_name}".strip()
+    aliases = list(updated.get("aliases") or [])
+    updated["aliases"] = list(dict.fromkeys([updated["name"], segment_label, base_name, *aliases]))
+    binding_policy = dict(updated.get("binding_policy") or {})
+    binding_policy["segment_label"] = segment_label
+    updated["binding_policy"] = binding_policy
+    return updated
+
+
+def apply_segment_labels_to_llm_resolved_specs(
+    *,
+    query: str,
+    metric_label: str,
+    operation_family: str,
+    report_scope: Dict[str, Any],
+    resolved_specs: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Recover segment-scoped operand identity when the LLM only emits repeated concepts.
+
+    The structured planner can emit the same concept more than once for a
+    segment-scoped query. Keep the operation-family/role signal from the LLM,
+    but re-attach segment labels from the original query/metric label so
+    downstream grounding can distinguish segment rows instead of binding the
+    same company-total row twice.
+    """
+    specs = [dict(spec) for spec in (resolved_specs or [])]
+    if not specs:
+        return specs
+
+    segment_labels = _extract_segment_labels_from_query(query, report_scope)
+    if not segment_labels:
+        return specs
+
+    metric_label_text = _normalise_spaces(metric_label)
+    segment_labels_lower = [_normalise_spaces(label).lower() for label in segment_labels]
+
+    repeated_same_concept = len({
+        str(spec.get("concept") or "").strip()
+        for spec in specs
+        if str(spec.get("concept") or "").strip()
+    }) == 1
+
+    if operation_family in {"sum", "difference", "growth_rate"}:
+        roles = [str(spec.get("role") or "").strip() for spec in specs]
+        expected_role_prefix = "addend_" if operation_family == "sum" else ""
+        valid_difference_roles = {"minuend", "subtrahend"}
+        valid_growth_roles = {"current_period", "prior_period"}
+        role_shape_ok = (
+            all(role.startswith(expected_role_prefix) for role in roles)
+            if operation_family == "sum"
+            else (
+                valid_difference_roles.issubset(set(roles))
+                if operation_family == "difference"
+                else valid_growth_roles.issubset(set(roles))
+            )
+        )
+        required_segment_labels = 2 if operation_family in {"sum", "difference"} else 1
+        if repeated_same_concept and len(specs) >= 2 and role_shape_ok and len(segment_labels) >= required_segment_labels:
+            if operation_family == "growth_rate":
+                for index, spec in enumerate(specs):
+                    specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[0])
+            else:
+                for index, spec in enumerate(specs):
+                    if index >= len(segment_labels):
+                        break
+                    specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[index])
+            return specs
+
+    if operation_family == "ratio" and repeated_same_concept and len(specs) >= 2 and segment_labels:
+        for index, spec in enumerate(specs):
+            role = str(spec.get("role") or "").strip()
+            if not role.startswith("numerator"):
+                continue
+            specs[index] = _attach_segment_label_to_resolved_spec(spec, segment_labels[0])
+            break
+        return specs
+
+    if operation_family in {"lookup", "single_value"} and len(specs) == 1:
+        matched_segment = next(
+            (
+                segment_labels[index]
+                for index, segment_key in enumerate(segment_labels_lower)
+                if segment_key and segment_key in metric_label_text.lower()
+            ),
+            "",
+        )
+        if matched_segment:
+            specs[0] = _attach_segment_label_to_resolved_spec(specs[0], matched_segment)
+    return specs
+
+
+def align_scope_hints(
+    *,
+    companies: Optional[List[str]],
+    years: Optional[List[int]],
+    report_scope: Dict[str, Any],
+) -> tuple[List[str], List[int]]:
+    scope_company = str(report_scope.get("company") or "").strip()
+    scope_year_raw = report_scope.get("year")
+    scope_year: Optional[int] = None
+    try:
+        if scope_year_raw not in (None, ""):
+            scope_year = int(scope_year_raw)
+    except (TypeError, ValueError):
+        scope_year = None
+
+    normalized_companies = [str(item).strip() for item in (companies or []) if str(item).strip()]
+    normalized_years: List[int] = []
+    for item in list(years or []):
+        try:
+            value = int(item)
+        except (TypeError, ValueError):
+            continue
+        if value not in normalized_years:
+            normalized_years.append(value)
+
+    if scope_company:
+        if _has_single_report_scope(report_scope):
+            normalized_companies = [scope_company]
+        elif not normalized_companies:
+            normalized_companies = [scope_company]
+        elif scope_company not in normalized_companies:
+            normalized_companies = [scope_company, *normalized_companies]
+
+    if scope_year is not None:
+        if not normalized_years:
+            normalized_years = [scope_year]
+        elif scope_year not in normalized_years:
+            normalized_years = [scope_year, *normalized_years]
+
+    return normalized_companies, normalized_years
+
+
+def validate_concept_planner_task(
+    raw_task: Any,
+    ontology: Any,
+    allowed_concept_keys: Optional[set[str]] = None,
+    concept_specs_by_key: Optional[Dict[str, Dict[str, Any]]] = None,
+    support_text: str = "",
+    require_surface_contract_match: bool = False,
+) -> tuple[bool, str]:
+    """Perform a tiny contract check on planner output before runtime uses it.
+
+        This is intentionally narrow: it validates shape and ontology membership,
+        not financial correctness.
+        """
+    operation_family = str(getattr(raw_task, "operation_family", "") or "").strip().lower()
+    allowed_operations = {"lookup", "sum", "difference", "ratio", "growth_rate", "single_value"}
+    if operation_family not in allowed_operations:
+        return False, f"unsupported_operation:{operation_family or '-'}"
+
+    raw_operands = list(getattr(raw_task, "operands", []) or [])
+    if not raw_operands:
+        return False, "missing_operands"
+
+    roles = [str(getattr(item, "role", "") or "").strip() for item in raw_operands]
+    for item in raw_operands:
+        concept_key = str(getattr(item, "concept", "") or "").strip()
+        if not concept_key or not ontology.has_concept_key(concept_key):
+            return False, f"unknown_concept:{concept_key or '-'}"
+        if allowed_concept_keys and concept_key not in allowed_concept_keys:
+            return False, f"concept_not_available:{concept_key}"
+        if require_surface_contract_match:
+            spec = dict((concept_specs_by_key or {}).get(concept_key) or {})
+            surface_contract = dict(spec.get("surface_contract") or {})
+            positive_terms = [
+                _normalise_spaces(str(term or ""))
+                for term in (surface_contract.get("positive") or [])
+                if _normalise_spaces(str(term or ""))
+            ]
+            normalized_support = _normalise_spaces(support_text)
+            if positive_terms and not any(term in normalized_support for term in positive_terms):
+                return False, f"surface_contract_missing:{concept_key}"
+
+    if operation_family == "ratio":
+        if not any(role.startswith("numerator") for role in roles):
+            return False, "ratio_missing_numerator"
+        if not any(role.startswith("denominator") for role in roles):
+            return False, "ratio_missing_denominator"
+        invalid_role = next(
+            (role for role in roles if role and not (role.startswith("numerator") or role.startswith("denominator"))),
+            "",
+        )
+        if invalid_role:
+            return False, f"ratio_invalid_role:{invalid_role}"
+    elif operation_family == "sum":
+        invalid_role = next((role for role in roles if role and not role.startswith("addend")), "")
+        if invalid_role:
+            return False, f"sum_invalid_role:{invalid_role}"
+    elif operation_family == "difference":
+        if len(raw_operands) != 2:
+            return False, "difference_requires_two_operands"
+        valid_roles = {"", "minuend", "subtrahend", "current_period", "prior_period"}
+        invalid_role = next((role for role in roles if role not in valid_roles), "")
+        if invalid_role:
+            return False, f"difference_invalid_role:{invalid_role}"
+    elif operation_family == "growth_rate":
+        if len(raw_operands) != 2:
+            return False, "growth_rate_requires_two_operands"
+        valid_roles = {"", "current_period", "prior_period"}
+        invalid_role = next((role for role in roles if role not in valid_roles), "")
+        if invalid_role:
+            return False, f"growth_rate_invalid_role:{invalid_role}"
+
+    return True, "ok"
+
 
 def _scoped_surface_affinity_priority(
     items: List[Dict[str, Any]],

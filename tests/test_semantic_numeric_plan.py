@@ -18,6 +18,8 @@ from src.agent.financial_graph_helpers import (
     _build_semantic_numeric_plan,
     _extract_segment_labels_from_query,
     _infer_period_focus,
+    llm_plan_preserves_analysis_shape,
+    llm_plan_preserves_segment_sum_shape,
 )
 from src.agent.financial_operand_resolution import (
     merge_operand_rows,
@@ -29,7 +31,6 @@ from src.agent.financial_row_surfaces import (
 )
 from src.agent.financial_retrieval_hints import _active_preferred_sections
 from src.agent.financial_retrieval_pipeline import _ensure_period_count_operand_docs, _focused_operand_surface_queries
-from src.agent.financial_graph_planning import _llm_plan_preserves_analysis_shape, _llm_plan_preserves_segment_sum_shape
 from src.agent.financial_graph_models import ConceptPlannerOutput
 from src.agent.financial_operation_policies import _is_percent_point_difference_query
 
@@ -2645,8 +2646,8 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ],
         }
 
-        self.assertFalse(_llm_plan_preserves_segment_sum_shape(base_plan, degraded_llm_plan))
-        self.assertTrue(_llm_plan_preserves_segment_sum_shape(base_plan, preserved_llm_plan))
+        self.assertFalse(llm_plan_preserves_segment_sum_shape(base_plan, degraded_llm_plan))
+        self.assertTrue(llm_plan_preserves_segment_sum_shape(base_plan, preserved_llm_plan))
 
     def test_concept_only_ontology_builds_capex_growth_task_for_multi_report_query(self) -> None:
         import src.config.ontology as ontology_module
@@ -2883,8 +2884,8 @@ class SemanticNumericPlanTests(unittest.TestCase):
             ]
         }
 
-        self.assertFalse(_llm_plan_preserves_analysis_shape(base_plan, lookup_only_plan))
-        self.assertTrue(_llm_plan_preserves_analysis_shape(base_plan, compatible_plan))
+        self.assertFalse(llm_plan_preserves_analysis_shape(base_plan, lookup_only_plan))
+        self.assertTrue(llm_plan_preserves_analysis_shape(base_plan, compatible_plan))
 
     def test_segment_in_narrative_clause_does_not_scope_unrelated_numeric_lookup(self) -> None:
         query = "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘."
