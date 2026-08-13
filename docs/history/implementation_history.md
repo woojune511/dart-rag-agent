@@ -4593,3 +4593,84 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG and
 selected-body baseline plus two existing role/stage caller probes passed;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Candidate value-role/stage ownership milestone
+
+- `9092f5e` moves the exact 16-line `_candidate_value_role(...)` and 18-line
+  `_candidate_aggregation_stage(...)` definitions from
+  `financial_graph_helpers.py` to public `candidate_value_role(...)` and
+  `candidate_aggregation_stage(...)` in `financial_row_surfaces.py`. Each
+  function retains 11 direct graph calls, for graph-external 22/owner-local
+  zero, and retired executable graph-private source/test refs are zero.
+- Source is `+59/-57`, net `+2`: graph helpers are `+21/-57` and move from
+  5,718 to 5,682 physical lines; row surfaces are `+38/-0` and move from 389 to
+  427. Tests are `+1,167/-69`, net `+1,098`, moving graph-helper tests from
+  15,886 to 16,984. The whole commit is `+1,226/-126`, net `+1,100`, and four
+  new methods move discovery from 1,927 to 1,931. The source diff SHA-256 is
+  `5bde3c6eb94508a4afab190cd3db4d866b265ff6f0103a028711e41c2159d8b8`.
+- Graph helpers finish public/private 9/95 and row surfaces 7/15. The existing
+  graph-to-row edge remains one-way. Both selected bodies preserve literal
+  parity after only the public-name change; all 104 retained graph and 20
+  retained row-owner functions, all 22 caller expressions, the dependency DAG,
+  public identity 2/2, selected-body parity 2/2, and the 218-record baseline
+  passed without a baseline change.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  metadata shallow-copy behavior, explicit-field and aggregate-role precedence,
+  row-label-before-semantic fallback, exact maps/defaults, laziness, nested
+  identity, immutability, uncaught errors, every call context, and all seven
+  callers' order, short-circuit, and stop behavior.
+- Validation passed focused 4/4, graph-helper/row-surface owner 78/78, affected
+  eleven-module semantic 1,038/1,038, import-side-effects 19/19, runtime audit
+  218, full discovery 1,931/1,931, pycompile/fresh import, AST body/caller/DAG
+  parity, retired-ref zero, and `git diff --check`. Benchmark refresh was
+  **NOT RUN**, and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only candidate role/stage ownership. Direct/ratio
+acceptance, candidate matching, direct-match strength, semantic priority,
+scoring/ranking, candidate/evidence adoption, mutable state/evidence, artifacts/
+ledger, and final sequencing remain graph-owned. It proves no behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+### Candidate row-context surface characterization checkpoint
+
+- A docs-only inventory selects the exact current 15-line
+  `_candidate_has_operand_context_surface(candidate, operand) -> bool` and
+  19-line `_table_row_has_matching_structured_sibling(metadata, operand) ->
+  bool` definitions in `financial_graph_helpers.py`. Each has one direct graph
+  call with two positional arguments, no keywords, and caller `try` depth zero.
+  No production source or test moves for this pair at this checkpoint.
+- The selected follow-on moves the pair as public
+  `candidate_has_operand_context_surface(...)` and
+  `table_row_has_matching_structured_sibling(...)` in
+  `financial_row_surfaces.py`. Calls project graph-external two/owner-local
+  zero. Current function counts are graph helpers 9/95 and row surfaces 7/15;
+  projected counts are 9/93 and 9/15. Both selected spans contain zero of the
+  218 reviewed runtime-domain records.
+- Candidate context projection preserves a shallow metadata copy, semantic-
+  alias/column-chain/table-row/table-summary/row/candidate-text order, repeated
+  string/strip and blank filtering, one-space join, and positive-contract-before-
+  operand-match short-circuit. Structured-sibling projection preserves raw
+  metadata access, row-record payload before value-record payload, blank skips,
+  `JSONDecodeError`-only soft continuation, row-label/semantic-label/row-header/
+  semantic-alias surface order, and first-hit short-circuit. Inputs remain
+  unchanged and all other errors remain uncaught.
+- Caller placement remains graph-owned. Direct grounding reaches sibling
+  projection only for lookup/single-value table rows after report/year gates;
+  a hit rejects before the delta-row check. Direct strength reaches context
+  projection only after aggregate-signal and lookup-surface success; a miss
+  skips the role/stage checks in that clause but not the later segment-combo
+  path. Exceptions stop the remaining caller work.
+- Moving direct grounding/acceptance, matching or strength policy, scoring/
+  ranking, record construction, candidate/evidence adoption, mutable state,
+  artifacts/ledger, or final sequencing is rejected. Four named CURRENT-SOURCE
+  methods and projected focused 4/4, owner 82/82, affected semantic
+  1,042/1,042, import 19/19, audit 218, full 1,935/1,935, public identity/body
+  parity 2/2, retained graph 102/102, retained row 22/22, caller/DAG parity,
+  retired-ref zero, and diff check are maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static definition,
+call, DAG, function-count, and selected-body baseline inspection passed;
+benchmark refresh and remote CI were **NOT RUN**.

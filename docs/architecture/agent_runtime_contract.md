@@ -4203,6 +4203,92 @@ parity, and retired executable graph-private refs zero. Static AST/DAG and
 selected-body baseline plus two existing role/stage caller probes passed;
 benchmark refresh and remote CI were **NOT RUN**.
 
+The candidate value-role/stage ownership boundary completed in `9092f5e`. The
+exact current 16/18-line graph-helper definitions now live in
+`financial_row_surfaces.py` as public `candidate_value_role(...)` and
+`candidate_aggregation_stage(...)`. Their 22 direct `ast.Name` calls, 11 per
+function, remain graph-external with one positional candidate argument, no
+keywords, and caller `try` depth zero; owner-local calls and retired executable
+graph-private refs are zero.
+
+Both public projections preserve a shallow copy of `candidate.metadata`,
+explicit-field precedence, exact aggregate-role maps, raw row-label-before-
+semantic-label fallback, stringification and normalization sites, exact
+case-sensitive comparisons, nested identity, input immutability, laziness, and
+all existing uncaught errors. Caller order and short circuits remain unchanged
+across semantic priority, direct grounding/acceptance, ratio acceptance,
+matching, direct strength, and scoring. Source moved `+59/-57`, tests
+`+1,167/-69`, and the whole commit `+1,226/-126`; graph helpers finish at 5,682
+lines and public/private 9/95, while row surfaces finish at 427 and 7/15. The
+source diff SHA-256 is
+`5bde3c6eb94508a4afab190cd3db4d866b265ff6f0103a028711e41c2159d8b8`.
+Focused 4/4, owner 78/78, affected semantic 1,038/1,038, import 19/19, audit 218,
+full 1,931/1,931, pycompile/fresh import/public identity 2/2, selected-body 2/2,
+retained graph 104/104, retained row 20/20, all 22 callers, DAG parity, retired-
+ref zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote CI
+remains unverified.
+
+The new characterize-only candidate row-context inventory selects the current
+15-line `_candidate_has_operand_context_surface(candidate, operand) -> bool`
+and 19-line `_table_row_has_matching_structured_sibling(metadata, operand) ->
+bool` graph definitions for a future public move to `financial_row_surfaces.py`
+as `candidate_has_operand_context_surface(...)` and
+`table_row_has_matching_structured_sibling(...)`. No production source or test
+has moved for this pair at this checkpoint. They project already supplied text/
+serialized row surfaces and do not own direct admission, match strength,
+scoring/ranking, candidate/evidence adoption, or graph state.
+
+Candidate operand-context projection first shallow-copies
+`candidate.get("metadata") or {}`. It assembles semantic aliases, column-header
+chain, table-row labels, table summary, row text, and candidate text in that
+order. Iterable members and then assembled parts retain their current repeated
+`str(...).strip()` evaluation, blank filtering, and one-space join. The positive
+surface contract is evaluated first; operand text matching is reached only
+after a false positive-contract result. The exact `context_text` value and the
+original operand object pass to both owners.
+
+Structured-sibling projection does not copy metadata. It checks
+`table_row_records_json` before `table_value_records_json`, applies the current
+`str(metadata.get(key) or "").strip()` access, and skips blank payloads. Only
+`json.JSONDecodeError` is soft and continues to the next payload. Parsed records
+retain input order, and each record's surfaces remain row label, semantic label,
+joined row headers, then joined semantic aliases. Blank surfaces are skipped;
+operand matching short-circuits the first surface, record, or payload hit and
+false is returned only after both positions are exhausted.
+
+Both projections preserve raw mapping and iterable behavior, `or` truth-value
+semantics, repeated stringification/stripping, shallow-copy and nested identity
+where applicable, input immutability, and every current uncaught mapping,
+iteration, truth-value, stringification, join, JSON-shape, surface-contract, and
+matcher error. The existing `JSONDecodeError` catch may not be broadened.
+
+Each helper has one direct graph call with two positional arguments, no
+keywords, and caller `try` depth zero. Direct grounding reaches the sibling
+projection only for lookup/single-value table rows after report/year gates and
+before the row-text delta gate; a hit rejects immediately, a miss reaches the
+delta gate, and an exception stops the caller. Direct strength reaches the
+context projection only after a truthy aggregate signal and successful lookup-
+surface match, before that clause's value-role/stage checks. A miss skips those
+checks but still reaches the later segment-combination path; a hit reaches them;
+an exception stops the caller.
+
+The row owner already owns operand text matching and reaches surface contracts
+on an existing one-way edge; it adds only standard-library `json` and positive-
+surface matching on that edge. Graph reaches row surfaces and row surfaces do
+not reach graph. Projected counts are graph helpers 9/93 and row surfaces 9/15,
+calls external two/local zero, and both selected spans have zero reviewed
+runtime-domain records. Moving caller bodies, direct grounding/acceptance,
+matching or strength policy, semantic priority, scoring/ranking, row/record
+construction, candidate/evidence adoption, or graph/artifact/ledger state is
+rejected. Four named CURRENT-SOURCE methods and exact contracts remain solely
+in [Project Status Next Work](../overview/project_status.md#next-work). Projected
+gates are focused 4/4, owner 82/82, affected semantic 1,042/1,042, import 19/19,
+audit 218, full 1,935/1,935, pycompile/fresh import/public identity 2/2,
+selected-body 2/2, retained graph 102/102, retained row 22/22, full caller/DAG
+parity, retired executable graph-private refs zero, and diff check. Static AST/
+call/DAG and selected-body baseline inventory passed; benchmark refresh and
+remote CI were **NOT RUN**.
+
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
 falls back only to the canonical `resolved_calculation_trace.calculation_result`.
