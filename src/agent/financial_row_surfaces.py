@@ -6,7 +6,7 @@ import re
 from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.agent.financial_surface_contracts import _operand_needles
+from src.agent.financial_surface_contracts import _operand_needles, _operand_segment_label, candidate_matches_segment_binding
 from src.config.retrieval_policy import HELPER_RUNTIME_POLICY
 
 
@@ -310,3 +310,29 @@ def _format_structured_candidate_row_text(
 
 def _generic_column_headers() -> set[str]:
     return set(str(item) for item in (HELPER_RUNTIME_POLICY.get("generic_column_headers") or ()) if str(item))
+
+
+def candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    segment_label = _operand_segment_label(operand)
+    if not segment_label:
+        return True
+    if candidate_matches_segment_binding(candidate, operand, strict=True):
+        return True
+    return candidate_supports_segment_metric_combo(candidate, operand)
+
+
+def candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
+    segment_label = _operand_segment_label(operand)
+    if not segment_label:
+        return False
+    if not candidate_matches_segment_binding(candidate, operand, strict=True):
+        return False
+
+    metadata = dict(candidate.get("metadata") or {})
+    metric_surfaces = [
+        str(metadata.get("table_row_labels_text") or "").strip(),
+        str(metadata.get("table_context") or "").strip(),
+        str(metadata.get("table_summary_text") or "").strip(),
+        " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
+    ]
+    return any(_operand_text_match(surface, operand) for surface in metric_surfaces if surface)

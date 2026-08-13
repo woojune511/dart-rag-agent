@@ -14,6 +14,7 @@ import src.agent.financial_graph_reconciliation as financial_graph_reconciliatio
 import src.agent.financial_dependency_projection as financial_dependency_projection
 import src.agent.financial_lookup_recovery as financial_lookup_recovery
 import src.agent.financial_reconciliation_candidates as financial_reconciliation_candidates
+import src.agent.financial_row_surfaces as financial_row_surfaces
 import src.agent.financial_scope_policies as financial_scope_policies
 import src.agent.financial_structured_cells as financial_structured_cells
 import src.agent.financial_surface_contracts as financial_surface_contracts
@@ -101,6 +102,601 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertEqual(years, before_years)
         self.assertEqual(report_scope, before_scope)
         self.assertIs(report_scope["nested"], nested)
+
+    def test_current_source_segment_local_binding_pins_order_identity_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        candidate = {
+            "metadata": {
+                "table_row_labels_text": "",
+                "table_context": "metric context",
+                "table_summary_text": "",
+                "column_headers_chain": [],
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        operand = {"label": "metric", "segment": "North", "nested": nested}
+        before_candidate = deepcopy(candidate)
+        before_operand = deepcopy(operand)
+
+        stopped_match = Mock(side_effect=AssertionError("empty segment must stop strict matching"))
+        stopped_support = Mock(side_effect=AssertionError("empty segment must stop fallback"))
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value=""),
+            patch.object(financial_row_surfaces, "candidate_matches_segment_binding", stopped_match),
+            patch.object(financial_row_surfaces, "candidate_supports_segment_metric_combo", stopped_support),
+        ):
+            self.assertTrue(
+                financial_row_surfaces.candidate_has_segment_local_binding(candidate, operand)
+            )
+        stopped_match.assert_not_called()
+        stopped_support.assert_not_called()
+
+        direct_events = []
+
+        def direct_segment(current_operand):
+            direct_events.append("segment")
+            self.assertIs(current_operand, operand)
+            return "North"
+
+        def direct_match(current_candidate, current_operand, *, strict):
+            direct_events.append("match")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            self.assertTrue(strict)
+            return True
+
+        stopped_support = Mock(side_effect=AssertionError("strict match must stop fallback"))
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", side_effect=direct_segment),
+            patch.object(
+                financial_row_surfaces,
+                "candidate_matches_segment_binding",
+                side_effect=direct_match,
+            ),
+            patch.object(financial_row_surfaces, "candidate_supports_segment_metric_combo", stopped_support),
+        ):
+            self.assertTrue(
+                financial_row_surfaces.candidate_has_segment_local_binding(candidate, operand)
+            )
+        self.assertEqual(direct_events, ["segment", "match"])
+        stopped_support.assert_not_called()
+
+        fallback_events = []
+
+        def fallback_segment(current_operand):
+            fallback_events.append("segment")
+            self.assertIs(current_operand, operand)
+            return "North"
+
+        def fallback_match(current_candidate, current_operand, *, strict):
+            fallback_events.append("match")
+            self.assertIs(current_candidate, candidate)
+            self.assertIs(current_operand, operand)
+            self.assertTrue(strict)
+            return len([event for event in fallback_events if event == "match"]) == 2
+
+        def fallback_surface(text, current_operand):
+            fallback_events.append(("surface", text))
+            self.assertIs(current_operand, operand)
+            return text == "metric context"
+
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", side_effect=fallback_segment),
+            patch.object(
+                financial_row_surfaces,
+                "candidate_matches_segment_binding",
+                side_effect=fallback_match,
+            ),
+            patch.object(financial_row_surfaces, "_operand_text_match", side_effect=fallback_surface),
+        ):
+            self.assertTrue(
+                financial_row_surfaces.candidate_has_segment_local_binding(candidate, operand)
+            )
+        self.assertEqual(
+            fallback_events,
+            ["segment", "match", "segment", "match", ("surface", "metric context")],
+        )
+
+        stopped_support = Mock(side_effect=AssertionError("strict exception must stop fallback"))
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(
+                financial_row_surfaces,
+                "candidate_matches_segment_binding",
+                side_effect=RuntimeError("segment match failed"),
+            ),
+            patch.object(financial_row_surfaces, "candidate_supports_segment_metric_combo", stopped_support),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment match failed"):
+                financial_row_surfaces.candidate_has_segment_local_binding(candidate, operand)
+        stopped_support.assert_not_called()
+
+        self.assertEqual(candidate, before_candidate)
+        self.assertEqual(operand, before_operand)
+        self.assertIs(candidate["nested"], nested)
+        self.assertIs(candidate["metadata"]["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+    def test_current_source_segment_metric_combo_pins_surface_order_copy_laziness_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        operand = {"label": "metric", "segment": "North", "nested": nested}
+
+        stopped_match = Mock(side_effect=AssertionError("empty segment must stop strict matching"))
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value=""),
+            patch.object(financial_row_surfaces, "candidate_matches_segment_binding", stopped_match),
+        ):
+            self.assertFalse(
+                financial_row_surfaces.candidate_supports_segment_metric_combo({}, operand)
+            )
+        stopped_match.assert_not_called()
+
+        stopped_copy = Mock(side_effect=AssertionError("segment mismatch must stop metadata copy"))
+        stopped_surface = Mock(side_effect=AssertionError("segment mismatch must stop surface matching"))
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "candidate_matches_segment_binding", return_value=False),
+            patch.object(financial_row_surfaces, "dict", stopped_copy, create=True),
+            patch.object(financial_row_surfaces, "_operand_text_match", stopped_surface),
+        ):
+            self.assertFalse(
+                financial_row_surfaces.candidate_supports_segment_metric_combo({}, operand)
+            )
+        stopped_copy.assert_not_called()
+        stopped_surface.assert_not_called()
+
+        string_events = []
+
+        class TrackedSurface:
+            def __init__(self, name, value):
+                self.name = name
+                self.value = value
+
+            def __str__(self):
+                string_events.append(self.name)
+                return self.value
+
+        row_surface = TrackedSurface("row", "")
+        context_surface = TrackedSurface("context", "metric context")
+        summary_surface = TrackedSurface("summary", "metric summary")
+        header_surface = TrackedSurface("header", "metric header")
+        blank_surface = TrackedSurface("blank", " ")
+        metadata = {
+            "table_row_labels_text": row_surface,
+            "table_context": context_surface,
+            "table_summary_text": summary_surface,
+            "column_headers_chain": [header_surface, blank_surface],
+            "nested": nested,
+        }
+        candidate = {"metadata": metadata, "nested": nested}
+        real_dict = dict
+        copies = []
+
+        def copy_mapping(value):
+            copied = real_dict(value)
+            copies.append((value, copied))
+            return copied
+
+        matched_surfaces = []
+
+        def match_surface(text, current_operand):
+            matched_surfaces.append(text)
+            self.assertIs(current_operand, operand)
+            return text == "metric summary"
+
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(
+                financial_row_surfaces,
+                "candidate_matches_segment_binding",
+                return_value=True,
+            ) as binding,
+            patch.object(financial_row_surfaces, "dict", side_effect=copy_mapping, create=True),
+            patch.object(financial_row_surfaces, "_operand_text_match", side_effect=match_surface),
+        ):
+            self.assertTrue(
+                financial_row_surfaces.candidate_supports_segment_metric_combo(candidate, operand)
+            )
+        binding.assert_called_once_with(candidate, operand, strict=True)
+        self.assertEqual(string_events, ["row", "context", "summary", "header", "header", "blank"])
+        self.assertEqual(matched_surfaces, ["metric context", "metric summary"])
+        self.assertEqual(len(copies), 1)
+        self.assertIs(copies[0][0], metadata)
+        self.assertIsNot(copies[0][1], metadata)
+        self.assertIs(copies[0][1]["nested"], nested)
+        self.assertIs(candidate["metadata"], metadata)
+        self.assertIs(candidate["nested"], nested)
+
+        failing_match = Mock(side_effect=RuntimeError("surface match failed"))
+        with (
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "candidate_matches_segment_binding", return_value=True),
+            patch.object(financial_row_surfaces, "_operand_text_match", failing_match),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "surface match failed"):
+                financial_row_surfaces.candidate_supports_segment_metric_combo(candidate, operand)
+        self.assertEqual(failing_match.call_count, 1)
+        self.assertIs(candidate["metadata"], metadata)
+        self.assertIs(metadata["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+    def test_current_source_segment_metric_bindings_pin_defs_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {
+            "candidate_has_segment_local_binding",
+            "candidate_supports_segment_metric_combo",
+        }
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {name: [] for name in target_names}
+        calls = {name: [] for name in target_names}
+        dependency_loads = {
+            "_operand_segment_label": [],
+            "candidate_matches_segment_binding": [],
+            "_operand_text_match": [],
+        }
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in target_names:
+                    calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+            def visit_Name(self, node):
+                if (
+                    isinstance(node.ctx, ast.Load)
+                    and node.id in dependency_loads
+                    and self.function_stack
+                    and self.function_stack[-1] in target_names
+                ):
+                    dependency_loads[node.id].append(
+                        (self.module_name, self.function_stack[-1])
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in entries
+                ]
+                for name, entries in definitions.items()
+            },
+            {
+                "candidate_has_segment_local_binding": [("financial_row_surfaces", 7)],
+                "candidate_supports_segment_metric_combo": [("financial_row_surfaces", 15)],
+            },
+        )
+        self.assertEqual(
+            {
+                name: (
+                    [arg.arg for arg in entries[0][1].args.args],
+                    [arg.arg for arg in entries[0][1].args.kwonlyargs],
+                )
+                for name, entries in definitions.items()
+            },
+            {
+                "candidate_has_segment_local_binding": (["candidate", "operand"], []),
+                "candidate_supports_segment_metric_combo": (["candidate", "operand"], []),
+            },
+        )
+        self.assertEqual(
+            {name: len(entries) for name, entries in calls.items()},
+            {
+                "candidate_has_segment_local_binding": 1,
+                "candidate_supports_segment_metric_combo": 2,
+            },
+        )
+        self.assertEqual(
+            {
+                name: sorted(entry[:2] for entry in entries)
+                for name, entries in calls.items()
+            },
+            {
+                "candidate_has_segment_local_binding": [
+                    ("financial_graph_helpers", "_deterministic_reconcile_task")
+                ],
+                "candidate_supports_segment_metric_combo": sorted([
+                    ("financial_graph_helpers", "_candidate_direct_match_strength"),
+                    ("financial_row_surfaces", "candidate_has_segment_local_binding"),
+                ]),
+            },
+        )
+        self.assertTrue(
+            all(entry[2] == "Name" for entries in calls.values() for entry in entries)
+        )
+        self.assertTrue(all(entry[3] == ("candidate", "operand") for entries in calls.values() for entry in entries))
+        self.assertTrue(all(entry[4] == () for entries in calls.values() for entry in entries))
+        self.assertTrue(all(entry[5] == 0 for entries in calls.values() for entry in entries))
+        self.assertEqual(
+            {name: len(entries) for name, entries in dependency_loads.items()},
+            {
+                "_operand_segment_label": 2,
+                "candidate_matches_segment_binding": 2,
+                "_operand_text_match": 1,
+            },
+        )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        row_defs = [
+            node
+            for node in module_trees["financial_row_surfaces"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in graph_defs),
+                sum(node.name.startswith("_") for node in graph_defs),
+            ),
+            (9, 110),
+        )
+        self.assertEqual(
+            (
+                sum(not node.name.startswith("_") for node in row_defs),
+                sum(node.name.startswith("_") for node in row_defs),
+            ),
+            (2, 15),
+        )
+
+        retired_names = {"_" + name for name in target_names}
+        self.assertFalse(retired_names & {node.name for node in graph_defs})
+
+        row_surface_imports = {
+            alias.name
+            for node in module_trees["financial_row_surfaces"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_surface_contracts"
+            for alias in node.names
+        }
+        graph_row_imports = {
+            alias.name
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_row_surfaces"
+            for alias in node.names
+        }
+        self.assertTrue(
+            {"_operand_segment_label", "candidate_matches_segment_binding"}
+            <= row_surface_imports
+        )
+        self.assertTrue(target_names <= graph_row_imports)
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(reaches("financial_graph_helpers", "financial_row_surfaces"))
+        self.assertTrue(reaches("financial_row_surfaces", "financial_surface_contracts"))
+        self.assertFalse(reaches("financial_row_surfaces", "financial_graph_helpers"))
+        self.assertFalse(reaches("financial_surface_contracts", "financial_row_surfaces"))
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8-sig"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for record in baseline["records"]:
+            if record.get("path") != "src/agent/financial_row_surfaces.py":
+                continue
+            for entries in definitions.values():
+                for _, node in entries:
+                    if any(
+                        node.lineno <= line <= node.end_lineno
+                        for line in record.get("first_lines") or []
+                    ):
+                        selected_hits.append(record)
+        self.assertEqual(selected_hits, [])
+
+    def test_current_source_segment_metric_callers_pin_args_filter_strength_and_stop(self) -> None:
+        nested = {"preserve": True}
+        operand = {
+            "label": "metric",
+            "segment": "North",
+            "required": True,
+            "nested": nested,
+        }
+        active_subtask = {
+            "task_id": "task-1",
+            "operation_family": "growth_rate",
+            "required_operands": [operand],
+            "constraints": {"nested": nested},
+            "nested": nested,
+        }
+        blocked = {"candidate_id": "blocked", "metadata": {}, "nested": nested}
+        kept = {"candidate_id": "kept", "metadata": {}, "nested": nested}
+        caller_events = []
+        caller_operands = []
+
+        def candidate_match(candidate, current_operand):
+            caller_events.append(("match", candidate["candidate_id"]))
+            caller_operands.append(current_operand)
+            return True
+
+        def local_binding(candidate, current_operand):
+            caller_events.append(("segment", candidate["candidate_id"]))
+            caller_operands.append(current_operand)
+            return candidate is kept
+
+        def score(candidate, **kwargs):
+            caller_events.append(("score", candidate["candidate_id"]))
+            self.assertIs(candidate, kept)
+            self.assertIs(kwargs["operand"], caller_operands[-1])
+            return 1.0
+
+        with (
+            patch.object(financial_graph_helpers, "_candidate_matches_operand", side_effect=candidate_match),
+            patch.object(financial_graph_helpers, "_operand_segment_label", return_value="North"),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_has_segment_local_binding",
+                side_effect=local_binding,
+            ) as local_owner,
+            patch.object(financial_graph_helpers, "_score_operand_candidate", side_effect=score) as scorer,
+            patch.object(
+                financial_graph_helpers,
+                "_candidate_is_direct_grounding_candidate",
+                return_value=True,
+            ),
+        ):
+            result = financial_graph_helpers._deterministic_reconcile_task(
+                active_subtask=active_subtask,
+                candidates=[blocked, kept],
+                years=[2024],
+                reconciliation_retry_count=0,
+                report_scope={"nested": nested},
+            )
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["matched_operands"][0]["candidate_ids"], ["kept"])
+        self.assertEqual(
+            caller_events,
+            [
+                ("match", "blocked"),
+                ("match", "kept"),
+                ("segment", "blocked"),
+                ("segment", "kept"),
+                ("score", "kept"),
+            ],
+        )
+        self.assertEqual(local_owner.call_count, 2)
+        scorer.assert_called_once()
+        projected_operand = local_owner.call_args_list[0].args[1]
+        self.assertIsNot(projected_operand, operand)
+        self.assertIs(projected_operand["nested"], nested)
+        self.assertIs(local_owner.call_args_list[1].args[1], projected_operand)
+
+        stopped_score = Mock(side_effect=AssertionError("segment exception must stop scoring"))
+        with (
+            patch.object(financial_graph_helpers, "_candidate_matches_operand", return_value=True),
+            patch.object(financial_graph_helpers, "_operand_segment_label", return_value="North"),
+            patch.object(
+                financial_graph_helpers,
+                "candidate_has_segment_local_binding",
+                side_effect=RuntimeError("segment gate failed"),
+            ),
+            patch.object(financial_graph_helpers, "_score_operand_candidate", stopped_score),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "segment gate failed"):
+                financial_graph_helpers._deterministic_reconcile_task(
+                    active_subtask=active_subtask,
+                    candidates=[blocked],
+                    years=[2024],
+                    reconciliation_retry_count=0,
+                )
+        stopped_score.assert_not_called()
+
+        strength_candidate = {"metadata": {}, "nested": nested}
+        strength_operand = {"nested": nested}
+        common_strength_patches = (
+            patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+            patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+            patch.object(
+                financial_graph_helpers,
+                "_operand_prefers_contextual_aggregate_match",
+                return_value=False,
+            ),
+        )
+        with ExitStack() as stack:
+            for current_patch in common_strength_patches:
+                stack.enter_context(current_patch)
+            combo = stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_supports_segment_metric_combo",
+                    return_value=True,
+                )
+            )
+            self.assertEqual(
+                financial_graph_helpers._candidate_direct_match_strength(
+                    strength_candidate,
+                    strength_operand,
+                ),
+                2.25,
+            )
+        combo.assert_called_once_with(strength_candidate, strength_operand)
+
+        with ExitStack() as stack:
+            for current_patch in common_strength_patches:
+                stack.enter_context(current_patch)
+            stack.enter_context(
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_supports_segment_metric_combo",
+                    side_effect=RuntimeError("metric combo failed"),
+                )
+            )
+            with self.assertRaisesRegex(RuntimeError, "metric combo failed"):
+                financial_graph_helpers._candidate_direct_match_strength(
+                    strength_candidate,
+                    strength_operand,
+                )
+        self.assertIs(strength_candidate["nested"], nested)
+        self.assertIs(strength_operand["nested"], nested)
 
     def test_current_source_candidate_required_surface_contract_pins_order_laziness_and_exceptions(self) -> None:
         nested = {"preserve": True}
@@ -577,9 +1173,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
         project_root = Path(__file__).resolve().parents[1]
         graph_path = project_root / "src" / "agent" / "financial_graph_helpers.py"
         reconciliation_path = project_root / "src" / "agent" / "financial_graph_reconciliation.py"
+        row_path = project_root / "src" / "agent" / "financial_row_surfaces.py"
         owner_path = project_root / "src" / "agent" / "financial_surface_contracts.py"
         graph_tree = ast.parse(graph_path.read_text(encoding="utf-8-sig"))
         reconciliation_tree = ast.parse(reconciliation_path.read_text(encoding="utf-8-sig"))
+        row_tree = ast.parse(row_path.read_text(encoding="utf-8-sig"))
         owner_tree = ast.parse(owner_path.read_text(encoding="utf-8-sig"))
         selected = {
             "candidate_has_required_surface_contract": 25,
@@ -640,6 +1238,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         for module_name, tree in (
             ("graph", graph_tree),
             ("reconciliation", reconciliation_tree),
+            ("row", row_tree),
             ("owner", owner_tree),
         ):
             parents = {}
@@ -809,11 +1408,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_scope.assert_not_called()
 
         with (
-            patch.object(financial_graph_helpers, "_operand_segment_label", return_value="North"),
-            patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=False) as match,
-            patch.object(financial_graph_helpers, "_candidate_supports_segment_metric_combo", return_value=True) as support,
+            patch.object(financial_row_surfaces, "_operand_segment_label", return_value="North"),
+            patch.object(financial_row_surfaces, "candidate_matches_segment_binding", return_value=False) as match,
+            patch.object(financial_row_surfaces, "candidate_supports_segment_metric_combo", return_value=True) as support,
         ):
-            self.assertTrue(financial_graph_helpers._candidate_has_segment_local_binding(candidate, operand))
+            self.assertTrue(financial_row_surfaces.candidate_has_segment_local_binding(candidate, operand))
         match.assert_called_once_with(candidate, operand, strict=True)
         support.assert_called_once_with(candidate, operand)
 
@@ -3067,7 +3666,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 112),
+            (9, 110),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -7654,7 +8253,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 112),
+            (9, 110),
         )
         self.assertEqual(
             (
@@ -8058,7 +8657,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for current_patch in common_context_patches:
                 stack.enter_context(current_patch)
             stack.enter_context(
-                patch.object(financial_graph_helpers, "_candidate_supports_segment_metric_combo", return_value=False)
+                patch.object(financial_graph_helpers, "candidate_supports_segment_metric_combo", return_value=False)
             )
             self.assertEqual(
                 financial_graph_helpers._candidate_direct_match_strength(contextual_candidate, operand),
