@@ -72,11 +72,15 @@ from src.agent.financial_surface_contracts import (
     _text_has_contract_term,
     _text_has_negative_surface,
     _text_has_positive_surface,
+    binding_policy_allows_candidate_shape,
+    candidate_consolidation_scope,
     candidate_has_numeric_value_signal,
     candidate_has_required_surface_contract,
     candidate_is_descriptor_row,
+    candidate_local_aggregate_context,
     candidate_matches_segment_binding,
     candidate_segment_binding_bonus,
+    candidate_selected_unit_family,
 )
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
@@ -4412,48 +4416,6 @@ def _operand_prefers_note_aggregate_lookup(operand: Dict[str, Any]) -> bool:
     )
 
 
-def _candidate_local_aggregate_context(candidate: Dict[str, Any]) -> str:
-    metadata = dict(candidate.get("metadata") or {})
-    return " ".join(
-        part
-        for part in (
-            str(metadata.get("local_heading") or "").strip(),
-            str(metadata.get("table_context") or "").strip(),
-            str(metadata.get("table_header_context") or "").strip(),
-            str(metadata.get("table_summary_text") or "").strip(),
-        )
-        if part
-    )
-
-
-def _candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
-    explicit = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
-    if explicit and explicit != "unknown":
-        return explicit
-
-    context_text = " ".join(
-        part
-        for part in (
-            str(metadata.get("local_heading") or "").strip(),
-            str(metadata.get("table_context") or "").strip(),
-            str(metadata.get("section_path") or "").strip(),
-            str(metadata.get("table_header_context") or "").strip(),
-        )
-        if part
-    )
-    normalized_context = _normalise_spaces(context_text)
-    scope_policy = dict(CONSOLIDATION_SCOPE_POLICY)
-    context_markers = dict(scope_policy.get("context_markers") or {})
-    if any(marker in normalized_context for marker in context_markers.get("consolidated") or ()):
-        return "consolidated"
-    if any(marker in normalized_context for marker in context_markers.get("separate") or ()):
-        return "separate"
-    for pattern in scope_policy.get("separate_section_patterns") or ():
-        if re.search(str(pattern), normalized_context):
-            return "separate"
-    return explicit or "unknown"
-
-
 def _candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     segment_label = _operand_segment_label(operand)
     if not segment_label:
@@ -4526,7 +4488,7 @@ def _candidate_source_priority_bonus(
                 score -= 0.5
 
     if _operand_prefers_contextual_aggregate_match(operand):
-        context_text = _candidate_local_aggregate_context(candidate)
+        context_text = candidate_local_aggregate_context(candidate)
         if (
             value_role == "aggregate"
             and aggregation_stage in {"final", "subtotal", "direct"}
@@ -4590,46 +4552,6 @@ def _candidate_period_table_coherence_bonus(
     return score
 
 
-def _binding_policy_allows_candidate_shape(
-    *,
-    value_role: str,
-    aggregation_stage: str,
-    operand_binding_policy: Dict[str, Any],
-) -> bool:
-    normalized_value_role = _normalise_spaces(value_role)
-    normalized_stage = _normalise_spaces(aggregation_stage)
-    avoid_value_roles = {
-        _normalise_spaces(str(item))
-        for item in (operand_binding_policy.get("avoid_value_roles") or [])
-        if str(item).strip()
-    }
-    avoid_aggregation_stages = {
-        _normalise_spaces(str(item))
-        for item in (operand_binding_policy.get("avoid_aggregation_stages") or [])
-        if str(item).strip()
-    }
-    if normalized_value_role and normalized_value_role in avoid_value_roles:
-        return False
-    if normalized_stage and normalized_stage in avoid_aggregation_stages:
-        return False
-
-    preferred_value_roles = {
-        _normalise_spaces(str(item))
-        for item in (operand_binding_policy.get("prefer_value_roles") or [])
-        if str(item).strip()
-    }
-    preferred_aggregation_stages = {
-        _normalise_spaces(str(item))
-        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
-        if str(item).strip()
-    }
-    if preferred_value_roles and normalized_value_role not in preferred_value_roles:
-        return False
-    if preferred_aggregation_stages and normalized_stage not in preferred_aggregation_stages:
-        return False
-    return True
-
-
 def _table_row_has_matching_structured_sibling(metadata: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     for key in ("table_row_records_json", "table_value_records_json"):
         payload = str(metadata.get(key) or "").strip()
@@ -4677,7 +4599,7 @@ def _candidate_is_direct_grounding_candidate(
     value_role = _candidate_value_role(candidate)
     aggregation_stage = _candidate_aggregation_stage(candidate)
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
-    if not _binding_policy_allows_candidate_shape(
+    if not binding_policy_allows_candidate_shape(
         value_role=value_role,
         aggregation_stage=aggregation_stage,
         operand_binding_policy=operand_binding_policy,
@@ -4691,7 +4613,7 @@ def _candidate_is_direct_grounding_candidate(
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
     if desired_consolidation == "unknown":
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()
-    candidate_consolidation = _candidate_consolidation_scope(metadata)
+    candidate_consolidation = candidate_consolidation_scope(metadata)
     if (
         desired_consolidation != "unknown"
         and candidate_consolidation != "unknown"
@@ -4826,7 +4748,7 @@ def _candidate_satisfies_direct_acceptance_contract(
 
     if operation_family in {"lookup", "single_value"}:
         desired_unit_family = _normalise_spaces(str(operand.get("unit_family") or "")).upper()
-        candidate_unit_family = _candidate_selected_unit_family(candidate, selected_cell=selected_cell)
+        candidate_unit_family = candidate_selected_unit_family(candidate, selected_cell=selected_cell)
         if (
             desired_unit_family in {"KRW", "USD", "COUNT", "PERCENT"}
             and candidate_unit_family
@@ -4944,7 +4866,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     )
     if not aggregate_like:
         return False
-    if not _binding_policy_allows_candidate_shape(
+    if not binding_policy_allows_candidate_shape(
         value_role=value_role,
         aggregation_stage=aggregation_stage,
         operand_binding_policy=dict(operand.get("binding_policy") or {}),
@@ -4970,48 +4892,6 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     if desired_period_focus == "prior" and candidate_period_focus == "current" and not target_year_match:
         return False
     return True
-
-
-def _candidate_selected_unit_family(
-    candidate: Dict[str, Any],
-    *,
-    selected_cell: Optional[Dict[str, Any]] = None,
-) -> str:
-    metadata = dict(candidate.get("metadata") or {})
-    raw_value = _normalise_spaces(
-        str(
-            (selected_cell or {}).get("value_text")
-            or metadata.get("value_text")
-            or metadata.get("raw_value")
-            or ""
-        )
-    )
-    raw_unit = _normalise_spaces(
-        str(
-            (selected_cell or {}).get("unit_hint")
-            or metadata.get("unit_hint")
-            or metadata.get("raw_unit")
-            or ""
-        )
-    )
-    if raw_value or raw_unit:
-        _, normalized_unit = _normalise_operand_value(raw_value or "1", raw_unit)
-        if normalized_unit and normalized_unit != "UNKNOWN":
-            return normalized_unit
-    label_text = _normalise_spaces(
-        " ".join(
-            str(part or "").strip()
-            for part in (
-                metadata.get("semantic_label"),
-                metadata.get("row_label"),
-                metadata.get("aggregate_label"),
-            )
-            if str(part or "").strip()
-        )
-    )
-    if _label_implies_percent_metric(label_text):
-        return "PERCENT"
-    return ""
 
 
 def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
@@ -5072,7 +4952,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
             ):
                 return True
     if _operand_prefers_contextual_aggregate_match(operand):
-        section_context = _candidate_local_aggregate_context(candidate)
+        section_context = candidate_local_aggregate_context(candidate)
         aggregate_surface = _normalise_spaces(
             " ".join(
                 part
@@ -5195,7 +5075,7 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
             ):
                 best = max(best, 2.25)
     if _operand_prefers_contextual_aggregate_match(operand):
-        context_text = _candidate_local_aggregate_context(candidate)
+        context_text = candidate_local_aggregate_context(candidate)
         if (
             _text_has_positive_surface(context_text, operand)
             and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
@@ -5481,7 +5361,7 @@ def _score_operand_candidate(
             score -= 1.5
 
     desired_consolidation = str((constraints or {}).get("consolidation_scope") or "unknown").strip()
-    candidate_consolidation = _candidate_consolidation_scope(metadata)
+    candidate_consolidation = candidate_consolidation_scope(metadata)
     desired_period_focus = operand_period_focus(operand, str((constraints or {}).get("period_focus") or "unknown").strip())
     if desired_consolidation == "unknown":
         desired_consolidation = str(operand_binding_policy.get("prefer_consolidation_scope") or "unknown").strip()

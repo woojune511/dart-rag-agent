@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
-from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.config.retrieval_policy import HELPER_RUNTIME_POLICY
+from src.agent.financial_operation_policies import _label_implies_percent_metric
+from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
+from src.config.retrieval_policy import CONSOLIDATION_SCOPE_POLICY, HELPER_RUNTIME_POLICY
 
 
 def _operand_needles(operand: Dict[str, Any]) -> List[str]:
@@ -67,6 +68,130 @@ def _text_has_positive_surface(text: str, operand: Dict[str, Any]) -> bool:
 def _text_has_negative_surface(text: str, operand: Dict[str, Any]) -> bool:
     contract = _operand_surface_contract(operand)
     return _text_has_contract_term(text, list(contract.get("negative") or []))
+
+
+def candidate_local_aggregate_context(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    return " ".join(
+        part
+        for part in (
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("table_header_context") or "").strip(),
+            str(metadata.get("table_summary_text") or "").strip(),
+        )
+        if part
+    )
+
+
+def candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
+    explicit = _normalise_spaces(str(metadata.get("consolidation_scope") or "unknown"))
+    if explicit and explicit != "unknown":
+        return explicit
+
+    context_text = " ".join(
+        part
+        for part in (
+            str(metadata.get("local_heading") or "").strip(),
+            str(metadata.get("table_context") or "").strip(),
+            str(metadata.get("section_path") or "").strip(),
+            str(metadata.get("table_header_context") or "").strip(),
+        )
+        if part
+    )
+    normalized_context = _normalise_spaces(context_text)
+    scope_policy = dict(CONSOLIDATION_SCOPE_POLICY)
+    context_markers = dict(scope_policy.get("context_markers") or {})
+    if any(marker in normalized_context for marker in context_markers.get("consolidated") or ()):
+        return "consolidated"
+    if any(marker in normalized_context for marker in context_markers.get("separate") or ()):
+        return "separate"
+    for pattern in scope_policy.get("separate_section_patterns") or ():
+        if re.search(str(pattern), normalized_context):
+            return "separate"
+    return explicit or "unknown"
+
+
+def binding_policy_allows_candidate_shape(
+    *,
+    value_role: str,
+    aggregation_stage: str,
+    operand_binding_policy: Dict[str, Any],
+) -> bool:
+    normalized_value_role = _normalise_spaces(value_role)
+    normalized_stage = _normalise_spaces(aggregation_stage)
+    avoid_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_value_roles") or [])
+        if str(item).strip()
+    }
+    avoid_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("avoid_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    if normalized_value_role and normalized_value_role in avoid_value_roles:
+        return False
+    if normalized_stage and normalized_stage in avoid_aggregation_stages:
+        return False
+
+    preferred_value_roles = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("prefer_value_roles") or [])
+        if str(item).strip()
+    }
+    preferred_aggregation_stages = {
+        _normalise_spaces(str(item))
+        for item in (operand_binding_policy.get("prefer_aggregation_stages") or [])
+        if str(item).strip()
+    }
+    if preferred_value_roles and normalized_value_role not in preferred_value_roles:
+        return False
+    if preferred_aggregation_stages and normalized_stage not in preferred_aggregation_stages:
+        return False
+    return True
+
+
+def candidate_selected_unit_family(
+    candidate: Dict[str, Any],
+    *,
+    selected_cell: Optional[Dict[str, Any]] = None,
+) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    raw_value = _normalise_spaces(
+        str(
+            (selected_cell or {}).get("value_text")
+            or metadata.get("value_text")
+            or metadata.get("raw_value")
+            or ""
+        )
+    )
+    raw_unit = _normalise_spaces(
+        str(
+            (selected_cell or {}).get("unit_hint")
+            or metadata.get("unit_hint")
+            or metadata.get("raw_unit")
+            or ""
+        )
+    )
+    if raw_value or raw_unit:
+        _, normalized_unit = _normalise_operand_value(raw_value or "1", raw_unit)
+        if normalized_unit and normalized_unit != "UNKNOWN":
+            return normalized_unit
+    label_text = _normalise_spaces(
+        " ".join(
+            str(part or "").strip()
+            for part in (
+                metadata.get("semantic_label"),
+                metadata.get("row_label"),
+                metadata.get("aggregate_label"),
+            )
+            if str(part or "").strip()
+        )
+    )
+    if _label_implies_percent_metric(label_text):
+        return "PERCENT"
+    return ""
 
 
 def candidate_has_required_surface_contract(
