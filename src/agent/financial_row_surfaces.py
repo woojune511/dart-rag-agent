@@ -355,3 +355,35 @@ def candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand: 
         " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
     ]
     return any(_operand_text_match(surface, operand) for surface in metric_surfaces if surface)
+
+
+def candidate_sibling_surface_hit_count(candidate: Dict[str, Any], sibling_surfaces: List[str]) -> int:
+    if not sibling_surfaces:
+        return 0
+    metadata = dict(candidate.get("metadata") or {})
+    haystack = _normalise_spaces(
+        " ".join(
+            part
+            for part in (
+                str(metadata.get("table_row_labels_text") or ""),
+                str(metadata.get("table_value_labels_text") or ""),
+                str(metadata.get("table_summary_text") or ""),
+                str(metadata.get("row_context_text") or ""),
+                str(metadata.get("row_text") or ""),
+                str(candidate.get("text") or ""),
+            )
+            if part
+        )
+    )
+    if not haystack:
+        return 0
+    compact_haystack = re.sub(r"\s+", "", haystack)
+    hits = 0
+    for surface in list(dict.fromkeys(sibling_surfaces)):
+        normalized = _strip_leading_period_qualifiers(_normalise_spaces(str(surface or "")))
+        if not normalized:
+            continue
+        compact_surface = re.sub(r"\s+", "", normalized)
+        if normalized in haystack or (compact_surface and compact_surface in compact_haystack):
+            hits += 1
+    return hits
