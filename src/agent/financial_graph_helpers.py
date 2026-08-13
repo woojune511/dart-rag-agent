@@ -93,9 +93,11 @@ from src.agent.financial_row_surfaces import (
     _surface_match_variants,
     aggregate_like_row_role,
     aggregate_like_row_stage,
+    candidate_aggregation_stage,
     candidate_has_segment_local_binding,
     candidate_sibling_surface_hit_count,
     candidate_supports_segment_metric_combo,
+    candidate_value_role,
 )
 from src.agent.financial_structured_cells import (
     _structured_cell_period_text,
@@ -741,8 +743,8 @@ def _direct_candidate_semantic_priority(
     ]
 
     statement_type = _normalise_spaces(str(metadata.get("statement_type") or ""))
-    value_role = _candidate_value_role(candidate)
-    aggregation_stage = _candidate_aggregation_stage(candidate)
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
     direct_match_strength = _candidate_direct_match_strength(candidate, operand)
     candidate_kind = _normalise_spaces(str(candidate.get("candidate_kind") or ""))
 
@@ -4107,44 +4109,6 @@ def _resolve_candidate_local_unit_hint(candidate: Dict[str, Any], raw_value: str
     return resolved
 
 
-def _candidate_value_role(candidate: Dict[str, Any]) -> str:
-    metadata = dict(candidate.get("metadata") or {})
-    explicit = _normalise_spaces(str(metadata.get("value_role") or ""))
-    if explicit:
-        return explicit
-    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
-    if aggregate_role == "adjustment":
-        return "adjustment"
-    if aggregate_role in {"direct_total", "subtotal", "final_total"}:
-        return "aggregate"
-    inferred_role = aggregate_like_row_role(
-        str(metadata.get("row_label") or metadata.get("semantic_label") or "")
-    )
-    if inferred_role == "aggregate":
-        return inferred_role
-    return "detail"
-
-
-def _candidate_aggregation_stage(candidate: Dict[str, Any]) -> str:
-    metadata = dict(candidate.get("metadata") or {})
-    explicit = _normalise_spaces(str(metadata.get("aggregation_stage") or ""))
-    if explicit:
-        return explicit
-    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
-    if aggregate_role == "direct_total":
-        return "direct"
-    if aggregate_role == "subtotal":
-        return "subtotal"
-    if aggregate_role == "final_total":
-        return "final"
-    inferred_stage = aggregate_like_row_stage(
-        str(metadata.get("row_label") or metadata.get("semantic_label") or "")
-    )
-    if inferred_stage != "none":
-        return inferred_stage
-    return "none"
-
-
 def _preference_bonus(value: str, preferred: List[str], *, base: float = 0.4) -> float:
     ordered = [_normalise_spaces(item) for item in preferred if _normalise_spaces(item)]
     target = _normalise_spaces(value)
@@ -4378,8 +4342,8 @@ def _candidate_is_direct_grounding_candidate(
         return False
 
     operand_binding_policy = dict(operand.get("binding_policy") or {})
-    value_role = _candidate_value_role(candidate)
-    aggregation_stage = _candidate_aggregation_stage(candidate)
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
     if not binding_policy_allows_candidate_shape(
         value_role=value_role,
@@ -4542,8 +4506,8 @@ def _candidate_satisfies_direct_acceptance_contract(
             return False
 
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
-    value_role = _candidate_value_role(candidate)
-    aggregation_stage = _candidate_aggregation_stage(candidate)
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
     local_heading = _normalise_spaces(
         str(metadata.get("local_heading") or metadata.get("table_context") or metadata.get("section_path") or "")
     )
@@ -4633,8 +4597,8 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     ):
         return False
 
-    value_role = _candidate_value_role(candidate)
-    aggregation_stage = _candidate_aggregation_stage(candidate)
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
     direct_row_like = (
         candidate_kind in {"table_row", "evidence_row"}
         and selected_cell is not None
@@ -4730,7 +4694,7 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
         if preferred_sections and any(section in _normalise_spaces(section_context) for section in preferred_sections):
             if (
                 _text_has_positive_surface(section_context, operand)
-                and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+                and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 return True
     if _operand_prefers_contextual_aggregate_match(operand):
@@ -4747,8 +4711,8 @@ def _candidate_matches_operand(candidate: Dict[str, Any], operand: Dict[str, Any
             )
         )
         aggregate_like = (
-            _candidate_value_role(candidate) == "aggregate"
-            or _candidate_aggregation_stage(candidate) in {"final", "subtotal"}
+            candidate_value_role(candidate) == "aggregate"
+            or candidate_aggregation_stage(candidate) in {"final", "subtotal"}
             or aggregate_like_row_stage(aggregate_surface) != "none"
         )
         if (
@@ -4853,14 +4817,14 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
         ):
             if (
                 _text_has_positive_surface(context_text, operand)
-                and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+                and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
             ):
                 best = max(best, 2.25)
     if _operand_prefers_contextual_aggregate_match(operand):
         context_text = candidate_local_aggregate_context(candidate)
         if (
             _text_has_positive_surface(context_text, operand)
-            and (_candidate_value_role(candidate) == "aggregate" or _candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
+            and (candidate_value_role(candidate) == "aggregate" or candidate_aggregation_stage(candidate) in {"final", "direct", "subtotal"})
         ):
             best = max(best, 2.0)
     aggregate_signal = _normalise_spaces(
@@ -4877,16 +4841,16 @@ def _candidate_direct_match_strength(candidate: Dict[str, Any], operand: Dict[st
     if (
         aggregate_signal
         and _operand_text_match(aggregate_signal, operand)
-        and _candidate_value_role(candidate) == "aggregate"
-        and _candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
+        and candidate_value_role(candidate) == "aggregate"
+        and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
     ):
         best = max(best, 2.25)
     if (
         aggregate_signal
         and operand_lookup_surface_match(aggregate_signal, operand)
         and _candidate_has_operand_context_surface(candidate, operand)
-        and _candidate_value_role(candidate) == "aggregate"
-        and _candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
+        and candidate_value_role(candidate) == "aggregate"
+        and candidate_aggregation_stage(candidate) in {"direct", "final", "subtotal"}
     ):
         best = max(best, 2.25)
     if candidate_supports_segment_metric_combo(candidate, operand):
@@ -5018,8 +4982,8 @@ def _score_operand_candidate(
     ):
         score += 4.0
 
-    value_role = _candidate_value_role(candidate)
-    aggregation_stage = _candidate_aggregation_stage(candidate)
+    value_role = candidate_value_role(candidate)
+    aggregation_stage = candidate_aggregation_stage(candidate)
     if aggregation_stage == "final":
         score += 1.5
     elif aggregation_stage == "direct":

@@ -473,14 +473,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 97),
+            (9, 95),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (5, 15),
+            (7, 15),
         )
 
         retired_names = {"_" + name for name in target_names}
@@ -1331,8 +1331,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             "candidate_is_descriptor_row": False,
             "candidate_has_numeric_value_signal": True,
             "_candidate_direct_match_strength": 1.0,
-            "_candidate_value_role": "aggregate",
-            "_candidate_aggregation_stage": "final",
+            "candidate_value_role": "aggregate",
+            "candidate_aggregation_stage": "final",
             "binding_policy_allows_candidate_shape": True,
             "lookup_prefers_canonical_statement_rows": False,
             "candidate_consolidation_scope": "unknown",
@@ -1385,8 +1385,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=1.0),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
             patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
@@ -1807,7 +1807,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sorted(
                 [
                     ("financial_graph_helpers", "_build_table_row_reconciliation_candidates"),
-                    ("financial_graph_helpers", "_candidate_aggregation_stage"),
+                    (expected_owner, "candidate_aggregation_stage"),
                     ("financial_graph_helpers", "_candidate_matches_operand"),
                     (expected_owner, role_name),
                 ]
@@ -1818,7 +1818,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sorted(
                 [
                     ("financial_graph_helpers", "_build_table_row_reconciliation_candidates"),
-                    ("financial_graph_helpers", "_candidate_value_role"),
+                    (expected_owner, "candidate_value_role"),
                 ]
             ),
         )
@@ -1874,14 +1874,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 97),
+            (9, 95),
         )
         self.assertEqual(
             (
                 sum(not node.name.startswith("_") for node in row_defs),
                 sum(node.name.startswith("_") for node in row_defs),
             ),
-            (5, 15),
+            (7, 15),
         )
 
         graph_row_imports = {
@@ -2011,9 +2011,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(candidate_metadata["nested"], nested)
 
         stopped_stage = Mock(side_effect=AssertionError("explicit value role must stop row inference"))
-        with patch.object(financial_graph_helpers, "aggregate_like_row_role", stopped_stage):
+        with patch.object(financial_row_surfaces, "aggregate_like_row_role", stopped_stage):
             self.assertEqual(
-                financial_graph_helpers._candidate_value_role(
+                financial_row_surfaces.candidate_value_role(
                     {"metadata": {"value_role": " custom ", "row_label": "ignored"}}
                 ),
                 "custom",
@@ -2021,9 +2021,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_stage.assert_not_called()
 
         stopped_stage = Mock(side_effect=AssertionError("aggregate role must stop row inference"))
-        with patch.object(financial_graph_helpers, "aggregate_like_row_role", stopped_stage):
+        with patch.object(financial_row_surfaces, "aggregate_like_row_role", stopped_stage):
             self.assertEqual(
-                financial_graph_helpers._candidate_value_role(
+                financial_row_surfaces.candidate_value_role(
                     {"metadata": {"aggregate_role": "subtotal", "row_label": "ignored"}}
                 ),
                 "aggregate",
@@ -2031,9 +2031,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_stage.assert_not_called()
 
         role_fallback = Mock(return_value="aggregate")
-        with patch.object(financial_graph_helpers, "aggregate_like_row_role", role_fallback):
+        with patch.object(financial_row_surfaces, "aggregate_like_row_role", role_fallback):
             self.assertEqual(
-                financial_graph_helpers._candidate_value_role(
+                financial_row_surfaces.candidate_value_role(
                     {"metadata": {"semantic_label": "Semantic Label"}}
                 ),
                 "aggregate",
@@ -2041,9 +2041,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         role_fallback.assert_called_once_with("Semantic Label")
 
         stopped_stage = Mock(side_effect=AssertionError("explicit stage must stop row inference"))
-        with patch.object(financial_graph_helpers, "aggregate_like_row_stage", stopped_stage):
+        with patch.object(financial_row_surfaces, "aggregate_like_row_stage", stopped_stage):
             self.assertEqual(
-                financial_graph_helpers._candidate_aggregation_stage(
+                financial_row_surfaces.candidate_aggregation_stage(
                     {"metadata": {"aggregation_stage": " custom ", "row_label": "ignored"}}
                 ),
                 "custom",
@@ -2051,9 +2051,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_stage.assert_not_called()
 
         stopped_stage = Mock(side_effect=AssertionError("aggregate role must stop row inference"))
-        with patch.object(financial_graph_helpers, "aggregate_like_row_stage", stopped_stage):
+        with patch.object(financial_row_surfaces, "aggregate_like_row_stage", stopped_stage):
             self.assertEqual(
-                financial_graph_helpers._candidate_aggregation_stage(
+                financial_row_surfaces.candidate_aggregation_stage(
                     {"metadata": {"aggregate_role": "direct_total", "row_label": "ignored"}}
                 ),
                 "direct",
@@ -2061,9 +2061,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_stage.assert_not_called()
 
         stage_fallback = Mock(return_value="subtotal")
-        with patch.object(financial_graph_helpers, "aggregate_like_row_stage", stage_fallback):
+        with patch.object(financial_row_surfaces, "aggregate_like_row_stage", stage_fallback):
             self.assertEqual(
-                financial_graph_helpers._candidate_aggregation_stage(
+                financial_row_surfaces.candidate_aggregation_stage(
                     {"metadata": {"semantic_label": "Semantic Label"}}
                 ),
                 "subtotal",
@@ -2092,8 +2092,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with ExitStack() as stack:
             for current_patch in common_patches:
                 stack.enter_context(current_patch)
-            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"))
-            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="none"))
+            stack.enter_context(patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"))
+            stack.enter_context(patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"))
             stack.enter_context(patch.object(financial_graph_helpers, "aggregate_like_row_stage", stopped_stage))
             self.assertTrue(financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand))
         stopped_stage.assert_not_called()
@@ -2102,8 +2102,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with ExitStack() as stack:
             for current_patch in common_patches:
                 stack.enter_context(current_patch)
-            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_value_role", return_value="detail"))
-            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="none"))
+            stack.enter_context(patch.object(financial_graph_helpers, "candidate_value_role", return_value="detail"))
+            stack.enter_context(patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"))
             stack.enter_context(patch.object(financial_graph_helpers, "aggregate_like_row_stage", raw_stage))
             self.assertTrue(financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand))
         raw_stage.assert_called_once_with("Aggregate Row Semantic")
@@ -2113,8 +2113,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for current_patch in common_patches[:-1]:
                 stack.enter_context(current_patch)
             stack.enter_context(patch.object(financial_graph_helpers, "_text_has_positive_surface", stopped_positive))
-            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_value_role", return_value="detail"))
-            stack.enter_context(patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="none"))
+            stack.enter_context(patch.object(financial_graph_helpers, "candidate_value_role", return_value="detail"))
+            stack.enter_context(patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="none"))
             stack.enter_context(
                 patch.object(
                     financial_graph_helpers,
@@ -2125,6 +2125,1104 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "stage failed"):
                 financial_graph_helpers._candidate_matches_operand(contextual_candidate, operand)
         stopped_positive.assert_not_called()
+
+    def test_current_source_candidate_value_role_pins_precedence_laziness_identity_and_exceptions(self) -> None:
+        public_name = "candidate_value_role"
+        target_name = public_name
+        target_owner = financial_row_surfaces
+        target = getattr(target_owner, target_name)
+        real_dict = dict
+        real_normalize = target_owner._normalise_spaces
+        events = []
+        nested = {"preserve": True}
+
+        class CandidateProbe:
+            def __init__(self, metadata):
+                self.metadata = metadata
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("candidate", "get", key, default))
+                return self.metadata
+
+        class RecordingCopy(dict):
+            def __init__(self, value):
+                super().__init__(value)
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("metadata-copy", "get", key, default))
+                return super().get(key, default)
+
+        class DictOwner:
+            def __init__(self):
+                self.inputs = []
+                self.results = []
+
+            def __call__(self, value):
+                self.inputs.append(value)
+                events.append(("dict", "copy", value))
+                result = RecordingCopy(real_dict(value))
+                self.results.append(result)
+                return result
+
+        normalization_inputs = []
+
+        def normalize(value):
+            normalization_inputs.append(value)
+            events.append(("normalize", value))
+            return real_normalize(value)
+
+        metadata = {
+            "value_role": " explicit-role ",
+            "aggregate_role": "stopped-role",
+            "row_label": "stopped-row",
+            "semantic_label": "stopped-semantic",
+            "nested": nested,
+        }
+        candidate = CandidateProbe(metadata)
+        dict_owner = DictOwner()
+        stopped_row_owner = Mock(
+            side_effect=AssertionError("explicit value role must stop row fallback")
+        )
+        with (
+            patch.object(target_owner, "dict", dict_owner, create=True),
+            patch.object(target_owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(target_owner, "aggregate_like_row_role", stopped_row_owner),
+        ):
+            self.assertEqual(target(candidate), "explicit-role")
+        stopped_row_owner.assert_not_called()
+        self.assertEqual(candidate.get_calls, [("metadata", None)])
+        self.assertEqual(dict_owner.inputs, [metadata])
+        self.assertIsNot(dict_owner.results[0], metadata)
+        self.assertIs(dict_owner.results[0]["nested"], nested)
+        self.assertEqual(dict_owner.results[0].get_calls, [("value_role", None)])
+        self.assertEqual(normalization_inputs, [" explicit-role "])
+        self.assertEqual(
+            [event[:3] for event in events],
+            [
+                ("candidate", "get", "metadata"),
+                ("dict", "copy", metadata),
+                ("metadata-copy", "get", "value_role"),
+                ("normalize", " explicit-role "),
+            ],
+        )
+        self.assertIs(metadata["nested"], nested)
+
+        mapped_cases = [
+            ("adjustment", "adjustment"),
+            ("direct_total", "aggregate"),
+            ("subtotal", "aggregate"),
+            ("final_total", "aggregate"),
+        ]
+        for aggregate_role, expected in mapped_cases:
+            with self.subTest(aggregate_role=aggregate_role):
+                current = {
+                    "metadata": {
+                        "value_role": "",
+                        "aggregate_role": aggregate_role,
+                        "row_label": "stopped",
+                        "nested": nested,
+                    }
+                }
+                before = deepcopy(current)
+                stopped_row_owner = Mock(
+                    side_effect=AssertionError("mapped aggregate role must stop row fallback")
+                )
+                with patch.object(
+                    target_owner,
+                    "aggregate_like_row_role",
+                    stopped_row_owner,
+                ):
+                    self.assertEqual(target(current), expected)
+                stopped_row_owner.assert_not_called()
+                self.assertEqual(current, before)
+                self.assertIs(current["metadata"]["nested"], nested)
+
+        class SemanticStringBomb:
+            def __str__(self):
+                raise AssertionError("truthy row label must stop semantic stringification")
+
+        row_owner = Mock(side_effect=["aggregate", "custom", "Aggregate", "detail"])
+        row_candidate = {
+            "metadata": {
+                "row_label": "Row Label",
+                "semantic_label": SemanticStringBomb(),
+                "nested": nested,
+            }
+        }
+        before_row_candidate = dict(row_candidate["metadata"])
+        with patch.object(target_owner, "aggregate_like_row_role", row_owner):
+            self.assertEqual(target(row_candidate), "aggregate")
+            self.assertEqual(
+                target({"metadata": {"row_label": "", "semantic_label": "Semantic Label"}}),
+                "detail",
+            )
+            self.assertEqual(
+                target({"metadata": {"row_label": "  ", "semantic_label": "ignored"}}),
+                "detail",
+            )
+            self.assertEqual(target({"metadata": None}), "detail")
+        self.assertEqual(
+            [call.args for call in row_owner.call_args_list],
+            [("Row Label",), ("Semantic Label",), ("  ",), ("",)],
+        )
+        self.assertEqual(row_candidate["metadata"], before_row_candidate)
+        self.assertIs(row_candidate["metadata"]["nested"], nested)
+
+        class CandidateGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("candidate metadata get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "candidate metadata get failed"):
+            target(CandidateGetFailure())
+
+        class MetadataTruthFailure:
+            def __bool__(self):
+                raise RuntimeError("metadata truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata truth failed"):
+            target(CandidateProbe(MetadataTruthFailure()))
+
+        copy_owner = Mock(side_effect=RuntimeError("metadata copy failed"))
+        with patch.object(target_owner, "dict", copy_owner, create=True):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                target({"metadata": {}})
+        copy_owner.assert_called_once()
+
+        class CopyGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("metadata field get failed")
+
+        with patch.object(target_owner, "dict", return_value=CopyGetFailure(), create=True):
+            with self.assertRaisesRegex(RuntimeError, "metadata field get failed"):
+                target({"metadata": {}})
+
+        class StringFailure:
+            def __str__(self):
+                raise RuntimeError("value role string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "value role string failed"):
+            target({"metadata": {"value_role": StringFailure()}})
+
+        stopped_row_owner = Mock(side_effect=AssertionError("normalization failure must stop row fallback"))
+        with (
+            patch.object(
+                target_owner,
+                "_normalise_spaces",
+                side_effect=RuntimeError("value role normalization failed"),
+            ),
+            patch.object(target_owner, "aggregate_like_row_role", stopped_row_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "value role normalization failed"):
+                target({"metadata": {"value_role": "value"}})
+        stopped_row_owner.assert_not_called()
+
+        with patch.object(target_owner, "_normalise_spaces", side_effect=["", []]):
+            with self.assertRaises(TypeError):
+                target({"metadata": {"aggregate_role": "role"}})
+
+        with patch.object(
+            target_owner,
+            "aggregate_like_row_role",
+            side_effect=RuntimeError("row role inference failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row role inference failed"):
+                target({"metadata": {"row_label": "row"}})
+
+    def test_current_source_candidate_aggregation_stage_pins_precedence_laziness_identity_and_exceptions(self) -> None:
+        public_name = "candidate_aggregation_stage"
+        target_name = public_name
+        target_owner = financial_row_surfaces
+        target = getattr(target_owner, target_name)
+        real_dict = dict
+        real_normalize = target_owner._normalise_spaces
+        events = []
+        nested = {"preserve": True}
+
+        class CandidateProbe:
+            def __init__(self, metadata):
+                self.metadata = metadata
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("candidate", "get", key, default))
+                return self.metadata
+
+        class RecordingCopy(dict):
+            def __init__(self, value):
+                super().__init__(value)
+                self.get_calls = []
+
+            def get(self, key, default=None):
+                self.get_calls.append((key, default))
+                events.append(("metadata-copy", "get", key, default))
+                return super().get(key, default)
+
+        class DictOwner:
+            def __init__(self):
+                self.inputs = []
+                self.results = []
+
+            def __call__(self, value):
+                self.inputs.append(value)
+                events.append(("dict", "copy", value))
+                result = RecordingCopy(real_dict(value))
+                self.results.append(result)
+                return result
+
+        normalization_inputs = []
+
+        def normalize(value):
+            normalization_inputs.append(value)
+            events.append(("normalize", value))
+            return real_normalize(value)
+
+        metadata = {
+            "aggregation_stage": " explicit-stage ",
+            "aggregate_role": "stopped-role",
+            "row_label": "stopped-row",
+            "semantic_label": "stopped-semantic",
+            "nested": nested,
+        }
+        candidate = CandidateProbe(metadata)
+        dict_owner = DictOwner()
+        stopped_row_owner = Mock(
+            side_effect=AssertionError("explicit aggregation stage must stop row fallback")
+        )
+        with (
+            patch.object(target_owner, "dict", dict_owner, create=True),
+            patch.object(target_owner, "_normalise_spaces", side_effect=normalize),
+            patch.object(target_owner, "aggregate_like_row_stage", stopped_row_owner),
+        ):
+            self.assertEqual(target(candidate), "explicit-stage")
+        stopped_row_owner.assert_not_called()
+        self.assertEqual(candidate.get_calls, [("metadata", None)])
+        self.assertEqual(dict_owner.inputs, [metadata])
+        self.assertIsNot(dict_owner.results[0], metadata)
+        self.assertIs(dict_owner.results[0]["nested"], nested)
+        self.assertEqual(
+            dict_owner.results[0].get_calls,
+            [("aggregation_stage", None)],
+        )
+        self.assertEqual(normalization_inputs, [" explicit-stage "])
+        self.assertEqual(
+            [event[:3] for event in events],
+            [
+                ("candidate", "get", "metadata"),
+                ("dict", "copy", metadata),
+                ("metadata-copy", "get", "aggregation_stage"),
+                ("normalize", " explicit-stage "),
+            ],
+        )
+
+        mapped_cases = [
+            ("direct_total", "direct"),
+            ("subtotal", "subtotal"),
+            ("final_total", "final"),
+        ]
+        for aggregate_role, expected in mapped_cases:
+            with self.subTest(aggregate_role=aggregate_role):
+                current = {
+                    "metadata": {
+                        "aggregation_stage": "",
+                        "aggregate_role": aggregate_role,
+                        "row_label": "stopped",
+                        "nested": nested,
+                    }
+                }
+                before = deepcopy(current)
+                stopped_row_owner = Mock(
+                    side_effect=AssertionError("mapped aggregate role must stop row fallback")
+                )
+                with patch.object(
+                    target_owner,
+                    "aggregate_like_row_stage",
+                    stopped_row_owner,
+                ):
+                    self.assertEqual(target(current), expected)
+                stopped_row_owner.assert_not_called()
+                self.assertEqual(current, before)
+                self.assertIs(current["metadata"]["nested"], nested)
+
+        class SemanticStringBomb:
+            def __str__(self):
+                raise AssertionError("truthy row label must stop semantic stringification")
+
+        row_owner = Mock(side_effect=["subtotal", "custom", "none", "none"])
+        row_candidate = {
+            "metadata": {
+                "row_label": "Row Label",
+                "semantic_label": SemanticStringBomb(),
+                "nested": nested,
+            }
+        }
+        before_row_candidate = dict(row_candidate["metadata"])
+        with patch.object(target_owner, "aggregate_like_row_stage", row_owner):
+            self.assertEqual(target(row_candidate), "subtotal")
+            self.assertEqual(
+                target({"metadata": {"row_label": "", "semantic_label": "Semantic Label"}}),
+                "custom",
+            )
+            self.assertEqual(
+                target({"metadata": {"aggregate_role": "adjustment", "row_label": "  "}}),
+                "none",
+            )
+            self.assertEqual(target({"metadata": None}), "none")
+        self.assertEqual(
+            [call.args for call in row_owner.call_args_list],
+            [("Row Label",), ("Semantic Label",), ("  ",), ("",)],
+        )
+        self.assertEqual(row_candidate["metadata"], before_row_candidate)
+        self.assertIs(row_candidate["metadata"]["nested"], nested)
+
+        class CandidateGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("candidate metadata get failed")
+
+        with self.assertRaisesRegex(RuntimeError, "candidate metadata get failed"):
+            target(CandidateGetFailure())
+
+        class MetadataTruthFailure:
+            def __bool__(self):
+                raise RuntimeError("metadata truth failed")
+
+        with self.assertRaisesRegex(RuntimeError, "metadata truth failed"):
+            target(CandidateProbe(MetadataTruthFailure()))
+
+        copy_owner = Mock(side_effect=RuntimeError("metadata copy failed"))
+        with patch.object(target_owner, "dict", copy_owner, create=True):
+            with self.assertRaisesRegex(RuntimeError, "metadata copy failed"):
+                target({"metadata": {}})
+
+        class CopyGetFailure:
+            def get(self, key, default=None):
+                raise RuntimeError("metadata field get failed")
+
+        with patch.object(target_owner, "dict", return_value=CopyGetFailure(), create=True):
+            with self.assertRaisesRegex(RuntimeError, "metadata field get failed"):
+                target({"metadata": {}})
+
+        class StringFailure:
+            def __str__(self):
+                raise RuntimeError("aggregation stage string failed")
+
+        with self.assertRaisesRegex(RuntimeError, "aggregation stage string failed"):
+            target({"metadata": {"aggregation_stage": StringFailure()}})
+
+        stopped_row_owner = Mock(side_effect=AssertionError("normalization failure must stop row fallback"))
+        with (
+            patch.object(
+                target_owner,
+                "_normalise_spaces",
+                side_effect=RuntimeError("aggregation stage normalization failed"),
+            ),
+            patch.object(target_owner, "aggregate_like_row_stage", stopped_row_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "aggregation stage normalization failed"):
+                target({"metadata": {"aggregation_stage": "stage"}})
+        stopped_row_owner.assert_not_called()
+
+        with patch.object(
+            target_owner,
+            "aggregate_like_row_stage",
+            side_effect=RuntimeError("row stage inference failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "row stage inference failed"):
+                target({"metadata": {"row_label": "row"}})
+
+        class ComparisonFailure:
+            def __ne__(self, other):
+                raise RuntimeError("stage comparison failed")
+
+        with patch.object(
+            target_owner,
+            "aggregate_like_row_stage",
+            return_value=ComparisonFailure(),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "stage comparison failed"):
+                target({"metadata": {"row_label": "row"}})
+
+    def test_current_source_candidate_value_stage_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        public_names = {
+            "candidate_value_role",
+            "candidate_aggregation_stage",
+        }
+        private_names = {
+            "_candidate_value_role",
+            "_candidate_aggregation_stage",
+        }
+        current_names = set(public_names)
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_trees = {
+            name: ast.parse(path.read_text(encoding="utf-8-sig"))
+            for name, path in module_paths.items()
+        }
+        definitions = {}
+        calls = []
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.ancestor_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in current_names:
+                    definitions[node.name] = (self.module_name, node)
+                self.function_stack.append(node.name)
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.ancestor_stack.append(node)
+                self.generic_visit(node)
+                self.ancestor_stack.pop()
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def generic_visit(self, node):
+                if isinstance(
+                    node,
+                    (ast.FunctionDef, ast.AsyncFunctionDef, ast.Try, ast.TryStar),
+                ):
+                    return super().generic_visit(node)
+                self.ancestor_stack.append(node)
+                super().generic_visit(node)
+                self.ancestor_stack.pop()
+
+            def visit_Call(self, node):
+                called_name = node.func.id if isinstance(node.func, ast.Name) else ""
+                if called_name in current_names:
+                    context = "expression"
+                    for item in reversed(self.ancestor_stack):
+                        if isinstance(item, ast.Assign):
+                            context = "Assign"
+                            break
+                        if isinstance(item, ast.If):
+                            context = "If"
+                            break
+                    calls.append(
+                        (
+                            node.lineno,
+                            node.col_offset,
+                            called_name,
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                            self.try_depth,
+                            context,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        value_name = "candidate_value_role"
+        stage_name = "candidate_aggregation_stage"
+        self.assertEqual(set(definitions), {value_name, stage_name})
+        self.assertEqual(
+            {
+                name: (
+                    module_name,
+                    node.end_lineno - node.lineno + 1,
+                    [argument.arg for argument in node.args.args],
+                    [argument.arg for argument in node.args.kwonlyargs],
+                    [ast.unparse(default) for default in node.args.defaults],
+                    ast.unparse(node.returns),
+                )
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                value_name: (
+                    "financial_row_surfaces",
+                    16,
+                    ["candidate"],
+                    [],
+                    [],
+                    "str",
+                ),
+                stage_name: (
+                    "financial_row_surfaces",
+                    18,
+                    ["candidate"],
+                    [],
+                    [],
+                    "str",
+                ),
+            },
+        )
+        for _module_name, definition in definitions.values():
+            self.assertEqual(definition.decorator_list, [])
+            self.assertFalse(
+                any(
+                    isinstance(node, (ast.Try, ast.TryStar))
+                    for node in ast.walk(definition)
+                )
+            )
+
+        call_sequence = []
+        for caller, context, names in (
+            (
+                "_direct_candidate_semantic_priority",
+                "Assign",
+                [value_name, stage_name],
+            ),
+            (
+                "_candidate_is_direct_grounding_candidate",
+                "Assign",
+                [value_name, stage_name],
+            ),
+            (
+                "_candidate_satisfies_direct_acceptance_contract",
+                "Assign",
+                [value_name, stage_name],
+            ),
+            (
+                "_candidate_satisfies_ratio_component_acceptance_contract",
+                "Assign",
+                [value_name, stage_name],
+            ),
+            (
+                "_candidate_matches_operand",
+                "If",
+                [value_name, stage_name],
+            ),
+            (
+                "_candidate_matches_operand",
+                "Assign",
+                [value_name, stage_name],
+            ),
+            (
+                "_candidate_direct_match_strength",
+                "If",
+                [value_name, stage_name] * 4,
+            ),
+            (
+                "_score_operand_candidate",
+                "Assign",
+                [value_name, stage_name],
+            ),
+        ):
+            call_sequence.extend((name, caller, context) for name in names)
+
+        calls = sorted(calls)
+        self.assertEqual(
+            [
+                (
+                    called_name,
+                    caller,
+                    context,
+                )
+                for (
+                    _line,
+                    _column,
+                    called_name,
+                    module_name,
+                    caller,
+                    function_shape,
+                    args,
+                    keywords,
+                    try_depth,
+                    context,
+                ) in calls
+                if module_name == "financial_graph_helpers"
+                and function_shape == "Name"
+                and args == ("candidate",)
+                and keywords == ()
+                and try_depth == 0
+            ],
+            call_sequence,
+        )
+        self.assertEqual(len(calls), 22)
+        self.assertEqual(
+            {
+                name: sum(row[2] == name for row in calls)
+                for name in (value_name, stage_name)
+            },
+            {value_name: 11, stage_name: 11},
+        )
+        self.assertTrue(
+            all(
+                module_name == "financial_graph_helpers"
+                and function_shape == "Name"
+                and args == ("candidate",)
+                and keywords == ()
+                and try_depth == 0
+                for (
+                    _line,
+                    _column,
+                    _called_name,
+                    module_name,
+                    _caller,
+                    function_shape,
+                    args,
+                    keywords,
+                    try_depth,
+                    _context,
+                ) in calls
+            )
+        )
+
+        expected_direct_calls = {
+            value_name: {
+                "dict": 1,
+                "_normalise_spaces": 2,
+                "str": 3,
+                "aggregate_like_row_role": 1,
+            },
+            stage_name: {
+                "dict": 1,
+                "_normalise_spaces": 2,
+                "str": 3,
+                "aggregate_like_row_stage": 1,
+            },
+        }
+        for name, (_module_name, definition) in definitions.items():
+            direct_calls = [
+                node.func.id
+                for node in ast.walk(definition)
+                if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            ]
+            self.assertEqual(
+                {
+                    called: direct_calls.count(called)
+                    for called in expected_direct_calls[name]
+                },
+                expected_direct_calls[name],
+            )
+
+        graph_defs = [
+            node
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        row_defs = [
+            node
+            for node in module_trees["financial_row_surfaces"].body
+            if isinstance(node, ast.FunctionDef)
+        ]
+        graph_counts = (
+            sum(not node.name.startswith("_") for node in graph_defs),
+            sum(node.name.startswith("_") for node in graph_defs),
+        )
+        row_counts = (
+            sum(not node.name.startswith("_") for node in row_defs),
+            sum(node.name.startswith("_") for node in row_defs),
+        )
+        self.assertEqual(graph_counts, (9, 95))
+        self.assertEqual(row_counts, (7, 15))
+
+        graph_row_imports = {
+            alias.name
+            for node in module_trees["financial_graph_helpers"].body
+            if isinstance(node, ast.ImportFrom)
+            and node.module == "src.agent.financial_row_surfaces"
+            for alias in node.names
+        }
+        self.assertTrue(
+            {
+                "aggregate_like_row_role",
+                "aggregate_like_row_stage",
+            }.issubset(graph_row_imports)
+        )
+        self.assertTrue(public_names.issubset(graph_row_imports))
+        self.assertFalse(private_names & graph_row_imports)
+        self.assertNotIn(
+            "src.agent.financial_graph_helpers",
+            {
+                node.module
+                for node in module_trees["financial_row_surfaces"].body
+                if isinstance(node, ast.ImportFrom) and node.module
+            },
+        )
+
+        edges = {name: set() for name in module_trees}
+        for module_name, tree in module_trees.items():
+            for node in tree.body:
+                if not isinstance(node, ast.ImportFrom) or not node.module:
+                    continue
+                prefix = "src.agent."
+                if not node.module.startswith(prefix):
+                    continue
+                imported = node.module[len(prefix) :]
+                if imported in edges:
+                    edges[module_name].add(imported)
+
+        def reaches(start, target):
+            seen = set()
+            pending = list(edges[start])
+            while pending:
+                current = pending.pop()
+                if current == target:
+                    return True
+                if current in seen:
+                    continue
+                seen.add(current)
+                pending.extend(edges[current])
+            return False
+
+        self.assertTrue(reaches("financial_graph_helpers", "financial_row_surfaces"))
+        self.assertFalse(reaches("financial_row_surfaces", "financial_graph_helpers"))
+
+        baseline = json.loads(
+            (
+                repo_root
+                / "tests"
+                / "fixtures"
+                / "runtime_domain_terms_baseline.json"
+            ).read_text(encoding="utf-8-sig")
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_hits = []
+        for _name, (module_name, definition) in definitions.items():
+            selected_hits.extend(
+                record
+                for record in baseline["records"]
+                if record.get("path") == f"src/agent/{module_name}.py"
+                and any(
+                    definition.lineno <= line <= definition.end_lineno
+                    for line in (record.get("first_lines") or [])
+                )
+            )
+        self.assertEqual(selected_hits, [])
+
+        current_test_tree = ast.parse(
+            Path(__file__).read_text(encoding="utf-8-sig")
+        )
+        required_methods = {
+            "test_current_source_candidate_value_role_pins_precedence_laziness_identity_and_exceptions",
+            "test_current_source_candidate_aggregation_stage_pins_precedence_laziness_identity_and_exceptions",
+            "test_current_source_candidate_value_stage_bindings_pin_defs_calls_dag_and_baseline",
+            "test_current_source_candidate_value_stage_callers_pin_order_short_circuits_and_stops",
+        }
+        self.assertEqual(
+            {
+                node.name
+                for node in ast.walk(current_test_tree)
+                if isinstance(node, ast.FunctionDef) and node.name in required_methods
+            },
+            required_methods,
+        )
+
+    def test_current_source_candidate_value_stage_callers_pin_order_short_circuits_and_stops(self) -> None:
+        value_public_name = "candidate_value_role"
+        stage_public_name = "candidate_aggregation_stage"
+        value_name = value_public_name
+        stage_name = stage_public_name
+        candidate = {
+            "candidate_kind": "structured_value",
+            "metadata": {"aggregate_label": "Aggregate"},
+        }
+        operand = {"binding_policy": {}}
+        constraints = {"period_focus": "unknown", "consolidation_scope": "unknown"}
+        query_years = []
+
+        def exercise_caller(
+            label,
+            invoke,
+            patch_factory,
+            expected_events,
+            *,
+            value_result="aggregate",
+            stage_result="final",
+        ):
+            for failure in ("none", "value", "stage"):
+                with self.subTest(label=label, failure=failure):
+                    events = []
+
+                    def value_projection(actual_candidate):
+                        self.assertIs(actual_candidate, candidate)
+                        events.append("value")
+                        if failure == "value":
+                            raise RuntimeError(f"{label} value failed")
+                        return value_result
+
+                    def stage_projection(actual_candidate):
+                        self.assertIs(actual_candidate, candidate)
+                        events.append("stage")
+                        if failure == "stage":
+                            raise RuntimeError(f"{label} stage failed")
+                        return stage_result
+
+                    with ExitStack() as stack:
+                        for current_patch in patch_factory(events):
+                            stack.enter_context(current_patch)
+                        stack.enter_context(
+                            patch.object(
+                                financial_graph_helpers,
+                                value_name,
+                                side_effect=value_projection,
+                            )
+                        )
+                        stack.enter_context(
+                            patch.object(
+                                financial_graph_helpers,
+                                stage_name,
+                                side_effect=stage_projection,
+                            )
+                        )
+                        if failure == "none":
+                            invoke()
+                        else:
+                            with self.assertRaisesRegex(
+                                RuntimeError,
+                                f"{label} {failure} failed",
+                            ):
+                                invoke()
+                    if failure == "none":
+                        expected = expected_events
+                    else:
+                        expected = expected_events[
+                            : expected_events.index(failure) + 1
+                        ]
+                    self.assertEqual(events, expected)
+
+        def direct_priority_patches(events):
+            return [
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_direct_match_strength",
+                    side_effect=lambda *_: events.append("strength") or 1.0,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "candidate_matches_operand_target_year",
+                    side_effect=lambda *_: events.append("year") or False,
+                ),
+            ]
+
+        exercise_caller(
+            "semantic-priority",
+            lambda: financial_graph_helpers._direct_candidate_semantic_priority(
+                candidate,
+                operand=operand,
+                preferred_statement_types=[],
+                query_years=query_years,
+            ),
+            direct_priority_patches,
+            ["value", "stage", "strength", "year"],
+        )
+
+        def grounding_patches(events):
+            return [
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_direct_match_strength",
+                    side_effect=lambda *_: events.append("strength") or 1.0,
+                ),
+                patch.object(
+                    financial_graph_helpers,
+                    "binding_policy_allows_candidate_shape",
+                    side_effect=lambda **_: events.append("binding") or False,
+                ),
+            ]
+
+        exercise_caller(
+            "direct-grounding",
+            lambda: financial_graph_helpers._candidate_is_direct_grounding_candidate(
+                candidate,
+                operand=operand,
+                constraints=constraints,
+                query_years=query_years,
+            ),
+            grounding_patches,
+            ["strength", "value", "stage", "binding"],
+        )
+
+        def direct_acceptance_patches(events):
+            return [
+                patch.object(
+                    financial_graph_helpers,
+                    "_candidate_is_direct_grounding_candidate",
+                    return_value=True,
+                ),
+                patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+                patch.object(
+                    financial_graph_helpers,
+                    "_is_balance_sheet_aggregate_operand",
+                    side_effect=lambda *_: events.append("balance") or False,
+                ),
+                patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                patch.object(financial_graph_helpers, "operand_target_years", return_value=[]),
+            ]
+
+        exercise_caller(
+            "direct-acceptance",
+            lambda: financial_graph_helpers._candidate_satisfies_direct_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints=constraints,
+                query_years=query_years,
+            ),
+            direct_acceptance_patches,
+            ["value", "stage", "balance"],
+        )
+
+        def ratio_acceptance_patches(events):
+            return [
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
+                patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
+                patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
+                patch.object(
+                    financial_graph_helpers,
+                    "binding_policy_allows_candidate_shape",
+                    side_effect=lambda **_: events.append("binding") or False,
+                ),
+            ]
+
+        exercise_caller(
+            "ratio-acceptance",
+            lambda: financial_graph_helpers._candidate_satisfies_ratio_component_acceptance_contract(
+                candidate,
+                operand=operand,
+                constraints=constraints,
+                query_years=query_years,
+            ),
+            ratio_acceptance_patches,
+            ["value", "stage", "binding"],
+        )
+
+        def matching_patches(events):
+            return [
+                patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+                patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                patch.object(financial_graph_helpers, "_operand_prefers_contextual_aggregate_match", return_value=True),
+                patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context"),
+                patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
+                patch.object(
+                    financial_graph_helpers,
+                    "aggregate_like_row_stage",
+                    side_effect=lambda *_: events.append("row-stage") or "final",
+                ),
+            ]
+
+        exercise_caller(
+            "candidate-match",
+            lambda: financial_graph_helpers._candidate_matches_operand(candidate, operand),
+            matching_patches,
+            ["value", "stage", "row-stage"],
+            value_result="detail",
+            stage_result="none",
+        )
+
+        def strength_patches(events):
+            return [
+                patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                patch.object(financial_graph_helpers, "_operand_needles", return_value=[]),
+                patch.object(financial_graph_helpers, "_operand_text_match", return_value=False),
+                patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
+                patch.object(financial_graph_helpers, "_operand_prefers_contextual_aggregate_match", return_value=True),
+                patch.object(financial_graph_helpers, "candidate_local_aggregate_context", return_value="context"),
+                patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
+                patch.object(financial_graph_helpers, "operand_lookup_surface_match", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_supports_segment_metric_combo", return_value=False),
+            ]
+
+        exercise_caller(
+            "direct-strength",
+            lambda: financial_graph_helpers._candidate_direct_match_strength(candidate, operand),
+            strength_patches,
+            ["value", "stage"],
+            value_result="detail",
+            stage_result="final",
+        )
+
+        score_candidate = {"candidate_kind": "chunk", "metadata": {}}
+        original_candidate = candidate
+        candidate = score_candidate
+
+        def score_patches(events):
+            return [
+                patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
+                patch.object(financial_graph_helpers, "_candidate_direct_match_strength", side_effect=lambda *_: events.append("strength") or 0.0),
+                patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", side_effect=lambda *_: events.append("numeric") or False),
+                patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
+                patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
+                patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
+                patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
+                patch.object(financial_graph_helpers, "candidate_segment_binding_bonus", return_value=0.0),
+                patch.object(financial_graph_helpers, "_candidate_source_priority_bonus", return_value=0.0),
+                patch.object(financial_graph_helpers, "_metadata_period_match_strength", return_value=0.0),
+                patch.object(financial_graph_helpers, "_candidate_period_table_coherence_bonus", return_value=0.0),
+                patch.object(financial_graph_helpers, "candidate_report_scope_binding_bonus", return_value=0.0),
+            ]
+
+        exercise_caller(
+            "candidate-score",
+            lambda: financial_graph_helpers._score_operand_candidate(
+                candidate,
+                operand=operand,
+                preferred_statement_types=[],
+                constraints=constraints,
+                query_years=query_years,
+            ),
+            score_patches,
+            ["strength", "value", "stage", "numeric"],
+        )
+        candidate = original_candidate
+
+        for label, invoke, patch_factory in (
+            (
+                "candidate-match-short-circuit",
+                lambda: financial_graph_helpers._candidate_matches_operand(candidate, operand),
+                matching_patches,
+            ),
+            (
+                "direct-strength-short-circuit",
+                lambda: financial_graph_helpers._candidate_direct_match_strength(candidate, operand),
+                strength_patches,
+            ),
+        ):
+            events = []
+
+            def aggregate_value(actual_candidate):
+                self.assertIs(actual_candidate, candidate)
+                events.append("value")
+                return "aggregate"
+
+            stopped_stage = Mock(
+                side_effect=AssertionError(f"{label} value hit must stop stage")
+            )
+            with ExitStack() as stack:
+                for current_patch in patch_factory(events):
+                    stack.enter_context(current_patch)
+                stack.enter_context(
+                    patch.object(
+                        financial_graph_helpers,
+                        value_name,
+                        side_effect=aggregate_value,
+                    )
+                )
+                stack.enter_context(
+                    patch.object(financial_graph_helpers, stage_name, stopped_stage)
+                )
+                invoke()
+            stopped_stage.assert_not_called()
+            self.assertEqual(events, ["value"])
 
     def test_current_source_lookup_preference_projection_pins_segment_short_circuit_coercion_and_exceptions(self) -> None:
         nested = {"preserve": True}
@@ -2840,7 +3938,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not node.name.startswith("_") for node in graph_defs),
                 sum(node.name.startswith("_") for node in graph_defs),
             ),
-            (9, 97),
+            (9, 95),
         )
         self.assertEqual(
             (
@@ -3057,11 +4155,11 @@ class FinancialGraphHelperTests(unittest.TestCase):
         )
         self.assertLess(
             strength_source.index("_candidate_has_operand_context_surface"),
-            strength_source.index("_candidate_value_role", strength_match),
+            strength_source.index("candidate_value_role", strength_match),
         )
         self.assertLess(
-            strength_source.index("_candidate_value_role", strength_match),
-            strength_source.index("_candidate_aggregation_stage", strength_match),
+            strength_source.index("candidate_value_role", strength_match),
+            strength_source.index("candidate_aggregation_stage", strength_match),
         )
 
         score_source = function_source("_score_operand_candidate")
@@ -3375,12 +4473,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_value_role",
+                "candidate_value_role",
                 return_value="aggregate",
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_aggregation_stage",
+                "candidate_aggregation_stage",
                 return_value="final",
             ),
             patch.object(
@@ -3430,12 +4528,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_value_role",
+                "candidate_value_role",
                 return_value="detail",
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_aggregation_stage",
+                "candidate_aggregation_stage",
                 return_value="none",
             ),
             patch.object(
@@ -3496,12 +4594,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_value_role",
+                "candidate_value_role",
                 return_value="aggregate",
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_aggregation_stage",
+                "candidate_aggregation_stage",
                 return_value="final",
             ),
             patch.object(
@@ -3593,14 +4691,14 @@ class FinancialGraphHelperTests(unittest.TestCase):
             stack.enter_context(
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_value_role",
+                    "candidate_value_role",
                     stopped_role,
                 )
             )
             stack.enter_context(
                 patch.object(
                     financial_graph_helpers,
-                    "_candidate_aggregation_stage",
+                    "candidate_aggregation_stage",
                     stopped_stage,
                 )
             )
@@ -3634,12 +4732,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_value_role",
+                "candidate_value_role",
                 return_value="",
             ),
             patch.object(
                 financial_graph_helpers,
-                "_candidate_aggregation_stage",
+                "candidate_aggregation_stage",
                 return_value="",
             ),
             patch.object(
@@ -4559,7 +5657,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in operand_defs),
             sum(node.name.startswith("_") for node in operand_defs),
         )
-        self.assertEqual(current_graph_counts, (9, 97))
+        self.assertEqual(current_graph_counts, (9, 95))
         self.assertEqual(current_operand_counts, (43, 37))
 
         def imported_names(module_name, imported_module):
@@ -6030,7 +7128,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 97))
+        self.assertEqual(graph_counts, (9, 95))
         self.assertEqual(owner_counts, (5, 9))
 
         def imported_names(module_name, imported_module):
@@ -7210,7 +8308,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in owner_defs),
             sum(node.name.startswith("_") for node in owner_defs),
         )
-        self.assertEqual(graph_counts, (9, 97))
+        self.assertEqual(graph_counts, (9, 95))
         self.assertEqual(owner_counts, (9, 9))
 
         def imported_names(module_name, imported_module):
@@ -8250,8 +9348,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             sum(not node.name.startswith("_") for node in row_defs),
             sum(node.name.startswith("_") for node in row_defs),
         )
-        self.assertEqual(graph_counts, (9, 97))
-        self.assertEqual(row_counts, (5, 15))
+        self.assertEqual(graph_counts, (9, 95))
+        self.assertEqual(row_counts, (7, 15))
 
         def imported_names(module_name, imported_module):
             return {
@@ -10808,7 +11906,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 97),
+            (9, 95),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -14511,8 +15609,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
         self.assertIs(canonical_calls[0][2], query_years)
 
         with (
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=2.5),
             patch.object(financial_graph_helpers, "candidate_matches_operand_target_year", return_value=True) as year_match,
         ):
@@ -14559,8 +15657,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
                 patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=2.0),
-                patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-                patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+                patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+                patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
                 patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
                 patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
                 patch.object(financial_graph_helpers, "candidate_consolidation_scope", return_value="unknown"),
@@ -14654,8 +15752,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", side_effect=ratio_report),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=True),
             patch.object(financial_graph_helpers, "_operand_surface_contract", return_value={}),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=2.0),
@@ -15395,7 +16493,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in graph_functions),
                 sum(name.startswith("_") for name in graph_functions),
             ),
-            (9, 97),
+            (9, 95),
         )
         self.assertEqual(
             (
@@ -15588,8 +16686,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=1.0),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
             patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
@@ -15666,8 +16764,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "operand_period_focus", return_value="unknown"),
             patch.object(financial_graph_helpers, "candidate_selected_unit_family", side_effect=selected_unit),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", side_effect=direct_strength),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "lookup_prefers_canonical_statement_rows", return_value=False),
             patch.object(financial_graph_helpers, "_is_balance_sheet_aggregate_operand", return_value=False),
             patch.object(financial_graph_helpers, "_is_capex_total_operand", return_value=False),
@@ -15712,8 +16810,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", ratio_binding),
             patch.object(financial_graph_helpers, "_operand_surface_contract", return_value={}),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=1.0),
@@ -15748,8 +16846,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_segment_binding", return_value=True),
             patch.object(financial_graph_helpers, "candidate_matches_target_report_scope", return_value=True),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
             patch.object(financial_graph_helpers, "binding_policy_allows_candidate_shape", return_value=False),
             patch.object(financial_graph_helpers, "_operand_surface_contract", stopped_surface),
         ):
@@ -15782,8 +16880,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_helpers, "_operand_prefers_contextual_aggregate_match", return_value=True),
             patch.object(financial_graph_helpers, "candidate_local_aggregate_context", side_effect=contextual_owner),
             patch.object(financial_graph_helpers, "_text_has_positive_surface", return_value=True),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value="aggregate"),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value="final"),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value="aggregate"),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value="final"),
         )
         with ExitStack() as stack:
             for current_patch in common_context_patches:
@@ -15815,8 +16913,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
             with (
                 patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
                 patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
-                patch.object(financial_graph_helpers, "_candidate_value_role", return_value=""),
-                patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value=""),
+                patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
+                patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
                 patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
                 patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
                 patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),
@@ -15848,8 +16946,8 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(financial_graph_helpers, "_candidate_conflicts_with_operand_concept", return_value=False),
             patch.object(financial_graph_helpers, "_candidate_direct_match_strength", return_value=0.0),
-            patch.object(financial_graph_helpers, "_candidate_value_role", return_value=""),
-            patch.object(financial_graph_helpers, "_candidate_aggregation_stage", return_value=""),
+            patch.object(financial_graph_helpers, "candidate_value_role", return_value=""),
+            patch.object(financial_graph_helpers, "candidate_aggregation_stage", return_value=""),
             patch.object(financial_graph_helpers, "candidate_has_numeric_value_signal", return_value=False),
             patch.object(financial_graph_helpers, "_candidate_location_entity_subject_score", return_value=0.0),
             patch.object(financial_graph_helpers, "candidate_is_descriptor_row", return_value=False),

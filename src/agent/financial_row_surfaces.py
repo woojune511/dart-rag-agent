@@ -331,6 +331,44 @@ def aggregate_like_row_role(label: str) -> str:
     return "aggregate" if aggregate_like_row_stage(label) != "none" else "detail"
 
 
+def candidate_value_role(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    explicit = _normalise_spaces(str(metadata.get("value_role") or ""))
+    if explicit:
+        return explicit
+    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
+    if aggregate_role == "adjustment":
+        return "adjustment"
+    if aggregate_role in {"direct_total", "subtotal", "final_total"}:
+        return "aggregate"
+    inferred_role = aggregate_like_row_role(
+        str(metadata.get("row_label") or metadata.get("semantic_label") or "")
+    )
+    if inferred_role == "aggregate":
+        return inferred_role
+    return "detail"
+
+
+def candidate_aggregation_stage(candidate: Dict[str, Any]) -> str:
+    metadata = dict(candidate.get("metadata") or {})
+    explicit = _normalise_spaces(str(metadata.get("aggregation_stage") or ""))
+    if explicit:
+        return explicit
+    aggregate_role = _normalise_spaces(str(metadata.get("aggregate_role") or ""))
+    if aggregate_role == "direct_total":
+        return "direct"
+    if aggregate_role == "subtotal":
+        return "subtotal"
+    if aggregate_role == "final_total":
+        return "final"
+    inferred_stage = aggregate_like_row_stage(
+        str(metadata.get("row_label") or metadata.get("semantic_label") or "")
+    )
+    if inferred_stage != "none":
+        return inferred_stage
+    return "none"
+
+
 def candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     segment_label = _operand_segment_label(operand)
     if not segment_label:
