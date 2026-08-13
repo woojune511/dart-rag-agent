@@ -47,6 +47,7 @@ from src.agent.financial_surface_contracts import (
 from src.agent.financial_text_surface import (
     _strip_rerank_metadata,
     _tokenize_terms,
+    query_focus_markers,
 )
 from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
@@ -1108,101 +1109,6 @@ class FinancialRetrievalPipelineMixin:
     def _narrative_policy_facets_for_query(self, query: str, key: str) -> List[Dict[str, Any]]:
         return narrative_policy_facets(self._active_narrative_policies_for_query(query), key)
 
-    def _query_focus_marker_groups(self, query: str, *, limit: int = 8) -> List[Dict[str, Any]]:
-        """Extract query-specific entity/policy/concept markers without case IDs."""
-        surface = _normalise_spaces(str(query or ""))
-        if not surface:
-            return []
-
-        groups: List[Dict[str, Any]] = []
-        seen: set[str] = set()
-        marker_policy = dict(QUERY_FOCUS_MARKER_POLICY)
-
-        def _clean_marker(value: str) -> str:
-            marker = _normalise_spaces(value)
-            marker = marker.strip(str(marker_policy.get("strip_chars") or ""))
-            marker = re.sub(str(marker_policy.get("leading_connector_pattern") or r"$^"), "", marker)
-            marker = re.sub(str(marker_policy.get("trailing_connector_pattern") or r"$^"), "", marker)
-            marker = re.sub(str(marker_policy.get("trailing_particle_pattern") or r"$^"), "", marker)
-            return marker.strip()
-
-        def _is_useful_marker(value: str) -> bool:
-            marker = _clean_marker(value)
-            if not marker:
-                return False
-            lowered = marker.lower()
-            if lowered in self._QUERY_FOCUS_STOPWORDS:
-                return False
-            if re.fullmatch(str(marker_policy.get("year_pattern") or r"$^"), marker):
-                return False
-            if marker.isdigit():
-                return False
-            if re.fullmatch(str(marker_policy.get("single_letter_pattern") or r"$^"), marker):
-                return False
-            if len(marker) < 2:
-                return False
-            return True
-
-        def _append_group(variants: List[str]) -> None:
-            cleaned = []
-            for variant in variants:
-                marker = _clean_marker(variant)
-                if not _is_useful_marker(marker):
-                    continue
-                marker_key = marker.lower()
-                if marker_key in {item.lower() for item in cleaned}:
-                    continue
-                cleaned.append(marker)
-            if not cleaned:
-                return
-            key = "|".join(sorted(marker.lower() for marker in cleaned))
-            if key in seen:
-                return
-            seen.add(key)
-            groups.append(
-                {
-                    "label": str(marker_policy.get("label_template") or "{index}").format(index=len(groups) + 1),
-                    "variants": cleaned,
-                    "phrase": "",
-                    "query_focus": True,
-                }
-            )
-
-        for match in re.finditer(str(marker_policy.get("parenthetical_pair_pattern") or r"$^"), surface):
-            left_surface = _clean_marker(match.group(1))
-            for pattern in marker_policy.get("left_context_drop_patterns") or ():
-                left_surface = re.sub(str(pattern), "", left_surface)
-            left = _clean_marker(left_surface.split()[-1])
-            if len(left_surface.split()) > 1 and re.search(r"[가-힣]", left_surface):
-                left = _clean_marker(left_surface)
-            right = _clean_marker(match.group(2))
-            _append_group([left, right])
-
-        for quoted in re.findall(str(marker_policy.get("quoted_pattern") or r"$^"), surface):
-            _append_group([quoted])
-
-        for acronym in re.findall(str(marker_policy.get("acronym_pattern") or r"$^"), surface):
-            _append_group([acronym])
-
-        for token in re.findall(str(marker_policy.get("english_token_pattern") or r"$^"), surface):
-            _append_group([token])
-
-        for token in re.findall(str(marker_policy.get("generic_token_pattern") or r"$^"), surface):
-            if len(token) < 2:
-                continue
-            _append_group([token])
-
-        return groups[:limit]
-
-    def _query_focus_markers(self, query: str, *, limit: int = 8) -> List[str]:
-        markers: List[str] = []
-        for group in self._query_focus_marker_groups(query, limit=limit):
-            for variant in group.get("variants") or []:
-                marker = str(variant).strip()
-                if marker and marker.lower() not in {item.lower() for item in markers}:
-                    markers.append(marker)
-        return markers
-
     def _merge_retry_candidates(self, docs, previous_docs) -> List[tuple[Document, float]]:
         merged: List[tuple[Document, float]] = list(docs)
         seen_chunk_uids = {
@@ -1264,8 +1170,8 @@ class FinancialRetrievalPipelineMixin:
         desired_consolidation = _desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
         query_years = sorted(years)
         operation_family = str(active_subtask.get("operation_family") or "").strip().lower()
-        query_focus_markers = (
-            self._query_focus_markers(str(state.get("query") or ""))
+        query_focus_marker_values = (
+            query_focus_markers(str(state.get("query") or ""))
             if operation_family == "narrative_summary"
             else []
         )
@@ -1344,7 +1250,7 @@ class FinancialRetrievalPipelineMixin:
                 causal_markers = tuple(str(item) for item in (NARRATIVE_RERANK_POLICY.get("causal_markers") or ()))
                 if any(marker in body_text or marker in section_path for marker in causal_markers):
                     boosted += 0.08
-                if query_focus_markers:
+                if query_focus_marker_values:
                     focus_surface = _normalise_spaces(
                         " ".join(
                             part
@@ -1359,7 +1265,7 @@ class FinancialRetrievalPipelineMixin:
                             if part
                         )
                     ).lower()
-                    focus_hits = sum(1 for marker in query_focus_markers if marker.lower() in focus_surface)
+                    focus_hits = sum(1 for marker in query_focus_marker_values if marker.lower() in focus_surface)
                     if focus_hits:
                         boosted += min(0.08 * focus_hits, 0.32)
 
@@ -1406,7 +1312,7 @@ class FinancialRetrievalPipelineMixin:
         dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
         dividend_policy_period_markers = policy_terms_by_key["policy_period_markers"]
         driver_groups = self._narrative_driver_groups(query)
-        query_focus_markers = self._query_focus_markers(query)
+        query_focus_marker_values = query_focus_markers(query)
         active_subtask = dict(state.get("active_subtask") or {})
         format_preference = str(
             active_subtask.get("format_preference_override")
@@ -1436,7 +1342,7 @@ class FinancialRetrievalPipelineMixin:
             block_type = str(metadata.get("block_type") or "").strip().lower()
             section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
             text = _doc_surface(doc).lower()
-            focus_markers = list(dict.fromkeys([*query_focus_markers, *focus_policy_terms]))
+            focus_markers = list(dict.fromkeys([*query_focus_marker_values, *focus_policy_terms]))
             priority = 0
             if block_type == "paragraph":
                 priority += 3
@@ -1527,7 +1433,7 @@ class FinancialRetrievalPipelineMixin:
             surface_lower = surface.lower()
             content = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
             priority = 0
-            focus_hits = sum(1 for marker in query_focus_markers if marker.lower() in surface_lower)
+            focus_hits = sum(1 for marker in query_focus_marker_values if marker.lower() in surface_lower)
             priority += min(focus_hits, 6) * 2
             if block_type == "table":
                 priority += 2
@@ -1585,7 +1491,7 @@ class FinancialRetrievalPipelineMixin:
             policy
             for policy in active_policies
             if narrative_policy_terms([policy], "realized_terms")
-            and (narrative_policy_terms([policy], "focus_terms") or query_focus_markers)
+            and (narrative_policy_terms([policy], "focus_terms") or query_focus_marker_values)
         ]
 
         def _policy_realized_priority_for_policy(item: Any, policy: Dict[str, Any]) -> tuple[int, float]:
@@ -1597,7 +1503,7 @@ class FinancialRetrievalPipelineMixin:
             surface_lower = _doc_surface(doc).lower()
             policy_focus_terms = narrative_policy_terms([policy], "focus_terms")
             if not policy_focus_terms:
-                policy_focus_terms = list(query_focus_markers)
+                policy_focus_terms = list(query_focus_marker_values)
             policy_realized_terms = narrative_policy_terms([policy], "realized_terms")
             required_realized_terms = narrative_policy_terms([policy], "required_realized_terms")
             focus_hits = sum(1 for marker in policy_focus_terms if marker.lower() in surface_lower)

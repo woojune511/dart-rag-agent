@@ -10103,9 +10103,9 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("liquidity-payout", chunk_ids)
 
     def test_query_focus_markers_preserve_parenthetical_entity_pairs(self) -> None:
-        agent = FinancialAgent.__new__(FinancialAgent)
+        from src.agent.financial_text_surface import query_focus_marker_groups
 
-        marker_groups = agent._query_focus_marker_groups(
+        marker_groups = query_focus_marker_groups(
             "모셔널(Motional)의 지분율과 인플레이션 감축법(IRA) 대응을 요약해 줘."
         )
         variants = [variant for group in marker_groups for variant in group.get("variants", [])]

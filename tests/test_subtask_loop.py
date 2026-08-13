@@ -19586,7 +19586,7 @@ class SubtaskLoopTests(unittest.TestCase):
             self.agent._narrative_driver_groups = original_driver_groups
 
     def test_preserve_source_visible_query_terms_from_retrieved_docs(self) -> None:
-        answer = self.agent._preserve_source_visible_query_terms(
+        answer = financial_text_surface.preserve_source_visible_query_terms(
             "Adjusted operating income is 100 million.",
             query="Calculate adjusted operating income excluding Alpha Program (ABC) and production credit (XYZ).",
             ordered_results=[],
@@ -19606,7 +19606,7 @@ class SubtaskLoopTests(unittest.TestCase):
         self.assertIn("XYZ", answer)
 
     def test_preserve_query_terms_from_ontology_alias_binding(self) -> None:
-        answer = self.agent._preserve_source_visible_query_terms(
+        answer = financial_text_surface.preserve_source_visible_query_terms(
             "LG에너지솔루션 2023년 연결기준 영업이익은 2,163,234백만원입니다. "
             "첨단제조 생산세액공제 금액은 676,874백만원이며, 이를 제외한 실질 영업이익은 1,486,360백만원입니다.",
             query="2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 실질 영업이익을 계산해 줘.",

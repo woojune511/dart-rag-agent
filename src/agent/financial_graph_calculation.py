@@ -315,6 +315,9 @@ from src.agent.financial_text_surface import (
     policy_required_realized_snippet_from_doc,
     polish_korean_particle_pairs as _polish_korean_particle_pairs,
     preserve_retrieved_narrative_source_surface,
+    preserve_source_visible_query_terms,
+    query_focus_marker_groups,
+    query_focus_markers,
     split_narrative_sentences as _split_narrative_sentences,
     topic_particle as _topic_particle,
 )
@@ -4747,7 +4750,7 @@ class FinancialAgentCalculationMixin:
 
         focus_terms = [
             _normalise_spaces(str(term or ""))
-            for term in self._query_focus_markers(query)
+            for term in query_focus_markers(query)
             if _normalise_spaces(str(term or ""))
         ]
         focus_terms_lower = {term.lower() for term in focus_terms if len(term) >= 2}
@@ -6163,134 +6166,6 @@ class FinancialAgentCalculationMixin:
                 changed = True
             updated_results.append(row_copy)
         return updated_results if changed else ordered_results
-
-    def _preserve_source_visible_query_terms(
-        self,
-        answer: str,
-        *,
-        query: str,
-        ordered_results: List[Dict[str, Any]],
-        evidence_items: List[Dict[str, Any]],
-        docs: List[Any],
-    ) -> str:
-        answer_text = _normalise_spaces(str(answer or ""))
-        if not answer_text:
-            return answer_text
-
-        marker_groups: List[List[str]] = []
-        for group in self._query_focus_marker_groups(query):
-            group_markers: List[str] = []
-            for variant in group.get("variants") or []:
-                marker = _normalise_spaces(str(variant or ""))
-                if not marker:
-                    continue
-                if len(marker) > 32 or not re.search(r"[A-Z]", marker):
-                    continue
-                group_markers.append(marker)
-            if group_markers:
-                marker_groups.append(group_markers)
-        marker_variants: List[str] = []
-        for group in marker_groups:
-            for marker in group:
-                if marker.lower() not in {item.lower() for item in marker_variants}:
-                    marker_variants.append(marker)
-        if not marker_variants:
-            return answer_text
-
-        support_parts: List[str] = []
-        for item in evidence_items or []:
-            evidence = dict(item or {})
-            metadata = dict(evidence.get("metadata") or {})
-            support_parts.extend(
-                str(value or "")
-                for value in (
-                    evidence.get("claim"),
-                    evidence.get("quote_span"),
-                    evidence.get("raw_row_text"),
-                    " ".join(str(term or "") for term in (evidence.get("allowed_terms") or [])),
-                    metadata.get("table_context"),
-                    metadata.get("table_header_context"),
-                    metadata.get("table_summary_text"),
-                    metadata.get("text"),
-                )
-            )
-        for row in ordered_results or []:
-            calculation_result = dict(row.get("calculation_result") or {})
-            support_parts.extend(
-                str(value or "")
-                for value in (
-                    row.get("answer"),
-                    row.get("metric_label"),
-                    calculation_result.get("formatted_result"),
-                    calculation_result.get("rendered_value"),
-                )
-            )
-        for item in docs or []:
-            doc = item[0] if isinstance(item, (tuple, list)) and item else item
-            metadata = getattr(doc, "metadata", {}) or {}
-            support_parts.extend(
-                str(value or "")
-                for value in (
-                    getattr(doc, "page_content", ""),
-                    metadata.get("table_context"),
-                    metadata.get("table_header_context"),
-                    metadata.get("table_summary_text"),
-                    metadata.get("section_path"),
-                    metadata.get("local_heading"),
-                )
-            )
-
-        support_blob = _normalise_spaces(" ".join(part for part in support_parts if part)).lower()
-        grounded_blob = _normalise_spaces(f"{answer_text} {support_blob}").lower()
-        matched_concepts = get_financial_ontology().match_concepts(query)
-        concept_surfaces_by_key: Dict[str, List[str]] = {}
-        for concept in matched_concepts:
-            concept_key = str(concept.get("key") or "").strip()
-            if not concept_key:
-                continue
-            surfaces = [
-                _normalise_spaces(str(surface or ""))
-                for surface in [
-                    concept.get("display_name"),
-                    *(concept.get("aliases") or []),
-                    *(concept.get("keywords") or []),
-                ]
-                if _normalise_spaces(str(surface or ""))
-            ]
-            if surfaces:
-                concept_surfaces_by_key[concept_key] = list(dict.fromkeys(surfaces))
-
-        def _marker_has_ontology_support(marker: str, siblings: List[str]) -> bool:
-            marker_lower = marker.lower()
-            sibling_lowers = [sibling.lower() for sibling in siblings if sibling]
-            for surfaces in concept_surfaces_by_key.values():
-                surface_lowers = [surface.lower() for surface in surfaces]
-                if marker_lower not in surface_lowers and not any(
-                    sibling and any(sibling in surface or surface in sibling for surface in surface_lowers)
-                    for sibling in sibling_lowers
-                ):
-                    continue
-                if any(surface != marker_lower and surface in grounded_blob for surface in surface_lowers):
-                    return True
-            return False
-
-        answer_lower = answer_text.lower()
-        missing_terms: List[str] = []
-        for group in marker_groups:
-            for marker in group:
-                marker_lower = marker.lower()
-                if marker_lower in answer_lower:
-                    continue
-                if marker_lower in support_blob or _marker_has_ontology_support(marker, group):
-                    if marker_lower not in {item.lower() for item in missing_terms}:
-                        missing_terms.append(marker)
-        if not missing_terms:
-            return answer_text
-        template = str(CALCULATION_NARRATIVE_POLICY.get("source_visible_term_note_template") or "{terms}")
-        addition = _normalise_spaces(template.format(terms=", ".join(missing_terms[:4])))
-        if not addition or addition.lower() in answer_lower:
-            return answer_text
-        return _normalise_spaces(f"{answer_text} {addition}")
 
     def _supported_growth_narrative_candidate_sentences(
         self,
@@ -12759,7 +12634,7 @@ class FinancialAgentCalculationMixin:
         narrative_answer_locked = composition_state.narrative_answer_locked
         planner_feedback = composition_state.planner_feedback
         deterministic_feedback = composition_state.deterministic_feedback
-        final_answer = self._preserve_source_visible_query_terms(
+        final_answer = preserve_source_visible_query_terms(
             final_answer,
             query=str(state.get("query") or ""),
             ordered_results=ordered_results,
@@ -12874,7 +12749,7 @@ class FinancialAgentCalculationMixin:
                 sync_rendered_for_aggregate=False,
             )
             _sync_aggregate_locals()
-        final_answer = self._preserve_source_visible_query_terms(
+        final_answer = preserve_source_visible_query_terms(
             final_answer,
             query=str(state.get("query") or ""),
             ordered_results=ordered_results,

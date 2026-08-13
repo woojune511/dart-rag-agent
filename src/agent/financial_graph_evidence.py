@@ -86,6 +86,8 @@ from src.agent.financial_text_surface import (
     _strip_anchor_text,
     _strip_rerank_metadata,
     _tokenize_terms,
+    query_focus_marker_groups,
+    query_focus_markers,
 )
 from src.config import get_financial_ontology
 from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
@@ -106,7 +108,6 @@ from src.config.retrieval_policy import (
     QUANTITATIVE_IMPACT_QUERY_TERMS,
     QUERY_FOCUS_MARKER_POLICY,
     REQUIRED_OPERAND_ASSEMBLY_POLICY,
-    QUERY_FOCUS_STOPWORDS,
     SENTENCE_NORMALISATION_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
     VALUE_NEAR_MATCH_POLICY,
@@ -198,9 +199,6 @@ def _extract_value_near_match(text: str, start: int, end: int) -> tuple[Optional
 
 
 class FinancialAgentEvidenceMixin:
-    _QUERY_FOCUS_STOPWORDS = QUERY_FOCUS_STOPWORDS
-
-
     def _expand_via_structure_graph(self, state: FinancialAgentState) -> Dict[str, Any]:
         """Attach nearby structural context to seed retrieval hits.
 
@@ -1814,7 +1812,7 @@ class FinancialAgentEvidenceMixin:
             for variant in (group.get("variants") or [])
             if str(variant).strip()
         }
-        for focus_group in self._query_focus_marker_groups(query):
+        for focus_group in query_focus_marker_groups(query):
             variants = [
                 str(variant).strip()
                 for variant in (focus_group.get("variants") or [])
@@ -2024,7 +2022,7 @@ class FinancialAgentEvidenceMixin:
             return evidence_items
 
         active_policies = self._active_narrative_policies_for_query(query)
-        query_focus_terms = self._query_focus_markers(query)
+        query_focus_terms = query_focus_markers(query)
         if not active_policies:
             return evidence_items
         exclusive_narrative_policy = any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies)
@@ -2192,7 +2190,7 @@ class FinancialAgentEvidenceMixin:
         if not any(bool(policy.get("exclusive_narrative_task")) for policy in active_policies):
             return evidence_items
 
-        query_focus_terms = self._query_focus_markers(query)
+        query_focus_terms = query_focus_markers(query)
         if not query_focus_terms:
             return evidence_items
 
@@ -2470,7 +2468,7 @@ class FinancialAgentEvidenceMixin:
             return None
 
         entity_variants: List[str] = []
-        for group in self._query_focus_marker_groups(query_text):
+        for group in query_focus_marker_groups(query_text):
             variants = [str(variant).strip() for variant in (group.get("variants") or []) if str(variant).strip()]
             if len(variants) >= 2 and any(re.search(r"[A-Za-z]", variant) for variant in variants):
                 entity_variants.extend(variants)
@@ -2960,7 +2958,7 @@ class FinancialAgentEvidenceMixin:
             return default
 
         entity = ""
-        for group in self._query_focus_marker_groups(query_text):
+        for group in query_focus_marker_groups(query_text):
             variants = [str(variant).strip() for variant in (group.get("variants") or []) if str(variant).strip()]
             entity = next((variant for variant in variants if re.search(r"[A-Za-z]", variant)), "")
             if entity:

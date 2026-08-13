@@ -1118,7 +1118,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set()
         for node in owner_definitions.values():
             selected_lines.update(range(node.lineno, node.end_lineno + 1))
@@ -2218,7 +2218,7 @@ class ReflectionCapabilityContractTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set()
         for node in selected_nodes:
             selected_lines.update(range(node.lineno, node.end_lineno + 1))

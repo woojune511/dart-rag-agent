@@ -246,10 +246,19 @@
       "text": "[가-힣]",
       "category": "regex_or_pattern",
       "fingerprint": "ba63bcec3fbd94ce",
-      "count": 2,
+      "count": 1,
       "first_lines": [
-        198,
-        1172
+        203
+      ]
+    },
+    {
+      "path": "src/agent/financial_text_surface.py",
+      "text": "[가-힣]",
+      "category": "regex_or_pattern",
+      "fingerprint": "e5d9204368a21b4c",
+      "count": 1,
+      "first_lines": [
+        111
       ]
     },
     {

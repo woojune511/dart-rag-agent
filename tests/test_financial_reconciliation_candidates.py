@@ -502,7 +502,7 @@ class FinancialReconciliationCandidateTests(unittest.TestCase):
         self.assertEqual(actual_external, expected_external)
 
         baseline = json.loads(Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8"))
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         self.assertEqual(
             [
                 record

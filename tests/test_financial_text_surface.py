@@ -653,7 +653,7 @@ class FinancialTextSurfaceTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         pattern = "[\uac00-\ud7a3A-Za-z0-9()]+"
         matching_records = [
             record
@@ -3482,6 +3482,1160 @@ class FinancialTextSurfaceTests(unittest.TestCase):
     def test_abbreviated_fragment_detection_respects_markers(self) -> None:
         self.assertTrue(narrative_sentence_looks_abbreviated_fragment("reported by Corp.", ()))
         self.assertFalse(narrative_sentence_looks_abbreviated_fragment("reported by Corp.", ("reported",)))
+
+    def test_current_source_query_focus_groups_pin_policy_filters_order_and_exceptions(self) -> None:
+        policy = {
+            "strip_chars": "()[]{}'\"",
+            "leading_connector_pattern": r"^and\s+",
+            "trailing_connector_pattern": r"\s+and$",
+            "trailing_particle_pattern": r"-suffix$",
+            "year_pattern": r"20\d{2}",
+            "single_letter_pattern": r"[A-Za-z]",
+            "parenthetical_pair_pattern": r"([A-Za-z][A-Za-z ]{1,20})\(([A-Za-z0-9 ]{2,20})\)",
+            "left_context_drop_patterns": (r"^.*(?:and)\s+",),
+            "quoted_pattern": r'"(.+?)"',
+            "acronym_pattern": r"\b[A-Z][A-Z0-9]{1,8}\b",
+            "english_token_pattern": r"[A-Za-z][A-Za-z0-9-]{2,}",
+            "generic_token_pattern": r"[A-Za-z0-9]+",
+            "label_template": "focus-{index}",
+            "nested": {"preserve": True},
+        }
+        original_policy = deepcopy(policy)
+        query = 'Prefix and Alpha(ALPHA) "Quoted" BETA stop 2024 77 A AB final-suffix'
+
+        with (
+            patch.object(financial_text_surface, "QUERY_FOCUS_MARKER_POLICY", policy),
+            patch.object(financial_text_surface, "QUERY_FOCUS_STOPWORDS", frozenset({"stop"})),
+        ):
+            groups = financial_text_surface.query_focus_marker_groups(query, limit=20)
+            limited = financial_text_surface.query_focus_marker_groups(query, limit=3)
+
+        self.assertEqual(
+            groups,
+            [
+                {"label": "focus-1", "variants": ["Alpha"], "phrase": "", "query_focus": True},
+                {"label": "focus-2", "variants": ["Quoted"], "phrase": "", "query_focus": True},
+                {"label": "focus-3", "variants": ["BETA"], "phrase": "", "query_focus": True},
+                {"label": "focus-4", "variants": ["AB"], "phrase": "", "query_focus": True},
+                {"label": "focus-5", "variants": ["Prefix"], "phrase": "", "query_focus": True},
+                {"label": "focus-6", "variants": ["and"], "phrase": "", "query_focus": True},
+                {"label": "focus-7", "variants": ["final"], "phrase": "", "query_focus": True},
+                {"label": "focus-8", "variants": ["suffix"], "phrase": "", "query_focus": True},
+            ],
+        )
+        self.assertEqual(limited, groups[:3])
+        self.assertEqual(policy, original_policy)
+
+        events = []
+
+        class FalsyQuery:
+            def __bool__(self):
+                events.append("query:bool")
+                return False
+
+            def __str__(self):
+                raise AssertionError("falsy query string accessed")
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("policy accessed")
+
+        class StopwordBomb:
+            def __contains__(self, _item):
+                raise AssertionError("stopwords accessed")
+
+        with (
+            patch.object(financial_text_surface, "QUERY_FOCUS_MARKER_POLICY", PolicyBomb()),
+            patch.object(financial_text_surface, "QUERY_FOCUS_STOPWORDS", StopwordBomb()),
+            patch.object(
+                financial_text_surface,
+                "_normalise_spaces",
+                side_effect=lambda value: events.append(("normalize", value)) or "",
+            ),
+        ):
+            self.assertEqual(financial_text_surface.query_focus_marker_groups(FalsyQuery()), [])
+        self.assertEqual(events, ["query:bool", ("normalize", "")])
+
+        with patch.object(
+            financial_text_surface,
+            "_normalise_spaces",
+            side_effect=RuntimeError("normalize failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalize failed"):
+                financial_text_surface.query_focus_marker_groups("query")
+
+        with (
+            patch.object(financial_text_surface, "QUERY_FOCUS_MARKER_POLICY", PolicyBomb()),
+            patch.object(financial_text_surface, "_normalise_spaces", return_value="query"),
+        ):
+            with self.assertRaisesRegex(AssertionError, "policy accessed"):
+                financial_text_surface.query_focus_marker_groups("query")
+
+        later_findall = Mock(side_effect=AssertionError("later regex accessed"))
+        with (
+            patch.object(financial_text_surface, "QUERY_FOCUS_MARKER_POLICY", policy),
+            patch.object(financial_text_surface.re, "finditer", side_effect=RuntimeError("regex failed")),
+            patch.object(financial_text_surface.re, "findall", later_findall),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "regex failed"):
+                financial_text_surface.query_focus_marker_groups("Token")
+        later_findall.assert_not_called()
+
+    def test_current_source_query_focus_markers_pin_flattening_identity_and_exception_stop(self) -> None:
+        groups = [
+            {"variants": [" Alpha ", "", "alpha", 7], "nested": {"preserve": True}},
+            {"variants": ["BETA", "beta", "Gamma"]},
+            {"missing": True},
+        ]
+        original_groups = deepcopy(groups)
+        group_owner = Mock(return_value=groups)
+
+        query = object()
+        with patch.object(financial_text_surface, "query_focus_marker_groups", group_owner):
+            self.assertEqual(
+                financial_text_surface.query_focus_markers(query, limit=3),
+                ["Alpha", "7", "BETA", "Gamma"],
+            )
+        group_owner.assert_called_once_with(query, limit=3)
+        self.assertIs(group_owner.call_args.args[0], query)
+        self.assertEqual(groups, original_groups)
+
+        class StringBomb:
+            def __str__(self):
+                raise RuntimeError("variant failed")
+
+        class LaterGroup(dict):
+            def get(self, key, default=None):
+                raise AssertionError("later group accessed")
+
+        group_owner = Mock(
+            return_value=[{"variants": [StringBomb()]}, LaterGroup(variants=["later"])]
+        )
+        with patch.object(financial_text_surface, "query_focus_marker_groups", group_owner):
+            with self.assertRaisesRegex(RuntimeError, "variant failed"):
+                financial_text_surface.query_focus_markers("query", limit=4)
+        group_owner.assert_called_once_with("query", limit=4)
+
+        owner_failure = RuntimeError("group owner failed")
+        group_owner = Mock(side_effect=owner_failure)
+        with patch.object(financial_text_surface, "query_focus_marker_groups", group_owner):
+            with self.assertRaisesRegex(RuntimeError, "group owner failed"):
+                financial_text_surface.query_focus_markers("query")
+
+    def test_current_source_query_focus_bindings_pin_defs_calls_dag_alias_and_baseline(self) -> None:
+        import ast
+        import inspect
+        import json
+        from pathlib import Path
+
+        from src.agent import (
+            financial_graph_evidence,
+            financial_retrieval_pipeline,
+        )
+
+        modules = {
+            "retrieval": financial_retrieval_pipeline,
+            "evidence": financial_graph_evidence,
+            "calculation": financial_graph_calculation,
+            "owner": financial_text_surface,
+        }
+        sources = {name: inspect.getsource(module) for name, module in modules.items()}
+        trees = {name: ast.parse(source) for name, source in sources.items()}
+        targets = {
+            "groups": "query_focus_marker_groups",
+            "markers": "query_focus_markers",
+        }
+        definitions = {}
+        calls = {key: [] for key in targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                for key, target in targets.items():
+                    if called != target:
+                        continue
+                    calls[key].append(
+                        (
+                            self.module_name,
+                            tuple(self.stack),
+                            ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "",
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: (module_name, node.end_lineno - node.lineno + 1)
+                for name, (module_name, node) in definitions.items()
+            },
+            {
+                "query_focus_marker_groups": ("owner", 85),
+                "query_focus_markers": ("owner", 8),
+            },
+        )
+        group_node = definitions["query_focus_marker_groups"][1]
+        marker_node = definitions["query_focus_markers"][1]
+        self.assertEqual([arg.arg for arg in group_node.args.args], ["query"])
+        self.assertEqual([arg.arg for arg in group_node.args.kwonlyargs], ["limit"])
+        self.assertEqual(ast.literal_eval(group_node.args.kw_defaults[0]), 8)
+        self.assertEqual([arg.arg for arg in marker_node.args.args], ["query"])
+        self.assertEqual([arg.arg for arg in marker_node.args.kwonlyargs], ["limit"])
+        self.assertEqual(ast.literal_eval(marker_node.args.kw_defaults[0]), 8)
+        self.assertEqual(
+            calls["groups"],
+            [
+                ("evidence", ("_narrative_driver_groups",), "", ("query",), (), 0),
+                ("evidence", ("_compose_entity_table_summary_answer",), "", ("query_text",), (), 0),
+                ("evidence", ("_compose_business_technology_focus_answer",), "", ("query_text",), (), 0),
+                ("owner", ("query_focus_markers",), "", ("query",), (("limit", "limit"),), 0),
+                ("owner", ("preserve_source_visible_query_terms",), "", ("query",), (), 0),
+            ],
+        )
+        self.assertEqual(
+            calls["markers"],
+            [
+                ("retrieval", ("_rerank_docs",), "", ("str(state.get('query') or '')",), (), 0),
+                ("retrieval", ("_select_narrative_summary_docs",), "", ("query",), (), 0),
+                ("evidence", ("_supplement_policy_realized_evidence",), "", ("query",), (), 0),
+                ("evidence", ("_supplement_missing_focus_context_evidence",), "", ("query",), (), 0),
+                ("calculation", ("_append_missing_decision_context_evidence",), "", ("query",), (), 0),
+            ],
+        )
+        current_distribution = (
+            sum(entry[0] != "owner" for entries in calls.values() for entry in entries),
+            sum(entry[0] == "owner" for entries in calls.values() for entry in entries),
+        )
+        self.assertEqual(current_distribution, (8, 2))
+
+        evidence_aliases = [
+            node
+            for node in ast.walk(trees["evidence"])
+            if isinstance(node, (ast.Assign, ast.AnnAssign))
+            and any(
+                isinstance(target, ast.Name) and target.id == "_QUERY_FOCUS_STOPWORDS"
+                for target in (node.targets if isinstance(node, ast.Assign) else [node.target])
+            )
+        ]
+        self.assertEqual(evidence_aliases, [])
+        self.assertNotIn("QUERY_FOCUS_STOPWORDS", sources["evidence"])
+        self.assertIn("QUERY_FOCUS_STOPWORDS", sources["owner"])
+        self.assertNotIn("financial_retrieval_pipeline", sources["owner"])
+        self.assertNotIn("financial_graph_evidence", sources["owner"])
+        self.assertNotIn("financial_graph_calculation", sources["owner"])
+
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        records = [
+            record
+            for record in baseline["records"]
+            if record["path"]
+            in {
+                "src/agent/financial_retrieval_pipeline.py",
+                "src/agent/financial_text_surface.py",
+            }
+            and record["text"] == "[\uac00-\ud7a3]"
+        ]
+        self.assertEqual(
+            records,
+            [
+                {
+                    "path": "src/agent/financial_retrieval_pipeline.py",
+                    "text": "[\uac00-\ud7a3]",
+                    "category": "regex_or_pattern",
+                    "fingerprint": "ba63bcec3fbd94ce",
+                    "count": 1,
+                    "first_lines": [203],
+                },
+                {
+                    "path": "src/agent/financial_text_surface.py",
+                    "text": "[\uac00-\ud7a3]",
+                    "category": "regex_or_pattern",
+                    "fingerprint": "e5d9204368a21b4c",
+                    "count": 1,
+                    "first_lines": [111],
+                },
+            ],
+        )
+        self.assertEqual(sources["retrieval"].count('r"[\uac00-\ud7a3]"'), 1)
+        self.assertEqual(ast.get_source_segment(sources["owner"], group_node).count('r"[\uac00-\ud7a3]"'), 1)
+
+    def test_current_source_rerank_caller_pins_focus_gate_args_adoption_and_exception_stop(self) -> None:
+        from src.agent import financial_retrieval_pipeline
+
+        class Doc:
+            def __init__(self, text, metadata):
+                self.page_content = text
+                self.metadata = metadata
+
+        focus_doc = Doc("Focus content", {"block_type": "paragraph"})
+        other_doc = Doc("Other content", {"block_type": "paragraph"})
+        docs = [(focus_doc, 1.0), (other_doc, 1.0)]
+        original_docs = list(docs)
+        state = {
+            "query": "Focus query",
+            "topic": "",
+            "active_subtask": {"operation_family": "narrative_summary"},
+            "companies": [],
+            "years": [],
+            "section_filter": "",
+            "intent": "qa",
+            "query_type": "qa",
+            "format_preference": "",
+            "report_scope": {},
+        }
+        original_state = deepcopy(state)
+        agent = financial_retrieval_pipeline.FinancialRetrievalPipelineMixin()
+        agent._section_bias = Mock(return_value=0.0)
+        marker_owner = Mock(return_value=["Focus"])
+
+        patches = (
+            patch.object(financial_retrieval_pipeline, "_tokenize_terms", return_value=set()),
+            patch.object(financial_retrieval_pipeline, "_metric_terms_from_topic", return_value=set()),
+            patch.object(financial_retrieval_pipeline, "_active_preferred_sections", return_value=[]),
+            patch.object(financial_retrieval_pipeline, "_active_preferred_statement_types", return_value=[]),
+            patch.object(financial_retrieval_pipeline, "_desired_consolidation_scope", return_value="unknown"),
+            patch.object(financial_retrieval_pipeline, "_metadata_period_match_strength", return_value=0),
+            patch.object(financial_retrieval_pipeline, "NARRATIVE_RERANK_POLICY", {"causal_markers": ()}),
+        )
+        with (
+            patches[0],
+            patches[1],
+            patches[2],
+            patches[3],
+            patches[4],
+            patches[5],
+            patches[6],
+            patch.object(financial_retrieval_pipeline, "query_focus_markers", marker_owner),
+        ):
+            reranked = agent._rerank_docs(docs, state)
+
+        marker_owner.assert_called_once_with("Focus query")
+        self.assertEqual([item[0] for item in reranked], [focus_doc, other_doc])
+        self.assertAlmostEqual(reranked[0][1], 1.2)
+        self.assertAlmostEqual(reranked[1][1], 1.12)
+        self.assertIs(reranked[0][0], focus_doc)
+        self.assertEqual(docs, original_docs)
+        self.assertEqual(state, original_state)
+
+        marker_owner = Mock(side_effect=AssertionError("marker accessed"))
+        non_narrative_state = deepcopy(state)
+        non_narrative_state["active_subtask"] = {"operation_family": "lookup"}
+        with (
+            patches[0],
+            patches[1],
+            patches[2],
+            patches[3],
+            patches[4],
+            patches[5],
+            patches[6],
+            patch.object(financial_retrieval_pipeline, "query_focus_markers", marker_owner),
+        ):
+            self.assertEqual(agent._rerank_docs([], non_narrative_state), [])
+        marker_owner.assert_not_called()
+
+        class DocBomb:
+            @property
+            def metadata(self):
+                raise AssertionError("document accessed")
+
+        marker_owner = Mock(side_effect=RuntimeError("marker failed"))
+        with (
+            patches[0],
+            patches[1],
+            patches[2],
+            patches[3],
+            patches[4],
+            patches[5],
+            patches[6],
+            patch.object(financial_retrieval_pipeline, "query_focus_markers", marker_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker failed"):
+                agent._rerank_docs([(DocBomb(), 1.0)], state)
+
+    def test_current_source_evidence_driver_caller_pins_merge_order_copy_and_exception_stop(self) -> None:
+        from src.agent import financial_graph_evidence
+
+        policy = {"name": "policy", "nested": {"preserve": True}}
+        base_group = {"label": "base", "variants": ["Existing", "Shared"]}
+        focus_groups = [
+            {
+                "label": "focus-1",
+                "variants": ["shared", "Fresh", "fresh"],
+                "phrase": "",
+                "query_focus": True,
+                "nested": {"preserve": True},
+            },
+            {"label": "empty", "variants": ["EXISTING", ""]},
+            {"label": "focus-2", "variants": ["FRESH", "Later"]},
+        ]
+        original_focus_groups = deepcopy(focus_groups)
+        events = []
+        agent = financial_graph_evidence.FinancialAgentEvidenceMixin()
+        agent._active_narrative_policies_for_query = Mock(
+            side_effect=lambda query: events.append(("active", query)) or [policy]
+        )
+        focus_owner = Mock(
+            side_effect=lambda query: events.append(("focus", query)) or focus_groups
+        )
+
+        def driver_groups(policies):
+            events.append(("driver", policies))
+            self.assertIs(policies[0], policy)
+            return [base_group]
+
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "narrative_policy_driver_groups",
+                side_effect=driver_groups,
+            ),
+            patch.object(financial_graph_evidence, "query_focus_marker_groups", focus_owner),
+        ):
+            result = agent._narrative_driver_groups("query")
+
+        self.assertEqual(
+            events,
+            [("active", "query"), ("driver", [policy]), ("focus", "query")],
+        )
+        self.assertEqual(
+            result,
+            [
+                base_group,
+                {**focus_groups[0], "variants": ["Fresh", "fresh"]},
+                {**focus_groups[2], "variants": ["Later"]},
+            ],
+        )
+        self.assertIs(result[0], base_group)
+        self.assertIsNot(result[1], focus_groups[0])
+        self.assertIs(result[1]["nested"], focus_groups[0]["nested"])
+        self.assertEqual(focus_groups, original_focus_groups)
+        focus_owner.assert_called_once_with("query")
+
+        failing_agent = financial_graph_evidence.FinancialAgentEvidenceMixin()
+        failing_agent._active_narrative_policies_for_query = Mock(return_value=[policy])
+        failing_focus_owner = Mock(side_effect=RuntimeError("focus failed"))
+        with (
+            patch.object(
+                financial_graph_evidence,
+                "narrative_policy_driver_groups",
+                return_value=[base_group],
+            ) as driver_owner,
+            patch.object(
+                financial_graph_evidence,
+                "query_focus_marker_groups",
+                failing_focus_owner,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "focus failed"):
+                failing_agent._narrative_driver_groups("query")
+        driver_owner.assert_called_once_with([policy])
+
+    def test_current_source_source_visible_terms_pin_early_gates_marker_filters_and_exceptions(self) -> None:
+        class FalsyAnswer:
+            def __bool__(self):
+                return False
+
+            def __str__(self):
+                raise AssertionError("falsy answer string accessed")
+
+        class EvidenceBomb:
+            def __bool__(self):
+                raise AssertionError("evidence accessed")
+
+        marker_owner = Mock(side_effect=AssertionError("markers accessed"))
+        ontology_owner = Mock(side_effect=AssertionError("ontology accessed"))
+        with (
+            patch.object(financial_text_surface, "query_focus_marker_groups", marker_owner),
+            patch.object(financial_text_surface, "get_financial_ontology", ontology_owner),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_source_visible_query_terms(
+                    FalsyAnswer(),
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=EvidenceBomb(),
+                    docs=[],
+                ),
+                "",
+            )
+        marker_owner.assert_not_called()
+        ontology_owner.assert_not_called()
+
+        invalid_groups = [
+            {
+                "variants": [
+                    "",
+                    "lowercase",
+                    "A" * 33,
+                    "1234",
+                    None,
+                ]
+            }
+        ]
+        marker_owner = Mock(return_value=invalid_groups)
+        policy_bomb = Mock(side_effect=AssertionError("template policy accessed"))
+        with (
+            patch.object(financial_text_surface, "query_focus_marker_groups", marker_owner),
+            patch.object(financial_text_surface, "get_financial_ontology", ontology_owner),
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                {"source_visible_term_note_template": policy_bomb},
+            ),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "  base answer  ",
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=EvidenceBomb(),
+                    docs=[],
+                ),
+                "base answer",
+            )
+        marker_owner.assert_called_once_with("query")
+        ontology_owner.assert_not_called()
+        policy_bomb.assert_not_called()
+
+        marker_failure = RuntimeError("marker owner failed")
+        with patch.object(
+            financial_text_surface,
+            "query_focus_marker_groups",
+            side_effect=marker_failure,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "marker owner failed"):
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "answer",
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=EvidenceBomb(),
+                    docs=[],
+                )
+
+        class GroupBomb(dict):
+            def get(self, key, default=None):
+                raise RuntimeError("group access failed")
+
+        with patch.object(
+            financial_text_surface,
+            "query_focus_marker_groups",
+            return_value=[GroupBomb()],
+        ):
+            with self.assertRaisesRegex(RuntimeError, "group access failed"):
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "answer",
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=[],
+                    docs=[],
+                )
+
+    def test_current_source_source_visible_terms_pin_support_copy_order_limit_and_no_mutation(self) -> None:
+        nested = {"preserve": True}
+        evidence_item = {
+            "claim": "ABC support",
+            "quote_span": "",
+            "raw_row_text": "",
+            "allowed_terms": ["TUV"],
+            "metadata": {
+                "table_context": "",
+                "table_header_context": "",
+                "table_summary_text": "",
+                "text": "",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+        row = {
+            "answer": "XYZ support",
+            "metric_label": "",
+            "calculation_result": {
+                "formatted_result": "",
+                "rendered_value": "",
+                "nested": nested,
+            },
+            "nested": nested,
+        }
+
+        class Doc:
+            def __init__(self):
+                self.page_content = "QRS support"
+                self.metadata = {
+                    "table_context": "",
+                    "table_header_context": "",
+                    "table_summary_text": "",
+                    "section_path": "",
+                    "local_heading": "",
+                    "nested": nested,
+                }
+
+        doc = Doc()
+        evidence_items = [evidence_item]
+        ordered_results = [row]
+        docs = [(doc, 0.8)]
+        snapshots = {
+            "evidence": deepcopy(evidence_items),
+            "rows": deepcopy(ordered_results),
+            "doc_metadata": deepcopy(doc.metadata),
+            "docs": list(docs),
+        }
+        identities = {
+            "evidence": [id(item) for item in evidence_items],
+            "rows": [id(item) for item in ordered_results],
+            "docs": [id(item[0]) for item in docs],
+        }
+        marker_groups = [
+            {"variants": ["ABC", "abc", "XYZ"]},
+            {"variants": ["QRS", "TUV", "UVW", "FIFTH", "SIXTH", "ABC"]},
+        ]
+        ontology = Mock()
+        ontology.match_concepts.return_value = []
+        policy = {
+            "source_visible_term_note_template": "Note: {terms}",
+            "nested": nested,
+        }
+        original_policy = deepcopy(policy)
+        with (
+            patch.object(
+                financial_text_surface,
+                "query_focus_marker_groups",
+                return_value=marker_groups,
+            ) as marker_owner,
+            patch.object(financial_text_surface, "get_financial_ontology", return_value=ontology),
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", policy),
+        ):
+            answer = financial_text_surface.preserve_source_visible_query_terms(
+                "Base UVW",
+                query="query",
+                ordered_results=ordered_results,
+                evidence_items=evidence_items,
+                docs=docs,
+            )
+
+        self.assertEqual(answer, "Base UVW Note: ABC, XYZ, QRS, TUV")
+        marker_owner.assert_called_once_with("query")
+        ontology.match_concepts.assert_called_once_with("query")
+        self.assertEqual(policy, original_policy)
+        self.assertEqual(evidence_items, snapshots["evidence"])
+        self.assertEqual(ordered_results, snapshots["rows"])
+        self.assertEqual(doc.metadata, snapshots["doc_metadata"])
+        self.assertEqual(docs, snapshots["docs"])
+        self.assertEqual([id(item) for item in evidence_items], identities["evidence"])
+        self.assertEqual([id(item) for item in ordered_results], identities["rows"])
+        self.assertEqual([id(item[0]) for item in docs], identities["docs"])
+        self.assertIs(evidence_item["nested"], nested)
+        self.assertIs(row["nested"], nested)
+        self.assertIs(doc.metadata["nested"], nested)
+
+        class EvidenceCopyBomb:
+            def __bool__(self):
+                return True
+
+            def __iter__(self):
+                raise RuntimeError("evidence copy failed")
+
+        class RowBomb:
+            def get(self, _key, _default=None):
+                raise AssertionError("row accessed")
+
+        class DocBomb:
+            @property
+            def metadata(self):
+                raise AssertionError("doc accessed")
+
+        ontology_bomb = Mock(side_effect=AssertionError("ontology accessed"))
+        with (
+            patch.object(
+                financial_text_surface,
+                "query_focus_marker_groups",
+                return_value=[{"variants": ["ABC"]}],
+            ),
+            patch.object(financial_text_surface, "get_financial_ontology", ontology_bomb),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "evidence copy failed"):
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "answer",
+                    query="query",
+                    ordered_results=[RowBomb()],
+                    evidence_items=[EvidenceCopyBomb()],
+                    docs=[DocBomb()],
+                )
+        ontology_bomb.assert_not_called()
+
+    def test_current_source_source_visible_terms_pin_ontology_support_template_and_exception_stop(self) -> None:
+        marker_groups = [{"variants": ["Program", "ABC"]}]
+        concept = {
+            "key": "program",
+            "display_name": "Program",
+            "aliases": ["ABC", "Program"],
+            "keywords": [],
+            "nested": {"preserve": True},
+        }
+        ontology = Mock()
+        ontology.match_concepts.return_value = [
+            {"key": "", "display_name": "ignored"},
+            concept,
+        ]
+        policy = {"source_visible_term_note_template": "[{terms}]"}
+        with (
+            patch.object(
+                financial_text_surface,
+                "query_focus_marker_groups",
+                return_value=marker_groups,
+            ),
+            patch.object(financial_text_surface, "get_financial_ontology", return_value=ontology),
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", policy),
+        ):
+            self.assertEqual(
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "Program result",
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=[],
+                    docs=[],
+                ),
+                "Program result [ABC]",
+            )
+        ontology.match_concepts.assert_called_once_with("query")
+
+        policy_bomb = Mock()
+        policy_bomb.get.side_effect = RuntimeError("policy failed")
+        ontology = Mock()
+        ontology.match_concepts.return_value = []
+        with (
+            patch.object(
+                financial_text_surface,
+                "query_focus_marker_groups",
+                return_value=[{"variants": ["ABC"]}],
+            ),
+            patch.object(financial_text_surface, "get_financial_ontology", return_value=ontology),
+            patch.object(financial_text_surface, "CALCULATION_NARRATIVE_POLICY", policy_bomb),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy failed"):
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "answer",
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=[{"claim": "ABC support"}],
+                    docs=[],
+                )
+        ontology.match_concepts.assert_called_once_with("query")
+
+        ontology_failure = Mock(side_effect=RuntimeError("ontology failed"))
+        with (
+            patch.object(
+                financial_text_surface,
+                "query_focus_marker_groups",
+                return_value=[{"variants": ["ABC"]}],
+            ),
+            patch.object(financial_text_surface, "get_financial_ontology", ontology_failure),
+            patch.object(
+                financial_text_surface,
+                "CALCULATION_NARRATIVE_POLICY",
+                Mock(get=Mock(side_effect=AssertionError("policy accessed"))),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ontology failed"):
+                financial_text_surface.preserve_source_visible_query_terms(
+                    "answer",
+                    query="query",
+                    ordered_results=[],
+                    evidence_items=[{"claim": "ABC support"}],
+                    docs=[],
+                )
+
+    def test_current_source_source_visible_terms_bindings_pin_def_calls_plan_dag_and_baseline(self) -> None:
+        import ast
+        import inspect
+        import json
+        from pathlib import Path
+
+        from src.agent import financial_graph_evidence, financial_retrieval_pipeline
+        from src import config as financial_config
+
+        modules = {
+            "retrieval": financial_retrieval_pipeline,
+            "evidence": financial_graph_evidence,
+            "graph": financial_graph_calculation,
+            "owner": financial_text_surface,
+            "config": financial_config,
+        }
+        sources = {name: inspect.getsource(module) for name, module in modules.items()}
+        trees = {name: ast.parse(source) for name, source in sources.items()}
+        targets = {
+            "groups": "query_focus_marker_groups",
+            "markers": "query_focus_markers",
+            "preserve_public": "preserve_source_visible_query_terms",
+        }
+        definitions = {}
+        all_definition_names = set()
+        calls = {key: [] for key in targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                all_definition_names.add(node.name)
+                if node.name in targets.values():
+                    definitions[node.name] = (self.module_name, node)
+                self.stack.append(node.name)
+                self.generic_visit(node)
+                self.stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                for key, target in targets.items():
+                    if called != target:
+                        continue
+                    calls[key].append(
+                        (
+                            self.module_name,
+                            tuple(self.stack),
+                            ast.unparse(node.func.value) if isinstance(node.func, ast.Attribute) else "",
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name in ("retrieval", "evidence", "graph", "owner"):
+            BindingVisitor(module_name).visit(trees[module_name])
+
+        public_node = definitions["preserve_source_visible_query_terms"][1]
+        self.assertEqual(
+            (definitions["preserve_source_visible_query_terms"][0], public_node.end_lineno - public_node.lineno + 1),
+            ("owner", 126),
+        )
+        self.assertNotIn("_preserve_source_visible_query_terms", all_definition_names)
+        self.assertEqual([arg.arg for arg in public_node.args.args], ["answer"])
+        self.assertEqual(
+            [arg.arg for arg in public_node.args.kwonlyargs],
+            ["query", "ordered_results", "evidence_items", "docs"],
+        )
+        expected_preserve_calls = [
+            (
+                "graph",
+                ("_aggregate_calculation_subtasks",),
+                "",
+                ("final_answer",),
+                (
+                    ("query", "str(state.get('query') or '')"),
+                    ("ordered_results", "ordered_results"),
+                    ("evidence_items", "aggregate_evidence_items"),
+                    (
+                        "docs",
+                        "list(state.get('seed_retrieved_docs', []) or []) + list(state.get('retrieved_docs', []) or [])",
+                    ),
+                ),
+                0,
+            ),
+        ] * 2
+        self.assertEqual(calls["preserve_public"], expected_preserve_calls)
+        self.assertEqual(
+            {key: len(calls[key]) for key in ("groups", "markers")},
+            {"groups": 5, "markers": 5},
+        )
+        current_distribution = {
+            "groups": (
+                sum(item[0] != "owner" for item in calls["groups"]),
+                sum(item[0] == "owner" for item in calls["groups"]),
+            ),
+            "markers": (
+                sum(item[0] != "owner" for item in calls["markers"]),
+                sum(item[0] == "owner" for item in calls["markers"]),
+            ),
+            "preserve": (len(calls["preserve_public"]), 0),
+        }
+        self.assertEqual(
+            current_distribution,
+            {"groups": (3, 2), "markers": (5, 0), "preserve": (2, 0)},
+        )
+        self.assertEqual(
+            (
+                sum(value[0] for value in current_distribution.values()),
+                sum(value[1] for value in current_distribution.values()),
+            ),
+            (10, 2),
+        )
+        self.assertEqual(public_node.end_lineno - public_node.lineno + 1, 126)
+
+        def imported_modules(tree):
+            result = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    result.add(node.module)
+                elif isinstance(node, ast.Import):
+                    result.update(alias.name for alias in node.names)
+            return result
+
+        owner_imports = imported_modules(trees["owner"])
+        config_imports = imported_modules(trees["config"])
+        self.assertIn("src.config", owner_imports)
+        self.assertNotIn("src.agent.financial_text_surface", config_imports)
+        self.assertIn("get_financial_ontology", sources["graph"])
+
+        selected_source = ast.get_source_segment(sources["owner"], public_node)
+        self.assertNotIn("가", selected_source)
+        baseline = json.loads(
+            (Path(__file__).parent / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_lines = set(range(public_node.lineno, public_node.end_lineno + 1))
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_text_surface.py"
+                and selected_lines.intersection(record.get("first_lines") or [])
+            ],
+            [],
+        )
+
+    def test_current_source_source_visible_term_callers_pin_two_placements_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        row = {"task_id": "task", "nested": nested}
+        evidence = {"evidence_id": "ev", "nested": nested}
+        seed_doc = Mock(page_content="seed", metadata={"nested": nested})
+        retrieved_doc = Mock(page_content="retrieved", metadata={"nested": nested})
+        ordered_results = [row]
+        evidence_items = [evidence]
+        state = {
+            "query": "focus query",
+            "report_scope": {},
+            "seed_retrieved_docs": [(seed_doc, 0.9)],
+            "retrieved_docs": [(retrieved_doc, 0.8)],
+            "plan_loop_count": 0,
+            "nested": nested,
+        }
+        snapshots = {
+            "rows": deepcopy(ordered_results),
+            "evidence": deepcopy(evidence_items),
+            "state": deepcopy(
+                {
+                    key: value
+                    for key, value in state.items()
+                    if key not in {"seed_retrieved_docs", "retrieved_docs"}
+                }
+            ),
+            "seed_docs": list(state["seed_retrieved_docs"]),
+            "retrieved_docs": list(state["retrieved_docs"]),
+        }
+        identities = {
+            "rows": [id(item) for item in ordered_results],
+            "evidence": [id(item) for item in evidence_items],
+            "docs": [id(seed_doc), id(retrieved_doc)],
+        }
+
+        def run(owner, prune, events):
+            events.clear()
+            agent = financial_graph_calculation.FinancialAgentCalculationMixin()
+            prepared = financial_graph_calculation._PreparedAggregateState(
+                ordered_results,
+                "fallback answer",
+                "",
+                "",
+                True,
+                False,
+                False,
+            )
+            evidence_state = financial_graph_calculation._AggregateEvidenceState(
+                ordered_results,
+                evidence_items,
+                "fallback answer",
+                "fallback answer",
+                "",
+                "",
+            )
+            composition_state = financial_graph_calculation.AggregateCompositionState(
+                "composition answer",
+                [],
+                None,
+                False,
+                "",
+                "",
+            )
+            feedback_state = financial_graph_calculation._AggregateFeedbackState(
+                "first preserved",
+                "",
+                "",
+                [],
+                {},
+                False,
+                "",
+            )
+            projection = {
+                "calculation_result": {},
+                "calculation_operands": [],
+                "calculation_plan": {},
+            }
+
+            def owner_call(answer, **kwargs):
+                events.append(("preserve", answer, kwargs))
+                return owner(answer, **kwargs)
+
+            with (
+                patch.object(agent, "_prepare_initial_aggregate_state", return_value=prepared),
+                patch.object(agent, "_infer_planner_feedback_from_answer_slots", return_value=""),
+                patch.object(agent, "_collect_initial_aggregate_evidence_state", return_value=evidence_state),
+                patch.object(agent, "_rebuild_aggregate_projection", return_value=projection),
+                patch.object(agent, "_runtime_evidence_rows_with_context_docs", return_value=[]),
+                patch.object(
+                    agent,
+                    "_apply_period_context_realignment_to_aggregate",
+                    side_effect=lambda **kwargs: kwargs["aggregate_state"],
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "_aggregate_period_context_evidence_items",
+                    return_value=evidence_items,
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "narrative_context_sentence_from_evidence",
+                    return_value="",
+                ),
+                patch.object(
+                    agent,
+                    "_apply_initial_aggregate_answer_composition",
+                    side_effect=lambda *_args, **_kwargs: events.append(("composition",))
+                    or (composition_state, ""),
+                ),
+                patch.object(
+                    financial_graph_calculation,
+                    "preserve_source_visible_query_terms",
+                    side_effect=owner_call,
+                ),
+                patch.object(
+                    agent,
+                    "_preserve_policy_required_context_in_narrative_results",
+                    side_effect=lambda rows, **_kwargs: events.append(("policy", rows)) or rows,
+                ),
+                patch.object(
+                    agent,
+                    "_resolve_aggregate_feedback_state",
+                    side_effect=lambda *_args, **_kwargs: events.append(("feedback",)) or feedback_state,
+                ),
+                patch.object(financial_graph_calculation, "_aggregate_selected_claim_ids", return_value=[]),
+                patch.object(
+                    agent,
+                    "_align_lookup_results_with_dependency_projection",
+                    side_effect=lambda rows, *_args: events.append(("align", rows)) or rows,
+                ),
+                patch.object(
+                    financial_graph_calculation.calculation_rendering,
+                    "compose_slot_based_difference_answer",
+                    side_effect=lambda **_kwargs: events.append(("slot",)) or "",
+                ),
+                patch.object(
+                    agent,
+                    "_prune_irrelevant_growth_narrative_sentences",
+                    side_effect=lambda **kwargs: events.append(("prune", kwargs)) or prune(**kwargs),
+                ),
+            ):
+                agent._aggregate_calculation_subtasks(state)
+        owner = Mock(side_effect=["first preserved", "second preserved"])
+        prune = Mock(side_effect=RuntimeError("stop after second preserve"))
+        events = []
+        with self.assertRaisesRegex(RuntimeError, "stop after second preserve"):
+            run(owner, prune, events)
+        self.assertEqual(len(owner.call_args_list), 2)
+        for owner_call in owner.call_args_list:
+            self.assertEqual(owner_call.kwargs["query"], "focus query")
+            self.assertIs(owner_call.kwargs["ordered_results"], ordered_results)
+            self.assertIs(owner_call.kwargs["evidence_items"], evidence_items)
+            self.assertEqual(owner_call.kwargs["docs"], state["seed_retrieved_docs"] + state["retrieved_docs"])
+            self.assertEqual([id(item[0]) for item in owner_call.kwargs["docs"]], identities["docs"])
+        self.assertIsNot(owner.call_args_list[0].kwargs["docs"], owner.call_args_list[1].kwargs["docs"])
+        self.assertEqual([call.args[0] for call in owner.call_args_list], ["composition answer", "first preserved"])
+        event_names = [event[0] for event in events]
+        self.assertEqual(
+            event_names,
+            ["composition", "preserve", "policy", "feedback", "align", "slot", "preserve", "prune"],
+        )
+        prune.assert_called_once()
+        self.assertEqual(prune.call_args.kwargs["answer"], "second preserved")
+
+        owner = Mock(side_effect=["first preserved", RuntimeError("second preserve failed")])
+        prune = Mock(side_effect=AssertionError("prune accessed"))
+        with self.assertRaisesRegex(RuntimeError, "second preserve failed"):
+            run(owner, prune, [])
+        self.assertEqual([call.args[0] for call in owner.call_args_list], ["composition answer", "first preserved"])
+        prune.assert_not_called()
+
+        self.assertEqual(ordered_results, snapshots["rows"])
+        self.assertEqual(evidence_items, snapshots["evidence"])
+        self.assertEqual(
+            {
+                key: value
+                for key, value in state.items()
+                if key not in {"seed_retrieved_docs", "retrieved_docs"}
+            },
+            snapshots["state"],
+        )
+        self.assertEqual(state["seed_retrieved_docs"], snapshots["seed_docs"])
+        self.assertEqual(state["retrieved_docs"], snapshots["retrieved_docs"])
+        self.assertEqual([id(item) for item in ordered_results], identities["rows"])
+        self.assertEqual([id(item) for item in evidence_items], identities["evidence"])
+        self.assertIs(row["nested"], nested)
+        self.assertIs(evidence["nested"], nested)
 
 
 if __name__ == "__main__":

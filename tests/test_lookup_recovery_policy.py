@@ -1441,7 +1441,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_records = [
             record
             for record in baseline["records"]
@@ -2072,7 +2072,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_records = [
             record
             for record in baseline["records"]

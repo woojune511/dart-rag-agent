@@ -1905,7 +1905,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         owner_nodes = [node for module_name, node in definitions.values() if module_name == "owner"]
         selected_start = min(node.lineno for node in owner_nodes)
         selected_end = max(node.end_lineno for node in owner_nodes)
@@ -2666,7 +2666,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         self.assertEqual(
             [
                 record
@@ -3550,7 +3550,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         moved_owner_lines = {
             line
             for _module, node in definitions.values()
@@ -4485,7 +4485,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines_by_path = {
             "src/agent/financial_aggregate_projection.py": {
                 line
@@ -4605,7 +4605,11 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 ),
                 patch.object(financial_graph_calculation, "narrative_context_sentence_from_evidence", return_value=""),
                 patch.object(self.agent, "_apply_initial_aggregate_answer_composition", return_value=(composition_state, "")),
-                patch.object(self.agent, "_preserve_source_visible_query_terms", side_effect=lambda answer, **_kwargs: answer),
+                patch.object(
+                    financial_graph_calculation,
+                    "preserve_source_visible_query_terms",
+                    side_effect=lambda answer, **_kwargs: answer,
+                ),
                 patch.object(
                     self.agent,
                     "_preserve_policy_required_context_in_narrative_results",
@@ -5507,7 +5511,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set()
         for module_name, node in definitions.values():
             if module_name == "owner":
@@ -6535,7 +6539,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set(range(definition.lineno, definition.end_lineno + 1))
         self.assertEqual(
             [
@@ -7326,7 +7330,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set()
         for name in public_names:
             node = definitions[("owner", name)]
@@ -8414,7 +8418,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
             if row["path"] == "src/agent/financial_aggregate_projection.py"
             and any(start <= row["line"] <= end for start, end in selected_ranges)
         ]
-        self.assertEqual(len(records), 217)
+        self.assertEqual(len(records), 218)
         self.assertEqual(selected_hits, [])
 
     def test_current_source_runtime_evidence_caller_pins_combined_args_adoption_and_stop(self) -> None:
@@ -9527,7 +9531,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set()
         for name in public_names.values():
             node = definitions[("owner", name)]
@@ -10352,8 +10356,8 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 return_value=(composition_state, ""),
             ),
             patch.object(
-                self.agent,
-                "_preserve_source_visible_query_terms",
+                financial_graph_calculation,
+                "preserve_source_visible_query_terms",
                 side_effect=lambda answer, **_kwargs: answer,
             ),
             patch.object(
@@ -11088,7 +11092,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_records = [
             record
             for record in baseline["records"]
@@ -11832,7 +11836,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set(range(definition.lineno, definition.end_lineno + 1))
         self.assertEqual(
             [
@@ -12678,7 +12682,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set(range(sync_definition.lineno, sync_definition.end_lineno + 1))
         self.assertEqual(
             [
@@ -13173,7 +13177,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             (Path("tests") / "fixtures" / "runtime_domain_terms_baseline.json").read_text(encoding="utf-8")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set(range(owner_definition.lineno, owner_definition.end_lineno + 1))
         self.assertEqual(
             [
@@ -13815,7 +13819,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
         baseline = json.loads(
             Path("tests/fixtures/runtime_domain_terms_baseline.json").read_text(encoding="utf-8-sig")
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set(range(owner_definition.lineno, owner_definition.end_lineno + 1))
         self.assertEqual(
             [
@@ -14625,7 +14629,7 @@ class FinancialAggregateRankDedupeTests(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        self.assertEqual(len(baseline["records"]), 217)
+        self.assertEqual(len(baseline["records"]), 218)
         selected_lines = set(range(definition.lineno, definition.end_lineno + 1))
         self.assertEqual(
             [
