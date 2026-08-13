@@ -4256,60 +4256,90 @@ retained graph 102/102, retained row 22/22, both callers, DAG parity, retired-re
 zero, and diff check passed. Benchmark refresh was **NOT RUN** and remote CI
 remains unverified.
 
-The new characterize-only candidate selected-cell inventory selects the current
-21-line `_candidate_selected_cell_for_operand(candidate, *, operand,
-query_years, period_focus) -> Optional[Dict[str, Any]]` graph definition for a
-future public move to `financial_structured_cells.py` as
-`candidate_selected_cell_for_operand(...)`. No production source or test has
-moved for this projection at this checkpoint. It prepares cells from an already
-supplied candidate and delegates selection; it does not own candidate matching,
-direct acceptance, scoring/ranking, evidence adoption, retry sequencing, or
-graph state.
+The candidate selected-cell ownership boundary completed in `0bfa1f0`. The
+exact former 21-line graph-helper definition now lives in
+`financial_structured_cells.py` as public
+`candidate_selected_cell_for_operand(...)`. Its sole direct `ast.Name` call
+remains graph-external in `_deterministic_reconcile_task(...)`, with candidate
+positional, the original operand/query-years/period-focus objects as ordered
+keywords, and caller `try` depth zero. The seven direct
+`select_structured_cell(...)` calls finish external six/owner-local one; retired
+executable graph-private refs are zero.
 
-The projection shallow-copies `candidate.get("metadata") or {}` before
-stringifying and stripping `candidate_kind`. Its structured-cell comprehension
-retains input order and deliberately evaluates `dict(cell)` in both the filter
-and expression for each retained cell, but only in the filter for a false copy.
-Only when no structured cell survives and kind is exactly `table_row` or
-`evidence_row` does it call `_parse_unstructured_table_row_cells(...)` with
-stringified row text and the metadata copy. Other kinds skip the parser, and an
-empty structured/parser result returns `None`.
+The projection preserves metadata copy before candidate-kind access, repeated
+structured-cell filter/expression copies, structured-before-parser precedence,
+exact table/evidence-row parser gates, empty `None`, ordered mapping-unpack
+copies, per-cell report-year overwrite, selector argument/result identities,
+raw truth/iteration/unpack semantics, nested identity, immutability, and all
+uncaught preparation errors. Its caller still selects only inside ranked lookup/
+single-value direct grounding after period focus and before acceptance;
+selection failure stops acceptance, rejection stops signatures and entry
+fields, and success forwards the identical cell through acceptance, both
+signatures, and selected-value extraction.
 
-Each retained or parsed cell is then copied by mapping unpack in order and its
-`_report_year` is overwritten by `metadata.get("year")`, evaluated once per
-cell. `select_structured_cell(...)` receives the prepared list as its only
-positional argument and the original operand, query-year list, and period-focus
-objects as ordered keyword arguments; its result returns by identity. Raw
-mapping, iteration, unpack, `or`/container truth-value behavior, repeated copies,
-stringification/strip, shallow nested identity, immutability, and every current
-uncaught access/copy/parser/year/selector error remain part of the contract.
+Source moved `+30/-26`, tests `+1,266/-27`, and the whole commit
+`+1,296/-53`; graph helpers finish at 5,623 lines and public/private 9/92,
+while structured cells finish at 362 and 4/4. The source diff SHA-256 is
+`eba52c11252de00d12fa808276b8c7b80b7d8dccbd7bbb828696fe5b2c37494f`.
+Focused 4/4, owner 86/86, affected semantic 1,046/1,046, import 19/19, audit 218,
+full 1,939/1,939, pycompile/fresh import/public identity 1/1, selected-body 1/1,
+retained graph 101/101, retained structured owner 7/7, sole-caller and DAG
+parity, retired-ref zero, and diff check passed. Benchmark refresh was **NOT
+RUN** and remote CI remains unverified.
 
-The sole direct call is in `_deterministic_reconcile_task(...)`, with one
-positional candidate, three named selection arguments, and caller `try` depth
-zero. It is reached only for a nonempty ranked set in lookup/single-value direct
-grounding, after period-focus resolution and before direct acceptance. Selector
-failure stops acceptance and entry construction; acceptance rejection stops
-logical/family signatures and all later entry fields. Acceptance success passes
-the identical selected cell to acceptance, both signatures, and value
-extraction before scoring and canonical-winner policy. Current/projected counts
-are graph helpers 9/93 to 9/92 and structured cells 3/4 to 4/4. The moved call
-finishes graph-external one/local zero, while the seven existing direct
-`select_structured_cell(...)` calls finish external six/local one. The selected
-span has zero reviewed runtime-domain records, and the existing graph-to-
-structured and structured-to-row edges remain acyclic.
+The new characterize-only scoped surface-affinity inventory selects the current
+56-line `_scoped_surface_affinity_priority(items, *, query, topic,
+required_operands=None, require_segment_operand=False, direct_weight=0.0,
+adjustment_weight=0.0) -> float` graph definition for a future public move to
+`financial_surface_contracts.py` as
+`scoped_surface_affinity_priority(...)`. No production source or test has moved
+for this projection at this checkpoint. It scores only already supplied
+surfaces with declarative policy and caller-owned weights; it does not retrieve,
+select, build, rank, or adopt evidence or graph state.
 
-Moving direct acceptance, signature construction, matching/scoring, row/record
-construction, evidence adoption, retry assembly, or graph/artifact/ledger state
-is rejected. Four named CURRENT-SOURCE methods and exact contracts remain
-solely in
+The segment gate is fully lazy when disabled. When enabled it preserves
+`required_operands or []`, eager `list(...)`, ordered `operand or {}` shallow
+copies, and first-truthy `_operand_segment_label(...)` short circuit; a miss
+returns `0.0` before policy, query, or items. Only afterward does it shallow-
+copy `STRUCTURED_CELL_AFFINITY_POLICY`, build metric terms in order with repeated
+filter/expression stringification, normalize exact `f"{query} {topic}"`, and
+return before items on a nonempty-term miss.
+
+Item iteration remains direct and ordered. Each item metadata mapping is
+shallow-copied once, then claim/raw-row/quote/text/source and metadata row-label/
+semantic-label/table-header/table-row-label/table-value-label/table-summary
+parts are visited in that order. Retained parts preserve two `part or ""`
+stringifications, blanks preserve one, retained expressions join with one
+space, and the whole surface is normalized once. Direct then adjustment marker
+tuples preserve policy order and repeated stringification; each membership scan
+short-circuits, both categories may add, and raw caller weights are not coerced.
+All existing formatting, mapping, truth, iteration, copy, string, strip, join,
+normalization, membership, and addition errors remain uncaught.
+
+The two direct calls are `AugAssign` expressions at caller `try` depth zero.
+Evidence prioritization calls after its exact segment-note/metric gate with a
+new list containing the original item, original query/topic, and weights
+`2.5/-1.5`; coherent ratio-context selection calls after row/missing/collapse,
+unit-count, and schema-score work with the current group, original query/topic/
+required operands, segment-required true, and weights `12.0/-8.0`. Failures
+stop later ranking or best-row adoption. Current/projected counts are graph
+helpers 9/92 to 9/91 and surface contracts 9/7 to 10/7. Both calls finish
+owner-external/local 2/0, the selected segment-label dependency becomes local,
+the selected span has zero reviewed runtime-domain records, and the agent DAG
+is unchanged.
+
+Moving caller eligibility/schema scoring, item/group or operand-row
+construction, direct/ratio acceptance, broader ranking, result adoption,
+retrieval, or graph/artifact/ledger state is rejected. Four named CURRENT-
+SOURCE methods and exact contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 86/86, affected semantic 1,046/1,046, import 19/19,
-audit 218, full 1,939/1,939, pycompile/fresh import/public identity 1/1,
-selected-body 1/1, retained graph 101/101, retained structured owner 7/7, full
-caller/DAG parity, retired executable graph-private refs zero, and diff check.
-Static AST/call/DAG and selected-body baseline inventory plus five existing
-structured-cell/direct-acceptance probes passed; benchmark refresh and remote
-CI were **NOT RUN**.
+gates are focused 4/4, owner 90/90, affected semantic 1,050/1,050, import 19/19,
+audit 218, full 1,943/1,943, pycompile/fresh import/public identity 2/2,
+selected-body 1/1, retained graph 100/100, retained surface owner 16/16, both
+callers, full DAG parity, retired executable graph-private refs zero, and diff
+check. Static AST/call/DAG and selected-body baseline inventory, direct behavior
+probes 5/5, and four existing caller/ratio probes passed; benchmark refresh and
+remote CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

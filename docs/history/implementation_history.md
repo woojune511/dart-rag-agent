@@ -4758,3 +4758,91 @@ benchmark, schedule, ledger, or Phase 3 completion claim. Static definition,
 call, DAG, function-count, and selected-body baseline inspection plus five
 existing structured-cell/direct-acceptance probes passed; benchmark refresh and
 remote CI were **NOT RUN**.
+
+### Candidate selected-cell projection ownership milestone
+
+- `0bfa1f0` moves the exact 21-line
+  `_candidate_selected_cell_for_operand(...)` definition from
+  `financial_graph_helpers.py` to public
+  `candidate_selected_cell_for_operand(...)` in
+  `financial_structured_cells.py`. Its sole direct call remains graph-external/
+  owner-local 1/0 in deterministic reconciliation; the seven direct selector
+  calls finish external six/local one. Retired executable graph-private source/
+  test refs are zero.
+- Source is `+30/-26`, net `+4`: graph helpers are `+2/-25` and move from
+  5,646 to 5,623 physical lines; structured cells are `+28/-1` and move from
+  335 to 362. Tests are `+1,266/-27`, net `+1,239`: graph-helper tests move
+  from 17,953 to 19,190 and operation contracts from 11,558 to 11,560. The
+  whole commit is `+1,296/-53`, net `+1,243`, and four new methods move full
+  discovery from 1,935 to 1,939. The source diff SHA-256 is
+  `eba52c11252de00d12fa808276b8c7b80b7d8dccbd7bbb828696fe5b2c37494f`.
+- Graph helpers finish public/private 9/92 and structured cells 4/4. Existing
+  graph-to-structured and structured-to-row module edges remain acyclic. The
+  selected body preserves literal parity after the public-name change; all 101
+  retained graph and seven retained structured-owner functions, the sole caller
+  expression, full agent DAG, public identity 1/1, selected-body parity 1/1,
+  and the 218-record baseline passed without a baseline change.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  metadata/kind order, repeated cell-copy counts, structured/parser precedence,
+  exact parser gates and arguments, empty return, ordered report-year
+  enrichment, selector identities, immutability, every uncaught preparation
+  error, and caller gate/order/acceptance and exception stops.
+- Validation passed focused 4/4, graph-helper characterization owner 86/86,
+  affected eleven-module semantic 1,046/1,046, import-side-effects 19/19,
+  runtime audit 218, full discovery 1,939/1,939, pycompile/fresh import, AST
+  body/caller/DAG parity, retired-ref zero, and `git diff --check`. Benchmark
+  refresh was **NOT RUN**, and no remote CI run is claimed or verified for this
+  local branch.
+
+This milestone changes only candidate selected-cell preparation ownership.
+Direct acceptance, logical/family signatures, candidate matching/scoring,
+candidate/evidence adoption, retry assembly, mutable state/evidence, artifacts/
+ledger, and final sequencing remain graph-owned. It proves no behavior,
+accuracy, ranking, performance, total-code or executed-path reduction,
+benchmark improvement, schedule, ledger completion, or Phase 3 completion.
+
+### Scoped surface-affinity projection characterization checkpoint
+
+- A docs-only inventory selects the exact current 56-line
+  `_scoped_surface_affinity_priority(items, *, query, topic,
+  required_operands=None, require_segment_operand=False, direct_weight=0.0,
+  adjustment_weight=0.0) -> float` definition in
+  `financial_graph_helpers.py`. It has two direct `AugAssign` calls in evidence
+  prioritization and coherent ratio-context selection, both at caller `try`
+  depth zero. No production source or test moves for this projection at this
+  checkpoint.
+- The selected follow-on moves it as public
+  `scoped_surface_affinity_priority(...)` in
+  `financial_surface_contracts.py`. Both calls project owner-external two/
+  owner-local zero and its operand-segment dependency becomes owner-local.
+  Current function counts are graph helpers 9/92 and surface contracts 9/7;
+  projected counts are 9/91 and 10/7. Both callers already import the
+  destination, the agent DAG is unchanged, and the selected span contains zero
+  of the 218 reviewed runtime-domain records.
+- The projection preserves the disabled segment gate's complete laziness,
+  enabled-gate eager operand-list copy and first-hit order, policy copy and
+  repeated metric-term stringification, exact query/topic formatting, metric-
+  miss stop, direct item iteration, per-item metadata shallow copy, fixed eleven-
+  part surface order, repeated part string/strip sites, one-space join and whole-
+  surface normalization, direct-before-adjustment marker scans, dual raw
+  weights, identities, immutability, and every current uncaught error.
+- Evidence prioritization keeps its exact segment-note/metric gate, one-item
+  list and `2.5/-1.5` weights; coherent ratio-context selection keeps its row/
+  missing/collapse, unit-count, and schema-score order, current group and
+  required-operand identities, segment-required flag, and `12.0/-8.0` weights.
+  Exceptions stop later ranking or best-row adoption.
+- Moving caller eligibility/schema scoring, evidence/group/operand-row
+  construction, direct/ratio acceptance, broader ranking, result adoption,
+  retrieval, mutable state, artifacts/ledger, or final sequencing is rejected.
+  Four named CURRENT-SOURCE methods and projected focused 4/4, owner 90/90,
+  affected semantic 1,050/1,050, import 19/19, audit 218, full 1,943/1,943,
+  public identity 2/2, selected body 1/1, retained graph 100/100, retained
+  surface owner 16/16, caller/DAG parity, retired-ref zero, and diff check are
+  maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static definition,
+call, DAG, function-count, and selected-body baseline inspection, direct
+behavior probes 5/5, and four existing caller/ratio probes passed; benchmark
+refresh and remote CI were **NOT RUN**.

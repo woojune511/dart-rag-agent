@@ -301,7 +301,7 @@ State-free owner topology:
 | `financial_scope_policies.py` | report/consolidation scope, public query/task and generic operand target-year/period-focus policy, and candidate report/year matching and binding bonuses |
 | `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, and selected-unit-family projection |
 | `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role and candidate value-role/stage projection, candidate operand-context and structured-sibling projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
-| `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, public scoring, and owner-private operand affinity |
+| `financial_structured_cells.py` | fiscal ordinal/rank, period-text, ordinary/aggregate cell selection, candidate selected-cell preparation, public scoring, and owner-private operand affinity |
 | `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
@@ -691,15 +691,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   import/public identity, AST/caller/DAG parity가 통과했다. Direct acceptance,
   matching/strength, scoring/ranking, state/evidence/ledger와 final sequencing은
   graph에 남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 21줄 candidate
-  selected-cell projection을 `financial_structured_cells.py`의 public API로
-  옮기는 다음 production 작업으로 선택했다. Sole call은 deterministic
-  reconciliation에서 period-focus 뒤, direct acceptance 앞의 external 1/
-  local 0을 유지해야 하고, 기존 selector call은 external 6/local 1이 된다.
-  Projected graph helper public/private는 9/92, structured cells는 4/4다.
-  아직 source/test 이동은 없으며 structured-copy/parser precedence,
-  report-year enrichment, selector identity, caller gate/order/stop, 네
-  CURRENT-SOURCE method와 projected gate는
+- 완료된 `0bfa1f0` candidate selected-cell batch는 graph helper의 정확한
+  21줄 preparation projection을 `financial_structured_cells.py`의 public
+  API로 옮겼다. Sole call은 deterministic reconciliation에서 external 1/
+  local 0을 유지하고, selector call은 external 6/local 1이다. Graph helper
+  public/private는 9/92, structured cells는 4/4다. Focused 4/4, owner 86/86,
+  semantic 1,046/1,046, import 19/19, audit 218, full 1,939/1,939와
+  pycompile/fresh import/public identity, AST/caller/DAG parity가 통과했다.
+  Direct acceptance, signatures, matching/scoring, state/evidence/ledger와
+  final sequencing은 graph에 남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 56줄 scoped
+  surface-affinity projection을 `financial_surface_contracts.py`의 public
+  API로 옮기는 다음 production 작업으로 선택했다. 두 call은 evidence
+  prioritization과 coherent ratio-context scoring에서 external 2/local 0을
+  유지하고 operand-segment dependency만 owner-local이 된다. Projected graph
+  helper public/private는 9/91, surface contracts는 10/7이다. 아직 source/
+  test 이동은 없으며 segment/metric gate, fixed surface order, dual raw
+  weights, caller gate/order/stop, 네 CURRENT-SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`

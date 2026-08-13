@@ -822,28 +822,44 @@ executable private refs zero, and diff check passed. The source diff SHA-256 is
 Direct grounding/acceptance, matching, match strength, scoring/ranking,
 candidate/evidence adoption, and graph/artifact/ledger state remain hard stops.
 
+The completed `0bfa1f0` follow-on moved the exact current 21-line candidate
+selected-cell projection from graph helpers to public
+`candidate_selected_cell_for_operand(...)` in
+`financial_structured_cells.py`. Its sole direct call finishes graph-external/
+local 1/0 in deterministic reconciliation, and the seven direct selector calls
+finish external/local 6/1. Source is `+30/-26`, tests `+1,266/-27`, and the
+whole commit `+1,296/-53`; graph helpers moved from 5,646 to 5,623 lines and
+structured cells from 335 to 362. Focused 4/4, owner 86/86, affected semantic
+1,046/1,046, import 19/19, audit 218, full 1,939/1,939, pycompile/fresh import/
+public identity, body/retained/caller/DAG parity, retired executable private
+refs zero, and diff check passed. The source diff SHA-256 is
+`eba52c11252de00d12fa808276b8c7b80b7d8dccbd7bbb828696fe5b2c37494f`.
+Direct acceptance, signatures, matching/scoring, candidate/evidence adoption,
+retry assembly, and graph/artifact/ledger state remain hard stops.
+
 The new characterize-only inventory selects one follow-on: move only the exact
-current 21-line `_candidate_selected_cell_for_operand(...)` definition from
-graph helpers to public `candidate_selected_cell_for_operand(...)` in
-`financial_structured_cells.py`. Its sole direct call remains in deterministic
-reconciliation after period-focus resolution and before direct acceptance. The
-structured owner already owns `select_structured_cell(...)` and reaches row
-parsing through an existing one-way edge; graph already reaches both owners, so
-no reverse dependency is introduced. Projected function counts are graph
-helpers 9/92 and structured cells 4/4. The moved call finishes graph-external/
-local 1/0, the seven selector calls finish external/local 6/1, and the selected
+current 56-line `_scoped_surface_affinity_priority(...)` definition from graph
+helpers to public `scoped_surface_affinity_priority(...)` in
+`financial_surface_contracts.py`. Its two direct `AugAssign` calls remain in
+evidence prioritization and coherent ratio-context selection at caller `try`
+depth zero. Both callers already import the surface owner, which already owns
+operand segment-label projection and does not reach graph helpers, so the
+agent-module DAG is unchanged. Projected function counts are graph helpers
+9/91 and surface contracts 10/7. Both calls finish owner-external/local 2/0,
+the selected segment-label dependency becomes owner-local, and the selected
 span contains zero of 218 reviewed domain records.
 
-Moving direct acceptance, logical/family signatures, matching/scoring, row/
-record construction, candidate/evidence adoption, retry assembly, or plan/
-state/artifact/ledger mutation is rejected. Exact metadata and candidate access,
-repeated structured-cell copies, structured-before-parser precedence, parser
-kind gates, empty return, per-cell report-year overwrite, selector argument/
-return identity, sole-caller gates/order/stops, four required CURRENT-SOURCE
-methods, and projected focused 4/4, owner 86/86, affected semantic 1,046/1,046,
-import 19/19, audit 218, and full 1,939/1,939 gates are defined only in
+Moving item/group eligibility, statement/consolidation/period or schema
+scoring, evidence or operand-row construction/filtering, direct/ratio
+acceptance, broader ranking, best-row/result adoption, retrieval, or plan/state/
+artifact/ledger mutation is rejected. Exact segment and metric gate laziness,
+policy copy, repeated term/part/marker stringification, fixed surface order,
+metadata/operand copies, joined-surface normalization, dual raw weights, caller
+gates/order/stops, four required CURRENT-SOURCE methods, and projected focused
+4/4, owner 90/90, affected semantic 1,050/1,050, import 19/19, audit 218, and
+full 1,943/1,943 gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this selected-cell projection at the
+or test movement has occurred for this surface-affinity projection at the
 characterization checkpoint; it is the sole next priority, and this plan
 maintains no competing queue.
 
