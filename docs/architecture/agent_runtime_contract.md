@@ -3774,17 +3774,17 @@ Benchmark refresh was **NOT RUN**, remote CI is unverified, and the move proves
 no behavior, accuracy, ranking, performance, total-code, executed-path,
 schedule, ledger, or Phase 3 completion.
 
-The completed characterize-only residual inventory changes no production
-source. It selects the exact current 7-line
-`_candidate_has_segment_local_binding(...)` and 15-line
-`_candidate_supports_segment_metric_combo(...)` definitions as one future
-row-surface ownership boundary. They are to become public
-`candidate_has_segment_local_binding(...)` and
+The segment-local/segment-metric row-surface boundary completed in `d1305f8`.
+The exact 7-line `_candidate_has_segment_local_binding(...)` and 15-line
+`_candidate_supports_segment_metric_combo(...)` graph definitions now live as
+public `candidate_has_segment_local_binding(...)` and
 `candidate_supports_segment_metric_combo(...)` in
-`financial_row_surfaces.py`, not in `financial_surface_contracts.py`. Graph
-helpers already import the row owner, the row owner already imports surface
-contracts, and neither owner reaches graph helpers, so this placement introduces
-no new module edge or reverse cycle.
+`financial_row_surfaces.py`. Graph helpers retain one external call to each and
+the local-binding owner holds one local metric-composition call, for external
+2/local 1; every call is a direct `ast.Name` call outside `try`. The row owner
+imports segment-label and strict segment-binding projection one-way from surface
+contracts, while graph helpers already import the row owner, so no reverse cycle
+or new owner module was introduced.
 
 The planned contract preserves the segment-label lookup first, asymmetric empty-
 label results (`True` for local binding, `False` for metric composition), strict
@@ -3797,19 +3797,27 @@ one graph-external local-binding call in deterministic reconciliation, one graph
 external metric-combination call in direct-match strength, and one owner-local
 metric-combination call; all remain direct `ast.Name` calls outside `try`.
 
-Four CURRENT-SOURCE methods must freeze those direct contracts, exact spans,
-signatures, call matrix, DAG/baseline, caller arguments, adoption order, and
-downstream stops before relocation. The precise projected gates and rejected
-expansions are maintained only by
-[Project Status Next Work](../overview/project_status.md#next-work). Aggregate
-row-role/stage inference, concept-conflict policy, direct and ratio acceptance,
-broad scoring/reconciliation, candidate/evidence construction and adoption,
-mutable state/evidence, callbacks, carriers, trace/artifact/ledger work, and
-final sequencing remain graph-owned. No wrapper, alias, compatibility bridge,
-reconciliation-candidate reverse import, structured-row/precision reverse-cycle,
-concept-specific semantic expansion, or evidence/state expansion is authorized.
-The selected pair must not move until the four CURRENT-SOURCE methods pass and
-the exact cycle and projected-gate assumptions remain valid.
+Four CURRENT-SOURCE methods pin the two direct contracts, exact 7/15 spans,
+signatures, external 2/local 1 call matrix, DAG/baseline, caller arguments,
+filter/strength adoption, and exception stops. Selected body parity 2/2, all
+119 retained graph functions, retired private refs, and the 218-record baseline
+passed. Source moved `+31/-29`, tests `+606/-7`, and the whole commit
+`+637/-36`; graph helpers are public/private 9/110 and row surfaces 2/15. The
+source diff SHA-256 is
+`6e02e16ff3f7ee300c880b74ae8a413eae7cc343ed86e4a0a8165d5f8942278d`.
+Focused 4/4, owner 51/51, semantic 861/861, import 19/19, audit 218, and full
+1,903/1,903 passed in the project `.venv`, with pycompile/fresh import and diff
+check. Benchmark refresh was **NOT RUN** and remote CI is unverified.
+
+Aggregate row/value role-stage inference, concept-conflict policy, direct and
+ratio acceptance, broad scoring/reconciliation, candidate/evidence construction
+and adoption, mutable state/evidence, callbacks, carriers, trace/artifact/ledger
+work, and final sequencing remain graph-owned. No wrapper, alias, compatibility
+bridge, reconciliation-candidate reverse import, structured-row/precision
+reverse-cycle, concept-specific semantic expansion, or evidence/state expansion
+is authorized. The next production boundary is unselected; only the
+characterize-only inventory in
+[Project Status Next Work](../overview/project_status.md#next-work) is active.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

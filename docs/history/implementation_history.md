@@ -3937,3 +3937,55 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Current-source audit
 218 and the two existing caller-contract tests passed during the inventory;
 benchmark refresh and remote CI were **NOT RUN**.
+
+### Segment-local and segment-metric ownership milestone
+
+- `d1305f8` moves the exact 7-line
+  `_candidate_has_segment_local_binding(...)` and 15-line
+  `_candidate_supports_segment_metric_combo(...)` definitions from
+  `financial_graph_helpers.py` into `financial_row_surfaces.py` as public
+  `candidate_has_segment_local_binding(...)` and
+  `candidate_supports_segment_metric_combo(...)`. One deterministic-
+  reconciliation call and one direct-strength call remain graph-external; the
+  local-binding function owns one local metric-composition call. The final call
+  matrix is external 2/local 1, direct `ast.Name`, caller `try` depth zero.
+- Source is `+31/-29`, net `+2`: graph helpers are `+4/-28` and move from 5,936
+  to 5,912 physical lines; row surfaces are `+27/-1` and move from 312 to 338.
+  Tests are `+606/-7`, net `+599`, moving graph-helper tests from 8,145 to 8,744
+  lines. The whole commit is `+637/-36`, net `+601`, and four new methods move
+  discovery from 1,899 to 1,903. The source diff SHA-256 is
+  `6e02e16ff3f7ee300c880b74ae8a413eae7cc343ed86e4a0a8165d5f8942278d`.
+- The row owner reuses its local `_operand_text_match(...)` and imports only
+  `_operand_segment_label` plus `candidate_matches_segment_binding` on the
+  existing row-to-surface edge. Graph helpers already import row surfaces;
+  neither row nor surface owners reach graph helpers. The graph finishes
+  public/private 9/110 and row surfaces 2/15. Selected spans contain no reviewed
+  domain record and the baseline remains 218.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin empty-
+  segment asymmetry, strict-match/fallback order, repeated segment lookup,
+  shallow metadata copy, ordered surfaces, blank filtering, lazy `any`, identity,
+  immutability, uncaught exceptions, reconciliation filtering before scoring,
+  and the direct-strength `2.25` floor. Selected body parity 2/2, all 119 retained
+  graph functions, full caller/DAG parity, and retired private source/test refs
+  zero passed.
+- Validation passed focused 4/4, graph-helper/surface-contract owner 51/51,
+  affected nine-module semantic 861/861, import-side-effects 19/19, runtime audit
+  218, full discovery 1,903/1,903, pycompile/fresh import, and diff check in the
+  project `.venv`. Initial host-system Python attempts lacked `dotenv`,
+  `langchain_core`, and `fastapi`; those environment errors are not counted as
+  code results. Benchmark refresh was **NOT RUN**, and no remote CI run is
+  claimed or verified for this local branch.
+
+This milestone changes only segment-local and segment-metric ownership. Aggregate
+row/value role-stage inference, direct/ratio acceptance, operand matching, broad
+scoring/reconciliation, candidate/evidence construction/adoption, mutable state/
+evidence, callbacks, carriers, trace/artifact/ledger work, and final sequencing
+remain graph-owned. It proves no behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+At this handoff, no next production owner move is selected. The sole next work
+is the characterize-only aggregate row/value role-stage inventory in
+[Project Status Next Work](../overview/project_status.md#next-work), which must
+resolve the owner, public surface, import cycles, behavior, caller/stop contract,
+and projected gates before any source movement.

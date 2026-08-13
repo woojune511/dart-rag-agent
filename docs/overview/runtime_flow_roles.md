@@ -610,17 +610,20 @@ Aggregate/narrative row의 state-free answer policy owner다.
   family 1개 호출은 external 8/local 0으로 유지되고 owner public/private
   함수 수는 9/7이다. Focused 6/6, owner 47/47, semantic 857/857, import
   19/19, audit 218, full 1,899/1,899이 통과했다. Aggregate row-role/stage
-  inference, segment metric-combination, direct/ratio acceptance, broad
+  inference, direct/ratio acceptance, broad
   scoring/reconciliation, candidate/evidence construction/adoption, mutable
   state, callback, carrier, ledger와 final sequencing은 graph owner에 남는다.
-- characterize-only 잔여 inventory는 production source 변경 없이 완료됐다.
-  다음 후보는 graph의 정확한 7/15줄 segment-local binding/segment-metric
-  composition 두 함수를 `financial_row_surfaces.py`의 public 두 함수로 함께
-  옮기는 batch뿐이다. Graph -> row와 row -> surface edge가 이미 존재하고
-  반대 reachability가 없어 새 edge/reverse cycle은 없다. 예상 call은 external
-  2/local 1, owner public/private는 2/15, graph helper는 9/110이다. 이동 전
-  네 CURRENT-SOURCE method와 정확한 projected gate/stop line은
-  [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
+- 완료된 segment-local/segment-metric batch는 graph helper의 정확한 7/15줄
+  정의를 `financial_row_surfaces.py`의 public 두 함수로 옮겼다. Call은
+  external 2/local 1이고 owner public/private는 2/15, graph helper는 9/110이다.
+  Focused 4/4, owner 51/51, semantic 861/861, import 19/19, audit 218, full
+  1,903/1,903과 pycompile/fresh import, AST/caller/DAG parity가 통과했다.
+  Aggregate row/value role-stage, direct/ratio acceptance, broad scoring/
+  reconciliation, state/evidence/ledger와 final sequencing은 graph에 남는다.
+- 다음 작업은 aggregate row/value role-stage 10/2/16/18줄 경계의
+  characterize-only inventory다. Production 이동은
+  [Project Status의 Next Work](project_status.md#next-work)가 owner/cycle/
+  behavior/caller/stop-line/projected gate를 확정하기 전까지 선택하지 않는다.
 
 ### `src/agent/financial_graph_helpers.py`
 

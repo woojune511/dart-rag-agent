@@ -694,15 +694,21 @@ Direct/ratio acceptance, broad scoring/reconciliation, candidate/evidence
 construction/adoption, mutable state/evidence, callback, carrier,
 trace/artifact/ledger work, and final sequencing remain hard stops.
 
-The characterize-only residual inventory is complete and changed no production
-source. It selects only the exact 7/15-line segment-local binding and segment-
-metric composition pair for a future ownership move from graph helpers to
-`financial_row_surfaces.py`. The row owner already depends one-way on surface
-contracts and graph helpers already depend on the row owner, so co-moving the
-pair adds no module edge or reverse cycle. The exact APIs, external 2/local 1
-call matrix, access/laziness/exception contract, four-method CURRENT-SOURCE
-prerequisite, projected 4/51/861/19/218/1,903 gates, and hard stops are defined
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+The completed `d1305f8` follow-on moved the exact 7/15-line segment-local/
+segment-metric pair from graph helpers to public row-surface ownership. Calls
+are external 2/local 1 and the existing graph-to-row and row-to-surface edges
+remain acyclic. Source is `+31/-29`, tests `+606/-7`, and the whole commit
+`+637/-36`; graph helpers moved from 5,936 to 5,912 lines and row surfaces from
+312 to 338. Focused 4/4, owner 51/51, semantic 861/861, import 19/19, audit 218,
+full 1,903/1,903, pycompile/fresh import, body/retained/caller/DAG parity, and
+retired-ref zero passed. The source diff SHA-256 is
+`6e02e16ff3f7ee300c880b74ae8a413eae7cc343ed86e4a0a8165d5f8942278d`.
+
+The sole next priority is the characterize-only aggregate row/value role-stage
+inventory defined in
+[project_status.md#next-work](../overview/project_status.md#next-work). No next
+production move is selected until that inventory resolves the semantic owner,
+public surface, import cycles, behavior, callers, stops, and projected gates.
 This plan does not maintain a competing queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
