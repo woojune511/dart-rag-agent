@@ -297,7 +297,9 @@ State-free owner topology:
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, query-focus marker projection, source-visible term preservation, and table-noise/fragment predicates |
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
 | `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
-| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, and final-answer evidence filter/operand append/surface-operand projection; deterministic quantitative-impact line parsing/composition is the selected next boundary |
+| `financial_scope_policies.py` | report/consolidation scope policy; generic operand target-year and period-focus policy is the selected next Seam A boundary |
+| `financial_structured_cells.py` | fiscal ordinal/rank and period-text projection; generic structured-cell selection/scoring is the selected next Seam B boundary |
+| `financial_aggregate_projection.py` | aggregate signatures, primary/source/coherence and dependency-source preparation, result/nested ranks, stable dedupe, repair/projection transforms, duplicate growth-prior recovery, final evidence/provenance projection, own-evidence lookup-unit alignment, compact prompt rows, row/sentence/rendered selectors, narrative row-focus/gap policy, lookup-answer surfaces, growth display/material projection, prepared growth-numeric rendering, result support/reuse predicates, final-answer evidence filter/operand append/surface-operand projection, and deterministic quantitative-impact parsing/composition |
 | `financial_aggregate_state.py` | aggregate composition carrier and state-free transition |
 | `financial_runtime_trace.py` | runtime trace projection, material-numeric predicate, prepared operand overlay, and collapsed-ratio evidence repair |
 | `financial_agent_run_projection.py` | caller-facing evidence metadata/citation, agent-answer/review/debug bundle, structured missing-answer selection, aggregate completion, and prepared public-answer state projection; graph execution, dynamic answer repair, evidence selection, trace/ledger work remain outside |
@@ -570,13 +572,22 @@ Aggregate/narrative row의 state-free answer policy owner다.
   `financial_retrieval_hints.py`의 public 3으로 옮겼다. 세 call은 external
   3/local 0이고 owner 함수 수는 public/private 3/9다. Focused 5/5,
   semantic 692/692, import 19/19, audit 218과 full 1,866/1,866이 통과했다.
-  Context/evidence construction, model invocation, mutable state와 final
-  sequencing은 graph에 남는다.
-- 다음 선택은 evidence mixin의 labeled-numeric parser 33줄과 supported
-  quantitative-impact composer 195줄을 `financial_aggregate_projection.py`의
-  public 1/owner-private 1로 이동하는 한 batch다. 네 call은 external 3/local
-  1이 되며 validation/model fallback과 mutable composition state는 graph에
-  남는다. Exact boundary와 hard stop은
+   Context/evidence construction, model invocation, mutable state와 final
+   sequencing은 graph에 남는다.
+- 완료된 quantitative-impact batch는 evidence mixin의 labeled-numeric parser
+  33줄과 supported composer 195줄을 `financial_aggregate_projection.py`의
+  owner-private 33줄/public 194줄로 옮겼다. 네 call은 external 3/local 1이고
+  owner 함수 수는 public/private 76/12다. Focused 5/5, owner 93/93, semantic
+  812/812, import 19/19, audit 218과 full 1,871/1,871이 통과했다.
+  Validation/model fallback, evidence selection, mutable composition state와
+  final sequencing은 graph에 남는다.
+- 다음 선택은 `financial_graph_helpers.py`의 generic operand-period 40줄을
+  scope-policy owner의 public 2로, structured-cell selection/scoring 245줄을
+  structured-cell owner의 public 3/owner-private 1로 이동하는 순차 batch다.
+  총 57개 call은 external 53/local 4가 되며 candidate/evidence construction,
+  direct structured lookup/value projection, reconciliation orchestration,
+  state/callback/carrier/ledger와 final sequencing은 기존 owner에 남는다.
+  Exact boundary와 hard stop은
   [Project Status의 Next Work](project_status.md#next-work)만 기준으로 삼는다.
 
 ### `src/agent/financial_graph_helpers.py`

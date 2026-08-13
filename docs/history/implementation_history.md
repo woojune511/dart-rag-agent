@@ -3613,3 +3613,56 @@ maintained only in
 Validation/model fallback, evidence combination and selection, mutable
 composition state, trace/artifact/ledger work, and final sequencing remain
 graph-owned.
+
+### Quantitative-impact projection ownership milestone
+
+- `7aba7f2` moves the former static 33-line
+  `_parse_labeled_numeric_lines(...)` and private 195-line
+  `_compose_supported_quantitative_impact_answer(...)` from
+  `financial_graph_evidence.py` into `financial_aggregate_projection.py` as an
+  owner-private 33-line parser and public 194-line
+  `compose_supported_quantitative_impact_answer(...)`. The three composition
+  calls remain graph-external and the parser call is owner-local. Literal body
+  and full retained-caller parity passed after normalizing only selected call
+  targets; retired graph-private definitions and executable source/test refs
+  are zero.
+- Exactly seven source/test files changed. Source is `+237/-235`, net `+2`:
+  aggregate projection is `+232/-0` and moves from 3,714 to 3,946 physical
+  lines; graph evidence is `+3/-234` and moves from 4,461 to 4,230; calculation
+  is `+2/-1` and moves from 13,464 to 13,465. Tests are `+1,119/-12`, net
+  `+1,107`: aggregate rank/dedupe is `+1,105/-5`, aggregate subtask projection
+  `+7/-2`, text surface `+5/-1`, and operation contracts `+2/-4`. The whole
+  commit is `+1,356/-247`, net `+1,109`. Five AST-counted methods moved full
+  discovery from 1,866 to 1,871.
+- The aggregate owner is public/private 76/12. Both selected policy constants
+  moved onto its existing retrieval-policy edge; graph evidence's two newly
+  dead imports were removed. The selected spans move no reviewed runtime-domain
+  record, so the audit remains 218 without a baseline change. The frozen source
+  diff SHA-256 is
+  `7c267108053b986aff1eb6ddae9b6d51514a42ad7749e94b4fa96849c5439972`.
+- Final validation passed focused 5/5, aggregate owner 93/93, affected six-
+  module semantic 812/812, import-side-effects 19/19, runtime audit 218, full
+  discovery 1,871/1,871, pycompile/fresh import, DAG/body/full-caller parity,
+  retired-ref zero, and `git diff --check`. Benchmark refresh was **NOT RUN**,
+  and no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only deterministic quantitative-impact parser/composer
+ownership. Validation/model fallback, evidence combination/selection, mutable
+composition state, trace/artifact/ledger work, and final sequencing remain
+graph-owned. It proves no behavior, accuracy, ranking, performance, total-code
+or executed-path reduction, benchmark improvement, schedule, ledger completion,
+or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is a sequential two-seam 285-line
+batch from `financial_graph_helpers.py`. Seam A moves 29-line target-year and
+11-line period-focus policy to two public functions in
+`financial_scope_policies.py`; Seam B moves 42/84-line structured-cell selectors,
+a 53-line owner-private affinity helper, and a 66-line public score helper to
+`financial_structured_cells.py`. Five public functions plus one owner-private
+helper finish 57 selected calls at external 53/local four. Candidate/evidence
+construction and adoption, existing direct structured lookup/value projection,
+reconciliation orchestration, mutable state/evidence, callbacks, carriers,
+trace/artifact/ledger work, and final sequencing remain hard stops. Exact APIs,
+dependencies, sequential four- and six-method characterization gates, and
+rejected expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).

@@ -626,18 +626,36 @@ ref zero, and diff check. Its source diff SHA-256 is
 Context/model construction, evidence construction/ranking/mutation, mutable
 state, trace/artifact/ledger work, and final sequencing remain graph-owned.
 
-The selected follow-on is one 228-line deterministic quantitative-impact
-answer projection batch from `financial_graph_evidence.py` into
-`financial_aggregate_projection.py`. Owner-private labeled-numeric line parsing
-and one public supported-impact composer project to 226 owner lines. Four
-selected calls finish graph-external three and owner-local one; graph evidence
-adds an acyclic aggregate-owner edge and retires two policy-constant imports.
-The selected definitions contain zero reviewed domain-language occurrences.
-Validation, aggregate composition state/adoption, prompt/model fallback,
-evidence construction/selection, trace/artifact/ledger work, and final
-sequencing remain hard stops. Exact behavior, the five-method CURRENT-SOURCE
-gate, projected validations, DAG/dead-import consequences, and rejected entity-
-table, ratio-assembly, prompt/evidence/state/carrier expansions live only in
+The completed `7aba7f2` follow-on moved deterministic quantitative-impact
+projection from `financial_graph_evidence.py` into
+`financial_aggregate_projection.py`. The former static 33-line parser and
+195-line composer are an owner-private 33-line parser and public 194-line
+composer. Three calls remain graph-external and the parser call is owner-local.
+Source is `+237/-235`, tests are `+1,119/-12`, and the whole commit is
+`+1,356/-247`. Graph evidence moved from 4,461 to 4,230 physical lines,
+calculation from 13,464 to 13,465, aggregate projection from 3,714 to 3,946,
+and five new tests moved discovery from 1,866 to 1,871. Final gates passed
+focused 5/5, owner 93/93, affected semantic 812/812, import 19/19, audit 218,
+full 1,871/1,871, pycompile/fresh import, DAG/body/caller parity, retired-ref
+zero, and diff check. Validation/model fallback, evidence selection, mutable
+composition state, trace/artifact/ledger work, and final sequencing remain
+graph-owned.
+
+The selected follow-on is a two-seam 285-line ownership batch from
+`financial_graph_helpers.py`. Seam A moves 29-line target-year and 11-line
+period-focus policy to public functions in `financial_scope_policies.py`; its
+38 calls finish external 37/local one. Seam B moves 42-line ordinary and
+84-line aggregate structured-cell selectors, a 53-line owner-private affinity
+helper, and a 66-line public score helper to `financial_structured_cells.py`;
+its 19 calls finish external 16/local three. Combined, five public functions
+and one owner-private helper finish 57 calls at external 53/local four. The
+selected definitions contain zero reviewed domain-language occurrences.
+Candidate/evidence construction and adoption, direct structured lookup/value
+projection, reconciliation orchestration, mutable state/evidence, callback,
+carrier, trace/artifact/ledger work, and final sequencing remain hard stops.
+Exact behavior, the sequential four- and six-method CURRENT-SOURCE gates,
+projected validations, DAG/dead-import consequences, and rejected ratio/
+precision/evidence/state/carrier expansions live only in
 [project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan

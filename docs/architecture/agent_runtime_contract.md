@@ -3623,15 +3623,15 @@ evidence, trace/artifact/ledger work, and final sequencing remain graph-owned.
 The move authorizes no prompt-diagnostic, callback, state, carrier, evidence-
 construction, wrapper, or compatibility expansion.
 
-The next deterministic quantitative-impact projection boundary is defined only
-by [Project Status Next Work](../overview/project_status.md#next-work).
-Owner-private `_parse_labeled_numeric_lines(...)` and public
-`compose_supported_quantitative_impact_answer(...)` will move the current
-33/195-line definitions from `financial_graph_evidence.py` into
-`financial_aggregate_projection.py` as projected 32/194-line definitions. The
-three composition calls remain graph-external; the parser call becomes owner-
-local. The calculation caller is outside `try`, while the two validation
-placements retain their existing structured/fallback validation boundary.
+The deterministic quantitative-impact projection boundary completed in
+`7aba7f2`. Owner-private `_parse_labeled_numeric_lines(...)` and public
+`compose_supported_quantitative_impact_answer(...)` now live in
+`financial_aggregate_projection.py` as actual 33/194-line definitions, replacing
+the former 33/195-line graph-evidence definitions. The three composition calls
+remain graph-external; the parser call is owner-local. The calculation caller
+remains outside `try`, while the two validation placements retain their
+existing structured/fallback validation boundary. Retired private source and
+executable test refs are zero.
 
 The parser contract preserves copied metadata, source line order and index,
 signed/parenthesized/percent numeric surfaces, unit/evidence/claim projection,
@@ -3650,6 +3650,44 @@ state, selected-claim projection, trace/artifact/ledger work, and final
 sequencing. The move authorizes no entity-table, ratio-operand assembly,
 anchor/runtime-evidence construction, prompt-diagnostic, callback, carrier,
 state, wrapper, or compatibility expansion.
+
+The source moved `+237/-235`, tests moved `+1,119/-12`, and five new methods
+moved full discovery from 1,866 to 1,871. Focused 5/5, aggregate owner 93/93,
+affected semantic 812/812, import-side-effects 19/19, runtime audit 218, full
+1,871/1,871, pycompile/fresh import, DAG/body/full-caller parity, retired-ref
+zero, and diff check passed. Benchmark refresh was **NOT RUN**, remote CI is
+unverified, and the move proves no behavior, accuracy, ranking, performance,
+total-code, executed-path, benchmark, schedule, ledger, or Phase 3 completion.
+
+The next generic operand-period and structured-cell ownership boundary is
+defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). Seam A
+publishes `operand_target_years(...)` and `operand_period_focus(...)` from the
+current 29/11-line graph-helper definitions into
+`financial_scope_policies.py`. Their 14/24 calls finish external 37/local one.
+Explicit-year extraction, stable dedupe, current/prior/unknown fallback, soft
+supplied-year conversion failures, input immutability, access laziness, and
+uncaught exceptions are contract behavior.
+
+Seam B publishes `select_structured_cell(...)`,
+`select_aggregate_structured_cell(...)`, and `score_structured_cell(...)` and
+keeps `_structured_cell_operand_affinity(...)` owner-private in
+`financial_structured_cells.py`. The current 42/84/53/66-line definitions and
+7/5/1/6 calls retain empty and fiscal-period gates, shallow cell/sibling copies,
+stable ties, aggregate eligibility/ranking, normalized value/unit checks,
+period/year/binding bonuses, header/needle/entity affinity, blank penalties,
+input immutability, access order/laziness, soft numeric conversions, and all
+other uncaught exceptions. Seam B finishes external 16/local three; the full
+285-line batch finishes 57 calls at external 53/local four.
+
+`_candidate_selected_cell_for_operand(...)`,
+`_build_required_operands_from_candidates(...)`,
+`_select_period_aware_cell(...)`, direct structured lookup-row/value callers,
+reconciliation extraction and candidate support, candidate/evidence
+construction and adoption, mutable state/evidence, callbacks, custom carriers,
+trace/artifact/ledger work, and final sequencing remain in their current
+owners. No wrapper, alias, compatibility bridge, or broader ratio/precision/
+ontology/evidence/state expansion is authorized.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and
