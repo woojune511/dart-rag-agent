@@ -761,30 +761,41 @@ Sibling-list preparation, sorted/top/filter ranking, canonical/semantic/score
 policy, candidate/evidence adoption, state/evidence, artifacts/ledger, and final
 sequencing remain hard stops.
 
-The new characterize-only inventory selects one follow-on: move only the exact
-current 6/14-line `_query_mentions_metric(...)` and
-`_query_component_match_count(...)` pair from graph helpers to public
+The completed `8e4dca4` follow-on moved the exact current 6/14-line query-to-
+metric/operand match pair from graph helpers to public
 `query_mentions_metric(...)` and `query_component_match_count(...)` in
-`financial_retrieval_hints.py`. Their four direct calls remain graph-external/
-local 4/0 inside `_build_semantic_numeric_plan(...)`: strong-metric filtering,
-target component assignment, target mention admission, and task-loop weak-match
-guard. The retrieval-hint owner already imports normalization and the required
-types; graph already reaches it and it does not reach graph. Projected function
-counts are graph helpers 9/99 and retrieval hints 5/9.
+`financial_retrieval_hints.py`. Their four direct calls finish graph-external/
+local 4/0 inside `_build_semantic_numeric_plan(...)`. Source is `+30/-28`, tests
+`+1,321/-8`, and the whole commit `+1,351/-36`; graph helpers moved from 5,778
+to 5,756 lines and retrieval hints from 294 to 318. Focused 4/4, owner 75/75,
+affected semantic 955/955, import 19/19, audit 218, full 1,923/1,923,
+pycompile/fresh import/public identity, body/retained/caller/DAG parity,
+retired-ref zero, and diff check passed. The source diff SHA-256 is
+`5199849efa1388dfdd30178ba0bbe14f198e3c46f4e365647cc031070cab0fbd`.
+Ontology lookup, operation/formula policy, metric admission, task/query
+construction, and plan/state adoption remain hard stops.
 
-Moving ontology lookup, operation/formula-family policy, matched-key or threshold
-admission, planner notes, metric/task/retrieval-query construction, or any other
-part of `_build_semantic_numeric_plan(...)` is rejected because those own plan
-policy and adoption. Canonical/semantic candidate ranking, direct acceptance,
-and candidate role/stage are separate seams. Exact field collection, lazy
-matching, label/concept identity dedupe, caller order/admission/stops, four
-required CURRENT-SOURCE methods, and projected focused 4/4, owner 75/75,
-affected semantic 958/958, import 19/19, audit 218, and full 1,923/1,923 gates
-are defined only in
+The new characterize-only inventory selects one follow-on: move only the exact
+current 11/25-line `_infer_period_focus(...)` and
+`_task_period_focus_from_operands(...)` pair from graph helpers to public
+`query_period_focus(...)` and `task_period_focus_from_operands(...)` in
+`financial_scope_policies.py`. Their six direct calls remain graph-external/
+local 6/0 across hybrid, concept, heuristic, and metric-task constraint builders.
+The scope owner already imports normalization, regex, period policy, and required
+types; graph reaches it and it does not reach graph. Projected function counts
+are graph helpers 9/97 and scope policy 9/9.
+
+Moving consolidation/default resolution, operation inference, operand/task/
+retrieval-query construction, any caller body, candidate report/year matching,
+ranking/admission, or plan/state adoption is rejected. Exact marker precedence,
+explicit-year dedupe, role collection/refinement, caller order/adoption/stops,
+four required CURRENT-SOURCE methods, and projected focused 4/4, owner 74/74,
+affected semantic 1,034/1,034, import 19/19, audit 218, and full 1,927/1,927
+gates are defined only in
 [project_status.md#next-work](../overview/project_status.md#next-work). No source
-or test movement has occurred for this pair at the characterization checkpoint;
-the selected pair is the sole next priority, and this plan does not maintain a
-competing queue.
+or test movement has occurred for this period-focus pair at the characterization
+checkpoint; it is the sole next priority, and this plan maintains no competing
+queue.
 
 Use the existing owner modules before adding a new one. A Phase 3 batch must:
 

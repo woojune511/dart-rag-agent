@@ -21,11 +21,11 @@ Last updated: 2026-08-14
 
 | 항목 | 현재 상태 |
 | --- | --- |
-| Source checkpoint | local code checkpoint `a530033` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
+| Source checkpoint | local code checkpoint `8e4dca4` on `codex/finalize-five-minute-review`; 이 handoff 문서 commit과 이후 변경은 `git log`로 확인 |
 | Public numeric contract | `resolved_calculation_trace`, explicit `structured_result`, task/artifact projection |
 | Default runtime boundary | MAS/eval/benchmark/promotion/cache 구현은 unconfigured import/invocation에서 격리 |
-| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner scope/shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, candidate surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·aggregate-like row stage/role·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature와 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression hint projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
-| Phase 3 | OPEN; generic operand-period/structured-cell, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row stage/role, lookup-hint projection/match, direct candidate logical/family signature와 sibling-surface hit-count ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
+| Calculation ownership | graph-state orchestrator와 state-free owner들로 분리 중; runtime/ontology deterministic planning은 `financial_calculation_execution.py`, semantic-planner scope/shape/segment/task validation과 narrative-task policy projection은 `financial_graph_helpers.py`, candidate surface/segment/metadata policy projection은 `financial_surface_contracts.py`, row text·aggregate-like row stage/role·segment-local/segment-metric composition·sibling-surface hit count는 `financial_row_surfaces.py`, lookup-hint projection/match·direct candidate logical/family signature와 operand resolution은 `financial_operand_resolution.py`, aggregate calculation/public projection·bounded repair·quantitative-impact parsing/composition은 `financial_aggregate_projection.py`, read-only focus/section/compression 및 query-to-metric/operand match projection은 `financial_retrieval_hints.py`, collapsed-ratio evidence repair는 `financial_runtime_trace.py`, direct structured lookup과 lookup answer-slot/support projection은 `financial_lookup_recovery.py`, nested result projection은 `financial_answer_projection.py`, query-focus/source-visible text projection은 `financial_text_surface.py`, caller-facing run projection은 `financial_agent_run_projection.py`, prepared candidate와 structured period-pair projection은 `financial_reconciliation_candidates.py`, reflection retry-query projection은 `financial_reflection_projection.py`에 귀속 |
+| Phase 3 | OPEN; generic operand-period/structured-cell, candidate report/period-scope, candidate surface-contract/segment-binding, candidate metadata-policy, segment-local/segment-metric, aggregate-like row stage/role, lookup-hint projection/match, direct candidate logical/family signature, sibling-surface hit-count와 query-to-metric/operand match ownership까지 수렴했지만 broader alignment/rebuild와 ledger ownership 전체는 미완료 |
 | Runtime correctness | 알려진 unit/contract blocker 없음; 최신 수치는 [Current Gate Status](docs/overview/project_status.md#current-gate-status) 참조 |
 | Benchmark | 최신 코드에 대한 refresh 상태는 [Project Status](docs/overview/project_status.md#current-gate-status)만 기준으로 사용 |
 
@@ -53,7 +53,8 @@ Last updated: 2026-08-14
    selection/scoring, candidate report/period-scope, candidate surface-contract/
    segment-binding, candidate metadata-policy, segment-local/segment-metric과
    aggregate-like row stage/role, lookup-hint projection/match, direct candidate
-   logical/family signature와 sibling-surface hit-count ownership은 이동했고 graph-state lookup,
+   logical/family signature, sibling-surface hit-count와 query-to-metric/operand
+   match ownership은 이동했고 graph-state lookup,
    broader evidence orchestration과 주변 sequencing은 제외
 3. bounded read-only reconciliation artifact-reference projection까지만 진행된 broader
    task/artifact ledger synchronization; artifact mutation과 whole-ledger sync는 제외
@@ -66,12 +67,15 @@ aggregate-like row stage/role pair, `2eec794`의 5/14/7/5줄 lookup-hint group�
 이어 `8cdcc94`가 정확한 26/22줄 direct logical/family candidate-signature
 pair를 `financial_operand_resolution.py`의 public API로 이동했고, `a530033`은
 정확한 30줄 sibling-surface hit-count projection을
-`financial_row_surfaces.py`의 public API로 이동했다. Candidate value-role/
+`financial_row_surfaces.py`의 public API로 이동했다. `8e4dca4`는 정확한
+6/14줄 query-to-metric/operand match pair를
+`financial_retrieval_hints.py`의 public API로 이동했다. Candidate value-role/
 stage 16/18줄과 direct/ratio acceptance, matching/scoring은 graph에 남는다.
-새 characterize-only inventory는 정확한 6/14줄 query-to-metric/operand match
-pair만 `financial_retrieval_hints.py`의 다음 public owner 이동으로 선택했으며
-exact collection/matching/dedupe, semantic-plan caller stop, DAG와 projected
-gate는 [Next Work](docs/overview/project_status.md#next-work)가 단일 기준이다.
+새 characterize-only inventory는 정확한 11/25줄 query/task period-focus pair만
+`financial_scope_policies.py`의 다음 public owner 이동으로 선택했으며 exact
+precedence, role collection/refinement, 네 caller의 adoption/stop, DAG와
+projected gate는 [Next Work](docs/overview/project_status.md#next-work)가 단일
+기준이다.
 
 ## 구현 원칙
 

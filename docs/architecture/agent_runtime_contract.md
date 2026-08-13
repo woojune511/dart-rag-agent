@@ -4036,15 +4036,14 @@ full 1,919/1,919, pycompile/fresh import/public identity, selected-body parity
 source/test refs zero, and diff check passed. Benchmark refresh was **NOT RUN**
 and remote CI remains unverified.
 
-The completed characterize-only query-metric inventory selects the adjacent
-current 6-line `_query_mentions_metric(query, metric) -> bool` and 14-line
-`_query_component_match_count(query, operand_specs) -> int` graph definitions
-for a future public move to `financial_retrieval_hints.py` as
-`query_mentions_metric(...)` and `query_component_match_count(...)`. No
-production source or test has moved for this pair at this checkpoint. They
-project query-to-prepared-metric/spec matches and do not own ontology lookup,
-operation inference, metric admission, task construction, retrieval-query
-construction, or plan/state adoption.
+The pre-move characterize-only query-metric inventory selected the adjacent
+6-line `_query_mentions_metric(query, metric) -> bool` and 14-line
+`_query_component_match_count(query, operand_specs) -> int` graph definitions.
+Commit `8e4dca4` completes their public move to
+`financial_retrieval_hints.py` as `query_mentions_metric(...)` and
+`query_component_match_count(...)`. They project query-to-prepared-metric/spec
+matches and do not own ontology lookup, operation inference, metric admission,
+task construction, retrieval-query construction, or plan/state adoption.
 
 The mention helper normalizes query before metric access, then reads
 `display_name`, `aliases`, and `intent_keywords` in order. Display is converted
@@ -4080,19 +4079,81 @@ component calls 1/0, a component exception at 3/1, and a target-mention exceptio
 at 4/1, all before task construction.
 
 The retrieval-hint owner already owns normalization and required types; graph
-already reaches it and it does not reach graph. Projected counts are graph
-helpers 9/99 and retrieval hints 5/9, calls external four/local zero, and both
-selected spans have zero reviewed runtime-domain records and zero current test-
-text refs. Moving caller admission, ontology/formula policy, plan notes, key
-ordering, task/query construction, or state adoption is rejected. Four named
-CURRENT-SOURCE methods and exact contracts remain solely in
+reaches it and it does not reach graph. Final counts are graph helpers 9/99 and
+retrieval hints 5/9, calls external four/local zero, and both selected spans
+have zero reviewed runtime-domain records. Moving caller admission, ontology/
+formula policy, plan notes, key ordering, task/query construction, or state
+adoption is rejected. Four named CURRENT-SOURCE methods passed before and after
+the move. Source moved `+30/-28`, tests `+1,321/-8`, and the whole commit
+`+1,351/-36`; graph helpers finish at 5,756 lines and retrieval hints at 318.
+The source diff SHA-256 is
+`5199849efa1388dfdd30178ba0bbe14f198e3c46f4e365647cc031070cab0fbd`.
+Focused 4/4, owner 75/75, affected semantic 955/955, import 19/19, audit 218,
+full 1,923/1,923, pycompile/fresh import/public identity 2/2, selected-body
+parity 2/2, all 108 retained graph functions, full caller/DAG parity, retired
+selected graph-private refs zero, and diff check passed. The earlier 958
+semantic projection was a counting error; current module discovery is 955.
+Benchmark refresh was **NOT RUN** and remote CI remains unverified.
+
+The new characterize-only period-focus inventory selects the adjacent current
+11-line `_infer_period_focus(query, default_value="unknown") -> str` and
+25-line `_task_period_focus_from_operands(operation_family, operand_specs,
+default_value) -> str` graph definitions for a future public move to
+`financial_scope_policies.py` as `query_period_focus(...)` and
+`task_period_focus_from_operands(...)`. No production source or test has moved
+for this pair at this checkpoint. They project a period-focus label from an
+already supplied query or prepared operand roles; they do not resolve ontology
+defaults or consolidation, infer an operation, construct operands/tasks/queries,
+rank candidates, or adopt plan/state.
+
+`query_period_focus(...)` normalizes the raw query before shallow-copying
+`PERIOD_FOCUS_POLICY`. It lazily checks raw configured prior markers first and
+returns `"prior"` at the first case-sensitive membership match; current markers
+are reached only after a full prior miss and return `"current"` at their first
+match. Only after both miss does it stringify the explicit-year pattern, call
+`re.findall(...)`, order-dedupe matches with `dict.fromkeys(...)`, and return
+`"current"` when exactly one distinct match remains. Every other path returns
+`default_value or "unknown"`. Query/marker coercion, lowercasing, policy
+mutation, or a new fallback is not allowed.
+
+`task_period_focus_from_operands(...)` consumes every reached spec into a role
+set before operation policy. The current comprehension calls `spec.get("role")`
+once for an empty filtered role and twice for a nonempty role, applying
+`value or ""`, `str(...)`, and `.strip()` on each read; empty roles are dropped
+and the rest set-deduped. No roles use the fallback. `lookup`/`single_value`
+return current or prior only for the exact corresponding singleton set.
+`difference`/`growth_rate` return multi-period whenever both roles are present,
+including sets with extras, and current/prior for exact singleton sets. All
+other cases use the fallback. Inputs remain unchanged. Normalization, mapping/
+policy conversion/access, marker/spec iteration, truth-value, membership,
+stringification, stripping, regex, hashing, set construction, operation-family
+membership, and fallback truth-value errors remain uncaught.
+
+All six calls remain direct graph names with positional arguments only, no
+keywords, and caller `try` depth zero. Query focus is assigned in the hybrid,
+concept, heuristic, and metric-task constraint builders; role refinement is
+assigned in the concept and heuristic builders. Hybrid order is consolidation,
+query period, narrative policy. Concept order is defaults/consolidation, query
+period, then conditional role refinement before segment policy. Heuristic order
+is operand/operation preparation, query period, unconditional role refinement,
+then retrieval-query construction. Metric-task order is ontology defaults,
+consolidation overwrite, then query period. Each result is adopted directly;
+exceptions stop the remaining caller work.
+
+The scope owner already imports all selected dependencies; graph reaches it and
+it does not reach graph. Projected counts are graph helpers 9/97 and scope policy
+9/9, calls external six/local zero, and both selected spans have zero reviewed
+runtime-domain records. Moving caller bodies, consolidation/default resolution,
+operation/operand/task/query construction, candidate report/year matching,
+ranking/admission, or state adoption is rejected. Four named CURRENT-SOURCE
+methods and exact contracts remain solely in
 [Project Status Next Work](../overview/project_status.md#next-work). Projected
-gates are focused 4/4, owner 75/75, affected semantic 958/958, import 19/19,
-audit 218, full 1,923/1,923, pycompile/fresh import/public identity 2/2,
-selected-body parity 2/2, all 108 retained graph functions, full caller/DAG
-parity, retired-ref zero, and diff check. Static AST/DAG, selected-body baseline,
-isolated matching/caller probes, current owner 71/71, and audit 218 passed;
-benchmark refresh and remote CI were **NOT RUN**.
+gates are focused 4/4, owner 74/74, affected semantic 1,034/1,034, import 19/19,
+audit 218, full 1,927/1,927, pycompile/fresh import/public identity 2/2,
+selected-body parity 2/2, all 106 retained graph functions, full caller/DAG
+parity, and retired selected graph-private refs zero. Static AST/DAG and baseline,
+isolated period-focus/caller probes, current graph-helper/direct-consumer tests
+150/150, and audit 218 passed; benchmark refresh and remote CI were **NOT RUN**.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

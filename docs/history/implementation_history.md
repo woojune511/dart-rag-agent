@@ -4417,3 +4417,101 @@ The inventory itself establishes no behavior, accuracy, ranking, performance,
 benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
 selected-body baseline, isolated matching/caller probes, current owner 71/71,
 and audit 218 passed; benchmark refresh and remote CI were **NOT RUN**.
+
+### Query-to-metric/operand match ownership milestone
+
+- `8e4dca4` moves the exact 6-line `_query_mentions_metric(...)` and 14-line
+  `_query_component_match_count(...)` definitions from
+  `financial_graph_helpers.py` to public `query_mentions_metric(...)` and
+  `query_component_match_count(...)` in `financial_retrieval_hints.py`.
+  Calls finish graph-external four/owner-local zero in strong-metric filtering,
+  target-component assignment, target mention admission, and the task-loop
+  weak-match guard. Each remains a direct `ast.Name` call with positional
+  arguments only, no keywords, and caller `try` depth zero.
+- Source is `+30/-28`, net `+2`: graph helpers are `+6/-28` and move from 5,778
+  to 5,756 physical lines; retrieval hints are `+24/-0` and move from 294 to
+  318. Tests are `+1,321/-8`, net `+1,313`, moving graph-helper tests from
+  13,353 to 14,666 lines while retrieval-hint tests remain at 830. The whole
+  commit is `+1,351/-36`, net `+1,315`, and four new methods move discovery
+  from 1,919 to 1,923. The source diff SHA-256 is
+  `5199849efa1388dfdd30178ba0bbe14f198e3c46f4e365647cc031070cab0fbd`.
+- Graph helpers finish public/private 9/99 and retrieval hints 5/9. The existing
+  graph-to-retrieval-hint edge remains one-way, selected dependencies remain
+  acyclic, both selected spans contain zero reviewed domain records, and the
+  baseline remains 218. Retired graph-private names have zero selected source/
+  test refs and public import identity is 2/2.
+- Four CURRENT-SOURCE methods passed before and after relocation. They pin
+  query-first normalization, eager field/iterable collection, ordered lazy
+  matching, case-sensitive raw-value forwarding, matched blank-label concept
+  fallback, ordered identity dedupe, immutability, exceptions, exact definitions/
+  calls/import/DAG/baseline, semantic-plan admission order, task output, and
+  exception stops. Selected-body parity 2/2, all 108 retained graph functions,
+  full caller/DAG parity, and diff check passed.
+- Validation passed focused 4/4, graph-helper/retrieval-hint owner 75/75,
+  affected eleven-module semantic 955/955, import-side-effects 19/19, runtime
+  audit 218, full discovery 1,923/1,923, and pycompile/fresh import in the
+  project `.venv`. The earlier 958 semantic projection was a counting error:
+  current discovery is the prior ten-module 946-test set plus four new graph-
+  helper tests and five retrieval-hint tests, or 955. Benchmark refresh was
+  **NOT RUN**, and
+  no remote CI run is claimed or verified for this local branch.
+
+This milestone changes only prepared query-to-metric/operand matching ownership.
+Ontology lookup, operation/formula policy, metric admission, task/retrieval-query
+construction, plan/state adoption, ranking, evidence, artifacts/ledger, and final
+sequencing remain graph-owned. It proves no behavior, accuracy, ranking,
+performance, total-code or executed-path reduction, benchmark improvement,
+schedule, ledger completion, or Phase 3 completion.
+
+### Query/task period-focus characterization checkpoint
+
+- A docs-only inventory resolves the adjacent exact 11-line
+  `_infer_period_focus(query, default_value="unknown") -> str` and 25-line
+  `_task_period_focus_from_operands(operation_family, operand_specs,
+  default_value) -> str` definitions in `financial_graph_helpers.py`. Query
+  focus has four direct calls and role refinement two across the hybrid,
+  concept, heuristic, and metric-task constraint builders. All six use direct
+  names, positional arguments only, no keywords, and caller/body `try` depth
+  zero. No production source or test moves in this checkpoint.
+- The selected follow-on moves the pair as public `query_period_focus(...)` and
+  `task_period_focus_from_operands(...)` in `financial_scope_policies.py`.
+  Calls remain graph-external six/owner-local zero. Projected function counts
+  are graph helpers public/private 9/97 and scope policy 9/9. Both selected spans
+  contain zero of the 218 reviewed runtime-domain records. Current tests contain
+  eight text occurrences of the selected graph-private query helper and none of
+  the role helper; direct imports and patch targets must move without a graph
+  compatibility alias.
+- Query focus preserves raw query normalization before a shallow policy copy,
+  lazy case-sensitive prior-marker precedence, then current markers, then
+  order-deduped explicit-year regex matches, with exactly one distinct year
+  yielding current and `default_value or "unknown"` otherwise. Role focus
+  preserves full spec consumption, one role get for an empty filter and two for
+  a nonempty role, current `or`/string/strip behavior, set dedupe, exact singleton
+  lookup/single-value resolution, difference/growth multi-period resolution
+  when both roles are present even with extras, and fallback truth-value
+  semantics. Inputs remain unchanged and all existing errors remain uncaught.
+- Caller order and adoption remain graph-owned. Hybrid constraints resolve
+  consolidation, query period, then narrative policy. Concept constraints apply
+  query focus after defaults/consolidation and role refinement only for truthy
+  operand specs. Heuristic constraints apply query focus, unconditionally refine
+  roles, then build retrieval queries from the refined value. Metric constraints
+  read ontology defaults, overwrite consolidation, then adopt query focus.
+  Exceptions stop later refinement, policy, retrieval-query construction, or
+  return projection.
+- The scope owner already imports every selected dependency. Graph already
+  reaches it and it does not reach graph, so only public names are added to an
+  existing edge. Moving consolidation/default resolution, operation inference,
+  operand/task/retrieval-query construction, caller bodies, candidate report/
+  year matching, ranking/admission, or state adoption is rejected. Four named
+  CURRENT-SOURCE methods and projected focused 4/4, owner 74/74, affected
+  semantic 1,034/1,034, import 19/19, audit 218, full 1,927/1,927,
+  pycompile/fresh import/public identity, selected body 2/2, retained graph
+  106/106, caller/DAG parity, retired selected-ref zero, and diff check are
+  maintained only in
+  [Project Status Next Work](../overview/project_status.md#next-work).
+
+The inventory itself establishes no behavior, accuracy, ranking, performance,
+benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG and
+selected-body baseline, isolated period-focus/caller probes, current graph-
+helper/direct-consumer tests 150/150, and audit 218 passed; benchmark refresh
+and remote CI were **NOT RUN**.

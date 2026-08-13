@@ -16,10 +16,10 @@ Last updated: 2026-08-14
 | What is the product? | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
 | Is the core path blocked? | No known unit/contract correctness blocker |
 | What is the architecture state? | Phase 3 OPEN; deterministic runtime and ontology planning are execution-owned, four named debt groups remain |
-| What just changed? | `a530033` moved the exact 30-line sibling-surface hit-count projection from graph helpers to public row-surface ownership |
-| What passed? | Focused 4/4, owner modules 67/67, affected ten-module semantic set 946/946, import-side-effect 19/19, runtime audit 218, full unittest 1,919/1,919 |
-| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest sibling-surface hit-count ownership change |
-| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 6/14-line query-to-metric/operand match pair to retrieval-hint ownership |
+| What just changed? | `8e4dca4` moved the exact 6/14-line query-to-metric/operand match pair from graph helpers to public retrieval-hint ownership |
+| What passed? | Focused 4/4, owner modules 75/75, affected eleven-module semantic set 955/955, import-side-effect 19/19, runtime audit 218, full unittest 1,923/1,923 |
+| Was the benchmark refreshed? | **NOT RUN**; recorded benchmark evidence predates the latest query-to-metric/operand match ownership change |
+| What is next? | Add four CURRENT-SOURCE contracts, then move only the exact 11/25-line query/task period-focus pair to scope-policy ownership |
 
 ## Product Boundary
 
@@ -470,10 +470,28 @@ or an unconfigured `FinancialAgent` invocation.
   sorted/top/filter ranking, canonical/semantic/score policy, and reconciliation
   adoption remain graph-owned. This is ownership relocation, not a behavior or
   benchmark claim.
+- Commit `8e4dca4` moved the exact 6-line query-to-metric mention and 14-line
+  query-to-operand component-match definitions from
+  `financial_graph_helpers.py` to public `query_mentions_metric(...)` and
+  `query_component_match_count(...)` in `financial_retrieval_hints.py`. Their
+  four calls remain graph-external in strong-metric filtering, target-component
+  assignment, target mention admission, and the task-loop weak-match guard;
+  owner-local calls remain zero. Source is `+30/-28`, net `+2`; tests are
+  `+1,321/-8`, net `+1,313`; and the whole commit is `+1,351/-36`, net
+  `+1,315`. Graph helpers moved from 5,778 to 5,756 lines, retrieval hints from
+  294 to 318, graph-helper tests from 13,353 to 14,666, and four methods moved
+  discovery from 1,919 to 1,923. The source diff SHA-256 is
+  `5199849efa1388dfdd30178ba0bbe14f198e3c46f4e365647cc031070cab0fbd`.
+  Focused 4/4, owner 75/75, affected semantic 955/955, import 19/19, audit 218,
+  and full 1,923/1,923 passed with pycompile/fresh import/public identity,
+  selected-body 2/2, retained graph 108/108, full caller/DAG parity, retired-ref
+  zero, and diff check. Ontology lookup, operation/metric admission, task/query
+  construction, and plan adoption remain graph-owned. This is ownership
+  relocation, not a behavior or benchmark claim.
 - Current physical sizes are: calculation graph 13,467 lines, calculation
   execution 1,074, main graph 938,
-  graph evidence 4,229, retrieval hints 294,
-  graph helpers 5,778, scope policy 457, structured cells 335, surface contracts
+  graph evidence 4,229, retrieval hints 318,
+  graph helpers 5,756, scope policy 457, structured cells 335, surface contracts
   334, row surfaces 389,
   planning 1,240, calculation rendering 708, answer slots 734, numeric surface
   670, answer projection 625, text surface 642, operand resolution 3,695,
@@ -493,7 +511,7 @@ Commit-level diffs and validation are kept in
 | --- | --- |
 | Public entry | `FinancialAgent.run()` |
 | DART ingest | parser modules plus canonical profile in `src/config/runtime_contract.py` |
-| Retrieval | `financial_retrieval_pipeline.py`; `financial_retrieval_hints.py` owns statement/section hints plus focus-term, preferred-section subset, and compression-guidance projection, while graph evidence owns structure expansion, context/evidence construction, ranking, model invocation, and state adoption |
+| Retrieval | `financial_retrieval_pipeline.py`; `financial_retrieval_hints.py` owns statement/section hints, focus-term, preferred-section subset, compression-guidance, and query-to-prepared-metric/operand matching projection, while graph evidence owns structure expansion, context/evidence construction, ranking, model invocation, and state adoption |
 | Calculation orchestration | `financial_graph_calculation.py`; reads graph state, prepares inputs, places owner calls, and projects state/task/artifact results |
 | Semantic planning normalization | `financial_graph_helpers.py`; state-free scope normalization, plan-shape predicates, segment-label projection, planner-task validation, and narrative-task policy projection, excluding model invocation and plan/state adoption |
 | Scope and structured-cell policy | `financial_scope_policies.py` owns report/consolidation scope, public operand target-year/period-focus projection, and candidate report/year matching and binding bonuses; `financial_structured_cells.py` owns fiscal rank/period text, ordinary/aggregate selection, public scoring, and owner-private operand affinity |
@@ -529,15 +547,16 @@ For topology rather than normative behavior, use
 | REFERENCE_NOTE capability gate | READY, Researcher context-only |
 | Demo fixture contract | `fixture_contract_ready`; manifest verified, live replay false |
 | Portfolio review surface | `review_surface_ready`; unit suite and audit are `not_run` by that command |
-| Latest focused owner checkpoint | PASS, sibling-surface hit-count ownership 4 / 4; owner modules 67 / 67 |
-| Latest semantic regression set | PASS, affected ten-module set 946 / 946 |
+| Latest focused owner checkpoint | PASS, query-to-metric/operand match ownership 4 / 4; owner modules 75 / 75 |
+| Latest semantic regression set | PASS, affected eleven-module set 955 / 955 |
 | Import-side-effect regression set | PASS, 19 / 19 |
 | Runtime domain-term audit | PASS, 218 reviewed records |
-| Full unittest discovery | PASS, 1,919 / 1,919 |
-| Benchmark refresh after latest sibling-surface hit-count ownership change | **NOT RUN** |
+| Full unittest discovery | PASS, 1,923 / 1,923 |
+| Benchmark refresh after latest query-to-metric/operand match ownership change | **NOT RUN** |
 | GitHub Actions validation | Workflow defined; no remote run claimed for this local branch |
 
 The semantic set is `tests.test_financial_graph_helpers`,
+`tests.test_financial_retrieval_hints`,
 `tests.test_financial_operand_resolution`,
 `tests.test_financial_surface_contracts`,
 `tests.test_financial_dependency_projection`,
@@ -567,7 +586,7 @@ The durable Phase 3 debt is:
 | Debt group | Progress boundary |
 | --- | --- |
 | Aggregate repair and precedence | Partially advanced through aggregate calculation/public projection, subtask upsert/rank, nested traversal/scoring/selected-result promotion, nested-result replacement, arithmetic subtask-surface synchronization, period/material/source/coherence/rank/dedupe, narrative validation, growth display/material, prepared growth-numeric rendering and trace inspection, result support/reuse, prepared material inspection, bounded row/gap/lookup-answer ownership, final-answer evidence/provenance/surface-operand projection, own-evidence lookup-unit alignment, growth-answer completion/sanitization, and deterministic quantitative-impact parsing/composition; peer-source alignment, broader rebuild and final sequencing remain graph-owned |
-| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period policy, structured-cell selection/scoring, candidate report/period-scope policy, candidate surface-contract/segment binding, candidate metadata-policy projection, segment-local/segment-metric row-surface ownership, aggregate-like row stage/role projection, direct candidate logical/family signature projection, and sibling-surface hit counting; graph-state lookup, direct/ratio acceptance, broader evidence orchestration, scoring/reconciliation, and surrounding sequencing remain graph-owned |
+| Dependency and ratio/absolute seams | Partially advanced through ratio presentation/readiness/scale, bounded operand preparation, lookup magnitude and hint projection/matching, same-block unit/table repair, direct structured lookup-row/value projection, lookup answer-slot/support projection, dependency input matching/binding, deterministic runtime/ontology planning, generic operand-period policy, structured-cell selection/scoring, candidate report/period-scope policy, candidate surface-contract/segment binding, candidate metadata-policy projection, segment-local/segment-metric row-surface ownership, aggregate-like row stage/role projection, direct candidate logical/family signature projection, sibling-surface hit counting, and query-to-metric/operand matching; graph-state lookup, direct/ratio acceptance, broader evidence orchestration, scoring/reconciliation, and surrounding sequencing remain graph-owned |
 | Broader task/artifact ledger synchronization | Minimally advanced through bounded read-only reconciliation artifact-reference projection; artifact mutation and whole-ledger synchronization require separate contracts |
 | Private API mesh and test co-location | Partially advanced as public contracts, semantic-planner normalization/validation, narrative-task policy, lookup answer-slot/support, read-only retrieval-hint projection, and quantitative-impact projection moved; broader evidence and orchestration seams remain |
 
@@ -578,118 +597,124 @@ may split or close only after caller, test, and stop-line characterization.
 
 The characterize-only inventory selects exactly one production follow-on. Move
 the exact adjacent current definitions from `financial_graph_helpers.py` to
-public functions in the existing `financial_retrieval_hints.py` owner:
+public functions in the existing `financial_scope_policies.py` owner:
 
-- `_query_mentions_metric(query: str, metric: Dict[str, Any]) -> bool` becomes
-  `query_mentions_metric(...)`; its definition span is six lines;
-- `_query_component_match_count(query: str,
-  operand_specs: List[Dict[str, Any]]) -> int` becomes
-  `query_component_match_count(...)`; its definition span is 14 lines.
+- `_infer_period_focus(query: str, default_value: str = "unknown") -> str`
+  becomes `query_period_focus(...)`; its definition span is 11 lines;
+- `_task_period_focus_from_operands(operation_family: str,
+  operand_specs: List[Dict[str, Any]], default_value: str) -> str` becomes
+  `task_period_focus_from_operands(...)`; its definition span is 25 lines.
 
 No production source or test has moved for this pair at this checkpoint. These
-functions compare an already supplied query with already prepared metric or
-operand-spec surfaces. They do not fetch ontology data, infer an operation,
-admit a metric family, build a task, choose retrieval queries, or adopt plan or
-graph state. The retrieval-hint owner already imports `_normalise_spaces`,
-`Any`, `Dict`, and `List`, and does not reach graph helpers. Graph helpers
-already import the retrieval-hint owner. Current top-level function counts are
-graph helpers public/private 9/101 and retrieval hints 3/9; projected counts are
-9/99 and 5/9.
+functions project a period-focus label from an already supplied query or from
+already prepared operand roles. They do not infer an operation, build operands,
+select a metric, create a task or retrieval query, fetch ontology data, or adopt
+plan/graph state. The scope-policy owner already imports `re`, `_normalise_spaces`,
+`PERIOD_FOCUS_POLICY`, `Any`, `Dict`, and `List`; graph already reaches that owner
+and the owner does not reach graph. Current top-level function counts are graph
+helpers public/private 9/99 and scope policy 7/9; projected counts are 9/97 and
+9/9.
 
-`query_mentions_metric(...)` must preserve this exact behavior:
+`query_period_focus(...)` must preserve this exact behavior:
 
-- normalize the query once before touching the metric mapping;
-- read `display_name`, `aliases`, and `intent_keywords` in that order. Convert
-  only the display name immediately with `str(...).strip()`, and eagerly extend
-  the local alias list from both supplied iterables before matching begins;
-- scan display, aliases, then intent keywords with `any(...)`. For each reached
-  value, evaluate `str(alias).strip()` as the filter, pass the original retained
-  value to `_normalise_spaces(...)`, and use a case-sensitive substring test
-  against the normalized query;
-- stop normalization and string filtering at the first match, while preserving
-  the earlier eager field reads and iterable consumption. Do not lowercase,
-  whitespace-compact, exact-match, dedupe, mutate the metric, or add fallback
-  semantics.
+- normalize the raw query once before copying `PERIOD_FOCUS_POLICY` with
+  `dict(...)`; do not stringify or lowercase the query or markers;
+- lazily scan `prior_markers` first and return `"prior"` on its first
+  case-sensitive membership match. Only if it has no match, scan
+  `current_markers` the same way and return `"current"` on its first match;
+- only after both marker scans miss, stringify the configured explicit-year
+  pattern, run `re.findall(...)`, order-dedupe the matches with
+  `dict.fromkeys(...)`, and return `"current"` when exactly one distinct match
+  remains;
+- otherwise return `default_value or "unknown"`. Preserve the supplied
+  default's truth-value semantics, policy shallow-copy behavior, input
+  immutability, and the priority `prior > current > one explicit year > default`.
 
-`query_component_match_count(...)` must normalize the query once, then iterate
-the supplied operand specs in source order. For every reached spec it must read
-`label`, `aliases`, and `keywords` in order; normalize the stringified/stripped
-label plus the raw extended alias and keyword values with the same filtered,
-case-sensitive `any(...)` contract. A matched spec appends its nonempty label,
-or lazily reads and stringifies `concept` only when the matched label is empty.
-An unmatched spec must not read `concept`. After every spec is processed, drop
-empty identities, preserve first occurrence order with `dict.fromkeys(...)`,
-and return the number of unique matched label/concept identities. Multiple
-matching aliases for one spec still count once; equal identities across specs
-count once; equal aliases attached to distinct nonempty labels count separately.
+`task_period_focus_from_operands(...)` must consume every reached operand spec
+before applying operation policy. Its set comprehension reads `role` once in
+the filter for an empty role and twice for a nonempty role, applies the current
+`value or ""`, `str(...)`, and `.strip()` sequence on each read, drops empty
+roles, and set-dedupes the results. It must then preserve this matrix:
 
-Mapping, `or` truth-value, stringification, iterable extension, spec iteration,
-normalization, membership, concept lookup, hashing, and ordered-dedupe errors
-remain uncaught. Raw non-string alias values are not newly coerced before
-normalization. No catch, wrapper, compatibility alias, callback, reason, flag,
-trace, or mutation is allowed.
+- no roles returns `default_value or "unknown"`;
+- `lookup` and `single_value` return current/prior only for the exact singleton
+  sets `{current_period}` or `{prior_period}`;
+- `difference` and `growth_rate` return `multi_period` whenever both current and
+  prior roles are present, even with extra roles, and return current/prior for
+  the corresponding exact singleton set;
+- every other combination returns `default_value or "unknown"`.
 
-The pair has four direct `ast.Name` calls, all from
-`_build_semantic_numeric_plan(...)`, all with two positional arguments, no
-keywords, and caller `try` depth zero. `query_mentions_metric(...)` appears in
-the strong-metric list-comprehension predicate, target-metric admission, and
-the task-loop weak-match guard. `query_component_match_count(...)` appears in
-the target block assignment before its mention test. Calls finish graph-
-external four/owner-local zero. Current test text contains no selected private
-name, and both selected spans contain zero of the 218 reviewed runtime-domain
-records. Adding the public names to the existing graph-to-retrieval-hint import
-does not add or reverse a module edge.
+Normalization, policy conversion/access, marker/spec iteration, truth-value,
+membership, stringification, stripping, regex, hashing, set construction,
+operation-family membership, and default truth-value errors remain uncaught.
+The helpers must not mutate query, policy, operand mappings, nested values, or
+the operand list. No catch, wrapper, compatibility alias, callback, reason,
+flag, trace, or new fallback is allowed.
 
-Caller policy remains graph-owned and unchanged. Strong-metric evaluation calls
-the mention helper only after a nonempty metric key and before formula-family
-admission. A supplied target family computes component count before testing a
-truthy target metric for explicit mention; only a false mention may fall through
-to matched-key membership plus `component_match_count >= 2`. In the task loop,
-a truthy `matches` collection evaluates mention before the target-key exemption,
-following the current boolean-expression order. The characterized target/alpha/
-weak scenario calls mention for `target,alpha,weak`, then component count, then
-target mention, then task-loop mention for `target,alpha`; it emits target and
-alpha tasks. An exception in the first strong mention stops after mention calls
-1/component calls 0, a component exception after 3/1, and a target-mention
-exception after 4/1; task construction is not reached in any case.
+The pair has six direct `ast.Name` calls, all in graph helpers, with positional
+arguments only, no keywords, and caller `try` depth zero. Query focus is assigned
+in `build_hybrid_narrative_subtask(...)`, `_build_concept_task_constraints(...)`,
+`_build_heuristic_numeric_task(...)`, and `_build_task_constraints(...)`;
+operand-role refinement is assigned in the concept and heuristic builders.
+Calls finish graph-external six/owner-local zero. Both selected spans contain
+zero of the 218 reviewed runtime-domain records. Current tests contain eight
+text occurrences of the selected graph-private query helper and none of the
+role helper; the direct import and graph patch targets must move to the public
+scope owner without preserving a graph alias.
 
-Moving any part of `_build_semantic_numeric_plan(...)`, ontology lookup,
-operation/formula-family policy, matched-key or threshold admission, planner
-notes, metric-key ordering, task/retrieval-query construction, or state adoption
-would move planning policy rather than query-surface projection and is rejected.
-The canonical/semantic candidate rankers, direct acceptance, and 16/18-line
-candidate value-role/stage pair remain separate graph-owned seams. A new module
-or compatibility bridge adds surface without resolving a boundary.
+Caller policy remains graph-owned and unchanged. The hybrid builder resolves
+consolidation, then query period, then narrative policies and adopts query
+period directly. Concept constraints resolve guidance/defaults and consolidation,
+then query period; only a truthy operand-spec collection invokes role refinement,
+whose result replaces query period before segment policy. The heuristic builder
+constructs operands and infers operation first, places query period in its
+constraints, unconditionally refines from operand roles, then builds retrieval
+queries from the refined constraints. Metric task constraints read ontology
+defaults, overwrite consolidation, then adopt query period. Exceptions stop all
+later refinement, policy, retrieval-query construction, or return projection at
+the current call site.
+
+Moving consolidation resolution, ontology defaults, operation inference,
+operand construction, segment policy, task/retrieval-query construction, any
+caller body, candidate report/year matching, or plan/state adoption is rejected.
+Canonical/semantic ranking, direct/ratio acceptance, and candidate value-role/
+stage remain separate graph-owned seams. A new module or compatibility bridge
+would add surface without resolving a boundary.
 
 Before production movement, add exactly these four CURRENT-SOURCE methods to
 `FinancialGraphHelperTests`:
 
-- `test_current_source_query_mentions_metric_pins_collection_matching_laziness_and_exceptions`;
-- `test_current_source_query_component_match_count_pins_identity_dedupe_laziness_and_exceptions`;
-- `test_current_source_query_metric_match_bindings_pin_defs_calls_dag_and_baseline`;
-- `test_current_source_query_metric_match_caller_pins_order_admission_and_stops`.
+- `test_current_source_query_period_focus_pins_precedence_laziness_defaults_and_exceptions`;
+- `test_current_source_task_period_focus_from_operands_pins_role_collection_matrix_and_exceptions`;
+- `test_current_source_period_focus_bindings_pin_defs_calls_dag_and_baseline`;
+- `test_current_source_period_focus_callers_pin_order_adoption_and_stops`.
 
-They must pin the exact 6/14-line spans and signatures, query-first
-normalization, field/get/extension order, raw-value forwarding, lazy `any(...)`
-filtering, case-sensitive substring behavior, component identity fallback and
-ordered dedupe, input immutability, uncaught exceptions, all four call
-expressions/contexts, direct-name/try-depth placement, current/projected function
-counts, import DAG, zero selected-body runtime-domain records, caller order,
-target admission, task-family output, and exception stops. Projected post-move
-gates are focused 4/4, graph-helper/retrieval-hint owner 75/75, affected eleven-
-module semantic 958/958, import-side-effects 19/19, audit 218, and full discovery
-1,923/1,923, plus pycompile/fresh import and public identity 2/2, selected-body
-parity 2/2, all 108 retained graph functions, full caller/DAG parity, retired
-private source/test refs zero, and `git diff --check`.
+They must pin the exact 11/25-line spans, signatures and default, policy-copy and
+query-first normalization order, marker precedence/laziness, exact-year dedupe,
+case-sensitive raw membership, role get/string/strip counts, whole-input
+consumption, set dedupe, the operation/role matrix, input immutability, uncaught
+exceptions, all six call expressions/contexts, direct-name/try-depth placement,
+current/projected function counts, import DAG, zero selected-body runtime-domain
+records, all four caller orders/adoptions, and exception stops. Projected post-
+move gates are focused 4/4, graph-helper/scope owner 74/74, affected eleven-
+module semantic 1,034/1,034, import-side-effects 19/19, audit 218, and full
+discovery 1,927/1,927, plus pycompile/fresh import and public identity 2/2,
+selected-body parity 2/2, all 106 retained graph functions, full caller/DAG
+parity, retired selected graph-private source/test refs zero, and
+`git diff --check`. The projected semantic set replaces the now-unaffected
+`tests.test_financial_retrieval_hints` in the current set with the direct
+consumer `tests.test_semantic_numeric_plan`; its current 1,030 cases plus four
+new CURRENT-SOURCE methods yield 1,034.
 
-Keep ontology retrieval, operation inference, metric admission, plan notes,
-metric/task/retrieval-query construction, graph state, model invocation,
-artifact/ledger mutation, and final sequencing graph-owned. The inventory and
-future relocation establish no behavior, accuracy, ranking, performance,
-benchmark, schedule, ledger, or Phase 3 completion claim. Static AST/DAG,
-selected-body baseline, isolated matching/caller probes, the current owner set
-71/71, and the 218-record audit passed for this inventory; benchmark refresh and
-remote CI were **NOT RUN**.
+Keep ontology/default resolution, consolidation and operation inference,
+operand/task/retrieval-query construction, graph state, model invocation,
+candidate ranking/admission, artifact/ledger mutation, and final sequencing
+graph-owned. The inventory and future relocation establish no behavior,
+accuracy, ranking, performance, benchmark, schedule, ledger, or Phase 3
+completion claim. Static AST/DAG and selected-body baseline, isolated period-
+focus/caller probes, current graph-helper/direct-consumer tests 150/150, and the
+218-record audit passed for this inventory; benchmark refresh and remote CI were
+**NOT RUN**.
 
 ## Reviewer Evidence Surface
 

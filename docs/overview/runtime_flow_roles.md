@@ -226,8 +226,9 @@ evidence mixin에는 `_retrieve` 호환 복사본이 없다.
 
 ### `src/agent/financial_retrieval_hints.py`
 
-현재 ontology/policy 기반 statement type, preferred section, query suffix와
-active-subtask section hint뿐 아니라 query focus-term, preferred-section
+현재 ontology/policy 기반 statement type, preferred section, query suffix,
+prepared metric/operand query-match projection과 active-subtask section
+hint뿐 아니라 query focus-term, preferred-section
 evidence subset, compression guidance를 state-free하게 투영한다. 검색 실행,
 document/context/evidence construction과 ranking, prompt/model invocation,
 state adoption은 evidence/retrieval graph에 남는다.
@@ -296,7 +297,7 @@ State-free owner topology:
 | `financial_numeric_surface.py` | numeric extraction/equivalence, answer/reference comparison, table support, numeric-support predicates, and ratio scale checks |
 | `financial_text_surface.py` | shared token/sentence normalization, Korean particle polishing, narrative term/variant/context presentation, prepared-document snippet projection, retrieved-source preservation, query-focus marker projection, source-visible term preservation, and table-noise/fragment predicates |
 | `financial_lookup_recovery.py` | lookup magnitude, selected-evidence consistency, refinement eligibility, unit normalization, successful-row alignment/replacement, direct structured-row/value projection, active-task matching, prose answer-slot synthesis, and supporting-document projection over supplied evidence |
-| `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
+| `financial_retrieval_hints.py` | ontology/policy-backed statement, section, and query hints plus read-only evidence focus/subset/compression guidance and query-to-prepared-metric/operand matching; retrieval execution, context/evidence construction and ranking, model invocation, and state adoption remain graph-owned |
 | `financial_scope_policies.py` | report/consolidation scope, public generic operand target-year/period-focus policy, and candidate report/year matching and binding bonuses |
 | `financial_surface_contracts.py` | operand needles/segment labels, positive/negative surface-term contracts, candidate required/numeric/descriptor projection, segment-surface matching/bonuses, local aggregate context, consolidation scope, binding-shape admission, and selected-unit-family projection |
 | `financial_row_surfaces.py` | row/table text matching and parsing, aggregate-like row stage/role projection, segment-local binding, segment-metric composition, and sibling-surface hit counting |
@@ -653,14 +654,23 @@ Aggregate/narrative row의 state-free answer policy owner다.
   통과했다. Sibling-list preparation, rank/filter adoption, canonical/
   semantic/score policy, state/evidence/ledger와 final sequencing은 graph에
   남는다.
-- 새 characterize-only inventory는 graph helper의 정확한 6/14줄 query-to-
-  metric/operand match pair를 `financial_retrieval_hints.py`의 public API로
-  옮기는 다음 production 작업으로 선택했다. 네 call은 strong-metric,
-  target component/mention, task-loop weak-match 위치에서 external 4/local
-  0을 유지한다. Projected graph helper public/private는 9/99, retrieval
-  hints는 5/9다. 아직 source/test 이동은 없으며 exact collection/matching/
-  identity dedupe, semantic-plan caller order/admission/stop, 네 CURRENT-SOURCE
-  method와 projected gate는
+- 완료된 `8e4dca4` query-to-metric/operand match batch는 graph helper의 정확한
+  6/14줄 pair를 `financial_retrieval_hints.py`의 public API로 옮겼다. 네
+  call은 strong-metric, target component/mention, task-loop weak-match 위치에서
+  external 4/local 0을 유지한다. Graph helper public/private는 9/99,
+  retrieval hints는 5/9다. Focused 4/4, owner 75/75, semantic 955/955, import
+  19/19, audit 218, full 1,923/1,923과 pycompile/fresh import/public identity,
+  AST/caller/DAG parity가 통과했다. Ontology/formula policy, metric admission,
+  task/query construction, state/evidence/ledger와 final sequencing은 graph에
+  남는다.
+- 새 characterize-only inventory는 graph helper의 정확한 11/25줄 query/task
+  period-focus pair를 `financial_scope_policies.py`의 public API로 옮기는
+  다음 production 작업으로 선택했다. 여섯 call은 hybrid, concept,
+  heuristic, metric-task constraint builder에서 external 6/local 0을
+  유지한다. Projected graph helper public/private는 9/97, scope policy는
+  9/9다. 아직 source/test 이동은 없으며 marker precedence/year dedupe,
+  role collection/refinement, 네 caller의 order/adoption/stop, 네 CURRENT-
+  SOURCE method와 projected gate는
   [Project Status의 Next Work](project_status.md#next-work)가 단일 기준이다.
 
 ### `src/agent/financial_graph_helpers.py`
