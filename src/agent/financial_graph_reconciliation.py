@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_helpers import (
     _build_reconciliation_candidate,
     _build_table_row_reconciliation_candidates,
-    _candidate_is_descriptor_row,
     _candidate_is_direct_grounding_candidate,
     _candidate_matches_operand,
     _candidate_satisfies_direct_acceptance_contract,
@@ -63,7 +62,7 @@ from src.agent.financial_retrieval_hints import (
     _preferred_calc_sections,
     _supplement_section_terms_for_query,
 )
-from src.agent.financial_surface_contracts import _operand_needles
+from src.agent.financial_surface_contracts import candidate_is_descriptor_row, _operand_needles
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
     _parse_unstructured_table_row_cells,
@@ -219,7 +218,7 @@ class FinancialAgentReconciliationMixin:
             for item in scored_candidates[:5]
         }
 
-        if _candidate_is_descriptor_row(top_candidate):
+        if candidate_is_descriptor_row(top_candidate):
             return True
         if top_kind == "chunk":
             return True

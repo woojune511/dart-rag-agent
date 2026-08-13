@@ -72,6 +72,11 @@ from src.agent.financial_surface_contracts import (
     _text_has_contract_term,
     _text_has_negative_surface,
     _text_has_positive_surface,
+    candidate_has_numeric_value_signal,
+    candidate_has_required_surface_contract,
+    candidate_is_descriptor_row,
+    candidate_matches_segment_binding,
+    candidate_segment_binding_bonus,
 )
 from src.agent.financial_row_surfaces import (
     _extract_table_row_label,
@@ -3750,33 +3755,6 @@ def _query_years_from_state(state: Dict[str, Any]) -> List[int]:
     return years
 
 
-def _candidate_has_required_surface_contract(
-    candidate: Dict[str, Any],
-    operand: Dict[str, Any],
-    *,
-    selected_cell: Optional[Dict[str, Any]] = None,
-) -> bool:
-    contract = _operand_surface_contract(operand)
-    positive_terms = [str(item).strip() for item in (contract.get("positive") or []) if str(item).strip()]
-    if not positive_terms:
-        return True
-
-    metadata = dict(candidate.get("metadata") or {})
-    surfaces = [
-        str(metadata.get("semantic_label") or "").strip(),
-        str(metadata.get("row_label") or "").strip(),
-        str(metadata.get("aggregate_label") or "").strip(),
-        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
-        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
-        " ".join(str(item).strip() for item in ((selected_cell or {}).get("column_headers") or []) if str(item).strip()),
-        str(metadata.get("table_row_labels_text") or "").strip(),
-        str(metadata.get("table_value_labels_text") or "").strip(),
-        str(metadata.get("row_text") or "").strip(),
-        str(candidate.get("text") or "").strip(),
-    ]
-    return any(_text_has_contract_term(surface, positive_terms) for surface in surfaces if surface)
-
-
 def _candidate_conflicts_with_operand_concept(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     normalized_needles = [_normalise_spaces(needle) for needle in _operand_needles(operand) if _normalise_spaces(needle)]
     expects_liability = any("부채" in needle for needle in normalized_needles)
@@ -4364,45 +4342,6 @@ def _preference_bonus(value: str, preferred: List[str], *, base: float = 0.4) ->
     return base * max(len(ordered) - index, 1)
 
 
-def _candidate_has_numeric_value_signal(candidate: Dict[str, Any]) -> bool:
-    metadata = dict(candidate.get("metadata") or {})
-    structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
-    if structured_cells:
-        for cell in structured_cells:
-            if re.search(r"\d", str(cell.get("value_text") or "")):
-                return True
-        return False
-
-    row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
-    if row_text and "|" in row_text:
-        parts = [part.strip() for part in row_text.split("|")[1:] if part.strip()]
-        return any(re.search(r"\d", part) for part in parts)
-
-    return bool(re.search(r"\d", str(candidate.get("text") or "")))
-
-
-def _candidate_is_descriptor_row(candidate: Dict[str, Any]) -> bool:
-    metadata = dict(candidate.get("metadata") or {})
-    row_label = _normalise_spaces(str(metadata.get("row_label") or ""))
-    non_value_row_labels = set(str(item) for item in (HELPER_RUNTIME_POLICY.get("non_value_row_labels") or ()) if str(item))
-    if row_label in non_value_row_labels:
-        return True
-
-    structured_cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
-    if structured_cells and not any(re.search(r"\d", str(cell.get("value_text") or "")) for cell in structured_cells):
-        return True
-
-    row_text = _normalise_spaces(str(metadata.get("row_text") or ""))
-    if row_text and "|" in row_text:
-        parts = [part.strip() for part in row_text.split("|")]
-        if parts and _normalise_spaces(parts[0]) in non_value_row_labels:
-            numeric_parts = [part for part in parts[1:] if re.search(r"\d", part)]
-            if not numeric_parts:
-                return True
-
-    return False
-
-
 def _is_balance_sheet_aggregate_operand(operand: Dict[str, Any]) -> bool:
     needles = {re.sub(r"\s+", "", _normalise_spaces(needle)) for needle in _operand_needles(operand)}
     needles.discard("")
@@ -4515,50 +4454,11 @@ def _candidate_consolidation_scope(metadata: Dict[str, Any]) -> str:
     return explicit or "unknown"
 
 
-def _candidate_segment_surfaces(candidate: Dict[str, Any], *, strict: bool = False) -> List[str]:
-    metadata = dict(candidate.get("metadata") or {})
-    surfaces = [
-        str(metadata.get("semantic_label") or "").strip(),
-        str(metadata.get("row_label") or "").strip(),
-        str(metadata.get("aggregate_label") or "").strip(),
-        " ".join(str(item).strip() for item in (metadata.get("semantic_aliases") or []) if str(item).strip()),
-        " ".join(str(item).strip() for item in (metadata.get("row_headers") or []) if str(item).strip()),
-        str(metadata.get("row_text") or "").strip(),
-    ]
-    if not strict:
-        surfaces.extend(
-            [
-                str(metadata.get("table_row_labels_text") or "").strip(),
-                str(metadata.get("table_context") or "").strip(),
-                str(metadata.get("local_heading") or "").strip(),
-                str(metadata.get("section_path") or "").strip(),
-                str(metadata.get("table_summary_text") or "").strip(),
-                str(candidate.get("text") or "").strip(),
-                str(candidate.get("source_anchor") or "").strip(),
-            ]
-        )
-    return [_normalise_spaces(surface) for surface in surfaces if _normalise_spaces(surface)]
-
-
-def _candidate_matches_segment_binding(candidate: Dict[str, Any], operand: Dict[str, Any], *, strict: bool = False) -> bool:
-    segment_label = _operand_segment_label(operand)
-    if not segment_label:
-        return True
-
-    normalized_segment = _normalise_spaces(segment_label)
-    compact_segment = re.sub(r"\s+", "", normalized_segment)
-    for surface in _candidate_segment_surfaces(candidate, strict=strict):
-        compact_surface = re.sub(r"\s+", "", surface)
-        if normalized_segment in surface or (compact_segment and compact_segment in compact_surface):
-            return True
-    return False
-
-
 def _candidate_has_segment_local_binding(candidate: Dict[str, Any], operand: Dict[str, Any]) -> bool:
     segment_label = _operand_segment_label(operand)
     if not segment_label:
         return True
-    if _candidate_matches_segment_binding(candidate, operand, strict=True):
+    if candidate_matches_segment_binding(candidate, operand, strict=True):
         return True
     return _candidate_supports_segment_metric_combo(candidate, operand)
 
@@ -4567,7 +4467,7 @@ def _candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand:
     segment_label = _operand_segment_label(operand)
     if not segment_label:
         return False
-    if not _candidate_matches_segment_binding(candidate, operand, strict=True):
+    if not candidate_matches_segment_binding(candidate, operand, strict=True):
         return False
 
     metadata = dict(candidate.get("metadata") or {})
@@ -4578,41 +4478,6 @@ def _candidate_supports_segment_metric_combo(candidate: Dict[str, Any], operand:
         " ".join(str(item).strip() for item in (metadata.get("column_headers_chain") or []) if str(item).strip()),
     ]
     return any(_operand_text_match(surface, operand) for surface in metric_surfaces if surface)
-
-
-def _candidate_segment_binding_bonus(
-    candidate: Dict[str, Any],
-    *,
-    operand: Dict[str, Any],
-    constraints: Dict[str, Any],
-    statement_type: str,
-    local_heading: str,
-    section_path: str,
-) -> float:
-    segment_label = _operand_segment_label(operand)
-    if not segment_label:
-        return 0.0
-
-    score = 0.0
-    segment_scope = _normalise_spaces(str((constraints or {}).get("segment_scope") or "none"))
-    matches_segment = _candidate_matches_segment_binding(candidate, operand)
-    context_text = " ".join(part for part in (local_heading, section_path) if part)
-    if matches_segment:
-        score += 5.0
-        segment_context_terms = tuple(
-            str(item)
-            for item in (HELPER_RUNTIME_POLICY.get("segment_context_bonus_terms") or ())
-            if str(item)
-        )
-        if any(token in context_text for token in segment_context_terms):
-            score += 1.5
-        if statement_type in {"notes", "mda"}:
-            score += 0.75
-    else:
-        score -= 4.5
-        if segment_scope == "segment" and statement_type in {"summary_financials", "income_statement", "balance_sheet"}:
-            score -= 1.5
-    return score
 
 
 def _candidate_source_priority_bonus(
@@ -4799,9 +4664,9 @@ def _candidate_is_direct_grounding_candidate(
     candidate_kind = str(candidate.get("candidate_kind") or "").strip()
     if candidate_kind not in {"structured_value", "structured_row", "structured_column_value", "table_row"}:
         return False
-    if _candidate_is_descriptor_row(candidate):
+    if candidate_is_descriptor_row(candidate):
         return False
-    if not _candidate_has_numeric_value_signal(candidate):
+    if not candidate_has_numeric_value_signal(candidate):
         return False
 
     direct_match_strength = _candidate_direct_match_strength(candidate, operand)
@@ -4843,7 +4708,7 @@ def _candidate_is_direct_grounding_candidate(
     semantic_label = _normalise_spaces(str(metadata.get("semantic_label") or metadata.get("row_label") or ""))
     if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label):
         return False
-    if not _candidate_matches_segment_binding(candidate, operand, strict=True):
+    if not candidate_matches_segment_binding(candidate, operand, strict=True):
         return False
     if not candidate_matches_target_report_scope(
         candidate,
@@ -4952,7 +4817,7 @@ def _candidate_satisfies_direct_acceptance_contract(
     if bool(
         binding_policy.get("require_surface_contract_for_direct_match")
         or binding_policy.get("require_surface_contract_for_direct_lookup")
-    ) and not _candidate_has_required_surface_contract(
+    ) and not candidate_has_required_surface_contract(
         candidate,
         operand,
         selected_cell=selected_cell,
@@ -5050,11 +4915,11 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     candidate_kind = str(candidate.get("candidate_kind") or "").strip()
     if candidate_kind not in {"structured_value", "structured_row", "structured_column_value", "table_row", "evidence_row"}:
         return False
-    if _candidate_is_descriptor_row(candidate):
+    if candidate_is_descriptor_row(candidate):
         return False
-    if not _candidate_has_numeric_value_signal(candidate):
+    if not candidate_has_numeric_value_signal(candidate):
         return False
-    if not _candidate_matches_segment_binding(candidate, operand, strict=True):
+    if not candidate_matches_segment_binding(candidate, operand, strict=True):
         return False
     if not candidate_matches_target_report_scope(
         candidate,
@@ -5069,7 +4934,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     direct_row_like = (
         candidate_kind in {"table_row", "evidence_row"}
         and selected_cell is not None
-        and _candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell)
+        and candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell)
         and _candidate_direct_match_strength(candidate, operand) >= 1.0
     )
     aggregate_like = (
@@ -5089,7 +4954,7 @@ def _candidate_satisfies_ratio_component_acceptance_contract(
     surface_contract = _operand_surface_contract(operand)
     positive_terms = [str(item).strip() for item in (surface_contract.get("positive") or []) if str(item).strip()]
     if positive_terms:
-        if not _candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell):
+        if not candidate_has_required_surface_contract(candidate, operand, selected_cell=selected_cell):
             return False
     elif _candidate_direct_match_strength(candidate, operand) < 1.0:
         return False
@@ -5539,12 +5404,12 @@ def _score_operand_candidate(
     if value_role == "detail" and _operand_prefers_aggregate_value_role(operand):
         score -= 1.5
 
-    if _candidate_has_numeric_value_signal(candidate):
+    if candidate_has_numeric_value_signal(candidate):
         score += 1.0
 
     score += _candidate_location_entity_subject_score(candidate, operand=operand)
 
-    if _candidate_is_descriptor_row(candidate):
+    if candidate_is_descriptor_row(candidate):
         score -= 3.0
 
     statement_type = str(metadata.get("statement_type") or "unknown").strip()
@@ -5625,7 +5490,7 @@ def _score_operand_candidate(
     if desired_period_focus in {"current", "prior"} and _is_delta_like_row_label(semantic_label or row_label):
         score -= 4.0
     candidate_period_focus = str(metadata.get("period_focus") or "unknown").strip()
-    score += _candidate_segment_binding_bonus(
+    score += candidate_segment_binding_bonus(
         candidate,
         operand=operand,
         constraints=constraints,
