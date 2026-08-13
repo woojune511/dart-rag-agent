@@ -3286,6 +3286,62 @@ gates, projected validation counts, DAG/dead-alias/baseline consequences, and
 rejected compatibility/callback/carrier/state expansions are maintained only
 in [Project Status Next Work](../overview/project_status.md#next-work).
 
+### Query-focus and source-visible text ownership milestone
+
+- `6d54b2f` moves the former 85-line `_query_focus_marker_groups(...)`, 8-line
+  `_query_focus_markers(...)`, and 127-line
+  `_preserve_source_visible_query_terms(...)` definitions into
+  `financial_text_surface.py` as public 85-line
+  `query_focus_marker_groups(...)`, 8-line `query_focus_markers(...)`, and
+  126-line `preserve_source_visible_query_terms(...)`. The 220 old definition-
+  span lines become 219 owner lines.
+- Twelve selected direct calls finish as ten graph-external and two owner-local:
+  marker groups external three/local two, flattened markers external five/local
+  zero, and source-visible preservation external two/local zero. The text owner
+  is public/private 15/4; retired private definitions, executable call/patch
+  refs, and the evidence stopword alias are zero. Literal body and complete
+  caller parity, public binding identity, pycompile/fresh import, DAG, and diff
+  check passed.
+- Source is `+255/-245`, net `+10`; tests are `+1,199/-41`, net `+1,158`;
+  the reviewed runtime-domain baseline is `+12/-3`, net `+9`; and the whole
+  commit is `+1,466/-289`, net `+1,177`. Calculation moved from 13,589 to
+  13,464 physical lines, graph evidence from 4,581 to 4,579, retrieval from
+  2,736 to 2,642, and text surface from 411 to 642. Exactly ten new test methods
+  moved full discovery from 1,824 to 1,834.
+- One reviewed `[가-힣]` occurrence split from a path-qualified retrieval
+  count-two record into retrieval and text-owner count-one records. Literal,
+  category, and occurrence count are unchanged; reviewed records move from 217
+  to 218. The source-only diff SHA-256 is
+  `b27abac6c0b25f3e8aa888856ba7017c5b300463c7da4cbe68c7096e401781be`;
+  source plus baseline is
+  `42ae44c153d6bd8af1396a61ef3f23dad37945c7a94422aee8dc8bb66e080e11`.
+- Final validation passed focused Seam A 5/5, Seam B 5/5, combined 10/10,
+  text owner 30/30, affected seven-module semantic 808/808, import-side-effects
+  19/19, runtime audit 218, full discovery 1,834/1,834, pycompile/fresh import,
+  DAG/body/caller parity, retired-ref zero, and `git diff --check`. No semantic/
+  import union, benchmark refresh, or remote CI run is claimed for this commit.
+
+This milestone changes only deterministic text-surface ownership over already
+supplied query, answer, result, evidence, document, and ontology values.
+Retrieval/reranking, document/evidence selection and construction, aggregate
+adoption, mutable state/evidence, artifact/ledger mutation, and final sequencing
+remain graph-owned. It proves no behavior, accuracy, ranking, performance,
+total-code or executed-path reduction, benchmark improvement, schedule, ledger
+completion, or Phase 3 completion.
+
+At this handoff, the sole selected follow-on is one characterize-first prepared
+structured period-pair seam into `financial_reconciliation_candidates.py`.
+The former 202-line `_extract_structured_period_pair_rows(...)` becomes projected
+public 201-line `extract_structured_period_pair_rows(...)`; its sole direct
+nine-keyword call remains graph-external and outside `try`. The owner projects
+from public/private 7/4 to 8/4, adds only existing-direction graph-helper and
+row-surface symbols, and moves no reviewed runtime-domain record. Full operand
+extraction, candidate collection/selection, LLM rerank, evidence construction,
+artifact/retry/state mutation, ledger work, and final sequencing remain hard
+stops. Exact behavior, the six-method CURRENT-SOURCE gate, projected validation,
+DAG, and rejected cycle/state/callback expansions are maintained only in
+[Project Status Next Work](../overview/project_status.md#next-work).
+
 ## Verification At The Stop Line
 
 - Full unittest discovery: 1,350 passed at the Phase 5 stop line.

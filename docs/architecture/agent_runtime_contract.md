@@ -3496,25 +3496,43 @@ unchanged text/category/count while audit total remains 217. Deterministic
 lookup planning, guard/adoption, LLM planning, state/trace/artifact updates,
 execution orchestration, and final sequencing stay graph-owned.
 
-The next query-focus/text-surface boundary is sequential and is defined only by
-[Project Status Next Work](../overview/project_status.md#next-work). Public
+The query-focus/text-surface boundary completed in `6d54b2f`. Public
 `query_focus_marker_groups(query, *, limit=8)` and
-`query_focus_markers(query, *, limit=8)` must preserve normalization, policy
+`query_focus_markers(query, *, limit=8)` preserve normalization, policy
 copying, connector/particle cleanup, configured stopword/year/digit/letter/
 length gates, extraction order, case-insensitive stable dedupe, labels, slicing,
 fresh outputs, laziness, and uncaught exceptions. Public
-`preserve_source_visible_query_terms(...)` must preserve answer/marker gates,
+`preserve_source_visible_query_terms(...)` preserves answer/marker gates,
 support-surface and ontology sibling matching, case-insensitive missing-term
 dedupe, four-term cap, template formatting, copied read-only inputs, laziness,
-and exceptions. All selected calls stay direct and outside `try`; marker groups
+and exceptions. All selected calls are direct and outside `try`; marker groups
 finish external three/local two, flattened markers external five/local zero,
 and preservation external two/local zero. Retrieval/reranking, evidence
 construction, dynamic active-policy dispatch, aggregate orchestration, mutable
 state/evidence, artifact/ledger mutation, and final sequencing stay outside the
-text owner. The private stopword class alias has no repository override, patch,
-`hasattr`, or non-call binding; the moved public helper owns the reviewed config
-constant directly, and a newly discovered compatibility caller is a stop
-condition rather than a reason to add a wrapper.
+text owner. The retired stopword alias is zero, the reviewed config constant is
+canonical, and one path-qualified regex record split raises the audit record
+total from 217 to 218 without changing literal/category or occurrence count.
+
+The next structured period-pair projection is defined only by
+[Project Status Next Work](../overview/project_status.md#next-work). Projected
+public `extract_structured_period_pair_rows(...)` receives prepared operand,
+reconciliation-result, candidate, preferred-statement, constraint, query-year,
+start-index, operation-family, and optional report-scope values. It must
+preserve role grouping, candidate-ID expansion/dedupe, candidate-kind and
+direct-acceptance gates, copied cell/metadata views, same-candidate then
+same-table cross-candidate pair selection, strict first-max tie behavior,
+identity/period rejection, scoring bonuses, unit-hint propagation, stable row
+and handled-pair order, start-index increments, fresh outputs, nested aliases,
+caller immutability, access laziness, and uncaught exceptions.
+
+Its sole caller remains `_extract_structured_operands_from_reconciliation(...)`
+and must pass the exact nine keywords outside `try`, adopt paired rows before
+the ordinary operand loop, and skip handled `(label, role)` rows. The move may
+add only the existing-direction direct-acceptance and row-surface dependencies;
+it may not move full operand extraction, candidate collection/selection, LLM
+rerank, evidence construction, artifact/retry/state mutation, ledger work, or
+final sequencing. Compatibility wrappers and aliases are forbidden.
 
 The former `_resolve_runtime_structured_result()` public compatibility adapter
 has been removed. `FinancialAgent.run()` reads `structured_result` directly and

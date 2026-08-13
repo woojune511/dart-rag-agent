@@ -525,25 +525,39 @@ Benchmark refresh was **NOT RUN** and remote CI is unverified. Dynamic metric-
 family dispatch, deterministic lookup/LLM planning, state/trace/artifact work,
 execution orchestration, and final sequencing remain graph-owned.
 
-The selected follow-on is one-owner, two-seam query-focus/text-surface
-convergence into `financial_text_surface.py`. First move the former 85-line
-marker-group and 8-line flattened-marker definitions as projected public
-85-line and 8-line functions; after Seam A their ten calls finish external
-nine/local one. Then move the former 127-line source-visible query-term
-preserver as projected public 126 lines. Across the 220 old definition lines,
-three projected public functions total 219 lines and 12 selected calls finish
-external ten/local two. All caller modules already import the text owner, so no
-agent-module edge is added. One reviewed regex occurrence splits an existing
-path-qualified count-two record, projecting audit records from 217 to 218 while
-literal/category/occurrence count remain unchanged. Retrieval/reranking,
-evidence construction, active-policy dispatch, aggregate orchestration, mutable
-state/evidence, artifact/ledger work, and final sequencing remain hard stops.
-The private stopword class alias has no repository override/patch/guard/binding;
-the reviewed config constant becomes canonical, and a discovered compatibility
-caller stops the seam instead of creating an adapter.
-Exact APIs, sequential five- then five-method characterization gates, call
-distribution, DAG, baseline split, dead-alias consequence, and stop lines live
-only in [project_status.md#next-work](../overview/project_status.md#next-work).
+The completed `6d54b2f` follow-on moved the former 85-line marker-group, 8-line
+flattened-marker, and 127-line source-visible term-preservation definitions into
+`financial_text_surface.py` as three public functions totaling 219 lines.
+Twelve selected calls finish external ten/local two, the text owner is now
+public/private 15/4, and retired private definitions/calls/patches plus the
+evidence stopword alias are zero. Source is `+255/-245`, tests are
+`+1,199/-41`, the baseline is `+12/-3`, and the whole commit is
+`+1,466/-289`. Calculation moved from 13,589 to 13,464 physical lines, graph
+evidence from 4,581 to 4,579, retrieval from 2,736 to 2,642, and text surface
+from 411 to 642. Ten new tests moved full discovery from 1,824 to 1,834.
+Final gates passed focused 5/5 per seam, combined 10/10, text owner 30/30,
+affected semantic 808/808, import 19/19, audit 218, full discovery
+1,834/1,834, pycompile/fresh import, DAG/body/caller parity, retired-ref zero,
+and diff check. The source-only diff SHA-256 is
+`b27abac6c0b25f3e8aa888856ba7017c5b300463c7da4cbe68c7096e401781be`.
+Benchmark refresh was **NOT RUN** and remote CI is unverified. Retrieval/
+reranking, evidence construction, aggregate orchestration, mutable state/
+evidence, artifact/ledger work, and final sequencing remain graph-owned.
+
+The selected follow-on is one 202-line prepared structured period-pair
+projection from `financial_graph_reconciliation.py` into the existing
+`financial_reconciliation_candidates.py` owner as projected public 201-line
+`extract_structured_period_pair_rows(...)`. Its sole nine-keyword call remains
+direct, graph-external, and outside `try`; the owner projects from
+public/private 7/4 to 8/4. The target already depends on graph helpers and adds
+only the direct-acceptance symbol plus a cycle-free row-surface import. The
+selected span has no reviewed runtime-domain record, so audit remains 218.
+Full operand extraction, candidate collection/selection, LLM reranking,
+evidence construction, artifact/retry/state mutation, ledger work, and final
+sequencing remain hard stops. Exact behavior, the six-method CURRENT-SOURCE
+gate, projected validation counts, DAG, and rejected cycle/state/callback
+expansions live only in
+[project_status.md#next-work](../overview/project_status.md#next-work).
 The sole selected implementation priority remains
 [project_status.md#next-work](../overview/project_status.md#next-work); this plan
 does not maintain a competing queue.
