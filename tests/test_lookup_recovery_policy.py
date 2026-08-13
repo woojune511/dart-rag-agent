@@ -1120,8 +1120,8 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         globals_operand = operand
         with (
             patch.object(financial_lookup_recovery, "operand_period_focus", side_effect=period_focus),
-            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary_selector),
-            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell") as aggregate_selector,
+            patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=ordinary_selector),
+            patch.object(financial_lookup_recovery, "select_aggregate_structured_cell") as aggregate_selector,
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize),
             patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record", side_effect=magnitude),
@@ -1148,7 +1148,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with patch.object(
             financial_lookup_recovery,
-            "_select_structured_cell",
+            "select_structured_cell",
             side_effect=AssertionError("empty cells must stop before selection"),
         ):
             self.assertEqual(
@@ -1161,7 +1161,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             )
 
         with (
-            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value={}),
+            patch.object(financial_lookup_recovery, "select_structured_cell", return_value={}),
             patch.object(
                 financial_lookup_recovery,
                 "_normalise_operand_value",
@@ -1176,7 +1176,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 return_value={"value_text": "bad", "unit_hint": "million"},
             ),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
@@ -1250,8 +1250,8 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         globals_operand = operand
         with (
-            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary),
-            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", side_effect=aggregate_selector),
+            patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=ordinary),
+            patch.object(financial_lookup_recovery, "select_aggregate_structured_cell", side_effect=aggregate_selector),
             patch.object(
                 financial_lookup_recovery,
                 "operand_prefers_aggregate_value_role",
@@ -1275,18 +1275,18 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 side_effect=RuntimeError("ordinary selection failed"),
             ),
-            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell") as later,
+            patch.object(financial_lookup_recovery, "select_aggregate_structured_cell") as later,
         ):
             with self.assertRaisesRegex(RuntimeError, "ordinary selection failed"):
                 financial_lookup_recovery.lookup_row_from_direct_structured_evidence(operand, evidence, index=1)
             later.assert_not_called()
 
         with (
-            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value=detail),
-            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", return_value=aggregate),
+            patch.object(financial_lookup_recovery, "select_structured_cell", return_value=detail),
+            patch.object(financial_lookup_recovery, "select_aggregate_structured_cell", return_value=aggregate),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="current"),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=True),
             patch.object(
@@ -1301,7 +1301,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             later.assert_not_called()
 
         with (
-            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value=detail),
+            patch.object(financial_lookup_recovery, "select_structured_cell", return_value=detail),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="current"),
             patch.object(financial_lookup_recovery, "_normalise_operand_value", return_value=(10.0, "KRW")),
@@ -1670,7 +1670,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
 
         with patch.object(
             financial_lookup_recovery,
-            "_select_structured_cell",
+            "select_structured_cell",
             side_effect=AssertionError("missing cells must stop before selection"),
         ):
             no_cells_evidence = {"metadata": {"structured_cells": []}}
@@ -1704,7 +1704,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "_text_has_positive_surface", side_effect=positive_match),
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 side_effect=AssertionError("surface mismatch must stop before cell selection"),
             ),
         ):
@@ -1747,7 +1747,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "_structured_cell_period_text", return_value=""),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
-            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=select),
+            patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=select),
         ):
             self.assertIs(
                 financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(row, evidence),
@@ -1766,7 +1766,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 side_effect=RuntimeError("surface match failed"),
             ),
             patch.object(financial_lookup_recovery, "_text_has_positive_surface") as later,
-            patch.object(financial_lookup_recovery, "_select_structured_cell") as selector,
+            patch.object(financial_lookup_recovery, "select_structured_cell") as selector,
         ):
             with self.assertRaisesRegex(RuntimeError, "surface match failed"):
                 financial_lookup_recovery.coerce_operand_value_from_direct_structured_evidence(row, evidence)
@@ -1799,7 +1799,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 side_effect=AssertionError("equal current value must stop before selection"),
             ),
         ):
@@ -1844,7 +1844,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
             patch.object(financial_lookup_recovery, "_structured_cell_period_text", side_effect=period_text),
-            patch.object(financial_lookup_recovery, "_select_structured_cell", side_effect=ordinary),
+            patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=ordinary),
             patch.object(
                 financial_lookup_recovery,
                 "_normalise_operand_value",
@@ -1897,10 +1897,10 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
                 side_effect=AssertionError("row aggregate role must short-circuit operand preference"),
             ),
             patch.object(financial_lookup_recovery, "operand_period_focus", return_value="unknown"),
-            patch.object(financial_lookup_recovery, "_select_aggregate_structured_cell", side_effect=aggregate_selector),
+            patch.object(financial_lookup_recovery, "select_aggregate_structured_cell", side_effect=aggregate_selector),
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 side_effect=AssertionError("successful aggregate selection must suppress ordinary selection"),
             ),
             patch.object(financial_lookup_recovery, "_normalise_operand_value", return_value=(2000.0, "KRW")),
@@ -1937,7 +1937,7 @@ class LookupRecoveryPolicyTests(unittest.TestCase):
         with (
             patch.object(financial_lookup_recovery, "_operand_text_match", return_value=True),
             patch.object(financial_lookup_recovery, "operand_prefers_aggregate_value_role", return_value=False),
-            patch.object(financial_lookup_recovery, "_select_structured_cell", return_value={"value_text": "bad"}),
+            patch.object(financial_lookup_recovery, "select_structured_cell", return_value={"value_text": "bad"}),
             patch.object(
                 financial_lookup_recovery,
                 "_normalise_operand_value",

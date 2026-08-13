@@ -9,14 +9,13 @@ from src.agent.financial_graph_helpers import (
     _candidate_satisfies_direct_acceptance_contract,
     _resolve_candidate_local_unit_hint,
     _score_operand_candidate,
-    _score_structured_cell,
 )
 from src.agent.financial_operand_resolution import coerce_lookup_magnitude_value
 from src.agent.financial_operation_policies import _label_implies_percent_metric
 from src.agent.financial_row_surfaces import _parse_unstructured_table_row_cells
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus, operand_target_years
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
 from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     RECONCILIATION_POLICY,
@@ -174,7 +173,7 @@ def pair_candidate_period_score(
         query_years=query_years,
         report_scope=report_scope,
     )
-    cell_score = _score_structured_cell(
+    cell_score = score_structured_cell(
         cell,
         query_years=operand_target_years(operand, query_years),
         period_focus=operand_period_focus(operand, period_focus),

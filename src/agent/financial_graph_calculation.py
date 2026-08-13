@@ -232,8 +232,10 @@ from src.agent.financial_graph_helpers import (
     _concept_spec_for_key,
     _resolve_candidate_local_unit_hint,
     _scoped_surface_affinity_priority,
-    _select_aggregate_structured_cell,
-    _select_structured_cell,
+)
+from src.agent.financial_structured_cells import (
+    select_aggregate_structured_cell,
+    select_structured_cell,
 )
 from src.agent.financial_graph_model_loaders import (
     _aggregate_synthesis_output_model,
@@ -6903,7 +6905,7 @@ class FinancialAgentCalculationMixin:
                 or row_aggregation_stage in {"direct", "final", "subtotal"}
                 or _operand_prefers_aggregate_value_role(row)
             ):
-                aggregate_selected = _select_aggregate_structured_cell(
+                aggregate_selected = select_aggregate_structured_cell(
                     cells,
                     operand=period_operand,
                     query_years=query_years,
@@ -6911,7 +6913,7 @@ class FinancialAgentCalculationMixin:
                 )
                 if aggregate_selected:
                     return dict(aggregate_selected)
-            selected = _select_structured_cell(
+            selected = select_structured_cell(
                 cells,
                 operand=period_operand,
                 query_years=query_years,

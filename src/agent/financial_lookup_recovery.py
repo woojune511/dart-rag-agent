@@ -4,10 +4,6 @@ import re
 from typing import Any, Callable, Dict, List, Optional
 
 from src.agent.financial_answer_slots import answer_slot_has_material
-from src.agent.financial_graph_helpers import (
-    _select_aggregate_structured_cell,
-    _select_structured_cell,
-)
 from src.agent.financial_graph_model_loaders import _validate_answer_slots_payload
 from src.agent.financial_operand_resolution import (
     DirectStructuredLookupEvidenceScoreInput,
@@ -20,7 +16,11 @@ from src.agent.financial_operand_resolution import (
 from src.agent.financial_row_surfaces import _operand_text_match
 from src.agent.financial_runtime_normalization import _normalise_operand_value, _normalise_spaces
 from src.agent.financial_scope_policies import operand_period_focus
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import (
+    _structured_cell_period_text,
+    select_aggregate_structured_cell,
+    select_structured_cell,
+)
 from src.agent.financial_surface_contracts import _operand_needles, _text_has_positive_surface
 from src.config.retrieval_policy import NUMERIC_UNIT_NORMALIZATION_POLICY, PLANNING_POLICY
 
@@ -484,7 +484,7 @@ def lookup_row_from_direct_structured_evidence(
     cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if dict(cell)]
     if not cells:
         return {}
-    selected_cell = _select_structured_cell(
+    selected_cell = select_structured_cell(
         [{**cell, "_report_year": metadata.get("year")} for cell in cells],
         operand=operand,
         query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
@@ -504,7 +504,7 @@ def lookup_row_from_direct_structured_evidence(
             or _normalise_spaces(str(cell.get("aggregation_stage") or "")).lower() in {"direct", "final", "subtotal"}
             or _normalise_spaces(str(cell.get("aggregate_label") or ""))
         ]
-        aggregate_selected_cell = _select_aggregate_structured_cell(
+        aggregate_selected_cell = select_aggregate_structured_cell(
             [{**cell, "_report_year": metadata.get("year")} for cell in aggregate_cells],
             operand=operand,
             query_years=[int(metadata["year"])] if str(metadata.get("year") or "").isdigit() else [],
@@ -659,14 +659,14 @@ def coerce_operand_value_from_direct_structured_evidence(
                 return row
     selected_cell: Optional[Dict[str, Any]] = None
     if prefers_aggregate_cell:
-        selected_cell = _select_aggregate_structured_cell(
+        selected_cell = select_aggregate_structured_cell(
             enriched_cells,
             operand=operand_spec,
             query_years=query_years,
             period_focus=operand_period_focus(operand_spec, "unknown"),
         )
     if not selected_cell:
-        selected_cell = _select_structured_cell(
+        selected_cell = select_structured_cell(
             enriched_cells,
             operand=operand_spec,
             query_years=query_years,

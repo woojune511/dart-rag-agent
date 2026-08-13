@@ -19,7 +19,6 @@ from src.agent.financial_graph_helpers import (
     _build_generic_metric_aliases,
     _extract_generic_operand_labels,
     _scoped_surface_affinity_priority,
-    _score_structured_cell,
 )
 from src.agent.financial_aggregate_projection import compose_supported_quantitative_impact_answer
 from src.agent.financial_graph_model_loaders import (
@@ -64,7 +63,7 @@ from src.agent.financial_row_surfaces import (
     _operand_text_match,
     _parse_unstructured_table_row_cells,
 )
-from src.agent.financial_structured_cells import _structured_cell_period_text
+from src.agent.financial_structured_cells import _structured_cell_period_text, score_structured_cell
 if TYPE_CHECKING:
     from src.agent.financial_graph_models import EvidenceItem
     from src.agent.financial_graph_state import FinancialAgentState
@@ -1405,7 +1404,7 @@ class FinancialAgentEvidenceMixin:
                 parsed_cells = _parse_unstructured_table_row_cells(raw_row, metadata)
                 target_years = [int(token.replace("년", "")) for token in query_years] if query_years else []
                 cell_context_match = any(
-                    _score_structured_cell(
+                    score_structured_cell(
                         cell,
                         query_years=target_years,
                         period_focus="unknown",
@@ -1512,7 +1511,7 @@ class FinancialAgentEvidenceMixin:
                     if parsed_cells:
                         ranked_cells = sorted(
                             parsed_cells,
-                            key=lambda cell: _score_structured_cell(
+                            key=lambda cell: score_structured_cell(
                                 cell,
                                 query_years=target_years,
                                 period_focus="unknown",
@@ -1522,7 +1521,7 @@ class FinancialAgentEvidenceMixin:
                         )
                         selected_cell = ranked_cells[0] if ranked_cells else None
                         if selected_cell:
-                            selected_score = _score_structured_cell(
+                            selected_score = score_structured_cell(
                                 selected_cell,
                                 query_years=target_years,
                                 period_focus="unknown",

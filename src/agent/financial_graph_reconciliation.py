@@ -26,8 +26,10 @@ from src.agent.financial_graph_helpers import (
     _extract_generic_operand_labels,
     _query_years_from_state,
     _score_operand_candidate,
-    _select_aggregate_structured_cell,
-    _select_structured_cell,
+)
+from src.agent.financial_structured_cells import (
+    select_aggregate_structured_cell,
+    select_structured_cell,
 )
 from src.agent.financial_scope_policies import operand_period_focus
 from src.agent.financial_operand_resolution import (
@@ -453,7 +455,7 @@ class FinancialAgentReconciliationMixin:
             period_focus = str(dict(active_subtask.get("constraints") or {}).get("period_focus") or "unknown").strip()
             for cell in cells:
                 enriched_cell = {**dict(cell), "_report_year": metadata.get("year")}
-                selected_cell = _select_structured_cell(
+                selected_cell = select_structured_cell(
                     [enriched_cell],
                     operand=operand,
                     query_years=query_years,
@@ -676,14 +678,14 @@ class FinancialAgentReconciliationMixin:
                         or current_aggregation_stage in {"direct", "final", "subtotal"}
                         or _operand_prefers_aggregate_value_role(operand)
                     ):
-                        current_cell = _select_aggregate_structured_cell(
+                        current_cell = select_aggregate_structured_cell(
                             cells,
                             operand=operand,
                             query_years=query_years,
                             period_focus=operand_period_focus(operand, period_focus),
                         )
                     if not current_cell:
-                        current_cell = _select_structured_cell(
+                        current_cell = select_structured_cell(
                             cells,
                             operand=operand,
                             query_years=query_years,
@@ -794,14 +796,14 @@ class FinancialAgentReconciliationMixin:
                             or current_aggregation_stage in {"direct", "final", "subtotal"}
                             or _operand_prefers_aggregate_value_role(operand)
                         ):
-                            current_cell = _select_aggregate_structured_cell(
+                            current_cell = select_aggregate_structured_cell(
                                 cells,
                                 operand=operand,
                                 query_years=query_years,
                                 period_focus=operand_period_focus(operand, period_focus),
                             )
                         if not current_cell:
-                            current_cell = _select_structured_cell(
+                            current_cell = select_structured_cell(
                                 cells,
                                 operand=operand,
                                 query_years=query_years,

@@ -13,6 +13,7 @@ import src.agent.financial_dependency_projection as financial_dependency_project
 import src.agent.financial_lookup_recovery as financial_lookup_recovery
 import src.agent.financial_reconciliation_candidates as financial_reconciliation_candidates
 import src.agent.financial_scope_policies as financial_scope_policies
+import src.agent.financial_structured_cells as financial_structured_cells
 
 from src.agent.financial_runtime_normalization import _display_operand_label
 from src.agent.financial_retrieval_hints import (
@@ -2291,7 +2292,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 sum(not name.startswith("_") for name in owner_top_level),
                 sum(name.startswith("_") for name in owner_top_level),
             ),
-            (9, 132),
+            (9, 128),
         )
         self.assertEqual(
             {key: len(entries) for key, entries in calls.items()},
@@ -3157,8 +3158,9 @@ class FinancialGraphHelperTests(unittest.TestCase):
             },
             {
                 "operand_target_years": {
-                    "financial_graph_helpers": 12,
+                    "financial_graph_helpers": 10,
                     "financial_reconciliation_candidates": 2,
+                    "financial_structured_cells": 2,
                 },
                 "operand_period_focus": {
                     "financial_dependency_projection": 2,
@@ -3478,7 +3480,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 side_effect=empty_selector,
             ),
         ):
@@ -3503,7 +3505,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_lookup_recovery,
-                "_select_structured_cell",
+                "select_structured_cell",
                 stopped_selector,
             ),
         ):
@@ -3516,6 +3518,1348 @@ class FinancialGraphHelperTests(unittest.TestCase):
         stopped_selector.assert_not_called()
         self.assertEqual(operand, before_operand)
         self.assertEqual(evidence_item, before_evidence)
+
+    def test_current_source_structured_cell_selector_pins_fiscal_ranking_copy_and_stop(self) -> None:
+        operand = {"label": "Revenue", "nested": {"preserve": True}}
+        query_years = [2024, 2023]
+
+        fiscal_bomb = Mock(side_effect=AssertionError("empty cells must skip fiscal access"))
+        target_bomb = Mock(side_effect=AssertionError("empty cells must skip target years"))
+        score_bomb = Mock(side_effect=AssertionError("empty cells must skip scoring"))
+        with (
+            patch.object(financial_structured_cells, "_structured_cell_fiscal_ordinal", fiscal_bomb),
+            patch.object(financial_structured_cells, "operand_target_years", target_bomb),
+            patch.object(financial_structured_cells, "score_structured_cell", score_bomb),
+        ):
+            self.assertIsNone(
+                financial_structured_cells.select_structured_cell(
+                    [],
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+            )
+        fiscal_bomb.assert_not_called()
+        target_bomb.assert_not_called()
+        score_bomb.assert_not_called()
+
+        nested = {"preserve": True}
+        cells = [
+            {"cell_id": "oldest", "ordinal": 1, "nested": nested},
+            {"cell_id": "prior", "ordinal": 2, "nested": nested},
+            {"cell_id": "current", "ordinal": 3, "nested": nested},
+        ]
+        before_cells = deepcopy(cells)
+        fiscal_events = []
+
+        def fiscal_ordinal(cell):
+            fiscal_events.append(cell["cell_id"])
+            return cell["ordinal"]
+
+        target_bomb = Mock(side_effect=AssertionError("fiscal ranking must skip target years"))
+        score_bomb = Mock(side_effect=AssertionError("fiscal ranking must skip scoring"))
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_ordinal",
+                side_effect=fiscal_ordinal,
+            ),
+            patch.object(financial_structured_cells, "operand_target_years", target_bomb),
+            patch.object(financial_structured_cells, "score_structured_cell", score_bomb),
+        ):
+            selected_current = financial_structured_cells.select_structured_cell(
+                cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="current",
+            )
+            selected_prior = financial_structured_cells.select_structured_cell(
+                cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="prior",
+            )
+        self.assertEqual(selected_current["cell_id"], "current")
+        self.assertEqual(selected_prior["cell_id"], "prior")
+        self.assertIsNot(selected_current, cells[2])
+        self.assertIs(selected_current["nested"], nested)
+        self.assertEqual(len(selected_current["_sibling_cells"]), 3)
+        for original, sibling in zip(cells, selected_current["_sibling_cells"]):
+            self.assertIsNot(sibling, original)
+            self.assertIs(sibling["nested"], nested)
+        self.assertEqual(cells, before_cells)
+        self.assertTrue(fiscal_events)
+        target_bomb.assert_not_called()
+        score_bomb.assert_not_called()
+
+        with patch.object(
+            financial_structured_cells,
+            "_structured_cell_fiscal_ordinal",
+            return_value=7,
+        ):
+            only = financial_structured_cells.select_structured_cell(
+                [cells[0]],
+                operand=operand,
+                query_years=query_years,
+                period_focus="prior",
+            )
+        self.assertEqual(only["cell_id"], "oldest")
+        self.assertIsNot(only, cells[0])
+
+        score_events = []
+        target_calls = []
+
+        def target_years(current_operand, current_query_years):
+            target_calls.append((current_operand, current_query_years))
+            return [2024]
+
+        def score_cell(cell, **kwargs):
+            score_events.append((cell, kwargs))
+            return 5.0
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_ordinal",
+                return_value=None,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "operand_target_years",
+                side_effect=target_years,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "score_structured_cell",
+                side_effect=score_cell,
+            ),
+        ):
+            stable = financial_structured_cells.select_structured_cell(
+                cells[:2],
+                operand=operand,
+                query_years=query_years,
+                period_focus="unknown",
+            )
+        self.assertEqual(stable["cell_id"], "oldest")
+        self.assertEqual(len(target_calls), 2)
+        self.assertTrue(all(call[0] is operand for call in target_calls))
+        self.assertTrue(all(call[1] is query_years for call in target_calls))
+        self.assertEqual([event[0]["cell_id"] for event in score_events], ["oldest", "prior"])
+        for enriched, kwargs in score_events:
+            self.assertIn("_sibling_cells", enriched)
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["period_focus"], "unknown")
+            self.assertIs(kwargs["operand"], operand)
+        self.assertEqual(cells, before_cells)
+
+        stopped_target = Mock(side_effect=AssertionError("target years must stop"))
+        stopped_score = Mock(side_effect=AssertionError("score must stop"))
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_ordinal",
+                side_effect=RuntimeError("fiscal failed"),
+            ),
+            patch.object(financial_structured_cells, "operand_target_years", stopped_target),
+            patch.object(financial_structured_cells, "score_structured_cell", stopped_score),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "fiscal failed"):
+                financial_structured_cells.select_structured_cell(
+                    cells,
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+        stopped_target.assert_not_called()
+        stopped_score.assert_not_called()
+
+        stopped_score = Mock(side_effect=AssertionError("score must stop"))
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_ordinal",
+                return_value=None,
+            ),
+            patch.object(
+                financial_structured_cells,
+                "operand_target_years",
+                side_effect=RuntimeError("target years failed"),
+            ),
+            patch.object(financial_structured_cells, "score_structured_cell", stopped_score),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "target years failed"):
+                financial_structured_cells.select_structured_cell(
+                    cells,
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="unknown",
+                )
+        stopped_score.assert_not_called()
+        self.assertEqual(cells, before_cells)
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_fiscal_ordinal",
+                return_value=None,
+            ),
+            patch.object(financial_structured_cells, "operand_target_years", return_value=[2024]),
+            patch.object(
+                financial_structured_cells,
+                "score_structured_cell",
+                side_effect=RuntimeError("score failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "score failed"):
+                financial_structured_cells.select_structured_cell(
+                    cells,
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="unknown",
+                )
+        self.assertEqual(cells, before_cells)
+
+    def test_current_source_aggregate_structured_cell_selector_pins_rank_gates_and_copy(self) -> None:
+        operand = {"label": "Revenue", "nested": {"preserve": True}}
+        query_years = [2024]
+
+        class PolicyBomb:
+            def get(self, key, default=None):
+                raise AssertionError("empty cells must skip policy")
+
+        with patch.object(
+            financial_structured_cells,
+            "STRUCTURED_CELL_AFFINITY_POLICY",
+            PolicyBomb(),
+        ):
+            self.assertIsNone(
+                financial_structured_cells.select_aggregate_structured_cell(
+                    [],
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+            )
+
+        nested = {"preserve": True}
+
+        class SoftFloatBomb:
+            def __float__(self):
+                raise TypeError("soft column index")
+
+        cells = [
+            {"cell_id": "invalid", "value_text": "bad", "nested": nested},
+            {"cell_id": "detail", "value_text": "1", "column_headers": ["Detail"], "nested": nested},
+            {
+                "cell_id": "aggregate",
+                "value_text": "2",
+                "value_role": "aggregate",
+                "column_index": 1,
+                "nested": nested,
+            },
+            {
+                "cell_id": "final",
+                "value_text": "3",
+                "aggregation_stage": "final",
+                "aggregate_label": "Total",
+                "column_index": SoftFloatBomb(),
+                "nested": nested,
+            },
+        ]
+        before_cells = [dict(cell) for cell in cells]
+        before_nested = [cell["nested"] for cell in cells]
+        normalized = []
+        targets = []
+        scored = []
+
+        def normalize(raw_value, raw_unit):
+            normalized.append((raw_value, raw_unit))
+            return (None, "") if raw_value == "bad" else (1.0, "KRW")
+
+        def target_years(current_operand, current_years):
+            targets.append((current_operand, current_years))
+            return [2024]
+
+        def score_cell(cell, **kwargs):
+            scored.append((cell, kwargs))
+            return 0.0
+
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_normalise_operand_value", side_effect=normalize),
+            patch.object(financial_structured_cells, "operand_target_years", side_effect=target_years),
+            patch.object(financial_structured_cells, "score_structured_cell", side_effect=score_cell),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+        ):
+            selected = financial_structured_cells.select_aggregate_structured_cell(
+                cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="current",
+            )
+        self.assertEqual(selected["cell_id"], "final")
+        self.assertIsNot(selected, cells[3])
+        self.assertIs(selected["nested"], nested)
+        self.assertEqual(len(selected["_sibling_cells"]), 4)
+        self.assertTrue(
+            all(sibling is not original for sibling, original in zip(selected["_sibling_cells"], cells))
+        )
+        self.assertTrue(all(sibling["nested"] is nested for sibling in selected["_sibling_cells"]))
+        self.assertEqual(normalized, [("bad", ""), ("1", ""), ("2", ""), ("3", "")])
+        self.assertEqual(len(targets), 2)
+        self.assertEqual([item[0]["cell_id"] for item in scored], ["aggregate", "final"])
+        for _cell, kwargs in scored:
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["period_focus"], "current")
+            self.assertIs(kwargs["operand"], operand)
+        for current, before, nested_ref in zip(cells, before_cells, before_nested):
+            self.assertEqual(current, before)
+            self.assertIs(current["nested"], nested_ref)
+
+        tied_cells = [
+            {"cell_id": "first", "value_text": "1", "value_role": "aggregate", "nested": nested},
+            {"cell_id": "second", "value_text": "2", "value_role": "aggregate", "nested": nested},
+        ]
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch.object(financial_structured_cells, "operand_target_years", return_value=[2024]),
+            patch.object(financial_structured_cells, "score_structured_cell", return_value=0.0),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+        ):
+            tied = financial_structured_cells.select_aggregate_structured_cell(
+                tied_cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="unknown",
+            )
+        self.assertEqual(tied["cell_id"], "first")
+
+        token_cells = [
+            {
+                "cell_id": "token-match",
+                "value_text": "1",
+                "column_headers": ["Total"],
+            },
+            {
+                "cell_id": "role-reference",
+                "value_text": "2",
+                "value_role": "aggregate",
+            },
+        ]
+
+        def token_base_score(cell, **_kwargs):
+            return 3.0 if cell.get("cell_id") == "token-match" else 0.0
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"aggregate_tokens": ("Total",)},
+            ),
+            patch.object(financial_structured_cells, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch.object(financial_structured_cells, "operand_target_years", return_value=[2024]),
+            patch.object(financial_structured_cells, "score_structured_cell", side_effect=token_base_score),
+            patch.object(
+                financial_structured_cells,
+                "_operand_text_match",
+                side_effect=lambda surface, _operand: surface == "Total",
+            ),
+        ):
+            token_selected = financial_structured_cells.select_aggregate_structured_cell(
+                token_cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="current",
+            )
+        self.assertEqual(token_selected["cell_id"], "token-match")
+
+        stage_cells = [
+            {"cell_id": "direct", "value_text": "1", "aggregation_stage": "direct"},
+            {"cell_id": "subtotal", "value_text": "2", "aggregation_stage": "subtotal"},
+            {
+                "cell_id": "subtotal-role",
+                "value_text": "3",
+                "aggregation_stage": "subtotal",
+                "aggregate_role": "subtotal",
+            },
+        ]
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch.object(financial_structured_cells, "operand_target_years", return_value=[2024]),
+            patch.object(financial_structured_cells, "score_structured_cell", return_value=0.0),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+        ):
+            stage_selected = financial_structured_cells.select_aggregate_structured_cell(
+                stage_cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="current",
+            )
+        self.assertEqual(stage_selected["cell_id"], "direct")
+
+        index_cells = [
+            {"cell_id": "low", "value_text": "1", "value_role": "aggregate", "column_index": 50},
+            {"cell_id": "capped", "value_text": "2", "value_role": "aggregate", "column_index": 200},
+        ]
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch.object(financial_structured_cells, "operand_target_years", return_value=[2024]),
+            patch.object(financial_structured_cells, "score_structured_cell", return_value=0.0),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+        ):
+            index_selected = financial_structured_cells.select_aggregate_structured_cell(
+                index_cells,
+                operand=operand,
+                query_years=query_years,
+                period_focus="current",
+            )
+        self.assertEqual(index_selected["cell_id"], "capped")
+
+        class RuntimeFloatBomb:
+            def __float__(self):
+                raise RuntimeError("column index failed")
+
+        runtime_cell = {
+            "value_text": "1",
+            "value_role": "aggregate",
+            "column_index": RuntimeFloatBomb(),
+        }
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch.object(financial_structured_cells, "operand_target_years", return_value=[2024]),
+            patch.object(financial_structured_cells, "score_structured_cell", return_value=0.0),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "column index failed"):
+                financial_structured_cells.select_aggregate_structured_cell(
+                    [runtime_cell],
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+
+        stopped_score = Mock(side_effect=AssertionError("normalization must stop scoring"))
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(
+                financial_structured_cells,
+                "_normalise_operand_value",
+                side_effect=RuntimeError("normalization failed"),
+            ),
+            patch.object(financial_structured_cells, "score_structured_cell", stopped_score),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "normalization failed"):
+                financial_structured_cells.select_aggregate_structured_cell(
+                    [{"value_text": "1", "value_role": "aggregate"}],
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+        stopped_score.assert_not_called()
+
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_normalise_operand_value", return_value=(1.0, "KRW")),
+            patch.object(
+                financial_structured_cells,
+                "operand_target_years",
+                side_effect=RuntimeError("aggregate target years failed"),
+            ),
+            patch.object(financial_structured_cells, "score_structured_cell", stopped_score),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "aggregate target years failed"):
+                financial_structured_cells.select_aggregate_structured_cell(
+                    [{"value_text": "1", "value_role": "aggregate"}],
+                    operand=operand,
+                    query_years=query_years,
+                    period_focus="current",
+                )
+        stopped_score.assert_not_called()
+
+    def test_current_source_structured_cell_affinity_pins_headers_entities_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        cell = {"column_headers": ["Generic", "Revenue"], "nested": nested}
+        operand = {"label": "Revenue", "nested": nested}
+        before_cell = deepcopy(cell)
+        before_operand = deepcopy(operand)
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", return_value={"Generic"}),
+            patch.object(financial_structured_cells, "_operand_needles", return_value=["Revenue"]),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"metric_terms": (), "aggregate_tokens": ()},
+            ),
+        ):
+            self.assertEqual(
+                financial_structured_cells._structured_cell_operand_affinity(cell, operand),
+                4.75,
+            )
+        self.assertEqual(cell, before_cell)
+        self.assertEqual(operand, before_operand)
+        self.assertIs(cell["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "_operand_needles", return_value=["Metric"]),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=True),
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"metric_terms": (), "aggregate_tokens": ("Total",)},
+            ),
+        ):
+            self.assertAlmostEqual(
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Total"]},
+                    {"label": "Metric"},
+                ),
+                6.35,
+            )
+
+        entity_policy = {
+            "metric_terms": ("Metric",),
+            "year_pattern": r"20\d{2}",
+            "entity_surface_drop_terms": (),
+            "entity_token_split_pattern": r"\s+",
+            "aggregate_tokens": (),
+        }
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", return_value={"Generic"}),
+            patch.object(financial_structured_cells, "_operand_needles", return_value=["Other"]),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", entity_policy),
+        ):
+            self.assertEqual(
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Generic", "Company"], "row_label": "Metric"},
+                    {"label": "Company Metric 2024"},
+                ),
+                3.0,
+            )
+
+        generic_bomb = Mock(side_effect=AssertionError("blank headers skip generic policy"))
+        needles_bomb = Mock(side_effect=AssertionError("blank headers skip operand needles"))
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", generic_bomb),
+            patch.object(financial_structured_cells, "_operand_needles", needles_bomb),
+        ):
+            self.assertEqual(
+                financial_structured_cells._structured_cell_operand_affinity({}, operand),
+                0.0,
+            )
+        generic_bomb.assert_not_called()
+        needles_bomb.assert_not_called()
+
+        class PolicyBomb:
+            def keys(self):
+                raise AssertionError("empty needles skip affinity policy")
+
+            def __getitem__(self, key):
+                raise AssertionError(key)
+
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "_operand_needles", return_value=[]),
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", PolicyBomb()),
+        ):
+            self.assertEqual(
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Header"]},
+                    operand,
+                ),
+                0.0,
+            )
+
+        stopped_needles = Mock(side_effect=AssertionError("generic failure must stop needles"))
+        with (
+            patch.object(
+                financial_structured_cells,
+                "_generic_column_headers",
+                side_effect=RuntimeError("generic headers failed"),
+            ),
+            patch.object(financial_structured_cells, "_operand_needles", stopped_needles),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "generic headers failed"):
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Header"]},
+                    operand,
+                )
+        stopped_needles.assert_not_called()
+
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(
+                financial_structured_cells,
+                "_operand_needles",
+                side_effect=RuntimeError("needles failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "needles failed"):
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Header"]},
+                    operand,
+                )
+
+        class CopyPolicyBomb:
+            def keys(self):
+                raise RuntimeError("affinity policy failed")
+
+            def __getitem__(self, key):
+                raise AssertionError(key)
+
+        with (
+            patch.object(financial_structured_cells, "_generic_column_headers", return_value=set()),
+            patch.object(financial_structured_cells, "_operand_needles", return_value=["Other"]),
+            patch.object(financial_structured_cells, "_operand_text_match", return_value=False),
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", CopyPolicyBomb()),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "affinity policy failed"):
+                financial_structured_cells._structured_cell_operand_affinity(
+                    {"column_headers": ["Header"]},
+                    operand,
+                )
+
+    def test_current_source_structured_cell_score_pins_year_period_binding_and_stop(self) -> None:
+        nested = {"preserve": True}
+        cell = {
+            "column_headers": ["2024 CURRENT OLD"],
+            "value_role": "aggregate",
+            "aggregation_stage": "final",
+            "aggregate_role": "final_total",
+            "aggregate_label": "Total",
+            "nested": nested,
+        }
+        operand = {
+            "binding_policy": {
+                "prefer_value_roles": [" aggregate "],
+                "prefer_aggregation_stages": [" final "],
+            },
+            "segment_label": "",
+            "nested": nested,
+        }
+        before_cell = deepcopy(cell)
+        before_operand = deepcopy(operand)
+        affinity_calls = []
+
+        def affinity_owner(current_cell, current_operand):
+            affinity_calls.append((current_cell, current_operand))
+            return 2.5
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {
+                    "current_positive_markers": ("CURRENT",),
+                    "current_negative_markers": ("OLD",),
+                    "prior_positive_markers": ("PRIOR",),
+                    "prior_negative_markers": ("CURRENT",),
+                },
+            ),
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_AFFINITY_POLICY",
+                {"aggregate_tokens": ("Total",)},
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_operand_affinity",
+                side_effect=affinity_owner,
+            ),
+        ):
+            score = financial_structured_cells.score_structured_cell(
+                cell,
+                query_years=[2024],
+                period_focus="current",
+                operand=operand,
+            )
+        self.assertEqual(score, 21.75)
+        self.assertEqual(affinity_calls, [(cell, operand)])
+        self.assertIs(affinity_calls[0][0], cell)
+        self.assertIs(affinity_calls[0][1], operand)
+        self.assertEqual(cell, before_cell)
+        self.assertEqual(operand, before_operand)
+        self.assertIs(cell["nested"], nested)
+        self.assertIs(operand["nested"], nested)
+
+        affinity_bomb = Mock(side_effect=AssertionError("missing operand skips affinity"))
+        with (
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {
+                    "current_positive_markers": (),
+                    "current_negative_markers": (),
+                    "prior_positive_markers": ("PRIOR",),
+                    "prior_negative_markers": ("CURRENT",),
+                },
+            ),
+            patch.object(financial_structured_cells, "_structured_cell_operand_affinity", affinity_bomb),
+        ):
+            self.assertEqual(
+                financial_structured_cells.score_structured_cell(
+                    {"column_headers": ["2023 PRIOR CURRENT"]},
+                    query_years=[2024, 2023],
+                    period_focus="prior",
+                    operand=None,
+                ),
+                12.0,
+            )
+        affinity_bomb.assert_not_called()
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {
+                    "current_positive_markers": (),
+                    "current_negative_markers": (),
+                    "prior_positive_markers": (),
+                    "prior_negative_markers": (),
+                },
+            ),
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_AFFINITY_POLICY", {"aggregate_tokens": ()}),
+            patch.object(financial_structured_cells, "_structured_cell_operand_affinity", return_value=0.0),
+        ):
+            self.assertEqual(
+                financial_structured_cells.score_structured_cell(
+                    {"column_headers": [], "value_role": "detail"},
+                    query_years=[],
+                    period_focus="unknown",
+                    operand={
+                        "binding_policy": {"prefer_value_roles": ["aggregate"]},
+                        "segment_label": "Segment",
+                    },
+                ),
+                -1.25,
+            )
+
+        class PolicyBomb:
+            def keys(self):
+                raise RuntimeError("period policy failed")
+
+            def __getitem__(self, key):
+                raise AssertionError(key)
+
+        stopped_affinity = Mock(side_effect=AssertionError("policy failure must stop affinity"))
+        with (
+            patch.object(financial_structured_cells, "STRUCTURED_CELL_PERIOD_SCORING_POLICY", PolicyBomb()),
+            patch.object(financial_structured_cells, "_structured_cell_operand_affinity", stopped_affinity),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "period policy failed"):
+                financial_structured_cells.score_structured_cell(
+                    cell,
+                    query_years=[2024],
+                    period_focus="current",
+                    operand=operand,
+                )
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {
+                    "current_positive_markers": (),
+                    "current_negative_markers": (),
+                },
+            ),
+            patch.object(financial_structured_cells, "_structured_cell_operand_affinity", return_value=0.0),
+            patch.object(
+                financial_structured_cells,
+                "_normalise_spaces",
+                side_effect=RuntimeError("binding normalization failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "binding normalization failed"):
+                financial_structured_cells.score_structured_cell(
+                    cell,
+                    query_years=[2024],
+                    period_focus="current",
+                    operand=operand,
+                )
+        stopped_affinity.assert_not_called()
+
+        with (
+            patch.object(
+                financial_structured_cells,
+                "STRUCTURED_CELL_PERIOD_SCORING_POLICY",
+                {
+                    "current_positive_markers": (),
+                    "current_negative_markers": (),
+                },
+            ),
+            patch.object(
+                financial_structured_cells,
+                "_structured_cell_operand_affinity",
+                side_effect=RuntimeError("affinity failed"),
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "affinity failed"):
+                financial_structured_cells.score_structured_cell(
+                    cell,
+                    query_years=[2024],
+                    period_focus="current",
+                    operand=operand,
+                )
+
+    def test_current_source_structured_cell_bindings_pin_defs_calls_dag_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        agent_root = repo_root / "src" / "agent"
+        target_names = {
+            "select_structured_cell",
+            "select_aggregate_structured_cell",
+            "_structured_cell_operand_affinity",
+            "score_structured_cell",
+        }
+        module_paths = {path.stem: path for path in agent_root.glob("*.py")}
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {
+            name: ast.parse(source)
+            for name, source in module_sources.items()
+        }
+        definitions = {name: [] for name in target_names}
+        calls = {name: [] for name in target_names}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.try_depth = 0
+
+            def visit_FunctionDef(self, node):
+                if node.name in target_names:
+                    definitions[node.name].append((self.module_name, node))
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                if called_name in target_names:
+                    calls[called_name].append(
+                        (
+                            self.module_name,
+                            self.function_stack[-1] if self.function_stack else "",
+                            type(node.func).__name__,
+                            tuple(ast.unparse(arg) for arg in node.args),
+                            tuple((kw.arg, ast.unparse(kw.value)) for kw in node.keywords),
+                            self.try_depth,
+                        )
+                    )
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: [
+                    (module_name, node.end_lineno - node.lineno + 1)
+                    for module_name, node in entries
+                ]
+                for name, entries in definitions.items()
+            },
+            {
+                "select_structured_cell": [("financial_structured_cells", 42)],
+                "select_aggregate_structured_cell": [("financial_structured_cells", 84)],
+                "_structured_cell_operand_affinity": [("financial_structured_cells", 53)],
+                "score_structured_cell": [("financial_structured_cells", 66)],
+            },
+        )
+        self.assertEqual(
+            {
+                name: (
+                    [arg.arg for arg in entries[0][1].args.args],
+                    [arg.arg for arg in entries[0][1].args.kwonlyargs],
+                )
+                for name, entries in definitions.items()
+            },
+            {
+                "select_structured_cell": (["cells"], ["operand", "query_years", "period_focus"]),
+                "select_aggregate_structured_cell": (["cells"], ["operand", "query_years", "period_focus"]),
+                "_structured_cell_operand_affinity": (["cell", "operand"], []),
+                "score_structured_cell": (["cell"], ["query_years", "period_focus", "operand"]),
+            },
+        )
+        self.assertEqual(
+            {name: len(entries) for name, entries in calls.items()},
+            {
+                "select_structured_cell": 7,
+                "select_aggregate_structured_cell": 5,
+                "_structured_cell_operand_affinity": 1,
+                "score_structured_cell": 6,
+            },
+        )
+        self.assertTrue(all(entry[2] == "Name" for entries in calls.values() for entry in entries))
+        self.assertTrue(all(entry[5] == 0 for entries in calls.values() for entry in entries))
+        for name in ("select_structured_cell", "select_aggregate_structured_cell"):
+            self.assertTrue(all(len(entry[3]) == 1 for entry in calls[name]))
+            self.assertTrue(
+                all(
+                    tuple(keyword for keyword, _value in entry[4])
+                    == ("operand", "query_years", "period_focus")
+                    for entry in calls[name]
+                )
+            )
+        self.assertTrue(
+            all(len(entry[3]) == 2 and not entry[4] for entry in calls["_structured_cell_operand_affinity"])
+        )
+        self.assertTrue(all(len(entry[3]) == 1 for entry in calls["score_structured_cell"]))
+        self.assertTrue(
+            all(
+                tuple(keyword for keyword, _value in entry[4])
+                == ("query_years", "period_focus", "operand")
+                for entry in calls["score_structured_cell"]
+            )
+        )
+        self.assertEqual(
+            {
+                name: {
+                    module: sum(1 for entry in entries if entry[0] == module)
+                    for module in sorted({entry[0] for entry in entries})
+                }
+                for name, entries in calls.items()
+            },
+            {
+                "select_structured_cell": {
+                    "financial_graph_calculation": 1,
+                    "financial_graph_helpers": 1,
+                    "financial_graph_reconciliation": 3,
+                    "financial_lookup_recovery": 2,
+                },
+                "select_aggregate_structured_cell": {
+                    "financial_graph_calculation": 1,
+                    "financial_graph_reconciliation": 2,
+                    "financial_lookup_recovery": 2,
+                },
+                "_structured_cell_operand_affinity": {"financial_structured_cells": 1},
+                "score_structured_cell": {
+                    "financial_graph_evidence": 3,
+                    "financial_reconciliation_candidates": 1,
+                    "financial_structured_cells": 2,
+                },
+            },
+        )
+        self.assertEqual(
+            sorted(
+                (entry[1], entry[3], entry[4])
+                for entry in calls["select_structured_cell"]
+                if entry[0] == "financial_graph_helpers"
+            ),
+            [
+                (
+                    "_candidate_selected_cell_for_operand",
+                    ("cells",),
+                    (
+                        ("operand", "operand"),
+                        ("query_years", "query_years"),
+                        ("period_focus", "period_focus"),
+                    ),
+                )
+            ],
+        )
+        self.assertEqual(
+            sorted(entry[1] for entry in calls["score_structured_cell"]),
+            [
+                "_build_required_operands_from_candidates",
+                "_build_required_operands_from_candidates",
+                "_build_required_operands_from_candidates",
+                "_cell_aggregate_rank",
+                "pair_candidate_period_score",
+                "select_structured_cell",
+            ],
+        )
+        self.assertEqual((16, 3), (7 + 5 + 4, 2 + 1))
+
+        structured_tree = module_trees["financial_structured_cells"]
+        structured_functions = [
+            node.name
+            for node in structured_tree.body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        ]
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in structured_functions),
+                sum(name.startswith("_") for name in structured_functions),
+            ),
+            (3, 4),
+        )
+        self.assertTrue(target_names.issubset(structured_functions))
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        dependency_graph = {
+            f"src.agent.{module_name}": imported_modules(tree)
+            for module_name, tree in module_trees.items()
+        }
+
+        def reachable(start, target):
+            pending = [start]
+            seen = set()
+            while pending:
+                current = pending.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                for dependency in dependency_graph.get(current, set()):
+                    if dependency == target:
+                        return True
+                    if dependency.startswith("src.agent."):
+                        pending.append(dependency)
+            return False
+
+        self.assertFalse(
+            reachable(
+                "src.agent.financial_structured_cells",
+                "src.agent.financial_graph_helpers",
+            )
+        )
+        for dependency in (
+            "src.agent.financial_scope_policies",
+            "src.agent.financial_runtime_normalization",
+            "src.agent.financial_row_surfaces",
+            "src.agent.financial_surface_contracts",
+        ):
+            self.assertFalse(reachable(dependency, "src.agent.financial_structured_cells"))
+
+        helper_tree = module_trees["financial_graph_helpers"]
+        fiscal_calls = [
+            node
+            for node in ast.walk(helper_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_structured_cell_fiscal_ordinal"
+        ]
+        period_calls = [
+            node
+            for node in ast.walk(helper_tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_structured_cell_period_text"
+        ]
+        self.assertEqual(len(fiscal_calls), 0)
+        self.assertGreater(len(period_calls), 0)
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_source = "\n".join(
+            ast.get_source_segment(module_sources[module_name], node) or ""
+            for entries in definitions.values()
+            for module_name, node in entries
+        )
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if str(record.get("text") or "") in selected_source
+            ],
+            [],
+        )
+
+    def test_current_source_structured_cell_callers_pin_args_adoption_order_and_stop(self) -> None:
+        nested = {"preserve": True}
+        operand = {"label": "Revenue", "nested": nested}
+        candidate = {
+            "candidate_kind": "table_row",
+            "metadata": {
+                "year": 2024,
+                "structured_cells": [{"value_text": "10", "nested": nested}],
+            },
+            "nested": nested,
+        }
+        before_candidate = deepcopy(candidate)
+        selected = {"value_text": "10", "nested": nested}
+        selector_calls = []
+
+        def selector(cells, **kwargs):
+            selector_calls.append((cells, kwargs))
+            return selected
+
+        with patch.object(
+            financial_graph_helpers,
+            "select_structured_cell",
+            side_effect=selector,
+        ):
+            self.assertIs(
+                financial_graph_helpers._candidate_selected_cell_for_operand(
+                    candidate,
+                    operand=operand,
+                    query_years=[2024],
+                    period_focus="current",
+                ),
+                selected,
+            )
+        self.assertEqual(len(selector_calls), 1)
+        passed_cells, kwargs = selector_calls[0]
+        self.assertEqual(passed_cells[0]["_report_year"], 2024)
+        self.assertIsNot(passed_cells[0], candidate["metadata"]["structured_cells"][0])
+        self.assertIs(passed_cells[0]["nested"], nested)
+        self.assertIs(kwargs["operand"], operand)
+        self.assertEqual(kwargs["query_years"], [2024])
+        self.assertEqual(kwargs["period_focus"], "current")
+        self.assertEqual(candidate, before_candidate)
+        self.assertIs(candidate["nested"], nested)
+
+        with patch.object(
+            financial_graph_helpers,
+            "select_structured_cell",
+            side_effect=RuntimeError("selector failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "selector failed"):
+                financial_graph_helpers._candidate_selected_cell_for_operand(
+                    candidate,
+                    operand=operand,
+                    query_years=[2024],
+                    period_focus="current",
+                )
+        self.assertEqual(candidate, before_candidate)
+
+        score_events = []
+        score_cell = {"value_text": "10", "nested": nested}
+        score_candidate = {"candidate_id": "candidate", "nested": nested}
+        score_constraints = {"mode": "strict", "nested": nested}
+        report_scope = {"year": 2024, "nested": nested}
+        before_score_cell = deepcopy(score_cell)
+        before_score_candidate = deepcopy(score_candidate)
+        before_constraints = deepcopy(score_constraints)
+        before_scope = deepcopy(report_scope)
+
+        def candidate_score(current_candidate, **kwargs):
+            score_events.append("candidate")
+            self.assertIs(current_candidate, score_candidate)
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["constraints"], score_constraints)
+            self.assertIs(kwargs["report_scope"], report_scope)
+            return 10.0
+
+        def target_years(current_operand, current_years):
+            score_events.append("target")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(current_years, [2024])
+            return [2024]
+
+        def period_focus(current_operand, fallback):
+            score_events.append("focus")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(fallback, "unknown")
+            return "current"
+
+        def cell_score(current_cell, **kwargs):
+            score_events.append("cell")
+            self.assertIs(current_cell, score_cell)
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["period_focus"], "current")
+            self.assertIs(kwargs["operand"], operand)
+            return 2.5
+
+        def period_text(**kwargs):
+            score_events.append("period")
+            self.assertIs(kwargs["operand"], operand)
+            self.assertIs(kwargs["cell"], score_cell)
+            return "2024"
+
+        with (
+            patch.object(financial_reconciliation_candidates, "_score_operand_candidate", side_effect=candidate_score),
+            patch.object(financial_reconciliation_candidates, "operand_target_years", side_effect=target_years),
+            patch.object(financial_reconciliation_candidates, "operand_period_focus", side_effect=period_focus),
+            patch.object(financial_reconciliation_candidates, "score_structured_cell", side_effect=cell_score),
+            patch.object(
+                financial_reconciliation_candidates,
+                "_resolved_period_text_for_operand",
+                side_effect=period_text,
+            ),
+        ):
+            self.assertEqual(
+                financial_reconciliation_candidates.pair_candidate_period_score(
+                    candidate=score_candidate,
+                    cell=score_cell,
+                    operand=operand,
+                    preferred_statement_types=["income"],
+                    constraints=score_constraints,
+                    query_years=[2024],
+                    period_focus="unknown",
+                    report_scope=report_scope,
+                ),
+                (12.5, "2024"),
+            )
+        self.assertEqual(score_events, ["candidate", "target", "focus", "cell", "period"])
+        self.assertEqual(score_candidate, before_score_candidate)
+        self.assertEqual(score_cell, before_score_cell)
+        self.assertEqual(score_constraints, before_constraints)
+        self.assertEqual(report_scope, before_scope)
+
+        stopped_period = Mock(side_effect=AssertionError("score exception must stop period"))
+        with (
+            patch.object(financial_reconciliation_candidates, "_score_operand_candidate", return_value=10.0),
+            patch.object(financial_reconciliation_candidates, "operand_target_years", return_value=[2024]),
+            patch.object(financial_reconciliation_candidates, "operand_period_focus", return_value="current"),
+            patch.object(
+                financial_reconciliation_candidates,
+                "score_structured_cell",
+                side_effect=RuntimeError("cell score failed"),
+            ),
+            patch.object(
+                financial_reconciliation_candidates,
+                "_resolved_period_text_for_operand",
+                stopped_period,
+            ),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "cell score failed"):
+                financial_reconciliation_candidates.pair_candidate_period_score(
+                    candidate=score_candidate,
+                    cell=score_cell,
+                    operand=operand,
+                    preferred_statement_types=["income"],
+                    constraints=score_constraints,
+                    query_years=[2024],
+                    period_focus="unknown",
+                    report_scope=report_scope,
+                )
+        stopped_period.assert_not_called()
+
+        evidence_item = {
+            "evidence_id": "ev-1",
+            "source_anchor": "anchor",
+            "metadata": {
+                "year": 2024,
+                "value_role": "aggregate",
+                "structured_cells": [
+                    {"cell_id": "detail", "value_text": "10", "nested": nested},
+                    {
+                        "cell_id": "aggregate",
+                        "value_text": "20",
+                        "unit_hint": "KRW",
+                        "value_role": "aggregate",
+                        "nested": nested,
+                    },
+                ],
+            },
+            "nested": nested,
+        }
+        before_evidence = deepcopy(evidence_item)
+        lookup_events = []
+        ordinary_selected = {"value_text": "10", "unit_hint": "KRW"}
+        aggregate_selected = {
+            "value_text": "20",
+            "unit_hint": "KRW",
+            "value_role": "aggregate",
+        }
+
+        def lookup_focus(current_operand, fallback):
+            lookup_events.append("focus")
+            self.assertIs(current_operand, operand)
+            self.assertEqual(fallback, "current")
+            return "current"
+
+        def ordinary_selector(cells, **kwargs):
+            lookup_events.append("ordinary")
+            self.assertEqual([cell["cell_id"] for cell in cells], ["detail", "aggregate"])
+            self.assertTrue(all(cell["_report_year"] == 2024 for cell in cells))
+            self.assertIs(kwargs["operand"], operand)
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["period_focus"], "current")
+            return ordinary_selected
+
+        def aggregate_selector(cells, **kwargs):
+            lookup_events.append("aggregate")
+            self.assertEqual([cell["cell_id"] for cell in cells], ["aggregate"])
+            self.assertIs(kwargs["operand"], operand)
+            self.assertEqual(kwargs["query_years"], [2024])
+            self.assertEqual(kwargs["period_focus"], "current")
+            return aggregate_selected
+
+        def normalize_value(raw_value, raw_unit):
+            lookup_events.append("normalize")
+            self.assertEqual((raw_value, raw_unit), ("20", "KRW"))
+            return 20.0, "KRW"
+
+        def coerce_row(row, current_evidence, **kwargs):
+            lookup_events.append("coerce")
+            self.assertIs(current_evidence, evidence_item)
+            return row
+
+        with (
+            patch.object(financial_lookup_recovery, "operand_period_focus", side_effect=lookup_focus),
+            patch.object(financial_lookup_recovery, "select_structured_cell", side_effect=ordinary_selector),
+            patch.object(
+                financial_lookup_recovery,
+                "select_aggregate_structured_cell",
+                side_effect=aggregate_selector,
+            ),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", side_effect=normalize_value),
+            patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record", side_effect=coerce_row),
+        ):
+            row = financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                operand,
+                evidence_item,
+                index=2,
+            )
+        self.assertEqual(lookup_events, ["focus", "ordinary", "focus", "aggregate", "normalize", "coerce"])
+        self.assertEqual(row["raw_value"], "20")
+        self.assertEqual(row["normalized_value"], 20.0)
+        self.assertEqual(row["value_role"], "aggregate")
+        self.assertEqual(evidence_item, before_evidence)
+        self.assertIs(evidence_item["nested"], nested)
+
+        stopped_normalize = Mock(side_effect=AssertionError("aggregate exception must stop normalization"))
+        stopped_coerce = Mock(side_effect=AssertionError("aggregate exception must stop coercion"))
+        with (
+            patch.object(financial_lookup_recovery, "operand_period_focus", return_value="current"),
+            patch.object(financial_lookup_recovery, "select_structured_cell", return_value=ordinary_selected),
+            patch.object(
+                financial_lookup_recovery,
+                "select_aggregate_structured_cell",
+                side_effect=RuntimeError("aggregate selector failed"),
+            ),
+            patch.object(financial_lookup_recovery, "_normalise_operand_value", stopped_normalize),
+            patch.object(financial_lookup_recovery, "coerce_lookup_magnitude_record", stopped_coerce),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "aggregate selector failed"):
+                financial_lookup_recovery.lookup_row_from_direct_structured_evidence(
+                    operand,
+                    evidence_item,
+                    index=2,
+                )
+        stopped_normalize.assert_not_called()
+        stopped_coerce.assert_not_called()
+        self.assertEqual(evidence_item, before_evidence)
+        self.assertIs(evidence_item["nested"], nested)
 
 
 if __name__ == "__main__":
