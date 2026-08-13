@@ -43,6 +43,7 @@ from src.config.retrieval_policy import (
     KOREAN_SEGMENT_LABEL_TOKEN_PATTERNS,
     KOREAN_SEGMENT_LABEL_TRAILING_PERIOD_RE_FRAGMENT,
     METRIC_TASK_QUERY_POLICY,
+    NARRATIVE_BASE_RETRIEVAL_SUFFIXES,
     OPERATION_FAMILY_QUERY_POLICIES,
     OPERAND_CANDIDATE_SCORING_POLICY,
     PERIOD_FOCUS_POLICY,
@@ -50,6 +51,11 @@ from src.config.retrieval_policy import (
     STRUCTURED_CELL_AFFINITY_POLICY,
     STRUCTURED_CELL_PERIOD_SCORING_POLICY,
     TASK_CONSTRAINT_POLICY,
+    active_narrative_policies,
+    narrative_policy_preferred_sections,
+    narrative_policy_query_suffixes,
+    narrative_policy_slot_groups,
+    narrative_policy_terms,
 )
 from src.agent.financial_graph_calculation_rendering import infer_concept_ratio_result_unit
 from src.agent.financial_runtime_normalization import (
@@ -94,12 +100,14 @@ from src.agent.financial_operation_policies import (
     _label_implies_percent_metric,
     _is_ratio_percent_query,
     _is_single_metric_period_comparison,
+    _query_requests_narrative_context,
 )
 from src.agent.financial_operand_resolution import (
     candidate_row_block_signature,
     lookup_hints_for_concept_key,
     operand_prefers_aggregate_value_role as _operand_prefers_aggregate_value_role,
 )
+from src.routing import default_format_preference
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _REPORT_ROOT = _PROJECT_ROOT / "data" / "reports"
@@ -399,6 +407,161 @@ def validate_concept_planner_task(
             return False, f"growth_rate_invalid_role:{invalid_role}"
 
     return True, "ok"
+
+
+def _is_narrative_summary_task(task: Dict[str, Any]) -> bool:
+    operation_family = _normalise_spaces(str(task.get("operation_family") or "")).lower()
+    metric_family = _normalise_spaces(str(task.get("metric_family") or "")).lower()
+    return operation_family == "narrative_summary" or metric_family == "narrative_summary"
+
+
+def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
+    return intent in {"comparison", "trend", "numeric_fact"} and _query_requests_narrative_context(query)
+
+
+def build_hybrid_narrative_subtask(
+    *,
+    query: str,
+    intent: str = "qa",
+    report_scope: Dict[str, Any],
+    next_task_id: str,
+) -> Dict[str, Any]:
+    consolidation_scope = _desired_consolidation_scope(query, report_scope)
+    period_focus = _infer_period_focus(query, "unknown")
+    active_policies = active_narrative_policies(query)
+    active_slot_groups = [
+        group
+        for group in narrative_policy_slot_groups(active_policies)
+        if any(str(term).strip() and str(term).strip() in query for term in (group.get("query_terms") or []))
+    ]
+    policy_format_preference = next(
+        (
+            str(policy.get("format_preference_override") or "").strip().lower()
+            for policy in active_policies
+            if str(policy.get("format_preference_override") or "").strip().lower() in {"paragraph", "table"}
+        ),
+        "",
+    )
+    format_preference_override = policy_format_preference or (
+        "table"
+        if active_slot_groups or default_format_preference(intent) == "table"
+        else "paragraph"
+    )
+    retrieval_queries = [_normalise_spaces(query)]
+    base_suffixes = (
+        ()
+        if format_preference_override == "table"
+        else NARRATIVE_BASE_RETRIEVAL_SUFFIXES
+    )
+    retrieval_queries.extend(
+        _normalise_spaces(f"{query} {suffix}")
+        for suffix in (*base_suffixes, *narrative_policy_query_suffixes(active_policies))
+    )
+    preferred_sections = (
+        narrative_policy_terms(active_policies, "preferred_sections")
+        if format_preference_override == "table"
+        else narrative_policy_preferred_sections(active_policies)
+    )
+    return {
+        "task_id": next_task_id,
+        "metric_family": "narrative_summary",
+        "metric_label": str(PLANNING_POLICY.get("hybrid_narrative_metric_label") or ""),
+        "query": query,
+        "operation_family": "narrative_summary",
+        "required_operands": [],
+        "preferred_statement_types": [],
+        "preferred_sections": preferred_sections,
+        "retrieval_queries": list(dict.fromkeys(item for item in retrieval_queries if item)),
+        "constraints": {
+            "consolidation_scope": consolidation_scope,
+            "period_focus": period_focus,
+            "entity_scope": "unknown",
+            "segment_scope": "none",
+            "context_scope": "narrative",
+        },
+        "intent_override": "qa",
+        "format_preference_override": format_preference_override,
+    }
+
+
+def append_hybrid_narrative_task(
+    tasks: List[Dict[str, Any]],
+    *,
+    query: str,
+    intent: str,
+    report_scope: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    base_tasks = [dict(task) for task in (tasks or [])]
+    if not _needs_hybrid_narrative_subtask(query, intent):
+        return base_tasks
+    if any(_is_narrative_summary_task(task) for task in base_tasks):
+        return base_tasks
+    next_index = 1
+    if base_tasks:
+        next_index = max(
+            1,
+            max(
+                (
+                    int(match.group(1))
+                    for match in (
+                        re.match(r"task_(\d+)$", str(task.get("task_id") or "").strip())
+                        for task in base_tasks
+                    )
+                    if match
+                ),
+                default=0,
+            )
+            + 1,
+        )
+    base_tasks.append(
+        build_hybrid_narrative_subtask(
+            query=query,
+            intent=intent,
+            report_scope=report_scope,
+            next_task_id=f"task_{next_index}",
+        )
+    )
+    return base_tasks
+
+
+def push_narrative_tasks_after_numeric(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    ordered = [dict(task) for task in (tasks or [])]
+    numeric_task_ids = [
+        str(task.get("task_id") or "").strip()
+        for task in ordered
+        if not _is_narrative_summary_task(task) and str(task.get("task_id") or "").strip()
+    ]
+    if not numeric_task_ids:
+        return ordered
+
+    changed = False
+    for task in ordered:
+        if not _is_narrative_summary_task(task):
+            continue
+        task_id = str(task.get("task_id") or "").strip()
+        dependencies = [
+            _normalise_spaces(str(item or ""))
+            for item in (task.get("depends_on") or [])
+            if _normalise_spaces(str(item or ""))
+        ]
+        for dependency_id in numeric_task_ids:
+            if dependency_id == task_id or dependency_id in dependencies:
+                continue
+            dependencies.append(dependency_id)
+            changed = True
+        task["depends_on"] = dependencies
+    if not changed:
+        return ordered
+    numeric_tasks = [task for task in ordered if not _is_narrative_summary_task(task)]
+    narrative_tasks = [task for task in ordered if _is_narrative_summary_task(task)]
+    return numeric_tasks + narrative_tasks
+
+
+def exclusive_narrative_task_policy_active(query: str) -> bool:
+    return any(
+        bool(policy.get("exclusive_narrative_task"))
+        for policy in active_narrative_policies(query)
+    )
 
 
 def _scoped_surface_affinity_priority(

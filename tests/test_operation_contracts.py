@@ -77,7 +77,8 @@ from src.agent.financial_graph_models import (
     EvidenceExtraction,
     NumericExtraction,
 )
-from src.agent.financial_graph_planning import _build_hybrid_narrative_subtask, _refine_lookup_slot_unit_from_evidence
+from src.agent.financial_graph_helpers import build_hybrid_narrative_subtask
+from src.agent.financial_graph_planning import _refine_lookup_slot_unit_from_evidence
 from src.agent.financial_runtime_normalization import _normalise_operand_value
 from src.agent.financial_runtime_trace import _resolve_runtime_calculation_trace
 from src.agent.financial_retrieval_hints import (
@@ -9224,7 +9225,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("70.0조원", claims)
 
     def test_credit_loss_narrative_policy_extends_hybrid_retrieval_plan(self) -> None:
-        subtask = _build_hybrid_narrative_subtask(
+        subtask = build_hybrid_narrative_subtask(
             query="신용손실충당금전입액 전년 대비 증가율을 계산하고 원인을 요약해 줘.",
             intent="trend",
             report_scope={"company": "ExampleCo", "year": 2023},
@@ -9902,7 +9903,7 @@ class OperationContractTests(unittest.TestCase):
         self.assertIn("summary-profit-loss-table", chunk_ids)
 
     def test_entity_metric_narrative_task_prefers_table_format(self) -> None:
-        task = _build_hybrid_narrative_subtask(
+        task = build_hybrid_narrative_subtask(
             query="Summarize Motional ownership, carrying amount, and profit or loss.",
             intent="numeric_fact",
             report_scope={"company": "현대자동차", "year": 2023},

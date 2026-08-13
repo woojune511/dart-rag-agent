@@ -894,11 +894,17 @@ class FinancialGraphHelperTests(unittest.TestCase):
             for module_name, _class_stack, node in definitions.values()
             if module_name == "owner"
         ]
+        selected_source = "\n".join(
+            ast.get_source_segment(module_sources["owner"], node) or ""
+            for module_name, _class_stack, node in definitions.values()
+            if module_name == "owner"
+        )
         self.assertEqual(
             [
                 record
                 for record in baseline["records"]
                 if record.get("path") == "src/agent/financial_graph_helpers.py"
+                and str(record.get("text") or "") in selected_source
                 and any(
                     start <= line <= end
                     for line in record.get("first_lines") or []
@@ -1193,12 +1199,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_planning,
-                "_exclusive_narrative_task_policy_active",
+                "exclusive_narrative_task_policy_active",
                 return_value=True,
             ),
             patch.object(
                 financial_graph_planning,
-                "_build_hybrid_narrative_subtask",
+                "build_hybrid_narrative_subtask",
                 return_value=narrative_task,
             ),
             patch.object(
@@ -1241,12 +1247,12 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_planning,
-                "_exclusive_narrative_task_policy_active",
+                "exclusive_narrative_task_policy_active",
                 return_value=True,
             ),
             patch.object(
                 financial_graph_planning,
-                "_build_hybrid_narrative_subtask",
+                "build_hybrid_narrative_subtask",
                 return_value=narrative_task,
             ),
             patch.object(
@@ -1336,7 +1342,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_planning, "align_scope_hints", initial_align),
             patch.object(
                 financial_graph_planning,
-                "_append_hybrid_narrative_task",
+                "append_hybrid_narrative_task",
                 side_effect=lambda tasks, **_kwargs: list(tasks),
             ),
             patch.object(
@@ -1346,7 +1352,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_planning,
-                "_push_narrative_tasks_after_numeric",
+                "push_narrative_tasks_after_numeric",
                 side_effect=lambda tasks: list(tasks),
             ),
             patch.object(
@@ -1402,7 +1408,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             patch.object(financial_graph_planning, "align_scope_hints", short_align),
             patch.object(
                 financial_graph_planning,
-                "_append_hybrid_narrative_task",
+                "append_hybrid_narrative_task",
                 side_effect=lambda tasks, **_kwargs: list(tasks),
             ),
             patch.object(
@@ -1412,7 +1418,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_planning,
-                "_push_narrative_tasks_after_numeric",
+                "push_narrative_tasks_after_numeric",
                 side_effect=lambda tasks: list(tasks),
             ),
             patch.object(
@@ -1510,7 +1516,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_planning,
-                "_append_hybrid_narrative_task",
+                "append_hybrid_narrative_task",
                 side_effect=lambda tasks, **_kwargs: list(tasks),
             ),
             patch.object(
@@ -1520,7 +1526,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_planning,
-                "_push_narrative_tasks_after_numeric",
+                "push_narrative_tasks_after_numeric",
                 side_effect=lambda tasks: list(tasks),
             ),
             patch.object(
@@ -1558,7 +1564,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
         with (
             patch.object(
                 financial_graph_planning,
-                "_append_hybrid_narrative_task",
+                "append_hybrid_narrative_task",
                 side_effect=lambda tasks, **_kwargs: list(tasks),
             ),
             patch.object(
@@ -1568,7 +1574,7 @@ class FinancialGraphHelperTests(unittest.TestCase):
             ),
             patch.object(
                 financial_graph_planning,
-                "_push_narrative_tasks_after_numeric",
+                "push_narrative_tasks_after_numeric",
                 side_effect=lambda tasks: list(tasks),
             ),
             patch.object(
@@ -1595,6 +1601,1229 @@ class FinancialGraphHelperTests(unittest.TestCase):
                 )
         replan_artifact.assert_not_called()
 
+
+    def test_current_source_narrative_predicates_pin_access_laziness_and_exceptions(self) -> None:
+        events = []
+
+        class RecordingTask(dict):
+            def get(self, key, default=None):
+                events.append(("get", key))
+                return super().get(key, default)
+
+        class FalsyStringBomb:
+            def __bool__(self):
+                events.append(("bool", "falsy"))
+                return False
+
+            def __str__(self):
+                raise AssertionError("falsy value must not be stringified")
+
+        def normalize(value):
+            events.append(("normalize", value))
+            return str(value).strip()
+
+        task = RecordingTask(
+            operation_family=" Narrative_Summary ",
+            metric_family=FalsyStringBomb(),
+            nested={"preserve": True},
+        )
+        nested = task["nested"]
+        with patch.object(financial_graph_helpers, "_normalise_spaces", side_effect=normalize):
+            self.assertTrue(financial_graph_helpers._is_narrative_summary_task(task))
+        self.assertEqual(
+            events,
+            [
+                ("get", "operation_family"),
+                ("normalize", " Narrative_Summary "),
+                ("get", "metric_family"),
+                ("bool", "falsy"),
+                ("normalize", ""),
+            ],
+        )
+        self.assertEqual(task["operation_family"], " Narrative_Summary ")
+        self.assertIs(task["nested"], nested)
+
+        events.clear()
+        with patch.object(financial_graph_helpers, "_normalise_spaces", side_effect=normalize):
+            self.assertTrue(
+                financial_graph_helpers._is_narrative_summary_task(
+                    RecordingTask(operation_family="lookup", metric_family=" NARRATIVE_SUMMARY ")
+                )
+            )
+            self.assertFalse(
+                financial_graph_helpers._is_narrative_summary_task(
+                    RecordingTask(operation_family="lookup", metric_family="ratio")
+                )
+            )
+        self.assertEqual(
+            [item for item in events if item[0] == "get"],
+            [
+                ("get", "operation_family"),
+                ("get", "metric_family"),
+                ("get", "operation_family"),
+                ("get", "metric_family"),
+            ],
+        )
+
+        class OperationGetBomb(dict):
+            def get(self, key, default=None):
+                if key == "operation_family":
+                    raise RuntimeError("operation access failed")
+                raise AssertionError("metric accessed after operation failure")
+
+        normalizer = Mock(side_effect=AssertionError("normalizer accessed"))
+        with patch.object(financial_graph_helpers, "_normalise_spaces", normalizer):
+            with self.assertRaisesRegex(RuntimeError, "operation access failed"):
+                financial_graph_helpers._is_narrative_summary_task(OperationGetBomb())
+        normalizer.assert_not_called()
+
+        gate = Mock(return_value=True)
+        with patch.object(
+            financial_graph_helpers,
+            "_query_requests_narrative_context",
+            gate,
+        ):
+            self.assertFalse(
+                financial_graph_helpers._needs_hybrid_narrative_subtask(
+                    "query",
+                    "qa",
+                )
+            )
+            self.assertFalse(
+                financial_graph_helpers._needs_hybrid_narrative_subtask(
+                    "query",
+                    "Comparison",
+                )
+            )
+            for intent in ("comparison", "trend", "numeric_fact"):
+                self.assertTrue(
+                    financial_graph_helpers._needs_hybrid_narrative_subtask(
+                        f"{intent}-query",
+                        intent,
+                    )
+                )
+        self.assertEqual(
+            [call.args for call in gate.call_args_list],
+            [
+                ("comparison-query",),
+                ("trend-query",),
+                ("numeric_fact-query",),
+            ],
+        )
+
+        downstream = Mock(side_effect=RuntimeError("narrative gate failed"))
+        with patch.object(
+            financial_graph_helpers,
+            "_query_requests_narrative_context",
+            downstream,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "narrative gate failed"):
+                financial_graph_helpers._needs_hybrid_narrative_subtask(
+                    "query",
+                    "comparison",
+                )
+        downstream.assert_called_once_with("query")
+
+        policy_events = []
+
+        class RecordingPolicy(dict):
+            def get(self, key, default=None):
+                policy_events.append((dict.get(self, "name"), key))
+                return dict.get(self, key, default)
+
+        class PolicyAccessBomb(dict):
+            def get(self, key, default=None):
+                raise AssertionError("policy accessed after active match")
+
+        policies = [
+            RecordingPolicy(name="first", exclusive_narrative_task=False),
+            RecordingPolicy(name="second", exclusive_narrative_task=True),
+            PolicyAccessBomb(),
+        ]
+        before_policies = deepcopy(policies)
+        with patch.object(
+            financial_graph_helpers,
+            "active_narrative_policies",
+            return_value=policies,
+        ) as active_owner:
+            self.assertTrue(
+                financial_graph_helpers.exclusive_narrative_task_policy_active(
+                    "exclusive query"
+                )
+            )
+        active_owner.assert_called_once_with("exclusive query")
+        self.assertEqual(
+            policy_events,
+            [
+                ("first", "exclusive_narrative_task"),
+                ("second", "exclusive_narrative_task"),
+            ],
+        )
+        self.assertEqual(policies, before_policies)
+
+        with patch.object(
+            financial_graph_helpers,
+            "active_narrative_policies",
+            side_effect=RuntimeError("policy resolution failed"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "policy resolution failed"):
+                financial_graph_helpers.exclusive_narrative_task_policy_active(
+                    "query"
+                )
+
+
+    def test_current_source_hybrid_builder_pins_policy_precedence_dedupe_copy_and_stop(self) -> None:
+        events = []
+        nested = {"preserve": True}
+        report_scope = {"company": "Example", "year": 2024, "nested": nested}
+        before_scope = deepcopy(report_scope)
+        active_policy = {"format_preference_override": ""}
+
+        def record(name, value):
+            events.append((name, value))
+            return value
+
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_desired_consolidation_scope",
+                side_effect=lambda query, scope: record("scope", "consolidated"),
+            ) as scope_owner,
+            patch.object(
+                financial_graph_helpers,
+                "_infer_period_focus",
+                side_effect=lambda query, default: record("period", "current"),
+            ) as period_owner,
+            patch.object(
+                financial_graph_helpers,
+                "active_narrative_policies",
+                side_effect=lambda query: record("active", [active_policy]),
+            ) as active_owner,
+            patch.object(
+                financial_graph_helpers,
+                "narrative_policy_slot_groups",
+                side_effect=lambda policies: record(
+                    "slot-groups",
+                    [{"query_terms": ["metric"]}],
+                ),
+            ) as slot_owner,
+            patch.object(
+                financial_graph_helpers,
+                "default_format_preference",
+                side_effect=AssertionError("default format accessed"),
+            ) as default_owner,
+            patch.object(
+                financial_graph_helpers,
+                "narrative_policy_query_suffixes",
+                side_effect=lambda policies: record("suffixes", ["extra", "extra"]),
+            ) as suffix_owner,
+            patch.object(
+                financial_graph_helpers,
+                "narrative_policy_terms",
+                side_effect=lambda policies, key: record("terms", ["table-section"]),
+            ) as term_owner,
+            patch.object(
+                financial_graph_helpers,
+                "narrative_policy_preferred_sections",
+                side_effect=AssertionError("paragraph sections accessed"),
+            ) as preferred_owner,
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=lambda value: " ".join(str(value).split()),
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "PLANNING_POLICY",
+                {"hybrid_narrative_metric_label": "Narrative label"},
+            ),
+            patch.object(
+                financial_graph_helpers,
+                "NARRATIVE_BASE_RETRIEVAL_SUFFIXES",
+                ("base",),
+            ),
+        ):
+            table_task = financial_graph_helpers.build_hybrid_narrative_subtask(
+                query=" metric   query ",
+                intent="numeric_fact",
+                report_scope=report_scope,
+                next_task_id="task_7",
+            )
+
+        self.assertEqual(
+            events[:4],
+            [
+                ("scope", "consolidated"),
+                ("period", "current"),
+                ("active", [active_policy]),
+                ("slot-groups", [{"query_terms": ["metric"]}]),
+            ],
+        )
+        self.assertEqual(table_task["task_id"], "task_7")
+        self.assertEqual(table_task["metric_family"], "narrative_summary")
+        self.assertEqual(table_task["metric_label"], "Narrative label")
+        self.assertEqual(table_task["query"], " metric   query ")
+        self.assertEqual(table_task["operation_family"], "narrative_summary")
+        self.assertEqual(table_task["required_operands"], [])
+        self.assertEqual(table_task["preferred_statement_types"], [])
+        self.assertEqual(table_task["preferred_sections"], ["table-section"])
+        self.assertEqual(
+            table_task["retrieval_queries"],
+            ["metric query", "metric query extra"],
+        )
+        self.assertEqual(
+            table_task["constraints"],
+            {
+                "consolidation_scope": "consolidated",
+                "period_focus": "current",
+                "entity_scope": "unknown",
+                "segment_scope": "none",
+                "context_scope": "narrative",
+            },
+        )
+        self.assertEqual(table_task["intent_override"], "qa")
+        self.assertEqual(table_task["format_preference_override"], "table")
+        scope_owner.assert_called_once_with(" metric   query ", report_scope)
+        period_owner.assert_called_once_with(" metric   query ", "unknown")
+        active_owner.assert_called_once_with(" metric   query ")
+        self.assertIs(slot_owner.call_args.args[0][0], active_policy)
+        default_owner.assert_not_called()
+        self.assertIs(suffix_owner.call_args.args[0][0], active_policy)
+        self.assertEqual(term_owner.call_args.args[1], "preferred_sections")
+        self.assertIs(term_owner.call_args.args[0][0], active_policy)
+        preferred_owner.assert_not_called()
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(report_scope["nested"], nested)
+
+        paragraph_policy = {"format_preference_override": " PARAGRAPH "}
+        default_owner = Mock(side_effect=AssertionError("default format accessed"))
+        term_owner = Mock(side_effect=AssertionError("table terms accessed"))
+        with (
+            patch.object(financial_graph_helpers, "_desired_consolidation_scope", return_value="separate"),
+            patch.object(financial_graph_helpers, "_infer_period_focus", return_value="prior"),
+            patch.object(financial_graph_helpers, "active_narrative_policies", return_value=[paragraph_policy]),
+            patch.object(financial_graph_helpers, "narrative_policy_slot_groups", return_value=[]),
+            patch.object(financial_graph_helpers, "default_format_preference", default_owner),
+            patch.object(
+                financial_graph_helpers,
+                "narrative_policy_query_suffixes",
+                return_value=["policy", "base"],
+            ),
+            patch.object(financial_graph_helpers, "narrative_policy_terms", term_owner),
+            patch.object(
+                financial_graph_helpers,
+                "narrative_policy_preferred_sections",
+                return_value=["paragraph-section"],
+            ) as preferred_owner,
+            patch.object(
+                financial_graph_helpers,
+                "_normalise_spaces",
+                side_effect=lambda value: " ".join(str(value).split()),
+            ),
+            patch.object(financial_graph_helpers, "PLANNING_POLICY", {}),
+            patch.object(financial_graph_helpers, "NARRATIVE_BASE_RETRIEVAL_SUFFIXES", ("base",)),
+        ):
+            paragraph_task = financial_graph_helpers.build_hybrid_narrative_subtask(
+                query="query",
+                intent="trend",
+                report_scope=report_scope,
+                next_task_id="task_8",
+            )
+        self.assertEqual(paragraph_task["format_preference_override"], "paragraph")
+        self.assertEqual(
+            paragraph_task["retrieval_queries"],
+            ["query", "query base", "query policy"],
+        )
+        self.assertEqual(paragraph_task["preferred_sections"], ["paragraph-section"])
+        default_owner.assert_not_called()
+        term_owner.assert_not_called()
+        self.assertIs(preferred_owner.call_args.args[0][0], paragraph_policy)
+
+        period_owner = Mock(side_effect=AssertionError("period accessed"))
+        active_owner = Mock(side_effect=AssertionError("policies accessed"))
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_desired_consolidation_scope",
+                side_effect=RuntimeError("scope failed"),
+            ),
+            patch.object(financial_graph_helpers, "_infer_period_focus", period_owner),
+            patch.object(financial_graph_helpers, "active_narrative_policies", active_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "scope failed"):
+                financial_graph_helpers.build_hybrid_narrative_subtask(
+                    query="query",
+                    intent="trend",
+                    report_scope=report_scope,
+                    next_task_id="task_9",
+                )
+        period_owner.assert_not_called()
+        active_owner.assert_not_called()
+
+
+    def test_current_source_hybrid_append_pins_copy_task_ids_gates_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        tasks = [
+            {"task_id": "task_2", "operation_family": "sum", "nested": nested},
+            {"task_id": "invalid", "operation_family": "lookup"},
+        ]
+        before = deepcopy(tasks)
+        predicate = Mock(side_effect=AssertionError("predicate accessed"))
+        builder = Mock(side_effect=AssertionError("builder accessed"))
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_needs_hybrid_narrative_subtask",
+                return_value=False,
+            ) as gate,
+            patch.object(financial_graph_helpers, "_is_narrative_summary_task", predicate),
+            patch.object(financial_graph_helpers, "build_hybrid_narrative_subtask", builder),
+        ):
+            unchanged = financial_graph_helpers.append_hybrid_narrative_task(
+                tasks,
+                query="query",
+                intent="qa",
+                report_scope={"company": "Example"},
+            )
+        gate.assert_called_once_with("query", "qa")
+        predicate.assert_not_called()
+        builder.assert_not_called()
+        self.assertEqual(unchanged, tasks)
+        self.assertIsNot(unchanged, tasks)
+        self.assertIsNot(unchanged[0], tasks[0])
+        self.assertIs(unchanged[0]["nested"], nested)
+        self.assertEqual(tasks, before)
+        self.assertIs(tasks[0]["nested"], nested)
+
+        existing_narrative = [
+            {"task_id": "task_4", "operation_family": "sum"},
+            {"task_id": "task_5", "metric_family": "narrative_summary"},
+        ]
+        seen = []
+
+        def is_narrative(task):
+            seen.append(task)
+            return task.get("metric_family") == "narrative_summary"
+
+        builder = Mock(side_effect=AssertionError("builder accessed"))
+        with (
+            patch.object(financial_graph_helpers, "_needs_hybrid_narrative_subtask", return_value=True),
+            patch.object(financial_graph_helpers, "_is_narrative_summary_task", side_effect=is_narrative),
+            patch.object(financial_graph_helpers, "build_hybrid_narrative_subtask", builder),
+        ):
+            existing_result = financial_graph_helpers.append_hybrid_narrative_task(
+                existing_narrative,
+                query="query",
+                intent="trend",
+                report_scope={},
+            )
+        self.assertEqual(existing_result, existing_narrative)
+        self.assertEqual(len(seen), 2)
+        self.assertIsNot(seen[0], existing_narrative[0])
+        self.assertIsNot(seen[1], existing_narrative[1])
+        builder.assert_not_called()
+
+        source_tasks = [
+            {"task_id": "task_7", "operation_family": "sum", "nested": nested},
+            {"task_id": "task_3", "operation_family": "lookup"},
+            {"task_id": "task_bad", "operation_family": "difference"},
+        ]
+        report_scope = {"company": "Example", "nested": nested}
+        before_tasks = deepcopy(source_tasks)
+        before_scope = deepcopy(report_scope)
+        built = {"task_id": "task_8", "operation_family": "narrative_summary", "nested": nested}
+        predicate = Mock(return_value=False)
+        builder = Mock(return_value=built)
+        with (
+            patch.object(financial_graph_helpers, "_needs_hybrid_narrative_subtask", return_value=True) as gate,
+            patch.object(financial_graph_helpers, "_is_narrative_summary_task", predicate),
+            patch.object(financial_graph_helpers, "build_hybrid_narrative_subtask", builder),
+        ):
+            appended = financial_graph_helpers.append_hybrid_narrative_task(
+                source_tasks,
+                query="query",
+                intent="comparison",
+                report_scope=report_scope,
+            )
+        gate.assert_called_once_with("query", "comparison")
+        self.assertEqual(len(predicate.call_args_list), 3)
+        self.assertTrue(
+            all(
+                call.args[0] is not original
+                for call, original in zip(predicate.call_args_list, source_tasks)
+            )
+        )
+        self.assertEqual(
+            builder.call_args.kwargs,
+            {
+                "query": "query",
+                "intent": "comparison",
+                "report_scope": report_scope,
+                "next_task_id": "task_8",
+            },
+        )
+        self.assertIs(builder.call_args.kwargs["report_scope"], report_scope)
+        self.assertEqual(appended[:-1], source_tasks)
+        self.assertIs(appended[-1], built)
+        self.assertIsNot(appended[0], source_tasks[0])
+        self.assertIs(appended[0]["nested"], nested)
+        self.assertEqual(source_tasks, before_tasks)
+        self.assertEqual(report_scope, before_scope)
+        self.assertIs(source_tasks[0]["nested"], nested)
+        self.assertIs(report_scope["nested"], nested)
+
+        predicate = Mock(side_effect=AssertionError("predicate accessed"))
+        builder = Mock(side_effect=AssertionError("builder accessed"))
+        with (
+            patch.object(
+                financial_graph_helpers,
+                "_needs_hybrid_narrative_subtask",
+                side_effect=RuntimeError("gate failed"),
+            ),
+            patch.object(financial_graph_helpers, "_is_narrative_summary_task", predicate),
+            patch.object(financial_graph_helpers, "build_hybrid_narrative_subtask", builder),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "gate failed"):
+                financial_graph_helpers.append_hybrid_narrative_task(
+                    source_tasks,
+                    query="query",
+                    intent="comparison",
+                    report_scope=report_scope,
+                )
+        predicate.assert_not_called()
+        builder.assert_not_called()
+
+
+    def test_current_source_narrative_ordering_pins_dependencies_copies_and_exceptions(self) -> None:
+        nested = {"preserve": True}
+        tasks = [
+            {
+                "task_id": "task_3",
+                "metric_family": "narrative_summary",
+                "depends_on": [" task_1 ", "", "task_1"],
+                "nested": nested,
+            },
+            {"task_id": "task_2", "operation_family": "sum"},
+            {"task_id": "task_1", "operation_family": "lookup"},
+        ]
+        before = deepcopy(tasks)
+        ordered = financial_graph_helpers.push_narrative_tasks_after_numeric(tasks)
+        self.assertEqual(
+            [task["task_id"] for task in ordered],
+            ["task_2", "task_1", "task_3"],
+        )
+        self.assertEqual(ordered[-1]["depends_on"], ["task_1", "task_1", "task_2"])
+        self.assertIsNot(ordered, tasks)
+        self.assertTrue(all(result is not source for result, source in zip(
+            sorted(ordered, key=lambda item: item["task_id"]),
+            sorted(tasks, key=lambda item: item["task_id"]),
+        )))
+        narrative_result = next(task for task in ordered if task["task_id"] == "task_3")
+        self.assertIs(narrative_result["nested"], nested)
+        self.assertEqual(tasks, before)
+        self.assertIs(tasks[0]["nested"], nested)
+
+        only_narrative = [
+            {
+                "task_id": "task_n",
+                "operation_family": "narrative_summary",
+                "depends_on": [" untouched "],
+                "nested": nested,
+            }
+        ]
+        only_result = financial_graph_helpers.push_narrative_tasks_after_numeric(only_narrative)
+        self.assertEqual(only_result, only_narrative)
+        self.assertIsNot(only_result, only_narrative)
+        self.assertIsNot(only_result[0], only_narrative[0])
+        self.assertEqual(only_result[0]["depends_on"], [" untouched "])
+        self.assertIs(only_result[0]["nested"], nested)
+
+        already_ordered = [
+            {"task_id": "task_n", "operation_family": "narrative_summary", "depends_on": [" task_1 "]},
+            {"task_id": "task_1", "operation_family": "sum"},
+        ]
+        no_change = financial_graph_helpers.push_narrative_tasks_after_numeric(already_ordered)
+        self.assertEqual([task["task_id"] for task in no_change], ["task_n", "task_1"])
+        self.assertEqual(no_change[0]["depends_on"], ["task_1"])
+        self.assertIsNot(no_change[0], already_ordered[0])
+        self.assertEqual(already_ordered[0]["depends_on"], [" task_1 "])
+
+        predicate = Mock(side_effect=RuntimeError("classification failed"))
+        with patch.object(
+            financial_graph_helpers,
+            "_is_narrative_summary_task",
+            predicate,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "classification failed"):
+                financial_graph_helpers.push_narrative_tasks_after_numeric(tasks)
+        predicate.assert_called_once()
+        self.assertIsNot(predicate.call_args.args[0], tasks[0])
+        self.assertEqual(tasks, before)
+        self.assertIs(tasks[0]["nested"], nested)
+
+
+    def test_current_source_narrative_policy_bindings_pin_defs_calls_dag_imports_and_baseline(self) -> None:
+        repo_root = Path(__file__).resolve().parents[1]
+        module_paths = {
+            "graph": repo_root / "src" / "agent" / "financial_graph_planning.py",
+            "owner": repo_root / "src" / "agent" / "financial_graph_helpers.py",
+        }
+        module_sources = {
+            name: path.read_text(encoding="utf-8-sig")
+            for name, path in module_paths.items()
+        }
+        module_trees = {name: ast.parse(source) for name, source in module_sources.items()}
+        targets = {
+            "is_narrative": "_is_narrative_summary_task",
+            "needs_hybrid": "_needs_hybrid_narrative_subtask",
+            "build": "build_hybrid_narrative_subtask",
+            "append": "append_hybrid_narrative_task",
+            "push": "push_narrative_tasks_after_numeric",
+            "exclusive": "exclusive_narrative_task_policy_active",
+        }
+        public_after_move = {
+            "build_hybrid_narrative_subtask",
+            "append_hybrid_narrative_task",
+            "push_narrative_tasks_after_numeric",
+            "exclusive_narrative_task_policy_active",
+        }
+        key_by_name = {name: key for key, name in targets.items()}
+        definitions = {}
+        calls = {key: [] for key in targets}
+        try_depths = {key: [] for key in targets}
+
+        class BindingVisitor(ast.NodeVisitor):
+            def __init__(self, module_name):
+                self.module_name = module_name
+                self.function_stack = []
+                self.class_stack = []
+                self.try_depth = 0
+
+            def visit_ClassDef(self, node):
+                self.class_stack.append(node.name)
+                self.generic_visit(node)
+                self.class_stack.pop()
+
+            def visit_FunctionDef(self, node):
+                if node.name in key_by_name:
+                    definitions[node.name] = (
+                        self.module_name,
+                        tuple(self.class_stack),
+                        node,
+                    )
+                self.function_stack.append(node.name)
+                self.generic_visit(node)
+                self.function_stack.pop()
+
+            visit_AsyncFunctionDef = visit_FunctionDef
+
+            def visit_Try(self, node):
+                self.try_depth += 1
+                self.generic_visit(node)
+                self.try_depth -= 1
+
+            visit_TryStar = visit_Try
+
+            def visit_Call(self, node):
+                called_name = (
+                    node.func.id
+                    if isinstance(node.func, ast.Name)
+                    else node.func.attr
+                    if isinstance(node.func, ast.Attribute)
+                    else ""
+                )
+                key = key_by_name.get(called_name)
+                if key:
+                    calls[key].append(
+                        (
+                            self.module_name,
+                            tuple(self.function_stack),
+                            ast.unparse(node.func.value)
+                            if isinstance(node.func, ast.Attribute)
+                            else "",
+                            tuple(ast.unparse(argument) for argument in node.args),
+                            tuple(
+                                (keyword.arg, ast.unparse(keyword.value))
+                                for keyword in node.keywords
+                            ),
+                        )
+                    )
+                    try_depths[key].append(self.try_depth)
+                self.generic_visit(node)
+
+        for module_name, tree in module_trees.items():
+            BindingVisitor(module_name).visit(tree)
+
+        self.assertEqual(
+            {
+                name: (
+                    module_name,
+                    class_stack,
+                    node.end_lineno - node.lineno + 1,
+                )
+                for name, (module_name, class_stack, node) in definitions.items()
+            },
+            {
+                "_is_narrative_summary_task": ("owner", (), 4),
+                "_needs_hybrid_narrative_subtask": ("owner", (), 2),
+                "build_hybrid_narrative_subtask": ("owner", (), 63),
+                "append_hybrid_narrative_task": ("owner", (), 38),
+                "push_narrative_tasks_after_numeric": ("owner", (), 31),
+                "exclusive_narrative_task_policy_active": ("owner", (), 5),
+            },
+        )
+        self.assertEqual(sum(
+            node.end_lineno - node.lineno + 1
+            for _module_name, _class_stack, node in definitions.values()
+        ), 143)
+        owner_top_level = {
+            node.name
+            for node in module_trees["owner"].body
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        self.assertTrue(public_after_move.issubset(owner_top_level))
+        self.assertEqual(
+            (
+                sum(not name.startswith("_") for name in owner_top_level),
+                sum(name.startswith("_") for name in owner_top_level),
+            ),
+            (9, 134),
+        )
+        self.assertEqual(
+            {key: len(entries) for key, entries in calls.items()},
+            {
+                "is_narrative": 5,
+                "needs_hybrid": 1,
+                "build": 2,
+                "append": 2,
+                "push": 2,
+                "exclusive": 1,
+            },
+        )
+        self.assertEqual(
+            try_depths,
+            {
+                "is_narrative": [0, 0, 0, 0, 0],
+                "needs_hybrid": [0],
+                "build": [0, 0],
+                "append": [0, 0],
+                "push": [0, 0],
+                "exclusive": [0],
+            },
+        )
+        self.assertTrue(
+            all(
+                receiver == ""
+                for entries in calls.values()
+                for _module, _stack, receiver, _args, _keywords in entries
+            )
+        )
+        self.assertEqual(
+            [(entry[1][-1], entry[3], entry[4]) for entry in calls["needs_hybrid"]],
+            [("append_hybrid_narrative_task", ("query", "intent"), ())],
+        )
+        self.assertEqual(
+            [(entry[1][-1], entry[3], entry[4]) for entry in calls["build"]],
+            [
+                (
+                    "_plan_exclusive_narrative_task",
+                    (),
+                    (
+                        ("query", "query"),
+                        ("intent", "intent"),
+                        ("report_scope", "report_scope"),
+                        ("next_task_id", "'task_1'"),
+                    ),
+                ),
+                (
+                    "append_hybrid_narrative_task",
+                    (),
+                    (
+                        ("query", "query"),
+                        ("intent", "intent"),
+                        ("report_scope", "report_scope"),
+                        ("next_task_id", "f'task_{next_index}'"),
+                    ),
+                ),
+            ],
+        )
+        self.assertEqual(
+            [(entry[1][-1], entry[3], entry[4]) for entry in calls["append"]],
+            [
+                (
+                    "_plan_semantic_numeric_tasks",
+                    ("merged_tasks",),
+                    (("query", "query"), ("intent", "intent"), ("report_scope", "report_scope")),
+                ),
+                (
+                    "_plan_semantic_numeric_tasks",
+                    ("logical_tasks",),
+                    (("query", "query"), ("intent", "intent"), ("report_scope", "report_scope")),
+                ),
+            ],
+        )
+        self.assertEqual(
+            [(entry[1][-1], entry[3], entry[4]) for entry in calls["push"]],
+            [
+                ("_plan_semantic_numeric_tasks", ("execution_tasks",), ()),
+                ("_plan_semantic_numeric_tasks", ("tasks",), ()),
+            ],
+        )
+
+        selected_names = set(targets.values())
+        planned_distribution = {}
+        external = local = 0
+        for key, entries in calls.items():
+            local_count = sum(
+                bool(selected_names.intersection(function_stack))
+                for _module, function_stack, _receiver, _args, _keywords in entries
+            )
+            external_count = len(entries) - local_count
+            planned_distribution[key] = (external_count, local_count)
+            external += external_count
+            local += local_count
+        self.assertEqual(
+            planned_distribution,
+            {
+                "is_narrative": (0, 5),
+                "needs_hybrid": (0, 1),
+                "build": (1, 1),
+                "append": (2, 0),
+                "push": (2, 0),
+                "exclusive": (1, 0),
+            },
+        )
+        self.assertEqual((external, local), (6, 7))
+
+        selected_nodes = [item[2] for item in definitions.values()]
+        selected_node_ids = {
+            id(node)
+            for definition in selected_nodes
+            for node in ast.walk(definition)
+        }
+        dead_after_move = {
+            "_infer_period_focus",
+            "_query_requests_narrative_context",
+            "_desired_consolidation_scope",
+            "NARRATIVE_BASE_RETRIEVAL_SUFFIXES",
+            "active_narrative_policies",
+            "narrative_policy_preferred_sections",
+            "narrative_policy_query_suffixes",
+            "narrative_policy_slot_groups",
+            "narrative_policy_terms",
+            "default_format_preference",
+        }
+        outside_loads = {
+            name: [
+                node.lineno
+                for node in ast.walk(module_trees["graph"])
+                if isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == name
+                and id(node) not in selected_node_ids
+            ]
+            for name in dead_after_move
+        }
+        self.assertEqual(outside_loads, {name: [] for name in dead_after_move})
+
+        def imported_modules(tree):
+            modules = set()
+            for node in tree.body:
+                if isinstance(node, ast.ImportFrom) and node.module:
+                    modules.add(node.module)
+                elif isinstance(node, ast.Import):
+                    modules.update(alias.name for alias in node.names)
+            return modules
+
+        owner_imports = imported_modules(module_trees["owner"])
+        self.assertIn("src.config.retrieval_policy", owner_imports)
+        self.assertIn("src.agent.financial_operation_policies", owner_imports)
+        self.assertIn("src.agent.financial_scope_policies", owner_imports)
+        self.assertIn("src.routing", owner_imports)
+        self.assertNotIn("src.agent.financial_graph_planning", owner_imports)
+        routing_imports = set()
+        for path in (repo_root / "src" / "routing").rglob("*.py"):
+            routing_imports.update(imported_modules(ast.parse(path.read_text(encoding="utf-8-sig"))))
+        self.assertNotIn("src.agent.financial_graph_helpers", routing_imports)
+
+        baseline = json.loads(
+            (repo_root / "tests" / "fixtures" / "runtime_domain_terms_baseline.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(len(baseline["records"]), 218)
+        selected_ranges = [(node.lineno, node.end_lineno) for node in selected_nodes]
+        self.assertEqual(
+            [
+                record
+                for record in baseline["records"]
+                if record.get("path") == "src/agent/financial_graph_helpers.py"
+                and any(
+                    start <= line <= end
+                    for line in record.get("first_lines") or []
+                    for start, end in selected_ranges
+                )
+            ],
+            [],
+        )
+
+
+    def test_current_source_narrative_policy_callers_pin_args_order_adoption_and_stop(self) -> None:
+        nested = {"preserve": True}
+        report_scope = {"company": "Example", "year": 2024, "nested": nested}
+        state = {
+            "companies": ["State Co"],
+            "years": [2023],
+            "tasks": [{"task_id": "ledger-task", "nested": nested}],
+            "artifacts": [{"artifact_id": "ledger-artifact"}],
+            "section_filter": "section",
+            "nested": nested,
+        }
+        before_state = deepcopy(state)
+        narrative_task = {
+            "task_id": "task_1",
+            "metric_family": "narrative_summary",
+            "operation_family": "narrative_summary",
+            "retrieval_queries": ["query", "extra", "query"],
+            "nested": nested,
+        }
+        events = []
+
+        def gate(query):
+            events.append(("gate", query))
+            return True
+
+        def build(**kwargs):
+            events.append(("build", kwargs))
+            return narrative_task
+
+        def align(**kwargs):
+            events.append(("align", kwargs))
+            return ["Aligned Co"], [2024]
+
+        def artifact(**kwargs):
+            events.append(("artifact", kwargs))
+            return {"tasks": ["updated-task"], "artifacts": ["updated-artifact"]}
+
+        with (
+            patch.object(
+                financial_graph_planning,
+                "exclusive_narrative_task_policy_active",
+                side_effect=gate,
+            ),
+            patch.object(
+                financial_graph_planning,
+                "build_hybrid_narrative_subtask",
+                side_effect=build,
+            ),
+            patch.object(financial_graph_planning, "align_scope_hints", side_effect=align),
+            patch.object(
+                financial_graph_planning,
+                "_semantic_plan_artifact_update",
+                side_effect=artifact,
+            ),
+        ):
+            exclusive = financial_graph_planning.FinancialAgentPlanningMixin._plan_exclusive_narrative_task(
+                SimpleNamespace(),
+                state,
+                query="query",
+                topic=" topic ",
+                intent="trend",
+                report_scope=report_scope,
+                plan_loop_count=2,
+            )
+        self.assertEqual([event[0] for event in events], ["gate", "build", "align", "artifact"])
+        self.assertEqual(
+            events[1][1],
+            {
+                "query": "query",
+                "intent": "trend",
+                "report_scope": report_scope,
+                "next_task_id": "task_1",
+            },
+        )
+        self.assertIs(events[1][1]["report_scope"], report_scope)
+        self.assertEqual(
+            events[2][1],
+            {
+                "companies": ["State Co"],
+                "years": [2023],
+                "report_scope": report_scope,
+            },
+        )
+        self.assertIs(events[2][1]["report_scope"], report_scope)
+        artifact_kwargs = events[3][1]
+        self.assertEqual(artifact_kwargs["artifact_task_id"], "task_1")
+        self.assertIs(artifact_kwargs["calculation_tasks"][0], narrative_task)
+        self.assertEqual(artifact_kwargs["retrieval_queries"], ["query", "extra"])
+        self.assertEqual(exclusive["companies"], ["Aligned Co"])
+        self.assertEqual(exclusive["years"], [2024])
+        self.assertEqual(exclusive["topic"], "topic")
+        self.assertIs(exclusive["calc_subtasks"][0], narrative_task)
+        self.assertIs(exclusive["active_subtask"], narrative_task)
+        self.assertEqual(exclusive["retrieval_queries"], ["query", "extra"])
+        self.assertEqual(exclusive["tasks"], ["updated-task"])
+        self.assertEqual(exclusive["artifacts"], ["updated-artifact"])
+        self.assertEqual(state, before_state)
+        self.assertIs(state["nested"], nested)
+        self.assertIs(state["tasks"][0]["nested"], nested)
+
+        build_owner = Mock(side_effect=AssertionError("builder accessed"))
+        align_owner = Mock(side_effect=AssertionError("scope accessed"))
+        artifact_owner = Mock(side_effect=AssertionError("artifact accessed"))
+        with (
+            patch.object(financial_graph_planning, "exclusive_narrative_task_policy_active", return_value=False),
+            patch.object(financial_graph_planning, "build_hybrid_narrative_subtask", build_owner),
+            patch.object(financial_graph_planning, "align_scope_hints", align_owner),
+            patch.object(financial_graph_planning, "_semantic_plan_artifact_update", artifact_owner),
+        ):
+            self.assertEqual(
+                financial_graph_planning.FinancialAgentPlanningMixin._plan_exclusive_narrative_task(
+                    SimpleNamespace(),
+                    state,
+                    query="query",
+                    topic="topic",
+                    intent="trend",
+                    report_scope=report_scope,
+                    plan_loop_count=0,
+                ),
+                {},
+            )
+        build_owner.assert_not_called()
+        align_owner.assert_not_called()
+        artifact_owner.assert_not_called()
+
+        align_owner = Mock(side_effect=AssertionError("scope accessed"))
+        artifact_owner = Mock(side_effect=AssertionError("artifact accessed"))
+        with (
+            patch.object(financial_graph_planning, "exclusive_narrative_task_policy_active", return_value=True),
+            patch.object(
+                financial_graph_planning,
+                "build_hybrid_narrative_subtask",
+                side_effect=RuntimeError("builder failed"),
+            ),
+            patch.object(financial_graph_planning, "align_scope_hints", align_owner),
+            patch.object(financial_graph_planning, "_semantic_plan_artifact_update", artifact_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "builder failed"):
+                financial_graph_planning.FinancialAgentPlanningMixin._plan_exclusive_narrative_task(
+                    SimpleNamespace(),
+                    state,
+                    query="query",
+                    topic="topic",
+                    intent="trend",
+                    report_scope=report_scope,
+                    plan_loop_count=0,
+                )
+        align_owner.assert_not_called()
+        artifact_owner.assert_not_called()
+        self.assertEqual(state, before_state)
+
+        initial_nested = {"preserve": True}
+        initial_task = {"task_id": "task_1", "metric_family": "base", "nested": initial_nested}
+        appended_task = {"task_id": "task_2", "metric_family": "narrative_summary", "nested": initial_nested}
+        execution_task = {"task_id": "task_2", "metric_family": "annotated", "nested": initial_nested}
+        pushed_task = {"task_id": "task_2", "metric_family": "pushed", "nested": initial_nested}
+        projected_task = {"task_id": "task_2", "metric_family": "projected", "nested": initial_nested}
+        initial_plan = {
+            "status": "deterministic",
+            "tasks": [initial_task],
+            "companies": ["Plan Co"],
+            "years": [2024],
+            "planner_notes": [],
+        }
+        initial_state = {
+            "query": "query",
+            "intent": "comparison",
+            "topic": "topic",
+            "report_scope": report_scope,
+            "tasks": [],
+            "artifacts": [],
+            "nested": initial_nested,
+        }
+        before_initial = deepcopy(initial_state)
+        initial_events = []
+
+        def append_initial(tasks, **kwargs):
+            initial_events.append(("append", tasks, kwargs))
+            self.assertIsNot(tasks, initial_plan["tasks"])
+            self.assertIs(tasks[0]["nested"], initial_nested)
+            return [appended_task]
+
+        def annotate_initial(tasks, **kwargs):
+            initial_events.append(("annotate", tasks, kwargs))
+            self.assertIs(tasks[0], appended_task)
+            return [execution_task]
+
+        def push_initial(tasks):
+            initial_events.append(("push", tasks))
+            self.assertIs(tasks[0], execution_task)
+            return [pushed_task]
+
+        def project_initial(logical, execution):
+            initial_events.append(("project", logical, execution))
+            self.assertIs(logical[0], appended_task)
+            self.assertIs(execution[0], pushed_task)
+            return [projected_task]
+
+        def align_initial(**kwargs):
+            initial_events.append(("align", kwargs))
+            return ["Aligned"], [2024]
+
+        def artifact_initial(**kwargs):
+            initial_events.append(("artifact", kwargs))
+            self.assertIs(kwargs["calculation_tasks"][0], pushed_task)
+            return {"tasks": ["ledger"], "artifacts": ["artifact"]}
+
+        initial_agent = SimpleNamespace(
+            _plan_exclusive_narrative_task=Mock(return_value={}),
+        )
+        with (
+            patch.object(financial_graph_planning, "_build_semantic_numeric_plan", return_value=initial_plan),
+            patch.object(financial_graph_planning, "append_hybrid_narrative_task", side_effect=append_initial),
+            patch.object(financial_graph_planning, "_annotate_task_dependencies", side_effect=annotate_initial),
+            patch.object(financial_graph_planning, "push_narrative_tasks_after_numeric", side_effect=push_initial),
+            patch.object(
+                financial_graph_planning,
+                "_project_logical_tasks_from_execution_tasks",
+                side_effect=project_initial,
+            ),
+            patch.object(financial_graph_planning, "align_scope_hints", side_effect=align_initial),
+            patch.object(financial_graph_planning, "_semantic_plan_artifact_update", side_effect=artifact_initial),
+        ):
+            initial_result = financial_graph_planning.FinancialAgentPlanningMixin._plan_semantic_numeric_tasks(
+                initial_agent,
+                initial_state,
+            )
+        self.assertEqual(
+            [event[0] for event in initial_events],
+            ["append", "annotate", "push", "project", "align", "artifact"],
+        )
+        self.assertEqual(
+            initial_events[0][2],
+            {"query": "query", "intent": "comparison", "report_scope": report_scope},
+        )
+        self.assertIsNot(initial_events[0][2]["report_scope"], report_scope)
+        self.assertIs(initial_events[0][2]["report_scope"]["nested"], nested)
+        self.assertEqual(initial_result["semantic_plan"]["tasks"], [projected_task])
+        self.assertIs(initial_result["calc_subtasks"][0], pushed_task)
+        self.assertIs(initial_result["active_subtask"]["nested"], initial_nested)
+        self.assertEqual(initial_result["tasks"], ["ledger"])
+        self.assertEqual(initial_state, before_initial)
+        self.assertIs(initial_state["nested"], initial_nested)
+
+        downstream = Mock(side_effect=AssertionError("dependency annotation accessed"))
+        artifact_owner = Mock(side_effect=AssertionError("artifact accessed"))
+        with (
+            patch.object(financial_graph_planning, "_build_semantic_numeric_plan", return_value=initial_plan),
+            patch.object(
+                financial_graph_planning,
+                "append_hybrid_narrative_task",
+                side_effect=RuntimeError("append failed"),
+            ),
+            patch.object(financial_graph_planning, "_annotate_task_dependencies", downstream),
+            patch.object(financial_graph_planning, "_semantic_plan_artifact_update", artifact_owner),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "append failed"):
+                financial_graph_planning.FinancialAgentPlanningMixin._plan_semantic_numeric_tasks(
+                    initial_agent,
+                    initial_state,
+                )
+        downstream.assert_not_called()
+        artifact_owner.assert_not_called()
+        self.assertEqual(initial_state, before_initial)
+
+        replan_existing = {"task_id": "task_1", "metric_family": "existing", "nested": nested}
+        replan_appended = {"task_id": "task_2", "metric_family": "patch", "nested": nested}
+        replan_merged = [replan_existing, replan_appended]
+        replan_hybrid = {"task_id": "task_3", "metric_family": "narrative_summary", "nested": nested}
+        replan_execution = {"task_id": "task_2", "metric_family": "execution", "nested": nested}
+        replan_pushed = {"task_id": "task_2", "metric_family": "ordered", "nested": nested}
+        replan_projected = {"task_id": "task_2", "metric_family": "logical", "nested": nested}
+        replan_state = {
+            "query": "query",
+            "intent": "trend",
+            "topic": "topic",
+            "report_scope": report_scope,
+            "planner_mode": "replan",
+            "planner_feedback": "retry",
+            "semantic_plan": {"status": "concept_fallback", "tasks": [replan_existing]},
+            "calc_subtasks": [replan_existing],
+            "subtask_results": [],
+            "tasks": [],
+            "artifacts": [],
+            "nested": nested,
+        }
+        before_replan = deepcopy(replan_state)
+        replan_events = []
+        replan_agent = SimpleNamespace(
+            _plan_exclusive_narrative_task=Mock(return_value={}),
+            _build_llm_concept_numeric_plan=Mock(
+                return_value={
+                    "status": "concept_fallback",
+                    "tasks": [replan_appended],
+                    "planner_notes": ["patch"],
+                }
+            ),
+            _append_replanned_tasks=Mock(return_value=(replan_merged, [replan_appended])),
+        )
+
+        def append_replan(tasks, **kwargs):
+            replan_events.append(("append", tasks, kwargs))
+            self.assertIs(tasks, replan_merged)
+            return [replan_hybrid]
+
+        def annotate_replan(tasks, **kwargs):
+            replan_events.append(("annotate", tasks, kwargs))
+            self.assertIs(tasks[0], replan_hybrid)
+            return [replan_execution]
+
+        def push_replan(tasks):
+            replan_events.append(("push", tasks))
+            self.assertIs(tasks[0], replan_execution)
+            return [replan_pushed]
+
+        def project_replan(logical, execution):
+            replan_events.append(("project", logical, execution))
+            self.assertIs(logical[0], replan_hybrid)
+            self.assertIs(execution[0], replan_pushed)
+            return [replan_projected]
+
+        with (
+            patch.object(financial_graph_planning, "append_hybrid_narrative_task", side_effect=append_replan),
+            patch.object(financial_graph_planning, "_annotate_task_dependencies", side_effect=annotate_replan),
+            patch.object(financial_graph_planning, "push_narrative_tasks_after_numeric", side_effect=push_replan),
+            patch.object(
+                financial_graph_planning,
+                "_project_logical_tasks_from_execution_tasks",
+                side_effect=project_replan,
+            ),
+            patch.object(financial_graph_planning, "_dependency_closure_task_ids", return_value={"task_2"}),
+            patch.object(financial_graph_planning, "align_scope_hints", return_value=([], [])),
+            patch.object(
+                financial_graph_planning,
+                "_semantic_plan_artifact_update",
+                return_value={"tasks": [], "artifacts": []},
+            ),
+        ):
+            replan_result = financial_graph_planning.FinancialAgentPlanningMixin._plan_semantic_numeric_tasks(
+                replan_agent,
+                replan_state,
+            )
+        self.assertEqual(
+            [event[0] for event in replan_events],
+            ["append", "annotate", "push", "project"],
+        )
+        self.assertEqual(
+            replan_events[0][2],
+            {"query": "query", "intent": "trend", "report_scope": report_scope},
+        )
+        self.assertIsNot(replan_events[0][2]["report_scope"], report_scope)
+        self.assertIs(replan_events[0][2]["report_scope"]["nested"], nested)
+        self.assertIs(replan_result["calc_subtasks"][0], replan_pushed)
+        self.assertEqual(replan_result["semantic_plan"]["tasks"], [replan_projected])
+        self.assertEqual(replan_state, before_replan)
+        self.assertIs(replan_state["nested"], nested)
 
 if __name__ == "__main__":
     unittest.main()

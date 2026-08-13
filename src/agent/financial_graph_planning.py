@@ -26,11 +26,14 @@ from src.agent.financial_graph_helpers import (
     _build_semantic_numeric_plan,
     _infer_generic_concept_spec,
     _infer_operation_family_from_query,
-    _infer_period_focus,
     align_scope_hints,
+    append_hybrid_narrative_task,
     apply_segment_labels_to_llm_resolved_specs,
+    build_hybrid_narrative_subtask,
+    exclusive_narrative_task_policy_active,
     llm_plan_preserves_analysis_shape,
     llm_plan_preserves_segment_sum_shape,
+    push_narrative_tasks_after_numeric,
     validate_concept_planner_task,
 )
 from src.agent.financial_graph_model_loaders import (
@@ -56,24 +59,13 @@ from src.agent.financial_runtime_trace import (
     _resolve_runtime_calculation_trace,
 )
 from src.agent.financial_task_artifacts import semantic_plan_artifact_update as _semantic_plan_artifact_update
-from src.agent.financial_operation_policies import _query_requests_narrative_context
 from src.agent.financial_lookup_recovery import coerce_lookup_magnitude_record
 from src.agent.financial_surface_contracts import _operand_needles
-from src.agent.financial_scope_policies import (
-    _desired_consolidation_scope,
-)
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
-    NARRATIVE_BASE_RETRIEVAL_SUFFIXES,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
     PLANNING_POLICY,
-    active_narrative_policies,
-    narrative_policy_preferred_sections,
-    narrative_policy_query_suffixes,
-    narrative_policy_slot_groups,
-    narrative_policy_terms,
 )
-from src.routing import default_format_preference
 logger = logging.getLogger(__name__)
 
 
@@ -494,161 +486,6 @@ def _dependency_closure_task_ids(
                 closure.add(dependency_id)
                 pending.append(dependency_id)
     return closure
-
-
-def _is_narrative_summary_task(task: Dict[str, Any]) -> bool:
-    operation_family = _normalise_spaces(str(task.get("operation_family") or "")).lower()
-    metric_family = _normalise_spaces(str(task.get("metric_family") or "")).lower()
-    return operation_family == "narrative_summary" or metric_family == "narrative_summary"
-
-
-def _needs_hybrid_narrative_subtask(query: str, intent: str) -> bool:
-    return intent in {"comparison", "trend", "numeric_fact"} and _query_requests_narrative_context(query)
-
-
-def _build_hybrid_narrative_subtask(
-    *,
-    query: str,
-    intent: str = "qa",
-    report_scope: Dict[str, Any],
-    next_task_id: str,
-) -> Dict[str, Any]:
-    consolidation_scope = _desired_consolidation_scope(query, report_scope)
-    period_focus = _infer_period_focus(query, "unknown")
-    active_policies = active_narrative_policies(query)
-    active_slot_groups = [
-        group
-        for group in narrative_policy_slot_groups(active_policies)
-        if any(str(term).strip() and str(term).strip() in query for term in (group.get("query_terms") or []))
-    ]
-    policy_format_preference = next(
-        (
-            str(policy.get("format_preference_override") or "").strip().lower()
-            for policy in active_policies
-            if str(policy.get("format_preference_override") or "").strip().lower() in {"paragraph", "table"}
-        ),
-        "",
-    )
-    format_preference_override = policy_format_preference or (
-        "table"
-        if active_slot_groups or default_format_preference(intent) == "table"
-        else "paragraph"
-    )
-    retrieval_queries = [_normalise_spaces(query)]
-    base_suffixes = (
-        ()
-        if format_preference_override == "table"
-        else NARRATIVE_BASE_RETRIEVAL_SUFFIXES
-    )
-    retrieval_queries.extend(
-        _normalise_spaces(f"{query} {suffix}")
-        for suffix in (*base_suffixes, *narrative_policy_query_suffixes(active_policies))
-    )
-    preferred_sections = (
-        narrative_policy_terms(active_policies, "preferred_sections")
-        if format_preference_override == "table"
-        else narrative_policy_preferred_sections(active_policies)
-    )
-    return {
-        "task_id": next_task_id,
-        "metric_family": "narrative_summary",
-        "metric_label": str(PLANNING_POLICY.get("hybrid_narrative_metric_label") or ""),
-        "query": query,
-        "operation_family": "narrative_summary",
-        "required_operands": [],
-        "preferred_statement_types": [],
-        "preferred_sections": preferred_sections,
-        "retrieval_queries": list(dict.fromkeys(item for item in retrieval_queries if item)),
-        "constraints": {
-            "consolidation_scope": consolidation_scope,
-            "period_focus": period_focus,
-            "entity_scope": "unknown",
-            "segment_scope": "none",
-            "context_scope": "narrative",
-        },
-        "intent_override": "qa",
-        "format_preference_override": format_preference_override,
-    }
-
-
-def _append_hybrid_narrative_task(
-    tasks: List[Dict[str, Any]],
-    *,
-    query: str,
-    intent: str,
-    report_scope: Dict[str, Any],
-) -> List[Dict[str, Any]]:
-    base_tasks = [dict(task) for task in (tasks or [])]
-    if not _needs_hybrid_narrative_subtask(query, intent):
-        return base_tasks
-    if any(_is_narrative_summary_task(task) for task in base_tasks):
-        return base_tasks
-    next_index = 1
-    if base_tasks:
-        next_index = max(
-            1,
-            max(
-                (
-                    int(match.group(1))
-                    for match in (
-                        re.match(r"task_(\d+)$", str(task.get("task_id") or "").strip())
-                        for task in base_tasks
-                    )
-                    if match
-                ),
-                default=0,
-            )
-            + 1,
-        )
-    base_tasks.append(
-        _build_hybrid_narrative_subtask(
-            query=query,
-            intent=intent,
-            report_scope=report_scope,
-            next_task_id=f"task_{next_index}",
-        )
-    )
-    return base_tasks
-
-
-def _push_narrative_tasks_after_numeric(tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    ordered = [dict(task) for task in (tasks or [])]
-    numeric_task_ids = [
-        str(task.get("task_id") or "").strip()
-        for task in ordered
-        if not _is_narrative_summary_task(task) and str(task.get("task_id") or "").strip()
-    ]
-    if not numeric_task_ids:
-        return ordered
-
-    changed = False
-    for task in ordered:
-        if not _is_narrative_summary_task(task):
-            continue
-        task_id = str(task.get("task_id") or "").strip()
-        dependencies = [
-            _normalise_spaces(str(item or ""))
-            for item in (task.get("depends_on") or [])
-            if _normalise_spaces(str(item or ""))
-        ]
-        for dependency_id in numeric_task_ids:
-            if dependency_id == task_id or dependency_id in dependencies:
-                continue
-            dependencies.append(dependency_id)
-            changed = True
-        task["depends_on"] = dependencies
-    if not changed:
-        return ordered
-    numeric_tasks = [task for task in ordered if not _is_narrative_summary_task(task)]
-    narrative_tasks = [task for task in ordered if _is_narrative_summary_task(task)]
-    return numeric_tasks + narrative_tasks
-
-
-def _exclusive_narrative_task_policy_active(query: str) -> bool:
-    return any(
-        bool(policy.get("exclusive_narrative_task"))
-        for policy in active_narrative_policies(query)
-    )
 
 
 def _non_numeric_operation_intent_override(query: str, topic: str, intent: str) -> tuple[str, str]:
@@ -1112,9 +949,9 @@ class FinancialAgentPlanningMixin:
         report_scope: Dict[str, Any],
         plan_loop_count: int,
     ) -> Dict[str, Any]:
-        if not _exclusive_narrative_task_policy_active(query):
+        if not exclusive_narrative_task_policy_active(query):
             return {}
-        narrative_task = _build_hybrid_narrative_subtask(
+        narrative_task = build_hybrid_narrative_subtask(
             query=query,
             intent=intent,
             report_scope=report_scope,
@@ -1261,7 +1098,7 @@ class FinancialAgentPlanningMixin:
             )
             patch_tasks = [dict(task) for task in (llm_plan or {}).get("tasks", [])]
             merged_tasks, appended_tasks = self._append_replanned_tasks(existing_tasks, patch_tasks)
-            merged_tasks = _append_hybrid_narrative_task(
+            merged_tasks = append_hybrid_narrative_task(
                 merged_tasks,
                 query=query,
                 intent=intent,
@@ -1271,7 +1108,7 @@ class FinancialAgentPlanningMixin:
                 merged_tasks,
                 report_scope=report_scope,
             )
-            execution_tasks = _push_narrative_tasks_after_numeric(execution_tasks)
+            execution_tasks = push_narrative_tasks_after_numeric(execution_tasks)
             semantic_plan_tasks = _project_logical_tasks_from_execution_tasks(
                 merged_tasks,
                 execution_tasks,
@@ -1427,7 +1264,7 @@ class FinancialAgentPlanningMixin:
         if intent_override_note:
             plan["planner_notes"] = list(dict.fromkeys([intent_override_note, *list(plan.get("planner_notes") or [])]))
         logical_tasks = [dict(task) for task in (plan.get("tasks") or [])]
-        logical_tasks = _append_hybrid_narrative_task(
+        logical_tasks = append_hybrid_narrative_task(
             logical_tasks,
             query=query,
             intent=intent,
@@ -1437,7 +1274,7 @@ class FinancialAgentPlanningMixin:
             logical_tasks,
             report_scope=report_scope,
         )
-        tasks = _push_narrative_tasks_after_numeric(tasks)
+        tasks = push_narrative_tasks_after_numeric(tasks)
         plan["tasks"] = _project_logical_tasks_from_execution_tasks(logical_tasks, tasks)
         planned_metric_families = [
             str(task.get("metric_family") or "").strip()
